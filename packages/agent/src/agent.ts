@@ -19,8 +19,21 @@ import type {
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
-import { isModelSupportingTools } from '@forestadmin/ai-proxy';
+import {
+  AIBadRequestError,
+  AIError,
+  AINotFoundError,
+  Router as AiProxyRouter,
+  extractMcpOauthTokensFromHeaders,
+  injectOauthTokens,
+  isModelSupportingTools,
+} from '@forestadmin/ai-proxy';
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
+import {
+  BadRequestError,
+  NotFoundError,
+  UnprocessableError,
+} from '@forestadmin/datasource-toolkit';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
 import Router from '@koa/router';
@@ -268,7 +281,43 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         'Make sure to test Forest Admin AI features thoroughly to ensure compatibility.',
     );
 
+    // Store for schema metadata
     this.aiConfigurations.push(configuration);
+
+    // Register AI proxy route via addRouter
+    this.addRouter((router, context) => {
+      const aiProxyRouter = new AiProxyRouter({
+        aiConfigurations: [configuration],
+        logger: context.logger,
+      });
+
+      router.post('/_internal/ai-proxy/:route', async ctx => {
+        try {
+          const tokensByMcpServerName = extractMcpOauthTokensFromHeaders(ctx.request.headers);
+          const mcpConfigs =
+            await context.options.forestAdminClient.mcpServerConfigService.getConfiguration();
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ctx.response.body = await aiProxyRouter.route({
+            route: ctx.params.route,
+            body: ctx.request.body,
+            query: ctx.query,
+            mcpConfigs: injectOauthTokens({ mcpConfigs, tokensByMcpServerName }),
+          } as any);
+          ctx.response.status = 200;
+        } catch (error) {
+          if (error instanceof AIError) {
+            context.logger('Error', `AI proxy error: ${(error as Error).message}`, error);
+
+            if (error instanceof AIBadRequestError) throw new BadRequestError(error.message);
+            if (error instanceof AINotFoundError) throw new NotFoundError(error.message);
+            throw new UnprocessableError(error.message);
+          }
+
+          throw error;
+        }
+      });
+    });
 
     return this;
   }
@@ -314,9 +363,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    const routes = makeRoutes(dataSource, this.options, services, this.aiConfigurations);
+    const routes = makeRoutes(dataSource, this.options, services);
 
-    // Add custom routes
+    // Add custom routes (includes AI proxy route if addAi was called)
     for (const { callback, options } of this.customRouterCallbacks) {
       routes.push(new CustomRoute(services, this.options, dataSource, callback, options));
     }
