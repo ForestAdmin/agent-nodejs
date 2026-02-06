@@ -754,6 +754,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
                 },
               ],
               tool_choice: 'required',
+              parallel_tool_calls: false,
             },
           })) as ChatCompletionResponse;
 
