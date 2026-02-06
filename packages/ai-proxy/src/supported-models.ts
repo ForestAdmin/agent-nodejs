@@ -59,6 +59,11 @@ const UNSUPPORTED_MODEL_PATTERNS = [
  */
 const SUPPORTED_MODEL_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
 
+/**
+ * Checks if a model is compatible with Forest Admin AI.
+ *
+ * Supported models must handle tool calls and the parallel_tool_calls parameter.
+ */
 export default function isModelSupportingTools(model: string): boolean {
   // Check pattern matches first (contains) - these NEVER support tools
   const matchesUnsupportedPattern = UNSUPPORTED_MODEL_PATTERNS.some(pattern =>
