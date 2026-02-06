@@ -5,10 +5,12 @@ import type { RouteArgs } from './schemas/route';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
-import { AIBadRequestError, ProviderDispatcher } from './index';
+import { AIBadRequestError, AIModelNotSupportedError } from './errors';
 import McpClient from './mcp-client';
+import { ProviderDispatcher } from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
+import isModelSupportingTools from './supported-models';
 
 export type {
   AiQueryArgs,
@@ -37,6 +39,16 @@ export class Router {
     this.aiConfigurations = params?.aiConfigurations ?? [];
     this.localToolsApiKeys = params?.localToolsApiKeys;
     this.logger = params?.logger;
+
+    this.validateConfigurations();
+  }
+
+  private validateConfigurations(): void {
+    for (const config of this.aiConfigurations) {
+      if (!isModelSupportingTools(config.model)) {
+        throw new AIModelNotSupportedError(config.model);
+      }
+    }
   }
 
   /**

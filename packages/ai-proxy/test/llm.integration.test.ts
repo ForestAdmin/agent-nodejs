@@ -11,13 +11,41 @@ import type { Server } from 'http';
 
 // eslint-disable-next-line import/extensions
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import OpenAI from 'openai';
 import { z } from 'zod';
 
 import { Router } from '../src';
 import runMcpServer from '../src/examples/simple-mcp-server';
+import isModelSupportingTools from '../src/supported-models';
 
 const { OPENAI_API_KEY } = process.env;
 const describeWithOpenAI = OPENAI_API_KEY ? describe : describe.skip;
+
+/**
+ * Fetches available models from OpenAI API.
+ * Returns all models that pass `isModelSupportingTools`.
+ *
+ * If a model fails the integration test, update the blacklist in supported-models.ts.
+ */
+async function fetchChatModelsFromOpenAI(): Promise<string[]> {
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+  let models;
+  try {
+    models = await openai.models.list();
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch models from OpenAI API. ` +
+        `Ensure OPENAI_API_KEY is valid and network is available. ` +
+        `Original error: ${error}`,
+    );
+  }
+
+  return models.data
+    .map(m => m.id)
+    .filter(id => isModelSupportingTools(id))
+    .sort();
+}
 
 describeWithOpenAI('OpenAI Integration (real API)', () => {
   const router = new Router({
@@ -687,5 +715,90 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
         expect(typeof args.b).toBe('number');
       }, 10000);
     });
+  });
+
+  describe('Model tool support verification', () => {
+    let modelsToTest: string[];
+
+    beforeAll(async () => {
+      modelsToTest = await fetchChatModelsFromOpenAI();
+    });
+
+    it('should have found chat models from OpenAI API', () => {
+      expect(modelsToTest.length).toBeGreaterThan(0);
+      // eslint-disable-next-line no-console
+      console.log(`Testing ${modelsToTest.length} models:`, modelsToTest);
+    });
+
+    it('all chat models should support tool calls', async () => {
+      const results: { model: string; success: boolean; error?: string }[] = [];
+
+      for (const model of modelsToTest) {
+        const modelRouter = new Router({
+          aiConfigurations: [{ name: 'test', provider: 'openai', model, apiKey: OPENAI_API_KEY }],
+        });
+
+        try {
+          const response = (await modelRouter.route({
+            route: 'ai-query',
+            body: {
+              messages: [{ role: 'user', content: 'What is 2+2?' }],
+              tools: [
+                {
+                  type: 'function',
+                  function: {
+                    name: 'calculate',
+                    description: 'Calculate a math expression',
+                    parameters: { type: 'object', properties: { result: { type: 'number' } } },
+                  },
+                },
+              ],
+              tool_choice: 'required',
+              parallel_tool_calls: false,
+            },
+          })) as ChatCompletionResponse;
+
+          const success =
+            response.choices[0].finish_reason === 'tool_calls' &&
+            response.choices[0].message.tool_calls !== undefined;
+
+          results.push({ model, success });
+        } catch (error) {
+          const errorMessage = String(error);
+
+          // Infrastructure errors should fail the test immediately
+          const isInfrastructureError =
+            errorMessage.includes('rate limit') ||
+            errorMessage.includes('429') ||
+            errorMessage.includes('401') ||
+            errorMessage.includes('Authentication') ||
+            errorMessage.includes('ECONNREFUSED') ||
+            errorMessage.includes('ETIMEDOUT') ||
+            errorMessage.includes('getaddrinfo');
+
+          if (isInfrastructureError) {
+            throw new Error(`Infrastructure error testing model ${model}: ${errorMessage}`);
+          }
+
+          results.push({ model, success: false, error: errorMessage });
+        }
+      }
+
+      const failures = results.filter(r => !r.success);
+      if (failures.length > 0) {
+        const failedModelNames = failures.map(f => f.model).join(', ');
+        // eslint-disable-next-line no-console
+        console.error(
+          `\n❌ ${failures.length} model(s) failed: ${failedModelNames}\n\n` +
+            `To fix this, add the failing model(s) to the blacklist in:\n` +
+            `  packages/ai-proxy/src/supported-models.ts\n\n` +
+            `Add to UNSUPPORTED_MODEL_PREFIXES (for prefix match)\n` +
+            `or UNSUPPORTED_MODEL_PATTERNS (for contains match)\n`,
+          failures,
+        );
+      }
+
+      expect(failures).toEqual([]);
+    }, 300000); // 5 minutes for all models
   });
 });

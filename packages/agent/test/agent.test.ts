@@ -439,19 +439,22 @@ describe('Agent', () => {
       ).toThrow('addAi can only be called once. Multiple AI configurations are not supported yet.');
     });
 
-    test('should throw an error when model does not support tools', () => {
+    test('should throw an error on start when model does not support tools', async () => {
+      // Use the real makeRoutes to trigger validation in AiProxyRouter
+      const realMakeRoutes = jest.requireActual('../src/routes').default;
+      mockMakeRoutes.mockImplementation(realMakeRoutes);
+
       const agent = new Agent(options);
 
-      expect(() =>
-        agent.addAi({
-          name: 'gpt4-base',
-          provider: 'openai',
-          apiKey: 'test-key',
-          model: 'gpt-4',
-        }),
-      ).toThrow(
-        "Model 'gpt-4' does not support function calling (tools). " +
-          'Please use a compatible model like gpt-4o, gpt-4o-mini, or gpt-4-turbo.',
+      agent.addAi({
+        name: 'gpt4-base',
+        provider: 'openai',
+        apiKey: 'test-key',
+        model: 'gpt-4',
+      });
+
+      await expect(agent.start()).rejects.toThrow(
+        "Model 'gpt-4' does not support tools. Please use a model that supports function calling.",
       );
     });
 

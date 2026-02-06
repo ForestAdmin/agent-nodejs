@@ -1,7 +1,7 @@
 import type { DispatchBody, InvokeRemoteToolArgs, Route } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { AIBadRequestError, Router } from '../src';
+import { AIBadRequestError, AIModelNotSupportedError, Router } from '../src';
 import McpClient from '../src/mcp-client';
 
 const invokeToolMock = jest.fn();
@@ -77,23 +77,23 @@ describe('route', () => {
         apiKey: 'dev',
         model: 'gpt-4o',
       };
-      const gpt3Config = {
-        name: 'gpt3',
+      const gpt4MiniConfig = {
+        name: 'gpt4mini',
         provider: 'openai' as const,
         apiKey: 'dev',
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
       };
       const router = new Router({
-        aiConfigurations: [gpt4Config, gpt3Config],
+        aiConfigurations: [gpt4Config, gpt4MiniConfig],
       });
 
       await router.route({
         route: 'ai-query',
-        query: { 'ai-name': 'gpt3' },
+        query: { 'ai-name': 'gpt4mini' },
         body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
       });
 
-      expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt3Config, expect.anything());
+      expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4MiniConfig, expect.anything());
     });
 
     it('uses first configuration when ai-name query is not provided', async () => {
@@ -103,14 +103,14 @@ describe('route', () => {
         apiKey: 'dev',
         model: 'gpt-4o',
       };
-      const gpt3Config = {
-        name: 'gpt3',
+      const gpt4MiniConfig = {
+        name: 'gpt4mini',
         provider: 'openai' as const,
         apiKey: 'dev',
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
       };
       const router = new Router({
-        aiConfigurations: [gpt4Config, gpt3Config],
+        aiConfigurations: [gpt4Config, gpt4MiniConfig],
       });
 
       await router.route({
@@ -384,6 +384,52 @@ describe('route', () => {
         { configs: { server1: { command: 'test', args: [] } } },
         customLogger,
       );
+    });
+  });
+
+  describe('Model validation', () => {
+    it('throws AIModelNotSupportedError when model does not support tools', () => {
+      expect(
+        () =>
+          new Router({
+            aiConfigurations: [
+              {
+                name: 'test',
+                provider: 'openai',
+                apiKey: 'dev',
+                model: 'gpt-4', // Known unsupported model
+              },
+            ],
+          }),
+      ).toThrow(AIModelNotSupportedError);
+    });
+
+    it('throws with helpful error message including model name', () => {
+      expect(
+        () =>
+          new Router({
+            aiConfigurations: [
+              {
+                name: 'test',
+                provider: 'openai',
+                apiKey: 'dev',
+                model: 'text-davinci-003',
+              },
+            ],
+          }),
+      ).toThrow("Model 'text-davinci-003' does not support tools");
+    });
+
+    it('validates all configurations, not just the first', () => {
+      expect(
+        () =>
+          new Router({
+            aiConfigurations: [
+              { name: 'valid', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+              { name: 'invalid', provider: 'openai', apiKey: 'dev', model: 'gpt-4' },
+            ],
+          }),
+      ).toThrow("Model 'gpt-4' does not support tools");
     });
   });
 });

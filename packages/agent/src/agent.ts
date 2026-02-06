@@ -17,7 +17,6 @@ import type {
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
-import { isModelSupportingTools } from '@forestadmin/ai-proxy';
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
@@ -243,13 +242,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     if (this.aiConfigurations.length > 0) {
       throw new Error(
         'addAi can only be called once. Multiple AI configurations are not supported yet.',
-      );
-    }
-
-    if (!isModelSupportingTools(configuration.model)) {
-      throw new Error(
-        `Model '${configuration.model}' does not support function calling (tools). ` +
-          'Please use a compatible model like gpt-4o, gpt-4o-mini, or gpt-4-turbo.',
       );
     }
 
