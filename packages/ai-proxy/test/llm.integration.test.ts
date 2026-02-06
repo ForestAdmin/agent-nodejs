@@ -792,8 +792,8 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
           `\n❌ ${failures.length} model(s) failed: ${failedModelNames}\n\n` +
             `To fix this, add the failing model(s) to the blacklist in:\n` +
             `  packages/ai-proxy/src/supported-models.ts\n\n` +
-            `Add to OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PREFIXES (for prefix match)\n` +
-            `or OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PATTERNS (for contains match)\n`,
+            `Add to UNSUPPORTED_MODEL_PREFIXES (for prefix match)\n` +
+            `or UNSUPPORTED_MODEL_PATTERNS (for contains match)\n`,
           failures,
         );
       }
