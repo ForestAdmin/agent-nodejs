@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.72.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.72.3...@forestadmin/agent@1.72.4) (2026-02-06)
+
+
+### Bug Fixes
+
+* **ai-proxy:** validate model tool support at Router init (fail fast) ([#1452](https://github.com/ForestAdmin/agent-nodejs/issues/1452)) ([adf2efd](https://github.com/ForestAdmin/agent-nodejs/commit/adf2efddac8ca2a5c278d2e6bd01b1bf0c1f271f))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.4.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.10
+* **@forestadmin/mcp-server:** upgraded to 1.7.6
+
 ## @forestadmin/agent [1.72.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.72.2...@forestadmin/agent@1.72.3) (2026-02-05)
 
 
