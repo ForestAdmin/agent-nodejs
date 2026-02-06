@@ -1,6 +1,5 @@
 /**
- * OpenAI model prefixes that do NOT support function calling (tools)
- * via the chat completions API.
+ * OpenAI model prefixes that do NOT support tool calls via the chat completions API.
  *
  * Uses prefix matching: model === prefix OR model.startsWith(prefix + '-')
  *
@@ -9,7 +8,7 @@
  *
  * @see https://platform.openai.com/docs/guides/function-calling
  */
-const OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PREFIXES = [
+const UNSUPPORTED_MODEL_PREFIXES = [
   // Legacy models
   'gpt-4', // Base gpt-4 doesn't honor tool_choice: required
   'text-davinci',
@@ -33,10 +32,10 @@ const OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PREFIXES = [
 ];
 
 /**
- * OpenAI model patterns that do NOT support function calling (tools).
+ * OpenAI model patterns that do NOT support tool calls.
  * Uses contains matching: model.includes(pattern)
  */
-const OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PATTERNS = [
+const UNSUPPORTED_MODEL_PATTERNS = [
   // Non-chat model variants (can appear in the middle of model names)
   '-realtime',
   '-audio',
@@ -51,30 +50,30 @@ const OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PATTERNS = [
 ];
 
 /**
- * Exceptions to the unsupported list - these models DO support tools
- * even though they match an unsupported pattern.
+ * Models that DO support tool calls even though they match an unsupported prefix.
+ * These override the UNSUPPORTED_MODEL_PREFIXES list.
  */
-const OPENAI_MODELS_EXCEPTIONS = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
+const SUPPORTED_MODEL_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
 
 export default function isModelSupportingTools(model: string): boolean {
   // Check pattern matches first (contains) - these NEVER support tools
-  const matchesPattern = OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PATTERNS.some(pattern =>
+  const matchesUnsupportedPattern = UNSUPPORTED_MODEL_PATTERNS.some(pattern =>
     model.includes(pattern),
   );
-  if (matchesPattern) return false;
+  if (matchesUnsupportedPattern) return false;
 
-  // Check prefix blacklist
-  const matchesPrefix = OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PREFIXES.some(
+  // Check unsupported prefixes
+  const matchesUnsupportedPrefix = UNSUPPORTED_MODEL_PREFIXES.some(
     prefix => model === prefix || model.startsWith(`${prefix}-`),
   );
 
-  // Check exceptions (whitelist specific models from the prefix blacklist)
-  const isException = OPENAI_MODELS_EXCEPTIONS.some(
-    exception => model === exception || model.startsWith(`${exception}-`),
+  // Check if model is in the supported overrides list
+  const isSupportedOverride = SUPPORTED_MODEL_OVERRIDES.some(
+    override => model === override || model.startsWith(`${override}-`),
   );
 
-  // If it matches a prefix but is an exception, it's supported
-  if (matchesPrefix && !isException) return false;
+  // If it matches an unsupported prefix but is not in overrides, reject it
+  if (matchesUnsupportedPrefix && !isSupportedOverride) return false;
 
   return true;
 }
