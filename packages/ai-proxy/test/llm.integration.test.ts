@@ -15,6 +15,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { Router } from '../src';
+import runMcpServer from '../src/examples/simple-mcp-server';
 
 // Models to test - defined here for integration testing purposes
 const ANTHROPIC_MODELS_TO_TEST = [
@@ -29,7 +30,6 @@ const ANTHROPIC_MODELS_TO_TEST = [
   'claude-3-sonnet-20240229',
   'claude-3-haiku-20240307',
 ] as const;
-import runMcpServer from '../src/examples/simple-mcp-server';
 
 const { OPENAI_API_KEY, ANTHROPIC_API_KEY } = process.env;
 

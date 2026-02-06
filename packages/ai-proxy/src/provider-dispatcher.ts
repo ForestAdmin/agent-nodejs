@@ -14,6 +14,7 @@ import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling'
 import { ChatOpenAI } from '@langchain/openai';
 
 import {
+  AIBadRequestError,
   AINotConfiguredError,
   AnthropicUnprocessableError,
   OpenAIUnprocessableError,
@@ -137,9 +138,11 @@ export class ProviderDispatcher {
   private async dispatchAnthropic(body: DispatchBody): Promise<ChatCompletionResponse> {
     const { tools, messages, tool_choice: toolChoice } = body;
 
+    // Convert messages outside try-catch so input validation errors propagate directly
+    const langChainMessages = this.convertMessagesToLangChain(messages as OpenAIMessage[]);
+    const enhancedTools = tools ? this.enrichToolDefinitions(tools) : undefined;
+
     try {
-      const langChainMessages = this.convertMessagesToLangChain(messages as OpenAIMessage[]);
-      const enhancedTools = tools ? this.enrichToolDefinitions(tools) : undefined;
       let response: AIMessage;
 
       if (enhancedTools?.length) {
@@ -154,9 +157,19 @@ export class ProviderDispatcher {
 
       return this.convertLangChainResponseToOpenAI(response);
     } catch (error) {
-      throw new AnthropicUnprocessableError(
-        `Error while calling Anthropic: ${(error as Error).message}`,
-      );
+      if (error instanceof AnthropicUnprocessableError) throw error;
+
+      const err = error as Error & { status?: number };
+
+      if (err.status === 429) {
+        throw new AnthropicUnprocessableError(`Rate limit exceeded: ${err.message}`);
+      }
+
+      if (err.status === 401) {
+        throw new AnthropicUnprocessableError(`Authentication failed: ${err.message}`);
+      }
+
+      throw new AnthropicUnprocessableError(`Error while calling Anthropic: ${err.message}`);
     }
   }
 
@@ -174,21 +187,40 @@ export class ProviderDispatcher {
               tool_calls: msg.tool_calls.map(tc => ({
                 id: tc.id,
                 name: tc.function.name,
-                args: JSON.parse(tc.function.arguments),
+                args: ProviderDispatcher.parseToolArguments(
+                  tc.function.name,
+                  tc.function.arguments,
+                ),
               })),
             });
           }
 
           return new AIMessage(msg.content || '');
         case 'tool':
+          if (!msg.tool_call_id) {
+            throw new AIBadRequestError('Tool message is missing required "tool_call_id" field.');
+          }
+
           return new ToolMessage({
             content: msg.content || '',
-            tool_call_id: msg.tool_call_id!,
+            tool_call_id: msg.tool_call_id,
           });
         default:
-          return new HumanMessage(msg.content || '');
+          throw new AIBadRequestError(
+            `Unsupported message role '${msg.role}'. Expected: system, user, assistant, or tool.`,
+          );
       }
     });
+  }
+
+  private static parseToolArguments(toolName: string, args: string): Record<string, unknown> {
+    try {
+      return JSON.parse(args);
+    } catch {
+      throw new AIBadRequestError(
+        `Invalid JSON in tool_calls arguments for tool '${toolName}': ${args}`,
+      );
+    }
   }
 
   private convertToolsToLangChain(tools: ChatCompletionTool[]): Array<{
@@ -255,9 +287,9 @@ export class ProviderDispatcher {
         },
       ],
       usage: {
-        prompt_tokens: usageMetadata?.input_tokens || 0,
-        completion_tokens: usageMetadata?.output_tokens || 0,
-        total_tokens: usageMetadata?.total_tokens || 0,
+        prompt_tokens: usageMetadata?.input_tokens ?? 0,
+        completion_tokens: usageMetadata?.output_tokens ?? 0,
+        total_tokens: usageMetadata?.total_tokens ?? 0,
       },
     };
   }
