@@ -19,12 +19,7 @@ import type {
   Sequelize,
 } from 'sequelize';
 
-import {
-  BaseCollection,
-  CollectionUtils,
-  Projection,
-  ValidationError,
-} from '@forestadmin/datasource-toolkit';
+import { BaseCollection, CollectionUtils, Projection } from '@forestadmin/datasource-toolkit';
 import { DataTypes, QueryTypes } from 'sequelize';
 
 import AggregationUtils from './utils/aggregation';
@@ -71,9 +66,9 @@ export default class SequelizeCollection extends BaseCollection {
       rawQuery: async (
         sql: string,
         replacements: Replacements,
-        options?: { syntax?: 'bind' | 'replacements' },
+        opts?: { syntax?: 'bind' | 'replacements' },
       ) => {
-        const opt = { syntax: 'replacements', ...options };
+        const opt = { syntax: 'replacements', ...opts };
         const result = await model.sequelize.query(sql, {
           type: QueryTypes.RAW,
           plain: false,
@@ -100,6 +95,7 @@ export default class SequelizeCollection extends BaseCollection {
 
     if (this.model.options.paranoid && options?.actions) {
       const { hardDelete, restoreSoftDeleted } = options.actions;
+
       if ((Array.isArray(hardDelete) && hardDelete.includes(name)) || hardDelete === true) {
         this.addAction('Hard Delete', {
           scope: 'Bulk',
