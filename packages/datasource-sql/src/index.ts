@@ -104,6 +104,7 @@ export function createSqlDataSource(
     return new SqlDatasource(
       new SequelizeDataSource(sequelize, logger, {
         liveQueryConnections: options?.liveQueryConnections,
+        actions: options?.actions,
       }),
       latestIntrospection.views,
     );
