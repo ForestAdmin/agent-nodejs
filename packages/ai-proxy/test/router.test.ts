@@ -419,5 +419,17 @@ describe('route', () => {
           }),
       ).toThrow("Model 'text-davinci-003' does not support tools");
     });
+
+    it('validates all configurations, not just the first', () => {
+      expect(
+        () =>
+          new Router({
+            aiConfigurations: [
+              { name: 'valid', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+              { name: 'invalid', provider: 'openai', apiKey: 'dev', model: 'gpt-4' },
+            ],
+          }),
+      ).toThrow("Model 'gpt-4' does not support tools");
+    });
   });
 });

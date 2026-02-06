@@ -8,7 +8,6 @@ export * from './router';
 export * from './mcp-client';
 export * from './oauth-token-injector';
 export * from './errors';
-export { validateModelSupportsTools } from './supported-models';
 
 export function validMcpConfigurationOrThrow(mcpConfig: McpConfiguration) {
   return McpConfigChecker.check(mcpConfig);

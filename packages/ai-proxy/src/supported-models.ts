@@ -46,7 +46,6 @@ const OPENAI_MODELS_WITHOUT_TOOLS_SUPPORT_PATTERNS = [
   '-codex',
   '-instruct',
   // Models that only support v1/responses, not v1/chat/completions
-  '-pro',
   '-deep-research',
 ];
 
@@ -77,16 +76,4 @@ export default function isModelSupportingTools(model: string): boolean {
   if (matchesPrefix && !isException) return false;
 
   return true;
-}
-
-/**
- * Validates that a model supports tool calling.
- * @throws {Error} with descriptive message if the model doesn't support tools.
- */
-export function validateModelSupportsTools(model: string): void {
-  if (!isModelSupportingTools(model)) {
-    throw new Error(
-      `Model '${model}' does not support tools. Please use a model that supports function calling.`,
-    );
-  }
 }

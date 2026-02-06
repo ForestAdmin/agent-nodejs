@@ -29,7 +29,17 @@ const describeWithOpenAI = OPENAI_API_KEY ? describe : describe.skip;
  */
 async function fetchChatModelsFromOpenAI(): Promise<string[]> {
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-  const models = await openai.models.list();
+
+  let models;
+  try {
+    models = await openai.models.list();
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch models from OpenAI API. ` +
+        `Ensure OPENAI_API_KEY is valid and network is available. ` +
+        `Original error: ${error}`,
+    );
+  }
 
   return models.data
     .map(m => m.id)
@@ -753,7 +763,23 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
 
           results.push({ model, success });
         } catch (error) {
-          results.push({ model, success: false, error: String(error) });
+          const errorMessage = String(error);
+
+          // Infrastructure errors should fail the test immediately
+          const isInfrastructureError =
+            errorMessage.includes('rate limit') ||
+            errorMessage.includes('429') ||
+            errorMessage.includes('401') ||
+            errorMessage.includes('Authentication') ||
+            errorMessage.includes('ECONNREFUSED') ||
+            errorMessage.includes('ETIMEDOUT') ||
+            errorMessage.includes('getaddrinfo');
+
+          if (isInfrastructureError) {
+            throw new Error(`Infrastructure error testing model ${model}: ${errorMessage}`);
+          }
+
+          results.push({ model, success: false, error: errorMessage });
         }
       }
 
