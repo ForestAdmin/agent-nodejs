@@ -51,7 +51,7 @@
     "@nestjs/common": "^10.4.16",
     "@nestjs/core": "^10.4.16",
     "@nestjs/platform-express": "^10.4.16",
-    "@nestjs/platform-fastify": "^10.4.16",
+    "@nestjs/platform-fastify": "^11.1.10",
     "@shopify/jest-koa-mocks": "^3.1.0",
     "sequelize": "^6.37.5",
     "sqlite3": "^5.1.7",
