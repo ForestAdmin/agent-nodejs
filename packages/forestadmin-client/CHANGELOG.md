@@ -1,3 +1,13 @@
+## @forestadmin/forestadmin-client [1.37.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.37.9...@forestadmin/forestadmin-client@1.37.10) (2026-02-06)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.4.1
+
 ## @forestadmin/forestadmin-client [1.37.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.37.8...@forestadmin/forestadmin-client@1.37.9) (2026-02-05)
 
 
