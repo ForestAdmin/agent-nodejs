@@ -249,6 +249,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.aiProvider = provider;
 
+    const providerNames = provider.providers.map(p => `'${p.name}' (${p.provider})`).join(', ');
+    this.options.logger(
+      'Warn',
+      `AI configuration added: ${providerNames}. ` +
+        'Make sure to test Forest Admin AI features thoroughly to ensure compatibility.',
+    );
+
     return this;
   }
 
