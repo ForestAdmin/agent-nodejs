@@ -1,6 +1,7 @@
 // Misc
 export * from './errors';
 export * from './factory';
+export type { AiProviderDefinition, AiRouter } from './interfaces/ai';
 export { MAP_ALLOWED_OPERATORS_FOR_COLUMN_TYPE as allowedOperatorsForColumnType } from './validation/rules';
 
 // Base Collection & DataSource

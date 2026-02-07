@@ -1,7 +1,7 @@
 import type { ForestAdminHttpDriverServices as Services } from '../services';
-import type { AiConfiguration, AgentOptionsWithDefaults as Options } from '../types';
+import type { AgentOptionsWithDefaults as Options } from '../types';
 import type BaseRoute from './base-route';
-import type { DataSource } from '@forestadmin/datasource-toolkit';
+import type { AiRouter, DataSource } from '@forestadmin/datasource-toolkit';
 
 import CollectionApiChartRoute from './access/api-chart-collection';
 import DataSourceApiChartRoute from './access/api-chart-datasource';
@@ -168,18 +168,18 @@ function getActionRoutes(
 function getAiRoutes(
   options: Options,
   services: Services,
-  aiConfigurations: AiConfiguration[],
+  aiRouter: AiRouter | null,
 ): BaseRoute[] {
-  if (aiConfigurations.length === 0) return [];
+  if (!aiRouter) return [];
 
-  return [new AiProxyRoute(services, options, aiConfigurations)];
+  return [new AiProxyRoute(services, options, aiRouter)];
 }
 
 export default function makeRoutes(
   dataSource: DataSource,
   options: Options,
   services: Services,
-  aiConfigurations: AiConfiguration[] = [],
+  aiRouter: AiRouter | null = null,
 ): BaseRoute[] {
   const routes = [
     ...getRootRoutes(options, services),
@@ -189,7 +189,7 @@ export default function makeRoutes(
     ...getApiChartRoutes(dataSource, options, services),
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
-    ...getAiRoutes(options, services, aiConfigurations),
+    ...getAiRoutes(options, services, aiRouter),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.

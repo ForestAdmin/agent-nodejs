@@ -9,6 +9,7 @@ export function createAgent<S extends TSchema = TSchema>(options: AgentOptions):
 
 export { Agent };
 export { AgentOptions } from './types';
+export type { AiProviderDefinition } from './types';
 export * from '@forestadmin/datasource-customizer';
 
 // export is necessary for the agent-generator package
