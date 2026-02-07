@@ -1,33 +1,37 @@
 /**
- * -------------------------------------
- * -------------------------------------
- * -------------------------------------
- * All custom errors must extend the AIError class.
- * This inheritance is crucial for proper error translation
- * and consistent handling throughout the system.
- * -------------------------------------
- * -------------------------------------
- * -------------------------------------
+ * All custom AI errors extend BusinessError subclasses from datasource-toolkit.
+ * Each error maps to its natural HTTP status via the agent's error middleware.
+ *
+ * Hierarchy:
+ * - AIError (extends UnprocessableError → 422)
+ *   - AINotConfiguredError
+ *   - McpError
+ *     - McpConnectionError, McpConflictError, McpConfigError
+ * - AIBadRequestError (extends BadRequestError → 400)
+ *   - AIModelNotSupportedError
+ * - AINotFoundError (extends NotFoundError → 404)
+ *   - AIToolNotFoundError
+ * - AIUnprocessableError (extends UnprocessableError → 422)
+ *   - OpenAIUnprocessableError, AIToolUnprocessableError
  */
 
 // eslint-disable-next-line max-classes-per-file
-export class AIError extends Error {
-  readonly status: number;
+import {
+  BadRequestError,
+  NotFoundError,
+  UnprocessableError,
+} from '@forestadmin/datasource-toolkit';
 
-  constructor(message: string, status = 422) {
-    if (status < 100 || status > 599) {
-      throw new RangeError(`Invalid HTTP status code: ${status}`);
-    }
-
+export class AIError extends UnprocessableError {
+  constructor(message: string) {
     super(message);
     this.name = 'AIError';
-    this.status = status;
   }
 }
 
-export class AIBadRequestError extends AIError {
+export class AIBadRequestError extends BadRequestError {
   constructor(message: string) {
-    super(message, 400);
+    super(message);
     this.name = 'AIBadRequestError';
   }
 }
@@ -41,23 +45,23 @@ export class AIModelNotSupportedError extends AIBadRequestError {
   }
 }
 
-export class AINotFoundError extends AIError {
+export class AINotFoundError extends NotFoundError {
   constructor(message: string) {
-    super(message, 404);
+    super(message);
     this.name = 'AINotFoundError';
   }
 }
 
-export class AIUnprocessableError extends AIError {
+export class AIUnprocessableError extends UnprocessableError {
   constructor(message: string) {
-    super(message, 422);
+    super(message);
     this.name = 'AIUnprocessableError';
   }
 }
 
 export class AINotConfiguredError extends AIError {
   constructor(message = 'AI is not configured') {
-    super(message, 422);
+    super(message);
     this.name = 'AINotConfiguredError';
   }
 }
