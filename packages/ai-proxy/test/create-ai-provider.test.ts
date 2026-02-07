@@ -20,7 +20,7 @@ describe('createAiProvider', () => {
 
     const result = createAiProvider(config);
 
-    expect(result.providers).toEqual([{ name: 'my-ai', provider: 'openai' }]);
+    expect(result.providers).toEqual([{ name: 'my-ai', provider: 'openai', model: 'gpt-4o' }]);
     expect(typeof result.init).toBe('function');
   });
 

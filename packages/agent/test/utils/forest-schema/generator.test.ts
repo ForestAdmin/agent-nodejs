@@ -74,8 +74,8 @@ describe('SchemaGenerator', () => {
 
     test('it should serialize ai_llms when AI providers are provided', async () => {
       const aiProviders = [
-        { name: 'gpt4', provider: 'openai' },
-        { name: 'claude', provider: 'anthropic' },
+        { name: 'gpt4', provider: 'openai', model: 'gpt-4o' },
+        { name: 'claude', provider: 'anthropic', model: 'claude-sonnet-4-5-20250929' },
       ];
 
       const schema = await SchemaGenerator.buildMetadata(null, aiProviders);
@@ -83,8 +83,8 @@ describe('SchemaGenerator', () => {
       expect(schema).toStrictEqual({
         meta: {
           ai_llms: [
-            { name: 'gpt4', provider: 'openai' },
-            { name: 'claude', provider: 'anthropic' },
+            { name: 'gpt4', provider: 'openai', model: 'gpt-4o' },
+            { name: 'claude', provider: 'anthropic', model: 'claude-sonnet-4-5-20250929' },
           ],
           liana: 'forest-nodejs-agent',
           liana_version: expect.any(String),

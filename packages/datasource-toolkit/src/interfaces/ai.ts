@@ -1,9 +1,10 @@
 import type { Logger } from '../factory';
 
-/** Metadata describing a configured AI provider, used in schema reporting. */
+/** Metadata describing a configured AI provider, used in schema reporting and logging. */
 export interface AiProviderMeta {
   name: string;
   provider: string;
+  model: string;
 }
 
 export interface AiRouter {
