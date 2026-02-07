@@ -441,6 +441,27 @@ describe('Agent', () => {
       ).toThrow('addAi can only be called once. Multiple AI configurations are not supported yet.');
     });
 
+    test('should log a warning with model name when addAi is called', () => {
+      const mockLogger = jest.fn();
+      const agentOptions = factories.forestAdminHttpDriverOptions.build({
+        isProduction: false,
+        logger: mockLogger,
+        forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+      });
+
+      const agent = new Agent(agentOptions);
+      agent.addAi(
+        createMockAiProvider({
+          providers: [{ name: 'gpt4o', provider: 'openai', model: 'gpt-4o' }],
+        }),
+      );
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining("model 'gpt-4o'"),
+      );
+    });
+
     test('should call init with logger on start to create AI router', async () => {
       const realMakeRoutes = jest.requireActual('../src/routes').default;
       mockMakeRoutes.mockImplementation(realMakeRoutes);
