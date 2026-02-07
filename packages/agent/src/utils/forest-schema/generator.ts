@@ -32,10 +32,7 @@ export default class SchemaGenerator {
         liana: 'forest-nodejs-agent',
         liana_version: version,
         liana_features: features,
-        ai_llms:
-          aiProviders.length > 0
-            ? aiProviders.map(c => ({ name: c.name, provider: c.provider }))
-            : null,
+        ai_llms: aiProviders.length > 0 ? aiProviders : null,
         stack: {
           engine: 'nodejs',
           engine_version: process.versions && process.versions.node,

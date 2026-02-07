@@ -34,9 +34,7 @@ beforeEach(() => {
     .mockResolvedValue(factories.dataSource.build());
 });
 
-function createMockAiProvider(
-  overrides: Partial<AiProviderDefinition> = {},
-): AiProviderDefinition {
+function createMockAiProvider(overrides: Partial<AiProviderDefinition> = {}): AiProviderDefinition {
   return {
     providers: [{ name: 'gpt4o', provider: 'openai' }],
     init: jest.fn().mockReturnValue({ route: jest.fn() }),
@@ -434,9 +432,7 @@ describe('Agent', () => {
         agent.addAi(
           createMockAiProvider({ providers: [{ name: 'gpt4o-mini', provider: 'openai' }] }),
         ),
-      ).toThrow(
-        'addAi can only be called once. Multiple AI configurations are not supported yet.',
-      );
+      ).toThrow('addAi can only be called once. Multiple AI configurations are not supported yet.');
     });
 
     test('should call init with logger on start to create AI router', async () => {

@@ -165,11 +165,7 @@ function getActionRoutes(
   return routes;
 }
 
-function getAiRoutes(
-  options: Options,
-  services: Services,
-  aiRouter: AiRouter | null,
-): BaseRoute[] {
+function getAiRoutes(options: Options, services: Services, aiRouter: AiRouter | null): BaseRoute[] {
   if (!aiRouter) return [];
 
   return [new AiProxyRoute(services, options, aiRouter)];
