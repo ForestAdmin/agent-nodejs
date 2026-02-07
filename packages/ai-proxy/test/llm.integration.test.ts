@@ -1,14 +1,18 @@
 /**
- * End-to-end integration tests with real OpenAI API and MCP server.
+ * End-to-end integration tests with real OpenAI and Anthropic APIs and MCP server.
  *
- * These tests require a valid OPENAI_API_KEY environment variable.
- * They are skipped if the key is not present.
+ * These tests require valid API key environment variables:
+ * - OPENAI_API_KEY for OpenAI tests
+ * - ANTHROPIC_API_KEY for Anthropic tests
  *
- * Run with: yarn workspace @forestadmin/ai-proxy test openai.integration
+ * Tests are skipped if the corresponding key is not present.
+ *
+ * Run with: yarn workspace @forestadmin/ai-proxy test llm.integration
  */
 import type { ChatCompletionResponse } from '../src';
 import type { Server } from 'http';
 
+import Anthropic from '@anthropic-ai/sdk';
 // eslint-disable-next-line import/extensions
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import OpenAI from 'openai';
@@ -18,8 +22,9 @@ import { Router } from '../src';
 import runMcpServer from '../src/examples/simple-mcp-server';
 import isModelSupportingTools from '../src/supported-models';
 
-const { OPENAI_API_KEY } = process.env;
+const { OPENAI_API_KEY, ANTHROPIC_API_KEY } = process.env;
 const describeWithOpenAI = OPENAI_API_KEY ? describe : describe.skip;
+const describeWithAnthropic = ANTHROPIC_API_KEY ? describe : describe.skip;
 
 /**
  * Fetches available models from OpenAI API.
@@ -45,6 +50,29 @@ async function fetchChatModelsFromOpenAI(): Promise<string[]> {
     .map(m => m.id)
     .filter(id => isModelSupportingTools(id))
     .sort();
+}
+
+/**
+ * Fetches available models from Anthropic API.
+ * Returns all model IDs sorted alphabetically.
+ *
+ * All Anthropic chat models support tools, so no filtering is needed.
+ */
+async function fetchChatModelsFromAnthropic(): Promise<string[]> {
+  const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+
+  let models;
+  try {
+    models = await anthropic.models.list({ limit: 1000 });
+  } catch (error) {
+    throw new Error(
+      `Failed to fetch models from Anthropic API. ` +
+        `Ensure ANTHROPIC_API_KEY is valid and network is available. ` +
+        `Original error: ${error}`,
+    );
+  }
+
+  return models.data.map(m => m.id).sort();
 }
 
 describeWithOpenAI('OpenAI Integration (real API)', () => {
@@ -794,6 +822,273 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
             `  packages/ai-proxy/src/supported-models.ts\n\n` +
             `Add to UNSUPPORTED_MODEL_PREFIXES (for prefix match)\n` +
             `or UNSUPPORTED_MODEL_PATTERNS (for contains match)\n`,
+          failures,
+        );
+      }
+
+      expect(failures).toEqual([]);
+    }, 300000); // 5 minutes for all models
+  });
+});
+
+describeWithAnthropic('Anthropic Integration (real API)', () => {
+  const router = new Router({
+    aiConfigurations: [
+      {
+        name: 'test-claude',
+        provider: 'anthropic',
+        model: 'claude-3-5-haiku-latest', // Cheapest model with tool support
+        apiKey: ANTHROPIC_API_KEY,
+      },
+    ],
+  });
+
+  describe('route: ai-query', () => {
+    it('should complete a simple chat request', async () => {
+      const response = (await router.route({
+        route: 'ai-query',
+        body: {
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant. Be very concise.' },
+            { role: 'user', content: 'What is 2+2? Reply with just the number.' },
+          ],
+        },
+      })) as ChatCompletionResponse;
+
+      // Anthropic responses are converted to OpenAI-compatible format
+      expect(response).toMatchObject({
+        object: 'chat.completion',
+        model: 'claude-3-5-haiku-latest',
+        choices: expect.arrayContaining([
+          expect.objectContaining({
+            index: 0,
+            message: expect.objectContaining({
+              role: 'assistant',
+              content: expect.stringContaining('4'),
+            }),
+            finish_reason: 'stop',
+          }),
+        ]),
+        usage: expect.objectContaining({
+          prompt_tokens: expect.any(Number),
+          completion_tokens: expect.any(Number),
+          total_tokens: expect.any(Number),
+        }),
+      });
+    }, 10000);
+
+    it('should handle tool calls', async () => {
+      const response = (await router.route({
+        route: 'ai-query',
+        body: {
+          messages: [{ role: 'user', content: 'What is the weather in Paris?' }],
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'get_weather',
+                description: 'Get the current weather in a given location',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string', description: 'The city name' },
+                  },
+                  required: ['location'],
+                },
+              },
+            },
+          ],
+          tool_choice: 'auto',
+        },
+      })) as ChatCompletionResponse;
+
+      expect(response.choices[0].finish_reason).toBe('tool_calls');
+      expect(response.choices[0].message.tool_calls).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'function',
+            function: expect.objectContaining({
+              name: 'get_weather',
+              arguments: expect.stringContaining('Paris'),
+            }),
+          }),
+        ]),
+      );
+    }, 10000);
+
+    it('should handle tool_choice: required', async () => {
+      const response = (await router.route({
+        route: 'ai-query',
+        body: {
+          messages: [{ role: 'user', content: 'Hello!' }],
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'greet',
+                description: 'Greet the user',
+                parameters: { type: 'object', properties: {} },
+              },
+            },
+          ],
+          tool_choice: 'required',
+        },
+      })) as ChatCompletionResponse;
+
+      expect(response.choices[0].finish_reason).toBe('tool_calls');
+      const toolCall = response.choices[0].message.tool_calls?.[0] as {
+        function: { name: string };
+      };
+      expect(toolCall.function.name).toBe('greet');
+    }, 10000);
+
+    it('should complete multi-turn conversation with tool results', async () => {
+      const addTool = {
+        type: 'function' as const,
+        function: {
+          name: 'calculate',
+          description: 'Calculate a math expression',
+          parameters: {
+            type: 'object',
+            properties: { expression: { type: 'string' } },
+            required: ['expression'],
+          },
+        },
+      };
+
+      // First turn: get tool call
+      const response1 = (await router.route({
+        route: 'ai-query',
+        body: {
+          messages: [{ role: 'user', content: 'What is 5 + 3?' }],
+          tools: [addTool],
+          tool_choice: 'required',
+        },
+      })) as ChatCompletionResponse;
+
+      expect(response1.choices[0].finish_reason).toBe('tool_calls');
+      const toolCall = response1.choices[0].message.tool_calls?.[0];
+      expect(toolCall).toBeDefined();
+
+      // Second turn: provide tool result and get final answer
+      const response2 = (await router.route({
+        route: 'ai-query',
+        body: {
+          messages: [
+            { role: 'user', content: 'What is 5 + 3?' },
+            response1.choices[0].message,
+            {
+              role: 'tool',
+              tool_call_id: toolCall!.id,
+              content: '8',
+            },
+          ],
+        },
+      })) as ChatCompletionResponse;
+
+      expect(response2.choices[0].finish_reason).toBe('stop');
+      expect(response2.choices[0].message.content).toContain('8');
+    }, 15000);
+  });
+
+  describe('error handling', () => {
+    it('should throw authentication error with invalid API key', async () => {
+      const invalidRouter = new Router({
+        aiConfigurations: [
+          {
+            name: 'invalid',
+            provider: 'anthropic',
+            model: 'claude-3-5-haiku-latest',
+            apiKey: 'sk-ant-invalid-key',
+          },
+        ],
+      });
+
+      await expect(
+        invalidRouter.route({
+          route: 'ai-query',
+          body: {
+            messages: [{ role: 'user', content: 'test' }],
+          },
+        }),
+      ).rejects.toThrow(/Authentication failed|invalid x-api-key/i);
+    }, 10000);
+  });
+
+  describe('Model tool support verification', () => {
+    let modelsToTest: string[];
+
+    beforeAll(async () => {
+      modelsToTest = await fetchChatModelsFromAnthropic();
+    });
+
+    it('should have found models from Anthropic API', () => {
+      expect(modelsToTest.length).toBeGreaterThan(0);
+      // eslint-disable-next-line no-console
+      console.log(`Testing ${modelsToTest.length} Anthropic models:`, modelsToTest);
+    });
+
+    it('all models should support tool calls', async () => {
+      const results: { model: string; success: boolean; error?: string }[] = [];
+
+      for (const model of modelsToTest) {
+        const modelRouter = new Router({
+          aiConfigurations: [
+            { name: 'test', provider: 'anthropic', model, apiKey: ANTHROPIC_API_KEY },
+          ],
+        });
+
+        try {
+          const response = (await modelRouter.route({
+            route: 'ai-query',
+            body: {
+              messages: [{ role: 'user', content: 'What is 2+2?' }],
+              tools: [
+                {
+                  type: 'function',
+                  function: {
+                    name: 'calculate',
+                    description: 'Calculate a math expression',
+                    parameters: { type: 'object', properties: { result: { type: 'number' } } },
+                  },
+                },
+              ],
+              tool_choice: 'required',
+            },
+          })) as ChatCompletionResponse;
+
+          const success =
+            response.choices[0].finish_reason === 'tool_calls' &&
+            response.choices[0].message.tool_calls !== undefined;
+
+          results.push({ model, success });
+        } catch (error) {
+          const errorMessage = String(error);
+
+          // Infrastructure errors should fail the test immediately
+          const isInfrastructureError =
+            errorMessage.includes('rate limit') ||
+            errorMessage.includes('429') ||
+            errorMessage.includes('401') ||
+            errorMessage.includes('Authentication') ||
+            errorMessage.includes('ECONNREFUSED') ||
+            errorMessage.includes('ETIMEDOUT') ||
+            errorMessage.includes('getaddrinfo');
+
+          if (isInfrastructureError) {
+            throw new Error(`Infrastructure error testing model ${model}: ${errorMessage}`);
+          }
+
+          results.push({ model, success: false, error: errorMessage });
+        }
+      }
+
+      const failures = results.filter(r => !r.success);
+      if (failures.length > 0) {
+        const failedModelNames = failures.map(f => f.model).join(', ');
+        // eslint-disable-next-line no-console
+        console.error(
+          `\n❌ ${failures.length} Anthropic model(s) failed tool support: ${failedModelNames}\n`,
           failures,
         );
       }
