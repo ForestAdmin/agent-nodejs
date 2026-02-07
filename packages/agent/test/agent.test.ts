@@ -38,8 +38,7 @@ function createMockAiProvider(
   overrides: Partial<AiProviderDefinition> = {},
 ): AiProviderDefinition {
   return {
-    name: 'gpt4o',
-    provider: 'openai',
+    providers: [{ name: 'gpt4o', provider: 'openai' }],
     init: jest.fn().mockReturnValue({ route: jest.fn() }),
     ...overrides,
   };
@@ -429,9 +428,13 @@ describe('Agent', () => {
     test('should throw an error when addAi is called more than once', () => {
       const agent = new Agent(options);
 
-      agent.addAi(createMockAiProvider({ name: 'gpt4o' }));
+      agent.addAi(createMockAiProvider({ providers: [{ name: 'gpt4o', provider: 'openai' }] }));
 
-      expect(() => agent.addAi(createMockAiProvider({ name: 'gpt4o-mini' }))).toThrow(
+      expect(() =>
+        agent.addAi(
+          createMockAiProvider({ providers: [{ name: 'gpt4o-mini', provider: 'openai' }] }),
+        ),
+      ).toThrow(
         'addAi can only be called once. Multiple AI configurations are not supported yet.',
       );
     });
@@ -451,7 +454,7 @@ describe('Agent', () => {
 
     test('should include ai_llms in schema meta when AI is configured', async () => {
       const agent = new Agent(options);
-      agent.addAi(createMockAiProvider({ name: 'gpt4o', provider: 'openai' }));
+      agent.addAi(createMockAiProvider({ providers: [{ name: 'gpt4o', provider: 'openai' }] }));
 
       await agent.start();
 

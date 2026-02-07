@@ -373,9 +373,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     let schema: Pick<ForestSchema, 'collections'>;
 
     // Get the AI configurations for schema metadata
-    const aiMeta = this.aiProvider
-      ? [{ name: this.aiProvider.name, provider: this.aiProvider.provider }]
-      : [];
+    const aiMeta = this.aiProvider?.providers ?? [];
     const { meta } = SchemaGenerator.buildMetadata(
       this.customizationService.buildFeatures(),
       aiMeta,
