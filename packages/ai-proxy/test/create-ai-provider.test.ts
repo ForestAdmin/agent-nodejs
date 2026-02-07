@@ -5,33 +5,28 @@ import { Router } from '../src/router';
 
 jest.mock('../src/router');
 
+const routeMock = jest.fn();
+jest.mocked(Router).mockImplementation(() => ({ route: routeMock } as any));
+
 describe('createAiProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test('should return an AiProviderDefinition with providers array from config', () => {
-    const config: AiConfiguration = {
-      name: 'my-ai',
-      provider: 'openai',
-      model: 'gpt-4o',
-      apiKey: 'test-key',
-    };
+  const config: AiConfiguration = {
+    name: 'my-ai',
+    provider: 'openai',
+    model: 'gpt-4o',
+    apiKey: 'test-key',
+  };
 
+  test('should return providers array from config', () => {
     const result = createAiProvider(config);
 
     expect(result.providers).toEqual([{ name: 'my-ai', provider: 'openai', model: 'gpt-4o' }]);
-    expect(typeof result.init).toBe('function');
   });
 
   test('init should create a Router with the config and logger', () => {
-    const config: AiConfiguration = {
-      name: 'my-ai',
-      provider: 'openai',
-      model: 'gpt-4o',
-      apiKey: 'test-key',
-    };
-
     const provider = createAiProvider(config);
     const mockLogger = jest.fn();
     provider.init(mockLogger);
@@ -42,20 +37,95 @@ describe('createAiProvider', () => {
     });
   });
 
-  test('init should return the Router instance', () => {
-    const config: AiConfiguration = {
-      name: 'my-ai',
-      provider: 'openai',
-      model: 'gpt-4o',
-      apiKey: 'test-key',
-    };
-
-    const mockRouterInstance = { route: jest.fn() };
-    jest.mocked(Router).mockImplementation(() => mockRouterInstance as any);
-
+  test('init should return an AiRouter with a route method', () => {
     const provider = createAiProvider(config);
     const result = provider.init(jest.fn());
 
-    expect(result).toBe(mockRouterInstance);
+    expect(typeof result.route).toBe('function');
+  });
+
+  describe('route wrapper', () => {
+    test('should pass route, body, query to underlying Router', async () => {
+      routeMock.mockResolvedValue({ result: 'ok' });
+      const provider = createAiProvider(config);
+      const aiRouter = provider.init(jest.fn());
+
+      const result = await aiRouter.route({
+        route: 'ai-query',
+        body: { messages: [] },
+        query: { 'ai-name': 'my-ai' },
+      });
+
+      expect(routeMock).toHaveBeenCalledWith({
+        route: 'ai-query',
+        body: { messages: [] },
+        query: { 'ai-name': 'my-ai' },
+        mcpConfigs: undefined,
+      });
+      expect(result).toEqual({ result: 'ok' });
+    });
+
+    test('should pass mcpServerConfigs as mcpConfigs to Router when no requestHeaders', async () => {
+      routeMock.mockResolvedValue({});
+      const provider = createAiProvider(config);
+      const aiRouter = provider.init(jest.fn());
+
+      await aiRouter.route({
+        route: 'remote-tools',
+        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
+      });
+
+      expect(routeMock).toHaveBeenCalledWith({
+        route: 'remote-tools',
+        body: undefined,
+        query: undefined,
+        mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
+      });
+    });
+
+    test('should inject OAuth tokens from requestHeaders into mcpConfigs', async () => {
+      routeMock.mockResolvedValue({});
+      const provider = createAiProvider(config);
+      const aiRouter = provider.init(jest.fn());
+      const oauthTokens = JSON.stringify({ server1: 'Bearer token123' });
+
+      await aiRouter.route({
+        route: 'remote-tools',
+        mcpServerConfigs: {
+          configs: { server1: { type: 'http', url: 'https://server1.com' } },
+        },
+        requestHeaders: { 'x-mcp-oauth-tokens': oauthTokens },
+      });
+
+      expect(routeMock).toHaveBeenCalledWith({
+        route: 'remote-tools',
+        body: undefined,
+        query: undefined,
+        mcpConfigs: {
+          configs: {
+            server1: {
+              type: 'http',
+              url: 'https://server1.com',
+              headers: { Authorization: 'Bearer token123' },
+            },
+          },
+        },
+      });
+    });
+
+    test('should pass mcpConfigs as undefined when no mcpServerConfigs provided', async () => {
+      routeMock.mockResolvedValue({});
+      const provider = createAiProvider(config);
+      const aiRouter = provider.init(jest.fn());
+
+      await aiRouter.route({ route: 'remote-tools' });
+
+      expect(routeMock).toHaveBeenCalledWith({
+        route: 'remote-tools',
+        body: undefined,
+        query: undefined,
+        mcpConfigs: undefined,
+      });
+    });
   });
 });

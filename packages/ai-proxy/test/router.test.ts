@@ -1,7 +1,7 @@
 import type { DispatchBody, InvokeRemoteToolArgs, Route } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { AIBadRequestError, AIModelNotSupportedError, Router } from '../src';
+import { AIModelNotSupportedError, Router } from '../src';
 import McpClient from '../src/mcp-client';
 
 const invokeToolMock = jest.fn();
@@ -384,109 +384,6 @@ describe('route', () => {
         { configs: { server1: { command: 'test', args: [] } } },
         customLogger,
       );
-    });
-  });
-
-  describe('resolveMcpConfigs (mcpServerConfigs path)', () => {
-    it('creates McpClient from mcpServerConfigs when provided', async () => {
-      const router = new Router({});
-
-      await router.route({
-        route: 'remote-tools',
-        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
-      });
-
-      expect(MockedMcpClient).toHaveBeenCalledWith(
-        { configs: { server1: { command: 'test', args: [] } } },
-        undefined,
-      );
-    });
-
-    it('injects OAuth tokens from requestHeaders into mcpServerConfigs', async () => {
-      const router = new Router({});
-      const oauthTokens = JSON.stringify({ server1: 'Bearer token123' });
-
-      await router.route({
-        route: 'remote-tools',
-        mcpServerConfigs: {
-          configs: { server1: { type: 'http', url: 'https://server1.com' } },
-        },
-        requestHeaders: { 'x-mcp-oauth-tokens': oauthTokens },
-      });
-
-      expect(MockedMcpClient).toHaveBeenCalledWith(
-        {
-          configs: {
-            server1: {
-              type: 'http',
-              url: 'https://server1.com',
-              headers: { Authorization: 'Bearer token123' },
-            },
-          },
-        },
-        undefined,
-      );
-    });
-
-    it('uses mcpServerConfigs without token injection when requestHeaders is absent', async () => {
-      const router = new Router({});
-
-      await router.route({
-        route: 'remote-tools',
-        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
-      });
-
-      expect(MockedMcpClient).toHaveBeenCalledWith(
-        { configs: { server1: { command: 'test', args: [] } } },
-        undefined,
-      );
-    });
-
-    it('prefers mcpConfigs over mcpServerConfigs for backward compatibility', async () => {
-      const router = new Router({});
-      const directMcpConfigs = { configs: { direct: { command: 'direct', args: [] } } };
-
-      await router.route({
-        route: 'remote-tools',
-        mcpConfigs: directMcpConfigs,
-        mcpServerConfigs: { configs: { server: { command: 'server', args: [] } } },
-      });
-
-      expect(MockedMcpClient).toHaveBeenCalledWith(directMcpConfigs, undefined);
-    });
-
-    it('throws AIBadRequestError when mcpServerConfigs has invalid shape', async () => {
-      const router = new Router({});
-
-      await expect(
-        router.route({
-          route: 'remote-tools',
-          mcpServerConfigs: 'invalid',
-        }),
-      ).rejects.toThrow(AIBadRequestError);
-    });
-
-    it('treats mcpServerConfigs null as no configs (falls through to undefined)', async () => {
-      const router = new Router({});
-
-      // null is falsy, so it is treated as "no configs provided" — no McpClient is created
-      await router.route({
-        route: 'remote-tools',
-        mcpServerConfigs: null,
-      });
-
-      expect(MockedMcpClient).not.toHaveBeenCalled();
-    });
-
-    it('throws AIBadRequestError when mcpServerConfigs is missing configs property', async () => {
-      const router = new Router({});
-
-      await expect(
-        router.route({
-          route: 'remote-tools',
-          mcpServerConfigs: { notConfigs: {} },
-        }),
-      ).rejects.toThrow(AIBadRequestError);
     });
   });
 

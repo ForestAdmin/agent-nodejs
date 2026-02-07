@@ -7,7 +7,6 @@ import type { z } from 'zod';
 
 import { AIBadRequestError, AIModelNotSupportedError } from './errors';
 import McpClient from './mcp-client';
-import { extractMcpOauthTokensFromHeaders, injectOauthTokens } from './oauth-token-injector';
 import { ProviderDispatcher } from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
@@ -60,13 +59,7 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(
-    args: RouteArgs & {
-      mcpConfigs?: McpConfiguration;
-      mcpServerConfigs?: unknown;
-      requestHeaders?: Record<string, string | string[] | undefined>;
-    },
-  ) {
+  async route(args: RouteArgs & { mcpConfigs?: McpConfiguration }) {
     // Validate input with Zod schema
     const result = routeArgsSchema.safeParse(args);
 
@@ -78,10 +71,8 @@ export class Router {
     let mcpClient: McpClient | undefined;
 
     try {
-      const resolvedMcpConfigs = this.resolveMcpConfigs(args);
-
-      if (resolvedMcpConfigs) {
-        mcpClient = new McpClient(resolvedMcpConfigs, this.logger);
+      if (args.mcpConfigs) {
+        mcpClient = new McpClient(args.mcpConfigs, this.logger);
       }
 
       const remoteTools = new RemoteTools(
@@ -149,35 +140,6 @@ export class Router {
         return `${path}${issue.message}`;
       })
       .join('; ');
-  }
-
-  private resolveMcpConfigs(args: {
-    mcpConfigs?: McpConfiguration;
-    mcpServerConfigs?: unknown;
-    requestHeaders?: Record<string, string | string[] | undefined>;
-  }): McpConfiguration | undefined {
-    // Backward compat: if mcpConfigs is already provided, use it directly
-    if (args.mcpConfigs) return args.mcpConfigs;
-
-    // New path: mcpServerConfigs + requestHeaders → extract tokens and inject
-    if (args.mcpServerConfigs) {
-      if (
-        typeof args.mcpServerConfigs !== 'object' ||
-        args.mcpServerConfigs === null ||
-        !('configs' in args.mcpServerConfigs)
-      ) {
-        throw new AIBadRequestError('Invalid MCP server configuration: missing "configs" property');
-      }
-
-      const mcpConfigs = args.mcpServerConfigs as McpConfiguration;
-      const tokensByMcpServerName = args.requestHeaders
-        ? extractMcpOauthTokensFromHeaders(args.requestHeaders)
-        : undefined;
-
-      return injectOauthTokens({ mcpConfigs, tokensByMcpServerName });
-    }
-
-    return undefined;
   }
 
   private getAiConfiguration(aiName?: string): AiConfiguration | null {
