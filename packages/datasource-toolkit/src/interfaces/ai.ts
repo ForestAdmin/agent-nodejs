@@ -10,9 +10,8 @@ export interface AiRouter {
   /**
    * Route a request to the AI proxy.
    *
-   * Implementations should throw errors with a numeric `status` property (e.g. 400, 404, 422)
-   * for HTTP-status-based error translation. Errors without a `status` property
-   * are treated as unexpected internal errors and re-thrown as-is.
+   * Implementations should throw BusinessError subclasses (BadRequestError, NotFoundError,
+   * UnprocessableError) for proper HTTP status mapping by the agent's error middleware.
    */
   route(args: {
     route: string;

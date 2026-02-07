@@ -1,10 +1,5 @@
 import type { AiRouter } from '@forestadmin/datasource-toolkit';
 
-import {
-  BadRequestError,
-  NotFoundError,
-  UnprocessableError,
-} from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import AiProxyRoute from '../../../src/routes/ai/ai-proxy';
@@ -116,124 +111,20 @@ describe('AiProxyRoute', () => {
       );
     });
 
-    describe('error handling', () => {
-      test('should convert error with status 422 to UnprocessableError with original message', async () => {
-        const route = new AiProxyRoute(services, options, aiRouter);
-        const error = new Error('AI is not configured') as Error & { status: number };
-        error.status = 422;
-        mockRoute.mockRejectedValueOnce(error);
+    test('should let errors from aiRouter propagate unchanged', async () => {
+      const route = new AiProxyRoute(services, options, aiRouter);
+      const error = new Error('AI error');
+      mockRoute.mockRejectedValueOnce(error);
 
-        const context = createMockContext({
-          customProperties: {
-            params: { route: 'ai-query' },
-            query: {},
-          },
-          requestBody: {},
-        });
-
-        await expect((route as any).handleAiProxy(context)).rejects.toMatchObject({
-          name: 'UnprocessableError',
-          message: 'AI is not configured',
-        });
+      const context = createMockContext({
+        customProperties: {
+          params: { route: 'ai-query' },
+          query: {},
+        },
+        requestBody: {},
       });
 
-      test('should convert error with status 404 to NotFoundError', async () => {
-        const route = new AiProxyRoute(services, options, aiRouter);
-        const error = new Error('Resource not found') as Error & { status: number };
-        error.status = 404;
-        mockRoute.mockRejectedValueOnce(error);
-
-        const context = createMockContext({
-          customProperties: {
-            params: { route: 'ai-query' },
-            query: {},
-          },
-          requestBody: {},
-        });
-
-        await expect((route as any).handleAiProxy(context)).rejects.toThrow(NotFoundError);
-      });
-
-      test('should convert error with status 400 to BadRequestError', async () => {
-        const route = new AiProxyRoute(services, options, aiRouter);
-        const error = new Error('Invalid input') as Error & { status: number };
-        error.status = 400;
-        mockRoute.mockRejectedValueOnce(error);
-
-        const context = createMockContext({
-          customProperties: {
-            params: { route: 'ai-query' },
-            query: {},
-          },
-          requestBody: {},
-        });
-
-        await expect((route as any).handleAiProxy(context)).rejects.toThrow(BadRequestError);
-      });
-
-      test('should convert error with other 4xx/5xx status to UnprocessableError', async () => {
-        const route = new AiProxyRoute(services, options, aiRouter);
-        const error = new Error('Server error') as Error & { status: number };
-        error.status = 500;
-        mockRoute.mockRejectedValueOnce(error);
-
-        const context = createMockContext({
-          customProperties: {
-            params: { route: 'ai-query' },
-            query: {},
-          },
-          requestBody: {},
-        });
-
-        await expect((route as any).handleAiProxy(context)).rejects.toThrow(UnprocessableError);
-      });
-
-      test('should re-throw unknown errors unchanged', async () => {
-        const route = new AiProxyRoute(services, options, aiRouter);
-        const unknownError = new Error('Unknown error');
-        mockRoute.mockRejectedValueOnce(unknownError);
-
-        const context = createMockContext({
-          customProperties: {
-            params: { route: 'ai-query' },
-          },
-          requestBody: {},
-        });
-        context.query = {};
-
-        const promise = (route as any).handleAiProxy(context);
-
-        await expect(promise).rejects.toBe(unknownError);
-        expect(unknownError).not.toBeInstanceOf(UnprocessableError);
-      });
-
-      test('should log AI proxy errors before converting them', async () => {
-        const mockLogger = jest.fn();
-        const optionsWithLogger = factories.forestAdminHttpDriverOptions.build({
-          logger: mockLogger,
-        });
-        const route = new AiProxyRoute(services, optionsWithLogger, aiRouter);
-
-        const error = new Error('Some AI error') as Error & { status: number };
-        error.status = 422;
-        mockRoute.mockRejectedValueOnce(error);
-
-        const context = createMockContext({
-          customProperties: {
-            params: { route: 'ai-query' },
-            query: {},
-          },
-          requestBody: {},
-        });
-
-        await expect((route as any).handleAiProxy(context)).rejects.toThrow(UnprocessableError);
-
-        expect(mockLogger).toHaveBeenCalledWith(
-          'Error',
-          'AI proxy error: Some AI error',
-          expect.any(Error),
-        );
-      });
+      await expect((route as any).handleAiProxy(context)).rejects.toBe(error);
     });
   });
 });
