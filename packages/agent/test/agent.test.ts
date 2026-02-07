@@ -456,10 +456,7 @@ describe('Agent', () => {
         }),
       );
 
-      expect(mockLogger).toHaveBeenCalledWith(
-        'Warn',
-        expect.stringContaining("model 'gpt-4o'"),
-      );
+      expect(mockLogger).toHaveBeenCalledWith('Warn', expect.stringContaining("model 'gpt-4o'"));
     });
 
     test('should call init with logger on start to create AI router', async () => {
