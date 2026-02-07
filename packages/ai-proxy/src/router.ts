@@ -161,6 +161,14 @@ export class Router {
 
     // New path: mcpServerConfigs + requestHeaders → extract tokens and inject
     if (args.mcpServerConfigs) {
+      if (
+        typeof args.mcpServerConfigs !== 'object' ||
+        args.mcpServerConfigs === null ||
+        !('configs' in args.mcpServerConfigs)
+      ) {
+        throw new AIBadRequestError('Invalid MCP server configuration: missing "configs" property');
+      }
+
       const mcpConfigs = args.mcpServerConfigs as McpConfiguration;
       const tokensByMcpServerName = args.requestHeaders
         ? extractMcpOauthTokensFromHeaders(args.requestHeaders)

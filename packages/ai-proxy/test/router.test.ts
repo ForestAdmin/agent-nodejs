@@ -387,6 +387,97 @@ describe('route', () => {
     });
   });
 
+  describe('resolveMcpConfigs (mcpServerConfigs path)', () => {
+    it('creates McpClient from mcpServerConfigs when provided', async () => {
+      const router = new Router({});
+
+      await router.route({
+        route: 'remote-tools',
+        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
+      });
+
+      expect(MockedMcpClient).toHaveBeenCalledWith(
+        { configs: { server1: { command: 'test', args: [] } } },
+        undefined,
+      );
+    });
+
+    it('injects OAuth tokens from requestHeaders into mcpServerConfigs', async () => {
+      const router = new Router({});
+      const oauthTokens = JSON.stringify({ server1: 'Bearer token123' });
+
+      await router.route({
+        route: 'remote-tools',
+        mcpServerConfigs: {
+          configs: { server1: { type: 'http', url: 'https://server1.com' } },
+        },
+        requestHeaders: { 'x-mcp-oauth-tokens': oauthTokens },
+      });
+
+      expect(MockedMcpClient).toHaveBeenCalledWith(
+        {
+          configs: {
+            server1: {
+              type: 'http',
+              url: 'https://server1.com',
+              headers: { Authorization: 'Bearer token123' },
+            },
+          },
+        },
+        undefined,
+      );
+    });
+
+    it('uses mcpServerConfigs without token injection when requestHeaders is absent', async () => {
+      const router = new Router({});
+
+      await router.route({
+        route: 'remote-tools',
+        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
+      });
+
+      expect(MockedMcpClient).toHaveBeenCalledWith(
+        { configs: { server1: { command: 'test', args: [] } } },
+        undefined,
+      );
+    });
+
+    it('prefers mcpConfigs over mcpServerConfigs for backward compatibility', async () => {
+      const router = new Router({});
+      const directMcpConfigs = { configs: { direct: { command: 'direct', args: [] } } };
+
+      await router.route({
+        route: 'remote-tools',
+        mcpConfigs: directMcpConfigs,
+        mcpServerConfigs: { configs: { server: { command: 'server', args: [] } } },
+      });
+
+      expect(MockedMcpClient).toHaveBeenCalledWith(directMcpConfigs, undefined);
+    });
+
+    it('throws AIBadRequestError when mcpServerConfigs has invalid shape', async () => {
+      const router = new Router({});
+
+      await expect(
+        router.route({
+          route: 'remote-tools',
+          mcpServerConfigs: 'invalid',
+        }),
+      ).rejects.toThrow('Invalid MCP server configuration: missing "configs" property');
+    });
+
+    it('throws AIBadRequestError when mcpServerConfigs is missing configs property', async () => {
+      const router = new Router({});
+
+      await expect(
+        router.route({
+          route: 'remote-tools',
+          mcpServerConfigs: { notConfigs: {} },
+        }),
+      ).rejects.toThrow('Invalid MCP server configuration: missing "configs" property');
+    });
+  });
+
   describe('Model validation', () => {
     it('throws AIModelNotSupportedError when model does not support tools', () => {
       expect(
