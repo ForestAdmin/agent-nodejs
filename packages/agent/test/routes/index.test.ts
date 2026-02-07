@@ -300,8 +300,8 @@ describe('Route index', () => {
       });
     });
 
-    describe('with AI configurations', () => {
-      test('should not include AI routes when aiConfigurations is empty', () => {
+    describe('with AI router', () => {
+      test('should not include AI routes when aiRouter is null', () => {
         const dataSource = factories.dataSource.buildWithCollections([
           factories.collection.build({ name: 'books' }),
         ]);
@@ -310,68 +310,30 @@ describe('Route index', () => {
           dataSource,
           factories.forestAdminHttpDriverOptions.build(),
           factories.forestAdminHttpDriverServices.build(),
-          [],
+          null,
         );
 
         const aiRoute = routes.find(route => route instanceof AiProxyRoute);
         expect(aiRoute).toBeUndefined();
       });
 
-      test('should include AiProxyRoute when AI configurations are provided', () => {
+      test('should include AiProxyRoute when an AI router is provided', () => {
         const dataSource = factories.dataSource.buildWithCollections([
           factories.collection.build({ name: 'books' }),
         ]);
 
-        const aiConfigurations = [
-          {
-            name: 'gpt4',
-            provider: 'openai' as const,
-            apiKey: 'test-key',
-            model: 'gpt-4o',
-          },
-        ];
+        const aiRouter = { route: jest.fn() };
 
         const routes = makeRoutes(
           dataSource,
           factories.forestAdminHttpDriverOptions.build(),
           factories.forestAdminHttpDriverServices.build(),
-          aiConfigurations,
+          aiRouter,
         );
 
         const aiRoute = routes.find(route => route instanceof AiProxyRoute);
         expect(aiRoute).toBeTruthy();
         expect(aiRoute).toBeInstanceOf(AiProxyRoute);
-      });
-
-      test('should include only one AiProxyRoute even with multiple AI configurations', () => {
-        const dataSource = factories.dataSource.buildWithCollections([
-          factories.collection.build({ name: 'books' }),
-        ]);
-
-        const aiConfigurations = [
-          {
-            name: 'gpt4',
-            provider: 'openai' as const,
-            apiKey: 'test-key',
-            model: 'gpt-4o',
-          },
-          {
-            name: 'gpt3',
-            provider: 'openai' as const,
-            apiKey: 'test-key-2',
-            model: 'gpt-3.5-turbo',
-          },
-        ];
-
-        const routes = makeRoutes(
-          dataSource,
-          factories.forestAdminHttpDriverOptions.build(),
-          factories.forestAdminHttpDriverServices.build(),
-          aiConfigurations,
-        );
-
-        const aiRoutes = routes.filter(route => route instanceof AiProxyRoute);
-        expect(aiRoutes).toHaveLength(1);
       });
     });
   });

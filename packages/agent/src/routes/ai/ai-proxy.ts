@@ -1,40 +1,25 @@
 import type { ForestAdminHttpDriverServices } from '../../services';
-import type { AgentOptionsWithDefaults, AiConfiguration } from '../../types';
+import type { AgentOptionsWithDefaults } from '../../types';
+import type { AiRouter } from '@forestadmin/datasource-toolkit';
 import type KoaRouter from '@koa/router';
 import type { Context } from 'koa';
 
-import {
-  AIBadRequestError,
-  AIError,
-  AINotConfiguredError,
-  AINotFoundError,
-  Router as AiProxyRouter,
-  extractMcpOauthTokensFromHeaders,
-  injectOauthTokens,
-} from '@forestadmin/ai-proxy';
-import {
-  BadRequestError,
-  NotFoundError,
-  UnprocessableError,
-} from '@forestadmin/datasource-toolkit';
+import { UnprocessableError } from '@forestadmin/datasource-toolkit';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
 export default class AiProxyRoute extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
-  private readonly aiProxyRouter: AiProxyRouter;
+  private readonly aiRouter: AiRouter;
 
   constructor(
     services: ForestAdminHttpDriverServices,
     options: AgentOptionsWithDefaults,
-    aiConfigurations: AiConfiguration[],
+    aiRouter: AiRouter,
   ) {
     super(services, options);
-    this.aiProxyRouter = new AiProxyRouter({
-      aiConfigurations,
-      logger: this.options.logger,
-    });
+    this.aiRouter = aiRouter;
   }
 
   setupRoutes(router: KoaRouter): void {
@@ -42,30 +27,21 @@ export default class AiProxyRoute extends BaseRoute {
   }
 
   private async handleAiProxy(context: Context): Promise<void> {
+    const mcpServerConfigs =
+      await this.options.forestAdminClient.mcpServerConfigService.getConfiguration();
+
     try {
-      const tokensByMcpServerName = extractMcpOauthTokensFromHeaders(context.request.headers);
-
-      const mcpConfigs =
-        await this.options.forestAdminClient.mcpServerConfigService.getConfiguration();
-
-      context.response.body = await this.aiProxyRouter.route({
+      context.response.body = await this.aiRouter.route({
         route: context.params.route,
         body: context.request.body,
         query: context.query,
-        mcpConfigs: injectOauthTokens({ mcpConfigs, tokensByMcpServerName }),
+        mcpServerConfigs,
+        requestHeaders: context.request.headers,
       });
       context.response.status = HttpCode.Ok;
     } catch (error) {
-      if (error instanceof AIError) {
-        this.options.logger('Error', `AI proxy error: ${error.message}`, error);
-
-        if (error instanceof AINotConfiguredError) {
-          throw new UnprocessableError('AI is not configured. Please call addAi() on your agent.');
-        }
-
-        if (error instanceof AIBadRequestError) throw new BadRequestError(error.message);
-        if (error instanceof AINotFoundError) throw new NotFoundError(error.message);
-        throw new UnprocessableError(error.message);
+      if (error instanceof Error && error.name === 'AINotConfiguredError') {
+        throw new UnprocessableError('AI is not configured. Please call addAi() on your agent.');
       }
 
       throw error;

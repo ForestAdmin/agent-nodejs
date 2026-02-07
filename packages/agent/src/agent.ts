@@ -1,11 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ForestAdminHttpDriverServices } from './services';
-import type {
-  AgentOptions,
-  AgentOptionsWithDefaults,
-  AiConfiguration,
-  HttpCallback,
-} from './types';
+import type { AgentOptions, AgentOptionsWithDefaults, HttpCallback } from './types';
 import type {
   CollectionCustomizer,
   DataSourceChartDefinition,
@@ -14,7 +9,11 @@ import type {
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-customizer';
-import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import type {
+  AiProviderDefinition,
+  DataSource,
+  DataSourceFactory,
+} from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
@@ -47,7 +46,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
-  protected aiConfigurations: AiConfiguration[] = [];
+  protected aiProvider: AiProviderDefinition | null = null;
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
@@ -222,42 +221,49 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * All AI requests from Forest Admin are forwarded to your agent and processed locally.
    * Your data and API keys never transit through Forest Admin servers, ensuring full privacy.
    *
-   * @param configuration - The AI provider configuration
-   * @param configuration.name - A unique name to identify this AI configuration
-   * @param configuration.provider - The AI provider to use ('openai')
-   * @param configuration.apiKey - Your API key for the chosen provider
-   * @param configuration.model - The model to use (e.g., 'gpt-4o')
+   * Requires the `@forestadmin/ai-proxy` package to be installed:
+   * ```bash
+   * npm install @forestadmin/ai-proxy
+   * ```
+   *
+   * @param provider - An AI provider definition created via `createAiProvider` from `@forestadmin/ai-proxy`
    * @returns The agent instance for chaining
    * @throws Error if addAi is called more than once
    *
    * @example
-   * agent.addAi({
+   * import { createAiProvider } from '@forestadmin/ai-proxy';
+   *
+   * agent.addAi(createAiProvider({
    *   name: 'assistant',
    *   provider: 'openai',
    *   apiKey: process.env.OPENAI_API_KEY,
    *   model: 'gpt-4o',
-   * });
+   * }));
    */
-  addAi(configuration: AiConfiguration): this {
-    if (this.aiConfigurations.length > 0) {
+  addAi(provider: AiProviderDefinition): this {
+    if (this.aiProvider) {
       throw new Error(
         'addAi can only be called once. Multiple AI configurations are not supported yet.',
       );
     }
 
-    this.options.logger(
-      'Warn',
-      `AI configuration added with model '${configuration.model}'. ` +
-        'Make sure to test Forest Admin AI features thoroughly to ensure compatibility.',
-    );
+    this.aiProvider = provider;
 
-    this.aiConfigurations.push(configuration);
+    for (const p of provider.providers) {
+      this.options.logger(
+        'Warn',
+        `AI configuration added with model '${p.model}'. ` +
+          'Make sure to test Forest Admin AI features thoroughly to ensure compatibility.',
+      );
+    }
 
     return this;
   }
 
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    return makeRoutes(dataSource, this.options, services, this.aiConfigurations);
+    const aiRouter = this.aiProvider?.init(this.options.logger) ?? null;
+
+    return makeRoutes(dataSource, this.options, services, aiRouter);
   }
 
   /**
@@ -380,9 +386,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     let schema: Pick<ForestSchema, 'collections'>;
 
     // Get the AI configurations for schema metadata
+    const aiMeta = this.aiProvider?.providers ?? [];
     const { meta } = SchemaGenerator.buildMetadata(
       this.customizationService.buildFeatures(),
-      this.aiConfigurations,
+      aiMeta,
     );
 
     // When using experimental no-code features even in production we need to build a new schema
