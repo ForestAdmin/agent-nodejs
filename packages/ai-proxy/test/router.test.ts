@@ -463,7 +463,19 @@ describe('route', () => {
           route: 'remote-tools',
           mcpServerConfigs: 'invalid',
         }),
-      ).rejects.toThrow('Invalid MCP server configuration: missing "configs" property');
+      ).rejects.toThrow(AIBadRequestError);
+    });
+
+    it('treats mcpServerConfigs null as no configs (falls through to undefined)', async () => {
+      const router = new Router({});
+
+      // null is falsy, so it is treated as "no configs provided" — no McpClient is created
+      await router.route({
+        route: 'remote-tools',
+        mcpServerConfigs: null,
+      });
+
+      expect(MockedMcpClient).not.toHaveBeenCalled();
     });
 
     it('throws AIBadRequestError when mcpServerConfigs is missing configs property', async () => {
@@ -474,7 +486,7 @@ describe('route', () => {
           route: 'remote-tools',
           mcpServerConfigs: { notConfigs: {} },
         }),
-      ).rejects.toThrow('Invalid MCP server configuration: missing "configs" property');
+      ).rejects.toThrow(AIBadRequestError);
     });
   });
 

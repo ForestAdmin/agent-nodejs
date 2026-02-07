@@ -1,5 +1,6 @@
 import type { AiRouter } from '@forestadmin/datasource-toolkit';
 
+import { UnprocessableError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import AiProxyRoute from '../../../src/routes/ai/ai-proxy';
@@ -125,6 +126,30 @@ describe('AiProxyRoute', () => {
       });
 
       await expect((route as any).handleAiProxy(context)).rejects.toBe(error);
+    });
+
+    test('should enrich AINotConfiguredError with addAi() guidance', async () => {
+      const route = new AiProxyRoute(services, options, aiRouter);
+      const error = new Error('AI is not configured');
+      error.name = 'AINotConfiguredError';
+      mockRoute.mockRejectedValue(error);
+
+      const context = createMockContext({
+        customProperties: {
+          params: { route: 'ai-query' },
+          query: {},
+        },
+        requestBody: {},
+      });
+
+      const promise = (route as any).handleAiProxy(context);
+      await expect(promise).rejects.toThrow(UnprocessableError);
+
+      mockRoute.mockRejectedValue(error);
+      const promise2 = (route as any).handleAiProxy(context);
+      await expect(promise2).rejects.toThrow(
+        'AI is not configured. Please call addAi() on your agent.',
+      );
     });
   });
 });
