@@ -6,7 +6,7 @@ import { Router } from './router';
 // eslint-disable-next-line import/prefer-default-export
 export function createAiProvider(config: AiConfiguration): AiProviderDefinition {
   return {
-    providers: [{ name: config.name, provider: config.provider }],
+    providers: [{ name: config.name, provider: config.provider, model: config.model }],
     init(logger) {
       return new Router({ aiConfigurations: [config], logger });
     },
