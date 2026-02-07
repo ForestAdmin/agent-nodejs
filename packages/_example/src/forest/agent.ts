@@ -94,5 +94,11 @@ export default function makeAgent() {
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview)
-    .customizeCollection('sales', customizeSales);
+    .customizeCollection('sales', customizeSales)
+    .addAi({
+      model: 'gpt-4o',
+      provider: 'openai',
+      name: 'test',
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 }
