@@ -41,9 +41,7 @@ export default class AiProxyRoute extends BaseRoute {
       context.response.status = HttpCode.Ok;
     } catch (error) {
       if (error instanceof Error && error.name === 'AINotConfiguredError') {
-        throw new UnprocessableError(
-          'AI is not configured. Please call addAi() on your agent.',
-        );
+        throw new UnprocessableError('AI is not configured. Please call addAi() on your agent.');
       }
 
       throw error;
