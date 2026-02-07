@@ -1,3 +1,4 @@
+import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration } from './provider';
 import type { AiProviderDefinition } from '@forestadmin/datasource-toolkit';
 
@@ -18,7 +19,7 @@ export function createAiProvider(config: AiConfiguration): AiProviderDefinition 
             : undefined;
 
           const mcpConfigs = injectOauthTokens({
-            mcpConfigs: args.mcpServerConfigs as Parameters<typeof injectOauthTokens>[0]['mcpConfigs'],
+            mcpConfigs: args.mcpServerConfigs as McpConfiguration | undefined,
             tokensByMcpServerName,
           });
 

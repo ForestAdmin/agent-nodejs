@@ -126,6 +126,5 @@ describe('AiProxyRoute', () => {
 
       await expect((route as any).handleAiProxy(context)).rejects.toBe(error);
     });
-
   });
 });
