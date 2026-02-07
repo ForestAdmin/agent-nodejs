@@ -10,7 +10,7 @@ describe('createAiProvider', () => {
     jest.clearAllMocks();
   });
 
-  test('should return an AiProviderDefinition with name and provider from config', () => {
+  test('should return an AiProviderDefinition with providers array from config', () => {
     const config: AiConfiguration = {
       name: 'my-ai',
       provider: 'openai',
@@ -20,8 +20,7 @@ describe('createAiProvider', () => {
 
     const result = createAiProvider(config);
 
-    expect(result.name).toBe('my-ai');
-    expect(result.provider).toBe('openai');
+    expect(result.providers).toEqual([{ name: 'my-ai', provider: 'openai' }]);
     expect(typeof result.init).toBe('function');
   });
 

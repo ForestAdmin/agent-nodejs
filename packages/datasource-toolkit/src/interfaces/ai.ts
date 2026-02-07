@@ -11,7 +11,6 @@ export interface AiRouter {
 }
 
 export interface AiProviderDefinition {
-  name: string;
-  provider: string;
+  providers: Array<{ name: string; provider: string }>;
   init(logger: Logger): AiRouter;
 }
