@@ -1,5 +1,11 @@
 import type { Logger } from '../factory';
 
+/** Metadata describing a configured AI provider, used in schema reporting. */
+export interface AiProviderMeta {
+  name: string;
+  provider: string;
+}
+
 export interface AiRouter {
   /**
    * Route a request to the AI proxy.
@@ -18,6 +24,6 @@ export interface AiRouter {
 }
 
 export interface AiProviderDefinition {
-  providers: Array<{ name: string; provider: string }>;
+  providers: AiProviderMeta[];
   init(logger: Logger): AiRouter;
 }

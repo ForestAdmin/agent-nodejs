@@ -1,5 +1,5 @@
 import type { AgentOptionsWithDefaults } from '../../types';
-import type { DataSource } from '@forestadmin/datasource-toolkit';
+import type { AiProviderMeta, DataSource } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import SchemaGeneratorCollection from './generator-collection';
@@ -23,7 +23,7 @@ export default class SchemaGenerator {
 
   static buildMetadata(
     features: Record<string, string> | null,
-    aiProviders: Array<{ name: string; provider: string }> = [],
+    aiProviders: AiProviderMeta[] = [],
   ): Pick<ForestSchema, 'meta'> {
     const { version } = require('../../../package.json'); // eslint-disable-line @typescript-eslint/no-var-requires,global-require
 

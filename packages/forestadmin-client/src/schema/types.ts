@@ -1,4 +1,4 @@
-import type { PrimitiveTypes } from '@forestadmin/datasource-toolkit';
+import type { AiProviderMeta, PrimitiveTypes } from '@forestadmin/datasource-toolkit';
 
 export type ForestSchema = {
   collections: ForestServerCollection[];
@@ -6,7 +6,7 @@ export type ForestSchema = {
     liana: string;
     liana_version: string;
     liana_features: Record<string, string> | null;
-    ai_llms?: Array<{ provider: string }> | null;
+    ai_llms?: AiProviderMeta[] | null;
     stack: {
       engine: string;
       engine_version: string;
