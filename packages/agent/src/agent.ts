@@ -221,7 +221,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * All AI requests from Forest Admin are forwarded to your agent and processed locally.
    * Your data and API keys never transit through Forest Admin servers, ensuring full privacy.
    *
-   * @param provider - An AI provider definition created by a factory (e.g., createAiProvider)
+   * Requires the `@forestadmin/ai-proxy` package to be installed:
+   * ```bash
+   * npm install @forestadmin/ai-proxy
+   * ```
+   *
+   * @param provider - An AI provider definition created via `createAiProvider` from `@forestadmin/ai-proxy`
    * @returns The agent instance for chaining
    * @throws Error if addAi is called more than once
    *
