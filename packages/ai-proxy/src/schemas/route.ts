@@ -1,3 +1,5 @@
+import type { McpConfiguration } from '../mcp-client';
+
 import { z } from 'zod';
 
 // Base query schema with common optional parameters
@@ -83,6 +85,7 @@ export type RemoteToolsArgs = z.infer<typeof remoteToolsSchema>;
 
 // Derived types for consumers
 export type DispatchBody = AiQueryArgs['body'];
+export type RouterRouteArgs = RouteArgs & { mcpConfigs?: McpConfiguration };
 
 // Backward compatibility types
 export type InvokeRemoteToolBody = InvokeRemoteToolArgs['body'];
