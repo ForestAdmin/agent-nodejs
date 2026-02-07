@@ -1,5 +1,6 @@
 import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration } from './provider';
+import type { RouteArgs } from './schemas/route';
 import type { AiProviderDefinition } from '@forestadmin/datasource-toolkit';
 
 import { extractMcpOauthTokensFromHeaders, injectOauthTokens } from './oauth-token-injector';
@@ -23,12 +24,14 @@ export function createAiProvider(config: AiConfiguration): AiProviderDefinition 
             tokensByMcpServerName,
           });
 
-          return router.route({
+          const routerArgs = {
             route: args.route,
             body: args.body,
             query: args.query,
             mcpConfigs,
-          } as any);
+          } as RouteArgs & { mcpConfigs?: McpConfiguration };
+
+          return router.route(routerArgs);
         },
       };
     },
