@@ -2,24 +2,6 @@
  * All custom AI errors extend HTTP-status error classes (BadRequestError, NotFoundError,
  * UnprocessableError) from datasource-toolkit. This allows the agent's error middleware
  * to map them to their natural HTTP status codes automatically.
- *
- * Hierarchy:
- *
- * UnprocessableError (422)
- * ├── AIError (general AI errors)
- * │   ├── AINotConfiguredError
- * │   └── McpError
- * │       ├── McpConnectionError, McpConflictError, McpConfigError
- * └── AIUnprocessableError (provider/tool input errors)
- *     ├── OpenAIUnprocessableError, AIToolUnprocessableError
- *
- * BadRequestError (400)
- * └── AIBadRequestError
- *     └── AIModelNotSupportedError
- *
- * NotFoundError (404)
- * └── AINotFoundError
- *     └── AIToolNotFoundError
  */
 
 // eslint-disable-next-line max-classes-per-file
