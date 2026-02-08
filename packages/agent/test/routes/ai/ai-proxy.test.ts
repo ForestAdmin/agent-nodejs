@@ -57,7 +57,7 @@ describe('AiProxyRoute', () => {
       expect(context.response.body).toEqual(expectedResponse);
     });
 
-    test('should pass route, body, query, mcpServerConfigs and requestHeaders to router', async () => {
+    test('should pass route, body, query, mcpServerConfigs and headers to router', async () => {
       const route = new AiProxyRoute(services, options, aiRouter);
       mockRoute.mockResolvedValueOnce({});
 
@@ -76,7 +76,7 @@ describe('AiProxyRoute', () => {
         body: { messages: [{ role: 'user', content: 'Hello' }] },
         query: { 'ai-name': 'gpt4' },
         mcpServerConfigs: undefined,
-        requestHeaders: context.request.headers,
+        headers: context.request.headers,
       });
     });
 
@@ -106,7 +106,7 @@ describe('AiProxyRoute', () => {
       expect(mockRoute).toHaveBeenCalledWith(
         expect.objectContaining({
           mcpServerConfigs: mcpConfigs,
-          requestHeaders: context.request.headers,
+          headers: context.request.headers,
         }),
       );
     });

@@ -19,7 +19,7 @@ export interface AiRouter {
     body?: unknown;
     query?: Record<string, string | string[] | undefined>;
     mcpServerConfigs?: unknown;
-    requestHeaders?: Record<string, string | string[] | undefined>;
+    headers?: Record<string, string | string[] | undefined>;
   }): Promise<unknown>;
 }
 

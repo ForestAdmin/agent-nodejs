@@ -65,7 +65,7 @@ describe('createAiProvider', () => {
       expect(result).toEqual({ result: 'ok' });
     });
 
-    test('should pass mcpServerConfigs as mcpConfigs to Router when no requestHeaders', async () => {
+    test('should pass mcpServerConfigs as mcpConfigs to Router when no headers', async () => {
       routeMock.mockResolvedValue({});
       const provider = createAiProvider(config);
       const aiRouter = provider.init(jest.fn());
@@ -83,7 +83,7 @@ describe('createAiProvider', () => {
       });
     });
 
-    test('should inject OAuth tokens from requestHeaders into mcpConfigs', async () => {
+    test('should inject OAuth tokens from headers into mcpConfigs', async () => {
       routeMock.mockResolvedValue({});
       const provider = createAiProvider(config);
       const aiRouter = provider.init(jest.fn());
@@ -94,7 +94,7 @@ describe('createAiProvider', () => {
         mcpServerConfigs: {
           configs: { server1: { type: 'http', url: 'https://server1.com' } },
         },
-        requestHeaders: { 'x-mcp-oauth-tokens': oauthTokens },
+        headers: { 'x-mcp-oauth-tokens': oauthTokens },
       });
 
       expect(routeMock).toHaveBeenCalledWith({

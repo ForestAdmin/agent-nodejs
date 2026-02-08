@@ -7,8 +7,8 @@ import { extractMcpOauthTokensFromHeaders, injectOauthTokens } from './oauth-tok
 import { Router } from './router';
 
 function resolveMcpConfigs(args: Parameters<AiRouter['route']>[0]): McpConfiguration | undefined {
-  const tokensByMcpServerName = args.requestHeaders
-    ? extractMcpOauthTokensFromHeaders(args.requestHeaders)
+  const tokensByMcpServerName = args.headers
+    ? extractMcpOauthTokensFromHeaders(args.headers)
     : undefined;
 
   return injectOauthTokens({

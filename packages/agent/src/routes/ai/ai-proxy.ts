@@ -33,7 +33,7 @@ export default class AiProxyRoute extends BaseRoute {
       body: context.request.body,
       query: context.query,
       mcpServerConfigs,
-      requestHeaders: context.request.headers,
+      headers: context.request.headers,
     });
     context.response.status = HttpCode.Ok;
   }
