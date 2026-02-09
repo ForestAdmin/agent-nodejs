@@ -206,6 +206,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Enable MCP (Model Context Protocol) server support.
    * This allows AI assistants to interact with your Forest Admin data.
    *
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/ai/mcp-server}
    * @example
    * agent.mountAiMcpServer();
    */
