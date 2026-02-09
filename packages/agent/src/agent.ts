@@ -226,6 +226,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * npm install @forestadmin/ai-proxy
    * ```
    *
+   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/ai/self-hosted-ai}
    * @param provider - An AI provider definition created via `createAiProvider` from `@forestadmin/ai-proxy`
    * @returns The agent instance for chaining
    * @throws Error if addAi is called more than once
