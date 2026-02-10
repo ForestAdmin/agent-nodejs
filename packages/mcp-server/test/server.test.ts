@@ -2,7 +2,6 @@ import type * as http from 'http';
 import type * as net from 'net';
 
 import jsonwebtoken from 'jsonwebtoken';
-import * as net from 'net';
 import request from 'supertest';
 
 import createMockForestServerClient from './helpers/forest-server-client';
