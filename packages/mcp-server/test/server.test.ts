@@ -1,12 +1,24 @@
 import type * as http from 'http';
 
 import jsonwebtoken from 'jsonwebtoken';
+import * as net from 'net';
 import request from 'supertest';
 
 import createMockForestServerClient from './helpers/forest-server-client';
 import MockServer from './test-utils/mock-server';
 import ForestMCPServer from '../src/server';
 import { clearSchemaCache } from '../src/utils/schema-fetcher';
+
+function getAvailablePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.listen(0, () => {
+      const { port } = srv.address() as net.AddressInfo;
+      srv.close(() => resolve(port));
+    });
+    srv.on('error', reject);
+  });
+}
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
@@ -125,7 +137,7 @@ describe('ForestMCPServer Instance', () => {
     });
 
     it('should start server on specified port', async () => {
-      const testPort = 39310; // Use a different port for testing
+      const testPort = await getAvailablePort();
       process.env.MCP_SERVER_PORT = testPort.toString();
 
       server = new ForestMCPServer({
@@ -155,7 +167,7 @@ describe('ForestMCPServer Instance', () => {
     });
 
     it('should create transport instance', async () => {
-      const testPort = 39311;
+      const testPort = await getAvailablePort();
       process.env.MCP_SERVER_PORT = testPort.toString();
 
       server = new ForestMCPServer({
@@ -175,13 +187,14 @@ describe('ForestMCPServer Instance', () => {
 
   describe('HTTP endpoint', () => {
     let httpServer: http.Server;
+    let httpEndpointPort: number;
 
     beforeAll(async () => {
       process.env.FOREST_ENV_SECRET = 'test-env-secret';
       process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
       process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
-      const testPort = 39312;
-      process.env.MCP_SERVER_PORT = testPort.toString();
+      httpEndpointPort = await getAvailablePort();
+      process.env.MCP_SERVER_PORT = httpEndpointPort.toString();
 
       server = new ForestMCPServer({
         envSecret: 'test-env-secret',
@@ -240,12 +253,16 @@ describe('ForestMCPServer Instance', () => {
 
         expect(response.status).toBe(200);
         expect(response.headers['content-type']).toMatch(/application\/json/);
-        expect(response.body.issuer).toBe('http://localhost:39312/');
+        expect(response.body.issuer).toBe(`http://localhost:${httpEndpointPort}/`);
         expect(response.body.registration_endpoint).toBe(
           'https://test.forestadmin.com/oauth/register',
         );
-        expect(response.body.authorization_endpoint).toBe(`http://localhost:39312/oauth/authorize`);
-        expect(response.body.token_endpoint).toBe(`http://localhost:39312/oauth/token`);
+        expect(response.body.authorization_endpoint).toBe(
+          `http://localhost:${httpEndpointPort}/oauth/authorize`,
+        );
+        expect(response.body.token_endpoint).toBe(
+          `http://localhost:${httpEndpointPort}/oauth/token`,
+        );
         expect(response.body.revocation_endpoint).toBeUndefined();
         expect(response.body.scopes_supported).toEqual([
           'mcp:read',
@@ -266,7 +283,7 @@ describe('ForestMCPServer Instance', () => {
         // Clean up previous server
         await shutDownHttpServer(server?.httpServer as http.Server);
 
-        process.env.MCP_SERVER_PORT = '39314';
+        process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
 
         server = new ForestMCPServer({
           authSecret: 'AUTH_SECRET',
@@ -424,7 +441,7 @@ describe('ForestMCPServer Instance', () => {
       process.env.FOREST_ENV_SECRET = 'test-env-secret';
       process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
       process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
-      process.env.MCP_SERVER_PORT = '39320';
+      process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
 
       // Setup mock for Forest Admin server API responses
       mcpMockServer = new MockServer();
@@ -904,7 +921,7 @@ describe('ForestMCPServer Instance', () => {
       process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
       process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
       process.env.AGENT_HOSTNAME = 'http://localhost:3310';
-      process.env.MCP_SERVER_PORT = '39330';
+      process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
 
       listMockServer = new MockServer();
       listMockServer
@@ -1975,7 +1992,7 @@ describe('ForestMCPServer Instance', () => {
       process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
       process.env.FOREST_SERVER_URL = 'https://test.forestadmin.com';
       process.env.AGENT_HOSTNAME = 'http://localhost:3310';
-      process.env.MCP_SERVER_PORT = '39331';
+      process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
 
       loggingMockServer = new MockServer();
       loggingMockServer
