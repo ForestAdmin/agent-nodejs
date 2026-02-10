@@ -2,6 +2,7 @@ import type * as http from 'http';
 import type * as net from 'net';
 
 import jsonwebtoken from 'jsonwebtoken';
+import * as net from 'net';
 import request from 'supertest';
 
 import createMockForestServerClient from './helpers/forest-server-client';
@@ -9,6 +10,17 @@ import getAvailablePort from './test-utils/get-available-port';
 import MockServer from './test-utils/mock-server';
 import ForestMCPServer from '../src/server';
 import { clearSchemaCache } from '../src/utils/schema-fetcher';
+
+function getAvailablePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.listen(0, () => {
+      const { port } = srv.address() as net.AddressInfo;
+      srv.close(() => resolve(port));
+    });
+    srv.on('error', reject);
+  });
+}
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
   if (!server) return Promise.resolve();
