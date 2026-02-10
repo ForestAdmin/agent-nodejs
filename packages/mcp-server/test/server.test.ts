@@ -154,9 +154,11 @@ describe('ForestMCPServer Instance', () => {
         setTimeout(resolve, 500);
       });
 
-      // Verify the server is running by making a request
+      // Verify the server is running on the specified port
       const { httpServer } = server;
       expect(httpServer).toBeDefined();
+      const address = (httpServer as http.Server).address() as net.AddressInfo;
+      expect(address.port).toBe(testPort);
 
       // Make a request to verify server is responding
       const response = await request(httpServer as http.Server)
