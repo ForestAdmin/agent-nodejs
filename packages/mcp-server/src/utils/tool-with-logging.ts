@@ -99,7 +99,21 @@ export default function registerToolWithLogging<
     (async (args: any, extra: any) => {
       logValidationErrorsIfAny(args, schema, toolName, logger);
 
-      return handler(args as TArgs, extra);
+      // Return errors as tool results (isError: true) instead of throwing.
+      // Per MCP spec, tool errors should be reported within the result object,
+      // not as protocol-level errors, so the LLM can see and handle them.
+      // The SDK also replaces thrown error messages with generic "Unexpected error".
+      // See: https://modelcontextprotocol.io/docs/concepts/tools
+      try {
+        return await handler(args as TArgs, extra);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+
+        return {
+          content: [{ type: 'text', text: message }],
+          isError: true,
+        };
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
   );

@@ -240,6 +240,18 @@ describe('ErrorHandling', () => {
 
       expect(console.error).toHaveBeenCalled();
     });
+
+    test('it should expose real error message instead of "Unexpected error"', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new Error('Cast to ObjectId failed'));
+
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
+
+      expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'Cast to ObjectId failed', name: 'Error', status: 500 }],
+      });
+    });
   });
 
   describe('guaranty cross packages instanceof errors workaround', () => {

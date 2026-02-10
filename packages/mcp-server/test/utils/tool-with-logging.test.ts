@@ -121,15 +121,17 @@ describe('registerToolWithLogging', () => {
       expect(result).toBe(expectedResult);
     });
 
-    it('should propagate handler errors without logging', async () => {
+    it('should return error as tool result instead of throwing', async () => {
       const error = new Error('Handler failed');
       const handler = jest.fn().mockRejectedValue(error);
 
       registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
 
-      await expect(registeredHandler({ name: 'test', count: 42 }, {})).rejects.toThrow(
-        'Handler failed',
-      );
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: 'Handler failed' }],
+        isError: true,
+      });
       expect(mockLogger).not.toHaveBeenCalled();
     });
 

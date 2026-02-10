@@ -894,7 +894,7 @@ describe('declareListTool', () => {
         } as unknown as ReturnType<typeof buildClient>);
       });
 
-      it('should parse error with nested error.text structure in message', async () => {
+      it('should return error as tool result with nested error.text structure in message', async () => {
         // The RPC client throws an Error with message containing JSON: { error: { text: '...' } }
         const errorPayload = {
           error: {
@@ -907,12 +907,14 @@ describe('declareListTool', () => {
         const agentError = new Error(JSON.stringify(errorPayload));
         mockList.mockRejectedValue(agentError);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Invalid filters provided',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Invalid filters provided') }],
+          isError: true,
+        });
       });
 
-      it('should parse error with direct text property in message', async () => {
+      it('should return error as tool result with direct text property in message', async () => {
         // The RPC client throws an Error with message containing JSON: { text: '...' }
         const errorPayload = {
           text: JSON.stringify({
@@ -922,12 +924,14 @@ describe('declareListTool', () => {
         const agentError = new Error(JSON.stringify(errorPayload));
         mockList.mockRejectedValue(agentError);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Direct text error',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Direct text error') }],
+          isError: true,
+        });
       });
 
-      it('should use message property from parsed JSON when no text field', async () => {
+      it('should return error as tool result with message property from parsed JSON when no text field', async () => {
         // The RPC client throws an Error with message containing JSON: { message: '...' }
         const errorPayload = {
           message: 'Error message from JSON payload',
@@ -935,31 +939,39 @@ describe('declareListTool', () => {
         const agentError = new Error(JSON.stringify(errorPayload));
         mockList.mockRejectedValue(agentError);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Error message from JSON payload',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [
+            { type: 'text', text: expect.stringContaining('Error message from JSON payload') },
+          ],
+          isError: true,
+        });
       });
 
-      it('should fall back to error.message when message is not valid JSON', async () => {
+      it('should return error as tool result when message is not valid JSON', async () => {
         // The RPC client throws an Error with a plain string message (not JSON)
         const agentError = new Error('Plain error message');
         mockList.mockRejectedValue(agentError);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Plain error message',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Plain error message') }],
+          isError: true,
+        });
       });
 
-      it('should handle string errors thrown directly', async () => {
+      it('should return error as tool result for string errors thrown directly', async () => {
         // Some libraries throw string errors directly
         mockList.mockRejectedValue('Connection failed');
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Connection failed',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Connection failed') }],
+          isError: true,
+        });
       });
 
-      it('should provide helpful error message for Invalid sort errors', async () => {
+      it('should return helpful error message for Invalid sort errors', async () => {
         // The RPC client throws an "Invalid sort" error
         const errorPayload = {
           error: {
@@ -1021,9 +1033,18 @@ describe('declareListTool', () => {
         mockFetchForestSchema.mockResolvedValue(mockSchema);
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'The sort field provided is invalid for this collection. Available fields for the collection users are: id, name, email.',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [
+            {
+              type: 'text',
+              text: expect.stringContaining(
+                'The sort field provided is invalid for this collection. Available fields for the collection users are: id, name, email.',
+              ),
+            },
+          ],
+          isError: true,
+        });
 
         expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
         expect(mockGetFieldsOfCollection).toHaveBeenCalledWith(mockSchema, 'users');

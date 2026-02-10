@@ -247,7 +247,7 @@ describe('declareCreateTool', () => {
     });
 
     describe('error handling', () => {
-      it('should parse error with nested error.text structure in message', async () => {
+      it('should return error as tool result with nested error.text structure in message', async () => {
         const errorPayload = {
           error: {
             status: 400,
@@ -264,12 +264,17 @@ describe('declareCreateTool', () => {
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
         } as unknown as ReturnType<typeof buildClient>);
 
-        await expect(
-          registeredToolHandler({ collectionName: 'users', attributes: {} }, mockExtra),
-        ).rejects.toThrow('Name is required');
+        const result = await registeredToolHandler(
+          { collectionName: 'users', attributes: {} },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Name is required') }],
+          isError: true,
+        });
       });
 
-      it('should rethrow original error when no parsable error found', async () => {
+      it('should return error as tool result when no parsable error found', async () => {
         const agentError = { unknownProperty: 'some value' };
         const mockCreate = jest.fn().mockRejectedValue(agentError);
         const mockCollection = jest.fn().mockReturnValue({ create: mockCreate });
@@ -278,9 +283,14 @@ describe('declareCreateTool', () => {
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
         } as unknown as ReturnType<typeof buildClient>);
 
-        await expect(
-          registeredToolHandler({ collectionName: 'users', attributes: {} }, mockExtra),
-        ).rejects.toEqual(agentError);
+        const result = await registeredToolHandler(
+          { collectionName: 'users', attributes: {} },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.any(String) }],
+          isError: true,
+        });
       });
     });
   });
