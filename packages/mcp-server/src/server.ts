@@ -234,7 +234,8 @@ export default class ForestMCPServer {
    * Logs the request, intercepts the response for error logging, and delegates to the transport.
    */
   private async handleMcpRequest(req: express.Request, res: express.Response): Promise<void> {
-    this.logger('Info', `Incoming ${req.method} ${req.path}`);
+    const method = req.body?.method || 'unknown';
+    this.logger('Info', `Incoming ${req.method} ${req.path} - method: ${method}`);
 
     if (!this.mcpTransport) {
       throw new Error('MCP transport not initialized');
@@ -328,17 +329,16 @@ export default class ForestMCPServer {
     app.use((req, res, next) => {
       const startTime = Date.now();
 
-      // Capture the original end method to log after response is sent
-      const originalEnd = res.end.bind(res);
-      res.end = ((chunk?: unknown, encoding?: BufferEncoding | (() => void)) => {
+      res.on('finish', () => {
         const duration = Date.now() - startTime;
+        let level: LogLevel = 'Info';
+        if (res.statusCode >= 500) level = 'Error';
+        else if (res.statusCode >= 400) level = 'Warn';
         this.logger(
-          'Info',
+          level,
           `[${res.statusCode}] ${req.method} ${req.baseUrl || req.path} - ${duration}ms`,
         );
-
-        return originalEnd(chunk, encoding as BufferEncoding);
-      }) as typeof res.end;
+      });
 
       next();
     });
@@ -373,14 +373,20 @@ export default class ForestMCPServer {
       }),
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
-          this.logger('Error', `MCP Error: ${error}`);
+          const mcpMethod = req.body?.method || 'unknown';
+          const err = error as Error;
+          this.logger('Error', `MCP Error on method '${mcpMethod}': ${err.message || error}`);
+
+          if (err.stack) {
+            this.logger('Error', `Stack: ${err.stack}`);
+          }
 
           if (!res.headersSent) {
             res.status(500).json({
               jsonrpc: '2.0',
               error: {
                 code: -32603,
-                message: (error as Error)?.message || 'Internal server error',
+                message: err?.message || 'Internal server error',
               },
               id: null,
             });
@@ -395,8 +401,12 @@ export default class ForestMCPServer {
     const { logger } = this;
     app.use(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-        logger('Error', `Unhandled error: ${err.message}`);
+      (err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+        logger('Error', `Unhandled error on ${req.method} ${req.path}: ${err.message}`);
+
+        if (err.stack) {
+          logger('Error', `Stack: ${err.stack}`);
+        }
 
         if (!res.headersSent) {
           res.status(500).json({
