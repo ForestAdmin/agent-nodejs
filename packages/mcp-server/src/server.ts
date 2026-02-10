@@ -429,13 +429,8 @@ export default class ForestMCPServer {
         if (!res.headersSent) {
           res.status(500).json({
             error: 'internal_server_error',
-            error_description: 'Internal server error',
+            error_description: err.message,
           });
-        } else {
-          logger(
-            'Warn',
-            `Cannot send error response (headers already sent) for ${req.method} ${req.path}`,
-          );
         }
       },
     );

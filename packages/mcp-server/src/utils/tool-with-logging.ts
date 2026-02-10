@@ -60,8 +60,8 @@ function logValidationErrorsIfAny(
  * This wrapper logs validation errors with detailed field information,
  * which helps debug tool calls when clients send invalid arguments.
  *
- * Note: Execution errors are caught and converted to { isError: true } tool results.
- * The SSE response interceptor in server.ts additionally logs these errors from the stream.
+ * Note: Execution errors are logged by the SSE response interceptor in server.ts,
+ * so we don't duplicate that logging here.
  *
  * @example
  * registerToolWithLogging(
@@ -99,20 +99,7 @@ export default function registerToolWithLogging<
     (async (args: any, extra: any) => {
       logValidationErrorsIfAny(args, schema, toolName, logger);
 
-      // Return errors as tool results (isError: true) instead of throwing.
-      // Per MCP spec, tool errors should be reported within the result object,
-      // not as protocol-level errors, so the LLM can see and handle them.
-      // See: https://modelcontextprotocol.io/docs/concepts/tools
-      try {
-        return await handler(args as TArgs, extra);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-
-        return {
-          content: [{ type: 'text', text: message }],
-          isError: true,
-        };
-      }
+      return handler(args as TArgs, extra);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
   );

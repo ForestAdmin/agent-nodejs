@@ -262,7 +262,7 @@ describe('declareUpdateTool', () => {
     });
 
     describe('error handling', () => {
-      it('should return error as tool result with nested error.text structure in message', async () => {
+      it('should parse error with nested error.text structure in message', async () => {
         const errorPayload = {
           error: {
             status: 404,
@@ -279,17 +279,15 @@ describe('declareUpdateTool', () => {
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
         } as unknown as ReturnType<typeof buildClient>);
 
-        const result = await registeredToolHandler(
-          { collectionName: 'users', recordId: 999, attributes: {} },
-          mockExtra,
-        );
-        expect(result).toEqual({
-          content: [{ type: 'text', text: expect.stringContaining('Record not found') }],
-          isError: true,
-        });
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', recordId: 999, attributes: {} },
+            mockExtra,
+          ),
+        ).rejects.toThrow('Record not found');
       });
 
-      it('should return error as tool result when no parsable error found', async () => {
+      it('should rethrow original error when no parsable error found', async () => {
         const agentError = { unknownProperty: 'some value' };
         const mockUpdate = jest.fn().mockRejectedValue(agentError);
         const mockCollection = jest.fn().mockReturnValue({ update: mockUpdate });
@@ -298,14 +296,12 @@ describe('declareUpdateTool', () => {
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
         } as unknown as ReturnType<typeof buildClient>);
 
-        const result = await registeredToolHandler(
-          { collectionName: 'users', recordId: 1, attributes: {} },
-          mockExtra,
-        );
-        expect(result).toEqual({
-          content: [{ type: 'text', text: expect.any(String) }],
-          isError: true,
-        });
+        await expect(
+          registeredToolHandler(
+            { collectionName: 'users', recordId: 1, attributes: {} },
+            mockExtra,
+          ),
+        ).rejects.toEqual(agentError);
       });
     });
   });

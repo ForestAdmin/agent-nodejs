@@ -94,12 +94,6 @@ export default class ErrorHandling extends BaseRoute {
       return error.message;
     }
 
-    // In development mode, expose the real error message to help debugging.
-    // In production, we keep "Unexpected error" to avoid leaking internal details.
-    if (!this.options.isProduction && error.message) {
-      return error.message;
-    }
-
     return 'Unexpected error';
   }
 

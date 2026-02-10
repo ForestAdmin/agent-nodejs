@@ -342,7 +342,7 @@ describe('declareDescribeCollectionTool', () => {
         );
       });
 
-      it('should return error as tool result and log Error for non-404 capabilities errors', async () => {
+      it('should throw and log Error for non-404 capabilities errors', async () => {
         const mockCapabilities = jest.fn().mockRejectedValue(new Error('Server error'));
         const mockCollection = jest.fn().mockReturnValue({ capabilities: mockCapabilities });
         mockBuildClient.mockReturnValue({
@@ -353,11 +353,9 @@ describe('declareDescribeCollectionTool', () => {
         mockFetchForestSchema.mockResolvedValue({ collections: [] });
         mockGetFieldsOfCollection.mockReturnValue([]);
 
-        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
-        expect(result).toEqual({
-          content: [{ type: 'text', text: expect.stringContaining('Server error') }],
-          isError: true,
-        });
+        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
+          'Server error',
+        );
 
         expect(mockLogger).toHaveBeenCalledWith(
           'Error',
