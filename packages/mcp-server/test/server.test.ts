@@ -2145,6 +2145,48 @@ describe('ForestMCPServer Instance', () => {
       );
     });
 
+    it('should log with Warn level for 4xx responses', async () => {
+      // Send unauthenticated request to trigger 401
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Content-Type', 'application/json')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringMatching(/\[401\] POST \/mcp - \d+ms/),
+      );
+    });
+
+    it('should log MCP error with method name and stack trace when handleMcpRequest fails', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        { id: 123, email: 'user@example.com', renderingId: 456 },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      // Break the transport to force an error in handleMcpRequest
+      const originalTransport = loggingServer.mcpTransport;
+      loggingServer.mcpTransport = undefined;
+
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      // Restore transport
+      loggingServer.mcpTransport = originalTransport;
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining("MCP Error on method 'tools/list'"),
+      );
+      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('Stack:'));
+    });
+
     it('should log in correct order: incoming, tool call, response', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(

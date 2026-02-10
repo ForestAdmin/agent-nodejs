@@ -56,6 +56,21 @@ const defaultLogger: Logger = (level, message) => {
   getDefaultLogFn(level)(message);
 };
 
+function logLevelForStatus(statusCode: number): LogLevel {
+  if (statusCode >= 500) return 'Error';
+  if (statusCode >= 400) return 'Warn';
+
+  return 'Info';
+}
+
+function logErrorWithStack(logger: Logger, message: string, err: Error): void {
+  logger('Error', message);
+
+  if (err.stack) {
+    logger('Error', `Stack: ${err.stack}`);
+  }
+}
+
 /** Fields that are safe to log for each tool (non-sensitive data) */
 const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   list: ['collectionName'],
@@ -331,9 +346,7 @@ export default class ForestMCPServer {
 
       res.on('finish', () => {
         const duration = Date.now() - startTime;
-        let level: LogLevel = 'Info';
-        if (res.statusCode >= 500) level = 'Error';
-        else if (res.statusCode >= 400) level = 'Warn';
+        const level = logLevelForStatus(res.statusCode);
         this.logger(
           level,
           `[${res.statusCode}] ${req.method} ${req.baseUrl || req.path} - ${duration}ms`,
@@ -375,21 +388,26 @@ export default class ForestMCPServer {
         this.handleMcpRequest(req, res).catch(error => {
           const mcpMethod = req.body?.method || 'unknown';
           const err = error as Error;
-          this.logger('Error', `MCP Error on method '${mcpMethod}': ${err.message || error}`);
-
-          if (err.stack) {
-            this.logger('Error', `Stack: ${err.stack}`);
-          }
+          logErrorWithStack(
+            this.logger,
+            `MCP Error on method '${mcpMethod}': ${err.message || error}`,
+            err,
+          );
 
           if (!res.headersSent) {
             res.status(500).json({
               jsonrpc: '2.0',
               error: {
                 code: -32603,
-                message: err?.message || 'Internal server error',
+                message: err.message || 'Internal server error',
               },
               id: null,
             });
+          } else {
+            this.logger(
+              'Warn',
+              `Cannot send error response (headers already sent) for method '${mcpMethod}'`,
+            );
           }
         });
       },
@@ -402,17 +420,22 @@ export default class ForestMCPServer {
     app.use(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       (err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-        logger('Error', `Unhandled error on ${req.method} ${req.path}: ${err.message}`);
-
-        if (err.stack) {
-          logger('Error', `Stack: ${err.stack}`);
-        }
+        logErrorWithStack(
+          logger,
+          `Unhandled error on ${req.method} ${req.path}: ${err.message}`,
+          err,
+        );
 
         if (!res.headersSent) {
           res.status(500).json({
             error: 'internal_server_error',
             error_description: err.message,
           });
+        } else {
+          logger(
+            'Warn',
+            `Cannot send error response (headers already sent) for ${req.method} ${req.path}`,
+          );
         }
       },
     );
