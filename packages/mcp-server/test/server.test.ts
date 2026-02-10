@@ -2282,3 +2282,13 @@ describe('ForestMCPServer Instance', () => {
     });
   });
 });
+
+describe('Logo URL', () => {
+  it('should reference an accessible SVG image', async () => {
+    const logoUrl = 'https://app.forestadmin.com/img/logo-e8d1269ef22a94d210c8b6cbf8e9caca.svg';
+    const response = await fetch(logoUrl, { method: 'HEAD' });
+
+    expect(response.ok).toBe(true);
+    expect(response.headers.get('content-type')).toContain('svg');
+  });
+});
