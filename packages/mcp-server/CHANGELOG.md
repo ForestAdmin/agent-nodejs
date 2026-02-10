@@ -1,3 +1,11 @@
+## @forestadmin/mcp-server [1.7.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.7.6...@forestadmin/mcp-server@1.7.7) (2026-02-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** add diagnostic logging for 500 errors ([#1456](https://github.com/ForestAdmin/agent-nodejs/issues/1456)) ([1e61fd7](https://github.com/ForestAdmin/agent-nodejs/commit/1e61fd7b5c1152e627d94d3a6dec616962c03fd7))
+* **mcp-server:** use random available ports in server tests ([#1457](https://github.com/ForestAdmin/agent-nodejs/issues/1457)) ([1fce1ee](https://github.com/ForestAdmin/agent-nodejs/commit/1fce1ee2e3072795f89ef83c3559723f131935da))
+
 ## @forestadmin/mcp-server [1.7.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.7.5...@forestadmin/mcp-server@1.7.6) (2026-02-06)
 
 
