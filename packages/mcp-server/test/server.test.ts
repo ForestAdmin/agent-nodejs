@@ -2187,6 +2187,58 @@ describe('ForestMCPServer Instance', () => {
       expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('Stack:'));
     });
 
+    it('should log warning when headersSent prevents MCP error response', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        { id: 123, email: 'user@example.com', renderingId: 456 },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      // Mock handleMcpRequest to send headers, end response, then throw
+      const serverRecord = loggingServer as unknown as Record<string, unknown>;
+      const originalHandle = serverRecord.handleMcpRequest;
+
+      serverRecord.handleMcpRequest = async (
+        _req: unknown,
+        res: { writeHead: (s: number) => void; end: () => void },
+      ) => {
+        res.writeHead(200);
+        res.end();
+        throw new Error('Error after headers sent');
+      };
+
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      // Restore
+      serverRecord.handleMcpRequest = originalHandle;
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('Cannot send error response (headers already sent)'),
+      );
+    });
+
+    it('should log unhandled Express error with stack trace', async () => {
+      // Send malformed JSON to trigger express.json() parse error,
+      // which calls next(err) and reaches the global error handler
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Content-Type', 'application/json')
+        .send('invalid json');
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        expect.stringContaining('Unhandled error on POST /mcp'),
+      );
+      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('Stack:'));
+    });
+
     it('should log in correct order: incoming, tool call, response', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
