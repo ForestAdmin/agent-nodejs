@@ -2239,6 +2239,36 @@ describe('ForestMCPServer Instance', () => {
       expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('Stack:'));
     });
 
+    it('should log warning when headersSent prevents global error handler response', () => {
+      // Extract the global error handler from Express's router stack
+      // It's the 4-arg function (err, req, res, next) registered via app.use()
+      // eslint-disable-next-line no-underscore-dangle
+      const routerStack = (
+        (loggingServer as unknown as Record<string, unknown>).expressApp as {
+          _router: { stack: { handle: { length: number } }[] };
+        }
+      )._router.stack;
+      const errorHandlerLayer = routerStack.find(layer => layer.handle.length === 4);
+      expect(errorHandlerLayer).toBeDefined();
+
+      const errorHandler = errorHandlerLayer?.handle as unknown as (
+        err: Error,
+        req: { method: string; path: string },
+        res: { headersSent: boolean },
+        next: () => void,
+      ) => void;
+
+      const mockReq = { method: 'POST', path: '/mcp' };
+      const mockRes = { headersSent: true };
+
+      errorHandler(new Error('test error'), mockReq, mockRes, () => {});
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        'Cannot send error response (headers already sent) for POST /mcp',
+      );
+    });
+
     it('should log in correct order: incoming, tool call, response', async () => {
       const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
       const validToken = jsonwebtoken.sign(
