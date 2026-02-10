@@ -387,7 +387,7 @@ export default class ForestMCPServer {
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
           const mcpMethod = req.body?.method || 'unknown';
-          const err = error as Error;
+          const err = error instanceof Error ? error : new Error(String(error));
           logErrorWithStack(
             this.logger,
             `MCP Error on method '${mcpMethod}': ${err.message || error}`,
@@ -415,7 +415,7 @@ export default class ForestMCPServer {
 
     // Global error handler to catch any unhandled errors
     // Express requires all 4 parameters to recognize this as an error handler
-    // Capture logger for use in error handler (arrow function would lose context)
+    // Capture logger reference so the error handler closure does not depend on 'this'
     const { logger } = this;
     app.use(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -429,7 +429,7 @@ export default class ForestMCPServer {
         if (!res.headersSent) {
           res.status(500).json({
             error: 'internal_server_error',
-            error_description: err.message,
+            error_description: 'Internal server error',
           });
         } else {
           logger(
