@@ -2056,7 +2056,7 @@ describe('ForestMCPServer Instance', () => {
         .set('Accept', 'application/json, text/event-stream')
         .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
 
-      expect(mockLogger).toHaveBeenCalledWith('Info', 'Incoming POST /mcp - method: tools/list');
+      expect(mockLogger).toHaveBeenCalledWith('Info', 'Incoming POST /mcp [tools/list]');
     });
 
     it('should log tool calls with safe parameters', async () => {

@@ -234,8 +234,8 @@ export default class ForestMCPServer {
    * Logs the request, intercepts the response for error logging, and delegates to the transport.
    */
   private async handleMcpRequest(req: express.Request, res: express.Response): Promise<void> {
-    const method = req.body?.method || 'unknown';
-    this.logger('Info', `Incoming ${req.method} ${req.path} - method: ${method}`);
+    const rpcMethod = req.body?.method || 'unknown';
+    this.logger('Info', `Incoming ${req.method} ${req.path} [${rpcMethod}]`);
 
     if (!this.mcpTransport) {
       throw new Error('MCP transport not initialized');
