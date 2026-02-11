@@ -260,6 +260,12 @@ export default class ForestMCPServer {
     interceptResponseForErrorLogging(res, this.logger);
 
     await this.mcpTransport.handleRequest(req, res, req.body);
+
+    // The Hono adapter inside @modelcontextprotocol/sdk catches errors internally
+    // and writes 500 directly to the response without logging. Detect and log these.
+    if (res.statusCode >= 500) {
+      this.logger('Error', `Transport returned HTTP ${res.statusCode} for [${rpcMethod}]`);
+    }
   }
 
   /**

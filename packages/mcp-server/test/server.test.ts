@@ -2224,6 +2224,44 @@ describe('ForestMCPServer Instance', () => {
       );
     });
 
+    it('should log when transport silently returns HTTP 500', async () => {
+      const authSecret = process.env.FOREST_AUTH_SECRET || 'test-auth-secret';
+      const validToken = jsonwebtoken.sign(
+        { id: 123, email: 'user@example.com', renderingId: 456 },
+        authSecret,
+        { expiresIn: '1h' },
+      );
+
+      // Mock transport.handleRequest to set 500 without throwing (simulates Hono adapter error)
+      const transport = loggingServer.mcpTransport as NonNullable<
+        typeof loggingServer.mcpTransport
+      >;
+      const originalHandleRequest = transport.handleRequest;
+
+      transport.handleRequest = async (
+        _req: unknown,
+        res: { statusCode: number; end: () => void },
+      ) => {
+        res.statusCode = 500;
+        res.end();
+      };
+
+      await request(loggingHttpServer)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${validToken}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({ jsonrpc: '2.0', method: 'notifications/initialized', id: 1 });
+
+      // Restore
+      transport.handleRequest = originalHandleRequest;
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Transport returned HTTP 500 for [notifications/initialized]',
+      );
+    });
+
     it('should log unhandled Express error with stack trace', async () => {
       // Send malformed JSON to trigger express.json() parse error,
       // which calls next(err) and reaches the global error handler
