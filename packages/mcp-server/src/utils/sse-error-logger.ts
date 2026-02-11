@@ -126,9 +126,29 @@ function logChunkErrors(
  * This function modifies res.write() and res.end() to add logging without
  * affecting the actual response sent to the client.
  */
+/**
+ * Logs the collected response body when the HTTP status code indicates a server error.
+ * This catches cases where the MCP SDK writes a 500 response directly (e.g. plain JSON)
+ * without going through the SSE error format.
+ */
+function logHttpErrorBody(chunks: string[], res: Response, logger: Logger): void {
+  if (res.statusCode < 500) {
+    return;
+  }
+
+  const body = chunks.join('');
+
+  if (!body) {
+    return;
+  }
+
+  logger('Error', `HTTP ${res.statusCode} response body: ${body}`);
+}
+
 export default function interceptResponseForErrorLogging(res: Response, logger: Logger): void {
   const originalWrite = res.write.bind(res);
   const originalEnd = res.end.bind(res);
+  const chunks: string[] = [];
 
   // Intercept streaming chunks (res.write)
   res.write = function interceptedWrite(
@@ -137,6 +157,12 @@ export default function interceptResponseForErrorLogging(res: Response, logger: 
     callback?: (error?: Error | null) => void,
   ): boolean {
     logChunkErrors(chunk, logger);
+
+    try {
+      chunks.push(chunkToString(chunk));
+    } catch {
+      // Never affect the response
+    }
 
     return originalWrite(chunk, encodingOrCallback as BufferEncoding, callback);
   } as typeof res.write;
@@ -149,8 +175,22 @@ export default function interceptResponseForErrorLogging(res: Response, logger: 
   ): typeof res {
     if (chunk && typeof chunk !== 'function') {
       logChunkErrors(chunk as Buffer | string | Uint8Array, logger);
+
+      try {
+        chunks.push(chunkToString(chunk as Buffer | string | Uint8Array));
+      } catch {
+        // Never affect the response
+      }
     }
 
-    return originalEnd(chunk, encodingOrCallback as BufferEncoding, callback);
+    const result = originalEnd(chunk, encodingOrCallback as BufferEncoding, callback);
+
+    try {
+      logHttpErrorBody(chunks, res, logger);
+    } catch {
+      // Never affect the response
+    }
+
+    return result;
   } as typeof res.end;
 }
