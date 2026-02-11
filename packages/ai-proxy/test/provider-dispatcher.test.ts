@@ -4,6 +4,7 @@ import { AIMessage } from '@langchain/core/messages';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 
 import {
+  AIBadRequestError,
   AINotConfiguredError,
   AnthropicUnprocessableError,
   ProviderDispatcher,
@@ -610,6 +611,52 @@ describe('ProviderDispatcher', () => {
           } as unknown as DispatchBody),
         ).rejects.toThrow('Error while calling Anthropic: Anthropic API error');
       });
+
+      it('should throw rate limit error when status is 429', async () => {
+        const rateLimitError = new Error('Too many requests') as Error & { status?: number };
+        rateLimitError.status = 429;
+        anthropicInvokeMock.mockRejectedValueOnce(rateLimitError);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await expect(
+          dispatcher.dispatch({
+            tools: [],
+            messages: [{ role: 'user', content: 'Hello' }],
+          } as unknown as DispatchBody),
+        ).rejects.toThrow('Rate limit exceeded: Too many requests');
+      });
+
+      it('should throw authentication error when status is 401', async () => {
+        const authError = new Error('Invalid API key') as Error & { status?: number };
+        authError.status = 401;
+        anthropicInvokeMock.mockRejectedValueOnce(authError);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'invalid',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await expect(
+          dispatcher.dispatch({
+            tools: [],
+            messages: [{ role: 'user', content: 'Hello' }],
+          } as unknown as DispatchBody),
+        ).rejects.toThrow('Authentication failed: Invalid API key');
+      });
     });
 
     describe('when there is a remote tool', () => {
@@ -653,6 +700,135 @@ describe('ProviderDispatcher', () => {
           ],
           expect.anything(),
         );
+      });
+    });
+
+    describe('message conversion edge cases', () => {
+      it('should throw AIBadRequestError for tool message without tool_call_id', async () => {
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await expect(
+          dispatcher.dispatch({
+            tools: [],
+            messages: [{ role: 'tool', content: 'result' }],
+          } as unknown as DispatchBody),
+        ).rejects.toThrow(
+          new AIBadRequestError('Tool message is missing required "tool_call_id" field.'),
+        );
+      });
+
+      it('should throw AIBadRequestError for unsupported message role', async () => {
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await expect(
+          dispatcher.dispatch({
+            tools: [],
+            messages: [{ role: 'unknown', content: 'test' }],
+          } as unknown as DispatchBody),
+        ).rejects.toThrow(
+          new AIBadRequestError(
+            "Unsupported message role 'unknown'. Expected: system, user, assistant, or tool.",
+          ),
+        );
+      });
+
+      it('should throw AIBadRequestError for invalid JSON in tool_calls arguments', async () => {
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await expect(
+          dispatcher.dispatch({
+            tools: [],
+            messages: [
+              {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  { id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } },
+                ],
+              },
+            ],
+          } as unknown as DispatchBody),
+        ).rejects.toThrow(
+          new AIBadRequestError(
+            "Invalid JSON in tool_calls arguments for tool 'my_tool': not-json",
+          ),
+        );
+      });
+    });
+
+    describe('convertToolChoiceToLangChain edge cases', () => {
+      it('should convert tool_choice "none" to "none"', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [{ type: 'function', function: { name: 'tool1' } }],
+          messages: [{ role: 'user', content: 'test' }],
+          tool_choice: 'none',
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: 'none',
+        });
+      });
+
+      it('should return undefined for unrecognized tool_choice value', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [{ type: 'function', function: { name: 'tool1' } }],
+          messages: [{ role: 'user', content: 'test' }],
+          tool_choice: { type: 'unknown' },
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: undefined,
+        });
       });
     });
   });
