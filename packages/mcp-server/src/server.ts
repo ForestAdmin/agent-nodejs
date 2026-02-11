@@ -36,7 +36,7 @@ import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
 
-const LOGO_URL = 'https://app.forestadmin.com/img/logo-e8d1269ef22a94d210c8b6cbf8e9caca.svg';
+const LOGO_URL = 'https://forest-assets.s3.us-east-1.amazonaws.com/logo-green.png';
 
 export type LogLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LogLevel, message: string) => void;
