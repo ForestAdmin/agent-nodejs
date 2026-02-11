@@ -1,3 +1,15 @@
+# @forestadmin/mcp-server [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.7.7...@forestadmin/mcp-server@1.8.0) (2026-02-11)
+
+
+### Bug Fixes
+
+* **mcp-server:** add diagnostic logging for silent HTTP 500 from transport ([#1461](https://github.com/ForestAdmin/agent-nodejs/issues/1461)) ([6849c4c](https://github.com/ForestAdmin/agent-nodejs/commit/6849c4c326a696d873f2526ff888d9008d5c78f2))
+
+
+### Features
+
+* **mcp-server:** add Forest Admin logo ([#1459](https://github.com/ForestAdmin/agent-nodejs/issues/1459)) ([7eaec86](https://github.com/ForestAdmin/agent-nodejs/commit/7eaec865b379ed3ab355d34c93b2dd5a64ff9b6a))
+
 ## @forestadmin/mcp-server [1.7.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.7.6...@forestadmin/mcp-server@1.7.7) (2026-02-10)
 
 
