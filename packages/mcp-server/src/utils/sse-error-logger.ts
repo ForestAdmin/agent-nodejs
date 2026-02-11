@@ -129,6 +129,7 @@ function logChunkErrors(
 export default function interceptResponseForErrorLogging(res: Response, logger: Logger): void {
   const originalWrite = res.write.bind(res);
   const originalEnd = res.end.bind(res);
+  const chunks: string[] = [];
 
   // Intercept streaming chunks (res.write)
   res.write = function interceptedWrite(
@@ -137,6 +138,12 @@ export default function interceptResponseForErrorLogging(res: Response, logger: 
     callback?: (error?: Error | null) => void,
   ): boolean {
     logChunkErrors(chunk, logger);
+
+    try {
+      if (chunk != null) chunks.push(chunkToString(chunk));
+    } catch {
+      // Never affect the response
+    }
 
     return originalWrite(chunk, encodingOrCallback as BufferEncoding, callback);
   } as typeof res.write;
@@ -149,8 +156,28 @@ export default function interceptResponseForErrorLogging(res: Response, logger: 
   ): typeof res {
     if (chunk && typeof chunk !== 'function') {
       logChunkErrors(chunk as Buffer | string | Uint8Array, logger);
+
+      try {
+        chunks.push(chunkToString(chunk as Buffer | string | Uint8Array));
+      } catch {
+        // Never affect the response
+      }
     }
 
-    return originalEnd(chunk, encodingOrCallback as BufferEncoding, callback);
+    const result = originalEnd(chunk, encodingOrCallback as BufferEncoding, callback);
+
+    // Log the response body when the transport returns HTTP 500+
+    // The Hono adapter inside @modelcontextprotocol/sdk catches errors internally
+    // and writes 500 directly to the response. This captures those silent errors.
+    try {
+      if (res.statusCode >= 500) {
+        const body = chunks.join('');
+        logger('Error', `HTTP ${res.statusCode} response body: ${body || '(empty)'}`);
+      }
+    } catch {
+      // Never affect the response
+    }
+
+    return result;
   } as typeof res.end;
 }
