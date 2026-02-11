@@ -7,7 +7,7 @@ import request from 'supertest';
 import createMockForestServerClient from './helpers/forest-server-client';
 import getAvailablePort from './test-utils/get-available-port';
 import MockServer from './test-utils/mock-server';
-import ForestMCPServer from '../src/server';
+import ForestMCPServer, { LOGO_URL } from '../src/server';
 import { clearSchemaCache } from '../src/utils/schema-fetcher';
 
 function shutDownHttpServer(server: http.Server | undefined): Promise<void> {
@@ -2318,5 +2318,14 @@ describe('ForestMCPServer Instance', () => {
       expect(toolCallIndex).toBeGreaterThan(incomingIndex);
       expect(responseIndex).toBeGreaterThan(toolCallIndex);
     });
+  });
+});
+
+describe('Logo URL', () => {
+  it('should reference an accessible PNG image', async () => {
+    const response = await fetch(LOGO_URL, { method: 'HEAD' });
+
+    expect(response.ok).toBe(true);
+    expect(response.headers.get('content-type')).toContain('image/png');
   });
 });

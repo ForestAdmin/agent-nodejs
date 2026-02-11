@@ -36,6 +36,8 @@ import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
 
+export const LOGO_URL = 'https://forest-assets.s3.us-east-1.amazonaws.com/logo-green.png';
+
 export type LogLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LogLevel, message: string) => void;
 
@@ -136,6 +138,7 @@ export default class ForestMCPServer {
     this.mcpServer = new McpServer({
       name: NAME,
       version: VERSION,
+      icons: [{ src: LOGO_URL, mimeType: 'image/png' }],
     });
   }
 
