@@ -106,7 +106,7 @@ export default function registerToolWithLogging<
       try {
         return await handler(args as TArgs, extra);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : JSON.stringify(error);
 
         return {
           content: [{ type: 'text', text: message }],

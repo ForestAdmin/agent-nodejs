@@ -135,6 +135,18 @@ describe('registerToolWithLogging', () => {
       expect(mockLogger).not.toHaveBeenCalled();
     });
 
+    it('should stringify non-Error throws in isError result', async () => {
+      const handler = jest.fn().mockRejectedValue({ code: 'FAIL', detail: 'something broke' });
+
+      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
+
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: '{"code":"FAIL","detail":"something broke"}' }],
+        isError: true,
+      });
+    });
+
     it('should call handler even when validation fails', async () => {
       const handler = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
 
