@@ -303,7 +303,7 @@ describe('declareUpdateTool', () => {
           mockExtra,
         );
         expect(result).toEqual({
-          content: [{ type: 'text', text: expect.any(String) }],
+          content: [{ type: 'text', text: '{"unknownProperty":"some value"}' }],
           isError: true,
         });
       });
