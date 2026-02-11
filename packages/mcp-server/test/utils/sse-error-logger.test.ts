@@ -1,5 +1,5 @@
-import type { Response } from 'express';
 import type { Logger } from '../../src/server';
+import type { Response } from 'express';
 
 import interceptResponseForErrorLogging from '../../src/utils/sse-error-logger';
 
@@ -56,10 +56,7 @@ describe('interceptResponseForErrorLogging', () => {
       res.statusCode = 500;
       res.end('Error: stream failed');
 
-      expect(logger).toHaveBeenCalledWith(
-        'Error',
-        'HTTP 500 response body: Error: stream failed',
-      );
+      expect(logger).toHaveBeenCalledWith('Error', 'HTTP 500 response body: Error: stream failed');
     });
 
     it('should log concatenated body from write + end chunks', () => {
@@ -67,10 +64,7 @@ describe('interceptResponseForErrorLogging', () => {
       res.write('Error: ');
       res.end('stream failed');
 
-      expect(logger).toHaveBeenCalledWith(
-        'Error',
-        'HTTP 500 response body: Error: stream failed',
-      );
+      expect(logger).toHaveBeenCalledWith('Error', 'HTTP 500 response body: Error: stream failed');
     });
 
     it('should log (empty) when 500 has no body', () => {
@@ -89,14 +83,35 @@ describe('interceptResponseForErrorLogging', () => {
       expect(logger).toHaveBeenCalledWith('Error', 'HTTP 502 response body: chunk1chunk2chunk3');
     });
 
-    it('should handle Buffer chunks on 500', () => {
+    it('should handle Buffer chunks on end', () => {
       res.statusCode = 500;
       res.end(Buffer.from('Error: buffer content'));
 
-      expect(logger).toHaveBeenCalledWith(
-        'Error',
-        'HTTP 500 response body: Error: buffer content',
-      );
+      expect(logger).toHaveBeenCalledWith('Error', 'HTTP 500 response body: Error: buffer content');
+    });
+
+    it('should handle Buffer chunks on write', () => {
+      res.statusCode = 500;
+      res.write(Buffer.from('buffered '));
+      res.end('end');
+
+      expect(logger).toHaveBeenCalledWith('Error', 'HTTP 500 response body: buffered end');
+    });
+
+    it('should handle Uint8Array chunks on 500', () => {
+      res.statusCode = 500;
+      res.end(new Uint8Array(Buffer.from('Error: uint8 content')));
+
+      expect(logger).toHaveBeenCalledWith('Error', 'HTTP 500 response body: Error: uint8 content');
+    });
+
+    it('should log all accumulated chunks even when status changes to 500 after write', () => {
+      res.statusCode = 200;
+      res.write('early chunk');
+      res.statusCode = 500;
+      res.end('late chunk');
+
+      expect(logger).toHaveBeenCalledWith('Error', 'HTTP 500 response body: early chunklate chunk');
     });
 
     it('should not log body when status is 200', () => {
@@ -104,27 +119,32 @@ describe('interceptResponseForErrorLogging', () => {
       res.write('some response data');
       res.end();
 
-      const httpBodyCalls = (logger.mock.calls as [string, string][]).filter(([, msg]) =>
-        msg.startsWith('HTTP'),
-      );
-      expect(httpBodyCalls).toHaveLength(0);
+      expect(logger).not.toHaveBeenCalledWith('Error', expect.stringContaining('response body'));
     });
 
     it('should not log body when status is 400', () => {
       res.statusCode = 400;
       res.end('{"error":"bad request"}');
 
-      const httpBodyCalls = (logger.mock.calls as [string, string][]).filter(([, msg]) =>
-        msg.startsWith('HTTP'),
-      );
-      expect(httpBodyCalls).toHaveLength(0);
+      expect(logger).not.toHaveBeenCalledWith('Error', expect.stringContaining('response body'));
+    });
+
+    it('should not log body when status is 499', () => {
+      res.statusCode = 499;
+      res.end('some body');
+
+      expect(logger).not.toHaveBeenCalledWith('Error', expect.stringContaining('response body'));
     });
   });
 
   describe('passthrough behavior', () => {
-    it('should call original write and return its result', () => {
+    it('should call original write with same arguments and return its result', () => {
       const originalWrite = jest.fn().mockReturnValue(true);
-      const mockRes = { statusCode: 200, write: originalWrite, end: jest.fn() } as unknown as Response;
+      const mockRes = {
+        statusCode: 200,
+        write: originalWrite,
+        end: jest.fn(),
+      } as unknown as Response;
       interceptResponseForErrorLogging(mockRes, logger);
 
       const result = mockRes.write('data');
@@ -133,22 +153,27 @@ describe('interceptResponseForErrorLogging', () => {
       expect(result).toBe(true);
     });
 
-    it('should call original end and return res', () => {
+    it('should call original end with same arguments and return its result', () => {
       const originalEnd = jest.fn();
-      const mockRes = { statusCode: 200, write: jest.fn(), end: originalEnd } as unknown as Response;
+      const mockRes = {
+        statusCode: 200,
+        write: jest.fn(),
+        end: originalEnd,
+      } as unknown as Response;
       originalEnd.mockReturnValue(mockRes);
       interceptResponseForErrorLogging(mockRes, logger);
 
       const result = mockRes.end('final');
 
-      expect(originalEnd).toHaveBeenCalled();
+      expect(originalEnd).toHaveBeenCalledWith('final', undefined, undefined);
       expect(result).toBe(mockRes);
     });
 
-    it('should not throw when end is called with a function callback', () => {
+    it('should treat function callback as non-body content and log (empty) on 500', () => {
       res.statusCode = 500;
+      res.end(() => {});
 
-      expect(() => res.end(() => {})).not.toThrow();
+      expect(logger).toHaveBeenCalledWith('Error', 'HTTP 500 response body: (empty)');
     });
   });
 });
