@@ -138,7 +138,7 @@ export default class ForestMCPServer {
     this.mcpServer = new McpServer({
       name: NAME,
       version: VERSION,
-      icons: [{ src: LOGO_URL, mimeType: 'image/svg+xml' }],
+      icons: [{ src: LOGO_URL, mimeType: 'image/png' }],
     });
   }
 

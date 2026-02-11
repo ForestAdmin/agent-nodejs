@@ -2284,11 +2284,11 @@ describe('ForestMCPServer Instance', () => {
 });
 
 describe('Logo URL', () => {
-  it('should reference an accessible SVG image', async () => {
-    const logoUrl = 'https://app.forestadmin.com/img/logo-e8d1269ef22a94d210c8b6cbf8e9caca.svg';
+  it('should reference an accessible PNG image', async () => {
+    const logoUrl = 'https://forest-assets.s3.us-east-1.amazonaws.com/logo-green.png';
     const response = await fetch(logoUrl, { method: 'HEAD' });
 
     expect(response.ok).toBe(true);
-    expect(response.headers.get('content-type')).toContain('svg');
+    expect(response.headers.get('content-type')).toContain('image/png');
   });
 });
