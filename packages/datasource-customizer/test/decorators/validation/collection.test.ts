@@ -1,9 +1,11 @@
 import type { Collection, DataSource } from '@forestadmin/datasource-toolkit';
 
 import {
+  Aggregation,
   DataSourceDecorator,
   MissingFieldError,
   RelationFieldAccessDeniedError,
+  ValidationError,
 } from '@forestadmin/datasource-toolkit';
 import * as factories from '@forestadmin/datasource-toolkit/dist/test/__factories__';
 
@@ -139,6 +141,162 @@ describe('SortEmulationDecoratorCollection', () => {
 
       await expect(fn).rejects.toThrow(`'title' failed validation rule: 'Present'`);
       expect(books.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Aggregate validation', () => {
+    function buildWithCapabilities(aggregateCapabilities) {
+      const col = factories.collection.build({
+        name: 'books',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.uuidPrimaryKey().build(),
+            title: factories.columnSchema.build(),
+          },
+          aggregateCapabilities,
+        }),
+      });
+      const ds = factories.dataSource.buildWithCollection(col);
+      const decorated = new DataSourceDecorator(ds, ValidationDecorator);
+
+      return { col, decorated: decorated.getCollection('books') };
+    }
+
+    test('should pass when aggregateCapabilities allows all (supportGroups: true)', async () => {
+      const { col, decorated } = buildWithCapabilities({
+        supportGroups: true,
+        supportDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
+      });
+
+      await decorated.aggregate(
+        factories.caller.build(),
+        factories.filter.build(),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'title' }] }),
+      );
+
+      expect(col.aggregate).toHaveBeenCalled();
+    });
+
+    test('should pass when aggregation has no groups even if groups are not supported', async () => {
+      const { col, decorated } = buildWithCapabilities({
+        supportGroups: false,
+        supportDateOperations: new Set(),
+      });
+
+      await decorated.aggregate(
+        factories.caller.build(),
+        factories.filter.build(),
+        new Aggregation({ operation: 'Count' }),
+      );
+
+      expect(col.aggregate).toHaveBeenCalled();
+    });
+
+    test('should throw when supportGroups is false and aggregation has groups', async () => {
+      const { col, decorated } = buildWithCapabilities({
+        supportGroups: false,
+        supportDateOperations: new Set(),
+      });
+
+      const fn = () =>
+        decorated.aggregate(
+          factories.caller.build(),
+          factories.filter.build(),
+          new Aggregation({ operation: 'Count', groups: [{ field: 'title' }] }),
+        );
+
+      await expect(fn).rejects.toThrow(ValidationError);
+      await expect(fn).rejects.toThrow('does not support aggregate with groups');
+      expect(col.aggregate).not.toHaveBeenCalled();
+    });
+
+    test('should throw when group field is not in allowed list', async () => {
+      const { col, decorated } = buildWithCapabilities({
+        supportGroups: ['id'],
+        supportDateOperations: new Set(),
+      });
+
+      const fn = () =>
+        decorated.aggregate(
+          factories.caller.build(),
+          factories.filter.build(),
+          new Aggregation({ operation: 'Count', groups: [{ field: 'title' }] }),
+        );
+
+      await expect(fn).rejects.toThrow(ValidationError);
+      await expect(fn).rejects.toThrow("does not support grouping by field 'title'");
+      await expect(fn).rejects.toThrow('Supported group fields: [id]');
+      expect(col.aggregate).not.toHaveBeenCalled();
+    });
+
+    test('should pass when group field is in allowed list', async () => {
+      const { col, decorated } = buildWithCapabilities({
+        supportGroups: ['title'],
+        supportDateOperations: new Set(),
+      });
+
+      await decorated.aggregate(
+        factories.caller.build(),
+        factories.filter.build(),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'title' }] }),
+      );
+
+      expect(col.aggregate).toHaveBeenCalled();
+    });
+
+    test('should throw when date operation is not supported', async () => {
+      const { col, decorated } = buildWithCapabilities({
+        supportGroups: true,
+        supportDateOperations: new Set(),
+      });
+
+      const fn = () =>
+        decorated.aggregate(
+          factories.caller.build(),
+          factories.filter.build(),
+          new Aggregation({
+            operation: 'Count',
+            groups: [{ field: 'title', operation: 'Month' }],
+          }),
+        );
+
+      await expect(fn).rejects.toThrow(ValidationError);
+      await expect(fn).rejects.toThrow("does not support the 'Month' date operation");
+      await expect(fn).rejects.toThrow('Supported date operations: [none]');
+      expect(col.aggregate).not.toHaveBeenCalled();
+    });
+
+    test('should pass when date operation is supported', async () => {
+      const { col, decorated } = buildWithCapabilities({
+        supportGroups: true,
+        supportDateOperations: new Set(['Year', 'Month']),
+      });
+
+      await decorated.aggregate(
+        factories.caller.build(),
+        factories.filter.build(),
+        new Aggregation({
+          operation: 'Count',
+          groups: [{ field: 'title', operation: 'Year' }],
+        }),
+      );
+
+      expect(col.aggregate).toHaveBeenCalled();
+    });
+
+    test('should pass when group has no date operation even if none are supported', async () => {
+      const { col, decorated } = buildWithCapabilities({
+        supportGroups: true,
+        supportDateOperations: new Set(),
+      });
+
+      await decorated.aggregate(
+        factories.caller.build(),
+        factories.filter.build(),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'title' }] }),
+      );
+
+      expect(col.aggregate).toHaveBeenCalled();
     });
   });
 

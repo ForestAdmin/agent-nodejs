@@ -1,14 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
 import type { AggregateResult } from '../src/interfaces/query/aggregation';
 import type { RecordData } from '../src/interfaces/record';
-import type { CollectionSchema, ColumnSchema, FieldSchema } from '../src/interfaces/schema';
+import type { ColumnSchema, FieldSchema } from '../src/interfaces/schema';
 
 import * as factories from './__factories__';
 import BaseCollection from '../src/base-collection';
 
 class ConcreteCollection extends BaseCollection {
-  override schema: CollectionSchema;
-
   constructor() {
     super('books', factories.dataSource.build());
   }
@@ -210,6 +208,39 @@ describe('BaseCollection', () => {
       const collection = new CollectionSearchable();
 
       expect(collection.schema.countable).toBe(true);
+    });
+  });
+
+  describe('aggregateCapabilities', () => {
+    it('should have default capabilities with all groups and date operations supported', () => {
+      const collection = new ConcreteCollection();
+
+      expect(collection.schema.aggregateCapabilities).toEqual({
+        supportGroups: true,
+        supportDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
+      });
+    });
+  });
+
+  describe('setAggregateCapabilities', () => {
+    class CollectionWithRestrictedAggregation extends ConcreteCollection {
+      constructor() {
+        super();
+
+        this.setAggregateCapabilities({
+          supportGroups: ['author_id'],
+          supportDateOperations: new Set(),
+        });
+      }
+    }
+
+    it('should override aggregate capabilities', () => {
+      const collection = new CollectionWithRestrictedAggregation();
+
+      expect(collection.schema.aggregateCapabilities).toEqual({
+        supportGroups: ['author_id'],
+        supportDateOperations: new Set(),
+      });
     });
   });
 

@@ -239,6 +239,43 @@ describe('Capabilities', () => {
         });
       });
 
+      describe('when collection has aggregateCapabilities', () => {
+        test('should include aggregateCapabilities in the response', async () => {
+          const collectionWithCaps = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+              },
+              aggregateCapabilities: {
+                supportGroups: ['author_id'],
+                supportDateOperations: new Set(['Year', 'Month']),
+              },
+            }),
+          });
+
+          const dsWithCaps = factories.dataSource.buildWithCollection(collectionWithCaps);
+          const routeWithCaps = new Capabilities(services, options, dsWithCaps);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithCaps.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+
+          expect(collections[0].aggregateCapabilities).toEqual({
+            supportGroups: ['author_id'],
+            supportDateOperations: new Set(['Year', 'Month']),
+          });
+        });
+      });
+
       describe('when field ColumnType is an object', () => {
         test('should not return a field capabilities for that field', async () => {
           const context = createMockContext({

@@ -9,7 +9,12 @@ import type PaginatedFilter from './interfaces/query/filter/paginated';
 import type Filter from './interfaces/query/filter/unpaginated';
 import type Projection from './interfaces/query/projection';
 import type { CompositeId, RecordData } from './interfaces/record';
-import type { ActionSchema, CollectionSchema, FieldSchema } from './interfaces/schema';
+import type {
+  ActionSchema,
+  AggregateCapabilities,
+  CollectionSchema,
+  FieldSchema,
+} from './interfaces/schema';
 
 import { SchemaUtils } from './index';
 
@@ -30,6 +35,10 @@ export default abstract class BaseCollection implements Collection {
       fields: {},
       searchable: false,
       segments: [],
+      aggregateCapabilities: {
+        supportGroups: true,
+        supportDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
+      },
     };
   }
 
@@ -71,6 +80,10 @@ export default abstract class BaseCollection implements Collection {
 
   protected enableSearch(): void {
     this.schema.searchable = true;
+  }
+
+  protected setAggregateCapabilities(capabilities: AggregateCapabilities): void {
+    this.schema.aggregateCapabilities = capabilities;
   }
 
   abstract create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;
