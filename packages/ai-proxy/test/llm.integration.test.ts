@@ -31,6 +31,7 @@ async function fetchChatModelsFromOpenAI(): Promise<string[]> {
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
   let models;
+
   try {
     models = await openai.models.list();
   } catch (error) {
@@ -452,13 +453,21 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
     beforeAll(() => {
       const mcp = new McpServer({ name: 'calculator', version: '1.0.0' });
 
-      mcp.tool('add', { a: z.number(), b: z.number() }, async ({ a, b }) => {
-        return { content: [{ type: 'text', text: String(a + b) }] };
-      });
+      mcp.registerTool(
+        'add',
+        { inputSchema: { a: z.number(), b: z.number() } },
+        async ({ a, b }) => {
+          return { content: [{ type: 'text' as const, text: String(a + b) }] };
+        },
+      );
 
-      mcp.tool('multiply', { a: z.number(), b: z.number() }, async ({ a, b }) => {
-        return { content: [{ type: 'text', text: String(a * b) }] };
-      });
+      mcp.registerTool(
+        'multiply',
+        { inputSchema: { a: z.number(), b: z.number() } },
+        async ({ a, b }) => {
+          return { content: [{ type: 'text' as const, text: String(a * b) }] };
+        },
+      );
 
       mcpServer = runMcpServer(mcp, MCP_PORT, MCP_TOKEN);
     });
@@ -785,6 +794,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       }
 
       const failures = results.filter(r => !r.success);
+
       if (failures.length > 0) {
         const failedModelNames = failures.map(f => f.model).join(', ');
         // eslint-disable-next-line no-console

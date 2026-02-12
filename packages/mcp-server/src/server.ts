@@ -113,8 +113,6 @@ export interface ForestMCPServerOptions {
  */
 
 export default class ForestMCPServer {
-  public mcpServer: McpServer;
-  public mcpTransport?: StreamableHTTPServerTransport;
   public httpServer?: http.Server;
   public expressApp?: Express;
   public forestServerUrl: string;
@@ -124,6 +122,7 @@ export default class ForestMCPServer {
   private envSecret?: string;
   private authSecret?: string;
   private logger: Logger;
+  private collectionNames: string[] = [];
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -134,12 +133,6 @@ export default class ForestMCPServer {
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
-
-    this.mcpServer = new McpServer({
-      name: NAME,
-      version: VERSION,
-      icons: [{ src: LOGO_URL, mimeType: 'image/png' }],
-    });
   }
 
   private createDefaultForestServerClient(): ForestServerClient {
@@ -149,48 +142,56 @@ export default class ForestMCPServer {
     });
   }
 
-  private async setupTools(): Promise<void> {
-    let collectionNames: string[] = [];
-
+  private async fetchCollectionNames(): Promise<void> {
     try {
       const schema = await fetchForestSchema(this.forestServerClient);
-      collectionNames = getCollectionNames(schema);
+      this.collectionNames = getCollectionNames(schema);
     } catch (error) {
       this.logger(
         'Warn',
         `Failed to fetch forest schema: ${error}. MCP server will operate in degraded mode without collection name validation.`,
       );
     }
+  }
+
+  private createMcpServer(): McpServer {
+    const mcpServer = new McpServer({
+      name: NAME,
+      version: VERSION,
+      icons: [{ src: LOGO_URL, mimeType: 'image/png' }],
+    });
 
     const toolNames = [
       declareDescribeCollectionTool(
-        this.mcpServer,
+        mcpServer,
         this.forestServerClient,
         this.logger,
-        collectionNames,
+        this.collectionNames,
       ),
-      declareListTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
-      declareListRelatedTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
-      declareCreateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
-      declareUpdateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
-      declareDeleteTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
-      declareAssociateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
-      declareDissociateTool(this.mcpServer, this.forestServerClient, this.logger, collectionNames),
+      declareListTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
+      declareListRelatedTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
+      declareCreateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
+      declareUpdateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
+      declareDeleteTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
+      declareAssociateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
+      declareDissociateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
       declareGetActionFormTool(
-        this.mcpServer,
+        mcpServer,
         this.forestServerClient,
         this.logger,
-        collectionNames,
+        this.collectionNames,
       ),
       declareExecuteActionTool(
-        this.mcpServer,
+        mcpServer,
         this.forestServerClient,
         this.logger,
-        collectionNames,
+        this.collectionNames,
       ),
     ];
 
-    this.logger('Info', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
+    this.logger('Debug', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
+
+    return mcpServer;
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
@@ -255,19 +256,37 @@ export default class ForestMCPServer {
     const rpcMethod = req.body?.method || 'unknown';
     this.logger('Info', `Incoming ${req.method} ${req.path} [${rpcMethod}]`);
 
-    if (!this.mcpTransport) {
-      throw new Error('MCP transport not initialized');
-    }
-
     this.logToolCallIfPresent(req);
     interceptResponseForErrorLogging(res, this.logger);
 
-    await this.mcpTransport.handleRequest(req, res, req.body);
+    const server = this.createMcpServer();
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
 
-    // The Hono adapter inside @modelcontextprotocol/sdk catches errors internally
-    // and writes 500 directly to the response without logging. Detect and log these.
-    if (res.statusCode >= 500) {
-      this.logger('Error', `Transport returned HTTP ${res.statusCode} for [${rpcMethod}]`);
+    const cleanup = async () => {
+      await transport.close();
+    };
+
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+
+      // The Hono adapter inside @modelcontextprotocol/sdk catches errors internally
+      // and writes 500 directly to the response without logging. Detect and log these.
+      if (res.statusCode >= 500) {
+        this.logger('Error', `Transport returned HTTP ${res.statusCode} for [${rpcMethod}]`);
+      }
+    } finally {
+      if (res.writableEnded) {
+        await cleanup().catch(err => {
+          this.logger('Warn', `Error during MCP cleanup: ${err}`);
+        });
+      } else {
+        res.on('close', () => {
+          cleanup().catch(err => {
+            this.logger('Warn', `Error during MCP cleanup: ${err}`);
+          });
+        });
+      }
     }
   }
 
@@ -282,13 +301,7 @@ export default class ForestMCPServer {
   async buildExpressApp(baseUrl?: URL): Promise<Express> {
     const { envSecret, authSecret } = this.ensureSecretsAreSet();
 
-    // Fetch schema and setup tools before building the app
-    await this.setupTools();
-
-    this.mcpTransport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    await this.mcpServer.connect(this.mcpTransport);
+    await this.fetchCollectionNames();
 
     const app = express();
 
