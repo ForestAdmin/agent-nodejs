@@ -94,7 +94,8 @@ export default function registerToolWithLogging<
 
   mcpServer.registerTool(
     toolName,
-    config,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    config as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (async (args: any, extra: any) => {
       logValidationErrorsIfAny(args, schema, toolName, logger);

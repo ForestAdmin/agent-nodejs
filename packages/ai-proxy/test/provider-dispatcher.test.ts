@@ -250,10 +250,10 @@ describe('ProviderDispatcher', () => {
           parallel_tool_calls: true,
         } as unknown as DispatchBody);
 
-        expect(bindToolsMock).toHaveBeenCalledWith(
-          expect.any(Array),
-          { tool_choice: undefined, parallel_tool_calls: true },
-        );
+        expect(bindToolsMock).toHaveBeenCalledWith(expect.any(Array), {
+          tool_choice: undefined,
+          parallel_tool_calls: true,
+        });
       });
     });
 

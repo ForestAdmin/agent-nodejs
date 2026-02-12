@@ -255,20 +255,21 @@ export default class ForestMCPServer {
     const rpcMethod = req.body?.method || 'unknown';
     this.logger('Info', `Incoming ${req.method} ${req.path} [${rpcMethod}]`);
 
-    if (!this.mcpTransport) {
-      throw new Error('MCP transport not initialized');
-    }
-
     this.logToolCallIfPresent(req);
     interceptResponseForErrorLogging(res, this.logger);
 
-    await this.mcpTransport.handleRequest(req, res, req.body);
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    await this.mcpServer.connect(transport);
+
+    await transport.handleRequest(req, res, req.body);
 
     // The Hono adapter inside @modelcontextprotocol/sdk catches errors internally
     // and writes 500 directly to the response without logging. Detect and log these.
     if (res.statusCode >= 500) {
       this.logger('Error', `Transport returned HTTP ${res.statusCode} for [${rpcMethod}]`);
     }
+
+    await transport.close();
   }
 
   /**
@@ -284,11 +285,6 @@ export default class ForestMCPServer {
 
     // Fetch schema and setup tools before building the app
     await this.setupTools();
-
-    this.mcpTransport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    await this.mcpServer.connect(this.mcpTransport);
 
     const app = express();
 

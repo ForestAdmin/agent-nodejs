@@ -31,6 +31,7 @@ async function fetchChatModelsFromOpenAI(): Promise<string[]> {
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
   let models;
+
   try {
     models = await openai.models.list();
   } catch (error) {
@@ -785,6 +786,7 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
       }
 
       const failures = results.filter(r => !r.success);
+
       if (failures.length > 0) {
         const failedModelNames = failures.map(f => f.model).join(', ');
         // eslint-disable-next-line no-console
