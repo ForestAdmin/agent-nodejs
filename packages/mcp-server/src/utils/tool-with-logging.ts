@@ -1,5 +1,11 @@
 import type { Logger } from '../server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type {
+  CallToolResult,
+  ServerNotification,
+  ServerRequest,
+} from '@modelcontextprotocol/sdk/types.js';
 
 import { z } from 'zod';
 
@@ -15,10 +21,11 @@ interface ToolConfig<TSchema extends ZodRawShape> {
   inputSchema: TSchema;
 }
 
-type ToolResult = {
-  content: { type: string; text: string }[];
-  isError?: boolean;
-};
+// The MCP SDK bundles its own zod copy, creating nominally different types.
+// This type bridge extracts what registerTool() actually expects.
+type RegisterToolConfig = Parameters<McpServer['registerTool']>[1];
+
+type ToolHandlerExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
 
 // -----------------------------------------------------------------------------
 // Validation Helpers
@@ -86,18 +93,15 @@ export default function registerToolWithLogging<
   mcpServer: McpServer,
   toolName: string,
   config: ToolConfig<TSchema>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (args: TArgs, extra: any) => Promise<ToolResult>,
+  handler: (args: TArgs, extra: ToolHandlerExtra) => Promise<CallToolResult>,
   logger: Logger,
 ): string {
   const schema = z.object(config.inputSchema);
 
   mcpServer.registerTool(
     toolName,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    config as any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (async (args: any, extra: any) => {
+    config as RegisterToolConfig,
+    async (args: Record<string, unknown>, extra: ToolHandlerExtra) => {
       logValidationErrorsIfAny(args, schema, toolName, logger);
 
       // Return errors as tool results (isError: true) instead of throwing.
@@ -120,8 +124,7 @@ export default function registerToolWithLogging<
           isError: true,
         };
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    }) as any,
+    },
   );
 
   return toolName;
