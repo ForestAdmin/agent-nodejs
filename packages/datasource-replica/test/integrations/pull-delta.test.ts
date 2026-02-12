@@ -274,13 +274,19 @@ describe('pull delta', () => {
 });
 
 describe('on schedule', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('should add scheduler on handler', async () => {
     const schedulerStop = jest.fn();
-    Croner.Cron = jest.fn().mockImplementation((pattern, func) => {
-      func();
+    let cronCallback: () => Promise<void>;
 
-      return { stop: schedulerStop };
-    }) as unknown as typeof Croner.Cron;
+    jest.spyOn(Croner, 'Cron').mockImplementation((pattern: string | Date, func: any) => {
+      cronCallback = func;
+
+      return { stop: schedulerStop } as unknown as Croner.Cron;
+    });
 
     const pullDeltaHandler: ReplicaDataSourceOptions['pullDeltaHandler'] = jest
       .fn()
@@ -297,9 +303,12 @@ describe('on schedule', () => {
       pullDeltaOnSchedule: '* * * * * *',
     });
 
-    expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
-    expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
+    expect(Croner.Cron).toHaveBeenCalledWith('* * * * * *', expect.any(Function));
+    expect(pullDeltaHandler).toHaveBeenCalledTimes(0);
 
+    await cronCallback();
+
+    expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
     expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
 
     await (datasource as unknown as any).childDataSource.options.source.stop();
@@ -308,13 +317,10 @@ describe('on schedule', () => {
 
   it('should add scheduler with a delay on handler', async () => {
     const schedulerStop = jest.fn();
-    let resolveScheduledTask;
-    const scheduledTaskExecuted = new Promise(resolve => {
-      resolveScheduledTask = resolve;
-    });
+    let cronCallback: () => Promise<void>;
 
     jest.spyOn(Croner, 'Cron').mockImplementation((pattern: string | Date, func: any) => {
-      func().then(() => resolveScheduledTask());
+      cronCallback = func;
 
       return { stop: schedulerStop } as unknown as Croner.Cron;
     });
@@ -335,13 +341,17 @@ describe('on schedule', () => {
       pullDeltaOnBeforeAccessDelay: 2,
     });
 
-    expect(await getAllRecords(datasource, 'contacts')).toEqual([]);
+    expect(Croner.Cron).toHaveBeenCalledWith('* * * * * *', expect.any(Function));
     expect(pullDeltaHandler).toHaveBeenCalledTimes(0);
 
-    expect(Croner.Cron).toHaveBeenCalledWith('* * * * * *', expect.any(Function));
+    // Use fake timers to control the setTimeout inside queuePullDelta
+    jest.useFakeTimers();
+    const scheduledTask = cronCallback();
+    jest.advanceTimersByTime(2);
+    jest.useRealTimers();
+    await scheduledTask;
 
-    await scheduledTaskExecuted;
-
+    expect(pullDeltaHandler).toHaveBeenCalledTimes(1);
     expect(await getAllRecords(datasource, 'contacts')).toEqual([{ id: 1 }]);
 
     await (datasource as unknown as any).childDataSource.options.source.stop();
