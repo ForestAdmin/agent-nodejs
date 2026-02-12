@@ -455,20 +455,16 @@ describeWithOpenAI('OpenAI Integration (real API)', () => {
 
       mcp.registerTool(
         'add',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        { inputSchema: { a: z.number(), b: z.number() } as any },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async ({ a, b }: any) => {
+        { inputSchema: { a: z.number(), b: z.number() } },
+        async ({ a, b }) => {
           return { content: [{ type: 'text' as const, text: String(a + b) }] };
         },
       );
 
       mcp.registerTool(
         'multiply',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        { inputSchema: { a: z.number(), b: z.number() } as any },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async ({ a, b }: any) => {
+        { inputSchema: { a: z.number(), b: z.number() } },
+        async ({ a, b }) => {
           return { content: [{ type: 'text' as const, text: String(a * b) }] };
         },
       );

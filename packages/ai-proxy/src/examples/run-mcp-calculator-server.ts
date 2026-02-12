@@ -10,17 +10,11 @@ const server = new McpServer({
   version: '1.0.0',
 });
 
-server.registerTool(
-  'add',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { inputSchema: { a: z.number(), b: z.number() } as any },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async ({ a, b }: any) => {
-    // eslint-disable-next-line no-console
-    console.log('Received add request:', a, b);
+server.registerTool('add', { inputSchema: { a: z.number(), b: z.number() } }, async ({ a, b }) => {
+  // eslint-disable-next-line no-console
+  console.log('Received add request:', a, b);
 
-    return { content: [{ type: 'text' as const, text: String(a + b) }] };
-  },
-);
+  return { content: [{ type: 'text' as const, text: String(a + b) }] };
+});
 
 runMcpServer(server, 3123);
