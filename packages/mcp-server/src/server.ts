@@ -189,7 +189,7 @@ export default class ForestMCPServer {
       ),
     ];
 
-    this.logger('Debug', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
+    this.logger('Info', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
 
     return mcpServer;
   }
@@ -288,8 +288,6 @@ export default class ForestMCPServer {
         });
       }
     }
-
-    await transport.close();
   }
 
   /**
