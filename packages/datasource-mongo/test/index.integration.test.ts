@@ -80,6 +80,7 @@ describe('Datasource Mongo', () => {
       try {
         const movieSchema = new Schema({ title: String });
         const Movie = connection.model('Movies', movieSchema);
+        await Movie.createCollection();
         await new Movie({ title: 'Inception' }).save();
       } finally {
         await connection.close(true);
