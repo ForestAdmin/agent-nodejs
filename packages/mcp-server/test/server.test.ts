@@ -1,6 +1,6 @@
-import type * as http from 'http';
 import type * as net from 'net';
 
+import * as http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
@@ -2310,6 +2310,425 @@ describe('ForestMCPServer Instance', () => {
       expect(toolCallIndex).toBeGreaterThan(incomingIndex);
       expect(responseIndex).toBeGreaterThan(toolCallIndex);
     });
+  });
+});
+
+describe('buildExpressApp edge cases', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('should throw when envSecret is missing but forestServerClient is injected', async () => {
+    const server = new ForestMCPServer({
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: createMockForestServerClient(),
+    });
+
+    await expect(server.buildExpressApp(new URL('http://localhost:3000'))).rejects.toThrow(
+      'FOREST_ENV_SECRET is not set',
+    );
+  });
+
+  it('should log warning and continue when schema fetch fails', async () => {
+    clearSchemaCache();
+
+    const mockLogger = jest.fn();
+    const failingClient = createMockForestServerClient({
+      fetchSchema: jest.fn().mockRejectedValue(new Error('Network error')),
+    });
+
+    const mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockFetchServer.fetch;
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: failingClient,
+      logger: mockLogger,
+    });
+
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    expect(app).toBeDefined();
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('Failed to fetch forest schema'),
+    );
+  });
+
+  it('should throw when no baseUrl is provided and provider returns no URL', async () => {
+    const mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: {} },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockFetchServer.fetch;
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: createMockForestServerClient(),
+    });
+
+    await expect(server.buildExpressApp()).rejects.toThrow(
+      'Could not determine base URL for MCP server',
+    );
+  });
+});
+
+describe('getHttpCallback', () => {
+  const originalFetch = global.fetch;
+  let callback: (req: http.IncomingMessage, res: http.ServerResponse, next?: () => void) => void;
+  let callbackServer: http.Server;
+
+  beforeAll(async () => {
+    const mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockFetchServer.fetch;
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: createMockForestServerClient(),
+    });
+
+    callback = await server.getHttpCallback(new URL('http://localhost:3000'));
+  });
+
+  afterAll(async () => {
+    global.fetch = originalFetch;
+    await shutDownHttpServer(callbackServer);
+  });
+
+  it('should delegate MCP routes to the Express app', async () => {
+    callbackServer = http.createServer(callback);
+    callbackServer.listen(0);
+
+    await new Promise(resolve => {
+      callbackServer.on('listening', resolve);
+    });
+
+    const response = await request(callbackServer)
+      .post('/mcp')
+      .set('Content-Type', 'application/json')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('should call next() for non-MCP routes', async () => {
+    const req = { url: '/api/other' } as http.IncomingMessage;
+    const res = {} as http.ServerResponse;
+
+    await new Promise<void>(resolve => {
+      callback(req, res, () => {
+        resolve();
+      });
+    });
+  });
+
+  it('should return 404 for non-MCP routes when no next callback is provided', async () => {
+    const req = { url: '/api/other' } as http.IncomingMessage;
+    const mockWriteHead = jest.fn();
+    const mockEnd = jest.fn();
+    const res = { writeHead: mockWriteHead, end: mockEnd } as unknown as http.ServerResponse;
+
+    callback(req, res);
+
+    expect(mockWriteHead).toHaveBeenCalledWith(404, { 'Content-Type': 'application/json' });
+    expect(JSON.parse(mockEnd.mock.calls[0][0])).toEqual({ error: 'Not found' });
+  });
+
+  it('should patch _readableState.pipes to array when pipes is not an array', async () => {
+    const patchServer = http.createServer((req, res) => {
+      // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
+      (req as any)._readableState.pipes = null;
+      callback(req, res);
+    });
+    patchServer.listen(0);
+    await new Promise(resolve => {
+      patchServer.on('listening', resolve);
+    });
+
+    try {
+      const response = await request(patchServer)
+        .post('/mcp')
+        .set('Content-Type', 'application/json')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      expect(response.status).toBe(401);
+    } finally {
+      await shutDownHttpServer(patchServer);
+    }
+  });
+
+  it('should not patch _readableState.pipes when it is already an array', async () => {
+    let capturedPipes: unknown;
+    const patchServer = http.createServer((req, res) => {
+      // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
+      capturedPipes = (req as any)._readableState.pipes;
+      callback(req, res);
+    });
+    patchServer.listen(0);
+    await new Promise(resolve => {
+      patchServer.on('listening', resolve);
+    });
+
+    try {
+      const response = await request(patchServer)
+        .post('/mcp')
+        .set('Content-Type', 'application/json')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      expect(response.status).toBe(401);
+      expect(Array.isArray(capturedPipes)).toBe(true);
+    } finally {
+      await shutDownHttpServer(patchServer);
+    }
+  });
+});
+
+describe('handleMcpRequest cleanup', () => {
+  const originalFetch = global.fetch;
+  let cleanupServer: ForestMCPServer;
+  let cleanupHttpServer: http.Server;
+  let cleanupMockLogger: jest.Mock;
+
+  beforeAll(async () => {
+    const mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\/registered-client/, {
+        client_id: 'registered-client',
+        redirect_uris: ['https://example.com/callback'],
+        client_name: 'Test Client',
+        scope: 'mcp:read mcp:write',
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockFetchServer.fetch;
+
+    cleanupMockLogger = jest.fn();
+    cleanupServer = new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      forestServerClient: createMockForestServerClient(),
+      logger: cleanupMockLogger,
+    });
+
+    const port = await getAvailablePort();
+    process.env.MCP_SERVER_PORT = port.toString();
+    cleanupServer.run();
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 500);
+    });
+
+    cleanupHttpServer = cleanupServer.httpServer as http.Server;
+  });
+
+  afterAll(async () => {
+    global.fetch = originalFetch;
+    await shutDownHttpServer(cleanupHttpServer);
+  });
+
+  beforeEach(() => {
+    cleanupMockLogger.mockClear();
+  });
+
+  it('should log warning when cleanup fails after response has ended', async () => {
+    const authSecret = 'test-auth-secret';
+    const validToken = jsonwebtoken.sign(
+      { id: 123, email: 'user@example.com', renderingId: 456 },
+      authSecret,
+      { expiresIn: '1h' },
+    );
+
+    const serverRecord = cleanupServer as unknown as Record<string, unknown>;
+    const originalCreateMcpServer = serverRecord.createMcpServer;
+
+    serverRecord.createMcpServer = function createMcpServer() {
+      const mcpServer = (originalCreateMcpServer as () => unknown).call(cleanupServer);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mcpAny = mcpServer as any;
+      const originalConnect = mcpAny.connect;
+
+      mcpAny.connect = async function connect(transport: { close: () => Promise<void> }) {
+        const originalClose = transport.close.bind(transport);
+
+        // eslint-disable-next-line no-param-reassign
+        transport.close = async () => {
+          await originalClose();
+          throw new Error('Cleanup failure');
+        };
+
+        return originalConnect.call(mcpAny, transport);
+      };
+
+      return mcpServer;
+    };
+
+    await request(cleanupHttpServer)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validToken}`)
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    serverRecord.createMcpServer = originalCreateMcpServer;
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 100);
+    });
+
+    expect(cleanupMockLogger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('Error during MCP cleanup'),
+    );
+  });
+
+  it('should log error when transport silently returns HTTP 500', async () => {
+    const authSecret = 'test-auth-secret';
+    const validToken = jsonwebtoken.sign(
+      { id: 123, email: 'user@example.com', renderingId: 456 },
+      authSecret,
+      { expiresIn: '1h' },
+    );
+
+    const serverRecord = cleanupServer as unknown as Record<string, unknown>;
+    const originalCreateMcpServer = serverRecord.createMcpServer;
+
+    serverRecord.createMcpServer = function createMcpServer() {
+      const mcpServer = (originalCreateMcpServer as () => unknown).call(cleanupServer);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mcpAny = mcpServer as any;
+      const originalConnect = mcpAny.connect;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mcpAny.connect = async function connect(transport: any) {
+        await originalConnect.call(mcpAny, transport);
+        const originalHandleRequest = transport.handleRequest.bind(transport);
+
+        // eslint-disable-next-line no-param-reassign
+        transport.handleRequest = async (
+          req: unknown,
+          res: { statusCode: number },
+          body: unknown,
+        ) => {
+          await originalHandleRequest(req, res, body);
+          // eslint-disable-next-line no-param-reassign
+          res.statusCode = 500;
+        };
+      };
+
+      return mcpServer;
+    };
+
+    await request(cleanupHttpServer)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validToken}`)
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    serverRecord.createMcpServer = originalCreateMcpServer;
+
+    expect(cleanupMockLogger).toHaveBeenCalledWith(
+      'Error',
+      expect.stringContaining('Transport returned HTTP 500'),
+    );
+  });
+
+  it('should log cleanup error via res close event when response is still streaming', async () => {
+    const serverRecord = cleanupServer as unknown as Record<string, unknown>;
+    const originalCreateMcpServer = serverRecord.createMcpServer;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    serverRecord.createMcpServer = () => ({
+      connect: async (transport: any) => {
+        // eslint-disable-next-line no-param-reassign
+        transport.handleRequest = async () => {};
+
+        // eslint-disable-next-line no-param-reassign
+        transport.close = async () => {
+          throw new Error('Close failed during streaming');
+        };
+      },
+    });
+
+    const closeListeners: (() => void)[] = [];
+    const mockReq = {
+      method: 'POST',
+      path: '/mcp',
+      body: { jsonrpc: '2.0', method: 'tools/list', id: 1 },
+    };
+    const mockRes = {
+      statusCode: 200,
+      writableEnded: false,
+      write: jest.fn(),
+      end: jest.fn(),
+      on: jest.fn((event: string, cb: () => void) => {
+        if (event === 'close') closeListeners.push(cb);
+      }),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleMcpRequest = (serverRecord.handleMcpRequest as any).bind(cleanupServer);
+    await handleMcpRequest(mockReq, mockRes);
+
+    for (const listener of closeListeners) {
+      listener();
+    }
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 100);
+    });
+
+    serverRecord.createMcpServer = originalCreateMcpServer;
+
+    expect(cleanupMockLogger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('Error during MCP cleanup'),
+    );
   });
 });
 
