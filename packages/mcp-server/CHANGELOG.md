@@ -1,3 +1,19 @@
+## @forestadmin/mcp-server [1.8.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.1...@forestadmin/mcp-server@1.8.2) (2026-02-12)
+
+
+### Bug Fixes
+
+* **security:** bump vulnerable packages ([#1466](https://github.com/ForestAdmin/agent-nodejs/issues/1466)) ([15a9279](https://github.com/ForestAdmin/agent-nodejs/commit/15a927924f9e76a18e87768b0ca018ed047fd475))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.7
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.11
+
 ## @forestadmin/mcp-server [1.8.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.0...@forestadmin/mcp-server@1.8.1) (2026-02-12)
 
 
