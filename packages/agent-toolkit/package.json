@@ -1,7 +1,7 @@
 {
   "name": "@forestadmin/agent-toolkit",
   "version": "1.0.0",
-  "main": "dist/src/index.js",
+  "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
     "access": "public"
@@ -12,8 +12,8 @@
     "directory": "packages/agent-toolkit"
   },
   "files": [
-    "dist/src/**/*.js",
-    "dist/src/**/*.d.ts"
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
   ],
   "scripts": {
     "build": "tsc",
