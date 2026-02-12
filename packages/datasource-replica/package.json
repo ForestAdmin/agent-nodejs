@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-replica",
-  "version": "1.7.8",
+  "version": "1.7.9",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
