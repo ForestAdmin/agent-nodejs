@@ -610,12 +610,14 @@ describe('declareListRelatedTool', () => {
         mockFetchForestSchema.mockResolvedValue({ collections: [] });
         mockGetFieldsOfCollection.mockReturnValue([]);
 
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
-            mockExtra,
-          ),
-        ).rejects.toThrow('Invalid filters provided');
+        const result = await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Invalid filters provided') }],
+          isError: true,
+        });
       });
 
       it('should parse error with direct text property in message', async () => {
@@ -630,12 +632,14 @@ describe('declareListRelatedTool', () => {
         mockFetchForestSchema.mockResolvedValue({ collections: [] });
         mockGetFieldsOfCollection.mockReturnValue([]);
 
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
-            mockExtra,
-          ),
-        ).rejects.toThrow('Direct text error');
+        const result = await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Direct text error') }],
+          isError: true,
+        });
       });
 
       it('should provide helpful error message for Invalid sort errors', async () => {
@@ -688,14 +692,21 @@ describe('declareListRelatedTool', () => {
         mockFetchForestSchema.mockResolvedValue(mockSchema);
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
-            mockExtra,
-          ),
-        ).rejects.toThrow(
-          'The sort field provided is invalid for this collection. Available fields for the collection users are: id, total.',
+        const result = await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+          mockExtra,
         );
+        expect(result).toEqual({
+          content: [
+            {
+              type: 'text',
+              text: expect.stringContaining(
+                'The sort field provided is invalid for this collection. Available fields for the collection users are: id, total.',
+              ),
+            },
+          ],
+          isError: true,
+        });
 
         expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
         expect(mockGetFieldsOfCollection).toHaveBeenCalledWith(mockSchema, 'users');
@@ -746,14 +757,21 @@ describe('declareListRelatedTool', () => {
         mockFetchForestSchema.mockResolvedValue(mockSchema);
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', relationName: 'invalidRelation', parentRecordId: 1 },
-            mockExtra,
-          ),
-        ).rejects.toThrow(
-          'The relation name provided is invalid for this collection. Available relations for collection users are: orders, reviews.',
+        const result = await registeredToolHandler(
+          { collectionName: 'users', relationName: 'invalidRelation', parentRecordId: 1 },
+          mockExtra,
         );
+        expect(result).toEqual({
+          content: [
+            {
+              type: 'text',
+              text: expect.stringContaining(
+                'The relation name provided is invalid for this collection. Available relations for collection users are: orders, reviews.',
+              ),
+            },
+          ],
+          isError: true,
+        });
       });
 
       it('should include BelongsToMany relations in available relations error message', async () => {
@@ -790,14 +808,21 @@ describe('declareListRelatedTool', () => {
         mockFetchForestSchema.mockResolvedValue(mockSchema);
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', relationName: 'invalidRelation', parentRecordId: 1 },
-            mockExtra,
-          ),
-        ).rejects.toThrow(
-          'The relation name provided is invalid for this collection. Available relations for collection users are: orders, tags.',
+        const result = await registeredToolHandler(
+          { collectionName: 'users', relationName: 'invalidRelation', parentRecordId: 1 },
+          mockExtra,
         );
+        expect(result).toEqual({
+          content: [
+            {
+              type: 'text',
+              text: expect.stringContaining(
+                'The relation name provided is invalid for this collection. Available relations for collection users are: orders, tags.',
+              ),
+            },
+          ],
+          isError: true,
+        });
       });
 
       it('should not show relation error when relation exists but error is different', async () => {
@@ -823,13 +848,15 @@ describe('declareListRelatedTool', () => {
         mockFetchForestSchema.mockResolvedValue(mockSchema);
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        // Should throw the original error message since 'orders' relation exists
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
-            mockExtra,
-          ),
-        ).rejects.toThrow('Some other error');
+        // Should return the original error message since 'orders' relation exists
+        const result = await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Some other error') }],
+          isError: true,
+        });
       });
 
       it('should fall back to error.message when message is not valid JSON', async () => {
@@ -854,12 +881,14 @@ describe('declareListRelatedTool', () => {
         });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
-            mockExtra,
-          ),
-        ).rejects.toThrow('Plain error message');
+        const result = await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Plain error message') }],
+          isError: true,
+        });
       });
 
       it('should handle string errors thrown directly', async () => {
@@ -884,12 +913,14 @@ describe('declareListRelatedTool', () => {
         });
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
-            mockExtra,
-          ),
-        ).rejects.toThrow('Connection failed');
+        const result = await registeredToolHandler(
+          { collectionName: 'users', relationName: 'orders', parentRecordId: 1 },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Connection failed') }],
+          isError: true,
+        });
       });
     });
   });

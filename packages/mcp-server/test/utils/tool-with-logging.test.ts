@@ -121,16 +121,56 @@ describe('registerToolWithLogging', () => {
       expect(result).toBe(expectedResult);
     });
 
-    it('should propagate handler errors without logging', async () => {
+    it('should catch handler errors and return isError result without logging', async () => {
       const error = new Error('Handler failed');
       const handler = jest.fn().mockRejectedValue(error);
 
       registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
 
-      await expect(registeredHandler({ name: 'test', count: 42 }, {})).rejects.toThrow(
-        'Handler failed',
-      );
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: expect.stringContaining('Handler failed') }],
+        isError: true,
+      });
       expect(mockLogger).not.toHaveBeenCalled();
+    });
+
+    it('should stringify non-Error throws in isError result', async () => {
+      const handler = jest.fn().mockRejectedValue({ code: 'FAIL', detail: 'something broke' });
+
+      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
+
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: '{"code":"FAIL","detail":"something broke"}' }],
+        isError: true,
+      });
+    });
+
+    it('should fallback to String() when JSON.stringify returns undefined', async () => {
+      const handler = jest.fn().mockRejectedValue(undefined);
+
+      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
+
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: 'undefined' }],
+        isError: true,
+      });
+    });
+
+    it('should fallback to String() when thrown value has circular references', async () => {
+      const circular: Record<string, unknown> = { name: 'loop' };
+      circular.self = circular;
+      const handler = jest.fn().mockRejectedValue(circular);
+
+      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
+
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: '[object Object]' }],
+        isError: true,
+      });
     });
 
     it('should call handler even when validation fails', async () => {
