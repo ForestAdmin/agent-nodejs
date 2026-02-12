@@ -1,6 +1,6 @@
 import type { ForestAdminHttpDriverServices } from '../../services';
 import type { AgentOptionsWithDefaults } from '../../types';
-import type { AiRouter } from '@forestadmin/datasource-toolkit';
+import type { AiRouter } from '@forestadmin/agent-toolkit';
 import type KoaRouter from '@koa/router';
 import type { Context } from 'koa';
 

@@ -1,9 +1,5 @@
-import type {
-  AiProviderDefinition,
-  CompositeId,
-  Logger,
-  LoggerLevel,
-} from '@forestadmin/datasource-toolkit';
+import type { AiProviderDefinition } from '@forestadmin/agent-toolkit';
+import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { IncomingMessage, ServerResponse } from 'http';
 

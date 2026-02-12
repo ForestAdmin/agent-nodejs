@@ -1,7 +1,7 @@
 import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration } from './provider';
 import type { RouterRouteArgs } from './schemas/route';
-import type { AiProviderDefinition, AiRouter } from '@forestadmin/datasource-toolkit';
+import type { AiProviderDefinition, AiRouter } from '@forestadmin/agent-toolkit';
 
 import { extractMcpOauthTokensFromHeaders, injectOauthTokens } from './oauth-token-injector';
 import { Router } from './router';

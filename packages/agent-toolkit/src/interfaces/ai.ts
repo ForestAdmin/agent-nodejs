@@ -1,4 +1,6 @@
-import type { Logger } from '../factory';
+/** Inlined from datasource-toolkit to avoid a dependency on a lower-level package. */
+export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
+export type Logger = (level: LoggerLevel, message: string, error?: Error) => void;
 
 /** Metadata describing a configured AI provider, used in schema reporting and logging. */
 export interface AiProviderMeta {

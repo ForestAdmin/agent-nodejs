@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ForestAdminHttpDriverServices } from './services';
 import type { AgentOptions, AgentOptionsWithDefaults, HttpCallback } from './types';
+import type { AiProviderDefinition } from '@forestadmin/agent-toolkit';
 import type {
   CollectionCustomizer,
   DataSourceChartDefinition,
@@ -9,11 +10,7 @@ import type {
   TCollectionName,
   TSchema,
 } from '@forestadmin/datasource-customizer';
-import type {
-  AiProviderDefinition,
-  DataSource,
-  DataSourceFactory,
-} from '@forestadmin/datasource-toolkit';
+import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';

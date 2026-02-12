@@ -1,5 +1,6 @@
 import type { AgentOptionsWithDefaults } from '../../types';
-import type { AiProviderMeta, DataSource } from '@forestadmin/datasource-toolkit';
+import type { AiProviderMeta } from '@forestadmin/agent-toolkit';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
 import SchemaGeneratorCollection from './generator-collection';

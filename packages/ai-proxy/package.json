@@ -12,6 +12,7 @@
     "directory": "packages/ai-proxy"
   },
   "dependencies": {
+    "@forestadmin/agent-toolkit": "1.0.0",
     "@forestadmin/datasource-toolkit": "1.50.1",
     "@langchain/community": "1.1.4",
     "@langchain/core": "1.1.15",

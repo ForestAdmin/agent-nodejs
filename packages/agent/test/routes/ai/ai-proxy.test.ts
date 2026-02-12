@@ -1,4 +1,4 @@
-import type { AiRouter } from '@forestadmin/datasource-toolkit';
+import type { AiRouter } from '@forestadmin/agent-toolkit';
 
 import { createMockContext } from '@shopify/jest-koa-mocks';
 

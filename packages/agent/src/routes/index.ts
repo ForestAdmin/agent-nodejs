@@ -1,7 +1,8 @@
 import type { ForestAdminHttpDriverServices as Services } from '../services';
 import type { AgentOptionsWithDefaults as Options } from '../types';
 import type BaseRoute from './base-route';
-import type { AiRouter, DataSource } from '@forestadmin/datasource-toolkit';
+import type { AiRouter } from '@forestadmin/agent-toolkit';
+import type { DataSource } from '@forestadmin/datasource-toolkit';
 
 import CollectionApiChartRoute from './access/api-chart-collection';
 import DataSourceApiChartRoute from './access/api-chart-datasource';

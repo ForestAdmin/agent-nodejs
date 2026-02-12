@@ -1,7 +1,8 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { AiProviderDefinition, DataSourceFactory } from '@forestadmin/datasource-toolkit';
+import type { AiProviderDefinition } from '@forestadmin/agent-toolkit';
+import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import * as McpServer from '@forestadmin/mcp-server';
