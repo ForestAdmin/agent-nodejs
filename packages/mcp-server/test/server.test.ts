@@ -2441,15 +2441,14 @@ describe('getHttpCallback', () => {
     expect(response.status).toBe(401);
   });
 
-  it('should call next() for non-MCP routes', async () => {
+  it('should call next() for non-MCP routes', () => {
     const req = { url: '/api/other' } as http.IncomingMessage;
     const res = {} as http.ServerResponse;
+    const next = jest.fn();
 
-    await new Promise<void>(resolve => {
-      callback(req, res, () => {
-        resolve();
-      });
-    });
+    callback(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
   });
 
   it('should return 404 for non-MCP routes when no next callback is provided', async () => {
@@ -2594,7 +2593,6 @@ describe('handleMcpRequest cleanup', () => {
       mcpAny.connect = async function connect(transport: { close: () => Promise<void> }) {
         const originalClose = transport.close.bind(transport);
 
-        // eslint-disable-next-line no-param-reassign
         transport.close = async () => {
           await originalClose();
           throw new Error('Cleanup failure');
@@ -2648,14 +2646,12 @@ describe('handleMcpRequest cleanup', () => {
         await originalConnect.call(mcpAny, transport);
         const originalHandleRequest = transport.handleRequest.bind(transport);
 
-        // eslint-disable-next-line no-param-reassign
         transport.handleRequest = async (
           req: unknown,
           res: { statusCode: number },
           body: unknown,
         ) => {
           await originalHandleRequest(req, res, body);
-          // eslint-disable-next-line no-param-reassign
           res.statusCode = 500;
         };
       };
@@ -2682,13 +2678,11 @@ describe('handleMcpRequest cleanup', () => {
     const serverRecord = cleanupServer as unknown as Record<string, unknown>;
     const originalCreateMcpServer = serverRecord.createMcpServer;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     serverRecord.createMcpServer = () => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       connect: async (transport: any) => {
-        // eslint-disable-next-line no-param-reassign
         transport.handleRequest = async () => {};
 
-        // eslint-disable-next-line no-param-reassign
         transport.close = async () => {
           throw new Error('Close failed during streaming');
         };
