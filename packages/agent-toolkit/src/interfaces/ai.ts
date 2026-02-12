@@ -1,4 +1,8 @@
-/** Inlined from datasource-toolkit to avoid a dependency on a lower-level package. */
+/**
+ * Inlined from datasource-toolkit/factory.ts to avoid a dependency on a lower-level package.
+ * Must stay structurally compatible with datasource-toolkit's Logger & LoggerLevel.
+ * If those types change, update these copies accordingly.
+ */
 export type LoggerLevel = 'Debug' | 'Info' | 'Warn' | 'Error';
 export type Logger = (level: LoggerLevel, message: string, error?: Error) => void;
 

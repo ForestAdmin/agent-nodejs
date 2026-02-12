@@ -37,13 +37,6 @@ describe('createAiProvider', () => {
     });
   });
 
-  test('init should return an AiRouter with a route method', () => {
-    const provider = createAiProvider(config);
-    const result = provider.init(jest.fn());
-
-    expect(typeof result.route).toBe('function');
-  });
-
   describe('route wrapper', () => {
     test('should pass route, body, query to underlying Router', async () => {
       routeMock.mockResolvedValue({ result: 'ok' });
@@ -110,6 +103,40 @@ describe('createAiProvider', () => {
             },
           },
         },
+      });
+    });
+
+    test('should throw AIBadRequestError when x-mcp-oauth-tokens header contains invalid JSON', () => {
+      const provider = createAiProvider(config);
+      const aiRouter = provider.init(jest.fn());
+
+      expect(() =>
+        aiRouter.route({
+          route: 'remote-tools',
+          mcpServerConfigs: {
+            configs: { server1: { type: 'http', url: 'https://server1.com' } },
+          },
+          headers: { 'x-mcp-oauth-tokens': '{ invalid json }' },
+        }),
+      ).toThrow('Invalid JSON in x-mcp-oauth-tokens header');
+    });
+
+    test('should pass mcpConfigs unchanged when headers are present but x-mcp-oauth-tokens is absent', async () => {
+      routeMock.mockResolvedValue({});
+      const provider = createAiProvider(config);
+      const aiRouter = provider.init(jest.fn());
+
+      await aiRouter.route({
+        route: 'remote-tools',
+        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
+        headers: { 'content-type': 'application/json' },
+      });
+
+      expect(routeMock).toHaveBeenCalledWith({
+        route: 'remote-tools',
+        body: undefined,
+        query: undefined,
+        mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
       });
     });
 

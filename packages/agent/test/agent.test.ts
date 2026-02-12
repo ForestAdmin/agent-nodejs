@@ -460,6 +460,32 @@ describe('Agent', () => {
       expect(mockLogger).toHaveBeenCalledWith('Warn', expect.stringContaining("model 'gpt-4o'"));
     });
 
+    test('should log a warning for each provider when addAi is called with multiple providers', () => {
+      const mockLogger = jest.fn();
+      const agentOptions = factories.forestAdminHttpDriverOptions.build({
+        isProduction: false,
+        logger: mockLogger,
+        forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+      });
+
+      const agent = new Agent(agentOptions);
+      agent.addAi(
+        createMockAiProvider({
+          providers: [
+            { name: 'gpt4o', provider: 'openai', model: 'gpt-4o' },
+            { name: 'claude', provider: 'anthropic', model: 'claude-sonnet-4-5-20250929' },
+          ],
+        }),
+      );
+
+      expect(mockLogger).toHaveBeenCalledWith('Warn', expect.stringContaining("model 'gpt-4o'"));
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining("model 'claude-sonnet-4-5-20250929'"),
+      );
+      expect(mockLogger).toHaveBeenCalledTimes(2);
+    });
+
     test('should call init with logger on start to create AI router', async () => {
       const realMakeRoutes = jest.requireActual('../src/routes').default;
       mockMakeRoutes.mockImplementation(realMakeRoutes);

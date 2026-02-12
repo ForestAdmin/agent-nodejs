@@ -25,6 +25,8 @@ export function createAiProvider(config: AiConfiguration): AiProviderDefinition 
       const router = new Router({ aiConfigurations: [config], logger });
 
       return {
+        // Cast is safe: AiRouter.route accepts any string, but Router validates
+        // it at runtime via Zod against the allowed literal union (RouterRouteArgs).
         route: args =>
           router.route({
             route: args.route,

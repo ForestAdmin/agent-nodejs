@@ -260,6 +260,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
+    // init() is called on every start/restart to recreate routing state with a fresh Router.
     const aiRouter = this.aiProvider?.init(this.options.logger) ?? null;
 
     return makeRoutes(dataSource, this.options, services, aiRouter);
