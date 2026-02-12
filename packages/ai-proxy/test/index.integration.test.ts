@@ -9,8 +9,8 @@ describe('Simple MCP Server', () => {
 
   beforeAll(() => {
     const mcp = new McpServer({ name: 'simpleServer', version: '1.0.0' });
-    mcp.tool('fake', () => {
-      return { content: [{ type: 'text', text: 'fake it' }] };
+    mcp.registerTool('fake', {}, () => {
+      return { content: [{ type: 'text' as const, text: 'fake it' }] };
     });
     server = runMcpServer(mcp, 3123);
   });
