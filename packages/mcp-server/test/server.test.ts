@@ -94,12 +94,6 @@ describe('ForestMCPServer Instance', () => {
 
       expect(server.forestServerUrl).toBe('https://api.forestadmin.com');
     });
-
-    it('should create MCP server instance', () => {
-      server = new ForestMCPServer({ authSecret: 'AUTH_SECRET', envSecret: 'ENV_SECRET' });
-
-      expect(server.mcpServer).toBeDefined();
-    });
   });
 
   describe('environment validation', () => {
@@ -982,9 +976,7 @@ describe('ForestMCPServer Instance', () => {
     });
 
     it('should have list tool registered in the MCP server', () => {
-      expect(listServer.mcpServer).toBeDefined();
-      // The tool should be registered during server initialization
-      // We verify this by checking the server started successfully
+      expect(listServer).toBeInstanceOf(ForestMCPServer);
       expect(listHttpServer).toBeDefined();
     });
 
@@ -2166,13 +2158,12 @@ describe('ForestMCPServer Instance', () => {
         { expiresIn: '1h' },
       );
 
-      // Break the mcpServer to force an error in handleMcpRequest
+      // Break createMcpServer to force an error in handleMcpRequest
       const serverRecord = loggingServer as unknown as Record<string, unknown>;
-      const originalMcpServer = serverRecord.mcpServer;
-      serverRecord.mcpServer = {
-        connect: () => {
-          throw new Error('Transport error');
-        },
+      const originalCreateMcpServer = serverRecord.createMcpServer;
+
+      serverRecord.createMcpServer = () => {
+        throw new Error('Transport error');
       };
 
       await request(loggingHttpServer)
@@ -2183,7 +2174,7 @@ describe('ForestMCPServer Instance', () => {
         .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
 
       // Restore
-      serverRecord.mcpServer = originalMcpServer;
+      serverRecord.createMcpServer = originalCreateMcpServer;
 
       expect(mockLogger).toHaveBeenCalledWith(
         'Error',
