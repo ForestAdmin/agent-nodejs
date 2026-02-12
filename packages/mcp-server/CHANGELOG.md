@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.8.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.0...@forestadmin/mcp-server@1.8.1) (2026-02-12)
+
+
+### Bug Fixes
+
+* **mcp-server:** return tool errors as isError results per MCP spec ([#1458](https://github.com/ForestAdmin/agent-nodejs/issues/1458)) ([4703cb8](https://github.com/ForestAdmin/agent-nodejs/commit/4703cb82f34081a52c7fd2e27dc6f79eb99e514d))
+
 # @forestadmin/mcp-server [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.7.7...@forestadmin/mcp-server@1.8.0) (2026-02-11)
 
 
