@@ -252,12 +252,19 @@ describe('declareDeleteTool', () => {
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
         } as unknown as ReturnType<typeof buildClient>);
 
-        await expect(
-          registeredToolHandler({ collectionName: 'users', recordIds: [1] }, mockExtra),
-        ).rejects.toThrow('Cannot delete protected records');
+        const result = await registeredToolHandler(
+          { collectionName: 'users', recordIds: [1] },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [
+            { type: 'text', text: expect.stringContaining('Cannot delete protected records') },
+          ],
+          isError: true,
+        });
       });
 
-      it('should rethrow original error when no parsable error found', async () => {
+      it('should return error result when no parsable error found', async () => {
         const agentError = { unknownProperty: 'some value' };
         const mockDelete = jest.fn().mockRejectedValue(agentError);
         const mockCollection = jest.fn().mockReturnValue({ delete: mockDelete });
@@ -266,9 +273,14 @@ describe('declareDeleteTool', () => {
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
         } as unknown as ReturnType<typeof buildClient>);
 
-        await expect(
-          registeredToolHandler({ collectionName: 'users', recordIds: [1] }, mockExtra),
-        ).rejects.toEqual(agentError);
+        const result = await registeredToolHandler(
+          { collectionName: 'users', recordIds: [1] },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: '{"unknownProperty":"some value"}' }],
+          isError: true,
+        });
       });
     });
   });

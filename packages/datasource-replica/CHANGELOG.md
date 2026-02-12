@@ -1,3 +1,10 @@
+## @forestadmin/datasource-replica [1.7.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.7.8...@forestadmin/datasource-replica@1.7.9) (2026-02-12)
+
+
+### Bug Fixes
+
+* **datasource-replica:** fix flaky pull-delta schedule delay test ([#1468](https://github.com/ForestAdmin/agent-nodejs/issues/1468)) ([f4e5f5e](https://github.com/ForestAdmin/agent-nodejs/commit/f4e5f5ec7821440a0fe6811a158336d73735672a))
+
 ## @forestadmin/datasource-replica [1.7.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.7.7...@forestadmin/datasource-replica@1.7.8) (2026-02-03)
 
 

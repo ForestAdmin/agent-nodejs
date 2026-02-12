@@ -1,9 +1,9 @@
 {
   "name": "@forestadmin/forest-cloud",
-  "version": "1.12.86",
+  "version": "1.12.87",
   "description": "Utility to bootstrap and publish forest admin cloud projects customization",
   "dependencies": {
-    "@forestadmin/agent": "1.72.6",
+    "@forestadmin/agent": "1.72.7",
     "@forestadmin/datasource-customizer": "1.67.3",
     "@forestadmin/datasource-mongo": "1.6.3",
     "@forestadmin/datasource-mongoose": "1.12.6",

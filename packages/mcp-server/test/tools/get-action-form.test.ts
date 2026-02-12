@@ -729,12 +729,14 @@ describe('declareGetActionFormTool', () => {
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
         } as unknown as ReturnType<typeof buildClientWithActions>);
 
-        await expect(
-          registeredToolHandler(
-            { collectionName: 'users', actionName: 'nonExistent', recordIds: [1] },
-            mockExtra,
-          ),
-        ).rejects.toThrow('Action not found');
+        const result = await registeredToolHandler(
+          { collectionName: 'users', actionName: 'nonExistent', recordIds: [1] },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Action not found') }],
+          isError: true,
+        });
       });
 
       it('should propagate errors from tryToSetFields call', async () => {
@@ -751,17 +753,19 @@ describe('declareGetActionFormTool', () => {
           authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
         } as unknown as ReturnType<typeof buildClientWithActions>);
 
-        await expect(
-          registeredToolHandler(
-            {
-              collectionName: 'users',
-              actionName: 'sendEmail',
-              recordIds: [1],
-              values: { invalidField: 'value' },
-            },
-            mockExtra,
-          ),
-        ).rejects.toThrow('Invalid field value');
+        const result = await registeredToolHandler(
+          {
+            collectionName: 'users',
+            actionName: 'sendEmail',
+            recordIds: [1],
+            values: { invalidField: 'value' },
+          },
+          mockExtra,
+        );
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Invalid field value') }],
+          isError: true,
+        });
       });
     });
   });

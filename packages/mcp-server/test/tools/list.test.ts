@@ -907,9 +907,11 @@ describe('declareListTool', () => {
         const agentError = new Error(JSON.stringify(errorPayload));
         mockList.mockRejectedValue(agentError);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Invalid filters provided',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Invalid filters provided') }],
+          isError: true,
+        });
       });
 
       it('should parse error with direct text property in message', async () => {
@@ -922,9 +924,11 @@ describe('declareListTool', () => {
         const agentError = new Error(JSON.stringify(errorPayload));
         mockList.mockRejectedValue(agentError);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Direct text error',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Direct text error') }],
+          isError: true,
+        });
       });
 
       it('should use message property from parsed JSON when no text field', async () => {
@@ -935,9 +939,13 @@ describe('declareListTool', () => {
         const agentError = new Error(JSON.stringify(errorPayload));
         mockList.mockRejectedValue(agentError);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Error message from JSON payload',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [
+            { type: 'text', text: expect.stringContaining('Error message from JSON payload') },
+          ],
+          isError: true,
+        });
       });
 
       it('should fall back to error.message when message is not valid JSON', async () => {
@@ -945,18 +953,22 @@ describe('declareListTool', () => {
         const agentError = new Error('Plain error message');
         mockList.mockRejectedValue(agentError);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Plain error message',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Plain error message') }],
+          isError: true,
+        });
       });
 
       it('should handle string errors thrown directly', async () => {
         // Some libraries throw string errors directly
         mockList.mockRejectedValue('Connection failed');
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'Connection failed',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [{ type: 'text', text: expect.stringContaining('Connection failed') }],
+          isError: true,
+        });
       });
 
       it('should provide helpful error message for Invalid sort errors', async () => {
@@ -1021,9 +1033,18 @@ describe('declareListTool', () => {
         mockFetchForestSchema.mockResolvedValue(mockSchema);
         mockGetFieldsOfCollection.mockReturnValue(mockFields);
 
-        await expect(registeredToolHandler({ collectionName: 'users' }, mockExtra)).rejects.toThrow(
-          'The sort field provided is invalid for this collection. Available fields for the collection users are: id, name, email.',
-        );
+        const result = await registeredToolHandler({ collectionName: 'users' }, mockExtra);
+        expect(result).toEqual({
+          content: [
+            {
+              type: 'text',
+              text: expect.stringContaining(
+                'The sort field provided is invalid for this collection. Available fields for the collection users are: id, name, email.',
+              ),
+            },
+          ],
+          isError: true,
+        });
 
         expect(mockFetchForestSchema).toHaveBeenCalledWith(mockForestServerClient);
         expect(mockGetFieldsOfCollection).toHaveBeenCalledWith(mockSchema, 'users');
