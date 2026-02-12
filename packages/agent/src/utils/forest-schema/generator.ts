@@ -35,7 +35,7 @@ export default class SchemaGenerator {
         liana_features: features,
         ai_llms:
           aiProviders.length > 0
-            ? aiProviders.map(p => ({ name: p.name, provider: p.provider }))
+            ? aiProviders.map(p => ({ name: p.name, provider: p.provider, model: p.model }))
             : null,
         stack: {
           engine: 'nodejs',

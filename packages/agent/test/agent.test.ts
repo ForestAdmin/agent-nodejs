@@ -512,7 +512,7 @@ describe('Agent', () => {
       expect(mockPostSchema).toHaveBeenCalledWith(
         expect.objectContaining({
           meta: expect.objectContaining({
-            ai_llms: [{ name: 'gpt4o', provider: 'openai' }],
+            ai_llms: [{ name: 'gpt4o', provider: 'openai', model: 'gpt-4o' }],
           }),
         }),
       );

@@ -96,10 +96,12 @@ export default function makeAgent() {
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview)
     .customizeCollection('sales', customizeSales)
-    .addAi(createAiProvider({
-      model: 'gpt-4o',
-      provider: 'openai',
-      name: 'test',
-      apiKey: process.env.OPENAI_API_KEY,
-    }));
+    .addAi(
+      createAiProvider({
+        model: 'gpt-4o',
+        provider: 'openai',
+        name: 'test',
+        apiKey: process.env.OPENAI_API_KEY,
+      }),
+    );
 }

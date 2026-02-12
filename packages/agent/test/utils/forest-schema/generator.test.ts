@@ -83,8 +83,8 @@ describe('SchemaGenerator', () => {
       expect(schema).toStrictEqual({
         meta: {
           ai_llms: [
-            { name: 'gpt4', provider: 'openai' },
-            { name: 'claude', provider: 'anthropic' },
+            { name: 'gpt4', provider: 'openai', model: 'gpt-4o' },
+            { name: 'claude', provider: 'anthropic', model: 'claude-sonnet-4-5-20250929' },
           ],
           liana: 'forest-nodejs-agent',
           liana_version: expect.any(String),
