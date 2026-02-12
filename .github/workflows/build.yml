@@ -64,6 +64,7 @@ jobs:
           - agent
           - agent-client
           - agent-testing
+          - agent-toolkit
           - ai-proxy
           - forest-cloud
           - mcp-server
