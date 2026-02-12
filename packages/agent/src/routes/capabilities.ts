@@ -54,6 +54,7 @@ export default class Capabilities extends BaseRoute {
                 : null;
             })
             .filter(Boolean),
+          aggregateCapabilities: collection.schema.aggregateCapabilities,
         })) ?? [],
     };
     context.response.status = HttpCode.Ok;
