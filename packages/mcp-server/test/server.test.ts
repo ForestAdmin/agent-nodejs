@@ -2683,7 +2683,6 @@ describe('handleMcpRequest cleanup', () => {
       connect: async (transport: any) => {
         transport.handleRequest = async () => {};
 
-
         transport.close = async () => {
           throw new Error('Close failed during streaming');
         };
