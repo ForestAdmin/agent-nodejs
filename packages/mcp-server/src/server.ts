@@ -288,6 +288,8 @@ export default class ForestMCPServer {
         });
       }
     }
+
+    await transport.close();
   }
 
   /**
