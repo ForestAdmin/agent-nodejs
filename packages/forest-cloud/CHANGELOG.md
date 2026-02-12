@@ -1,3 +1,18 @@
+## @forestadmin/forest-cloud [1.12.88](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.87...@forestadmin/forest-cloud@1.12.88) (2026-02-12)
+
+
+### Bug Fixes
+
+* **security:** bump vulnerable packages ([#1466](https://github.com/ForestAdmin/agent-nodejs/issues/1466)) ([15a9279](https://github.com/ForestAdmin/agent-nodejs/commit/15a927924f9e76a18e87768b0ca018ed047fd475))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.72.8
+
 ## @forestadmin/forest-cloud [1.12.87](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.86...@forestadmin/forest-cloud@1.12.87) (2026-02-12)
 
 
