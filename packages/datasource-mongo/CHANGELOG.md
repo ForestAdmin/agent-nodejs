@@ -1,3 +1,10 @@
+## @forestadmin/datasource-mongo [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.6.2...@forestadmin/datasource-mongo@1.6.3) (2026-02-12)
+
+
+### Bug Fixes
+
+* **datasource-mongo:** fix flaky integration test ([#1464](https://github.com/ForestAdmin/agent-nodejs/issues/1464)) ([c98ca8f](https://github.com/ForestAdmin/agent-nodejs/commit/c98ca8f84464658f38dfdcab8e377aeca3b0d251))
+
 ## @forestadmin/datasource-mongo [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-mongo@1.6.1...@forestadmin/datasource-mongo@1.6.2) (2026-01-22)
 
 
