@@ -120,7 +120,7 @@ export default function registerToolWithLogging<
         }
 
         return {
-          content: [{ type: 'text', text: message }],
+          content: [{ type: 'text' as const, text: message }],
           isError: true,
         };
       }

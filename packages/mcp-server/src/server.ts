@@ -189,7 +189,7 @@ export default class ForestMCPServer {
       ),
     ];
 
-    this.logger('Info', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
+    this.logger('Debug', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
 
     return mcpServer;
   }
@@ -261,20 +261,33 @@ export default class ForestMCPServer {
 
     const server = this.createMcpServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    await server.connect(transport);
 
-    await transport.handleRequest(req, res, req.body);
+    const cleanup = async () => {
+      await transport.close();
+    };
 
-    // The Hono adapter inside @modelcontextprotocol/sdk catches errors internally
-    // and writes 500 directly to the response without logging. Detect and log these.
-    if (res.statusCode >= 500) {
-      this.logger('Error', `Transport returned HTTP ${res.statusCode} for [${rpcMethod}]`);
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+
+      // The Hono adapter inside @modelcontextprotocol/sdk catches errors internally
+      // and writes 500 directly to the response without logging. Detect and log these.
+      if (res.statusCode >= 500) {
+        this.logger('Error', `Transport returned HTTP ${res.statusCode} for [${rpcMethod}]`);
+      }
+    } finally {
+      if (res.writableEnded) {
+        await cleanup().catch(err => {
+          this.logger('Warn', `Error during MCP cleanup: ${err}`);
+        });
+      } else {
+        res.on('close', () => {
+          cleanup().catch(err => {
+            this.logger('Warn', `Error during MCP cleanup: ${err}`);
+          });
+        });
+      }
     }
-
-    res.on('close', () => {
-      transport.close();
-      server.close();
-    });
   }
 
   /**
