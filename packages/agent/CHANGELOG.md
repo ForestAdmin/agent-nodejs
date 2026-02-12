@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.72.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.72.7...@forestadmin/agent@1.72.8) (2026-02-12)
+
+
+### Bug Fixes
+
+* **security:** bump vulnerable packages ([#1466](https://github.com/ForestAdmin/agent-nodejs/issues/1466)) ([15a9279](https://github.com/ForestAdmin/agent-nodejs/commit/15a927924f9e76a18e87768b0ca018ed047fd475))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.4.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.11
+* **@forestadmin/mcp-server:** upgraded to 1.8.2
+
 ## @forestadmin/agent [1.72.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.72.6...@forestadmin/agent@1.72.7) (2026-02-12)
 
 

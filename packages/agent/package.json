@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.72.7",
+  "version": "1.72.8",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
-    "@forestadmin/ai-proxy": "1.4.1",
+    "@forestadmin/ai-proxy": "1.4.2",
     "@forestadmin/datasource-customizer": "1.67.3",
     "@forestadmin/datasource-toolkit": "1.50.1",
-    "@forestadmin/forestadmin-client": "1.37.10",
-    "@forestadmin/mcp-server": "1.8.1",
+    "@forestadmin/forestadmin-client": "1.37.11",
+    "@forestadmin/mcp-server": "1.8.2",
     "@koa/bodyparser": "^6.0.0",
     "@koa/cors": "^5.0.0",
     "@koa/router": "^13.1.0",
