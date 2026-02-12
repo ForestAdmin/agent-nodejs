@@ -1,0 +1,25 @@
+{
+  "name": "@forestadmin/agent-toolkit",
+  "version": "1.0.0",
+  "main": "dist/src/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/agent-toolkit"
+  },
+  "files": [
+    "dist/src/**/*.js",
+    "dist/src/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  }
+}
