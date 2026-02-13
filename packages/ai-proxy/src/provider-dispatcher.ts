@@ -101,11 +101,11 @@ export class ProviderDispatcher {
 
     const enrichedTools = this.enrichToolDefinitions(tools);
     const model = enrichedTools?.length
-      ? this.openaiModel!.bindTools(enrichedTools, {
+      ? this.openaiModel.bindTools(enrichedTools, {
           tool_choice: toolChoice,
           parallel_tool_calls: parallelToolCalls,
         })
-      : this.openaiModel!;
+      : this.openaiModel;
 
     try {
       const response = await model.invoke(messages as BaseMessageLike[]);
@@ -141,10 +141,10 @@ export class ProviderDispatcher {
       // `as any` is needed because LangChain's AnthropicToolChoice type doesn't include
       // disable_parallel_tool_use, but the Anthropic API supports it and LangChain passes it through
       const model = enhancedTools?.length
-        ? this.anthropicModel!.bindTools(enhancedTools, {
+        ? this.anthropicModel.bindTools(enhancedTools, {
             tool_choice: this.convertToolChoiceForAnthropic(toolChoice, parallelToolCalls) as any,
           })
-        : this.anthropicModel!;
+        : this.anthropicModel;
 
       const response = (await model.invoke(langChainMessages)) as AIMessage;
 
@@ -283,7 +283,7 @@ export class ProviderDispatcher {
       id: response.id || `msg_${crypto.randomUUID()}`,
       object: 'chat.completion',
       created: Math.floor(Date.now() / 1000),
-      model: this.modelName!,
+      model: this.modelName,
       choices: [
         {
           index: 0,
