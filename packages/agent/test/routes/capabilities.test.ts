@@ -146,6 +146,7 @@ describe('Capabilities', () => {
                 {
                   name: 'id',
                   type: 'Uuid',
+                  isGroupable: true,
                   operators: [
                     'blank',
                     'equal',
@@ -161,6 +162,7 @@ describe('Capabilities', () => {
                 {
                   name: 'name',
                   type: 'String',
+                  isGroupable: true,
                   operators: [
                     'blank',
                     'equal',
@@ -188,6 +190,7 @@ describe('Capabilities', () => {
                 {
                   name: 'publishedAt',
                   type: 'Date',
+                  isGroupable: true,
                   operators: [
                     'blank',
                     'equal',
@@ -217,6 +220,7 @@ describe('Capabilities', () => {
                 {
                   name: 'price',
                   type: 'Number',
+                  isGroupable: true,
                   operators: [
                     'blank',
                     'equal',
@@ -240,15 +244,16 @@ describe('Capabilities', () => {
       });
 
       describe('when collection has aggregateCapabilities', () => {
-        test('should include aggregateCapabilities in the response', async () => {
+        test('should include aggregateCapabilities with serialized supportDateOperations', async () => {
           const collectionWithCaps = factories.collection.build({
             name: 'orders',
             schema: factories.collectionSchema.build({
               fields: {
                 id: factories.columnSchema.uuidPrimaryKey().build(),
+                author_id: factories.columnSchema.text().build({ isGroupable: true }),
               },
               aggregateCapabilities: {
-                supportGroups: ['author_id'],
+                supportGroups: true,
                 supportDateOperations: new Set(['Year', 'Month']),
               },
             }),
@@ -270,9 +275,77 @@ describe('Capabilities', () => {
           const { collections } = context.response.body as any;
 
           expect(collections[0].aggregateCapabilities).toEqual({
-            supportGroups: ['author_id'],
+            supportGroups: true,
             supportDateOperations: new Set(['Year', 'Month']),
           });
+        });
+
+        test('should derive supportGroups to false when no field is groupable', async () => {
+          const collectionWithCaps = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build({ isGroupable: false }),
+              },
+              aggregateCapabilities: {
+                supportGroups: true,
+                supportDateOperations: new Set(),
+              },
+            }),
+          });
+
+          const dsWithCaps = factories.dataSource.buildWithCollection(collectionWithCaps);
+          const routeWithCaps = new Capabilities(services, options, dsWithCaps);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithCaps.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+
+          expect(collections[0].aggregateCapabilities.supportGroups).toBe(false);
+        });
+
+        test('should expose isGroupable per field', async () => {
+          const collectionWithCaps = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build({ isGroupable: false }),
+                status: factories.columnSchema.text().build({ isGroupable: true }),
+              },
+              aggregateCapabilities: {
+                supportGroups: true,
+                supportDateOperations: new Set(),
+              },
+            }),
+          });
+
+          const dsWithCaps = factories.dataSource.buildWithCollection(collectionWithCaps);
+          const routeWithCaps = new Capabilities(services, options, dsWithCaps);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithCaps.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+          const idField = collections[0].fields.find(f => f.name === 'id');
+          const statusField = collections[0].fields.find(f => f.name === 'status');
+
+          expect(idField.isGroupable).toBe(false);
+          expect(statusField.isGroupable).toBe(true);
         });
       });
 

@@ -145,11 +145,11 @@ describe('SortEmulationDecoratorCollection', () => {
   });
 
   describe('Aggregate validation', () => {
-    function buildWithCapabilities(aggregateCapabilities) {
+    function buildWithCapabilities(aggregateCapabilities, fields?) {
       const col = factories.collection.build({
         name: 'books',
         schema: factories.collectionSchema.build({
-          fields: {
+          fields: fields ?? {
             id: factories.columnSchema.uuidPrimaryKey().build(),
             title: factories.columnSchema.build(),
           },
@@ -210,11 +210,14 @@ describe('SortEmulationDecoratorCollection', () => {
       expect(col.aggregate).not.toHaveBeenCalled();
     });
 
-    test('should throw when group field is not in allowed list', async () => {
-      const { col, decorated } = buildWithCapabilities({
-        supportGroups: ['id'],
-        supportDateOperations: new Set(),
-      });
+    test('should throw when field is not groupable', async () => {
+      const { col, decorated } = buildWithCapabilities(
+        { supportGroups: true, supportDateOperations: new Set() },
+        {
+          id: factories.columnSchema.uuidPrimaryKey().build(),
+          title: factories.columnSchema.build({ isGroupable: false }),
+        },
+      );
 
       const fn = () =>
         decorated.aggregate(
@@ -224,16 +227,18 @@ describe('SortEmulationDecoratorCollection', () => {
         );
 
       await expect(fn).rejects.toThrow(ValidationError);
-      await expect(fn).rejects.toThrow("does not support grouping by field 'title'");
-      await expect(fn).rejects.toThrow('Supported group fields: [id]');
+      await expect(fn).rejects.toThrow("'title' is not groupable");
       expect(col.aggregate).not.toHaveBeenCalled();
     });
 
-    test('should pass when group field is in allowed list', async () => {
-      const { col, decorated } = buildWithCapabilities({
-        supportGroups: ['title'],
-        supportDateOperations: new Set(),
-      });
+    test('should pass when field is groupable', async () => {
+      const { col, decorated } = buildWithCapabilities(
+        { supportGroups: true, supportDateOperations: new Set() },
+        {
+          id: factories.columnSchema.uuidPrimaryKey().build(),
+          title: factories.columnSchema.build({ isGroupable: true }),
+        },
+      );
 
       await decorated.aggregate(
         factories.caller.build(),

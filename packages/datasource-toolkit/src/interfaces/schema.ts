@@ -2,7 +2,7 @@ import type { DateOperation } from './query/aggregation';
 import type { Operator } from './query/condition-tree/nodes/operators';
 
 export type AggregateCapabilities = {
-  supportGroups: boolean | string[];
+  supportGroups: boolean;
   supportDateOperations: Set<DateOperation>;
 };
 
@@ -40,6 +40,7 @@ export type ColumnSchema = {
   filterOperators?: Set<Operator>;
   defaultValue?: unknown;
   enumValues?: string[];
+  isGroupable?: boolean;
   isPrimaryKey?: boolean;
   isReadOnly?: boolean;
   isSortable?: boolean;
