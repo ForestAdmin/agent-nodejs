@@ -1,6 +1,7 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { AiProviderDefinition } from '@forestadmin/agent-toolkit';
 import type { DataSourceFactory } from '@forestadmin/datasource-toolkit';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
@@ -33,6 +34,14 @@ beforeEach(() => {
     .mocked(DataSourceCustomizer.prototype.getDataSource)
     .mockResolvedValue(factories.dataSource.build());
 });
+
+function createMockAiProvider(overrides: Partial<AiProviderDefinition> = {}): AiProviderDefinition {
+  return {
+    providers: [{ name: 'gpt4o', provider: 'openai', model: 'gpt-4o' }],
+    init: jest.fn().mockReturnValue({ route: jest.fn() }),
+    ...overrides,
+  };
+}
 
 describe('Agent', () => {
   describe('Development', () => {
@@ -407,14 +416,10 @@ describe('Agent', () => {
       forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
     });
 
-    test('should store the AI configuration', () => {
+    test('should store the AI provider and return agent for chaining', () => {
       const agent = new Agent(options);
-      const result = agent.addAi({
-        name: 'gpt4o',
-        provider: 'openai',
-        apiKey: 'test-key',
-        model: 'gpt-4o',
-      });
+      const provider = createMockAiProvider();
+      const result = agent.addAi(provider);
 
       expect(result).toBe(agent);
     });
@@ -422,57 +427,92 @@ describe('Agent', () => {
     test('should throw an error when addAi is called more than once', () => {
       const agent = new Agent(options);
 
-      agent.addAi({
-        name: 'gpt4o',
-        provider: 'openai',
-        apiKey: 'test-key',
-        model: 'gpt-4o',
-      });
+      agent.addAi(
+        createMockAiProvider({
+          providers: [{ name: 'gpt4o', provider: 'openai', model: 'gpt-4o' }],
+        }),
+      );
 
       expect(() =>
-        agent.addAi({
-          name: 'gpt4o-mini',
-          provider: 'openai',
-          apiKey: 'another-key',
-          model: 'gpt-4o-mini',
-        }),
+        agent.addAi(
+          createMockAiProvider({
+            providers: [{ name: 'gpt4o-mini', provider: 'openai', model: 'gpt-4o-mini' }],
+          }),
+        ),
       ).toThrow('addAi can only be called once. Multiple AI configurations are not supported yet.');
     });
 
-    test('should throw an error on start when model does not support tools', async () => {
-      // Use the real makeRoutes to trigger validation in AiProxyRouter
+    test('should log a warning with model name when addAi is called', () => {
+      const mockLogger = jest.fn();
+      const agentOptions = factories.forestAdminHttpDriverOptions.build({
+        isProduction: false,
+        logger: mockLogger,
+        forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+      });
+
+      const agent = new Agent(agentOptions);
+      agent.addAi(
+        createMockAiProvider({
+          providers: [{ name: 'gpt4o', provider: 'openai', model: 'gpt-4o' }],
+        }),
+      );
+
+      expect(mockLogger).toHaveBeenCalledWith('Warn', expect.stringContaining("model 'gpt-4o'"));
+    });
+
+    test('should log a warning for each provider when addAi is called with multiple providers', () => {
+      const mockLogger = jest.fn();
+      const agentOptions = factories.forestAdminHttpDriverOptions.build({
+        isProduction: false,
+        logger: mockLogger,
+        forestAdminClient: factories.forestAdminClient.build({ postSchema: mockPostSchema }),
+      });
+
+      const agent = new Agent(agentOptions);
+      agent.addAi(
+        createMockAiProvider({
+          providers: [
+            { name: 'gpt4o', provider: 'openai', model: 'gpt-4o' },
+            { name: 'claude', provider: 'anthropic', model: 'claude-sonnet-4-5-20250929' },
+          ],
+        }),
+      );
+
+      expect(mockLogger).toHaveBeenCalledWith('Warn', expect.stringContaining("model 'gpt-4o'"));
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining("model 'claude-sonnet-4-5-20250929'"),
+      );
+      expect(mockLogger).toHaveBeenCalledTimes(2);
+    });
+
+    test('should call init with logger on start to create AI router', async () => {
       const realMakeRoutes = jest.requireActual('../src/routes').default;
       mockMakeRoutes.mockImplementation(realMakeRoutes);
 
+      const provider = createMockAiProvider();
       const agent = new Agent(options);
+      agent.addAi(provider);
 
-      agent.addAi({
-        name: 'gpt4-base',
-        provider: 'openai',
-        apiKey: 'test-key',
-        model: 'gpt-4',
-      });
+      await agent.start();
 
-      await expect(agent.start()).rejects.toThrow(
-        "Model 'gpt-4' does not support tools. Please use a model that supports function calling.",
-      );
+      expect(provider.init).toHaveBeenCalledWith(options.logger);
     });
 
     test('should include ai_llms in schema meta when AI is configured', async () => {
       const agent = new Agent(options);
-      agent.addAi({
-        name: 'gpt4o',
-        provider: 'openai',
-        apiKey: 'test-key',
-        model: 'gpt-4o',
-      });
+      agent.addAi(
+        createMockAiProvider({
+          providers: [{ name: 'gpt4o', provider: 'openai', model: 'gpt-4o' }],
+        }),
+      );
 
       await agent.start();
 
       expect(mockPostSchema).toHaveBeenCalledWith(
         expect.objectContaining({
           meta: expect.objectContaining({
-            ai_llms: [{ name: 'gpt4o', provider: 'openai' }],
+            ai_llms: [{ name: 'gpt4o', provider: 'openai', model: 'gpt-4o' }],
           }),
         }),
       );

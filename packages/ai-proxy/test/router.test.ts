@@ -1,7 +1,7 @@
 import type { DispatchBody, InvokeRemoteToolArgs, Route } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { AIBadRequestError, AIModelNotSupportedError, Router } from '../src';
+import { AIModelNotSupportedError, Router } from '../src';
 import McpClient from '../src/mcp-client';
 
 const invokeToolMock = jest.fn();

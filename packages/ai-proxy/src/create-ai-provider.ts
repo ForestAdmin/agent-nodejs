@@ -1,0 +1,40 @@
+import type { McpConfiguration } from './mcp-client';
+import type { AiConfiguration } from './provider';
+import type { RouterRouteArgs } from './schemas/route';
+import type { AiProviderDefinition, AiRouter } from '@forestadmin/agent-toolkit';
+
+import { extractMcpOauthTokensFromHeaders, injectOauthTokens } from './oauth-token-injector';
+import { Router } from './router';
+
+function resolveMcpConfigs(args: Parameters<AiRouter['route']>[0]): McpConfiguration | undefined {
+  const tokensByMcpServerName = args.headers
+    ? extractMcpOauthTokensFromHeaders(args.headers)
+    : undefined;
+
+  return injectOauthTokens({
+    mcpConfigs: args.mcpServerConfigs as McpConfiguration | undefined,
+    tokensByMcpServerName,
+  });
+}
+
+// eslint-disable-next-line import/prefer-default-export
+export function createAiProvider(config: AiConfiguration): AiProviderDefinition {
+  return {
+    providers: [{ name: config.name, provider: config.provider, model: config.model }],
+    init(logger) {
+      const router = new Router({ aiConfigurations: [config], logger });
+
+      return {
+        // Cast is safe: AiRouter.route accepts any string, but Router validates
+        // it at runtime via Zod against the allowed literal union (RouterRouteArgs).
+        route: args =>
+          router.route({
+            route: args.route,
+            body: args.body,
+            query: args.query,
+            mcpConfigs: resolveMcpConfigs(args),
+          } as RouterRouteArgs),
+      };
+    },
+  };
+}
