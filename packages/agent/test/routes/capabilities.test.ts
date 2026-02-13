@@ -276,7 +276,7 @@ describe('Capabilities', () => {
 
           expect(collections[0].aggregateCapabilities).toEqual({
             supportGroups: true,
-            supportDateOperations: new Set(['Year', 'Month']),
+            supportDateOperations: ['Year', 'Month'],
           });
         });
 
