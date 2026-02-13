@@ -1,9 +1,9 @@
 import type { DateOperation } from './query/aggregation';
 import type { Operator } from './query/condition-tree/nodes/operators';
 
-export type AggregateCapabilities = {
+export type AggregationCapabilities = {
   supportGroups: boolean;
-  supportDateOperations: Set<DateOperation>;
+  supportedDateOperations: Set<DateOperation>;
 };
 
 export type ActionScope = 'Single' | 'Bulk' | 'Global';
@@ -27,7 +27,7 @@ export type CollectionSchema = {
   fields: { [fieldName: string]: FieldSchema };
   searchable: boolean;
   segments: string[];
-  aggregateCapabilities?: AggregateCapabilities;
+  aggregationCapabilities?: AggregationCapabilities;
 };
 
 export type RelationSchema = ManyToOneSchema | OneToManySchema | OneToOneSchema | ManyToManySchema;
