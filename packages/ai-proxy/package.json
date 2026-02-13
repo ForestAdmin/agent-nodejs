@@ -14,7 +14,7 @@
   "dependencies": {
     "@forestadmin/agent-toolkit": "1.0.0",
     "@forestadmin/datasource-toolkit": "1.50.1",
-    "@langchain/community": "1.1.4",
+    "@langchain/community": "1.1.14",
     "@langchain/core": "1.1.15",
     "@langchain/langgraph": "^1.1.0",
     "@langchain/mcp-adapters": "1.1.1",
