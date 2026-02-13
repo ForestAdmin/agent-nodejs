@@ -1,3 +1,18 @@
+## @forestadmin/agent-client [1.4.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.7...@forestadmin/agent-client@1.4.8) (2026-02-13)
+
+
+### Bug Fixes
+
+* **security:** fix high severity dev dependencies ([#1469](https://github.com/ForestAdmin/agent-nodejs/issues/1469)) ([dac484e](https://github.com/ForestAdmin/agent-nodejs/commit/dac484ef46afe68ef81448c700a7c951d1e82c88))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.12
+
 ## @forestadmin/agent-client [1.4.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.6...@forestadmin/agent-client@1.4.7) (2026-02-12)
 
 
