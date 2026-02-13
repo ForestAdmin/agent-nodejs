@@ -21,8 +21,6 @@ interface ToolConfig<TSchema extends ZodRawShape> {
   inputSchema: TSchema;
 }
 
-// The MCP SDK bundles its own zod copy, creating nominally different types.
-// This type bridge extracts what registerTool() actually expects.
 type RegisterToolConfig = Parameters<McpServer['registerTool']>[1];
 
 type ToolHandlerExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
