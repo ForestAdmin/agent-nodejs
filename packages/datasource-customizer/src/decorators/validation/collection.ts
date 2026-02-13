@@ -1,4 +1,6 @@
 import type {
+  AggregateResult,
+  Aggregation,
   Caller,
   CollectionSchema,
   ColumnSchema,
@@ -43,6 +45,17 @@ export default class ValidationDecorator extends CollectionDecorator {
     this.markSchemaAsDirty();
   }
 
+  override async aggregate(
+    caller: Caller,
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
+    this.validateAggregation(aggregation);
+
+    return super.aggregate(caller, filter, aggregation, limit);
+  }
+
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     for (const record of data) this.validate(record, caller.timezone, true);
 
@@ -72,6 +85,40 @@ export default class ValidationDecorator extends CollectionDecorator {
     });
 
     return schema;
+  }
+
+  private validateAggregation(aggregation: Aggregation): void {
+    const capabilities = this.schema.aggregationCapabilities;
+    if (!capabilities) return;
+
+    const groups = aggregation.groups ?? [];
+    if (groups.length === 0) return;
+
+    if (!capabilities.supportGroups) {
+      throw new ValidationError('This collection does not support aggregate with groups.');
+    }
+
+    for (const group of groups) {
+      const field = this.schema.fields[group.field];
+
+      if (field?.type === 'Column' && field.isGroupable === false) {
+        throw new ValidationError(`Field '${group.field}' is not groupable.`);
+      }
+    }
+
+    for (const group of groups) {
+      if (group.operation && !capabilities.supportedDateOperations.has(group.operation)) {
+        const supported =
+          capabilities.supportedDateOperations.size > 0
+            ? [...capabilities.supportedDateOperations].join(', ')
+            : 'none';
+
+        throw new ValidationError(
+          `This collection does not support the '${group.operation}' date operation. ` +
+            `Supported date operations: [${supported}].`,
+        );
+      }
+    }
   }
 
   private validate(record: RecordData, timezone: string, allFields: boolean): void {
