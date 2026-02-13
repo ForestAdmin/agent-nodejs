@@ -3,6 +3,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIModelNotSupportedError, Router } from '../src';
 import McpClient from '../src/mcp-client';
+import { ProviderDispatcher } from '../src/provider-dispatcher';
 
 const invokeToolMock = jest.fn();
 const toolDefinitionsForFrontend = [{ name: 'tool-name', description: 'tool-description' }];
@@ -25,9 +26,6 @@ jest.mock('../src/provider-dispatcher', () => {
     })),
   };
 });
-
-// eslint-disable-next-line import/first
-import { ProviderDispatcher } from '../src/provider-dispatcher';
 
 const ProviderDispatcherMock = ProviderDispatcher as jest.MockedClass<typeof ProviderDispatcher>;
 
