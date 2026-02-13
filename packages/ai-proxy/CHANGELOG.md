@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.4.2...@forestadmin/ai-proxy@1.4.3) (2026-02-13)
+
+
+### Bug Fixes
+
+* **security:** fix high severity dev dependencies ([#1469](https://github.com/ForestAdmin/agent-nodejs/issues/1469)) ([dac484e](https://github.com/ForestAdmin/agent-nodejs/commit/dac484ef46afe68ef81448c700a7c951d1e82c88))
+
 ## @forestadmin/ai-proxy [1.4.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.4.1...@forestadmin/ai-proxy@1.4.2) (2026-02-12)
 
 
