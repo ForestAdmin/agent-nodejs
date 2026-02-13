@@ -136,7 +136,12 @@ export class ProviderDispatcher {
   }
 
   private async dispatchAnthropic(body: DispatchBody): Promise<ChatCompletionResponse> {
-    const { tools, messages, tool_choice: toolChoice } = body;
+    const {
+      tools,
+      messages,
+      tool_choice: toolChoice,
+      parallel_tool_calls: parallelToolCalls,
+    } = body;
 
     // Convert messages outside try-catch so input validation errors propagate directly
     const langChainMessages = this.convertMessagesToLangChain(messages as OpenAIMessage[]);
@@ -147,8 +152,12 @@ export class ProviderDispatcher {
 
       if (enhancedTools?.length) {
         const langChainTools = this.convertToolsToLangChain(enhancedTools);
+        const anthropicToolChoice = this.convertToolChoiceForAnthropic(
+          toolChoice,
+          parallelToolCalls,
+        );
         const clientWithTools = this.anthropicModel!.bindTools(langChainTools, {
-          tool_choice: this.convertToolChoiceToLangChain(toolChoice),
+          tool_choice: anthropicToolChoice as any,
         });
         response = await clientWithTools.invoke(langChainMessages);
       } else {
@@ -252,6 +261,35 @@ export class ProviderDispatcher {
     }
 
     return undefined;
+  }
+
+  /**
+   * Convert tool_choice to Anthropic format, supporting disable_parallel_tool_use.
+   *
+   * When parallel_tool_calls is false, Anthropic requires the tool_choice to be
+   * an object with `disable_parallel_tool_use: true`.
+   * LangChain passes objects through directly to the Anthropic API.
+   */
+  private convertToolChoiceForAnthropic(
+    toolChoice: ChatCompletionToolChoice | undefined,
+    parallelToolCalls?: boolean,
+  ) {
+    const base = this.convertToolChoiceToLangChain(toolChoice);
+
+    if (parallelToolCalls !== false) return base;
+
+    // Anthropic requires object form to set disable_parallel_tool_use
+    if (base === undefined || base === 'auto') {
+      return { type: 'auto', disable_parallel_tool_use: true };
+    }
+
+    if (base === 'any') {
+      return { type: 'any', disable_parallel_tool_use: true };
+    }
+
+    if (base === 'none') return 'none';
+
+    return { ...base, disable_parallel_tool_use: true };
   }
 
   private convertLangChainResponseToOpenAI(response: AIMessage): ChatCompletionResponse {

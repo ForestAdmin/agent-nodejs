@@ -780,6 +780,111 @@ describe('ProviderDispatcher', () => {
       });
     });
 
+    describe('when parallel_tool_calls is provided', () => {
+      it('should pass disable_parallel_tool_use when parallel_tool_calls is false', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+          messages: [{ role: 'user', content: 'test' }],
+          tool_choice: 'required',
+          parallel_tool_calls: false,
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: { type: 'any', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should use auto with disable_parallel_tool_use when no tool_choice and parallel_tool_calls is false', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+          messages: [{ role: 'user', content: 'test' }],
+          parallel_tool_calls: false,
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should add disable_parallel_tool_use to specific function tool_choice', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [{ type: 'function', function: { name: 'specific_tool' } }],
+          messages: [{ role: 'user', content: 'test' }],
+          tool_choice: { type: 'function', function: { name: 'specific_tool' } },
+          parallel_tool_calls: false,
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: { type: 'tool', name: 'specific_tool', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should not add disable_parallel_tool_use when parallel_tool_calls is true', async () => {
+        const mockResponse = new AIMessage({ content: 'Response' });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(
+          {
+            name: 'claude',
+            provider: 'anthropic',
+            apiKey: 'test-api-key',
+            model: 'claude-3-5-sonnet-latest',
+          },
+          new RemoteTools(apiKeys),
+        );
+
+        await dispatcher.dispatch({
+          tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+          messages: [{ role: 'user', content: 'test' }],
+          tool_choice: 'required',
+          parallel_tool_calls: true,
+        } as unknown as DispatchBody);
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: 'any',
+        });
+      });
+    });
+
     describe('convertToolChoiceToLangChain edge cases', () => {
       it('should convert tool_choice "none" to "none"', async () => {
         const mockResponse = new AIMessage({ content: 'Response' });
