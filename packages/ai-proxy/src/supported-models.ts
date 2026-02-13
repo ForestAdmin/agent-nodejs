@@ -1,6 +1,7 @@
 import type { AiProvider } from './provider';
 
 // ─── OpenAI ──────────────────────────────────────────────────────────────────
+// If a model fails the llm.integration test, add it here.
 
 const OPENAI_UNSUPPORTED_PREFIXES = [
   // Legacy models
@@ -63,6 +64,7 @@ function isOpenAIModelSupported(model: string): boolean {
 }
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
+// If a model fails the llm.integration test, add it here.
 
 const ANTHROPIC_UNSUPPORTED_MODELS = [
   'claude-3-7-sonnet-20250219', // EOL 2026-02-19
