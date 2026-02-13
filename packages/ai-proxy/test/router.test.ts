@@ -1,4 +1,4 @@
-import type { DispatchBody, InvokeRemoteToolArgs, Route } from '../src';
+import type { DispatchBody, InvokeRemoteToolArgs } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIModelNotSupportedError, Router } from '../src';
@@ -123,15 +123,14 @@ describe('route', () => {
 
     it('falls back to first configuration with warning when ai-name not found', async () => {
       const mockLogger = jest.fn();
+      const gpt4Config = {
+        name: 'gpt4',
+        provider: 'openai' as const,
+        apiKey: 'dev',
+        model: 'gpt-4o',
+      };
       const router = new Router({
-        aiConfigurations: [
-          {
-            name: 'gpt4',
-            provider: 'openai',
-            apiKey: 'dev',
-            model: 'gpt-4o',
-          },
-        ],
+        aiConfigurations: [gpt4Config],
         logger: mockLogger,
       });
 
@@ -145,7 +144,7 @@ describe('route', () => {
         'Warn',
         "AI configuration 'non-existent' not found. Falling back to 'gpt4'.",
       );
-      expect(dispatchMock).toHaveBeenCalled();
+      expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4Config, expect.anything());
     });
   });
 
@@ -453,9 +452,7 @@ describe('route', () => {
         expect(
           () =>
             new Router({
-              aiConfigurations: [
-                { name: 'test', provider: 'openai', apiKey: 'dev', model },
-              ],
+              aiConfigurations: [{ name: 'test', provider: 'openai', apiKey: 'dev', model }],
             }),
         ).not.toThrow();
       });
@@ -494,9 +491,7 @@ describe('route', () => {
         expect(
           () =>
             new Router({
-              aiConfigurations: [
-                { name: 'test', provider: 'openai', apiKey: 'dev', model },
-              ],
+              aiConfigurations: [{ name: 'test', provider: 'openai', apiKey: 'dev', model }],
             }),
         ).toThrow(AIModelNotSupportedError);
       });
