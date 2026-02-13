@@ -53,6 +53,7 @@
     "packages/*"
   ],
   "resolutions": {
+    "tar": "^7.5.7",
     "lerna/**/glob": ">=10.5.0",
     "@isaacs/brace-expansion": ">=5.0.1",
     "axios": ">=1.13.5",
