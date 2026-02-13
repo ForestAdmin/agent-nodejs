@@ -45,7 +45,7 @@ export class Router {
 
   private validateConfigurations(): void {
     for (const config of this.aiConfigurations) {
-      if (config.provider === 'openai' && !isModelSupportingTools(config.model)) {
+      if (!isModelSupportingTools(config.model, config.provider)) {
         throw new AIModelNotSupportedError(config.model);
       }
     }

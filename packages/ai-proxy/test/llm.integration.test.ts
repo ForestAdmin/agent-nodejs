@@ -62,7 +62,10 @@ async function fetchChatModelsFromAnthropic(): Promise<string[]> {
     );
   }
 
-  return models.data.map(m => m.id).sort();
+  return models.data
+    .map(m => m.id)
+    .filter(id => isModelSupportingTools(id, 'anthropic'))
+    .sort();
 }
 
 // ─── Provider contract ───────────────────────────────────────────────────────

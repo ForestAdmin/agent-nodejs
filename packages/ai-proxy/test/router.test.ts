@@ -456,7 +456,7 @@ describe('route', () => {
       });
     });
 
-    it('should accept Anthropic configurations without model validation', () => {
+    it('should accept supported Anthropic configurations', () => {
       expect(
         () =>
           new Router({
@@ -472,7 +472,7 @@ describe('route', () => {
       ).not.toThrow();
     });
 
-    describe('should reject known unsupported models', () => {
+    describe('should reject known unsupported OpenAI models', () => {
       const unsupportedModels = [
         'gpt-4',
         'gpt-4-0613',
@@ -490,6 +490,19 @@ describe('route', () => {
           () =>
             new Router({
               aiConfigurations: [{ name: 'test', provider: 'openai', apiKey: 'dev', model }],
+            }),
+        ).toThrow(AIModelNotSupportedError);
+      });
+    });
+
+    describe('should reject deprecated Anthropic models', () => {
+      const deprecatedModels = ['claude-3-7-sonnet-20250219', 'claude-3-haiku-20240307'];
+
+      it.each(deprecatedModels)('%s', model => {
+        expect(
+          () =>
+            new Router({
+              aiConfigurations: [{ name: 'test', provider: 'anthropic', apiKey: 'dev', model }],
             }),
         ).toThrow(AIModelNotSupportedError);
       });

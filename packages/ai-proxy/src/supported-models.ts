@@ -1,3 +1,7 @@
+import type { AiProvider } from './provider';
+
+// ─── OpenAI ──────────────────────────────────────────────────────────────────
+
 /**
  * OpenAI model prefixes that do NOT support tool calls via the chat completions API.
  *
@@ -8,7 +12,7 @@
  *
  * @see https://platform.openai.com/docs/guides/function-calling
  */
-const UNSUPPORTED_MODEL_PREFIXES = [
+const OPENAI_UNSUPPORTED_PREFIXES = [
   // Legacy models
   'gpt-4', // Base gpt-4 doesn't honor tool_choice: required
   'text-davinci',
@@ -39,7 +43,7 @@ const UNSUPPORTED_MODEL_PREFIXES = [
  * OpenAI model patterns that do NOT support tool calls.
  * Uses contains matching: model.includes(pattern)
  */
-const UNSUPPORTED_MODEL_PATTERNS = [
+const OPENAI_UNSUPPORTED_PATTERNS = [
   // Non-chat model variants (can appear in the middle of model names)
   '-realtime',
   '-audio',
@@ -55,34 +59,55 @@ const UNSUPPORTED_MODEL_PATTERNS = [
 
 /**
  * Models that DO support tool calls even though they match an unsupported prefix.
- * These override the UNSUPPORTED_MODEL_PREFIXES list.
+ * These override the OPENAI_UNSUPPORTED_PREFIXES list.
  */
-const SUPPORTED_MODEL_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
+const OPENAI_SUPPORTED_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
+
+function isOpenAIModelSupported(model: string): boolean {
+  const matchesPattern = OPENAI_UNSUPPORTED_PATTERNS.some(p => model.includes(p));
+  if (matchesPattern) return false;
+
+  const matchesPrefix = OPENAI_UNSUPPORTED_PREFIXES.some(
+    prefix => model === prefix || model.startsWith(`${prefix}-`),
+  );
+
+  const isOverride = OPENAI_SUPPORTED_OVERRIDES.some(
+    override => model === override || model.startsWith(`${override}-`),
+  );
+
+  if (matchesPrefix && !isOverride) return false;
+
+  return true;
+}
+
+// ─── Anthropic ───────────────────────────────────────────────────────────────
+
+/**
+ * Anthropic models that are deprecated or approaching end-of-life.
+ *
+ * Uses exact matching on the full model ID.
+ *
+ * @see https://docs.anthropic.com/en/docs/resources/model-deprecations
+ */
+const ANTHROPIC_UNSUPPORTED_MODELS = [
+  'claude-3-7-sonnet-20250219', // EOL 2026-02-19
+  'claude-3-haiku-20240307', // EOL 2025-03-14
+];
+
+function isAnthropicModelSupported(model: string): boolean {
+  return !ANTHROPIC_UNSUPPORTED_MODELS.includes(model);
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
  * Checks if a model is compatible with Forest Admin AI.
  *
  * Supported models must handle tool calls and the parallel_tool_calls parameter.
+ * Deprecated models approaching end-of-life are rejected.
  */
-export default function isModelSupportingTools(model: string): boolean {
-  // Check pattern matches first (contains) - these NEVER support tools
-  const matchesUnsupportedPattern = UNSUPPORTED_MODEL_PATTERNS.some(pattern =>
-    model.includes(pattern),
-  );
-  if (matchesUnsupportedPattern) return false;
+export default function isModelSupportingTools(model: string, provider?: AiProvider): boolean {
+  if (provider === 'anthropic') return isAnthropicModelSupported(model);
 
-  // Check unsupported prefixes
-  const matchesUnsupportedPrefix = UNSUPPORTED_MODEL_PREFIXES.some(
-    prefix => model === prefix || model.startsWith(`${prefix}-`),
-  );
-
-  // Check if model is in the supported overrides list
-  const isSupportedOverride = SUPPORTED_MODEL_OVERRIDES.some(
-    override => model === override || model.startsWith(`${override}-`),
-  );
-
-  // If it matches an unsupported prefix but is not in overrides, reject it
-  if (matchesUnsupportedPrefix && !isSupportedOverride) return false;
-
-  return true;
+  return isOpenAIModelSupported(model);
 }
