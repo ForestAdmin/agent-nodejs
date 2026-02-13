@@ -1,3 +1,20 @@
+## @forestadmin/agent-testing [1.0.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.0.12...@forestadmin/agent-testing@1.0.13) (2026-02-13)
+
+
+### Bug Fixes
+
+* **security:** fix high severity dev dependencies ([#1469](https://github.com/ForestAdmin/agent-nodejs/issues/1469)) ([dac484e](https://github.com/ForestAdmin/agent-nodejs/commit/dac484ef46afe68ef81448c700a7c951d1e82c88))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.8
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.12
+* **@forestadmin/agent:** upgraded to 1.72.9
+
 ## @forestadmin/agent-testing [1.0.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.0.11...@forestadmin/agent-testing@1.0.12) (2026-02-12)
 
 
