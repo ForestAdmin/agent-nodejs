@@ -31,7 +31,7 @@
     "rxjs": "^7.8.0",
     "sequelize": "^6.37.5",
     "sqlite3": "^5.1.4",
-    "superagent": "^10.2.3",
+    "superagent": "^10.3.0",
     "tedious": "^18.6.1"
   },
   "scripts": {

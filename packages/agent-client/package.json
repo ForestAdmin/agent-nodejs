@@ -15,7 +15,7 @@
     "@forestadmin/datasource-toolkit": "1.50.1",
     "@forestadmin/forestadmin-client": "1.37.11",
     "jsonapi-serializer": "^3.6.9",
-    "superagent": "^10.2.3"
+    "superagent": "^10.3.0"
   },
   "files": [
     "dist/**/*.js",
