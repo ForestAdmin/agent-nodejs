@@ -94,20 +94,15 @@ export default class ValidationDecorator extends CollectionDecorator {
     const groups = aggregation.groups ?? [];
     if (groups.length === 0) return;
 
-    const { supportGroups } = capabilities;
-
-    if (supportGroups === false) {
+    if (!capabilities.supportGroups) {
       throw new ValidationError('This collection does not support aggregate with groups.');
     }
 
-    if (Array.isArray(supportGroups)) {
-      for (const group of groups) {
-        if (!supportGroups.includes(group.field)) {
-          throw new ValidationError(
-            `This collection does not support grouping by field '${group.field}'. ` +
-              `Supported group fields: [${supportGroups.join(', ')}].`,
-          );
-        }
+    for (const group of groups) {
+      const field = this.schema.fields[group.field];
+
+      if (field?.type === 'Column' && field.isGroupable === false) {
+        throw new ValidationError(`Field '${group.field}' is not groupable.`);
       }
     }
 

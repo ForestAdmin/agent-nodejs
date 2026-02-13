@@ -228,7 +228,7 @@ describe('BaseCollection', () => {
         super();
 
         this.setAggregateCapabilities({
-          supportGroups: ['author_id'],
+          supportGroups: false,
           supportDateOperations: new Set(),
         });
       }
@@ -238,9 +238,42 @@ describe('BaseCollection', () => {
       const collection = new CollectionWithRestrictedAggregation();
 
       expect(collection.schema.aggregateCapabilities).toEqual({
-        supportGroups: ['author_id'],
+        supportGroups: false,
         supportDateOperations: new Set(),
       });
+    });
+  });
+
+  describe('addField with isGroupable', () => {
+    class CollectionWithFields extends ConcreteCollection {
+      constructor() {
+        super();
+
+        this.addField('id', factories.columnSchema.uuidPrimaryKey().build());
+        this.addField('title', factories.columnSchema.build());
+        this.addField('status', factories.columnSchema.build({ isGroupable: false }));
+      }
+    }
+
+    it('should default isGroupable to false for primary keys', () => {
+      const collection = new CollectionWithFields();
+      const field = collection.schema.fields.id as ColumnSchema;
+      expect(field.type).toBe('Column');
+      expect(field.isGroupable).toBe(false);
+    });
+
+    it('should default isGroupable to true for non-PK columns', () => {
+      const collection = new CollectionWithFields();
+      const field = collection.schema.fields.title as ColumnSchema;
+      expect(field.type).toBe('Column');
+      expect(field.isGroupable).toBe(true);
+    });
+
+    it('should respect explicit isGroupable override', () => {
+      const collection = new CollectionWithFields();
+      const field = collection.schema.fields.status as ColumnSchema;
+      expect(field.type).toBe('Column');
+      expect(field.isGroupable).toBe(false);
     });
   });
 

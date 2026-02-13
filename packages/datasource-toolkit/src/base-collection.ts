@@ -61,6 +61,10 @@ export default abstract class BaseCollection implements Collection {
   protected addField(name: string, schema: FieldSchema): void {
     SchemaUtils.throwIfAlreadyDefinedField(this.schema, name, this.name);
 
+    if (schema.type === 'Column' && schema.isGroupable === undefined) {
+      schema.isGroupable = !schema.isPrimaryKey;
+    }
+
     this.schema.fields[name] = schema;
   }
 
