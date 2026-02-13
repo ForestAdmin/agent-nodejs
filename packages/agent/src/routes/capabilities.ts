@@ -42,7 +42,7 @@ export default class Capabilities extends BaseRoute {
       },
       collections:
         collections?.map(collection => {
-          const { aggregateCapabilities } = collection.schema;
+          const { aggregationCapabilities } = collection.schema;
 
           const fields = Object.entries(collection.schema.fields)
             .map(([fieldName, field]) => {
@@ -60,11 +60,11 @@ export default class Capabilities extends BaseRoute {
           return {
             name: collection.name,
             fields,
-            aggregateCapabilities: aggregateCapabilities
+            aggregationCapabilities: aggregationCapabilities
               ? {
                   supportGroups:
-                    aggregateCapabilities.supportGroups && fields.some(f => f?.isGroupable),
-                  supportDateOperations: [...aggregateCapabilities.supportDateOperations],
+                    aggregationCapabilities.supportGroups && fields.some(f => f?.isGroupable),
+                  supportedDateOperations: [...aggregationCapabilities.supportedDateOperations],
                 }
               : undefined,
           };

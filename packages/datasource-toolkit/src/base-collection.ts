@@ -11,7 +11,7 @@ import type Projection from './interfaces/query/projection';
 import type { CompositeId, RecordData } from './interfaces/record';
 import type {
   ActionSchema,
-  AggregateCapabilities,
+  AggregationCapabilities,
   CollectionSchema,
   FieldSchema,
 } from './interfaces/schema';
@@ -35,9 +35,9 @@ export default abstract class BaseCollection implements Collection {
       fields: {},
       searchable: false,
       segments: [],
-      aggregateCapabilities: {
+      aggregationCapabilities: {
         supportGroups: true,
-        supportDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
+        supportedDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
       },
     };
   }
@@ -86,8 +86,8 @@ export default abstract class BaseCollection implements Collection {
     this.schema.searchable = true;
   }
 
-  protected setAggregateCapabilities(capabilities: AggregateCapabilities): void {
-    this.schema.aggregateCapabilities = capabilities;
+  protected setAggregationCapabilities(capabilities: AggregationCapabilities): void {
+    this.schema.aggregationCapabilities = capabilities;
   }
 
   abstract create(caller: Caller, data: RecordData[]): Promise<RecordData[]>;

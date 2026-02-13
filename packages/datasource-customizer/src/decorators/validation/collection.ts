@@ -88,7 +88,7 @@ export default class ValidationDecorator extends CollectionDecorator {
   }
 
   private validateAggregation(aggregation: Aggregation): void {
-    const capabilities = this.schema.aggregateCapabilities;
+    const capabilities = this.schema.aggregationCapabilities;
     if (!capabilities) return;
 
     const groups = aggregation.groups ?? [];
@@ -107,10 +107,10 @@ export default class ValidationDecorator extends CollectionDecorator {
     }
 
     for (const group of groups) {
-      if (group.operation && !capabilities.supportDateOperations.has(group.operation)) {
+      if (group.operation && !capabilities.supportedDateOperations.has(group.operation)) {
         const supported =
-          capabilities.supportDateOperations.size > 0
-            ? [...capabilities.supportDateOperations].join(', ')
+          capabilities.supportedDateOperations.size > 0
+            ? [...capabilities.supportedDateOperations].join(', ')
             : 'none';
 
         throw new ValidationError(
