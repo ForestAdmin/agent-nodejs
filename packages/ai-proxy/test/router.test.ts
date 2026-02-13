@@ -461,6 +461,22 @@ describe('route', () => {
       });
     });
 
+    it('should accept Anthropic configurations without model validation', () => {
+      expect(
+        () =>
+          new Router({
+            aiConfigurations: [
+              {
+                name: 'claude',
+                provider: 'anthropic',
+                apiKey: 'key',
+                model: 'claude-3-5-sonnet-latest',
+              },
+            ],
+          }),
+      ).not.toThrow();
+    });
+
     describe('should reject known unsupported models', () => {
       const unsupportedModels = [
         'gpt-4',

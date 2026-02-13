@@ -319,6 +319,13 @@ describe('ProviderDispatcher', () => {
   });
 
   describe('anthropic', () => {
+    const anthropicConfig = {
+      name: 'claude',
+      provider: 'anthropic' as const,
+      apiKey: 'test-api-key',
+      model: 'claude-3-5-sonnet-latest',
+    };
+
     describe('when anthropic is configured', () => {
       it('should return the response from anthropic in OpenAI format', async () => {
         const mockResponse = new AIMessage({
@@ -330,15 +337,7 @@ describe('ProviderDispatcher', () => {
         });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         const response = await dispatcher.dispatch({
           tools: [],
@@ -372,15 +371,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [],
@@ -402,15 +393,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Done' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [],
@@ -438,6 +421,46 @@ describe('ProviderDispatcher', () => {
         ]);
       });
 
+      it('should extract text from array content blocks', async () => {
+        const mockResponse = new AIMessage({
+          content: [
+            { type: 'text', text: 'Here is the result' },
+            { type: 'tool_use', id: 'call_1', name: 'search', input: { q: 'test' } },
+          ],
+          tool_calls: [{ id: 'call_1', name: 'search', args: { q: 'test' } }],
+        });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
+
+        const response = await dispatcher.dispatch({
+          tools: [],
+          messages: [{ role: 'user', content: 'Search' }],
+        } as unknown as DispatchBody);
+
+        expect(response.choices[0].message.content).toBe('Here is the result');
+        expect(response.choices[0].message.tool_calls).toHaveLength(1);
+      });
+
+      it('should return null content when array content has no text blocks', async () => {
+        const mockResponse = new AIMessage({
+          content: [
+            { type: 'tool_use', id: 'call_1', name: 'search', input: { q: 'test' } },
+          ],
+          tool_calls: [{ id: 'call_1', name: 'search', args: { q: 'test' } }],
+        });
+        anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
+
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
+
+        const response = await dispatcher.dispatch({
+          tools: [],
+          messages: [{ role: 'user', content: 'Search' }],
+        } as unknown as DispatchBody);
+
+        expect(response.choices[0].message.content).toBeNull();
+      });
+
       it('should return tool_calls in OpenAI format when Claude calls tools', async () => {
         const mockResponse = new AIMessage({
           content: '',
@@ -445,15 +468,7 @@ describe('ProviderDispatcher', () => {
         });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         const response = (await dispatcher.dispatch({
           tools: [],
@@ -478,15 +493,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [
@@ -522,15 +529,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [{ type: 'function', function: { name: 'tool1' } }],
@@ -547,15 +546,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [{ type: 'function', function: { name: 'specific_tool' } }],
@@ -573,15 +564,7 @@ describe('ProviderDispatcher', () => {
       it('should throw an AnthropicUnprocessableError', async () => {
         anthropicInvokeMock.mockRejectedValueOnce(new Error('Anthropic API error'));
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await expect(
           dispatcher.dispatch({
@@ -594,15 +577,7 @@ describe('ProviderDispatcher', () => {
       it('should include the error message from Anthropic', async () => {
         anthropicInvokeMock.mockRejectedValueOnce(new Error('Anthropic API error'));
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await expect(
           dispatcher.dispatch({
@@ -617,15 +592,7 @@ describe('ProviderDispatcher', () => {
         rateLimitError.status = 429;
         anthropicInvokeMock.mockRejectedValueOnce(rateLimitError);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await expect(
           dispatcher.dispatch({
@@ -640,15 +607,7 @@ describe('ProviderDispatcher', () => {
         authError.status = 401;
         anthropicInvokeMock.mockRejectedValueOnce(authError);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'invalid',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await expect(
           dispatcher.dispatch({
@@ -666,15 +625,7 @@ describe('ProviderDispatcher', () => {
 
         const remoteTools = new RemoteTools(apiKeys);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          remoteTools,
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, remoteTools);
 
         await dispatcher.dispatch({
           tools: [
@@ -686,16 +637,11 @@ describe('ProviderDispatcher', () => {
           messages: [],
         } as unknown as DispatchBody);
 
-        const expectedEnhancedFunction = convertToOpenAIFunction(remoteTools.tools[0].base);
         expect(anthropicBindToolsMock).toHaveBeenCalledWith(
           [
             {
               type: 'function',
-              function: {
-                name: expectedEnhancedFunction.name,
-                description: expectedEnhancedFunction.description,
-                parameters: expectedEnhancedFunction.parameters,
-              },
+              function: convertToOpenAIFunction(remoteTools.tools[0].base),
             },
           ],
           expect.anything(),
@@ -705,15 +651,7 @@ describe('ProviderDispatcher', () => {
 
     describe('message conversion edge cases', () => {
       it('should throw AIBadRequestError for tool message without tool_call_id', async () => {
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await expect(
           dispatcher.dispatch({
@@ -726,15 +664,7 @@ describe('ProviderDispatcher', () => {
       });
 
       it('should throw AIBadRequestError for unsupported message role', async () => {
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await expect(
           dispatcher.dispatch({
@@ -749,15 +679,7 @@ describe('ProviderDispatcher', () => {
       });
 
       it('should throw AIBadRequestError for invalid JSON in tool_calls arguments', async () => {
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await expect(
           dispatcher.dispatch({
@@ -785,15 +707,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
@@ -811,15 +725,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
@@ -836,15 +742,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [{ type: 'function', function: { name: 'specific_tool' } }],
@@ -862,15 +760,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
@@ -890,15 +780,7 @@ describe('ProviderDispatcher', () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [{ type: 'function', function: { name: 'tool1' } }],
@@ -911,28 +793,37 @@ describe('ProviderDispatcher', () => {
         });
       });
 
-      it('should return undefined for unrecognized tool_choice value', async () => {
+      it('should throw AIBadRequestError for unrecognized tool_choice value', async () => {
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
+
+        await expect(
+          dispatcher.dispatch({
+            tools: [{ type: 'function', function: { name: 'tool1' } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: { type: 'unknown' },
+          } as unknown as DispatchBody),
+        ).rejects.toThrow(
+          new AIBadRequestError(
+            "Unsupported tool_choice value. Expected: 'auto', 'none', 'required', or {type: 'function', function: {name: '...'}}.",
+          ),
+        );
+      });
+
+      it('should return "none" unchanged when tool_choice is "none" and parallel_tool_calls is false', async () => {
         const mockResponse = new AIMessage({ content: 'Response' });
         anthropicInvokeMock.mockResolvedValueOnce(mockResponse);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'claude',
-            provider: 'anthropic',
-            apiKey: 'test-api-key',
-            model: 'claude-3-5-sonnet-latest',
-          },
-          new RemoteTools(apiKeys),
-        );
+        const dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
 
         await dispatcher.dispatch({
           tools: [{ type: 'function', function: { name: 'tool1' } }],
           messages: [{ role: 'user', content: 'test' }],
-          tool_choice: { type: 'unknown' },
+          tool_choice: 'none',
+          parallel_tool_calls: false,
         } as unknown as DispatchBody);
 
         expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: undefined,
+          tool_choice: 'none',
         });
       });
     });

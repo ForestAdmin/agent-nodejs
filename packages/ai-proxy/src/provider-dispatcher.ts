@@ -12,6 +12,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
+import crypto from 'crypto';
 
 import {
   AIBadRequestError,
@@ -47,6 +48,7 @@ interface OpenAIMessage {
   }>;
   tool_call_id?: string;
 }
+
 export class ProviderDispatcher {
   private readonly openaiModel: ChatOpenAI | null = null;
 
@@ -119,19 +121,7 @@ export class ProviderDispatcher {
 
       return rawResponse;
     } catch (error) {
-      if (error instanceof OpenAIUnprocessableError) throw error;
-
-      const err = error as Error & { status?: number };
-
-      if (err.status === 429) {
-        throw new OpenAIUnprocessableError(`Rate limit exceeded: ${err.message}`);
-      }
-
-      if (err.status === 401) {
-        throw new OpenAIUnprocessableError(`Authentication failed: ${err.message}`);
-      }
-
-      throw new OpenAIUnprocessableError(`Error while calling OpenAI: ${err.message}`);
+      throw ProviderDispatcher.wrapProviderError(error, OpenAIUnprocessableError, 'OpenAI');
     }
   }
 
@@ -148,37 +138,19 @@ export class ProviderDispatcher {
     const enhancedTools = tools ? this.enrichToolDefinitions(tools) : undefined;
 
     try {
-      let response: AIMessage;
+      // `as any` is needed because LangChain's AnthropicToolChoice type doesn't include
+      // disable_parallel_tool_use, but the Anthropic API supports it and LangChain passes it through
+      const model = enhancedTools?.length
+        ? this.anthropicModel!.bindTools(enhancedTools, {
+            tool_choice: this.convertToolChoiceForAnthropic(toolChoice, parallelToolCalls) as any,
+          })
+        : this.anthropicModel!;
 
-      if (enhancedTools?.length) {
-        const langChainTools = this.convertToolsToLangChain(enhancedTools);
-        const anthropicToolChoice = this.convertToolChoiceForAnthropic(
-          toolChoice,
-          parallelToolCalls,
-        );
-        const clientWithTools = this.anthropicModel!.bindTools(langChainTools, {
-          tool_choice: anthropicToolChoice as any,
-        });
-        response = await clientWithTools.invoke(langChainMessages);
-      } else {
-        response = await this.anthropicModel!.invoke(langChainMessages);
-      }
+      const response = (await model.invoke(langChainMessages)) as AIMessage;
 
       return this.convertLangChainResponseToOpenAI(response);
     } catch (error) {
-      if (error instanceof AnthropicUnprocessableError) throw error;
-
-      const err = error as Error & { status?: number };
-
-      if (err.status === 429) {
-        throw new AnthropicUnprocessableError(`Rate limit exceeded: ${err.message}`);
-      }
-
-      if (err.status === 401) {
-        throw new AnthropicUnprocessableError(`Authentication failed: ${err.message}`);
-      }
-
-      throw new AnthropicUnprocessableError(`Error while calling Anthropic: ${err.message}`);
+      throw ProviderDispatcher.wrapProviderError(error, AnthropicUnprocessableError, 'Anthropic');
     }
   }
 
@@ -232,22 +204,6 @@ export class ProviderDispatcher {
     }
   }
 
-  private convertToolsToLangChain(tools: ChatCompletionTool[]): Array<{
-    type: 'function';
-    function: { name: string; description?: string; parameters?: Record<string, unknown> };
-  }> {
-    return tools
-      .filter((tool): tool is ChatCompletionTool & { type: 'function' } => tool.type === 'function')
-      .map(tool => ({
-        type: 'function' as const,
-        function: {
-          name: tool.function.name,
-          description: tool.function.description,
-          parameters: tool.function.parameters as Record<string, unknown> | undefined,
-        },
-      }));
-  }
-
   private convertToolChoiceToLangChain(
     toolChoice: ChatCompletionToolChoice | undefined,
   ): 'auto' | 'any' | 'none' | { type: 'tool'; name: string } | undefined {
@@ -260,7 +216,9 @@ export class ProviderDispatcher {
       return { type: 'tool', name: toolChoice.function.name };
     }
 
-    return undefined;
+    throw new AIBadRequestError(
+      `Unsupported tool_choice value. Expected: 'auto', 'none', 'required', or {type: 'function', function: {name: '...'}}.`,
+    );
   }
 
   /**
@@ -292,9 +250,24 @@ export class ProviderDispatcher {
     return { ...base, disable_parallel_tool_use: true };
   }
 
+  private static extractTextContent(content: AIMessage['content']): string | null {
+    if (typeof content === 'string') return content || null;
+
+    if (Array.isArray(content)) {
+      const text = content
+        .filter(block => block.type === 'text')
+        .map(block => ('text' in block ? block.text : ''))
+        .join('');
+
+      return text || null;
+    }
+
+    return null;
+  }
+
   private convertLangChainResponseToOpenAI(response: AIMessage): ChatCompletionResponse {
     const toolCalls = response.tool_calls?.map(tc => ({
-      id: tc.id || `call_${Date.now()}`,
+      id: tc.id || `call_${crypto.randomUUID()}`,
       type: 'function' as const,
       function: {
         name: tc.name,
@@ -307,7 +280,7 @@ export class ProviderDispatcher {
       | undefined;
 
     return {
-      id: response.id || `msg_${Date.now()}`,
+      id: response.id || `msg_${crypto.randomUUID()}`,
       object: 'chat.completion',
       created: Math.floor(Date.now() / 1000),
       model: this.modelName!,
@@ -316,7 +289,7 @@ export class ProviderDispatcher {
           index: 0,
           message: {
             role: 'assistant',
-            content: typeof response.content === 'string' ? response.content : null,
+            content: ProviderDispatcher.extractTextContent(response.content),
             refusal: null,
             tool_calls: toolCalls?.length ? toolCalls : undefined,
           },
@@ -330,6 +303,22 @@ export class ProviderDispatcher {
         total_tokens: usageMetadata?.total_tokens ?? 0,
       },
     };
+  }
+
+  private static wrapProviderError(
+    error: unknown,
+    ErrorClass: typeof OpenAIUnprocessableError | typeof AnthropicUnprocessableError,
+    providerName: string,
+  ): Error {
+    if (error instanceof ErrorClass) return error;
+    if (error instanceof AIBadRequestError) return error;
+
+    const err = error as Error & { status?: number };
+
+    if (err.status === 429) return new ErrorClass(`Rate limit exceeded: ${err.message}`);
+    if (err.status === 401) return new ErrorClass(`Authentication failed: ${err.message}`);
+
+    return new ErrorClass(`Error while calling ${providerName}: ${err.message}`);
   }
 
   private enrichToolDefinitions(tools?: ChatCompletionTool[]) {
