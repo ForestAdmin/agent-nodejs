@@ -26,7 +26,6 @@ export type {
   AiConfiguration,
   AiProvider,
   AnthropicConfiguration,
-  AnthropicModel,
   BaseAiConfiguration,
   ChatCompletionMessage,
   ChatCompletionResponse,
