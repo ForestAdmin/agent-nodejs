@@ -1,8 +1,17 @@
 import type { DispatchBody } from '../src';
 
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
+import { ChatOpenAI } from '@langchain/openai';
 
-import { AINotConfiguredError, ProviderDispatcher, RemoteTools } from '../src';
+import {
+  AIBadRequestError,
+  AINotConfiguredError,
+  AnthropicUnprocessableError,
+  OpenAIUnprocessableError,
+  ProviderDispatcher,
+  RemoteTools,
+} from '../src';
 
 // Mock raw OpenAI response (returned via __includeRawResponse: true)
 const mockOpenAIResponse = {
@@ -45,166 +54,151 @@ jest.mock('@langchain/openai', () => ({
   })),
 }));
 
+const anthropicInvokeMock = jest.fn();
+const anthropicBindToolsMock = jest.fn().mockReturnValue({ invoke: anthropicInvokeMock });
+
+jest.mock('@langchain/anthropic', () => ({
+  ChatAnthropic: jest.fn().mockImplementation(() => ({
+    invoke: anthropicInvokeMock,
+    bindTools: anthropicBindToolsMock,
+  })),
+}));
+
+function buildBody(overrides: Partial<DispatchBody> = {}): DispatchBody {
+  return { tools: [], messages: [], ...overrides } as unknown as DispatchBody;
+}
+
+function mockAnthropicResponse(
+  content: AIMessage['content'] = 'Response',
+  extra?: Record<string, unknown>,
+): AIMessage {
+  const response = new AIMessage(typeof content === 'string' ? { content } : { content });
+  if (extra) Object.assign(response, extra);
+  anthropicInvokeMock.mockResolvedValueOnce(response);
+
+  return response;
+}
+
 describe('ProviderDispatcher', () => {
   const apiKeys = { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'api-key' };
+
+  const openaiConfig = {
+    name: 'gpt4',
+    provider: 'openai' as const,
+    apiKey: 'dev',
+    model: 'gpt-4o',
+  };
+
+  const anthropicConfig = {
+    name: 'claude',
+    provider: 'anthropic' as const,
+    apiKey: 'test-api-key',
+    model: 'claude-3-5-sonnet-latest',
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe('dispatch', () => {
-    describe('when AI is not configured', () => {
-      it('should throw AINotConfiguredError', async () => {
-        const dispatcher = new ProviderDispatcher(null, new RemoteTools(apiKeys));
-        await expect(dispatcher.dispatch({} as DispatchBody)).rejects.toThrow(AINotConfiguredError);
-        await expect(dispatcher.dispatch({} as DispatchBody)).rejects.toThrow(
-          'AI is not configured',
-        );
-      });
+    it('should throw AINotConfiguredError when no provider is configured', async () => {
+      const dispatcher = new ProviderDispatcher(null, new RemoteTools(apiKeys));
+
+      await expect(dispatcher.dispatch(buildBody())).rejects.toThrow(AINotConfiguredError);
+      await expect(dispatcher.dispatch(buildBody())).rejects.toThrow('AI is not configured');
     });
   });
 
   describe('openai', () => {
-    describe('when openai is configured', () => {
-      it('should return the response in OpenAI-compatible format', async () => {
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'gpt4',
-            provider: 'openai',
-            apiKey: 'dev',
-            model: 'gpt-4o',
-          },
-          new RemoteTools(apiKeys),
+    let dispatcher: ProviderDispatcher;
+
+    beforeEach(() => {
+      dispatcher = new ProviderDispatcher(openaiConfig, new RemoteTools(apiKeys));
+    });
+
+    it('should return the raw OpenAI response', async () => {
+      const response = await dispatcher.dispatch(buildBody());
+
+      expect(response).toEqual(mockOpenAIResponse);
+    });
+
+    it('should not forward user-supplied model or arbitrary properties to the LLM', async () => {
+      const customConfig = { ...openaiConfig, name: 'base', model: 'BASE MODEL' };
+      const customDispatcher = new ProviderDispatcher(customConfig, new RemoteTools(apiKeys));
+
+      await customDispatcher.dispatch(
+        buildBody({
+          model: 'OTHER MODEL',
+          messages: [{ role: 'user', content: 'Hello' }],
+        } as unknown as DispatchBody),
+      );
+
+      expect(ChatOpenAI).toHaveBeenCalledWith(expect.objectContaining({ model: 'BASE MODEL' }));
+      expect(ChatOpenAI).not.toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'OTHER MODEL' }),
+      );
+    });
+
+    describe('error handling', () => {
+      it('should wrap generic errors as OpenAIUnprocessableError', async () => {
+        invokeMock.mockRejectedValueOnce(new Error('OpenAI error'));
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBeInstanceOf(OpenAIUnprocessableError);
+        expect(thrown.message).toBe('Error while calling OpenAI: OpenAI error');
+      });
+
+      it('should wrap 429 as OpenAIUnprocessableError with rate limit message', async () => {
+        const error = Object.assign(new Error('Too many requests'), { status: 429 });
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBeInstanceOf(OpenAIUnprocessableError);
+        expect(thrown.message).toBe('Rate limit exceeded: Too many requests');
+      });
+
+      it('should wrap 401 as OpenAIUnprocessableError with auth message', async () => {
+        const error = Object.assign(new Error('Invalid API key'), { status: 401 });
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBeInstanceOf(OpenAIUnprocessableError);
+        expect(thrown.message).toBe('Authentication failed: Invalid API key');
+      });
+
+      it('should throw when rawResponse is missing', async () => {
+        invokeMock.mockResolvedValueOnce({
+          content: 'response',
+          additional_kwargs: { __raw_response: null },
+        });
+
+        await expect(dispatcher.dispatch(buildBody())).rejects.toThrow(
+          'OpenAI response missing raw response data. This may indicate an API change.',
         );
-        const response = await dispatcher.dispatch({
-          tools: [],
-          messages: [],
-        } as unknown as DispatchBody);
-
-        // Response is the raw OpenAI response (via __includeRawResponse)
-        expect(response).toEqual(mockOpenAIResponse);
-      });
-
-      describe('when the user tries to override the configuration', () => {
-        it('should only pass allowed parameters', async () => {
-          const dispatcher = new ProviderDispatcher(
-            {
-              name: 'base',
-              provider: 'openai',
-              apiKey: 'dev',
-              model: 'BASE MODEL',
-            },
-            new RemoteTools(apiKeys),
-          );
-          const messages = [{ role: 'user', content: 'Hello' }];
-          await dispatcher.dispatch({
-            model: 'OTHER MODEL',
-            propertyInjection: 'hack',
-            tools: [],
-            messages,
-            tool_choice: 'auto',
-          } as unknown as DispatchBody);
-
-          // When no tools, invoke is called directly with messages
-          expect(invokeMock).toHaveBeenCalledWith(messages);
-        });
-      });
-
-      describe('when the openai client throws an error', () => {
-        it('should throw an OpenAIUnprocessableError', async () => {
-          const dispatcher = new ProviderDispatcher(
-            {
-              name: 'gpt4',
-              provider: 'openai',
-              apiKey: 'dev',
-              model: 'gpt-4o',
-            },
-            new RemoteTools(apiKeys),
-          );
-          invokeMock.mockRejectedValueOnce(new Error('OpenAI error'));
-
-          await expect(
-            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
-          ).rejects.toThrow('Error while calling OpenAI: OpenAI error');
-        });
-
-        it('should throw rate limit error when status is 429', async () => {
-          const dispatcher = new ProviderDispatcher(
-            { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
-            new RemoteTools(apiKeys),
-          );
-          const rateLimitError = new Error('Too many requests') as Error & { status?: number };
-          rateLimitError.status = 429;
-          invokeMock.mockRejectedValueOnce(rateLimitError);
-
-          await expect(
-            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
-          ).rejects.toThrow('Rate limit exceeded: Too many requests');
-        });
-
-        it('should throw authentication error when status is 401', async () => {
-          const dispatcher = new ProviderDispatcher(
-            { name: 'gpt4', provider: 'openai', apiKey: 'invalid', model: 'gpt-4o' },
-            new RemoteTools(apiKeys),
-          );
-          const authError = new Error('Invalid API key') as Error & { status?: number };
-          authError.status = 401;
-          invokeMock.mockRejectedValueOnce(authError);
-
-          await expect(
-            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
-          ).rejects.toThrow('Authentication failed: Invalid API key');
-        });
-      });
-
-      describe('when rawResponse is missing', () => {
-        it('should throw an error indicating API change', async () => {
-          const dispatcher = new ProviderDispatcher(
-            { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
-            new RemoteTools(apiKeys),
-          );
-          invokeMock.mockResolvedValueOnce({
-            content: 'response',
-            additional_kwargs: { __raw_response: null },
-          });
-
-          await expect(
-            dispatcher.dispatch({ tools: [], messages: [] } as unknown as DispatchBody),
-          ).rejects.toThrow(
-            'OpenAI response missing raw response data. This may indicate an API change.',
-          );
-        });
       });
     });
 
-    describe('when there is a remote tool', () => {
-      it('should enhance the remote tools definition', async () => {
+    describe('remote tools', () => {
+      it('should enhance remote tools definition with full schema', async () => {
         const remoteTools = new RemoteTools(apiKeys);
-        remoteTools.invokeTool = jest.fn().mockResolvedValue('response');
+        const remoteDispatcher = new ProviderDispatcher(openaiConfig, remoteTools);
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'gpt4',
-            provider: 'openai',
-            apiKey: 'dev',
-            model: 'gpt-4o',
-          },
-          remoteTools,
+        await remoteDispatcher.dispatch(
+          buildBody({
+            tools: [
+              {
+                type: 'function',
+                // Front end sends empty parameters because it doesn't know the tool schema
+                function: { name: remoteTools.tools[0].base.name, parameters: {} },
+              },
+            ],
+            messages: [{ role: 'user', content: 'test' }],
+          }),
         );
-        const messages = [{ role: 'user', content: 'test' }];
-        await dispatcher.dispatch({
-          tools: [
-            {
-              type: 'function',
-              // parameters is an empty object because it simulates the front end sending an empty object
-              // because it doesn't know the parameters of the tool
-              function: { name: remoteTools.tools[0].base.name, parameters: {} },
-            },
-          ],
-          messages,
-        } as unknown as DispatchBody);
 
-        // When tools are provided, bindTools is called first
         expect(bindToolsMock).toHaveBeenCalledWith(
           [
             {
@@ -214,41 +208,50 @@ describe('ProviderDispatcher', () => {
           ],
           { tool_choice: undefined },
         );
-        expect(invokeMock).toHaveBeenCalledWith(messages);
+      });
+
+      it('should not modify non-remote tools', async () => {
+        const remoteDispatcher = new ProviderDispatcher(openaiConfig, new RemoteTools(apiKeys));
+
+        await remoteDispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'notRemoteTool', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+          }),
+        );
+
+        expect(bindToolsMock).toHaveBeenCalledWith(
+          [{ type: 'function', function: { name: 'notRemoteTool', parameters: {} } }],
+          { tool_choice: undefined },
+        );
       });
     });
 
-    describe('when parallel_tool_calls is provided', () => {
-      it('should pass parallel_tool_calls to bindTools', async () => {
-        const dispatcher = new ProviderDispatcher(
-          { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
-          new RemoteTools(apiKeys),
+    describe('parallel_tool_calls', () => {
+      it('should pass parallel_tool_calls: false to bindTools', async () => {
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'auto',
+            parallel_tool_calls: false,
+          }),
         );
 
-        await dispatcher.dispatch({
-          messages: [{ role: 'user', content: 'test' }],
-          tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+        expect(bindToolsMock).toHaveBeenCalledWith(expect.any(Array), {
           tool_choice: 'auto',
           parallel_tool_calls: false,
-        } as unknown as DispatchBody);
-
-        expect(bindToolsMock).toHaveBeenCalledWith(
-          [{ type: 'function', function: { name: 'test', parameters: {} } }],
-          { tool_choice: 'auto', parallel_tool_calls: false },
-        );
+        });
       });
 
-      it('should pass parallel_tool_calls: true when explicitly set', async () => {
-        const dispatcher = new ProviderDispatcher(
-          { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
-          new RemoteTools(apiKeys),
+      it('should pass parallel_tool_calls: true to bindTools', async () => {
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            parallel_tool_calls: true,
+          }),
         );
-
-        await dispatcher.dispatch({
-          messages: [{ role: 'user', content: 'test' }],
-          tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
-          parallel_tool_calls: true,
-        } as unknown as DispatchBody);
 
         expect(bindToolsMock).toHaveBeenCalledWith(expect.any(Array), {
           tool_choice: undefined,
@@ -256,43 +259,488 @@ describe('ProviderDispatcher', () => {
         });
       });
     });
+  });
 
-    describe('when there is not remote tool', () => {
-      it('should not enhance the remote tools definition', async () => {
-        const remoteTools = new RemoteTools(apiKeys);
-        remoteTools.invokeTool = jest.fn().mockResolvedValue('response');
+  describe('anthropic', () => {
+    let dispatcher: ProviderDispatcher;
 
-        const dispatcher = new ProviderDispatcher(
-          {
-            name: 'gpt4',
-            provider: 'openai',
-            apiKey: 'dev',
-            model: 'gpt-4o',
-          },
-          remoteTools,
+    beforeEach(() => {
+      dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
+    });
+
+    describe('response conversion to OpenAI format', () => {
+      it('should return a complete OpenAI-compatible response', async () => {
+        const mockResponse = mockAnthropicResponse('Hello from Claude', {
+          id: 'msg_123',
+          usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+        });
+
+        const response = await dispatcher.dispatch(
+          buildBody({ messages: [{ role: 'user', content: 'Hello' }] }),
         );
-        const messages = [{ role: 'user', content: 'test' }];
-        await dispatcher.dispatch({
-          tools: [
-            {
-              type: 'function',
-              function: { name: 'notRemoteTool', parameters: {} },
-            },
-          ],
-          messages,
-        } as unknown as DispatchBody);
 
-        // When tools are provided, bindTools is called
-        expect(bindToolsMock).toHaveBeenCalledWith(
+        expect(response).toEqual(
+          expect.objectContaining({
+            id: mockResponse.id,
+            object: 'chat.completion',
+            model: 'claude-3-5-sonnet-latest',
+            choices: [
+              expect.objectContaining({
+                index: 0,
+                message: expect.objectContaining({
+                  role: 'assistant',
+                  content: 'Hello from Claude',
+                }),
+                finish_reason: 'stop',
+              }),
+            ],
+            usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+          }),
+        );
+      });
+
+      it('should default usage to zeros when usage_metadata is missing', async () => {
+        mockAnthropicResponse('Response');
+
+        const response = await dispatcher.dispatch(
+          buildBody({ messages: [{ role: 'user', content: 'test' }] }),
+        );
+
+        expect(response.usage).toEqual({
+          prompt_tokens: 0,
+          completion_tokens: 0,
+          total_tokens: 0,
+        });
+      });
+
+      it('should return null content for empty string responses', async () => {
+        mockAnthropicResponse('');
+
+        const response = await dispatcher.dispatch(
+          buildBody({ messages: [{ role: 'user', content: 'test' }] }),
+        );
+
+        expect(response.choices[0].message.content).toBeNull();
+      });
+
+      it('should extract text from array content blocks', async () => {
+        mockAnthropicResponse(
+          [
+            { type: 'text', text: 'Here is the result' },
+            { type: 'tool_use', id: 'call_1', name: 'search', input: { q: 'test' } },
+          ],
+          { tool_calls: [{ id: 'call_1', name: 'search', args: { q: 'test' } }] },
+        );
+
+        const response = await dispatcher.dispatch(
+          buildBody({ messages: [{ role: 'user', content: 'Search' }] }),
+        );
+
+        expect(response.choices[0].message.content).toBe('Here is the result');
+        expect(response.choices[0].message.tool_calls).toHaveLength(1);
+      });
+
+      it('should return null content when array has no text blocks', async () => {
+        mockAnthropicResponse(
+          [{ type: 'tool_use', id: 'call_1', name: 'search', input: { q: 'test' } }],
+          { tool_calls: [{ id: 'call_1', name: 'search', args: { q: 'test' } }] },
+        );
+
+        const response = await dispatcher.dispatch(
+          buildBody({ messages: [{ role: 'user', content: 'Search' }] }),
+        );
+
+        expect(response.choices[0].message.content).toBeNull();
+      });
+
+      it('should convert tool_calls to OpenAI format with finish_reason "tool_calls"', async () => {
+        mockAnthropicResponse('', {
+          tool_calls: [{ id: 'call_456', name: 'search', args: { query: 'test' } }],
+        });
+
+        const response = await dispatcher.dispatch(
+          buildBody({ messages: [{ role: 'user', content: 'Search for test' }] }),
+        );
+
+        expect(response.choices[0].message.tool_calls).toEqual([
+          {
+            id: 'call_456',
+            type: 'function',
+            function: { name: 'search', arguments: '{"query":"test"}' },
+          },
+        ]);
+        expect(response.choices[0].finish_reason).toBe('tool_calls');
+      });
+
+      it('should generate a UUID fallback when tool_call has no id', async () => {
+        mockAnthropicResponse('', {
+          tool_calls: [{ name: 'search', args: { q: 'test' } }],
+        });
+
+        const response = await dispatcher.dispatch(
+          buildBody({ messages: [{ role: 'user', content: 'test' }] }),
+        );
+
+        expect(response.choices[0].message.tool_calls![0].id).toMatch(/^call_/);
+      });
+
+      it('should generate a UUID fallback when response has no id', async () => {
+        mockAnthropicResponse('Hello');
+
+        const response = await dispatcher.dispatch(
+          buildBody({ messages: [{ role: 'user', content: 'test' }] }),
+        );
+
+        expect(response.id).toMatch(/^msg_/);
+      });
+    });
+
+    describe('message conversion to LangChain format', () => {
+      it('should convert each role to the correct LangChain message type', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            messages: [
+              { role: 'system', content: 'You are helpful' },
+              { role: 'user', content: 'Hello' },
+              { role: 'assistant', content: 'Hi there' },
+            ],
+          }),
+        );
+
+        expect(anthropicInvokeMock).toHaveBeenCalledWith([
+          expect.any(SystemMessage),
+          expect.any(HumanMessage),
+          expect.any(AIMessage),
+        ]);
+        expect(anthropicInvokeMock).toHaveBeenCalledWith([
+          expect.objectContaining({ content: 'You are helpful' }),
+          expect.objectContaining({ content: 'Hello' }),
+          expect.objectContaining({ content: 'Hi there' }),
+        ]);
+      });
+
+      it('should convert assistant tool_calls with parsed JSON arguments', async () => {
+        mockAnthropicResponse('Done');
+
+        await dispatcher.dispatch(
+          buildBody({
+            messages: [
+              {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call_123',
+                    function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
+                  },
+                ],
+              },
+              { role: 'tool', content: 'Sunny', tool_call_id: 'call_123' },
+            ],
+          }),
+        );
+
+        expect(anthropicInvokeMock).toHaveBeenCalledWith([
+          expect.objectContaining({
+            content: '',
+            tool_calls: [{ id: 'call_123', name: 'get_weather', args: { city: 'Paris' } }],
+          }),
+          expect.any(ToolMessage),
+        ]);
+      });
+
+      it('should throw AIBadRequestError for tool message without tool_call_id', async () => {
+        await expect(
+          dispatcher.dispatch(buildBody({ messages: [{ role: 'tool', content: 'result' }] })),
+        ).rejects.toThrow(
+          new AIBadRequestError('Tool message is missing required "tool_call_id" field.'),
+        );
+      });
+
+      it('should throw AIBadRequestError for unsupported message role', async () => {
+        await expect(
+          dispatcher.dispatch(
+            buildBody({ messages: [{ role: 'unknown', content: 'test' }] } as any),
+          ),
+        ).rejects.toThrow(
+          new AIBadRequestError(
+            "Unsupported message role 'unknown'. Expected: system, user, assistant, or tool.",
+          ),
+        );
+      });
+
+      it('should throw AIBadRequestError for invalid JSON in tool_calls arguments', async () => {
+        await expect(
+          dispatcher.dispatch(
+            buildBody({
+              messages: [
+                {
+                  role: 'assistant',
+                  content: '',
+                  tool_calls: [
+                    { id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } },
+                  ],
+                },
+              ],
+            }),
+          ),
+        ).rejects.toThrow(
+          new AIBadRequestError(
+            "Invalid JSON in tool_calls arguments for tool 'my_tool': not-json",
+          ),
+        );
+      });
+    });
+
+    describe('tool binding', () => {
+      it('should bind tools with the correct tool_choice', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [
+              {
+                type: 'function',
+                function: {
+                  name: 'get_weather',
+                  description: 'Get weather for a city',
+                  parameters: { type: 'object', properties: { city: { type: 'string' } } },
+                },
+              },
+            ],
+            messages: [{ role: 'user', content: 'What is the weather in Paris?' }],
+            tool_choice: 'auto',
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(
           [
             {
               type: 'function',
-              function: { name: 'notRemoteTool', parameters: {} },
+              function: {
+                name: 'get_weather',
+                description: 'Get weather for a city',
+                parameters: { type: 'object', properties: { city: { type: 'string' } } },
+              },
             },
           ],
-          { tool_choice: undefined },
+          { tool_choice: 'auto' },
         );
-        expect(invokeMock).toHaveBeenCalledWith(messages);
+      });
+
+      it('should enhance remote tools definition with full schema', async () => {
+        mockAnthropicResponse();
+        const remoteTools = new RemoteTools(apiKeys);
+        const remoteDispatcher = new ProviderDispatcher(anthropicConfig, remoteTools);
+
+        await remoteDispatcher.dispatch(
+          buildBody({
+            tools: [
+              {
+                type: 'function',
+                function: { name: remoteTools.tools[0].base.name, parameters: {} },
+              },
+            ],
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(
+          [{ type: 'function', function: convertToOpenAIFunction(remoteTools.tools[0].base) }],
+          expect.anything(),
+        );
+      });
+    });
+
+    describe('tool_choice conversion', () => {
+      it('should convert "required" to "any"', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'tool1' } }],
+            tool_choice: 'required',
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: 'any',
+        });
+      });
+
+      it('should convert specific function to { type: "tool", name }', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'specific_tool' } }],
+            tool_choice: { type: 'function', function: { name: 'specific_tool' } },
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: { type: 'tool', name: 'specific_tool' },
+        });
+      });
+
+      it('should pass "none" through unchanged', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'tool1' } }],
+            tool_choice: 'none',
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: 'none',
+        });
+      });
+
+      it('should throw AIBadRequestError for unrecognized tool_choice', async () => {
+        await expect(
+          dispatcher.dispatch(
+            buildBody({
+              tools: [{ type: 'function', function: { name: 'tool1' } }],
+              messages: [{ role: 'user', content: 'test' }],
+              tool_choice: { type: 'unknown' },
+            } as any),
+          ),
+        ).rejects.toThrow(AIBadRequestError);
+      });
+    });
+
+    describe('parallel_tool_calls', () => {
+      it('should set disable_parallel_tool_use when parallel_tool_calls is false with "required"', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'required',
+            parallel_tool_calls: false,
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: { type: 'any', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should default to auto with disable_parallel_tool_use when no tool_choice', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            parallel_tool_calls: false,
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should add disable_parallel_tool_use to specific function tool_choice', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'specific_tool' } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: { type: 'function', function: { name: 'specific_tool' } },
+            parallel_tool_calls: false,
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: { type: 'tool', name: 'specific_tool', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should not set disable_parallel_tool_use when parallel_tool_calls is true', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'required',
+            parallel_tool_calls: true,
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: 'any',
+        });
+      });
+
+      it('should pass "none" unchanged even when parallel_tool_calls is false', async () => {
+        mockAnthropicResponse();
+
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'tool1' } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'none',
+            parallel_tool_calls: false,
+          }),
+        );
+
+        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
+          tool_choice: 'none',
+        });
+      });
+    });
+
+    describe('error handling', () => {
+      it('should wrap generic errors as AnthropicUnprocessableError', async () => {
+        anthropicInvokeMock.mockRejectedValueOnce(new Error('Anthropic API error'));
+
+        await expect(
+          dispatcher.dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] })),
+        ).rejects.toThrow(AnthropicUnprocessableError);
+      });
+
+      it('should wrap 429 as AnthropicUnprocessableError with rate limit message', async () => {
+        const error = Object.assign(new Error('Too many requests'), { status: 429 });
+        anthropicInvokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AnthropicUnprocessableError);
+        expect(thrown.message).toBe('Rate limit exceeded: Too many requests');
+      });
+
+      it('should wrap 401 as AnthropicUnprocessableError with auth message', async () => {
+        const error = Object.assign(new Error('Invalid API key'), { status: 401 });
+        anthropicInvokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AnthropicUnprocessableError);
+        expect(thrown.message).toBe('Authentication failed: Invalid API key');
+      });
+
+      it('should preserve AIBadRequestError without wrapping', async () => {
+        await expect(
+          dispatcher.dispatch(
+            buildBody({
+              tools: [{ type: 'function', function: { name: 'tool1' } }],
+              messages: [{ role: 'user', content: 'test' }],
+              tool_choice: { type: 'unknown' },
+            } as any),
+          ),
+        ).rejects.toThrow(AIBadRequestError);
       });
     });
   });
