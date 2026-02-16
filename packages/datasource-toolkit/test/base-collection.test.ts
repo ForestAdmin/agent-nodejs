@@ -215,7 +215,7 @@ describe('BaseCollection', () => {
     it('should have default capabilities with all groups and date operations supported', () => {
       const collection = new ConcreteCollection();
 
-      expect(collection.schema.aggregateCapabilities).toEqual({
+      expect(collection.schema.aggregationCapabilities).toEqual({
         supportGroups: true,
         supportDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
       });
@@ -227,9 +227,9 @@ describe('BaseCollection', () => {
       constructor() {
         super();
 
-        this.setAggregateCapabilities({
+        this.setAggregationCapabilities({
           supportGroups: false,
-          supportDateOperations: new Set(),
+          supportedDateOperations: new Set(),
         });
       }
     }
@@ -237,7 +237,7 @@ describe('BaseCollection', () => {
     it('should override aggregate capabilities', () => {
       const collection = new CollectionWithRestrictedAggregation();
 
-      expect(collection.schema.aggregateCapabilities).toEqual({
+      expect(collection.schema.aggregationCapabilities).toEqual({
         supportGroups: false,
         supportDateOperations: new Set(),
       });
