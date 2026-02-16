@@ -1094,6 +1094,53 @@ describe('ActionField implementations', () => {
       );
     });
 
+    it('should only remove the exact file when one name is a prefix of another', async () => {
+      await setupFields([
+        {
+          field: 'attachments',
+          type: 'FileList',
+          isRequired: false,
+          isReadOnly: false,
+          value: [
+            'data:text/plain;name=report.txt;base64,AAAA',
+            'data:text/plain;name=my-report.txt;base64,BBBB',
+          ],
+        },
+      ]);
+      const field = new ActionFieldFileList('attachments', fieldFormStates);
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'attachments',
+            type: 'FileList',
+            isRequired: false,
+            isReadOnly: false,
+            value: ['data:text/plain;name=my-report.txt;base64,BBBB'],
+          },
+        ],
+        layout: [],
+      });
+
+      await field.removeFile('report.txt');
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                fields: [
+                  expect.objectContaining({
+                    field: 'attachments',
+                    value: ['data:text/plain;name=my-report.txt;base64,BBBB'],
+                  }),
+                ],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
     it('should throw error when removing a non-existent file', async () => {
       await setupFields([
         {

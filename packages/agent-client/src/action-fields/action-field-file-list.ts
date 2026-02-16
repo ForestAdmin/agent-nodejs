@@ -1,14 +1,20 @@
-import ActionFieldFile from './action-field-file';
+import ActionField from './action-field';
+import ActionFieldFile, { type FileInput } from './action-field-file';
 
-export default class ActionFieldFileList extends ActionFieldFile {
-  async addFile(file: { mimeType: string; buffer: Buffer; name: string; charset?: string }) {
+export default class ActionFieldFileList extends ActionField {
+  async addFile(file: FileInput) {
     const values = (this.field?.getValue() as string[]) || [];
-    await this.setValue([...values, ActionFieldFileList.makeDataUri(file)]);
+    await this.setValue([...values, ActionFieldFile.makeDataUri(file)]);
   }
 
   async removeFile(fileName: string) {
     const values = (this.field?.getValue() as string[]) || [];
-    const filtered = values.filter(uri => !uri.includes(`name=${encodeURIComponent(fileName)}`));
+    const nameParam = `name=${encodeURIComponent(fileName)}`;
+    const filtered = values.filter(uri => {
+      const [metadata] = uri.split(';base64,');
+
+      return !metadata.split(';').some(part => part === nameParam);
+    });
 
     if (filtered.length === values.length) {
       throw new Error(`File "${fileName}" is not in the list`);
