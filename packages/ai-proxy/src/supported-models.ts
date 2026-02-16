@@ -67,8 +67,10 @@ function isOpenAIModelSupported(model: string): boolean {
 // If a model fails the llm.integration test, add it here.
 
 const ANTHROPIC_UNSUPPORTED_MODELS = [
-  'claude-3-7-sonnet-20250219', // EOL 2026-02-19
   'claude-3-haiku-20240307', // EOL 2025-03-14
+  'claude-3-5-haiku-20241022', // EOL 2026-02-19
+  'claude-3-5-haiku-latest', // Points to deprecated claude-3-5-haiku-20241022
+  'claude-3-7-sonnet-20250219', // EOL 2026-02-19
   'claude-opus-4-20250514', // Requires streaming (non-streaming times out)
   'claude-opus-4-1-20250805', // Requires streaming (non-streaming times out)
 ];
