@@ -65,6 +65,7 @@ describe('AI Error Hierarchy', () => {
       const error = new AIToolUnprocessableError('test');
       expect(error).toBeInstanceOf(AIUnprocessableError);
       expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.name).toBe('AIToolUnprocessableError');
     });
   });
 

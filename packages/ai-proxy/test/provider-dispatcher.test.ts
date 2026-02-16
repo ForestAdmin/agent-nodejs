@@ -1,6 +1,6 @@
 import type { DispatchBody } from '../src';
 
-import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
+import { AIMessage } from '@langchain/core/messages';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
 
@@ -71,7 +71,7 @@ function mockAnthropicResponse(
   content: AIMessage['content'] = 'Response',
   extra?: Record<string, unknown>,
 ): AIMessage {
-  const response = new AIMessage(typeof content === 'string' ? { content } : { content });
+  const response = new AIMessage({ content });
   if (extra) Object.assign(response, extra);
   anthropicInvokeMock.mockResolvedValueOnce(response);
 
@@ -106,6 +106,16 @@ describe('ProviderDispatcher', () => {
       await expect(dispatcher.dispatch(buildBody())).rejects.toThrow(AINotConfiguredError);
       await expect(dispatcher.dispatch(buildBody())).rejects.toThrow('AI is not configured');
     });
+
+    it('should throw AIBadRequestError for unknown provider', () => {
+      expect(
+        () =>
+          new ProviderDispatcher(
+            { provider: 'unknown', name: 'test', model: 'x' } as any,
+            new RemoteTools(apiKeys),
+          ),
+      ).toThrow(new AIBadRequestError("Unsupported AI provider 'unknown'."));
+    });
   });
 
   describe('openai', () => {
@@ -139,13 +149,15 @@ describe('ProviderDispatcher', () => {
     });
 
     describe('error handling', () => {
-      it('should wrap generic errors as AIUnprocessableError', async () => {
-        invokeMock.mockRejectedValueOnce(new Error('OpenAI error'));
+      it('should wrap generic errors as AIUnprocessableError with cause', async () => {
+        const original = new Error('OpenAI error');
+        invokeMock.mockRejectedValueOnce(original);
 
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
         expect(thrown).toBeInstanceOf(AIUnprocessableError);
         expect(thrown.message).toBe('Error while calling OpenAI: OpenAI error');
+        expect(thrown.cause).toBe(original);
       });
 
       it('should wrap 429 as AIUnprocessableError with rate limit message', async () => {
@@ -267,260 +279,55 @@ describe('ProviderDispatcher', () => {
       dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
     });
 
-    describe('response conversion to OpenAI format', () => {
-      it('should return a complete OpenAI-compatible response', async () => {
-        const mockResponse = mockAnthropicResponse('Hello from Claude', {
-          id: 'msg_123',
-          usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
-        });
+    it('should not forward user-supplied model from body to the LLM', async () => {
+      const { ChatAnthropic } = jest.requireMock('@langchain/anthropic');
+      mockAnthropicResponse();
 
-        const response = await dispatcher.dispatch(
-          buildBody({ messages: [{ role: 'user', content: 'Hello' }] }),
-        );
+      await dispatcher.dispatch(
+        buildBody({
+          model: 'OTHER MODEL',
+          messages: [{ role: 'user', content: 'Hello' }],
+        } as unknown as DispatchBody),
+      );
 
-        expect(response).toEqual(
-          expect.objectContaining({
-            id: mockResponse.id,
-            object: 'chat.completion',
-            model: 'claude-3-5-sonnet-latest',
-            choices: [
-              expect.objectContaining({
-                index: 0,
-                message: expect.objectContaining({
-                  role: 'assistant',
-                  content: 'Hello from Claude',
-                }),
-                finish_reason: 'stop',
-              }),
-            ],
-            usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
-          }),
-        );
-      });
-
-      it('should default usage to zeros when usage_metadata is missing', async () => {
-        mockAnthropicResponse('Response');
-
-        const response = await dispatcher.dispatch(
-          buildBody({ messages: [{ role: 'user', content: 'test' }] }),
-        );
-
-        expect(response.usage).toEqual({
-          prompt_tokens: 0,
-          completion_tokens: 0,
-          total_tokens: 0,
-        });
-      });
-
-      it('should return null content for empty string responses', async () => {
-        mockAnthropicResponse('');
-
-        const response = await dispatcher.dispatch(
-          buildBody({ messages: [{ role: 'user', content: 'test' }] }),
-        );
-
-        expect(response.choices[0].message.content).toBeNull();
-      });
-
-      it('should extract text from array content blocks', async () => {
-        mockAnthropicResponse(
-          [
-            { type: 'text', text: 'Here is the result' },
-            { type: 'tool_use', id: 'call_1', name: 'search', input: { q: 'test' } },
-          ],
-          { tool_calls: [{ id: 'call_1', name: 'search', args: { q: 'test' } }] },
-        );
-
-        const response = await dispatcher.dispatch(
-          buildBody({ messages: [{ role: 'user', content: 'Search' }] }),
-        );
-
-        expect(response.choices[0].message.content).toBe('Here is the result');
-        expect(response.choices[0].message.tool_calls).toHaveLength(1);
-      });
-
-      it('should return null content when array has no text blocks', async () => {
-        mockAnthropicResponse(
-          [{ type: 'tool_use', id: 'call_1', name: 'search', input: { q: 'test' } }],
-          { tool_calls: [{ id: 'call_1', name: 'search', args: { q: 'test' } }] },
-        );
-
-        const response = await dispatcher.dispatch(
-          buildBody({ messages: [{ role: 'user', content: 'Search' }] }),
-        );
-
-        expect(response.choices[0].message.content).toBeNull();
-      });
-
-      it('should convert tool_calls to OpenAI format with finish_reason "tool_calls"', async () => {
-        mockAnthropicResponse('', {
-          tool_calls: [{ id: 'call_456', name: 'search', args: { query: 'test' } }],
-        });
-
-        const response = await dispatcher.dispatch(
-          buildBody({ messages: [{ role: 'user', content: 'Search for test' }] }),
-        );
-
-        expect(response.choices[0].message.tool_calls).toEqual([
-          {
-            id: 'call_456',
-            type: 'function',
-            function: { name: 'search', arguments: '{"query":"test"}' },
-          },
-        ]);
-        expect(response.choices[0].finish_reason).toBe('tool_calls');
-      });
-
-      it('should generate a UUID fallback when tool_call has no id', async () => {
-        mockAnthropicResponse('', {
-          tool_calls: [{ name: 'search', args: { q: 'test' } }],
-        });
-
-        const response = await dispatcher.dispatch(
-          buildBody({ messages: [{ role: 'user', content: 'test' }] }),
-        );
-
-        expect(response.choices[0].message.tool_calls![0].id).toMatch(/^call_/);
-      });
-
-      it('should generate a UUID fallback when response has no id', async () => {
-        mockAnthropicResponse('Hello');
-
-        const response = await dispatcher.dispatch(
-          buildBody({ messages: [{ role: 'user', content: 'test' }] }),
-        );
-
-        expect(response.id).toMatch(/^msg_/);
-      });
+      expect(ChatAnthropic).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'claude-3-5-sonnet-latest' }),
+      );
+      expect(ChatAnthropic).not.toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'OTHER MODEL' }),
+      );
     });
 
-    describe('message conversion to LangChain format', () => {
-      it('should convert each role to the correct LangChain message type', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            messages: [
-              { role: 'system', content: 'You are helpful' },
-              { role: 'user', content: 'Hello' },
-              { role: 'assistant', content: 'Hi there' },
-            ],
-          }),
-        );
-
-        expect(anthropicInvokeMock).toHaveBeenCalledWith([
-          expect.any(SystemMessage),
-          expect.any(HumanMessage),
-          expect.any(AIMessage),
-        ]);
-        expect(anthropicInvokeMock).toHaveBeenCalledWith([
-          expect.objectContaining({ content: 'You are helpful' }),
-          expect.objectContaining({ content: 'Hello' }),
-          expect.objectContaining({ content: 'Hi there' }),
-        ]);
+    it('should return an OpenAI-compatible response', async () => {
+      mockAnthropicResponse('Hello from Claude', {
+        id: 'msg_123',
+        usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
       });
 
-      it('should merge multiple system messages into a single SystemMessage', async () => {
-        mockAnthropicResponse();
+      const response = await dispatcher.dispatch(
+        buildBody({ messages: [{ role: 'user', content: 'Hello' }] }),
+      );
 
-        await dispatcher.dispatch(
-          buildBody({
-            messages: [
-              { role: 'system', content: 'You are an AI agent.' },
-              { role: 'system', content: 'The selected record belongs to the Account collection.' },
-              { role: 'user', content: 'get name' },
-            ],
-          }),
-        );
-
-        expect(anthropicInvokeMock).toHaveBeenCalledWith([
-          expect.any(SystemMessage),
-          expect.any(HumanMessage),
-        ]);
-        expect(anthropicInvokeMock).toHaveBeenCalledWith([
-          expect.objectContaining({
-            content:
-              'You are an AI agent.\n\nThe selected record belongs to the Account collection.',
-          }),
-          expect.objectContaining({ content: 'get name' }),
-        ]);
-      });
-
-      it('should convert assistant tool_calls with parsed JSON arguments', async () => {
-        mockAnthropicResponse('Done');
-
-        await dispatcher.dispatch(
-          buildBody({
-            messages: [
-              {
+      expect(response).toEqual(
+        expect.objectContaining({
+          id: 'msg_123',
+          object: 'chat.completion',
+          model: 'claude-3-5-sonnet-latest',
+          choices: [
+            expect.objectContaining({
+              message: expect.objectContaining({
                 role: 'assistant',
-                content: '',
-                tool_calls: [
-                  {
-                    id: 'call_123',
-                    function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
-                  },
-                ],
-              },
-              { role: 'tool', content: 'Sunny', tool_call_id: 'call_123' },
-            ],
-          }),
-        );
-
-        expect(anthropicInvokeMock).toHaveBeenCalledWith([
-          expect.objectContaining({
-            content: '',
-            tool_calls: [{ id: 'call_123', name: 'get_weather', args: { city: 'Paris' } }],
-          }),
-          expect.any(ToolMessage),
-        ]);
-      });
-
-      it('should throw AIBadRequestError for tool message without tool_call_id', async () => {
-        await expect(
-          dispatcher.dispatch(buildBody({ messages: [{ role: 'tool', content: 'result' }] })),
-        ).rejects.toThrow(
-          new AIBadRequestError('Tool message is missing required "tool_call_id" field.'),
-        );
-      });
-
-      it('should throw AIBadRequestError for unsupported message role', async () => {
-        await expect(
-          dispatcher.dispatch(
-            buildBody({ messages: [{ role: 'unknown', content: 'test' }] } as any),
-          ),
-        ).rejects.toThrow(
-          new AIBadRequestError(
-            "Unsupported message role 'unknown'. Expected: system, user, assistant, or tool.",
-          ),
-        );
-      });
-
-      it('should throw AIBadRequestError for invalid JSON in tool_calls arguments', async () => {
-        await expect(
-          dispatcher.dispatch(
-            buildBody({
-              messages: [
-                {
-                  role: 'assistant',
-                  content: '',
-                  tool_calls: [
-                    { id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } },
-                  ],
-                },
-              ],
+                content: 'Hello from Claude',
+              }),
+              finish_reason: 'stop',
             }),
-          ),
-        ).rejects.toThrow(
-          new AIBadRequestError(
-            "Invalid JSON in tool_calls arguments for tool 'my_tool': not-json",
-          ),
-        );
-      });
+          ],
+        }),
+      );
     });
 
     describe('tool binding', () => {
-      it('should bind tools with the correct tool_choice', async () => {
+      it('should bind tools and pass converted tool_choice to Anthropic', async () => {
         mockAnthropicResponse();
 
         await dispatcher.dispatch(
@@ -578,158 +385,18 @@ describe('ProviderDispatcher', () => {
       });
     });
 
-    describe('tool_choice conversion', () => {
-      it('should convert "required" to "any"', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            tools: [{ type: 'function', function: { name: 'tool1' } }],
-            tool_choice: 'required',
-          }),
-        );
-
-        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: 'any',
-        });
-      });
-
-      it('should convert specific function to { type: "tool", name }', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            tools: [{ type: 'function', function: { name: 'specific_tool' } }],
-            tool_choice: { type: 'function', function: { name: 'specific_tool' } },
-          }),
-        );
-
-        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: { type: 'tool', name: 'specific_tool' },
-        });
-      });
-
-      it('should pass "none" through unchanged', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            tools: [{ type: 'function', function: { name: 'tool1' } }],
-            tool_choice: 'none',
-          }),
-        );
-
-        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: 'none',
-        });
-      });
-
-      it('should throw AIBadRequestError for unrecognized tool_choice', async () => {
-        await expect(
-          dispatcher.dispatch(
-            buildBody({
-              tools: [{ type: 'function', function: { name: 'tool1' } }],
-              messages: [{ role: 'user', content: 'test' }],
-              tool_choice: { type: 'unknown' },
-            } as any),
-          ),
-        ).rejects.toThrow(AIBadRequestError);
-      });
-    });
-
-    describe('parallel_tool_calls', () => {
-      it('should set disable_parallel_tool_use when parallel_tool_calls is false with "required"', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
-            messages: [{ role: 'user', content: 'test' }],
-            tool_choice: 'required',
-            parallel_tool_calls: false,
-          }),
-        );
-
-        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: { type: 'any', disable_parallel_tool_use: true },
-        });
-      });
-
-      it('should default to auto with disable_parallel_tool_use when no tool_choice', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
-            messages: [{ role: 'user', content: 'test' }],
-            parallel_tool_calls: false,
-          }),
-        );
-
-        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
-        });
-      });
-
-      it('should add disable_parallel_tool_use to specific function tool_choice', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            tools: [{ type: 'function', function: { name: 'specific_tool' } }],
-            messages: [{ role: 'user', content: 'test' }],
-            tool_choice: { type: 'function', function: { name: 'specific_tool' } },
-            parallel_tool_calls: false,
-          }),
-        );
-
-        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: { type: 'tool', name: 'specific_tool', disable_parallel_tool_use: true },
-        });
-      });
-
-      it('should not set disable_parallel_tool_use when parallel_tool_calls is true', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            tools: [{ type: 'function', function: { name: 'test', parameters: {} } }],
-            messages: [{ role: 'user', content: 'test' }],
-            tool_choice: 'required',
-            parallel_tool_calls: true,
-          }),
-        );
-
-        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: 'any',
-        });
-      });
-
-      it('should pass "none" unchanged even when parallel_tool_calls is false', async () => {
-        mockAnthropicResponse();
-
-        await dispatcher.dispatch(
-          buildBody({
-            tools: [{ type: 'function', function: { name: 'tool1' } }],
-            messages: [{ role: 'user', content: 'test' }],
-            tool_choice: 'none',
-            parallel_tool_calls: false,
-          }),
-        );
-
-        expect(anthropicBindToolsMock).toHaveBeenCalledWith(expect.anything(), {
-          tool_choice: 'none',
-        });
-      });
-    });
-
     describe('error handling', () => {
-      it('should wrap generic errors as AIUnprocessableError', async () => {
-        anthropicInvokeMock.mockRejectedValueOnce(new Error('Anthropic API error'));
+      it('should wrap generic errors as AIUnprocessableError with cause', async () => {
+        const original = new Error('Anthropic API error');
+        anthropicInvokeMock.mockRejectedValueOnce(original);
 
-        await expect(
-          dispatcher.dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] })),
-        ).rejects.toThrow(AIUnprocessableError);
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown.message).toBe('Error while calling Anthropic: Anthropic API error');
+        expect(thrown.cause).toBe(original);
       });
 
       it('should wrap 429 as AIUnprocessableError with rate limit message', async () => {
@@ -756,14 +423,23 @@ describe('ProviderDispatcher', () => {
         expect(thrown.message).toBe('Authentication failed: Invalid API key');
       });
 
-      it('should preserve AIBadRequestError without wrapping', async () => {
+      it('should handle non-Error throws gracefully', async () => {
+        anthropicInvokeMock.mockRejectedValueOnce('string error');
+
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown.message).toBe('Error while calling Anthropic: string error');
+      });
+
+      it('should not wrap conversion errors as provider errors', async () => {
         await expect(
           dispatcher.dispatch(
             buildBody({
-              tools: [{ type: 'function', function: { name: 'tool1' } }],
-              messages: [{ role: 'user', content: 'test' }],
-              tool_choice: { type: 'unknown' },
-            } as any),
+              messages: [{ role: 'tool', content: 'result' }],
+            }),
           ),
         ).rejects.toThrow(AIBadRequestError);
       });

@@ -58,7 +58,7 @@ export class AINotConfiguredError extends AIError {
 export class AIToolUnprocessableError extends AIUnprocessableError {
   constructor(message: string) {
     super(message);
-    this.name = 'AIToolError';
+    this.name = 'AIToolUnprocessableError';
   }
 }
 
