@@ -167,7 +167,8 @@ describe('ProviderDispatcher', () => {
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
         expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('Rate limit exceeded: Too many requests');
+        expect(thrown.message).toBe('OpenAI rate limit exceeded: Too many requests');
+        expect(thrown.cause).toBe(error);
       });
 
       it('should wrap 401 as AIUnprocessableError with auth message', async () => {
@@ -177,7 +178,8 @@ describe('ProviderDispatcher', () => {
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
         expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('Authentication failed: Invalid API key');
+        expect(thrown.message).toBe('OpenAI authentication failed: Invalid API key');
+        expect(thrown.cause).toBe(error);
       });
 
       it('should throw when rawResponse is missing', async () => {
@@ -408,7 +410,8 @@ describe('ProviderDispatcher', () => {
           .catch(e => e);
 
         expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('Rate limit exceeded: Too many requests');
+        expect(thrown.message).toBe('Anthropic rate limit exceeded: Too many requests');
+        expect(thrown.cause).toBe(error);
       });
 
       it('should wrap 401 as AIUnprocessableError with auth message', async () => {
@@ -420,7 +423,8 @@ describe('ProviderDispatcher', () => {
           .catch(e => e);
 
         expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('Authentication failed: Invalid API key');
+        expect(thrown.message).toBe('Anthropic authentication failed: Invalid API key');
+        expect(thrown.cause).toBe(error);
       });
 
       it('should handle non-Error throws gracefully', async () => {

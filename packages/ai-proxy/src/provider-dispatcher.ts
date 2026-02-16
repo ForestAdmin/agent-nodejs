@@ -88,22 +88,24 @@ export default class ProviderDispatcher {
         })
       : this.openaiModel;
 
+    let response;
+
     try {
-      const response = await model.invoke(messages as BaseMessageLike[]);
-
-      // eslint-disable-next-line no-underscore-dangle
-      const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
-
-      if (!rawResponse) {
-        throw new AIUnprocessableError(
-          'OpenAI response missing raw response data. This may indicate an API change.',
-        );
-      }
-
-      return rawResponse;
+      response = await model.invoke(messages as BaseMessageLike[]);
     } catch (error) {
       throw ProviderDispatcher.wrapProviderError(error, 'OpenAI');
     }
+
+    // eslint-disable-next-line no-underscore-dangle
+    const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
+
+    if (!rawResponse) {
+      throw new AIUnprocessableError(
+        'OpenAI response missing raw response data. This may indicate an API change.',
+      );
+    }
+
+    return rawResponse;
   }
 
   private async dispatchAnthropic(body: DispatchBody): Promise<ChatCompletionResponse> {
@@ -147,11 +149,15 @@ export default class ProviderDispatcher {
     const { status } = error as Error & { status?: number };
 
     if (status === 429) {
-      return new AIUnprocessableError(`Rate limit exceeded: ${error.message}`);
+      return new AIUnprocessableError(`${providerName} rate limit exceeded: ${error.message}`, {
+        cause: error,
+      });
     }
 
     if (status === 401) {
-      return new AIUnprocessableError(`Authentication failed: ${error.message}`);
+      return new AIUnprocessableError(`${providerName} authentication failed: ${error.message}`, {
+        cause: error,
+      });
     }
 
     return new AIUnprocessableError(`Error while calling ${providerName}: ${error.message}`, {

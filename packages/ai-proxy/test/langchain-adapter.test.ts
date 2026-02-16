@@ -70,7 +70,7 @@ describe('LangChainAdapter', () => {
 
     it('should throw AIBadRequestError for tool message without tool_call_id', () => {
       expect(() =>
-        LangChainAdapter.convertMessages([{ role: 'tool', content: 'result' }]),
+        LangChainAdapter.convertMessages([{ role: 'tool', content: 'result' } as any]),
       ).toThrow(new AIBadRequestError('Tool message is missing required "tool_call_id" field.'));
     });
 

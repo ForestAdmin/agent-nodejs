@@ -82,7 +82,7 @@ const providers = [
       apiKey: OPENAI_API_KEY,
     },
     invalidApiKey: 'sk-invalid-key',
-    authErrorPattern: /Authentication failed|Incorrect API key/,
+    authErrorPattern: /authentication failed|Incorrect API key/i,
     fetchModels: fetchChatModelsFromOpenAI,
   },
   {
@@ -95,7 +95,7 @@ const providers = [
       apiKey: ANTHROPIC_API_KEY,
     },
     invalidApiKey: 'sk-ant-invalid-key',
-    authErrorPattern: /Authentication failed|invalid x-api-key/i,
+    authErrorPattern: /authentication failed|invalid x-api-key/i,
     fetchModels: fetchChatModelsFromAnthropic,
   },
 ];

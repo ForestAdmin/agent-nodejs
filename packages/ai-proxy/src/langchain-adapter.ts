@@ -31,7 +31,7 @@ interface OpenAIAssistantMessage {
 interface OpenAIToolMessage {
   role: 'tool';
   content: string | null;
-  tool_call_id?: string;
+  tool_call_id: string;
 }
 
 export type OpenAIMessage =

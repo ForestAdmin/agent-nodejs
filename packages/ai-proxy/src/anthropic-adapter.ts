@@ -48,7 +48,8 @@ export default class AnthropicAdapter {
    * Convert OpenAI tool_choice to Anthropic format, applying parallel tool restriction.
    *
    * Converts to LangChain format first, then applies `disable_parallel_tool_use`
-   * when `parallelToolCalls` is false.
+   * when `parallelToolCalls` is explicitly `false` (not just falsy — `undefined` means
+   * no restriction).
    */
   private static convertToolChoice({
     toolChoice,
