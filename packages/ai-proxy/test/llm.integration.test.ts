@@ -140,6 +140,21 @@ providers.forEach(
           });
         }, 10000);
 
+        it('should handle multiple system messages', async () => {
+          const response = (await router.route({
+            route: 'ai-query',
+            body: {
+              messages: [
+                { role: 'system', content: 'You are a helpful assistant. Be very concise.' },
+                { role: 'system', content: 'The user is asking about math.' },
+                { role: 'user', content: 'What is 2+2? Reply with just the number.' },
+              ],
+            },
+          })) as ChatCompletionResponse;
+
+          expect(response.choices[0].message.content).toContain('4');
+        }, 10000);
+
         it('should handle tool calls', async () => {
           const response = (await router.route({
             route: 'ai-query',
