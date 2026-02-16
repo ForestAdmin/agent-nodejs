@@ -7,7 +7,7 @@ import type { z } from 'zod';
 
 import { AIBadRequestError, AIModelNotSupportedError } from './errors';
 import McpClient from './mcp-client';
-import { ProviderDispatcher } from './provider-dispatcher';
+import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
 import isModelSupportingTools from './supported-models';
@@ -84,9 +84,7 @@ export class Router {
         case 'ai-query': {
           const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
 
-          return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
-            validatedArgs.body,
-          );
+          return new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(validatedArgs.body);
         }
 
         case 'invoke-remote-tool':

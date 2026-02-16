@@ -3,7 +3,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIModelNotSupportedError, Router } from '../src';
 import McpClient from '../src/mcp-client';
-import { ProviderDispatcher } from '../src/provider-dispatcher';
+import ProviderDispatcher from '../src/provider-dispatcher';
 
 const invokeToolMock = jest.fn();
 const toolDefinitionsForFrontend = [{ name: 'tool-name', description: 'tool-description' }];
