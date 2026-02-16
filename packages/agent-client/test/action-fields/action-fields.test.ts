@@ -6,6 +6,8 @@ import ActionFieldColorPicker from '../../src/action-fields/action-field-color-p
 import ActionFieldDate from '../../src/action-fields/action-field-date';
 import ActionFieldDropdown from '../../src/action-fields/action-field-dropdown';
 import ActionFieldEnum from '../../src/action-fields/action-field-enum';
+import ActionFieldFile from '../../src/action-fields/action-field-file';
+import ActionFieldFileList from '../../src/action-fields/action-field-file-list';
 import ActionFieldJson from '../../src/action-fields/action-field-json';
 import ActionFieldNumber from '../../src/action-fields/action-field-number';
 import ActionFieldNumberList from '../../src/action-fields/action-field-number-list';
@@ -802,6 +804,311 @@ describe('ActionField implementations', () => {
       await field.check('Yes');
 
       expect(httpRequester.query).toHaveBeenCalled();
+    });
+  });
+
+  describe('ActionFieldFile', () => {
+    beforeEach(async () => {
+      await setupFields([
+        { field: 'document', type: 'File', isRequired: false, isReadOnly: false, value: null },
+      ]);
+    });
+
+    it('should fill with a file object and produce a data URI', async () => {
+      const field = new ActionFieldFile('document', fieldFormStates);
+      const file = { mimeType: 'application/pdf', buffer: Buffer.from('test'), name: 'doc.pdf' };
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'document',
+            type: 'File',
+            isRequired: false,
+            isReadOnly: false,
+            value: 'data:application/pdf;name=doc.pdf;base64,dGVzdA==',
+          },
+        ],
+        layout: [],
+      });
+
+      await field.fill(file);
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                fields: [
+                  expect.objectContaining({
+                    field: 'document',
+                    value: 'data:application/pdf;name=doc.pdf;base64,dGVzdA==',
+                  }),
+                ],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should fill with a file object including charset', async () => {
+      const field = new ActionFieldFile('document', fieldFormStates);
+      const file = {
+        mimeType: 'text/plain',
+        buffer: Buffer.from('hello'),
+        name: 'a.txt',
+        charset: 'utf-8',
+      };
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'document',
+            type: 'File',
+            isRequired: false,
+            isReadOnly: false,
+            value: 'data:text/plain;name=a.txt;charset=utf-8;base64,aGVsbG8=',
+          },
+        ],
+        layout: [],
+      });
+
+      await field.fill(file);
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                fields: [
+                  expect.objectContaining({
+                    field: 'document',
+                    value: 'data:text/plain;name=a.txt;charset=utf-8;base64,aGVsbG8=',
+                  }),
+                ],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should fill with undefined', async () => {
+      const field = new ActionFieldFile('document', fieldFormStates);
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'document',
+            type: 'File',
+            isRequired: false,
+            isReadOnly: false,
+            value: undefined,
+          },
+        ],
+        layout: [],
+      });
+
+      await field.fill(undefined);
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                fields: [expect.objectContaining({ field: 'document', value: undefined })],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should fill with null', async () => {
+      const field = new ActionFieldFile('document', fieldFormStates);
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'document',
+            type: 'File',
+            isRequired: false,
+            isReadOnly: false,
+            value: null,
+          },
+        ],
+        layout: [],
+      });
+
+      await field.fill(null);
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                fields: [expect.objectContaining({ field: 'document', value: null })],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('ActionFieldFileList', () => {
+    it('should add a file to an existing list', async () => {
+      await setupFields([
+        {
+          field: 'attachments',
+          type: 'FileList',
+          isRequired: false,
+          isReadOnly: false,
+          value: ['data:image/png;name=a.png;base64,AAAA'],
+        },
+      ]);
+      const field = new ActionFieldFileList('attachments', fieldFormStates);
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'attachments',
+            type: 'FileList',
+            isRequired: false,
+            isReadOnly: false,
+            value: [
+              'data:image/png;name=a.png;base64,AAAA',
+              'data:image/jpeg;name=b.jpg;base64,Yg==',
+            ],
+          },
+        ],
+        layout: [],
+      });
+
+      await field.addFile({ mimeType: 'image/jpeg', buffer: Buffer.from('b'), name: 'b.jpg' });
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                fields: [
+                  expect.objectContaining({
+                    field: 'attachments',
+                    value: [
+                      'data:image/png;name=a.png;base64,AAAA',
+                      'data:image/jpeg;name=b.jpg;base64,Yg==',
+                    ],
+                  }),
+                ],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should add a file to an empty list', async () => {
+      await setupFields([
+        {
+          field: 'attachments',
+          type: 'FileList',
+          isRequired: false,
+          isReadOnly: false,
+          value: null,
+        },
+      ]);
+      const field = new ActionFieldFileList('attachments', fieldFormStates);
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'attachments',
+            type: 'FileList',
+            isRequired: false,
+            isReadOnly: false,
+            value: ['data:image/png;name=a.png;base64,dGVzdA=='],
+          },
+        ],
+        layout: [],
+      });
+
+      await field.addFile({ mimeType: 'image/png', buffer: Buffer.from('test'), name: 'a.png' });
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                fields: [
+                  expect.objectContaining({
+                    field: 'attachments',
+                    value: ['data:image/png;name=a.png;base64,dGVzdA=='],
+                  }),
+                ],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should remove a file by name', async () => {
+      await setupFields([
+        {
+          field: 'attachments',
+          type: 'FileList',
+          isRequired: false,
+          isReadOnly: false,
+          value: [
+            'data:image/png;name=a.png;base64,AAAA',
+            'data:image/jpeg;name=b.jpg;base64,BBBB',
+          ],
+        },
+      ]);
+      const field = new ActionFieldFileList('attachments', fieldFormStates);
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          {
+            field: 'attachments',
+            type: 'FileList',
+            isRequired: false,
+            isReadOnly: false,
+            value: ['data:image/jpeg;name=b.jpg;base64,BBBB'],
+          },
+        ],
+        layout: [],
+      });
+
+      await field.removeFile('a.png');
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({
+                fields: [
+                  expect.objectContaining({
+                    field: 'attachments',
+                    value: ['data:image/jpeg;name=b.jpg;base64,BBBB'],
+                  }),
+                ],
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should throw error when removing a non-existent file', async () => {
+      await setupFields([
+        {
+          field: 'attachments',
+          type: 'FileList',
+          isRequired: false,
+          isReadOnly: false,
+          value: ['data:image/png;name=a.png;base64,AAAA'],
+        },
+      ]);
+      const field = new ActionFieldFileList('attachments', fieldFormStates);
+
+      await expect(field.removeFile('unknown.png')).rejects.toThrow(
+        'File "unknown.png" is not in the list',
+      );
     });
   });
 
