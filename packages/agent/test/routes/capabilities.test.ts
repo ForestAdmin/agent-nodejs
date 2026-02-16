@@ -243,8 +243,8 @@ describe('Capabilities', () => {
         });
       });
 
-      describe('when collection has aggregateCapabilities', () => {
-        test('should include aggregateCapabilities with serialized supportDateOperations', async () => {
+      describe('when collection has aggregationCapabilities', () => {
+        test('should include aggregationCapabilities with serialized supportedDateOperations', async () => {
           const collectionWithCaps = factories.collection.build({
             name: 'orders',
             schema: factories.collectionSchema.build({
@@ -252,9 +252,9 @@ describe('Capabilities', () => {
                 id: factories.columnSchema.uuidPrimaryKey().build(),
                 author_id: factories.columnSchema.text().build({ isGroupable: true }),
               },
-              aggregateCapabilities: {
+              aggregationCapabilities: {
                 supportGroups: true,
-                supportDateOperations: new Set(['Year', 'Month']),
+                supportedDateOperations: new Set(['Year', 'Month']),
               },
             }),
           });
@@ -274,9 +274,9 @@ describe('Capabilities', () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { collections } = context.response.body as any;
 
-          expect(collections[0].aggregateCapabilities).toEqual({
+          expect(collections[0].aggregationCapabilities).toEqual({
             supportGroups: true,
-            supportDateOperations: ['Year', 'Month'],
+            supportedDateOperations: ['Year', 'Month'],
           });
         });
 
@@ -287,9 +287,9 @@ describe('Capabilities', () => {
               fields: {
                 id: factories.columnSchema.uuidPrimaryKey().build({ isGroupable: false }),
               },
-              aggregateCapabilities: {
+              aggregationCapabilities: {
                 supportGroups: true,
-                supportDateOperations: new Set(),
+                supportedDateOperations: new Set(),
               },
             }),
           });
@@ -309,7 +309,7 @@ describe('Capabilities', () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { collections } = context.response.body as any;
 
-          expect(collections[0].aggregateCapabilities.supportGroups).toBe(false);
+          expect(collections[0].aggregationCapabilities.supportGroups).toBe(false);
         });
 
         test('should expose isGroupable per field', async () => {
@@ -320,9 +320,9 @@ describe('Capabilities', () => {
                 id: factories.columnSchema.uuidPrimaryKey().build({ isGroupable: false }),
                 status: factories.columnSchema.text().build({ isGroupable: true }),
               },
-              aggregateCapabilities: {
+              aggregationCapabilities: {
                 supportGroups: true,
-                supportDateOperations: new Set(),
+                supportedDateOperations: new Set(),
               },
             }),
           });

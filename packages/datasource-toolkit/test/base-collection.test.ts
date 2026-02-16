@@ -211,18 +211,18 @@ describe('BaseCollection', () => {
     });
   });
 
-  describe('aggregateCapabilities', () => {
+  describe('aggregationCapabilities', () => {
     it('should have default capabilities with all groups and date operations supported', () => {
       const collection = new ConcreteCollection();
 
       expect(collection.schema.aggregationCapabilities).toEqual({
         supportGroups: true,
-        supportDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
+        supportedDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
       });
     });
   });
 
-  describe('setAggregateCapabilities', () => {
+  describe('setAggregationCapabilities', () => {
     class CollectionWithRestrictedAggregation extends ConcreteCollection {
       constructor() {
         super();
@@ -234,12 +234,12 @@ describe('BaseCollection', () => {
       }
     }
 
-    it('should override aggregate capabilities', () => {
+    it('should override aggregation capabilities', () => {
       const collection = new CollectionWithRestrictedAggregation();
 
       expect(collection.schema.aggregationCapabilities).toEqual({
         supportGroups: false,
-        supportDateOperations: new Set(),
+        supportedDateOperations: new Set(),
       });
     });
   });

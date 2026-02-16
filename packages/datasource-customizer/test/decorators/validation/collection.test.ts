@@ -162,7 +162,7 @@ describe('SortEmulationDecoratorCollection', () => {
       return { col, decorated: decorated.getCollection('books') };
     }
 
-    test('should pass when aggregateCapabilities allows all (supportGroups: true)', async () => {
+    test('should pass when aggregationCapabilities allows all (supportGroups: true)', async () => {
       const { col, decorated } = buildWithCapabilities({
         supportGroups: true,
         supportedDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
