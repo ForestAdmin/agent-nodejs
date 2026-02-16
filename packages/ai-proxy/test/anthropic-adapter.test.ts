@@ -39,15 +39,20 @@ describe('AnthropicAdapter', () => {
   });
 
   describe('convertToolChoice', () => {
-    it('should set disable_parallel_tool_use on "any" when parallel_tool_calls is false', () => {
-      expect(AnthropicAdapter.convertToolChoice('required', false)).toEqual({
+    it('should set disable_parallel_tool_use when parallel_tool_calls is false', () => {
+      expect(
+        AnthropicAdapter.convertToolChoice({
+          toolChoice: 'required',
+          parallelToolCalls: false,
+        }),
+      ).toEqual({
         type: 'any',
         disable_parallel_tool_use: true,
       });
     });
 
-    it('should default to auto with disable_parallel_tool_use when undefined', () => {
-      expect(AnthropicAdapter.convertToolChoice(undefined, false)).toEqual({
+    it('should default to auto with disable_parallel_tool_use when toolChoice undefined', () => {
+      expect(AnthropicAdapter.convertToolChoice({ parallelToolCalls: false })).toEqual({
         type: 'auto',
         disable_parallel_tool_use: true,
       });
@@ -55,30 +60,37 @@ describe('AnthropicAdapter', () => {
 
     it('should add disable_parallel_tool_use to specific function', () => {
       expect(
-        AnthropicAdapter.convertToolChoice(
-          { type: 'function', function: { name: 'specific_tool' } },
-          false,
-        ),
+        AnthropicAdapter.convertToolChoice({
+          toolChoice: { type: 'function', function: { name: 'specific_tool' } },
+          parallelToolCalls: false,
+        }),
       ).toEqual({ type: 'tool', name: 'specific_tool', disable_parallel_tool_use: true });
     });
 
     it('should pass "none" unchanged when parallel_tool_calls is false', () => {
-      expect(AnthropicAdapter.convertToolChoice('none', false)).toBe('none');
+      expect(
+        AnthropicAdapter.convertToolChoice({ toolChoice: 'none', parallelToolCalls: false }),
+      ).toBe('none');
     });
 
     it('should not add disable_parallel_tool_use when parallel_tool_calls is true', () => {
-      expect(AnthropicAdapter.convertToolChoice('required', true)).toBe('any');
+      expect(
+        AnthropicAdapter.convertToolChoice({
+          toolChoice: 'required',
+          parallelToolCalls: true,
+        }),
+      ).toBe('any');
     });
 
     it('should not add disable_parallel_tool_use when parallel_tool_calls is undefined', () => {
-      expect(AnthropicAdapter.convertToolChoice('auto')).toBe('auto');
+      expect(AnthropicAdapter.convertToolChoice({ toolChoice: 'auto' })).toBe('auto');
     });
 
     it('should convert tool_choice without parallel restriction', () => {
-      expect(AnthropicAdapter.convertToolChoice('auto')).toBe('auto');
-      expect(AnthropicAdapter.convertToolChoice('none')).toBe('none');
-      expect(AnthropicAdapter.convertToolChoice('required')).toBe('any');
-      expect(AnthropicAdapter.convertToolChoice(undefined)).toBeUndefined();
+      expect(AnthropicAdapter.convertToolChoice({ toolChoice: 'auto' })).toBe('auto');
+      expect(AnthropicAdapter.convertToolChoice({ toolChoice: 'none' })).toBe('none');
+      expect(AnthropicAdapter.convertToolChoice({ toolChoice: 'required' })).toBe('any');
+      expect(AnthropicAdapter.convertToolChoice()).toBeUndefined();
     });
   });
 });

@@ -127,10 +127,10 @@ export class ProviderDispatcher {
             // `disable_parallel_tool_use`, which LangChain's AnthropicToolChoice
             // type doesn't support. `as string` exploits the `| string` arm in
             // LangChain's type union; at runtime LangChain passes the object through.
-            tool_choice: AnthropicAdapter.convertToolChoice(
+            tool_choice: AnthropicAdapter.convertToolChoice({
               toolChoice,
               parallelToolCalls,
-            ) as string,
+            }) as string,
           })
         : this.anthropicModel;
 

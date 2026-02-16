@@ -39,10 +39,13 @@ export class AnthropicAdapter {
    * Converts to LangChain format first, then applies `disable_parallel_tool_use`
    * when `parallelToolCalls` is false.
    */
-  static convertToolChoice(
-    toolChoice: ChatCompletionToolChoice | undefined,
-    parallelToolCalls?: boolean,
-  ): AnthropicToolChoiceWithParallelControl | undefined {
+  static convertToolChoice({
+    toolChoice,
+    parallelToolCalls,
+  }: {
+    toolChoice?: ChatCompletionToolChoice;
+    parallelToolCalls?: boolean;
+  } = {}): AnthropicToolChoiceWithParallelControl | undefined {
     const base = LangChainAdapter.convertToolChoice(toolChoice);
 
     if (parallelToolCalls !== false) return base;
