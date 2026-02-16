@@ -84,7 +84,9 @@ export class Router {
         case 'ai-query': {
           const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
 
-          return new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(validatedArgs.body);
+          return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
+            validatedArgs.body,
+          );
         }
 
         case 'invoke-remote-tool':
