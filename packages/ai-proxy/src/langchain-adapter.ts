@@ -40,31 +40,15 @@ export type OpenAIMessage =
   | OpenAIAssistantMessage
   | OpenAIToolMessage;
 
-type LangChainToolChoice = 'auto' | 'any' | 'none' | { type: 'tool'; name: string } | undefined;
-
-/**
- * Extended tool_choice type for Anthropic.
- *
- * LangChain's AnthropicToolChoice doesn't include `disable_parallel_tool_use`,
- * but the Anthropic API supports it and LangChain passes objects through directly.
- */
-type AnthropicToolChoiceWithParallelControl =
+export type LangChainToolChoice =
   | 'auto'
   | 'any'
   | 'none'
-  | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean }
-  | { type: 'auto' | 'any'; disable_parallel_tool_use: boolean };
+  | { type: 'tool'; name: string }
+  | undefined;
 
-/**
- * Handles format conversions between OpenAI and LangChain.
- *
- * Generic methods work with any LangChain-based provider.
- * Anthropic-specific methods handle provider constraints
- * (single system message, disable_parallel_tool_use).
- */
+/** Handles generic format conversions between OpenAI and LangChain. */
 export class LangChainAdapter {
-  // ── Generic conversions ─────────────────────────────────────────────
-
   /** Convert OpenAI-format messages to LangChain messages. */
   static convertMessages(messages: OpenAIMessage[]): BaseMessage[] {
     const result: BaseMessage[] = [];
@@ -177,53 +161,6 @@ export class LangChainAdapter {
       `Unsupported tool_choice value. Expected: 'auto', 'none', 'required', or {type: 'function', function: {name: '...'}}.`,
     );
   }
-
-  // ── Anthropic-specific ──────────────────────────────────────────────
-
-  /**
-   * Merge all system messages into a single one placed first.
-   *
-   * Anthropic only allows a single system message at the beginning of the conversation.
-   * This preprocesses OpenAI messages before generic conversion.
-   */
-  static mergeSystemMessages(messages: OpenAIMessage[]): OpenAIMessage[] {
-    const systemContents = messages.filter(m => m.role === 'system').map(m => m.content || '');
-
-    if (systemContents.length <= 1) return messages;
-
-    const merged: OpenAIMessage = { role: 'system', content: systemContents.join('\n\n') };
-    const nonSystem = messages.filter(m => m.role !== 'system');
-
-    return [merged, ...nonSystem];
-  }
-
-  /**
-   * Apply Anthropic's disable_parallel_tool_use constraint to a tool_choice.
-   *
-   * When parallel_tool_calls is false, Anthropic requires the tool_choice to be
-   * an object with `disable_parallel_tool_use: true`.
-   */
-  static withParallelToolCallsRestriction(
-    toolChoice: LangChainToolChoice,
-    parallelToolCalls?: boolean,
-  ): AnthropicToolChoiceWithParallelControl | undefined {
-    if (parallelToolCalls !== false) return toolChoice;
-
-    // Anthropic requires object form to set disable_parallel_tool_use
-    if (toolChoice === undefined || toolChoice === 'auto') {
-      return { type: 'auto', disable_parallel_tool_use: true };
-    }
-
-    if (toolChoice === 'any') {
-      return { type: 'any', disable_parallel_tool_use: true };
-    }
-
-    if (toolChoice === 'none') return 'none';
-
-    return { ...toolChoice, disable_parallel_tool_use: true };
-  }
-
-  // ── Private helpers ─────────────────────────────────────────────────
 
   private static extractTextContent(content: AIMessage['content']): string | null {
     if (typeof content === 'string') return content || null;

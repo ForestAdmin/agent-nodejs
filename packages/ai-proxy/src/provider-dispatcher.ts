@@ -8,6 +8,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
 
+import { AnthropicAdapter } from './anthropic-adapter';
 import { AIBadRequestError, AINotConfiguredError, AIUnprocessableError } from './errors';
 import { LangChainAdapter } from './langchain-adapter';
 
@@ -114,8 +115,7 @@ export class ProviderDispatcher {
     } = body;
 
     // Convert messages outside try-catch so input validation errors propagate directly
-    const mergedMessages = LangChainAdapter.mergeSystemMessages(messages as OpenAIMessage[]);
-    const langChainMessages = LangChainAdapter.convertMessages(mergedMessages);
+    const langChainMessages = AnthropicAdapter.convertMessages(messages as OpenAIMessage[]);
     const enrichedTools = this.enrichToolDefinitions(tools);
 
     let response: AIMessage;
@@ -123,13 +123,12 @@ export class ProviderDispatcher {
     try {
       const model = enrichedTools?.length
         ? this.anthropicModel.bindTools(enrichedTools, {
-            // Cast workaround: `withParallelToolCallsRestriction` may return an
-            // object with `disable_parallel_tool_use`, which LangChain's
-            // AnthropicToolChoice type doesn't support. `as string` exploits the
-            // `| string` arm in LangChain's type union to satisfy TypeScript;
-            // at runtime LangChain passes the object through to the Anthropic SDK.
-            tool_choice: LangChainAdapter.withParallelToolCallsRestriction(
-              LangChainAdapter.convertToolChoice(toolChoice),
+            // Cast workaround: `convertToolChoice` may return an object with
+            // `disable_parallel_tool_use`, which LangChain's AnthropicToolChoice
+            // type doesn't support. `as string` exploits the `| string` arm in
+            // LangChain's type union; at runtime LangChain passes the object through.
+            tool_choice: AnthropicAdapter.convertToolChoice(
+              toolChoice,
               parallelToolCalls,
             ) as string,
           })
