@@ -145,7 +145,7 @@ describe('SortEmulationDecoratorCollection', () => {
   });
 
   describe('Aggregate validation', () => {
-    function buildWithCapabilities(aggregateCapabilities, fields?) {
+    function buildWithCapabilities(aggregationCapabilities, fields?) {
       const col = factories.collection.build({
         name: 'books',
         schema: factories.collectionSchema.build({
@@ -153,7 +153,7 @@ describe('SortEmulationDecoratorCollection', () => {
             id: factories.columnSchema.uuidPrimaryKey().build(),
             title: factories.columnSchema.build(),
           },
-          aggregateCapabilities,
+          aggregationCapabilities,
         }),
       });
       const ds = factories.dataSource.buildWithCollection(col);
@@ -165,7 +165,7 @@ describe('SortEmulationDecoratorCollection', () => {
     test('should pass when aggregateCapabilities allows all (supportGroups: true)', async () => {
       const { col, decorated } = buildWithCapabilities({
         supportGroups: true,
-        supportDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
+        supportedDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
       });
 
       await decorated.aggregate(
@@ -180,7 +180,7 @@ describe('SortEmulationDecoratorCollection', () => {
     test('should pass when aggregation has no groups even if groups are not supported', async () => {
       const { col, decorated } = buildWithCapabilities({
         supportGroups: false,
-        supportDateOperations: new Set(),
+        supportedDateOperations: new Set(),
       });
 
       await decorated.aggregate(
@@ -195,7 +195,7 @@ describe('SortEmulationDecoratorCollection', () => {
     test('should throw when supportGroups is false and aggregation has groups', async () => {
       const { col, decorated } = buildWithCapabilities({
         supportGroups: false,
-        supportDateOperations: new Set(),
+        supportedDateOperations: new Set(),
       });
 
       const fn = () =>
@@ -212,7 +212,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should throw when field is not groupable', async () => {
       const { col, decorated } = buildWithCapabilities(
-        { supportGroups: true, supportDateOperations: new Set() },
+        { supportGroups: true, supportedDateOperations: new Set() },
         {
           id: factories.columnSchema.uuidPrimaryKey().build(),
           title: factories.columnSchema.build({ isGroupable: false }),
@@ -233,7 +233,7 @@ describe('SortEmulationDecoratorCollection', () => {
 
     test('should pass when field is groupable', async () => {
       const { col, decorated } = buildWithCapabilities(
-        { supportGroups: true, supportDateOperations: new Set() },
+        { supportGroups: true, supportedDateOperations: new Set() },
         {
           id: factories.columnSchema.uuidPrimaryKey().build(),
           title: factories.columnSchema.build({ isGroupable: true }),
@@ -252,7 +252,7 @@ describe('SortEmulationDecoratorCollection', () => {
     test('should throw when date operation is not supported', async () => {
       const { col, decorated } = buildWithCapabilities({
         supportGroups: true,
-        supportDateOperations: new Set(),
+        supportedDateOperations: new Set(),
       });
 
       const fn = () =>
@@ -274,7 +274,7 @@ describe('SortEmulationDecoratorCollection', () => {
     test('should pass when date operation is supported', async () => {
       const { col, decorated } = buildWithCapabilities({
         supportGroups: true,
-        supportDateOperations: new Set(['Year', 'Month']),
+        supportedDateOperations: new Set(['Year', 'Month']),
       });
 
       await decorated.aggregate(
@@ -292,7 +292,7 @@ describe('SortEmulationDecoratorCollection', () => {
     test('should pass when group has no date operation even if none are supported', async () => {
       const { col, decorated } = buildWithCapabilities({
         supportGroups: true,
-        supportDateOperations: new Set(),
+        supportedDateOperations: new Set(),
       });
 
       await decorated.aggregate(
