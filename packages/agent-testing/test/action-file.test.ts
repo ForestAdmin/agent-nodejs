@@ -31,6 +31,7 @@ describe('action with File fields', () => {
             {
               fileName: mainFile?.name,
               fileMimeType: mainFile?.mimeType,
+              fileContent: mainFile?.buffer?.toString('base64'),
               attachmentCount: attachments?.length ?? 0,
             },
           );
@@ -48,6 +49,7 @@ describe('action with File fields', () => {
         title: { type: DataTypes.STRING },
         fileName: { type: DataTypes.STRING },
         fileMimeType: { type: DataTypes.STRING },
+        fileContent: { type: DataTypes.STRING },
         attachmentCount: { type: DataTypes.INTEGER },
       },
       { tableName: 'documents' },
@@ -100,12 +102,13 @@ describe('action with File fields', () => {
 
     const [doc] = await testableAgent
       .collection('documents')
-      .list<{ fileName: string; fileMimeType: string }>({
+      .list<{ fileName: string; fileMimeType: string; fileContent: string }>({
         filters: { field: 'id', value: documentId, operator: 'Equal' },
       });
 
     expect(doc.fileName).toBe('report.pdf');
     expect(doc.fileMimeType).toBe('application/pdf');
+    expect(Buffer.from(doc.fileContent, 'base64').toString()).toBe('pdf-content');
   });
 
   it('should add and remove files from a FileList field', async () => {
