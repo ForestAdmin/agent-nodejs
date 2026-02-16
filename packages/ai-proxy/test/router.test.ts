@@ -21,7 +21,8 @@ jest.mock('../src/remote-tools', () => {
 const dispatchMock = jest.fn();
 jest.mock('../src/provider-dispatcher', () => {
   return {
-    ProviderDispatcher: jest.fn().mockImplementation(() => ({
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
       dispatch: dispatchMock,
     })),
   };
