@@ -1,15 +1,17 @@
-import { Agent } from '@forestadmin/agent';
+import type { TestableAgent } from '../src';
+import type { Agent } from '@forestadmin/agent';
+
 import { buildSequelizeInstance, createSqlDataSource } from '@forestadmin/datasource-sql';
 import { DataTypes } from 'sequelize';
 
-import { createTestableAgent, TestableAgent } from '../../src';
-import { STORAGE_PREFIX, logger } from '../utils';
+import { STORAGE_PREFIX, logger } from '../example/utils';
+import { createTestableAgent } from '../src';
 
-describe('addAction with File fields', () => {
+describe('action with File fields', () => {
   let testableAgent: TestableAgent;
   let sequelize: Awaited<ReturnType<typeof buildSequelizeInstance>>;
   let documentId: number;
-  const storage = `${STORAGE_PREFIX}-action-file.db`;
+  const storage = `${STORAGE_PREFIX}-action-file-test.db`;
 
   const actionFormCustomizer = (agent: Agent) => {
     agent.customizeCollection('documents', collection => {
@@ -89,9 +91,10 @@ describe('addAction with File fields', () => {
       name: 'report.pdf',
     });
 
-    expect(fileField.getValue()).toBe(
-      `data:application/pdf;name=report.pdf;base64,${Buffer.from('pdf-content').toString('base64')}`,
-    );
+    const expectedUri = `data:application/pdf;name=report.pdf;base64,${Buffer.from(
+      'pdf-content',
+    ).toString('base64')}`;
+    expect(fileField.getValue()).toBe(expectedUri);
 
     await action.execute();
 
@@ -133,11 +136,9 @@ describe('addAction with File fields', () => {
 
     await action.execute();
 
-    const [doc] = await testableAgent
-      .collection('documents')
-      .list<{ attachmentCount: number }>({
-        filters: { field: 'id', value: documentId, operator: 'Equal' },
-      });
+    const [doc] = await testableAgent.collection('documents').list<{ attachmentCount: number }>({
+      filters: { field: 'id', value: documentId, operator: 'Equal' },
+    });
 
     expect(doc.attachmentCount).toBe(1);
   });
