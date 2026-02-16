@@ -2,12 +2,12 @@ import ActionField from './action-field';
 import ActionFieldFile, { type FileInput } from './action-field-file';
 
 export default class ActionFieldFileList extends ActionField {
-  async addFile(file: FileInput) {
+  async add(file: FileInput) {
     const values = (this.field?.getValue() as string[]) || [];
     await this.setValue([...values, ActionFieldFile.makeDataUri(file)]);
   }
 
-  async removeFile(fileName: string) {
+  async remove(fileName: string) {
     const values = (this.field?.getValue() as string[]) || [];
     const nameParam = `name=${encodeURIComponent(fileName)}`;
     const filtered = values.filter(uri => {

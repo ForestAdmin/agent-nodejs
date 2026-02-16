@@ -463,12 +463,12 @@ describe('RemoteAgentClient Integration', () => {
       const action = await client.collection('users').action('upload-file', { recordId: '1' });
 
       const fileListField = action.getFileListField('attachments');
-      await fileListField.addFile({
+      await fileListField.add({
         mimeType: 'image/png',
         buffer: Buffer.from('img1'),
         name: 'photo.png',
       });
-      await fileListField.addFile({
+      await fileListField.add({
         mimeType: 'image/jpeg',
         buffer: Buffer.from('img2'),
         name: 'avatar.jpg',
@@ -495,17 +495,17 @@ describe('RemoteAgentClient Integration', () => {
       const action = await client.collection('users').action('upload-file', { recordId: '1' });
 
       const fileListField = action.getFileListField('attachments');
-      await fileListField.addFile({
+      await fileListField.add({
         mimeType: 'image/png',
         buffer: Buffer.from('img1'),
         name: 'photo.png',
       });
-      await fileListField.addFile({
+      await fileListField.add({
         mimeType: 'image/jpeg',
         buffer: Buffer.from('img2'),
         name: 'avatar.jpg',
       });
-      await fileListField.removeFile('photo.png');
+      await fileListField.remove('photo.png');
 
       const result = await action.execute();
 

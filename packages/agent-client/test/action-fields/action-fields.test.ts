@@ -980,7 +980,7 @@ describe('ActionField implementations', () => {
         layout: [],
       });
 
-      await field.addFile({ mimeType: 'image/jpeg', buffer: Buffer.from('b'), name: 'b.jpg' });
+      await field.add({ mimeType: 'image/jpeg', buffer: Buffer.from('b'), name: 'b.jpg' });
 
       expect(httpRequester.query).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1027,7 +1027,7 @@ describe('ActionField implementations', () => {
         layout: [],
       });
 
-      await field.addFile({ mimeType: 'image/png', buffer: Buffer.from('test'), name: 'a.png' });
+      await field.add({ mimeType: 'image/png', buffer: Buffer.from('test'), name: 'a.png' });
 
       expect(httpRequester.query).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1074,7 +1074,7 @@ describe('ActionField implementations', () => {
         layout: [],
       });
 
-      await field.removeFile('a.png');
+      await field.remove('a.png');
 
       expect(httpRequester.query).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1121,7 +1121,7 @@ describe('ActionField implementations', () => {
         layout: [],
       });
 
-      await field.removeFile('report.txt');
+      await field.remove('report.txt');
 
       expect(httpRequester.query).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1153,7 +1153,7 @@ describe('ActionField implementations', () => {
       ]);
       const field = new ActionFieldFileList('attachments', fieldFormStates);
 
-      await expect(field.removeFile('unknown.png')).rejects.toThrow(
+      await expect(field.remove('unknown.png')).rejects.toThrow(
         'File "unknown.png" is not in the list',
       );
     });

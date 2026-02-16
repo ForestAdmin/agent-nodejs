@@ -117,12 +117,12 @@ describe('action with File fields', () => {
       .action('Upload files', { recordId: documentId });
 
     const fileListField = action.getFileListField('Attachments');
-    await fileListField.addFile({
+    await fileListField.add({
       mimeType: 'image/png',
       buffer: Buffer.from('img1'),
       name: 'photo.png',
     });
-    await fileListField.addFile({
+    await fileListField.add({
       mimeType: 'image/jpeg',
       buffer: Buffer.from('img2'),
       name: 'avatar.jpg',
@@ -131,7 +131,7 @@ describe('action with File fields', () => {
     const values = fileListField.getValue() as string[];
     expect(values).toHaveLength(2);
 
-    await fileListField.removeFile('photo.png');
+    await fileListField.remove('photo.png');
 
     const updatedValues = fileListField.getValue() as string[];
     expect(updatedValues).toHaveLength(1);
