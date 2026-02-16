@@ -17,18 +17,7 @@ type AnthropicToolChoiceWithParallelControl =
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean }
   | { type: 'auto' | 'any'; disable_parallel_tool_use: boolean };
 
-/**
- * Anthropic-specific adapter that composes LangChain generic conversions
- * with Anthropic constraints (single system message, disable_parallel_tool_use).
- */
-// eslint-disable-next-line import/prefer-default-export
-export class AnthropicAdapter {
-  /**
-   * Convert OpenAI messages to LangChain format for Anthropic.
-   *
-   * Merges multiple system messages into one (Anthropic only allows a single
-   * system message) then delegates to the generic LangChain converter.
-   */
+export default class AnthropicAdapter {
   static convertMessages(messages: OpenAIMessage[]): BaseMessage[] {
     return LangChainAdapter.convertMessages(AnthropicAdapter.mergeSystemMessages(messages));
   }

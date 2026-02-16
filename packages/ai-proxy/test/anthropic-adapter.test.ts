@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
-import { AnthropicAdapter } from '../src/anthropic-adapter';
+import AnthropicAdapter from '../src/anthropic-adapter';
 
 describe('AnthropicAdapter', () => {
   describe('convertMessages', () => {
@@ -29,9 +29,7 @@ describe('AnthropicAdapter', () => {
     });
 
     it('should handle no system messages', () => {
-      const result = AnthropicAdapter.convertMessages([
-        { role: 'user', content: 'Hello' },
-      ]);
+      const result = AnthropicAdapter.convertMessages([{ role: 'user', content: 'Hello' }]);
 
       expect(result).toHaveLength(1);
       expect(result[0]).toBeInstanceOf(HumanMessage);

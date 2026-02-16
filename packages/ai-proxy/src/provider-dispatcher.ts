@@ -8,7 +8,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
 
-import { AnthropicAdapter } from './anthropic-adapter';
+import AnthropicAdapter from './anthropic-adapter';
 import { AIBadRequestError, AINotConfiguredError, AIUnprocessableError } from './errors';
 import { LangChainAdapter } from './langchain-adapter';
 
@@ -26,7 +26,7 @@ export type {
 } from './provider';
 export type { DispatchBody } from './schemas/route';
 
-export class ProviderDispatcher {
+export default class ProviderDispatcher {
   private readonly openaiModel: ChatOpenAI | null = null;
 
   private readonly anthropicModel: ChatAnthropic | null = null;
