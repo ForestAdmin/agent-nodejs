@@ -2,6 +2,10 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 import AnthropicAdapter from '../src/anthropic-adapter';
 
+jest.mock('@langchain/anthropic', () => ({
+  ChatAnthropic: jest.fn(),
+}));
+
 describe('AnthropicAdapter', () => {
   describe('convertMessages', () => {
     it('should merge multiple system messages into one before conversion', () => {
@@ -36,59 +40,95 @@ describe('AnthropicAdapter', () => {
     });
   });
 
-  describe('convertToolChoice', () => {
-    it('should set disable_parallel_tool_use when parallel_tool_calls is false', () => {
-      expect(
-        AnthropicAdapter.convertToolChoice({
-          toolChoice: 'required',
-          parallelToolCalls: false,
-        }),
-      ).toEqual({
-        type: 'any',
-        disable_parallel_tool_use: true,
+  describe('bindTools', () => {
+    const tools = [{ type: 'function' as const, function: { name: 'my_tool', parameters: {} } }];
+
+    function makeModel() {
+      const bindToolsMock = jest.fn().mockReturnThis();
+
+      return { bindTools: bindToolsMock } as any;
+    }
+
+    it('should set disable_parallel_tool_use when parallelToolCalls is false', () => {
+      const model = makeModel();
+
+      AnthropicAdapter.bindTools(model, tools, {
+        toolChoice: 'required',
+        parallelToolCalls: false,
+      });
+
+      expect(model.bindTools).toHaveBeenCalledWith(tools, {
+        tool_choice: { type: 'any', disable_parallel_tool_use: true },
       });
     });
 
     it('should default to auto with disable_parallel_tool_use when toolChoice undefined', () => {
-      expect(AnthropicAdapter.convertToolChoice({ parallelToolCalls: false })).toEqual({
-        type: 'auto',
-        disable_parallel_tool_use: true,
+      const model = makeModel();
+
+      AnthropicAdapter.bindTools(model, tools, { parallelToolCalls: false });
+
+      expect(model.bindTools).toHaveBeenCalledWith(tools, {
+        tool_choice: { type: 'auto', disable_parallel_tool_use: true },
       });
     });
 
     it('should add disable_parallel_tool_use to specific function', () => {
-      expect(
-        AnthropicAdapter.convertToolChoice({
-          toolChoice: { type: 'function', function: { name: 'specific_tool' } },
-          parallelToolCalls: false,
-        }),
-      ).toEqual({ type: 'tool', name: 'specific_tool', disable_parallel_tool_use: true });
+      const model = makeModel();
+
+      AnthropicAdapter.bindTools(model, tools, {
+        toolChoice: { type: 'function', function: { name: 'specific_tool' } },
+        parallelToolCalls: false,
+      });
+
+      expect(model.bindTools).toHaveBeenCalledWith(tools, {
+        tool_choice: { type: 'tool', name: 'specific_tool', disable_parallel_tool_use: true },
+      });
     });
 
-    it('should pass "none" unchanged when parallel_tool_calls is false', () => {
-      expect(
-        AnthropicAdapter.convertToolChoice({ toolChoice: 'none', parallelToolCalls: false }),
-      ).toBe('none');
+    it('should pass "none" unchanged when parallelToolCalls is false', () => {
+      const model = makeModel();
+
+      AnthropicAdapter.bindTools(model, tools, { toolChoice: 'none', parallelToolCalls: false });
+
+      expect(model.bindTools).toHaveBeenCalledWith(tools, { tool_choice: 'none' });
     });
 
-    it('should not add disable_parallel_tool_use when parallel_tool_calls is true', () => {
-      expect(
-        AnthropicAdapter.convertToolChoice({
-          toolChoice: 'required',
-          parallelToolCalls: true,
-        }),
-      ).toBe('any');
+    it('should not add disable_parallel_tool_use when parallelToolCalls is true', () => {
+      const model = makeModel();
+
+      AnthropicAdapter.bindTools(model, tools, {
+        toolChoice: 'required',
+        parallelToolCalls: true,
+      });
+
+      expect(model.bindTools).toHaveBeenCalledWith(tools, { tool_choice: 'any' });
     });
 
-    it('should not add disable_parallel_tool_use when parallel_tool_calls is undefined', () => {
-      expect(AnthropicAdapter.convertToolChoice({ toolChoice: 'auto' })).toBe('auto');
+    it('should not add disable_parallel_tool_use when parallelToolCalls is undefined', () => {
+      const model = makeModel();
+
+      AnthropicAdapter.bindTools(model, tools, { toolChoice: 'auto' });
+
+      expect(model.bindTools).toHaveBeenCalledWith(tools, { tool_choice: 'auto' });
     });
 
     it('should convert tool_choice without parallel restriction', () => {
-      expect(AnthropicAdapter.convertToolChoice({ toolChoice: 'auto' })).toBe('auto');
-      expect(AnthropicAdapter.convertToolChoice({ toolChoice: 'none' })).toBe('none');
-      expect(AnthropicAdapter.convertToolChoice({ toolChoice: 'required' })).toBe('any');
-      expect(AnthropicAdapter.convertToolChoice()).toBeUndefined();
+      const model = makeModel();
+
+      AnthropicAdapter.bindTools(model, tools, { toolChoice: 'auto' });
+      expect(model.bindTools).toHaveBeenCalledWith(tools, { tool_choice: 'auto' });
+
+      model.bindTools.mockClear();
+      AnthropicAdapter.bindTools(model, tools, { toolChoice: 'none' });
+      expect(model.bindTools).toHaveBeenCalledWith(tools, { tool_choice: 'none' });
+
+      model.bindTools.mockClear();
+      AnthropicAdapter.bindTools(model, tools, { toolChoice: 'required' });
+      expect(model.bindTools).toHaveBeenCalledWith(tools, { tool_choice: 'any' });
+
+      model.bindTools.mockClear();
+      AnthropicAdapter.bindTools(model, tools, {});
+      expect(model.bindTools).toHaveBeenCalledWith(tools, { tool_choice: undefined });
     });
   });
 });

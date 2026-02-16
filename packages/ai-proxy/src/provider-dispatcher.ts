@@ -122,15 +122,9 @@ export default class ProviderDispatcher {
 
     try {
       const model = enrichedTools?.length
-        ? this.anthropicModel.bindTools(enrichedTools, {
-            // Cast workaround: `convertToolChoice` may return an object with
-            // `disable_parallel_tool_use`, which LangChain's AnthropicToolChoice
-            // type doesn't support. `as string` exploits the `| string` arm in
-            // LangChain's type union; at runtime LangChain passes the object through.
-            tool_choice: AnthropicAdapter.convertToolChoice({
-              toolChoice,
-              parallelToolCalls,
-            }) as string,
+        ? AnthropicAdapter.bindTools(this.anthropicModel, enrichedTools, {
+            toolChoice,
+            parallelToolCalls,
           })
         : this.anthropicModel;
 
@@ -160,12 +154,9 @@ export default class ProviderDispatcher {
       return new AIUnprocessableError(`Authentication failed: ${error.message}`);
     }
 
-    const wrapped = new AIUnprocessableError(
-      `Error while calling ${providerName}: ${error.message}`,
-    );
-    (wrapped as unknown as { cause: Error }).cause = error;
-
-    return wrapped;
+    return new AIUnprocessableError(`Error while calling ${providerName}: ${error.message}`, {
+      cause: error,
+    });
   }
 
   private enrichToolDefinitions(tools?: ChatCompletionTool[]) {

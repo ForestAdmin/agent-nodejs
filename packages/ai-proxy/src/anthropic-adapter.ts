@@ -1,5 +1,6 @@
 import type { OpenAIMessage } from './langchain-adapter';
-import type { ChatCompletionToolChoice } from './provider';
+import type { ChatCompletionTool, ChatCompletionToolChoice } from './provider';
+import type { ChatAnthropic } from '@langchain/anthropic';
 import type { BaseMessage } from '@langchain/core/messages';
 
 import { LangChainAdapter } from './langchain-adapter';
@@ -23,12 +24,33 @@ export default class AnthropicAdapter {
   }
 
   /**
+   * Bind tools to an Anthropic model with proper tool_choice conversion.
+   *
+   * Encapsulates the `as string` cast workaround: `convertToolChoice` may return an object
+   * with `disable_parallel_tool_use`, which LangChain's AnthropicToolChoice type doesn't
+   * support. The `| string` arm in LangChain's type union lets the object pass through at
+   * runtime.
+   */
+  static bindTools(
+    model: ChatAnthropic,
+    tools: ChatCompletionTool[],
+    {
+      toolChoice,
+      parallelToolCalls,
+    }: { toolChoice?: ChatCompletionToolChoice; parallelToolCalls?: boolean },
+  ): ChatAnthropic {
+    return model.bindTools(tools, {
+      tool_choice: AnthropicAdapter.convertToolChoice({ toolChoice, parallelToolCalls }) as string,
+    }) as ChatAnthropic;
+  }
+
+  /**
    * Convert OpenAI tool_choice to Anthropic format, applying parallel tool restriction.
    *
    * Converts to LangChain format first, then applies `disable_parallel_tool_use`
    * when `parallelToolCalls` is false.
    */
-  static convertToolChoice({
+  private static convertToolChoice({
     toolChoice,
     parallelToolCalls,
   }: {
