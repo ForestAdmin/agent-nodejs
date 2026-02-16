@@ -120,16 +120,16 @@ export default class ProviderDispatcher {
     const langChainMessages = AnthropicAdapter.convertMessages(messages as OpenAIMessage[]);
     const enrichedTools = this.enrichToolDefinitions(tools);
 
+    const model = enrichedTools?.length
+      ? AnthropicAdapter.bindTools(this.anthropicModel, enrichedTools, {
+          toolChoice,
+          parallelToolCalls,
+        })
+      : this.anthropicModel;
+
     let response: AIMessage;
 
     try {
-      const model = enrichedTools?.length
-        ? AnthropicAdapter.bindTools(this.anthropicModel, enrichedTools, {
-            toolChoice,
-            parallelToolCalls,
-          })
-        : this.anthropicModel;
-
       response = (await model.invoke(langChainMessages)) as AIMessage;
     } catch (error) {
       throw ProviderDispatcher.wrapProviderError(error, 'Anthropic');
