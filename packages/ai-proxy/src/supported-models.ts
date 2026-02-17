@@ -44,9 +44,15 @@ const OPENAI_UNSUPPORTED_PATTERNS = [
   '-deep-research',
 ];
 
+const OPENAI_UNSUPPORTED_MODELS = [
+  'us-40-51r-vm-ev3', // Not a chat model (v1/completions only)
+];
+
 const OPENAI_SUPPORTED_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
 
 function isOpenAIModelSupported(model: string): boolean {
+  if (OPENAI_UNSUPPORTED_MODELS.includes(model)) return false;
+
   const matchesPattern = OPENAI_UNSUPPORTED_PATTERNS.some(p => model.includes(p));
   if (matchesPattern) return false;
 
