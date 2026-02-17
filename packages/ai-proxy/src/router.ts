@@ -152,7 +152,7 @@ export class Router {
         const fallback = this.aiConfigurations[0];
         this.logger?.(
           'Warn',
-          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}'.`,
+          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}' (provider: ${fallback.provider}, model: ${fallback.model})`,
         );
 
         return fallback;
