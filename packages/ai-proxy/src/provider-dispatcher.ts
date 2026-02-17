@@ -161,9 +161,11 @@ export default class ProviderDispatcher {
     if (status === 429) return new AIRateLimitError(providerName, { cause: error });
     if (status === 401) return new AIAuthenticationError(providerName, { cause: error });
 
-    return new AIProviderError(`Error while calling ${providerName}: ${error.message}`, providerName, {
-      cause: error,
-    });
+    return new AIProviderError(
+      `Error while calling ${providerName}: ${error.message}`,
+      providerName,
+      { cause: error },
+    );
   }
 
   private enrichToolDefinitions(tools?: ChatCompletionTool[]): ChatCompletionTool[] | undefined {

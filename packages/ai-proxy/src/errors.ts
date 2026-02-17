@@ -8,8 +8,6 @@
 import {
   BadRequestError,
   NotFoundError,
-  TooManyRequestsError,
-  UnauthorizedError,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 
@@ -68,6 +66,7 @@ export class AIRateLimitError extends AIProviderError {
     super(`${provider} rate limit exceeded`, provider, options);
     this.name = 'AIRateLimitError';
     this.baseBusinessErrorName = 'TooManyRequestsError';
+    this.status = 429;
   }
 }
 
@@ -76,6 +75,7 @@ export class AIAuthenticationError extends AIProviderError {
     super(`${provider} authentication failed: check your API key configuration`, provider, options);
     this.name = 'AIAuthenticationError';
     this.baseBusinessErrorName = 'UnauthorizedError';
+    this.status = 401;
   }
 }
 
