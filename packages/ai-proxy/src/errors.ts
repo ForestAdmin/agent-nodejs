@@ -70,7 +70,7 @@ export class AIRateLimitError extends AIProviderError {
     super(provider, { ...options, message: `${provider} rate limit exceeded` });
     this.name = 'AIRateLimitError';
     this.baseBusinessErrorName = 'TooManyRequestsError';
-    this.status = 429;
+    this.httpCode = 429;
   }
 }
 
@@ -82,7 +82,7 @@ export class AIAuthenticationError extends AIProviderError {
     });
     this.name = 'AIAuthenticationError';
     this.baseBusinessErrorName = 'UnauthorizedError';
-    this.status = 401;
+    this.httpCode = 401;
   }
 }
 

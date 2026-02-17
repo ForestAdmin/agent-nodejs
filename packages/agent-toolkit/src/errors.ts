@@ -3,15 +3,15 @@ export class BusinessError extends Error {
   // INTERNAL USAGES
   public readonly isBusinessError = true;
   public baseBusinessErrorName: string;
-  public status: number;
+  public httpCode: number;
 
   public readonly data: Record<string, unknown> | undefined;
 
-  constructor(message?: string, data?: Record<string, unknown>, name?: string, status = 422) {
+  constructor(message?: string, data?: Record<string, unknown>, name?: string, httpCode = 422) {
     super(message);
     this.name = name ?? this.constructor.name;
     this.data = data;
-    this.status = status;
+    this.httpCode = httpCode;
   }
 
   /**
