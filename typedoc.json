@@ -7,12 +7,17 @@
     "entryPoints": ["src/index.ts"]
   },
   "entryPoints": [
+    "packages/ai-proxy",
     "packages/agent",
+    "packages/agent-client",
+    "packages/agent-testing",
+    "packages/agent-toolkit",
     "packages/datasource-customizer",
     "packages/datasource-mongoose",
     "packages/datasource-sequelize",
     "packages/datasource-sql",
     "packages/datasource-toolkit",
+    "packages/mcp-server",
     "packages/plugin-aws-s3",
     "packages/plugin-export-advanced"
   ],
