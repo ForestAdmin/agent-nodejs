@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.4.3...@forestadmin/ai-proxy@1.5.0) (2026-02-17)
+
+
+### Features
+
+* **ai-proxy:** add Anthropic LLM provider support ([#1435](https://github.com/ForestAdmin/agent-nodejs/issues/1435)) ([f748b19](https://github.com/ForestAdmin/agent-nodejs/commit/f748b19925ab99116cc336a3d5ae5839ebe536b9))
+
 ## @forestadmin/ai-proxy [1.4.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.4.2...@forestadmin/ai-proxy@1.4.3) (2026-02-13)
 
 
