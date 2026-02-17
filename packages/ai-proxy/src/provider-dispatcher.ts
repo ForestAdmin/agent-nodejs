@@ -88,7 +88,7 @@ export default class ProviderDispatcher {
         })
       : this.openaiModel;
 
-    let response;
+    let response: AIMessage;
 
     try {
       response = await model.invoke(messages as BaseMessageLike[]);
@@ -165,7 +165,7 @@ export default class ProviderDispatcher {
     });
   }
 
-  private enrichToolDefinitions(tools?: ChatCompletionTool[]) {
+  private enrichToolDefinitions(tools?: ChatCompletionTool[]): ChatCompletionTool[] | undefined {
     if (!tools) return tools;
 
     const remoteToolSchemas = this.remoteTools.tools.map(remoteTool =>

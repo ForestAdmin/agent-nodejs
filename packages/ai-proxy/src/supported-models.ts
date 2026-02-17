@@ -58,9 +58,7 @@ function isOpenAIModelSupported(model: string): boolean {
     override => model === override || model.startsWith(`${override}-`),
   );
 
-  if (matchesPrefix && !isOverride) return false;
-
-  return true;
+  return !matchesPrefix || isOverride;
 }
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────

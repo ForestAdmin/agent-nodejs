@@ -23,14 +23,7 @@ export default class AnthropicAdapter {
     return LangChainAdapter.convertMessages(AnthropicAdapter.mergeSystemMessages(messages));
   }
 
-  /**
-   * Bind tools to an Anthropic model with proper tool_choice conversion.
-   *
-   * Encapsulates the `as string` cast workaround: `convertToolChoice` may return an object
-   * with `disable_parallel_tool_use`, which LangChain's AnthropicToolChoice type doesn't
-   * support. The `| string` arm in LangChain's type union lets the object pass through at
-   * runtime.
-   */
+  /** Cast `as string` works around LangChain's AnthropicToolChoice missing `disable_parallel_tool_use`. */
   static bindTools(
     model: ChatAnthropic,
     tools: ChatCompletionTool[],
