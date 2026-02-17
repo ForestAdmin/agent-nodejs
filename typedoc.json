@@ -17,6 +17,7 @@
     "packages/datasource-sequelize",
     "packages/datasource-sql",
     "packages/datasource-toolkit",
+    "packages/mcp-server",
     "packages/plugin-aws-s3",
     "packages/plugin-export-advanced"
   ],
