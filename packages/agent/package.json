@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent",
-  "version": "1.72.9",
+  "version": "1.72.10",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -16,8 +16,8 @@
     "@forestadmin/agent-toolkit": "1.0.0",
     "@forestadmin/datasource-customizer": "1.67.3",
     "@forestadmin/datasource-toolkit": "1.50.1",
-    "@forestadmin/forestadmin-client": "1.37.12",
-    "@forestadmin/mcp-server": "1.8.3",
+    "@forestadmin/forestadmin-client": "1.37.13",
+    "@forestadmin/mcp-server": "1.8.4",
     "@koa/bodyparser": "^6.0.0",
     "@koa/cors": "^5.0.0",
     "@koa/router": "^13.1.0",
