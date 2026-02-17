@@ -1,8 +1,9 @@
-import type { DispatchBody, InvokeRemoteToolArgs, Route } from '../src';
+import type { DispatchBody, InvokeRemoteToolArgs } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIModelNotSupportedError, Router } from '../src';
 import McpClient from '../src/mcp-client';
+import ProviderDispatcher from '../src/provider-dispatcher';
 
 const invokeToolMock = jest.fn();
 const toolDefinitionsForFrontend = [{ name: 'tool-name', description: 'tool-description' }];
@@ -20,14 +21,12 @@ jest.mock('../src/remote-tools', () => {
 const dispatchMock = jest.fn();
 jest.mock('../src/provider-dispatcher', () => {
   return {
-    ProviderDispatcher: jest.fn().mockImplementation(() => ({
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
       dispatch: dispatchMock,
     })),
   };
 });
-
-// eslint-disable-next-line import/first
-import { ProviderDispatcher } from '../src/provider-dispatcher';
 
 const ProviderDispatcherMock = ProviderDispatcher as jest.MockedClass<typeof ProviderDispatcher>;
 
@@ -123,15 +122,14 @@ describe('route', () => {
 
     it('falls back to first configuration with warning when ai-name not found', async () => {
       const mockLogger = jest.fn();
+      const gpt4Config = {
+        name: 'gpt4',
+        provider: 'openai' as const,
+        apiKey: 'dev',
+        model: 'gpt-4o',
+      };
       const router = new Router({
-        aiConfigurations: [
-          {
-            name: 'gpt4',
-            provider: 'openai',
-            apiKey: 'dev',
-            model: 'gpt-4o',
-          },
-        ],
+        aiConfigurations: [gpt4Config],
         logger: mockLogger,
       });
 
@@ -143,9 +141,9 @@ describe('route', () => {
 
       expect(mockLogger).toHaveBeenCalledWith(
         'Warn',
-        "AI configuration 'non-existent' not found. Falling back to 'gpt4'.",
+        "AI configuration 'non-existent' not found. Falling back to 'gpt4' (provider: openai, model: gpt-4o)",
       );
-      expect(dispatchMock).toHaveBeenCalled();
+      expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4Config, expect.anything());
     });
   });
 
@@ -430,6 +428,85 @@ describe('route', () => {
             ],
           }),
       ).toThrow("Model 'gpt-4' does not support tools");
+    });
+
+    describe('should accept supported models', () => {
+      const supportedModels = [
+        'gpt-4o',
+        'gpt-4o-mini',
+        'gpt-4o-2024-08-06',
+        'gpt-4-turbo',
+        'gpt-4-turbo-2024-04-09',
+        'gpt-4.1',
+        'gpt-4.1-mini',
+        'gpt-3.5-turbo',
+        'gpt-3.5-turbo-0125',
+        'gpt-3.5',
+        'gpt-5',
+        'unknown-model',
+        'future-gpt-model',
+      ];
+
+      it.each(supportedModels)('%s', model => {
+        expect(
+          () =>
+            new Router({
+              aiConfigurations: [{ name: 'test', provider: 'openai', apiKey: 'dev', model }],
+            }),
+        ).not.toThrow();
+      });
+    });
+
+    it('should accept supported Anthropic configurations', () => {
+      expect(
+        () =>
+          new Router({
+            aiConfigurations: [
+              {
+                name: 'claude',
+                provider: 'anthropic',
+                apiKey: 'key',
+                model: 'claude-3-5-sonnet-latest',
+              },
+            ],
+          }),
+      ).not.toThrow();
+    });
+
+    describe('should reject known unsupported OpenAI models', () => {
+      const unsupportedModels = [
+        'gpt-4',
+        'gpt-4-0613',
+        'o1',
+        'o3-mini',
+        'text-davinci-003',
+        'davinci',
+        'curie',
+        'babbage',
+        'ada',
+      ];
+
+      it.each(unsupportedModels)('%s', model => {
+        expect(
+          () =>
+            new Router({
+              aiConfigurations: [{ name: 'test', provider: 'openai', apiKey: 'dev', model }],
+            }),
+        ).toThrow(AIModelNotSupportedError);
+      });
+    });
+
+    describe('should reject deprecated Anthropic models', () => {
+      const deprecatedModels = ['claude-3-7-sonnet-20250219', 'claude-3-haiku-20240307'];
+
+      it.each(deprecatedModels)('%s', model => {
+        expect(
+          () =>
+            new Router({
+              aiConfigurations: [{ name: 'test', provider: 'anthropic', apiKey: 'dev', model }],
+            }),
+        ).toThrow(AIModelNotSupportedError);
+      });
     });
   });
 });

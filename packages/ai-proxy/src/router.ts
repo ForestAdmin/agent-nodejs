@@ -7,7 +7,7 @@ import type { z } from 'zod';
 
 import { AIBadRequestError, AIModelNotSupportedError } from './errors';
 import McpClient from './mcp-client';
-import { ProviderDispatcher } from './provider-dispatcher';
+import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
 import isModelSupportingTools from './supported-models';
@@ -45,7 +45,7 @@ export class Router {
 
   private validateConfigurations(): void {
     for (const config of this.aiConfigurations) {
-      if (!isModelSupportingTools(config.model)) {
+      if (!isModelSupportingTools(config.model, config.provider)) {
         throw new AIModelNotSupportedError(config.model);
       }
     }
@@ -152,7 +152,7 @@ export class Router {
         const fallback = this.aiConfigurations[0];
         this.logger?.(
           'Warn',
-          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}'.`,
+          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}' (provider: ${fallback.provider}, model: ${fallback.model})`,
         );
 
         return fallback;

@@ -42,9 +42,12 @@ export class AINotFoundError extends NotFoundError {
 }
 
 export class AIUnprocessableError extends UnprocessableError {
-  constructor(message: string) {
+  readonly cause?: Error;
+
+  constructor(message: string, options?: { cause?: Error }) {
     super(message);
     this.name = 'AIUnprocessableError';
+    if (options?.cause) this.cause = options.cause;
   }
 }
 
@@ -55,17 +58,10 @@ export class AINotConfiguredError extends AIError {
   }
 }
 
-export class OpenAIUnprocessableError extends AIUnprocessableError {
-  constructor(message: string) {
-    super(message);
-    this.name = 'OpenAIError';
-  }
-}
-
 export class AIToolUnprocessableError extends AIUnprocessableError {
   constructor(message: string) {
     super(message);
-    this.name = 'AIToolError';
+    this.name = 'AIToolUnprocessableError';
   }
 }
 

@@ -17,7 +17,6 @@ import {
   McpConflictError,
   McpConnectionError,
   McpError,
-  OpenAIUnprocessableError,
 } from '../src/errors';
 
 describe('AI Error Hierarchy', () => {
@@ -62,16 +61,11 @@ describe('AI Error Hierarchy', () => {
       expect(error).toBeInstanceOf(UnprocessableError);
     });
 
-    test('OpenAIUnprocessableError extends UnprocessableError via AIUnprocessableError', () => {
-      const error = new OpenAIUnprocessableError('test');
-      expect(error).toBeInstanceOf(AIUnprocessableError);
-      expect(error).toBeInstanceOf(UnprocessableError);
-    });
-
     test('AIToolUnprocessableError extends UnprocessableError via AIUnprocessableError', () => {
       const error = new AIToolUnprocessableError('test');
       expect(error).toBeInstanceOf(AIUnprocessableError);
       expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.name).toBe('AIToolUnprocessableError');
     });
   });
 

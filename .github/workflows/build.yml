@@ -142,6 +142,7 @@ jobs:
         run: yarn workspace @forestadmin/ai-proxy test --testPathPattern='llm.integration'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
   send-coverage:
     name: Send Coverage

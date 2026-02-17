@@ -1,4 +1,6 @@
-import type { ChatOpenAIFields, OpenAIChatModelId } from '@langchain/openai';
+import type Anthropic from '@anthropic-ai/sdk';
+import type { AnthropicInput } from '@langchain/anthropic';
+import type { ChatOpenAIFields } from '@langchain/openai';
 import type OpenAI from 'openai';
 
 // OpenAI type aliases
@@ -8,7 +10,7 @@ export type ChatCompletionTool = OpenAI.Chat.Completions.ChatCompletionTool;
 export type ChatCompletionToolChoice = OpenAI.Chat.Completions.ChatCompletionToolChoiceOption;
 
 // AI Provider types
-export type AiProvider = 'openai';
+export type AiProvider = 'openai' | 'anthropic';
 
 /**
  * Base configuration common to all AI providers.
@@ -24,12 +26,21 @@ export type BaseAiConfiguration = {
  * OpenAI-specific configuration.
  * Extends base with all ChatOpenAI options (temperature, maxTokens, configuration, etc.)
  */
-export type OpenAiConfiguration = BaseAiConfiguration &
+export type OpenAiConfiguration = Omit<BaseAiConfiguration, 'model'> &
   Omit<ChatOpenAIFields, 'model' | 'apiKey'> & {
     provider: 'openai';
-    // OpenAIChatModelId provides autocomplete for known models (gpt-4o, gpt-4-turbo, etc.)
-    // (string & NonNullable<unknown>) allows custom model strings without losing autocomplete
-    model: OpenAIChatModelId | (string & NonNullable<unknown>);
+    model: OpenAI.ChatModel | (string & NonNullable<unknown>);
   };
 
-export type AiConfiguration = OpenAiConfiguration;
+/**
+ * Anthropic-specific configuration.
+ * Extends base with all ChatAnthropic options (temperature, maxTokens, etc.)
+ * Supports both `apiKey` (unified) and `anthropicApiKey` (native) for flexibility.
+ */
+export type AnthropicConfiguration = Omit<BaseAiConfiguration, 'model'> &
+  Omit<AnthropicInput, 'model' | 'apiKey'> & {
+    provider: 'anthropic';
+    model: Anthropic.Messages.Model;
+  };
+
+export type AiConfiguration = OpenAiConfiguration | AnthropicConfiguration;
