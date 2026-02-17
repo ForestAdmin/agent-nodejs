@@ -6,6 +6,8 @@ import {
   BusinessError,
   ForbiddenError,
   NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -60,6 +62,10 @@ export default class ErrorHandling extends BaseRoute {
       case BusinessError.isOfType(error, BadRequestError):
         return HttpCode.BadRequest;
 
+      case error instanceof UnauthorizedError:
+      case BusinessError.isOfType(error, UnauthorizedError):
+        return HttpCode.Unauthorized;
+
       case error instanceof ForbiddenError:
       case BusinessError.isOfType(error, ForbiddenError):
         return HttpCode.Forbidden;
@@ -67,6 +73,10 @@ export default class ErrorHandling extends BaseRoute {
       case error instanceof NotFoundError:
       case BusinessError.isOfType(error, NotFoundError):
         return HttpCode.NotFound;
+
+      case error instanceof TooManyRequestsError:
+      case BusinessError.isOfType(error, TooManyRequestsError):
+        return HttpCode.TooManyRequests;
 
       case error instanceof UnprocessableError:
       case BusinessError.isOfType(error, UnprocessableError):

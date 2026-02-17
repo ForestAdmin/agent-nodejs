@@ -9,7 +9,14 @@ import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling'
 import { ChatOpenAI } from '@langchain/openai';
 
 import AnthropicAdapter from './anthropic-adapter';
-import { AIBadRequestError, AINotConfiguredError, AIUnprocessableError } from './errors';
+import {
+  AIAuthenticationError,
+  AIBadRequestError,
+  AINotConfiguredError,
+  AIProviderError,
+  AIRateLimitError,
+  AIUnprocessableError,
+} from './errors';
 import { LangChainAdapter } from './langchain-adapter';
 
 // Re-export types for consumers
@@ -138,40 +145,23 @@ export default class ProviderDispatcher {
     return LangChainAdapter.convertResponse(response, this.modelName);
   }
 
-  /**
-   * Wraps provider errors into AI-specific error types.
-   *
-   * TODO: Currently all provider errors are wrapped as AIUnprocessableError,
-   * losing the original HTTP semantics (429 rate limit, 401 auth failure).
-   * To fix this properly we need to:
-   * 1. Add UnauthorizedError and TooManyRequestsError to datasource-toolkit
-   * 2. Add corresponding cases in the agent's error-handling middleware
-   * 3. Create AIProviderError, AIRateLimitError, AIAuthenticationError in ai-proxy
-   *    with baseBusinessErrorName overrides for correct HTTP status mapping
-   */
   private static wrapProviderError(error: unknown, providerName: string): Error {
     if (error instanceof AIUnprocessableError) return error;
     if (error instanceof AIBadRequestError) return error;
 
     if (!(error instanceof Error)) {
-      return new AIUnprocessableError(`Error while calling ${providerName}: ${String(error)}`);
+      return new AIProviderError(
+        `Error while calling ${providerName}: ${String(error)}`,
+        providerName,
+      );
     }
 
     const { status } = error as Error & { status?: number };
 
-    if (status === 429) {
-      return new AIUnprocessableError(`${providerName} rate limit exceeded: ${error.message}`, {
-        cause: error,
-      });
-    }
+    if (status === 429) return new AIRateLimitError(providerName, { cause: error });
+    if (status === 401) return new AIAuthenticationError(providerName, { cause: error });
 
-    if (status === 401) {
-      return new AIUnprocessableError(`${providerName} authentication failed: ${error.message}`, {
-        cause: error,
-      });
-    }
-
-    return new AIUnprocessableError(`Error while calling ${providerName}: ${error.message}`, {
+    return new AIProviderError(`Error while calling ${providerName}: ${error.message}`, providerName, {
       cause: error,
     });
   }

@@ -5,8 +5,11 @@ import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling'
 import { ChatOpenAI } from '@langchain/openai';
 
 import {
+  AIAuthenticationError,
   AIBadRequestError,
   AINotConfiguredError,
+  AIProviderError,
+  AIRateLimitError,
   AIUnprocessableError,
   ProviderDispatcher,
   RemoteTools,
@@ -149,36 +152,41 @@ describe('ProviderDispatcher', () => {
     });
 
     describe('error handling', () => {
-      it('should wrap generic errors as AIUnprocessableError with cause', async () => {
+      it('should wrap generic errors as AIProviderError with cause', async () => {
         const original = new Error('OpenAI error');
         invokeMock.mockRejectedValueOnce(original);
 
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AIProviderError);
         expect(thrown.message).toBe('Error while calling OpenAI: OpenAI error');
+        expect(thrown.provider).toBe('OpenAI');
         expect(thrown.cause).toBe(original);
       });
 
-      it('should wrap 429 as AIUnprocessableError with rate limit message', async () => {
+      it('should wrap 429 as AIRateLimitError', async () => {
         const error = Object.assign(new Error('Too many requests'), { status: 429 });
         invokeMock.mockRejectedValueOnce(error);
 
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('OpenAI rate limit exceeded: Too many requests');
+        expect(thrown).toBeInstanceOf(AIRateLimitError);
+        expect(thrown.message).toBe('OpenAI rate limit exceeded');
+        expect(thrown.provider).toBe('OpenAI');
+        expect(thrown.baseBusinessErrorName).toBe('TooManyRequestsError');
         expect(thrown.cause).toBe(error);
       });
 
-      it('should wrap 401 as AIUnprocessableError with auth message', async () => {
+      it('should wrap 401 as AIAuthenticationError', async () => {
         const error = Object.assign(new Error('Invalid API key'), { status: 401 });
         invokeMock.mockRejectedValueOnce(error);
 
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('OpenAI authentication failed: Invalid API key');
+        expect(thrown).toBeInstanceOf(AIAuthenticationError);
+        expect(thrown.message).toBe('OpenAI authentication failed: check your API key configuration');
+        expect(thrown.provider).toBe('OpenAI');
+        expect(thrown.baseBusinessErrorName).toBe('UnauthorizedError');
         expect(thrown.cause).toBe(error);
       });
 
@@ -388,7 +396,7 @@ describe('ProviderDispatcher', () => {
     });
 
     describe('error handling', () => {
-      it('should wrap generic errors as AIUnprocessableError with cause', async () => {
+      it('should wrap generic errors as AIProviderError with cause', async () => {
         const original = new Error('Anthropic API error');
         anthropicInvokeMock.mockRejectedValueOnce(original);
 
@@ -396,12 +404,13 @@ describe('ProviderDispatcher', () => {
           .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
           .catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AIProviderError);
         expect(thrown.message).toBe('Error while calling Anthropic: Anthropic API error');
+        expect(thrown.provider).toBe('Anthropic');
         expect(thrown.cause).toBe(original);
       });
 
-      it('should wrap 429 as AIUnprocessableError with rate limit message', async () => {
+      it('should wrap 429 as AIRateLimitError', async () => {
         const error = Object.assign(new Error('Too many requests'), { status: 429 });
         anthropicInvokeMock.mockRejectedValueOnce(error);
 
@@ -409,12 +418,14 @@ describe('ProviderDispatcher', () => {
           .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
           .catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('Anthropic rate limit exceeded: Too many requests');
+        expect(thrown).toBeInstanceOf(AIRateLimitError);
+        expect(thrown.message).toBe('Anthropic rate limit exceeded');
+        expect(thrown.provider).toBe('Anthropic');
+        expect(thrown.baseBusinessErrorName).toBe('TooManyRequestsError');
         expect(thrown.cause).toBe(error);
       });
 
-      it('should wrap 401 as AIUnprocessableError with auth message', async () => {
+      it('should wrap 401 as AIAuthenticationError', async () => {
         const error = Object.assign(new Error('Invalid API key'), { status: 401 });
         anthropicInvokeMock.mockRejectedValueOnce(error);
 
@@ -422,8 +433,10 @@ describe('ProviderDispatcher', () => {
           .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
           .catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('Anthropic authentication failed: Invalid API key');
+        expect(thrown).toBeInstanceOf(AIAuthenticationError);
+        expect(thrown.message).toBe('Anthropic authentication failed: check your API key configuration');
+        expect(thrown.provider).toBe('Anthropic');
+        expect(thrown.baseBusinessErrorName).toBe('UnauthorizedError');
         expect(thrown.cause).toBe(error);
       });
 
@@ -434,7 +447,7 @@ describe('ProviderDispatcher', () => {
           .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
           .catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AIProviderError);
         expect(thrown.message).toBe('Error while calling Anthropic: string error');
       });
 

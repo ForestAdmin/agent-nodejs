@@ -9,6 +9,8 @@ export {
   UnprocessableError,
   ForbiddenError,
   NotFoundError,
+  UnauthorizedError,
+  TooManyRequestsError,
 } from '@forestadmin/agent-toolkit';
 
 export class IntrospectionFormatError extends BusinessError {

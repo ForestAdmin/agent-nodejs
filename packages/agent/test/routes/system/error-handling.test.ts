@@ -4,6 +4,8 @@ import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
@@ -133,6 +135,32 @@ describe('ErrorHandling', () => {
       expect(console.error).not.toHaveBeenCalled();
     });
 
+    test('it should set the status and body for unauthorized errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new UnauthorizedError('unauthorized'));
+
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
+
+      expect(context.response.status).toStrictEqual(HttpCode.Unauthorized);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'unauthorized', name: 'UnauthorizedError', status: 401 }],
+      });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
+    test('it should set the status and body for too many requests errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new TooManyRequestsError('rate limited'));
+
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
+
+      expect(context.response.status).toStrictEqual(HttpCode.TooManyRequests);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'rate limited', name: 'TooManyRequestsError', status: 429 }],
+      });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
     test('it should set the status and body for other errors and prevent information leak', async () => {
       const context = createMockContext();
       const next = jest
@@ -258,6 +286,8 @@ describe('ErrorHandling', () => {
       { Error: UnprocessableError, errorName: 'UnprocessableError' },
       { Error: ForbiddenError, errorName: 'ForbiddenError' },
       { Error: NotFoundError, errorName: 'NotFoundError' },
+      { Error: UnauthorizedError, errorName: 'UnauthorizedError' },
+      { Error: TooManyRequestsError, errorName: 'TooManyRequestsError' },
     ])('should have the right baseBusinessErrorName', ({ Error, errorName }) => {
       const extendedError = new Error('message');
 

@@ -55,3 +55,15 @@ export class NotFoundError extends BusinessError {
     this.baseBusinessErrorName = 'NotFoundError';
   }
 }
+export class UnauthorizedError extends BusinessError {
+  constructor(message?: string, data?: Record<string, unknown>, name?: string) {
+    super(message, data, name);
+    this.baseBusinessErrorName = 'UnauthorizedError';
+  }
+}
+export class TooManyRequestsError extends BusinessError {
+  constructor(message?: string, data?: Record<string, unknown>, name?: string) {
+    super(message, data, name);
+    this.baseBusinessErrorName = 'TooManyRequestsError';
+  }
+}

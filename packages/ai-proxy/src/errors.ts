@@ -8,6 +8,8 @@
 import {
   BadRequestError,
   NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 
@@ -48,6 +50,32 @@ export class AIUnprocessableError extends UnprocessableError {
     super(message);
     this.name = 'AIUnprocessableError';
     if (options?.cause) this.cause = options.cause;
+  }
+}
+
+export class AIProviderError extends AIUnprocessableError {
+  readonly provider: string;
+
+  constructor(message: string, provider: string, options?: { cause?: Error }) {
+    super(message, options);
+    this.name = 'AIProviderError';
+    this.provider = provider;
+  }
+}
+
+export class AIRateLimitError extends AIProviderError {
+  constructor(provider: string, options?: { cause?: Error }) {
+    super(`${provider} rate limit exceeded`, provider, options);
+    this.name = 'AIRateLimitError';
+    this.baseBusinessErrorName = 'TooManyRequestsError';
+  }
+}
+
+export class AIAuthenticationError extends AIProviderError {
+  constructor(provider: string, options?: { cause?: Error }) {
+    super(`${provider} authentication failed: check your API key configuration`, provider, options);
+    this.name = 'AIAuthenticationError';
+    this.baseBusinessErrorName = 'UnauthorizedError';
   }
 }
 
