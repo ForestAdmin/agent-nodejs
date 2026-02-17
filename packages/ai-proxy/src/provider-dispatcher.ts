@@ -138,6 +138,17 @@ export default class ProviderDispatcher {
     return LangChainAdapter.convertResponse(response, this.modelName);
   }
 
+  /**
+   * Wraps provider errors into AI-specific error types.
+   *
+   * TODO: Currently all provider errors are wrapped as AIUnprocessableError,
+   * losing the original HTTP semantics (429 rate limit, 401 auth failure).
+   * To fix this properly we need to:
+   * 1. Add UnauthorizedError and TooManyRequestsError to datasource-toolkit
+   * 2. Add corresponding cases in the agent's error-handling middleware
+   * 3. Create AIProviderError, AIRateLimitError, AIAuthenticationError in ai-proxy
+   *    with baseBusinessErrorName overrides for correct HTTP status mapping
+   */
   private static wrapProviderError(error: unknown, providerName: string): Error {
     if (error instanceof AIUnprocessableError) return error;
     if (error instanceof AIBadRequestError) return error;
