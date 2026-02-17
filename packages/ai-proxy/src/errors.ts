@@ -56,9 +56,8 @@ export class AIProviderError extends AIUnprocessableError {
 
   constructor(provider: string, options?: { cause?: unknown; message?: string }) {
     const cause = options?.cause;
-    const message =
-      options?.message ??
-      `Error while calling ${provider}: ${cause instanceof Error ? cause.message : JSON.stringify(cause) ?? 'unknown'}`;
+    const detail = cause instanceof Error ? cause.message : JSON.stringify(cause) ?? 'unknown';
+    const message = options?.message ?? `Error while calling ${provider}: ${detail}`;
     super(message, { cause: cause instanceof Error ? cause : undefined });
     this.name = 'AIProviderError';
     this.provider = provider;
