@@ -5,11 +5,14 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import {
+  AIAuthenticationError,
   AIBadRequestError,
   AIError,
   AIModelNotSupportedError,
   AINotConfiguredError,
   AINotFoundError,
+  AIProviderError,
+  AIRateLimitError,
   AIToolNotFoundError,
   AIToolUnprocessableError,
   AIUnprocessableError,
@@ -66,6 +69,29 @@ describe('AI Error Hierarchy', () => {
       expect(error).toBeInstanceOf(AIUnprocessableError);
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.name).toBe('AIToolUnprocessableError');
+    });
+
+    test('AIProviderError extends UnprocessableError via AIUnprocessableError', () => {
+      const error = new AIProviderError('OpenAI', { cause: new Error('test') });
+      expect(error).toBeInstanceOf(AIUnprocessableError);
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.provider).toBe('OpenAI');
+    });
+
+    test('AIRateLimitError extends AIProviderError with TooManyRequestsError semantics', () => {
+      const error = new AIRateLimitError('OpenAI');
+      expect(error).toBeInstanceOf(AIProviderError);
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.baseBusinessErrorName).toBe('TooManyRequestsError');
+      expect(error.httpCode).toBe(429);
+    });
+
+    test('AIAuthenticationError extends AIProviderError with UnauthorizedError semantics', () => {
+      const error = new AIAuthenticationError('OpenAI');
+      expect(error).toBeInstanceOf(AIProviderError);
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.baseBusinessErrorName).toBe('UnauthorizedError');
+      expect(error.httpCode).toBe(401);
     });
   });
 
