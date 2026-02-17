@@ -9,6 +9,9 @@
   "entryPoints": [
     "packages/ai-proxy",
     "packages/agent",
+    "packages/agent-client",
+    "packages/agent-testing",
+    "packages/agent-toolkit",
     "packages/datasource-customizer",
     "packages/datasource-mongoose",
     "packages/datasource-sequelize",
