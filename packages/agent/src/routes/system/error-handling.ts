@@ -1,7 +1,16 @@
 import type Router from '@koa/router';
 import type { Context, Next } from 'koa';
 
-import { BusinessError } from '@forestadmin/datasource-toolkit';
+import {
+  BadRequestError,
+  BusinessError,
+  ForbiddenError,
+  NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
+  UnprocessableError,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 import { HttpError } from 'koa';
 
 import { HttpCode, RouteType } from '../../types';
@@ -46,11 +55,38 @@ export default class ErrorHandling extends BaseRoute {
   private getErrorStatus(error: Error): number {
     if (error instanceof HttpError) return error.status;
 
-    if (error instanceof BusinessError || (error as BusinessError).isBusinessError) {
-      return (error as BusinessError).status;
-    }
+    switch (true) {
+      case error instanceof ValidationError:
+      case BusinessError.isOfType(error, ValidationError):
+      case error instanceof BadRequestError:
+      case BusinessError.isOfType(error, BadRequestError):
+        return HttpCode.BadRequest;
 
-    return HttpCode.InternalServerError;
+      case error instanceof UnauthorizedError:
+      case BusinessError.isOfType(error, UnauthorizedError):
+        return HttpCode.Unauthorized;
+
+      case error instanceof ForbiddenError:
+      case BusinessError.isOfType(error, ForbiddenError):
+        return HttpCode.Forbidden;
+
+      case error instanceof NotFoundError:
+      case BusinessError.isOfType(error, NotFoundError):
+        return HttpCode.NotFound;
+
+      case error instanceof TooManyRequestsError:
+      case BusinessError.isOfType(error, TooManyRequestsError):
+        return HttpCode.TooManyRequests;
+
+      case error instanceof UnprocessableError:
+      case BusinessError.isOfType(error, UnprocessableError):
+      case error instanceof BusinessError:
+      case BusinessError.isOfType(error, BusinessError):
+        return HttpCode.Unprocessable;
+
+      default:
+        return HttpCode.InternalServerError;
+    }
   }
 
   private getErrorMessage(error: Error): string {
