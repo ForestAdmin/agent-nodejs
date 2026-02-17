@@ -141,7 +141,7 @@ describe('route', () => {
 
       expect(mockLogger).toHaveBeenCalledWith(
         'Warn',
-        "AI configuration 'non-existent' not found. Falling back to 'gpt4'.",
+        "AI configuration 'non-existent' not found. Falling back to 'gpt4' (provider: openai, model: gpt-4o)",
       );
       expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4Config, expect.anything());
     });
