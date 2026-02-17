@@ -149,23 +149,12 @@ export default class ProviderDispatcher {
     if (error instanceof AIUnprocessableError) return error;
     if (error instanceof AIBadRequestError) return error;
 
-    if (!(error instanceof Error)) {
-      return new AIProviderError(
-        `Error while calling ${providerName}: ${String(error)}`,
-        providerName,
-      );
-    }
-
-    const { status } = error as Error & { status?: number };
+    const status = error instanceof Error ? (error as Error & { status?: number }).status : null;
 
     if (status === 429) return new AIRateLimitError(providerName, { cause: error });
     if (status === 401) return new AIAuthenticationError(providerName, { cause: error });
 
-    return new AIProviderError(
-      `Error while calling ${providerName}: ${error.message}`,
-      providerName,
-      { cause: error },
-    );
+    return new AIProviderError(providerName, { cause: error });
   }
 
   private enrichToolDefinitions(tools?: ChatCompletionTool[]): ChatCompletionTool[] | undefined {

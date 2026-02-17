@@ -448,7 +448,7 @@ describe('ProviderDispatcher', () => {
           .catch(e => e);
 
         expect(thrown).toBeInstanceOf(AIProviderError);
-        expect(thrown.message).toBe('Error while calling Anthropic: string error');
+        expect(thrown.message).toBe('Error while calling Anthropic: "string error"');
       });
 
       it('should not wrap conversion errors as provider errors', async () => {
