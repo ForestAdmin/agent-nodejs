@@ -28,6 +28,7 @@
     "@types/uuid": "^10.0.0"
   },
   "dependencies": {
+    "@forestadmin/agent-toolkit": "1.0.0",
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
     "uuid": "11.0.2"
