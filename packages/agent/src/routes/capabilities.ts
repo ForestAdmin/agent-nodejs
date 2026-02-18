@@ -46,6 +46,16 @@ export default class Capabilities extends BaseRoute {
 
           const fields = Object.entries(collection.schema.fields)
             .map(([fieldName, field]) => {
+              if (field.type === 'ManyToOne') {
+                return {
+                  name: fieldName,
+                  type: 'ManyToOne',
+                  isGroupable:
+                    (collection.schema.fields[field.foreignKey] as ColumnSchema).isGroupable ??
+                    true,
+                };
+              }
+
               if (!this.shouldCreateFieldCapability(field)) return null;
 
               return {

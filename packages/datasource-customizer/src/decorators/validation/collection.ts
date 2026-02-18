@@ -8,6 +8,7 @@ import type {
   ConditionTreeLeaf,
   Filter,
   RecordData,
+  RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 
 import {
@@ -45,17 +46,6 @@ export default class ValidationDecorator extends CollectionDecorator {
     this.markSchemaAsDirty();
   }
 
-  override async aggregate(
-    caller: Caller,
-    filter: Filter,
-    aggregation: Aggregation,
-    limit?: number,
-  ): Promise<AggregateResult[]> {
-    this.validateAggregation(aggregation);
-
-    return super.aggregate(caller, filter, aggregation, limit);
-  }
-
   override async create(caller: Caller, data: RecordData[]): Promise<RecordData[]> {
     for (const record of data) this.validate(record, caller.timezone, true);
 
@@ -66,6 +56,17 @@ export default class ValidationDecorator extends CollectionDecorator {
     this.validate(patch, caller.timezone, false);
 
     return super.update(caller, filter, patch);
+  }
+
+  override async aggregate(
+    caller: Caller,
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
+    this.validateAggregation(aggregation);
+
+    return super.aggregate(caller, filter, aggregation, limit);
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
@@ -99,10 +100,20 @@ export default class ValidationDecorator extends CollectionDecorator {
     }
 
     for (const group of groups) {
-      const field = this.schema.fields[group.field];
+      let { field } = group;
+      let { schema } = this;
 
-      if (field?.type === 'Column' && field.isGroupable === false) {
-        throw new ValidationError(`Field '${group.field}' is not groupable.`);
+      if (field.includes(':')) {
+        const paths = field.split(':');
+        field = paths.pop();
+        schema = paths.reduce((s: CollectionSchema, path: string) => {
+          return this.dataSource.getCollection((s.fields[path] as RelationSchema).foreignCollection)
+            .schema;
+        }, this.schema);
+      }
+
+      if (!(schema.fields[field] as ColumnSchema).isGroupable) {
+        throw new ValidationError(`Field '${group.field}' is not groupable on "${this.name}".`);
       }
     }
 
@@ -114,7 +125,7 @@ export default class ValidationDecorator extends CollectionDecorator {
             : 'none';
 
         throw new ValidationError(
-          `This collection does not support the '${group.operation}' date operation. ` +
+          `Collection "${this.name}" does not support the '${group.operation}' date operation. ` +
             `Supported date operations: [${supported}].`,
         );
       }

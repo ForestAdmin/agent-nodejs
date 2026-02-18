@@ -255,11 +255,11 @@ describe('BaseCollection', () => {
       }
     }
 
-    it('should default isGroupable to false for primary keys', () => {
+    it('should default isGroupable to true for primary keys', () => {
       const collection = new CollectionWithFields();
       const field = collection.schema.fields.id as ColumnSchema;
       expect(field.type).toBe('Column');
-      expect(field.isGroupable).toBe(false);
+      expect(field.isGroupable).toBe(true);
     });
 
     it('should default isGroupable to true for non-PK columns', () => {

@@ -144,7 +144,7 @@ describe('schema', () => {
           type: 'Column',
           validation: undefined,
           isReadOnly: undefined,
-          isGroupable: false,
+          isGroupable: true,
           isSortable: true,
           isPrimaryKey: true,
           defaultValue: undefined,

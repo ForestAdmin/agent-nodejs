@@ -151,7 +151,7 @@ describe('SortEmulationDecoratorCollection', () => {
         schema: factories.collectionSchema.build({
           fields: fields ?? {
             id: factories.columnSchema.uuidPrimaryKey().build(),
-            title: factories.columnSchema.build(),
+            title: factories.columnSchema.build({ isGroupable: true }),
           },
           aggregationCapabilities,
         }),
