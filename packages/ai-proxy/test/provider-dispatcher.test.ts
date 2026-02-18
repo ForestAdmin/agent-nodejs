@@ -151,6 +151,15 @@ describe('ProviderDispatcher', () => {
     });
 
     describe('error handling', () => {
+      it('should not wrap BusinessError thrown during invocation', async () => {
+        const error = new AINotConfiguredError();
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBe(error);
+      });
+
       it('should wrap generic errors as AIProviderError with cause', async () => {
         const original = new Error('OpenAI error');
         invokeMock.mockRejectedValueOnce(original);

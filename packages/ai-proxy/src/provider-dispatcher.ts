@@ -8,6 +8,8 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
 
+import { BusinessError, UnprocessableError } from '@forestadmin/datasource-toolkit';
+
 import AnthropicAdapter from './anthropic-adapter';
 import {
   AIBadRequestError,
@@ -15,7 +17,6 @@ import {
   AIProviderError,
   AITooManyRequestsError,
   AIUnauthorizedError,
-  AIUnprocessableError,
 } from './errors';
 import { LangChainAdapter } from './langchain-adapter';
 
@@ -107,7 +108,7 @@ export default class ProviderDispatcher {
     const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
 
     if (!rawResponse) {
-      throw new AIUnprocessableError(
+      throw new UnprocessableError(
         'OpenAI response missing raw response data. This may indicate an API change.',
       );
     }
@@ -146,8 +147,7 @@ export default class ProviderDispatcher {
   }
 
   private static wrapProviderError(error: unknown, providerName: string): Error {
-    if (error instanceof AIUnprocessableError) return error;
-    if (error instanceof AIBadRequestError) return error;
+    if (error instanceof BusinessError) return error;
 
     if (!(error instanceof Error)) {
       return new AIProviderError(providerName, { cause: new Error(String(error)) });

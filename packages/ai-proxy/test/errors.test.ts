@@ -1,12 +1,13 @@
 import {
   BadRequestError,
   NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 
 import {
   AIBadRequestError,
-  AIError,
   AIModelNotSupportedError,
   AINotConfiguredError,
   AINotFoundError,
@@ -15,7 +16,6 @@ import {
   AIUnauthorizedError,
   AIToolNotFoundError,
   AIToolUnprocessableError,
-  AIUnprocessableError,
   McpConfigError,
   McpConflictError,
   McpConnectionError,
@@ -24,20 +24,24 @@ import {
 
 describe('AI Error Hierarchy', () => {
   describe('UnprocessableError branch (422)', () => {
-    test('AIError extends UnprocessableError', () => {
-      const error = new AIError('test');
-      expect(error).toBeInstanceOf(UnprocessableError);
-    });
-
-    test('AINotConfiguredError extends UnprocessableError via AIError', () => {
+    test('AINotConfiguredError extends UnprocessableError', () => {
       const error = new AINotConfiguredError();
-      expect(error).toBeInstanceOf(AIError);
       expect(error).toBeInstanceOf(UnprocessableError);
     });
 
-    test('McpError extends UnprocessableError via AIError', () => {
+    test('AIToolUnprocessableError extends UnprocessableError', () => {
+      const error = new AIToolUnprocessableError('test');
+      expect(error).toBeInstanceOf(UnprocessableError);
+    });
+
+    test('AIProviderError extends UnprocessableError', () => {
+      const error = new AIProviderError('OpenAI', { cause: new Error('test') });
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.provider).toBe('OpenAI');
+    });
+
+    test('McpError extends UnprocessableError', () => {
       const error = new McpError('test');
-      expect(error).toBeInstanceOf(AIError);
       expect(error).toBeInstanceOf(UnprocessableError);
     });
 
@@ -58,39 +62,22 @@ describe('AI Error Hierarchy', () => {
       expect(error).toBeInstanceOf(McpError);
       expect(error).toBeInstanceOf(UnprocessableError);
     });
+  });
 
-    test('AIUnprocessableError extends UnprocessableError', () => {
-      const error = new AIUnprocessableError('test');
-      expect(error).toBeInstanceOf(UnprocessableError);
-    });
-
-    test('AIToolUnprocessableError extends UnprocessableError via AIUnprocessableError', () => {
-      const error = new AIToolUnprocessableError('test');
-      expect(error).toBeInstanceOf(AIUnprocessableError);
-      expect(error).toBeInstanceOf(UnprocessableError);
-      expect(error.name).toBe('AIToolUnprocessableError');
-    });
-
-    test('AIProviderError extends UnprocessableError via AIUnprocessableError', () => {
-      const error = new AIProviderError('OpenAI', { cause: new Error('test') });
-      expect(error).toBeInstanceOf(AIUnprocessableError);
-      expect(error).toBeInstanceOf(UnprocessableError);
-      expect(error.provider).toBe('OpenAI');
-    });
-
-    test('AITooManyRequestsError extends AIProviderError with TooManyRequestsError semantics', () => {
+  describe('TooManyRequestsError branch (429)', () => {
+    test('AITooManyRequestsError extends TooManyRequestsError', () => {
       const error = new AITooManyRequestsError('OpenAI');
-      expect(error).toBeInstanceOf(AIProviderError);
-      expect(error).toBeInstanceOf(UnprocessableError);
-      expect(error.baseBusinessErrorName).toBe('TooManyRequestsError');
+      expect(error).toBeInstanceOf(TooManyRequestsError);
+      expect(error.provider).toBe('OpenAI');
       expect(error.httpCode).toBe(429);
     });
+  });
 
-    test('AIUnauthorizedError extends AIProviderError with UnauthorizedError semantics', () => {
+  describe('UnauthorizedError branch (401)', () => {
+    test('AIUnauthorizedError extends UnauthorizedError', () => {
       const error = new AIUnauthorizedError('OpenAI');
-      expect(error).toBeInstanceOf(AIProviderError);
-      expect(error).toBeInstanceOf(UnprocessableError);
-      expect(error.baseBusinessErrorName).toBe('UnauthorizedError');
+      expect(error).toBeInstanceOf(UnauthorizedError);
+      expect(error.provider).toBe('OpenAI');
       expect(error.httpCode).toBe(401);
     });
   });
