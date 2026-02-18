@@ -303,6 +303,67 @@ describe('SortEmulationDecoratorCollection', () => {
 
       expect(col.aggregate).toHaveBeenCalled();
     });
+
+    describe('with nested field groups', () => {
+      function buildWithRelation(authorFieldIsGroupable: boolean) {
+        const authorCollection = factories.collection.build({
+          name: 'author',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.build({ isGroupable: authorFieldIsGroupable }),
+            },
+          }),
+        });
+
+        const booksCollection = factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              title: factories.columnSchema.build({ isGroupable: true }),
+              author: factories.manyToOneSchema.build({ foreignCollection: 'author' }),
+            },
+            aggregationCapabilities: {
+              supportGroups: true,
+              supportedDateOperations: new Set(),
+            },
+          }),
+        });
+
+        const ds = factories.dataSource.buildWithCollections([booksCollection, authorCollection]);
+        const decorated = new DataSourceDecorator(ds, ValidationDecorator);
+
+        return { col: booksCollection, decorated: decorated.getCollection('books') };
+      }
+
+      test('should pass when nested field is groupable', async () => {
+        const { col, decorated } = buildWithRelation(true);
+
+        await decorated.aggregate(
+          factories.caller.build(),
+          factories.filter.build(),
+          new Aggregation({ operation: 'Count', groups: [{ field: 'author:name' }] }),
+        );
+
+        expect(col.aggregate).toHaveBeenCalled();
+      });
+
+      test('should throw when nested field is not groupable', async () => {
+        const { col, decorated } = buildWithRelation(false);
+
+        const fn = () =>
+          decorated.aggregate(
+            factories.caller.build(),
+            factories.filter.build(),
+            new Aggregation({ operation: 'Count', groups: [{ field: 'author:name' }] }),
+          );
+
+        await expect(fn).rejects.toThrow(ValidationError);
+        await expect(fn).rejects.toThrow("'author:name' is not groupable");
+        expect(col.aggregate).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('Validation on a defined value', () => {

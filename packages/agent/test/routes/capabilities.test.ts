@@ -349,6 +349,121 @@ describe('Capabilities', () => {
         });
       });
 
+      describe('when collection has ManyToOne relations', () => {
+        test('should return ManyToOne field with isGroupable from foreign key column', async () => {
+          const collectionWithRelation = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                authorId: factories.columnSchema.text().build({ isGroupable: true }),
+                author: factories.manyToOneSchema.build({
+                  foreignKey: 'authorId',
+                  foreignCollection: 'author',
+                }),
+              },
+            }),
+          });
+
+          const dsWithRelation = factories.dataSource.buildWithCollection(collectionWithRelation);
+          const routeWithRelation = new Capabilities(services, options, dsWithRelation);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithRelation.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+          const authorField = collections[0].fields.find(f => f.name === 'author');
+
+          expect(authorField).toEqual({
+            name: 'author',
+            type: 'ManyToOne',
+            isGroupable: true,
+          });
+        });
+
+        test('should set isGroupable to false on ManyToOne when foreign key is not groupable', async () => {
+          const collectionWithRelation = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                authorId: factories.columnSchema.text().build({ isGroupable: false }),
+                author: factories.manyToOneSchema.build({
+                  foreignKey: 'authorId',
+                  foreignCollection: 'author',
+                }),
+              },
+            }),
+          });
+
+          const dsWithRelation = factories.dataSource.buildWithCollection(collectionWithRelation);
+          const routeWithRelation = new Capabilities(services, options, dsWithRelation);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithRelation.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+          const authorField = collections[0].fields.find(f => f.name === 'author');
+
+          expect(authorField).toEqual({
+            name: 'author',
+            type: 'ManyToOne',
+            isGroupable: false,
+          });
+        });
+
+        test('should derive supportGroups to true when only ManyToOne field is groupable', async () => {
+          const collectionWithRelation = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build({ isGroupable: false }),
+                authorId: factories.columnSchema.text().build({ isGroupable: true }),
+                author: factories.manyToOneSchema.build({
+                  foreignKey: 'authorId',
+                  foreignCollection: 'author',
+                }),
+              },
+              aggregationCapabilities: {
+                supportGroups: true,
+                supportedDateOperations: new Set(),
+              },
+            }),
+          });
+
+          const dsWithRelation = factories.dataSource.buildWithCollection(collectionWithRelation);
+          const routeWithRelation = new Capabilities(services, options, dsWithRelation);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithRelation.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+
+          expect(collections[0].aggregationCapabilities.supportGroups).toBe(true);
+        });
+      });
+
       describe('when field ColumnType is an object', () => {
         test('should not return a field capabilities for that field', async () => {
           const context = createMockContext({
