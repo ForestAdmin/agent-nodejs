@@ -76,6 +76,8 @@ export default class LazyJoinDecorator extends CollectionDecorator {
   }
 
   private refineField(field: string, projection: Projection): string {
+    if (!field.includes(':')) return field;
+
     const relationName = field.split(':')[0];
     const relation = this.schema.fields[relationName] as ManyToOneSchema;
     const relationProjection = projection.relations[relationName];
