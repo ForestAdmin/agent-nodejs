@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.67.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.67.3...@forestadmin/datasource-customizer@1.67.4) (2026-02-18)
+
+
+### Bug Fixes
+
+* **lazy join:** avoid crash when using unknown field ([#1475](https://github.com/ForestAdmin/agent-nodejs/issues/1475)) ([abf4276](https://github.com/ForestAdmin/agent-nodejs/commit/abf427691c0f6a95730041daa404878fce097dc0))
+
 ## @forestadmin/datasource-customizer [1.67.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.67.2...@forestadmin/datasource-customizer@1.67.3) (2026-01-26)
 
 ## @forestadmin/datasource-customizer [1.67.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.67.1...@forestadmin/datasource-customizer@1.67.2) (2026-01-05)
