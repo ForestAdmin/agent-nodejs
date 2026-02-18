@@ -149,7 +149,13 @@ export default class ProviderDispatcher {
     if (error instanceof AIUnprocessableError) return error;
     if (error instanceof AIBadRequestError) return error;
 
-    const status = error instanceof Error ? (error as Error & { status?: number }).status : null;
+    if (!(error instanceof Error)) {
+      return new AIProviderError(providerName, {
+        message: `Error while calling ${providerName}: ${String(error)}`,
+      });
+    }
+
+    const { status } = error as Error & { status?: number };
 
     if (status === 429) return new AIRateLimitError(providerName, { cause: error });
     if (status === 401) return new AIAuthenticationError(providerName, { cause: error });
