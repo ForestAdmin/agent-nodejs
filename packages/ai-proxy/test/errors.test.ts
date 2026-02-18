@@ -5,14 +5,14 @@ import {
 } from '@forestadmin/datasource-toolkit';
 
 import {
-  AIAuthenticationError,
   AIBadRequestError,
   AIError,
   AIModelNotSupportedError,
   AINotConfiguredError,
   AINotFoundError,
   AIProviderError,
-  AIRateLimitError,
+  AITooManyRequestsError,
+  AIUnauthorizedError,
   AIToolNotFoundError,
   AIToolUnprocessableError,
   AIUnprocessableError,
@@ -78,16 +78,16 @@ describe('AI Error Hierarchy', () => {
       expect(error.provider).toBe('OpenAI');
     });
 
-    test('AIRateLimitError extends AIProviderError with TooManyRequestsError semantics', () => {
-      const error = new AIRateLimitError('OpenAI');
+    test('AITooManyRequestsError extends AIProviderError with TooManyRequestsError semantics', () => {
+      const error = new AITooManyRequestsError('OpenAI');
       expect(error).toBeInstanceOf(AIProviderError);
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.baseBusinessErrorName).toBe('TooManyRequestsError');
       expect(error.httpCode).toBe(429);
     });
 
-    test('AIAuthenticationError extends AIProviderError with UnauthorizedError semantics', () => {
-      const error = new AIAuthenticationError('OpenAI');
+    test('AIUnauthorizedError extends AIProviderError with UnauthorizedError semantics', () => {
+      const error = new AIUnauthorizedError('OpenAI');
       expect(error).toBeInstanceOf(AIProviderError);
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.baseBusinessErrorName).toBe('UnauthorizedError');

@@ -54,32 +54,28 @@ export class AIUnprocessableError extends UnprocessableError {
 export class AIProviderError extends AIUnprocessableError {
   readonly provider: string;
 
-  constructor(provider: string, options?: { cause?: Error; message?: string }) {
-    const message =
-      options?.message ??
-      `Error while calling ${provider}: ${options?.cause?.message ?? 'unknown'}`;
-    super(message, options);
+  constructor(provider: string, options?: { cause?: Error }) {
+    super(`Error while calling ${provider}: ${options?.cause?.message ?? 'unknown'}`, options);
     this.name = 'AIProviderError';
     this.provider = provider;
   }
 }
 
-export class AIRateLimitError extends AIProviderError {
+export class AITooManyRequestsError extends AIProviderError {
   constructor(provider: string, options?: { cause?: Error }) {
-    super(provider, { ...options, message: `${provider} rate limit exceeded` });
-    this.name = 'AIRateLimitError';
+    super(provider, options);
+    this.message = `${provider} rate limit exceeded`;
+    this.name = 'AITooManyRequestsError';
     this.baseBusinessErrorName = 'TooManyRequestsError';
     this.httpCode = 429;
   }
 }
 
-export class AIAuthenticationError extends AIProviderError {
+export class AIUnauthorizedError extends AIProviderError {
   constructor(provider: string, options?: { cause?: Error }) {
-    super(provider, {
-      ...options,
-      message: `${provider} authentication failed: check your API key configuration`,
-    });
-    this.name = 'AIAuthenticationError';
+    super(provider, options);
+    this.message = `${provider} authentication failed: check your API key configuration`;
+    this.name = 'AIUnauthorizedError';
     this.baseBusinessErrorName = 'UnauthorizedError';
     this.httpCode = 401;
   }

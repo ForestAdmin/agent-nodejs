@@ -10,11 +10,11 @@ import { ChatOpenAI } from '@langchain/openai';
 
 import AnthropicAdapter from './anthropic-adapter';
 import {
-  AIAuthenticationError,
   AIBadRequestError,
   AINotConfiguredError,
   AIProviderError,
-  AIRateLimitError,
+  AITooManyRequestsError,
+  AIUnauthorizedError,
   AIUnprocessableError,
 } from './errors';
 import { LangChainAdapter } from './langchain-adapter';
@@ -150,15 +150,13 @@ export default class ProviderDispatcher {
     if (error instanceof AIBadRequestError) return error;
 
     if (!(error instanceof Error)) {
-      return new AIProviderError(providerName, {
-        message: `Error while calling ${providerName}: ${String(error)}`,
-      });
+      return new AIProviderError(providerName, { cause: new Error(String(error)) });
     }
 
     const { status } = error as Error & { status?: number };
 
-    if (status === 429) return new AIRateLimitError(providerName, { cause: error });
-    if (status === 401) return new AIAuthenticationError(providerName, { cause: error });
+    if (status === 429) return new AITooManyRequestsError(providerName, { cause: error });
+    if (status === 401) return new AIUnauthorizedError(providerName, { cause: error });
 
     return new AIProviderError(providerName, { cause: error });
   }
