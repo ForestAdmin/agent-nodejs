@@ -65,7 +65,11 @@ export class AIUnauthorizedError extends UnauthorizedError {
   readonly cause?: Error;
 
   constructor(provider: string, options?: { cause?: Error }) {
-    super(`${provider} authentication failed: ${options?.cause?.message ?? 'check your API key configuration'}`);
+    super(
+      `${provider} authentication failed: ${
+        options?.cause?.message ?? 'check your API key configuration'
+      }`,
+    );
     this.name = 'AIUnauthorizedError';
     this.provider = provider;
     if (options?.cause) this.cause = options.cause;
