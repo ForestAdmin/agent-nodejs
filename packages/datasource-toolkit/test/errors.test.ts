@@ -1,5 +1,13 @@
 /* eslint-disable max-classes-per-file */
-import { BusinessError, IntrospectionFormatError } from '../src/errors';
+import {
+  BadRequestError,
+  BusinessError,
+  ForbiddenError,
+  IntrospectionFormatError,
+  NotFoundError,
+  UnprocessableError,
+  ValidationError,
+} from '../src/errors';
 
 describe('errors', () => {
   describe('BusinessError', () => {
@@ -50,6 +58,19 @@ describe('errors', () => {
         const error = new Error('test');
         expect(BusinessError.isOfType(error, BusinessError)).toBeFalsy();
       });
+    });
+  });
+
+  describe.each([
+    { ErrorClass: ValidationError, expectedBase: 'ValidationError' },
+    { ErrorClass: BadRequestError, expectedBase: 'BadRequestError' },
+    { ErrorClass: UnprocessableError, expectedBase: 'UnprocessableError' },
+    { ErrorClass: ForbiddenError, expectedBase: 'ForbiddenError' },
+    { ErrorClass: NotFoundError, expectedBase: 'NotFoundError' },
+  ])('$ErrorClass.name', ({ ErrorClass, expectedBase }) => {
+    it(`should set baseBusinessErrorName to '${expectedBase}'`, () => {
+      const error = new ErrorClass('test');
+      expect(error.baseBusinessErrorName).toEqual(expectedBase);
     });
   });
 
