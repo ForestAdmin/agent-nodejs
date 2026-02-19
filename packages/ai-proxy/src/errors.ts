@@ -6,6 +6,7 @@
 // eslint-disable-next-line max-classes-per-file
 import {
   BadRequestError,
+  ForbiddenError,
   NotFoundError,
   TooManyRequestsError,
   UnauthorizedError,
@@ -52,7 +53,7 @@ export class AITooManyRequestsError extends TooManyRequestsError {
   readonly cause?: Error;
 
   constructor(provider: string, options?: { cause?: Error }) {
-    super(`${provider} rate limit exceeded`);
+    super(`${provider} rate limit exceeded: ${options?.cause?.message ?? 'unknown reason'}`);
     this.name = 'AITooManyRequestsError';
     this.provider = provider;
     if (options?.cause) this.cause = options.cause;
@@ -64,8 +65,20 @@ export class AIUnauthorizedError extends UnauthorizedError {
   readonly cause?: Error;
 
   constructor(provider: string, options?: { cause?: Error }) {
-    super(`${provider} authentication failed: check your API key configuration`);
+    super(`${provider} authentication failed: ${options?.cause?.message ?? 'check your API key configuration'}`);
     this.name = 'AIUnauthorizedError';
+    this.provider = provider;
+    if (options?.cause) this.cause = options.cause;
+  }
+}
+
+export class AIForbiddenError extends ForbiddenError {
+  readonly provider: string;
+  readonly cause?: Error;
+
+  constructor(provider: string, options?: { cause?: Error }) {
+    super(`${provider} access denied: ${options?.cause?.message ?? 'permission denied'}`);
+    this.name = 'AIForbiddenError';
     this.provider = provider;
     if (options?.cause) this.cause = options.cause;
   }

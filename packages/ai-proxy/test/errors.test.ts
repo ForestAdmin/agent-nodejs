@@ -1,5 +1,6 @@
 import {
   BadRequestError,
+  ForbiddenError,
   NotFoundError,
   TooManyRequestsError,
   UnauthorizedError,
@@ -8,6 +9,7 @@ import {
 
 import {
   AIBadRequestError,
+  AIForbiddenError,
   AIModelNotSupportedError,
   AINotConfiguredError,
   AINotFoundError,
@@ -79,6 +81,16 @@ describe('AI Error Hierarchy', () => {
       expect(error).toBeInstanceOf(UnauthorizedError);
       expect(error.provider).toBe('OpenAI');
       expect(error.httpCode).toBe(401);
+    });
+  });
+
+  describe('ForbiddenError branch (403)', () => {
+    test('AIForbiddenError extends ForbiddenError', () => {
+      const error = new AIForbiddenError('OpenAI', { cause: new Error('model access denied') });
+      expect(error).toBeInstanceOf(ForbiddenError);
+      expect(error.provider).toBe('OpenAI');
+      expect(error.httpCode).toBe(403);
+      expect(error.message).toBe('OpenAI access denied: model access denied');
     });
   });
 

@@ -12,6 +12,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import AnthropicAdapter from './anthropic-adapter';
 import {
   AIBadRequestError,
+  AIForbiddenError,
   AINotConfiguredError,
   AIProviderError,
   AITooManyRequestsError,
@@ -149,13 +150,14 @@ export default class ProviderDispatcher {
     if (error instanceof BusinessError) return error;
 
     if (!(error instanceof Error)) {
-      return new AIProviderError(providerName, { cause: new Error(String(error)) });
+      return new AIProviderError(providerName, { cause: new Error(JSON.stringify(error)) });
     }
 
     const { status } = error as Error & { status?: number };
 
     if (status === 429) return new AITooManyRequestsError(providerName, { cause: error });
     if (status === 401) return new AIUnauthorizedError(providerName, { cause: error });
+    if (status === 403) return new AIForbiddenError(providerName, { cause: error });
 
     return new AIProviderError(providerName, { cause: error });
   }
