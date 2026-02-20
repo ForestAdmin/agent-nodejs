@@ -1844,10 +1844,45 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
+"@forestadmin/ai-proxy@1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@forestadmin/ai-proxy/-/ai-proxy-1.5.0.tgz#c1bd55d9cbb2404c28c729b00bc72802eb0c8c29"
+  integrity sha512-hrENA5p48yHC/Fnh1CvjEW46KJWDdOx/SN1oF1TNNG0nhQyVY5Wll2XTAtX5he2+JKfpxh8fiBLbyA7OQai75A==
+  dependencies:
+    "@forestadmin/agent-toolkit" "1.0.0"
+    "@forestadmin/datasource-toolkit" "1.50.1"
+    "@langchain/anthropic" "1.3.17"
+    "@langchain/community" "1.1.4"
+    "@langchain/core" "1.1.15"
+    "@langchain/langgraph" "^1.1.0"
+    "@langchain/mcp-adapters" "1.1.1"
+    "@langchain/openai" "1.2.5"
+    zod "^4.3.5"
+
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
   integrity sha512-H4U1fAkzC3pm44Cdb/RoRZytI4SZlqb9YNv72ChUnUPJkNUSo2+o5JxDpjWRM1OmIb87Bv4274U3W3AmVhuwQQ==
+
+"@forestadmin/datasource-customizer@1.67.4":
+  version "1.67.4"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-customizer/-/datasource-customizer-1.67.4.tgz#9973f3e09cc45ea7aa117252b9b40930d9698e80"
+  integrity sha512-z1PHXlXf45zI+dJ9TojIsCcOiWUdNo5nT4hohnQdcX/BHQ0NqsXbfN8bj3dfSlPeeKaMvbBp4v4C08TyM+ebJg==
+  dependencies:
+    "@forestadmin/datasource-toolkit" "1.50.1"
+    antlr4 "^4.13.1-patch-1"
+    file-type "^16.5.4"
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    uuid "11.0.2"
+
+"@forestadmin/datasource-mongoose@1.12.6":
+  version "1.12.6"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-mongoose/-/datasource-mongoose-1.12.6.tgz#35513bab068a8ccaffa07770433a70d4c4cfe996"
+  integrity sha512-ErVwjSemPKxoQdjNIxWh8fFOUfCg7j+UlzYusHG9o6Y3zf7LpBzq3Q5Iq1OAlhpM1JIUm5cjWWL11jqKTS9TTw==
+  dependencies:
+    "@forestadmin/datasource-toolkit" "1.50.1"
+    luxon "^3.2.1"
 
 "@forestadmin/datasource-sequelize@1.10.5":
   version "1.10.5"
@@ -1877,6 +1912,15 @@
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
+
+"@forestadmin/datasource-toolkit@1.50.1":
+  version "1.50.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/datasource-toolkit/-/datasource-toolkit-1.50.1.tgz#a6b1c4287845f381a3686f4669267741a8a9a94a"
+  integrity sha512-FVpFnfmFpMWBhqwGdwVdfQ+ZU7OeXZP81FkEDIU3hnpImD+h0qe2Foh6kyIh6zfWIzxejzRZlsv5gWnrv6fZxA==
+  dependencies:
+    luxon "^3.2.1"
+    object-hash "^3.0.0"
+    uuid "11.0.2"
 
 "@gar/promisify@^1.0.1":
   version "1.1.3"
@@ -9969,9 +10013,9 @@ highlight.js@^10.7.1:
   integrity sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A==
 
 hono@^4.11.4:
-  version "4.11.9"
-  resolved "https://registry.yarnpkg.com/hono/-/hono-4.11.9.tgz#4e0dec5309a8f05216c777cbd93131a41cf28eb9"
-  integrity sha512-Eaw2YTGM6WOxA6CXbckaEvslr2Ne4NFsKrvc0v97JD5awbmeBLO5w9Ho9L9kmKonrwF9RJlW6BxT1PVv/agBHQ==
+  version "4.12.0"
+  resolved "https://registry.yarnpkg.com/hono/-/hono-4.12.0.tgz#18f96a2962274398efc57a1a79e22b3daad2ca1c"
+  integrity sha512-NekXntS5M94pUfiVZ8oXXK/kkri+5WpX2/Ik+LVsl+uvw+soj4roXIsPqO+XsWrAw20mOzaXOZf3Q7PfB9A/IA==
 
 hook-std@^4.0.0:
   version "4.0.0"
