@@ -1,3 +1,18 @@
+# @forestadmin/datasource-customizer [1.68.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.67.4...@forestadmin/datasource-customizer@1.68.0) (2026-02-20)
+
+
+### Features
+
+* add capabilities on aggregate ([#1465](https://github.com/ForestAdmin/agent-nodejs/issues/1465)) ([4734d6a](https://github.com/ForestAdmin/agent-nodejs/commit/4734d6ab3f6ff68bb8626a6efe0e42d6fb55a054))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.51.0
+
 ## @forestadmin/datasource-customizer [1.67.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.67.3...@forestadmin/datasource-customizer@1.67.4) (2026-02-18)
 
 
