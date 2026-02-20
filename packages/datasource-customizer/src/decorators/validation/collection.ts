@@ -1,4 +1,6 @@
 import type {
+  AggregateResult,
+  Aggregation,
   Caller,
   CollectionSchema,
   ColumnSchema,
@@ -6,6 +8,7 @@ import type {
   ConditionTreeLeaf,
   Filter,
   RecordData,
+  RelationSchema,
 } from '@forestadmin/datasource-toolkit';
 
 import {
@@ -55,6 +58,17 @@ export default class ValidationDecorator extends CollectionDecorator {
     return super.update(caller, filter, patch);
   }
 
+  override async aggregate(
+    caller: Caller,
+    filter: Filter,
+    aggregation: Aggregation,
+    limit?: number,
+  ): Promise<AggregateResult[]> {
+    this.validateAggregation(aggregation);
+
+    return super.aggregate(caller, filter, aggregation, limit);
+  }
+
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
     const schema = { ...subSchema, fields: { ...subSchema.fields } };
 
@@ -72,6 +86,50 @@ export default class ValidationDecorator extends CollectionDecorator {
     });
 
     return schema;
+  }
+
+  private validateAggregation(aggregation: Aggregation): void {
+    const capabilities = this.schema.aggregationCapabilities;
+    if (!capabilities) return;
+
+    const groups = aggregation.groups ?? [];
+    if (groups.length === 0) return;
+
+    if (!capabilities.supportGroups) {
+      throw new ValidationError('This collection does not support aggregate with groups.');
+    }
+
+    for (const group of groups) {
+      let { field } = group;
+      let { schema } = this;
+
+      if (field.includes(':')) {
+        const paths = field.split(':');
+        field = paths.pop();
+        schema = paths.reduce((s: CollectionSchema, path: string) => {
+          return this.dataSource.getCollection((s.fields[path] as RelationSchema).foreignCollection)
+            .schema;
+        }, this.schema);
+      }
+
+      if (!(schema.fields[field] as ColumnSchema).isGroupable) {
+        throw new ValidationError(`Field '${group.field}' is not groupable on "${this.name}".`);
+      }
+    }
+
+    for (const group of groups) {
+      if (group.operation && !capabilities.supportedDateOperations.has(group.operation)) {
+        const supported =
+          capabilities.supportedDateOperations.size > 0
+            ? [...capabilities.supportedDateOperations].join(', ')
+            : 'none';
+
+        throw new ValidationError(
+          `Collection "${this.name}" does not support the '${group.operation}' date operation. ` +
+            `Supported date operations: [${supported}].`,
+        );
+      }
+    }
   }
 
   private validate(record: RecordData, timezone: string, allFields: boolean): void {

@@ -146,6 +146,7 @@ describe('Capabilities', () => {
                 {
                   name: 'id',
                   type: 'Uuid',
+                  isGroupable: true,
                   operators: [
                     'blank',
                     'equal',
@@ -161,6 +162,7 @@ describe('Capabilities', () => {
                 {
                   name: 'name',
                   type: 'String',
+                  isGroupable: true,
                   operators: [
                     'blank',
                     'equal',
@@ -188,6 +190,7 @@ describe('Capabilities', () => {
                 {
                   name: 'publishedAt',
                   type: 'Date',
+                  isGroupable: true,
                   operators: [
                     'blank',
                     'equal',
@@ -217,6 +220,7 @@ describe('Capabilities', () => {
                 {
                   name: 'price',
                   type: 'Number',
+                  isGroupable: true,
                   operators: [
                     'blank',
                     'equal',
@@ -236,6 +240,227 @@ describe('Capabilities', () => {
               ],
             },
           ],
+        });
+      });
+
+      describe('when collection has aggregationCapabilities', () => {
+        test('should include aggregationCapabilities with serialized supportedDateOperations', async () => {
+          const collectionWithCaps = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                author_id: factories.columnSchema.text().build({ isGroupable: true }),
+              },
+              aggregationCapabilities: {
+                supportGroups: true,
+                supportedDateOperations: new Set(['Year', 'Month']),
+              },
+            }),
+          });
+
+          const dsWithCaps = factories.dataSource.buildWithCollection(collectionWithCaps);
+          const routeWithCaps = new Capabilities(services, options, dsWithCaps);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithCaps.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+
+          expect(collections[0].aggregationCapabilities).toEqual({
+            supportGroups: true,
+            supportedDateOperations: ['Year', 'Month'],
+          });
+        });
+
+        test('should derive supportGroups to false when no field is groupable', async () => {
+          const collectionWithCaps = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build({ isGroupable: false }),
+              },
+              aggregationCapabilities: {
+                supportGroups: true,
+                supportedDateOperations: new Set(),
+              },
+            }),
+          });
+
+          const dsWithCaps = factories.dataSource.buildWithCollection(collectionWithCaps);
+          const routeWithCaps = new Capabilities(services, options, dsWithCaps);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithCaps.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+
+          expect(collections[0].aggregationCapabilities.supportGroups).toBe(false);
+        });
+
+        test('should expose isGroupable per field', async () => {
+          const collectionWithCaps = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build({ isGroupable: false }),
+                status: factories.columnSchema.text().build({ isGroupable: true }),
+              },
+              aggregationCapabilities: {
+                supportGroups: true,
+                supportedDateOperations: new Set(),
+              },
+            }),
+          });
+
+          const dsWithCaps = factories.dataSource.buildWithCollection(collectionWithCaps);
+          const routeWithCaps = new Capabilities(services, options, dsWithCaps);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithCaps.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+          const idField = collections[0].fields.find(f => f.name === 'id');
+          const statusField = collections[0].fields.find(f => f.name === 'status');
+
+          expect(idField.isGroupable).toBe(false);
+          expect(statusField.isGroupable).toBe(true);
+        });
+      });
+
+      describe('when collection has ManyToOne relations', () => {
+        test('should return ManyToOne field with isGroupable from foreign key column', async () => {
+          const collectionWithRelation = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                authorId: factories.columnSchema.text().build({ isGroupable: true }),
+                author: factories.manyToOneSchema.build({
+                  foreignKey: 'authorId',
+                  foreignCollection: 'author',
+                }),
+              },
+            }),
+          });
+
+          const dsWithRelation = factories.dataSource.buildWithCollection(collectionWithRelation);
+          const routeWithRelation = new Capabilities(services, options, dsWithRelation);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithRelation.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+          const authorField = collections[0].fields.find(f => f.name === 'author');
+
+          expect(authorField).toEqual({
+            name: 'author',
+            type: 'ManyToOne',
+            isGroupable: true,
+          });
+        });
+
+        test('should set isGroupable to false on ManyToOne when foreign key is not groupable', async () => {
+          const collectionWithRelation = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build(),
+                authorId: factories.columnSchema.text().build({ isGroupable: false }),
+                author: factories.manyToOneSchema.build({
+                  foreignKey: 'authorId',
+                  foreignCollection: 'author',
+                }),
+              },
+            }),
+          });
+
+          const dsWithRelation = factories.dataSource.buildWithCollection(collectionWithRelation);
+          const routeWithRelation = new Capabilities(services, options, dsWithRelation);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithRelation.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+          const authorField = collections[0].fields.find(f => f.name === 'author');
+
+          expect(authorField).toEqual({
+            name: 'author',
+            type: 'ManyToOne',
+            isGroupable: false,
+          });
+        });
+
+        test('should derive supportGroups to true when only ManyToOne field is groupable', async () => {
+          const collectionWithRelation = factories.collection.build({
+            name: 'orders',
+            schema: factories.collectionSchema.build({
+              fields: {
+                id: factories.columnSchema.uuidPrimaryKey().build({ isGroupable: false }),
+                authorId: factories.columnSchema.text().build({ isGroupable: true }),
+                author: factories.manyToOneSchema.build({
+                  foreignKey: 'authorId',
+                  foreignCollection: 'author',
+                }),
+              },
+              aggregationCapabilities: {
+                supportGroups: true,
+                supportedDateOperations: new Set(),
+              },
+            }),
+          });
+
+          const dsWithRelation = factories.dataSource.buildWithCollection(collectionWithRelation);
+          const routeWithRelation = new Capabilities(services, options, dsWithRelation);
+
+          const context = createMockContext({
+            ...defaultContext,
+            requestBody: { collectionNames: ['orders'] },
+          });
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          await routeWithRelation.fetchCapabilities(context);
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { collections } = context.response.body as any;
+
+          expect(collections[0].aggregationCapabilities.supportGroups).toBe(true);
         });
       });
 

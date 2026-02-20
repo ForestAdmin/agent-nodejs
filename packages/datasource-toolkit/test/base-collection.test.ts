@@ -1,14 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
 import type { AggregateResult } from '../src/interfaces/query/aggregation';
 import type { RecordData } from '../src/interfaces/record';
-import type { CollectionSchema, ColumnSchema, FieldSchema } from '../src/interfaces/schema';
+import type { ColumnSchema, FieldSchema } from '../src/interfaces/schema';
 
 import * as factories from './__factories__';
 import BaseCollection from '../src/base-collection';
 
 class ConcreteCollection extends BaseCollection {
-  override schema: CollectionSchema;
-
   constructor() {
     super('books', factories.dataSource.build());
   }
@@ -210,6 +208,72 @@ describe('BaseCollection', () => {
       const collection = new CollectionSearchable();
 
       expect(collection.schema.countable).toBe(true);
+    });
+  });
+
+  describe('aggregationCapabilities', () => {
+    it('should have default capabilities with all groups and date operations supported', () => {
+      const collection = new ConcreteCollection();
+
+      expect(collection.schema.aggregationCapabilities).toEqual({
+        supportGroups: true,
+        supportedDateOperations: new Set(['Year', 'Quarter', 'Month', 'Week', 'Day']),
+      });
+    });
+  });
+
+  describe('setAggregationCapabilities', () => {
+    class CollectionWithRestrictedAggregation extends ConcreteCollection {
+      constructor() {
+        super();
+
+        this.setAggregationCapabilities({
+          supportGroups: false,
+          supportedDateOperations: new Set(),
+        });
+      }
+    }
+
+    it('should override aggregation capabilities', () => {
+      const collection = new CollectionWithRestrictedAggregation();
+
+      expect(collection.schema.aggregationCapabilities).toEqual({
+        supportGroups: false,
+        supportedDateOperations: new Set(),
+      });
+    });
+  });
+
+  describe('addField with isGroupable', () => {
+    class CollectionWithFields extends ConcreteCollection {
+      constructor() {
+        super();
+
+        this.addField('id', factories.columnSchema.uuidPrimaryKey().build());
+        this.addField('title', factories.columnSchema.build());
+        this.addField('status', factories.columnSchema.build({ isGroupable: false }));
+      }
+    }
+
+    it('should default isGroupable to true for primary keys', () => {
+      const collection = new CollectionWithFields();
+      const field = collection.schema.fields.id as ColumnSchema;
+      expect(field.type).toBe('Column');
+      expect(field.isGroupable).toBe(true);
+    });
+
+    it('should default isGroupable to true for non-PK columns', () => {
+      const collection = new CollectionWithFields();
+      const field = collection.schema.fields.title as ColumnSchema;
+      expect(field.type).toBe('Column');
+      expect(field.isGroupable).toBe(true);
+    });
+
+    it('should respect explicit isGroupable override', () => {
+      const collection = new CollectionWithFields();
+      const field = collection.schema.fields.status as ColumnSchema;
+      expect(field.type).toBe('Column');
+      expect(field.isGroupable).toBe(false);
     });
   });
 

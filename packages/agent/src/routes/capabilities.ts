@@ -41,20 +41,44 @@ export default class Capabilities extends BaseRoute {
         canUseProjectionOnGetOne: true,
       },
       collections:
-        collections?.map(collection => ({
-          name: collection.name,
-          fields: Object.entries(collection.schema.fields)
+        collections?.map(collection => {
+          const { aggregationCapabilities } = collection.schema;
+
+          const fields = Object.entries(collection.schema.fields)
             .map(([fieldName, field]) => {
-              return this.shouldCreateFieldCapability(field)
-                ? {
-                    name: fieldName,
-                    type: field.columnType,
-                    operators: [...field.filterOperators].map(this.pascalCaseToSnakeCase),
-                  }
-                : null;
+              if (field.type === 'ManyToOne') {
+                return {
+                  name: fieldName,
+                  type: 'ManyToOne',
+                  isGroupable:
+                    (collection.schema.fields[field.foreignKey] as ColumnSchema).isGroupable ??
+                    true,
+                };
+              }
+
+              if (!this.shouldCreateFieldCapability(field)) return null;
+
+              return {
+                name: fieldName,
+                type: field.columnType,
+                operators: [...field.filterOperators].map(this.pascalCaseToSnakeCase),
+                isGroupable: field.isGroupable ?? true,
+              };
             })
-            .filter(Boolean),
-        })) ?? [],
+            .filter(Boolean);
+
+          return {
+            name: collection.name,
+            fields,
+            aggregationCapabilities: aggregationCapabilities
+              ? {
+                  supportGroups:
+                    aggregationCapabilities.supportGroups && fields.some(f => f?.isGroupable),
+                  supportedDateOperations: [...aggregationCapabilities.supportedDateOperations],
+                }
+              : undefined,
+          };
+        }) ?? [],
     };
     context.response.status = HttpCode.Ok;
   }
