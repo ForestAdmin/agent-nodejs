@@ -46,7 +46,7 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "devDependencies": {
-    "@fastify/express": "^1.1.0",
+    "@fastify/express": "^4.0.3",
     "@forestadmin/datasource-sql": "1.17.4",
     "@nestjs/common": "^10.4.16",
     "@nestjs/core": "^10.4.16",
