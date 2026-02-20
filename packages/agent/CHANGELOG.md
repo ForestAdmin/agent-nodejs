@@ -1,3 +1,22 @@
+# @forestadmin/agent [1.73.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.72.11...@forestadmin/agent@1.73.0) (2026-02-20)
+
+
+### Features
+
+* add capabilities on aggregate ([#1465](https://github.com/ForestAdmin/agent-nodejs/issues/1465)) ([4734d6a](https://github.com/ForestAdmin/agent-nodejs/commit/4734d6ab3f6ff68bb8626a6efe0e42d6fb55a054))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.68.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.51.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.14
+* **@forestadmin/mcp-server:** upgraded to 1.8.5
+* **@forestadmin/datasource-sql:** upgraded to 1.17.4
+
 ## @forestadmin/agent [1.72.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.72.10...@forestadmin/agent@1.72.11) (2026-02-18)
 
 
