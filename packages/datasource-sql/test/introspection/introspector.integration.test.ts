@@ -441,4 +441,126 @@ ALTER TABLE "TableA" ADD CONSTRAINT "A_fkey" FOREIGN KEY ("type") REFERENCES "Ta
       );
     });
   });
+
+  /**
+   * Bug reproduction: FK relations disappear when another schema has same table names.
+   * @see https://community.forestadmin.com/t/missing-related-data/8385
+   *
+   * Root cause: Sequelize's FK query joins constraint_column_usage on constraint_name
+   * WITHOUT schema qualifier. When two schemas have identical table/column names,
+   * PostgreSQL generates identical auto-constraint names in both schemas. The cross-schema
+   * join produces extra rows, which the composite FK detection misinterprets as composite
+   * foreign keys and filters out.
+   */
+  describe('relations with same table names across schemas', () => {
+    const db = 'database_introspector_multi_schema_fk';
+
+    describe.each(POSTGRESQL_DETAILS)('on $name', connectionDetails => {
+      let sequelize: Sequelize;
+      let sequelizeSchema1: Sequelize;
+
+      beforeEach(async () => {
+        sequelize = await setupEmptyDatabase(connectionDetails, db);
+
+        await sequelize
+          .getQueryInterface()
+          .dropSchema('schema1')
+          .catch(() => {});
+        await sequelize
+          .getQueryInterface()
+          .dropSchema('schema2')
+          .catch(() => {});
+
+        await sequelize.getQueryInterface().createSchema('schema1');
+        await sequelize.getQueryInterface().createSchema('schema2');
+
+        sequelizeSchema1 = new Sequelize(connectionDetails.url(db), {
+          logging: false,
+          schema: 'schema1',
+        });
+      });
+
+      afterEach(async () => {
+        await sequelizeSchema1?.close();
+        await sequelize?.close();
+      });
+
+      it('should not misdetect composite FK when another schema has same constraint names', async () => {
+        // The Sequelize FK query joins information_schema.constraint_column_usage (ccu)
+        // on constraint_name WITHOUT schema qualifier. When two schemas have tables with
+        // the same name and FK columns with the same name, PostgreSQL generates identical
+        // auto-constraint names (e.g. "xxx_model_code_fkey") in both schemas.
+        // The cross-schema join produces extra rows that the code misdetects as composite FKs,
+        // filtering them out and losing the relation.
+        await sequelize.query(`
+          CREATE TABLE schema1.main_table (
+            id SERIAL PRIMARY KEY,
+            unique_code TEXT NOT NULL UNIQUE
+          );
+
+          CREATE TABLE schema1.xxx_model (
+            id SERIAL PRIMARY KEY,
+            code TEXT NOT NULL REFERENCES schema1.main_table(unique_code)
+          );
+
+          CREATE TABLE schema1.yyy_model (
+            id SERIAL PRIMARY KEY,
+            code TEXT NOT NULL REFERENCES schema1.main_table(unique_code)
+          );
+
+          CREATE TABLE schema1.a_b_c (
+            id SERIAL PRIMARY KEY,
+            code TEXT NOT NULL REFERENCES schema1.main_table(unique_code)
+          );
+
+          -- Schema2: same table names AND same FK column names → same auto-constraint names
+          CREATE TABLE schema2.main_table (
+            id SERIAL PRIMARY KEY,
+            unique_code TEXT NOT NULL UNIQUE
+          );
+
+          CREATE TABLE schema2.xxx_model (
+            id SERIAL PRIMARY KEY,
+            code TEXT NOT NULL REFERENCES schema2.main_table(unique_code)
+          );
+
+          CREATE TABLE schema2.yyy_model (
+            id SERIAL PRIMARY KEY,
+            code TEXT NOT NULL REFERENCES schema2.main_table(unique_code)
+          );
+
+          CREATE TABLE schema2.a_b_c (
+            id SERIAL PRIMARY KEY,
+            code TEXT NOT NULL REFERENCES schema2.main_table(unique_code)
+          );
+        `);
+
+        const logger = jest.fn();
+        const { tables } = await Introspector.introspect(sequelizeSchema1, logger);
+
+        expect(tables).toHaveLength(4);
+
+        const xxxModel = tables.find(t => t.name === 'xxx_model');
+        const yyyModel = tables.find(t => t.name === 'yyy_model');
+        const abcModel = tables.find(t => t.name === 'a_b_c');
+
+        // All 3 models should preserve their FK constraint to main_table.unique_code
+        expect(xxxModel?.columns.find(c => c.name === 'code')?.constraints).toEqual([
+          { table: 'main_table', column: 'unique_code' },
+        ]);
+        expect(yyyModel?.columns.find(c => c.name === 'code')?.constraints).toEqual([
+          { table: 'main_table', column: 'unique_code' },
+        ]);
+        expect(abcModel?.columns.find(c => c.name === 'code')?.constraints).toEqual([
+          { table: 'main_table', column: 'unique_code' },
+        ]);
+
+        // Should NOT log composite relation warnings for these single-column FKs
+        expect(logger).not.toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining('Composite relations are not supported'),
+        );
+      });
+    });
+  });
 });
