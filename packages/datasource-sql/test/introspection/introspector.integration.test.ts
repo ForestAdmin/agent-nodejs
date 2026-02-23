@@ -480,8 +480,8 @@ ALTER TABLE "TableA" ADD CONSTRAINT "A_fkey" FOREIGN KEY ("type") REFERENCES "Ta
       });
 
       it('should not misdetect composite FK when another schema has same constraint names', async () => {
-        // Set up the exact conditions described above: two schemas with matching table names,
-        // FK column names, and therefore identical auto-generated constraint names.
+        // Two schemas with matching table names and FK column names cause PostgreSQL to generate
+        // identical auto-constraint names, triggering the Sequelize cross-schema join bug.
         await sequelize.query(`
           CREATE TABLE schema1.main_table (
             id SERIAL PRIMARY KEY,
@@ -547,6 +547,56 @@ ALTER TABLE "TableA" ADD CONSTRAINT "A_fkey" FOREIGN KEY ("type") REFERENCES "Ta
 
         // Should NOT log composite relation warnings for these single-column FKs
         expect(logger).not.toHaveBeenCalledWith(
+          'Warn',
+          expect.stringContaining('Composite relations are not supported'),
+        );
+
+        // Should log that cross-schema duplicates were deduplicated
+        expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('Deduplicated'));
+      });
+
+      it('should still detect real composite FKs when another schema has same constraint names', async () => {
+        await sequelize.query(`
+          CREATE TABLE schema1.target (
+            type TEXT NOT NULL,
+            code TEXT NOT NULL,
+            PRIMARY KEY (type, code)
+          );
+
+          CREATE TABLE schema1.source (
+            id SERIAL PRIMARY KEY,
+            fk_type TEXT NOT NULL,
+            fk_code TEXT NOT NULL,
+            CONSTRAINT source_composite_fkey FOREIGN KEY (fk_type, fk_code)
+              REFERENCES schema1.target(type, code)
+          );
+
+          -- Schema2: identical structure produces identical auto-constraint names
+          CREATE TABLE schema2.target (
+            type TEXT NOT NULL,
+            code TEXT NOT NULL,
+            PRIMARY KEY (type, code)
+          );
+
+          CREATE TABLE schema2.source (
+            id SERIAL PRIMARY KEY,
+            fk_type TEXT NOT NULL,
+            fk_code TEXT NOT NULL,
+            CONSTRAINT source_composite_fkey FOREIGN KEY (fk_type, fk_code)
+              REFERENCES schema2.target(type, code)
+          );
+        `);
+
+        const logger = jest.fn();
+        const { tables } = await Introspector.introspect(sequelizeSchema1, logger);
+
+        const sourceTable = tables.find(t => t.name === 'source');
+
+        // Composite FKs should be filtered out (not supported by Sequelize)
+        expect(sourceTable?.columns.find(c => c.name === 'fk_type')?.constraints).toEqual([]);
+        expect(sourceTable?.columns.find(c => c.name === 'fk_code')?.constraints).toEqual([]);
+
+        expect(logger).toHaveBeenCalledWith(
           'Warn',
           expect.stringContaining('Composite relations are not supported'),
         );

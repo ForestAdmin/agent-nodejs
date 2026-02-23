@@ -240,9 +240,17 @@ export default class Introspector {
 
     // Deduplicate: the filtered step above matches on the source table's schema (tableSchema),
     // but the Sequelize join bug produces rows that differ in referencedTableSchema (the FK
-    // target's schema). Keep one per (constraintName, columnName) to collapse these duplicates.
+    // target's schema). Sort so rows matching the source schema come first, then keep one per
+    // (constraintName, columnName) to ensure we always preserve the correct FK target.
+    const sorted = [...filtered].sort((a, b) => {
+      const aMatch = a.referencedTableSchema === tableIdentifier.schema ? 0 : 1;
+      const bMatch = b.referencedTableSchema === tableIdentifier.schema ? 0 : 1;
+
+      return aMatch - bMatch;
+    });
+
     const seen = new Set<string>();
-    const deduplicated = filtered.filter(ref => {
+    const deduplicated = sorted.filter(ref => {
       if (!ref.constraintName) return true;
 
       const key = `${ref.constraintName}::${ref.columnName}`;
