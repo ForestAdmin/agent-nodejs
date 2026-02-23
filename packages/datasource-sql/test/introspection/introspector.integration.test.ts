@@ -446,11 +446,11 @@ ALTER TABLE "TableA" ADD CONSTRAINT "A_fkey" FOREIGN KEY ("type") REFERENCES "Ta
    * Bug reproduction: FK relations disappear when another schema has same table names.
    * @see https://community.forestadmin.com/t/missing-related-data/8385
    *
-   * Root cause: Sequelize's FK query joins constraint_column_usage on constraint_name
-   * WITHOUT schema qualifier. When two schemas have identical table/column names,
-   * PostgreSQL generates identical auto-constraint names in both schemas. The cross-schema
-   * join produces extra rows, which the composite FK detection misinterprets as composite
-   * foreign keys and filters out.
+   * Root cause: Sequelize's FK query joins both key_column_usage and constraint_column_usage
+   * on constraint_name without schema qualifiers. When two schemas have identical table/column
+   * names, PostgreSQL generates identical auto-constraint names (e.g. "xxx_model_code_fkey")
+   * in both schemas. The unqualified joins produce extra row matches, which were misdetected
+   * as composite foreign keys and filtered out.
    */
   describe('relations with same table names across schemas', () => {
     const db = 'database_introspector_multi_schema_fk';
@@ -462,14 +462,8 @@ ALTER TABLE "TableA" ADD CONSTRAINT "A_fkey" FOREIGN KEY ("type") REFERENCES "Ta
       beforeEach(async () => {
         sequelize = await setupEmptyDatabase(connectionDetails, db);
 
-        await sequelize
-          .getQueryInterface()
-          .dropSchema('schema1')
-          .catch(() => {});
-        await sequelize
-          .getQueryInterface()
-          .dropSchema('schema2')
-          .catch(() => {});
+        await sequelize.query('DROP SCHEMA IF EXISTS schema1 CASCADE');
+        await sequelize.query('DROP SCHEMA IF EXISTS schema2 CASCADE');
 
         await sequelize.getQueryInterface().createSchema('schema1');
         await sequelize.getQueryInterface().createSchema('schema2');
@@ -486,12 +480,8 @@ ALTER TABLE "TableA" ADD CONSTRAINT "A_fkey" FOREIGN KEY ("type") REFERENCES "Ta
       });
 
       it('should not misdetect composite FK when another schema has same constraint names', async () => {
-        // The Sequelize FK query joins information_schema.constraint_column_usage (ccu)
-        // on constraint_name WITHOUT schema qualifier. When two schemas have tables with
-        // the same name and FK columns with the same name, PostgreSQL generates identical
-        // auto-constraint names (e.g. "xxx_model_code_fkey") in both schemas.
-        // The cross-schema join produces extra rows that the code misdetects as composite FKs,
-        // filtering them out and losing the relation.
+        // Set up the exact conditions described above: two schemas with matching table names,
+        // FK column names, and therefore identical auto-generated constraint names.
         await sequelize.query(`
           CREATE TABLE schema1.main_table (
             id SERIAL PRIMARY KEY,

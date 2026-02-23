@@ -198,11 +198,11 @@ export default class Introspector {
           ? tableReference.tableName
           : // On SQLite, the query interface returns an object with a tableName property
             tableReference.tableName.tableName,
-      // A true composite FK has multiple rows with the same constraint but different columns.
-      // We must compare columnName to avoid false positives from Sequelize's cross-schema join:
-      // its FK query joins constraint_column_usage on constraint_name without schema qualifier,
-      // so when two schemas have tables with the same name and FK columns with the same name,
-      // PostgreSQL's identical auto-constraint names cause a cross-join that duplicates rows.
+      // A true composite FK has rows with the same constraint name but different source columns.
+      // We compare columnName to avoid false positives from a Sequelize bug: its FK query joins
+      // both key_column_usage and constraint_column_usage on constraint_name without schema
+      // qualifiers, so when two schemas have identical table/column names, PostgreSQL's identical
+      // auto-constraint names cause extra row matches that are not real composite FKs.
       composite:
         tableReferences.filter(
           reference =>
@@ -238,14 +238,30 @@ export default class Introspector {
         !r.composite,
     );
 
-    // Deduplicate: the Sequelize cross-schema join may produce duplicate rows that only
-    // differ in referencedTableSchema. Keep one per (constraintName, columnName).
-    return filtered.filter(
-      (ref, index, arr) =>
-        arr.findIndex(
-          r => r.constraintName === ref.constraintName && r.columnName === ref.columnName,
-        ) === index,
-    );
+    // Deduplicate: the filtered step above matches on the source table's schema (tableSchema),
+    // but the Sequelize join bug produces rows that differ in referencedTableSchema (the FK
+    // target's schema). Keep one per (constraintName, columnName) to collapse these duplicates.
+    const seen = new Set<string>();
+    const deduplicated = filtered.filter(ref => {
+      if (!ref.constraintName) return true;
+
+      const key = `${ref.constraintName}::${ref.columnName}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+
+      return true;
+    });
+
+    const droppedCount = filtered.length - deduplicated.length;
+
+    if (droppedCount > 0) {
+      logger?.(
+        'Warn',
+        `Deduplicated ${droppedCount} cross-schema duplicate FK reference(s) on '${tableIdentifierForQuery.tableName}'`,
+      );
+    }
+
+    return deduplicated;
   }
 
   private static async getColumn(
