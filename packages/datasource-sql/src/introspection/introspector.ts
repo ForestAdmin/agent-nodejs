@@ -198,11 +198,18 @@ export default class Introspector {
           ? tableReference.tableName
           : // On SQLite, the query interface returns an object with a tableName property
             tableReference.tableName.tableName,
+      // A true composite FK has multiple rows with the same constraint but different columns.
+      // We must compare columnName to avoid false positives from Sequelize's cross-schema join:
+      // its FK query joins constraint_column_usage on constraint_name without schema qualifier,
+      // so when two schemas have tables with the same name and FK columns with the same name,
+      // PostgreSQL's identical auto-constraint names cause a cross-join that duplicates rows.
       composite:
         tableReferences.filter(
           reference =>
-            reference.constraintName && reference.constraintName === tableReference.constraintName,
-        ).length > 1,
+            reference.constraintName &&
+            reference.constraintName === tableReference.constraintName &&
+            reference.columnName !== tableReference.columnName,
+        ).length > 0,
     }));
 
     const compositeRelations = processedTableReferences
@@ -221,7 +228,7 @@ export default class Introspector {
       );
     }
 
-    return processedTableReferences.filter(
+    const filtered = processedTableReferences.filter(
       // There is a bug right now with sequelize on postgresql: returned association
       // are not filtered on the schema. So we have to filter them manually.
       // Should be fixed with Sequelize v7
@@ -229,6 +236,15 @@ export default class Introspector {
         r.tableName === tableIdentifier.tableName &&
         r.tableSchema === tableIdentifier.schema &&
         !r.composite,
+    );
+
+    // Deduplicate: the Sequelize cross-schema join may produce duplicate rows that only
+    // differ in referencedTableSchema. Keep one per (constraintName, columnName).
+    return filtered.filter(
+      (ref, index, arr) =>
+        arr.findIndex(
+          r => r.constraintName === ref.constraintName && r.columnName === ref.columnName,
+        ) === index,
     );
   }
 
