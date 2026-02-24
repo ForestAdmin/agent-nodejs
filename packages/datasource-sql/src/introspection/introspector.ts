@@ -209,7 +209,7 @@ export default class Introspector {
 
         logger?.(
           'Warn',
-          `Relations between different schemasare not supported. skipping '${r.constraintName}' on '${tableIdentifierForQuery.tableName}'.
+          `Relations between different schemas are not supported. Skipping '${r.constraintName}' on '${tableIdentifierForQuery.tableName}'.
           This warning can also occur when the same contraint name is present on multiple schemas, it will be ignored.`,
         );
 
