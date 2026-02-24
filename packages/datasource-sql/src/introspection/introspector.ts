@@ -188,16 +188,36 @@ export default class Introspector {
     queryInterface: QueryInterfaceExt,
     logger: Logger,
   ) {
-    const tableReferences = await queryInterface.getForeignKeyReferencesForTable(
-      tableIdentifierForQuery,
-    );
+    const tableReferences = (
+      await queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery)
+    )
+      .map(r => ({
+        ...r,
+        tableName: typeof r.tableName === 'string' ? r.tableName : r.tableName.tableName,
+      }))
+      .filter(r => {
+        // There is a bug right now with sequelize on postgresql: returned association
+        // are not filtered on the schema. So we have to filter them manually.
+        // Should be fixed with Sequelize v7
+        if (
+          r.tableName === tableIdentifier.tableName &&
+          r.tableSchema === tableIdentifier.schema &&
+          r.referencedTableSchema === tableIdentifier.schema
+        ) {
+          return true;
+        }
+
+        logger?.(
+          'Warn',
+          `Relations between different schemas are not supported. Skipping '${r.constraintName}' on '${tableIdentifierForQuery.tableName}'.
+          This warning can also occur when the same contraint name is present on multiple schemas, it will be ignored.`,
+        );
+
+        return false;
+      });
+
     const processedTableReferences = tableReferences.map(tableReference => ({
       ...tableReference,
-      tableName:
-        typeof tableReference.tableName === 'string'
-          ? tableReference.tableName
-          : // On SQLite, the query interface returns an object with a tableName property
-            tableReference.tableName.tableName,
       composite:
         tableReferences.filter(
           reference =>
@@ -221,15 +241,7 @@ export default class Introspector {
       );
     }
 
-    return processedTableReferences.filter(
-      // There is a bug right now with sequelize on postgresql: returned association
-      // are not filtered on the schema. So we have to filter them manually.
-      // Should be fixed with Sequelize v7
-      r =>
-        r.tableName === tableIdentifier.tableName &&
-        r.tableSchema === tableIdentifier.schema &&
-        !r.composite,
-    );
+    return processedTableReferences.filter(r => !r.composite);
   }
 
   private static async getColumn(
