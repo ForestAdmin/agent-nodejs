@@ -1,3 +1,10 @@
+## @forestadmin/agent-toolkit [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-toolkit@1.0.0...@forestadmin/agent-toolkit@1.0.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **agent toolkit:** fix first empty release version ([#1479](https://github.com/ForestAdmin/agent-nodejs/issues/1479)) ([7ba1c9e](https://github.com/ForestAdmin/agent-nodejs/commit/7ba1c9ebdcff29a212272b5452af0f5fc53353a8))
+
 # @forestadmin/agent-toolkit 1.0.0 (2026-02-12)
 
 
