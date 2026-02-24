@@ -55,11 +55,8 @@ export class AIProviderUnavailableError extends InternalServerError {
   readonly cause?: Error;
 
   constructor(provider: string, options: { cause?: Error; status: number }) {
-    super(
-      `${provider} server error (HTTP ${options.status}): ${
-        options.cause?.message ?? 'unknown'
-      }`,
-    );
+    const causeMessage = options.cause?.message ?? 'unknown';
+    super(`${provider} server error (HTTP ${options.status}): ${causeMessage}`);
     this.name = 'AIProviderUnavailableError';
     this.provider = provider;
     this.providerStatusCode = options.status;

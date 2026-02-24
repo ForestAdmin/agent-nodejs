@@ -152,6 +152,7 @@ export default class ProviderDispatcher {
 
     if (!(error instanceof Error)) {
       let message: string;
+
       try {
         message = JSON.stringify(error);
       } catch {
@@ -167,6 +168,7 @@ export default class ProviderDispatcher {
     if (status === 401) return new AIUnauthorizedError(providerName, { cause: error });
     if (status === 403) return new AIForbiddenError(providerName, { cause: error });
     if (status === 429) return new AITooManyRequestsError(providerName, { cause: error });
+
     if (status && status >= 500) {
       return new AIProviderUnavailableError(providerName, { cause: error, status });
     }
