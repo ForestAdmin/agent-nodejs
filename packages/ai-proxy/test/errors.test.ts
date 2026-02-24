@@ -71,7 +71,6 @@ describe('AI Error Hierarchy', () => {
       const error = new AITooManyRequestsError('OpenAI');
       expect(error).toBeInstanceOf(TooManyRequestsError);
       expect(error.provider).toBe('OpenAI');
-      expect(error.httpCode).toBe(429);
     });
   });
 
@@ -80,7 +79,6 @@ describe('AI Error Hierarchy', () => {
       const error = new AIUnauthorizedError('OpenAI');
       expect(error).toBeInstanceOf(UnauthorizedError);
       expect(error.provider).toBe('OpenAI');
-      expect(error.httpCode).toBe(401);
     });
   });
 
@@ -89,7 +87,6 @@ describe('AI Error Hierarchy', () => {
       const error = new AIForbiddenError('OpenAI', { cause: new Error('model access denied') });
       expect(error).toBeInstanceOf(ForbiddenError);
       expect(error.provider).toBe('OpenAI');
-      expect(error.httpCode).toBe(403);
       expect(error.message).toBe('OpenAI access denied: model access denied');
     });
   });

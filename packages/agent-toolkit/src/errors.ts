@@ -3,7 +3,6 @@ export class BusinessError extends Error {
   // INTERNAL USAGES
   public readonly isBusinessError = true;
   public readonly baseBusinessErrorName: string;
-  public readonly httpCode: number;
 
   public readonly data: Record<string, unknown> | undefined;
 
@@ -11,13 +10,11 @@ export class BusinessError extends Error {
     message?: string,
     data?: Record<string, unknown>,
     name?: string,
-    httpCode = 422,
     baseBusinessErrorName?: string,
   ) {
     super(message);
     this.name = name ?? this.constructor.name;
     this.data = data;
-    this.httpCode = httpCode;
     this.baseBusinessErrorName = baseBusinessErrorName ?? this.constructor.name;
   }
 
@@ -36,36 +33,36 @@ export class BusinessError extends Error {
 
 export class ValidationError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
-    super(message, data, name, 400, 'ValidationError');
+    super(message, data, name, 'ValidationError');
   }
 }
 export class BadRequestError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
-    super(message, data, name, 400, 'BadRequestError');
+    super(message, data, name, 'BadRequestError');
   }
 }
 export class UnprocessableError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
-    super(message, data, name, 422, 'UnprocessableError');
+    super(message, data, name, 'UnprocessableError');
   }
 }
 export class ForbiddenError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
-    super(message, data, name, 403, 'ForbiddenError');
+    super(message, data, name, 'ForbiddenError');
   }
 }
 export class NotFoundError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
-    super(message, data, name, 404, 'NotFoundError');
+    super(message, data, name, 'NotFoundError');
   }
 }
 export class UnauthorizedError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
-    super(message, data, name, 401, 'UnauthorizedError');
+    super(message, data, name, 'UnauthorizedError');
   }
 }
 export class TooManyRequestsError extends BusinessError {
   constructor(message?: string, data?: Record<string, unknown>, name?: string) {
-    super(message, data, name, 429, 'TooManyRequestsError');
+    super(message, data, name, 'TooManyRequestsError');
   }
 }

@@ -18,7 +18,7 @@ export class IntrospectionFormatError extends BusinessError {
     const message =
       `This version of introspection is newer than this package version. ` +
       `Please update ${sourcePackageName}`;
-    super(message, undefined, undefined, 422, 'IntrospectionFormatError');
+    super(message, undefined, undefined, 'IntrospectionFormatError');
   }
 
   /** @deprecated use name instead */
