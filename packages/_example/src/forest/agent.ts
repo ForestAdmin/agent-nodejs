@@ -23,7 +23,7 @@ import createTypicode from './datasources/typicode';
 import mongoose, { connectionString } from '../connections/mongoose';
 import sequelizeMsSql from '../connections/sequelize-mssql';
 import sequelizeMySql from '../connections/sequelize-mysql';
-import sequelizePostgres from '../connections/sequelize-postgres';
+// sequelizePostgres still used by seed but not by the agent (replaced with createSqlDataSource)
 
 export default function makeAgent() {
   const envOptions: AgentOptions = {
@@ -58,10 +58,10 @@ export default function makeAgent() {
       { include: ['card', 'active_cards'] }, // active_cards is a view
     )
     .addDataSource(createTypicode())
+    // Use createSqlDataSource (not createSequelizeDataSource) so introspection runs.
+    // Bug repro: schema2 has the same table names → FK relations should disappear.
     .addDataSource(
-      createSequelizeDataSource(sequelizePostgres, {
-        liveQueryConnections: 'Business intel',
-      }),
+      createSqlDataSource('postgres://example:password@localhost:5442/example'),
     )
     .addDataSource(createSequelizeDataSource(sequelizeMySql))
     .addDataSource(createSequelizeDataSource(sequelizeMsSql))

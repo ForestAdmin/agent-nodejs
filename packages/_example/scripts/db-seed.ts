@@ -231,6 +231,46 @@ async function seedData() {
     await createDvdRentalsRecords(sequelizeMsSql, storeRecords, customerRecords);
     await createReviewRecords(sequelizePostgres, storeRecords);
 
+    // Bug repro: create tables with FK in public, then create schema2 with the same
+    // table names and FK column names. This triggers the Sequelize FK introspection bug
+    // where FK relations disappear from the public schema.
+    await sequelizePostgres.query(`
+      DROP TABLE IF EXISTS public.product CASCADE;
+      DROP TABLE IF EXISTS public.category CASCADE;
+      DROP SCHEMA IF EXISTS schema2 CASCADE;
+
+      CREATE TABLE public.category (
+        id SERIAL PRIMARY KEY,
+        code TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL
+      );
+
+      CREATE TABLE public.product (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        category_code TEXT NOT NULL REFERENCES public.category(code)
+      );
+
+      INSERT INTO public.category (code, name) VALUES ('electronics', 'Electronics'), ('books', 'Books');
+      INSERT INTO public.product (name, category_code) VALUES ('Laptop', 'electronics'), ('Novel', 'books');
+
+      -- schema2: same table names AND same FK column names = same auto-constraint names
+      CREATE SCHEMA schema2;
+
+      CREATE TABLE schema2.category (
+        id SERIAL PRIMARY KEY,
+        code TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL
+      );
+
+      CREATE TABLE schema2.product (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        category_code TEXT NOT NULL REFERENCES schema2.category(code)
+      );
+    `);
+    console.log('Created category/product tables + schema2 duplicate (bug repro)');
+
     await sequelizeMariaDb.query(`
       CREATE OR REPLACE VIEW active_cards AS
       SELECT * FROM card WHERE is_active = 1
