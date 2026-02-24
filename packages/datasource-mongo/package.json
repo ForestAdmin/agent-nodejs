@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-mongo",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -12,8 +12,8 @@
     "directory": "packages/datasource-mongo"
   },
   "dependencies": {
-    "@forestadmin/datasource-mongoose": "1.13.0",
-    "@forestadmin/datasource-toolkit": "1.51.0",
+    "@forestadmin/datasource-mongoose": "1.13.1",
+    "@forestadmin/datasource-toolkit": "1.51.1",
     "json-stringify-pretty-compact": "^3.0.0",
     "mongoose": "8.21.0",
     "tunnel-ssh": "^5.2.0"
