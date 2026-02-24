@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/mcp-server",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "description": "Model Context Protocol server for Forest Admin with OAuth authentication",
   "main": "dist/index.js",
   "bin": {
@@ -16,8 +16,8 @@
     "directory": "packages/mcp-server"
   },
   "dependencies": {
-    "@forestadmin/agent-client": "1.4.10",
-    "@forestadmin/forestadmin-client": "1.37.14",
+    "@forestadmin/agent-client": "1.4.11",
+    "@forestadmin/forestadmin-client": "1.37.15",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "cors": "^2.8.5",
     "express": "^5.2.1",
