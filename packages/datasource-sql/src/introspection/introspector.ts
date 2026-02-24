@@ -38,6 +38,8 @@ export default class Introspector {
     const tables = await this.getTables(dialect, tableNames, sequelize, logger);
     const views = await this.getViews(dialect, sequelize as SequelizeWithOptions, logger);
 
+    this.sanitizeInPlace(tables, logger);
+
     return { tables, views, version: this.FORMAT_VERSION, source: this.SOURCE };
   }
 
@@ -188,19 +190,21 @@ export default class Introspector {
   ) {
     const tableReferences = (
       await queryInterface.getForeignKeyReferencesForTable(tableIdentifierForQuery)
-    ).filter(r => {
-      // On SQLite, the query interface returns an object with a tableName property
-      const tableName = typeof r.tableName === 'string' ? r.tableName : r.tableName.tableName;
-
-      // There is a bug right now with sequelize on postgresql: returned association
-      // are not filtered on the schema. So we have to filter them manually.
-      // Should be fixed with Sequelize v7
-      return (
-        tableName === tableIdentifier.tableName &&
-        r.tableSchema === tableIdentifier.schema &&
-        r.referencedTableSchema === tableIdentifier.schema
-      );
-    });
+    )
+      .map(r => ({
+        ...r,
+        tableName: typeof r.tableName === 'string' ? r.tableName : r.tableName.tableName,
+      }))
+      .filter(r => {
+        // There is a bug right now with sequelize on postgresql: returned association
+        // are not filtered on the schema. So we have to filter them manually.
+        // Should be fixed with Sequelize v7
+        return (
+          r.tableName === tableIdentifier.tableName &&
+          r.tableSchema === tableIdentifier.schema &&
+          r.referencedTableSchema === tableIdentifier.schema
+        );
+      });
 
     const processedTableReferences = tableReferences.map(tableReference => ({
       ...tableReference,
@@ -265,6 +269,50 @@ export default class Introspector {
     } catch (e) {
       logger?.('Warn', `Skipping column ${tableIdentifier.tableName}.${name} (${e.message})`);
     }
+  }
+
+  /**
+   * Remove references to entities that are not present in the schema
+   * (happens when we skip entities because of errors)
+   */
+  private static sanitizeInPlace(tables: Table[], logger?: Logger): void {
+    for (const table of tables) {
+      // Remove unique indexes which depend on columns that are not present in the table.
+      table.unique = table.unique.filter(unique =>
+        unique.every(column => table.columns.find(c => c.name === column)),
+      );
+
+      for (const column of table.columns) {
+        const references = column.constraints || [];
+        // Remove references to tables that are not present in the schema.
+        column.constraints = references.filter(constraint => {
+          const refTable = tables.find(t => t.name === constraint.table);
+          const refColumn = refTable?.columns.find(c => c.name === constraint.column);
+
+          return refTable && refColumn;
+        });
+
+        this.logBrokenRelationship(references, column.constraints, table.name, logger);
+      }
+    }
+  }
+
+  private static logBrokenRelationship(
+    allConstraints: Table['columns'][number]['constraints'],
+    sanitizedConstraints: Table['columns'][number]['constraints'],
+    tableName: string,
+    logger: Logger,
+  ) {
+    const missingConstraints = allConstraints.filter(
+      constraint => !sanitizedConstraints.includes(constraint),
+    );
+
+    missingConstraints.forEach(constraint => {
+      logger?.(
+        'Error',
+        `Failed to load constraints on relation on table '${tableName}' referencing '${constraint.table}.${constraint.column}'. The relation will be ignored.`,
+      );
+    });
   }
 
   private static async getViews(
