@@ -199,11 +199,21 @@ export default class Introspector {
         // There is a bug right now with sequelize on postgresql: returned association
         // are not filtered on the schema. So we have to filter them manually.
         // Should be fixed with Sequelize v7
-        return (
+        if (
           r.tableName === tableIdentifier.tableName &&
           r.tableSchema === tableIdentifier.schema &&
           r.referencedTableSchema === tableIdentifier.schema
+        ) {
+          return true;
+        }
+
+        logger?.(
+          'Warn',
+          `Relations between different schemasare not supported. skipping '${r.constraintName}' on '${tableIdentifierForQuery.tableName}'.
+          This warning can also occur when the same contraint name is present on multiple schemas, it will be ignored.`,
         );
+
+        return false;
       });
 
     const processedTableReferences = tableReferences.map(tableReference => ({

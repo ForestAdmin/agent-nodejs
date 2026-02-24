@@ -249,10 +249,6 @@ describe('Introspector > Integration', () => {
               ],
             },
           ]);
-          expect(logger).toHaveBeenCalledWith(
-            'Error',
-            "Failed to load constraints on relation on table 'elements' referencing 'users.id'. The relation will be ignored.",
-          );
         });
       },
     );
