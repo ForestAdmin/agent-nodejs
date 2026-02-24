@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sql [1.17.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.4...@forestadmin/datasource-sql@1.17.5) (2026-02-24)
+
+
+### Bug Fixes
+
+* **datasource-sql:** filter sequelize constraints on schema to patch sequelize bug ([#1478](https://github.com/ForestAdmin/agent-nodejs/issues/1478)) ([5ab0344](https://github.com/ForestAdmin/agent-nodejs/commit/5ab0344f8b06e7148c6804071d5c03c372a1e3df))
+
 ## @forestadmin/datasource-sql [1.17.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.3...@forestadmin/datasource-sql@1.17.4) (2026-02-20)
 
 
