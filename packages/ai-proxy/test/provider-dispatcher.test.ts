@@ -9,6 +9,7 @@ import {
   AIForbiddenError,
   AINotConfiguredError,
   AIProviderError,
+  AIProviderUnavailableError,
   AITooManyRequestsError,
   AIUnauthorizedError,
   ProviderDispatcher,
@@ -171,6 +172,32 @@ describe('ProviderDispatcher', () => {
         expect(thrown.message).toBe('Error while calling OpenAI: OpenAI error');
         expect(thrown.provider).toBe('OpenAI');
         expect(thrown.cause).toBe(original);
+      });
+
+      it('should wrap 5xx as AIProviderUnavailableError', async () => {
+        const error = Object.assign(new Error('Internal Server Error'), { status: 500 });
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIProviderUnavailableError);
+        expect(thrown.message).toBe(
+          'OpenAI server error (HTTP 500): Internal Server Error',
+        );
+        expect(thrown.provider).toBe('OpenAI');
+        expect(thrown.providerStatusCode).toBe(500);
+        expect(thrown.baseBusinessErrorName).toBe('InternalServerError');
+        expect(thrown.cause).toBe(error);
+      });
+
+      it('should wrap 400 as AIBadRequestError', async () => {
+        const error = Object.assign(new Error('Invalid model'), { status: 400 });
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIBadRequestError);
+        expect(thrown.message).toBe('OpenAI: Invalid model');
       });
 
       it('should wrap 429 as AITooManyRequestsError', async () => {
@@ -430,6 +457,36 @@ describe('ProviderDispatcher', () => {
         expect(thrown.message).toBe('Error while calling Anthropic: Anthropic API error');
         expect(thrown.provider).toBe('Anthropic');
         expect(thrown.cause).toBe(original);
+      });
+
+      it('should wrap 5xx as AIProviderUnavailableError', async () => {
+        const error = Object.assign(new Error('Service Unavailable'), { status: 503 });
+        anthropicInvokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIProviderUnavailableError);
+        expect(thrown.message).toBe(
+          'Anthropic server error (HTTP 503): Service Unavailable',
+        );
+        expect(thrown.provider).toBe('Anthropic');
+        expect(thrown.providerStatusCode).toBe(503);
+        expect(thrown.baseBusinessErrorName).toBe('InternalServerError');
+        expect(thrown.cause).toBe(error);
+      });
+
+      it('should wrap 400 as AIBadRequestError', async () => {
+        const error = Object.assign(new Error('Invalid model'), { status: 400 });
+        anthropicInvokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIBadRequestError);
+        expect(thrown.message).toBe('Anthropic: Invalid model');
       });
 
       it('should wrap 429 as AITooManyRequestsError', async () => {

@@ -1,6 +1,7 @@
 import {
   BadRequestError,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
   TooManyRequestsError,
   UnauthorizedError,
@@ -14,6 +15,7 @@ import {
   AINotConfiguredError,
   AINotFoundError,
   AIProviderError,
+  AIProviderUnavailableError,
   AITooManyRequestsError,
   AIUnauthorizedError,
   AIToolNotFoundError,
@@ -40,6 +42,7 @@ describe('AI Error Hierarchy', () => {
       const error = new AIProviderError('OpenAI', { cause: new Error('test') });
       expect(error).toBeInstanceOf(UnprocessableError);
       expect(error.provider).toBe('OpenAI');
+      expect(error.baseBusinessErrorName).toBe('UnprocessableError');
     });
 
     test('McpError extends UnprocessableError', () => {
@@ -71,6 +74,7 @@ describe('AI Error Hierarchy', () => {
       const error = new AITooManyRequestsError('OpenAI');
       expect(error).toBeInstanceOf(TooManyRequestsError);
       expect(error.provider).toBe('OpenAI');
+      expect(error.baseBusinessErrorName).toBe('TooManyRequestsError');
     });
   });
 
@@ -79,6 +83,7 @@ describe('AI Error Hierarchy', () => {
       const error = new AIUnauthorizedError('OpenAI');
       expect(error).toBeInstanceOf(UnauthorizedError);
       expect(error.provider).toBe('OpenAI');
+      expect(error.baseBusinessErrorName).toBe('UnauthorizedError');
     });
   });
 
@@ -87,7 +92,22 @@ describe('AI Error Hierarchy', () => {
       const error = new AIForbiddenError('OpenAI', { cause: new Error('model access denied') });
       expect(error).toBeInstanceOf(ForbiddenError);
       expect(error.provider).toBe('OpenAI');
+      expect(error.baseBusinessErrorName).toBe('ForbiddenError');
       expect(error.message).toBe('OpenAI access denied: model access denied');
+    });
+  });
+
+  describe('InternalServerError branch (500)', () => {
+    test('AIProviderUnavailableError extends InternalServerError', () => {
+      const error = new AIProviderUnavailableError('OpenAI', {
+        cause: new Error('Service Unavailable'),
+        status: 503,
+      });
+      expect(error).toBeInstanceOf(InternalServerError);
+      expect(error.provider).toBe('OpenAI');
+      expect(error.providerStatusCode).toBe(503);
+      expect(error.baseBusinessErrorName).toBe('InternalServerError');
+      expect(error.message).toBe('OpenAI server error (HTTP 503): Service Unavailable');
     });
   });
 

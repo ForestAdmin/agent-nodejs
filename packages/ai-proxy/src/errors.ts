@@ -7,6 +7,7 @@
 import {
   BadRequestError,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
   TooManyRequestsError,
   UnauthorizedError,
@@ -45,6 +46,24 @@ export class AIProviderError extends UnprocessableError {
     this.name = 'AIProviderError';
     this.provider = provider;
     if (options?.cause) this.cause = options.cause;
+  }
+}
+
+export class AIProviderUnavailableError extends InternalServerError {
+  readonly provider: string;
+  readonly providerStatusCode: number;
+  readonly cause?: Error;
+
+  constructor(provider: string, options: { cause?: Error; status: number }) {
+    super(
+      `${provider} server error (HTTP ${options.status}): ${
+        options.cause?.message ?? 'unknown'
+      }`,
+    );
+    this.name = 'AIProviderUnavailableError';
+    this.provider = provider;
+    this.providerStatusCode = options.status;
+    if (options.cause) this.cause = options.cause;
   }
 }
 

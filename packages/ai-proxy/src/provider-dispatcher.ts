@@ -15,6 +15,7 @@ import {
   AIForbiddenError,
   AINotConfiguredError,
   AIProviderError,
+  AIProviderUnavailableError,
   AITooManyRequestsError,
   AIUnauthorizedError,
 } from './errors';
@@ -150,14 +151,25 @@ export default class ProviderDispatcher {
     if (error instanceof BusinessError) return error;
 
     if (!(error instanceof Error)) {
-      return new AIProviderError(providerName, { cause: new Error(JSON.stringify(error)) });
+      let message: string;
+      try {
+        message = JSON.stringify(error);
+      } catch {
+        message = String(error);
+      }
+
+      return new AIProviderError(providerName, { cause: new Error(message) });
     }
 
     const { status } = error as Error & { status?: number };
 
-    if (status === 429) return new AITooManyRequestsError(providerName, { cause: error });
+    if (status === 400) return new AIBadRequestError(`${providerName}: ${error.message}`);
     if (status === 401) return new AIUnauthorizedError(providerName, { cause: error });
     if (status === 403) return new AIForbiddenError(providerName, { cause: error });
+    if (status === 429) return new AITooManyRequestsError(providerName, { cause: error });
+    if (status && status >= 500) {
+      return new AIProviderUnavailableError(providerName, { cause: error, status });
+    }
 
     return new AIProviderError(providerName, { cause: error });
   }

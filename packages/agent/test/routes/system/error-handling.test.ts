@@ -3,6 +3,7 @@ import type Router from '@koa/router';
 import {
   BadRequestError,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
   TooManyRequestsError,
   UnauthorizedError,
@@ -161,6 +162,19 @@ describe('ErrorHandling', () => {
       expect(console.error).not.toHaveBeenCalled();
     });
 
+    test('it should set the status and body for internal server errors', async () => {
+      const context = createMockContext();
+      const next = jest.fn().mockRejectedValue(new InternalServerError('provider down'));
+
+      await expect(handleError.call(route, context, next)).rejects.toThrow();
+
+      expect(context.response.status).toStrictEqual(HttpCode.InternalServerError);
+      expect(context.response.body).toStrictEqual({
+        errors: [{ detail: 'provider down', name: 'InternalServerError', status: 500 }],
+      });
+      expect(console.error).not.toHaveBeenCalled();
+    });
+
     test('it should set the status and body for other errors and prevent information leak', async () => {
       const context = createMockContext();
       const next = jest
@@ -288,6 +302,7 @@ describe('ErrorHandling', () => {
       { Error: NotFoundError, errorName: 'NotFoundError' },
       { Error: UnauthorizedError, errorName: 'UnauthorizedError' },
       { Error: TooManyRequestsError, errorName: 'TooManyRequestsError' },
+      { Error: InternalServerError, errorName: 'InternalServerError' },
     ])('should have the right baseBusinessErrorName', ({ Error, errorName }) => {
       const extendedError = new Error('message');
 

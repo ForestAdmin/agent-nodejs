@@ -66,3 +66,8 @@ export class TooManyRequestsError extends BusinessError {
     super(message, data, name, 'TooManyRequestsError');
   }
 }
+export class InternalServerError extends BusinessError {
+  constructor(message?: string, data?: Record<string, unknown>, name?: string) {
+    super(message, data, name, 'InternalServerError');
+  }
+}

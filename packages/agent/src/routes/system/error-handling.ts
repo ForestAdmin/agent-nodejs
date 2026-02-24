@@ -5,6 +5,7 @@ import {
   BadRequestError,
   BusinessError,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
   TooManyRequestsError,
   UnauthorizedError,
@@ -77,6 +78,10 @@ export default class ErrorHandling extends BaseRoute {
       case error instanceof TooManyRequestsError:
       case BusinessError.isOfType(error, TooManyRequestsError):
         return HttpCode.TooManyRequests;
+
+      case error instanceof InternalServerError:
+      case BusinessError.isOfType(error, InternalServerError):
+        return HttpCode.InternalServerError;
 
       case error instanceof UnprocessableError:
       case BusinessError.isOfType(error, UnprocessableError):
