@@ -1,3 +1,13 @@
+## @forestadmin/datasource-toolkit [1.51.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.51.0...@forestadmin/datasource-toolkit@1.51.1) (2026-02-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.0.1
+
 # @forestadmin/datasource-toolkit [1.51.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.50.1...@forestadmin/datasource-toolkit@1.51.0) (2026-02-20)
 
 
