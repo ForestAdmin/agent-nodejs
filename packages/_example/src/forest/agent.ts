@@ -88,7 +88,7 @@ export default function makeAgent() {
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
     // .customizeCollection('owner', customizeOwner) // disabled: createSqlDataSource uses snake_case
-    .customizeCollection('store', customizeStore)
+    // .customizeCollection('store', customizeStore) // disabled: depends on owner.fullName
     .customizeCollection('rental', customizeRental)
     .customizeCollection('dvd', customizeDvd)
     .customizeCollection('customer', customizeCustomer)
