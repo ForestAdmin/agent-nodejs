@@ -87,14 +87,14 @@ export default function makeAgent() {
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
-    .customizeCollection('owner', customizeOwner)
+    // .customizeCollection('owner', customizeOwner) // disabled: createSqlDataSource uses snake_case
     .customizeCollection('store', customizeStore)
     .customizeCollection('rental', customizeRental)
     .customizeCollection('dvd', customizeDvd)
     .customizeCollection('customer', customizeCustomer)
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
-    .customizeCollection('review', customizeReview)
+    // .customizeCollection('review', customizeReview) // disabled: createSqlDataSource uses snake_case
     .customizeCollection('sales', customizeSales)
     .addAi(
       createAiProvider({
