@@ -198,11 +198,18 @@ export default class Introspector {
           ? tableReference.tableName
           : // On SQLite, the query interface returns an object with a tableName property
             tableReference.tableName.tableName,
+      // A true composite FK has rows with the same constraint name but different source columns.
+      // We compare columnName to avoid false positives from a Sequelize bug: its FK query joins
+      // both key_column_usage and constraint_column_usage on constraint_name without schema
+      // qualifiers, so when two schemas have identical table/column names, PostgreSQL's identical
+      // auto-constraint names cause extra row matches that are not real composite FKs.
       composite:
         tableReferences.filter(
           reference =>
-            reference.constraintName && reference.constraintName === tableReference.constraintName,
-        ).length > 1,
+            reference.constraintName &&
+            reference.constraintName === tableReference.constraintName &&
+            reference.columnName !== tableReference.columnName,
+        ).length > 0,
     }));
 
     const compositeRelations = processedTableReferences
@@ -221,7 +228,7 @@ export default class Introspector {
       );
     }
 
-    return processedTableReferences.filter(
+    const filtered = processedTableReferences.filter(
       // There is a bug right now with sequelize on postgresql: returned association
       // are not filtered on the schema. So we have to filter them manually.
       // Should be fixed with Sequelize v7
@@ -230,6 +237,39 @@ export default class Introspector {
         r.tableSchema === tableIdentifier.schema &&
         !r.composite,
     );
+
+    // Deduplicate: the filtered step above matches on the source table's schema (tableSchema),
+    // but the Sequelize join bug produces rows that differ in referencedTableSchema (the FK
+    // target's schema). Sort so rows matching the source schema come first, then keep one per
+    // (constraintName, columnName) to ensure we always preserve the correct FK target.
+    const sorted = [...filtered].sort((a, b) => {
+      const aMatch = a.referencedTableSchema === tableIdentifier.schema ? 0 : 1;
+      const bMatch = b.referencedTableSchema === tableIdentifier.schema ? 0 : 1;
+
+      return aMatch - bMatch;
+    });
+
+    const seen = new Set<string>();
+    const deduplicated = sorted.filter(ref => {
+      if (!ref.constraintName) return true;
+
+      const key = `${ref.constraintName}::${ref.columnName}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+
+      return true;
+    });
+
+    const droppedCount = filtered.length - deduplicated.length;
+
+    if (droppedCount > 0) {
+      logger?.(
+        'Warn',
+        `Deduplicated ${droppedCount} cross-schema duplicate FK reference(s) on '${tableIdentifierForQuery.tableName}'`,
+      );
+    }
+
+    return deduplicated;
   }
 
   private static async getColumn(
