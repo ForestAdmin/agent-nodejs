@@ -1,3 +1,23 @@
+# @forestadmin/agent [1.74.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.73.2...@forestadmin/agent@1.74.0) (2026-02-25)
+
+
+### Features
+
+* **ai-proxy:** add UnauthorizedError/TooManyRequestsError and typed AI provider errors ([#1474](https://github.com/ForestAdmin/agent-nodejs/issues/1474)) ([4800784](https://github.com/ForestAdmin/agent-nodejs/commit/480078466952e3a70dc957479af306d94730f9a8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.1.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.68.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.52.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.16
+* **@forestadmin/mcp-server:** upgraded to 1.8.7
+* **@forestadmin/datasource-sql:** upgraded to 1.17.7
+
 ## @forestadmin/agent [1.73.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.73.1...@forestadmin/agent@1.73.2) (2026-02-24)
 
 
