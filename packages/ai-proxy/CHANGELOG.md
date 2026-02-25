@@ -1,3 +1,19 @@
+# @forestadmin/ai-proxy [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.5.2...@forestadmin/ai-proxy@1.6.0) (2026-02-25)
+
+
+### Features
+
+* **ai-proxy:** add UnauthorizedError/TooManyRequestsError and typed AI provider errors ([#1474](https://github.com/ForestAdmin/agent-nodejs/issues/1474)) ([4800784](https://github.com/ForestAdmin/agent-nodejs/commit/480078466952e3a70dc957479af306d94730f9a8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.1.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.52.0
+
 ## @forestadmin/ai-proxy [1.5.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.5.1...@forestadmin/ai-proxy@1.5.2) (2026-02-24)
 
 
