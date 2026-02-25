@@ -9,6 +9,9 @@ export {
   UnprocessableError,
   ForbiddenError,
   NotFoundError,
+  UnauthorizedError,
+  TooManyRequestsError,
+  InternalServerError,
 } from '@forestadmin/agent-toolkit';
 
 export class IntrospectionFormatError extends BusinessError {
@@ -16,8 +19,7 @@ export class IntrospectionFormatError extends BusinessError {
     const message =
       `This version of introspection is newer than this package version. ` +
       `Please update ${sourcePackageName}`;
-    super(message);
-    this.baseBusinessErrorName = 'IntrospectionFormatError';
+    super(message, undefined, undefined, 'IntrospectionFormatError');
   }
 
   /** @deprecated use name instead */

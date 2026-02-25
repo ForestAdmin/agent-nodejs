@@ -3,7 +3,10 @@ import {
   BadRequestError,
   BusinessError,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
   UnprocessableError,
   ValidationError,
 } from '../src/errors';
@@ -67,6 +70,9 @@ describe('errors', () => {
       { ErrorClass: UnprocessableError, errorName: 'UnprocessableError' },
       { ErrorClass: ForbiddenError, errorName: 'ForbiddenError' },
       { ErrorClass: NotFoundError, errorName: 'NotFoundError' },
+      { ErrorClass: UnauthorizedError, errorName: 'UnauthorizedError' },
+      { ErrorClass: TooManyRequestsError, errorName: 'TooManyRequestsError' },
+      { ErrorClass: InternalServerError, errorName: 'InternalServerError' },
     ])('$errorName should have the correct baseBusinessErrorName', ({ ErrorClass, errorName }) => {
       const error = new ErrorClass('test');
       expect(error.baseBusinessErrorName).toEqual(errorName);

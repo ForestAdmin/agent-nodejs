@@ -1,18 +1,25 @@
 import {
   BadRequestError,
+  ForbiddenError,
+  InternalServerError,
   NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
 
 import {
   AIBadRequestError,
-  AIError,
+  AIForbiddenError,
   AIModelNotSupportedError,
   AINotConfiguredError,
   AINotFoundError,
+  AIProviderError,
+  AIProviderUnavailableError,
+  AITooManyRequestsError,
+  AIUnauthorizedError,
   AIToolNotFoundError,
   AIToolUnprocessableError,
-  AIUnprocessableError,
   McpConfigError,
   McpConflictError,
   McpConnectionError,
@@ -21,20 +28,25 @@ import {
 
 describe('AI Error Hierarchy', () => {
   describe('UnprocessableError branch (422)', () => {
-    test('AIError extends UnprocessableError', () => {
-      const error = new AIError('test');
-      expect(error).toBeInstanceOf(UnprocessableError);
-    });
-
-    test('AINotConfiguredError extends UnprocessableError via AIError', () => {
+    test('AINotConfiguredError extends UnprocessableError', () => {
       const error = new AINotConfiguredError();
-      expect(error).toBeInstanceOf(AIError);
       expect(error).toBeInstanceOf(UnprocessableError);
     });
 
-    test('McpError extends UnprocessableError via AIError', () => {
+    test('AIToolUnprocessableError extends UnprocessableError', () => {
+      const error = new AIToolUnprocessableError('test');
+      expect(error).toBeInstanceOf(UnprocessableError);
+    });
+
+    test('AIProviderError extends UnprocessableError', () => {
+      const error = new AIProviderError('OpenAI', { cause: new Error('test') });
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.provider).toBe('OpenAI');
+      expect(error.baseBusinessErrorName).toBe('UnprocessableError');
+    });
+
+    test('McpError extends UnprocessableError', () => {
       const error = new McpError('test');
-      expect(error).toBeInstanceOf(AIError);
       expect(error).toBeInstanceOf(UnprocessableError);
     });
 
@@ -55,17 +67,47 @@ describe('AI Error Hierarchy', () => {
       expect(error).toBeInstanceOf(McpError);
       expect(error).toBeInstanceOf(UnprocessableError);
     });
+  });
 
-    test('AIUnprocessableError extends UnprocessableError', () => {
-      const error = new AIUnprocessableError('test');
-      expect(error).toBeInstanceOf(UnprocessableError);
+  describe('TooManyRequestsError branch (429)', () => {
+    test('AITooManyRequestsError extends TooManyRequestsError', () => {
+      const error = new AITooManyRequestsError('OpenAI');
+      expect(error).toBeInstanceOf(TooManyRequestsError);
+      expect(error.provider).toBe('OpenAI');
+      expect(error.baseBusinessErrorName).toBe('TooManyRequestsError');
     });
+  });
 
-    test('AIToolUnprocessableError extends UnprocessableError via AIUnprocessableError', () => {
-      const error = new AIToolUnprocessableError('test');
-      expect(error).toBeInstanceOf(AIUnprocessableError);
-      expect(error).toBeInstanceOf(UnprocessableError);
-      expect(error.name).toBe('AIToolUnprocessableError');
+  describe('UnauthorizedError branch (401)', () => {
+    test('AIUnauthorizedError extends UnauthorizedError', () => {
+      const error = new AIUnauthorizedError('OpenAI');
+      expect(error).toBeInstanceOf(UnauthorizedError);
+      expect(error.provider).toBe('OpenAI');
+      expect(error.baseBusinessErrorName).toBe('UnauthorizedError');
+    });
+  });
+
+  describe('ForbiddenError branch (403)', () => {
+    test('AIForbiddenError extends ForbiddenError', () => {
+      const error = new AIForbiddenError('OpenAI', { cause: new Error('model access denied') });
+      expect(error).toBeInstanceOf(ForbiddenError);
+      expect(error.provider).toBe('OpenAI');
+      expect(error.baseBusinessErrorName).toBe('ForbiddenError');
+      expect(error.message).toBe('OpenAI access denied: model access denied');
+    });
+  });
+
+  describe('InternalServerError branch (500)', () => {
+    test('AIProviderUnavailableError extends InternalServerError', () => {
+      const error = new AIProviderUnavailableError('OpenAI', {
+        cause: new Error('Service Unavailable'),
+        status: 503,
+      });
+      expect(error).toBeInstanceOf(InternalServerError);
+      expect(error.provider).toBe('OpenAI');
+      expect(error.providerStatusCode).toBe(503);
+      expect(error.baseBusinessErrorName).toBe('InternalServerError');
+      expect(error.message).toBe('OpenAI server error (HTTP 503): Service Unavailable');
     });
   });
 

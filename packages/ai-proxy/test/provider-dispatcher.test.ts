@@ -6,8 +6,12 @@ import { ChatOpenAI } from '@langchain/openai';
 
 import {
   AIBadRequestError,
+  AIForbiddenError,
   AINotConfiguredError,
-  AIUnprocessableError,
+  AIProviderError,
+  AIProviderUnavailableError,
+  AITooManyRequestsError,
+  AIUnauthorizedError,
   ProviderDispatcher,
   RemoteTools,
 } from '../src';
@@ -149,36 +153,89 @@ describe('ProviderDispatcher', () => {
     });
 
     describe('error handling', () => {
-      it('should wrap generic errors as AIUnprocessableError with cause', async () => {
+      it('should not wrap BusinessError thrown during invocation', async () => {
+        const error = new AINotConfiguredError();
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBe(error);
+      });
+
+      it('should wrap generic errors as AIProviderError with cause', async () => {
         const original = new Error('OpenAI error');
         invokeMock.mockRejectedValueOnce(original);
 
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AIProviderError);
         expect(thrown.message).toBe('Error while calling OpenAI: OpenAI error');
+        expect(thrown.provider).toBe('OpenAI');
         expect(thrown.cause).toBe(original);
       });
 
-      it('should wrap 429 as AIUnprocessableError with rate limit message', async () => {
+      it('should wrap 5xx as AIProviderUnavailableError', async () => {
+        const error = Object.assign(new Error('Internal Server Error'), { status: 500 });
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIProviderUnavailableError);
+        expect(thrown.message).toBe(
+          'OpenAI server error (HTTP 500): Internal Server Error',
+        );
+        expect(thrown.provider).toBe('OpenAI');
+        expect(thrown.providerStatusCode).toBe(500);
+        expect(thrown.baseBusinessErrorName).toBe('InternalServerError');
+        expect(thrown.cause).toBe(error);
+      });
+
+      it('should wrap 400 as AIBadRequestError', async () => {
+        const error = Object.assign(new Error('Invalid model'), { status: 400 });
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIBadRequestError);
+        expect(thrown.message).toBe('OpenAI: Invalid model');
+      });
+
+      it('should wrap 429 as AITooManyRequestsError', async () => {
         const error = Object.assign(new Error('Too many requests'), { status: 429 });
         invokeMock.mockRejectedValueOnce(error);
 
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AITooManyRequestsError);
         expect(thrown.message).toBe('OpenAI rate limit exceeded: Too many requests');
+        expect(thrown.provider).toBe('OpenAI');
+        expect(thrown.baseBusinessErrorName).toBe('TooManyRequestsError');
         expect(thrown.cause).toBe(error);
       });
 
-      it('should wrap 401 as AIUnprocessableError with auth message', async () => {
+      it('should wrap 401 as AIUnauthorizedError', async () => {
         const error = Object.assign(new Error('Invalid API key'), { status: 401 });
         invokeMock.mockRejectedValueOnce(error);
 
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AIUnauthorizedError);
         expect(thrown.message).toBe('OpenAI authentication failed: Invalid API key');
+        expect(thrown.provider).toBe('OpenAI');
+        expect(thrown.baseBusinessErrorName).toBe('UnauthorizedError');
+        expect(thrown.cause).toBe(error);
+      });
+
+      it('should wrap 403 as AIForbiddenError', async () => {
+        const error = Object.assign(new Error('Access denied'), { status: 403 });
+        invokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIForbiddenError);
+        expect(thrown.message).toBe('OpenAI access denied: Access denied');
+        expect(thrown.provider).toBe('OpenAI');
+        expect(thrown.baseBusinessErrorName).toBe('ForbiddenError');
         expect(thrown.cause).toBe(error);
       });
 
@@ -388,7 +445,7 @@ describe('ProviderDispatcher', () => {
     });
 
     describe('error handling', () => {
-      it('should wrap generic errors as AIUnprocessableError with cause', async () => {
+      it('should wrap generic errors as AIProviderError with cause', async () => {
         const original = new Error('Anthropic API error');
         anthropicInvokeMock.mockRejectedValueOnce(original);
 
@@ -396,12 +453,43 @@ describe('ProviderDispatcher', () => {
           .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
           .catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AIProviderError);
         expect(thrown.message).toBe('Error while calling Anthropic: Anthropic API error');
+        expect(thrown.provider).toBe('Anthropic');
         expect(thrown.cause).toBe(original);
       });
 
-      it('should wrap 429 as AIUnprocessableError with rate limit message', async () => {
+      it('should wrap 5xx as AIProviderUnavailableError', async () => {
+        const error = Object.assign(new Error('Service Unavailable'), { status: 503 });
+        anthropicInvokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIProviderUnavailableError);
+        expect(thrown.message).toBe(
+          'Anthropic server error (HTTP 503): Service Unavailable',
+        );
+        expect(thrown.provider).toBe('Anthropic');
+        expect(thrown.providerStatusCode).toBe(503);
+        expect(thrown.baseBusinessErrorName).toBe('InternalServerError');
+        expect(thrown.cause).toBe(error);
+      });
+
+      it('should wrap 400 as AIBadRequestError', async () => {
+        const error = Object.assign(new Error('Invalid model'), { status: 400 });
+        anthropicInvokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIBadRequestError);
+        expect(thrown.message).toBe('Anthropic: Invalid model');
+      });
+
+      it('should wrap 429 as AITooManyRequestsError', async () => {
         const error = Object.assign(new Error('Too many requests'), { status: 429 });
         anthropicInvokeMock.mockRejectedValueOnce(error);
 
@@ -409,12 +497,14 @@ describe('ProviderDispatcher', () => {
           .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
           .catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AITooManyRequestsError);
         expect(thrown.message).toBe('Anthropic rate limit exceeded: Too many requests');
+        expect(thrown.provider).toBe('Anthropic');
+        expect(thrown.baseBusinessErrorName).toBe('TooManyRequestsError');
         expect(thrown.cause).toBe(error);
       });
 
-      it('should wrap 401 as AIUnprocessableError with auth message', async () => {
+      it('should wrap 401 as AIUnauthorizedError', async () => {
         const error = Object.assign(new Error('Invalid API key'), { status: 401 });
         anthropicInvokeMock.mockRejectedValueOnce(error);
 
@@ -422,8 +512,25 @@ describe('ProviderDispatcher', () => {
           .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
           .catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
+        expect(thrown).toBeInstanceOf(AIUnauthorizedError);
         expect(thrown.message).toBe('Anthropic authentication failed: Invalid API key');
+        expect(thrown.provider).toBe('Anthropic');
+        expect(thrown.baseBusinessErrorName).toBe('UnauthorizedError');
+        expect(thrown.cause).toBe(error);
+      });
+
+      it('should wrap 403 as AIForbiddenError', async () => {
+        const error = Object.assign(new Error('Access denied'), { status: 403 });
+        anthropicInvokeMock.mockRejectedValueOnce(error);
+
+        const thrown = await dispatcher
+          .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
+          .catch(e => e);
+
+        expect(thrown).toBeInstanceOf(AIForbiddenError);
+        expect(thrown.message).toBe('Anthropic access denied: Access denied');
+        expect(thrown.provider).toBe('Anthropic');
+        expect(thrown.baseBusinessErrorName).toBe('ForbiddenError');
         expect(thrown.cause).toBe(error);
       });
 
@@ -434,8 +541,8 @@ describe('ProviderDispatcher', () => {
           .dispatch(buildBody({ messages: [{ role: 'user', content: 'Hello' }] }))
           .catch(e => e);
 
-        expect(thrown).toBeInstanceOf(AIUnprocessableError);
-        expect(thrown.message).toBe('Error while calling Anthropic: string error');
+        expect(thrown).toBeInstanceOf(AIProviderError);
+        expect(thrown.message).toBe('Error while calling Anthropic: "string error"');
       });
 
       it('should not wrap conversion errors as provider errors', async () => {

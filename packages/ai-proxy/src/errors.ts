@@ -1,22 +1,18 @@
 /**
- * All custom AI errors extend HTTP-status error classes (BadRequestError, NotFoundError,
- * UnprocessableError) from datasource-toolkit. This allows the agent's error middleware
- * to map them to their natural HTTP status codes automatically.
+ * All custom AI errors extend their matching HTTP-status error class from datasource-toolkit.
+ * This allows the agent's error middleware to map them to their natural HTTP status codes.
  */
 
 // eslint-disable-next-line max-classes-per-file
 import {
   BadRequestError,
+  ForbiddenError,
+  InternalServerError,
   NotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
   UnprocessableError,
 } from '@forestadmin/datasource-toolkit';
-
-export class AIError extends UnprocessableError {
-  constructor(message: string) {
-    super(message);
-    this.name = 'AIError';
-  }
-}
 
 export class AIBadRequestError extends BadRequestError {
   constructor(message: string) {
@@ -41,24 +37,81 @@ export class AINotFoundError extends NotFoundError {
   }
 }
 
-export class AIUnprocessableError extends UnprocessableError {
+export class AIProviderError extends UnprocessableError {
+  readonly provider: string;
   readonly cause?: Error;
 
-  constructor(message: string, options?: { cause?: Error }) {
-    super(message);
-    this.name = 'AIUnprocessableError';
+  constructor(provider: string, options?: { cause?: Error }) {
+    super(`Error while calling ${provider}: ${options?.cause?.message ?? 'unknown'}`);
+    this.name = 'AIProviderError';
+    this.provider = provider;
     if (options?.cause) this.cause = options.cause;
   }
 }
 
-export class AINotConfiguredError extends AIError {
+export class AIProviderUnavailableError extends InternalServerError {
+  readonly provider: string;
+  readonly providerStatusCode: number;
+  readonly cause?: Error;
+
+  constructor(provider: string, options: { cause?: Error; status: number }) {
+    const causeMessage = options.cause?.message ?? 'unknown';
+    super(`${provider} server error (HTTP ${options.status}): ${causeMessage}`);
+    this.name = 'AIProviderUnavailableError';
+    this.provider = provider;
+    this.providerStatusCode = options.status;
+    if (options.cause) this.cause = options.cause;
+  }
+}
+
+export class AITooManyRequestsError extends TooManyRequestsError {
+  readonly provider: string;
+  readonly cause?: Error;
+
+  constructor(provider: string, options?: { cause?: Error }) {
+    super(`${provider} rate limit exceeded: ${options?.cause?.message ?? 'unknown reason'}`);
+    this.name = 'AITooManyRequestsError';
+    this.provider = provider;
+    if (options?.cause) this.cause = options.cause;
+  }
+}
+
+export class AIUnauthorizedError extends UnauthorizedError {
+  readonly provider: string;
+  readonly cause?: Error;
+
+  constructor(provider: string, options?: { cause?: Error }) {
+    super(
+      `${provider} authentication failed: ${
+        options?.cause?.message ?? 'check your API key configuration'
+      }`,
+    );
+    this.name = 'AIUnauthorizedError';
+    this.provider = provider;
+    if (options?.cause) this.cause = options.cause;
+  }
+}
+
+export class AIForbiddenError extends ForbiddenError {
+  readonly provider: string;
+  readonly cause?: Error;
+
+  constructor(provider: string, options?: { cause?: Error }) {
+    super(`${provider} access denied: ${options?.cause?.message ?? 'permission denied'}`);
+    this.name = 'AIForbiddenError';
+    this.provider = provider;
+    if (options?.cause) this.cause = options.cause;
+  }
+}
+
+export class AINotConfiguredError extends UnprocessableError {
   constructor(message = 'AI is not configured') {
     super(message);
     this.name = 'AINotConfiguredError';
   }
 }
 
-export class AIToolUnprocessableError extends AIUnprocessableError {
+export class AIToolUnprocessableError extends UnprocessableError {
   constructor(message: string) {
     super(message);
     this.name = 'AIToolUnprocessableError';
@@ -72,7 +125,7 @@ export class AIToolNotFoundError extends AINotFoundError {
   }
 }
 
-export class McpError extends AIError {
+export class McpError extends UnprocessableError {
   constructor(message: string) {
     super(message);
     this.name = 'McpError';

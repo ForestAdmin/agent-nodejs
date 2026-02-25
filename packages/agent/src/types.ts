@@ -52,12 +52,14 @@ export type HttpCallback = (req: IncomingMessage, res: ServerResponse, next?: ()
 
 export enum HttpCode {
   BadRequest = 400,
+  Unauthorized = 401,
   Forbidden = 403,
+  NotFound = 404,
+  Unprocessable = 422,
+  TooManyRequests = 429,
   InternalServerError = 500,
   NoContent = 204,
-  NotFound = 404,
   Ok = 200,
-  Unprocessable = 422,
 }
 
 export enum RouteType {
