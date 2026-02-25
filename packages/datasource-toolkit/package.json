@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/datasource-toolkit",
-  "version": "1.51.1",
+  "version": "1.52.0",
   "main": "dist/src/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -28,7 +28,7 @@
     "@types/uuid": "^10.0.0"
   },
   "dependencies": {
-    "@forestadmin/agent-toolkit": "1.0.1",
+    "@forestadmin/agent-toolkit": "1.1.0",
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
     "uuid": "11.0.2"
