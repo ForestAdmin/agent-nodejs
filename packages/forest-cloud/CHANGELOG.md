@@ -1,3 +1,10 @@
+## @forestadmin/forest-cloud [1.12.96](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.95...@forestadmin/forest-cloud@1.12.96) (2026-02-26)
+
+
+### Bug Fixes
+
+* **deps:** fix critical vulnerabilities ([#1480](https://github.com/ForestAdmin/agent-nodejs/issues/1480)) ([b558f93](https://github.com/ForestAdmin/agent-nodejs/commit/b558f93b52a19f27bd9e271edeb6af746536e1fe))
+
 ## @forestadmin/forest-cloud [1.12.95](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.94...@forestadmin/forest-cloud@1.12.95) (2026-02-25)
 
 
