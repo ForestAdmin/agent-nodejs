@@ -28,7 +28,7 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
 
     this.sequelize = sequelize;
 
-    this.createCollections(this.sequelize.models, logger);
+    this.createCollections(this.sequelize.models, logger, options);
 
     if (options?.liveQueryConnections) {
       this.addNativeQueryConnection(options.liveQueryConnections, { instance: this.sequelize });
@@ -39,12 +39,16 @@ export default class SequelizeDataSource extends BaseDataSource<SequelizeCollect
     await this.sequelize.close();
   }
 
-  protected createCollections(models: Sequelize['models'], logger?: Logger) {
+  protected createCollections(
+    models: Sequelize['models'],
+    logger?: Logger,
+    options?: SequelizeDatasourceOptions,
+  ) {
     Object.values(models)
       // avoid schema reordering
       .sort((modelA, modelB) => (modelA.name > modelB.name ? 1 : -1))
       .forEach(model => {
-        const collection = new SequelizeCollection(model.name, this, model, logger);
+        const collection = new SequelizeCollection(model.name, this, model, logger, options);
         this.addCollection(collection);
       });
   }
