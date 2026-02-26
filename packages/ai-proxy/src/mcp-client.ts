@@ -1,4 +1,4 @@
-import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
@@ -6,6 +6,24 @@ import { McpConnectionError } from './errors';
 import McpServerRemoteTool from './mcp-server-remote-tool';
 
 export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string];
+
+const UNREACHABLE_ERROR_CODES: string[] = [
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'ETIMEDOUT',
+  'ENETUNREACH',
+  'EHOSTUNREACH',
+];
+
+function isServerUnreachable(error: Error): boolean {
+  const { code } = error as NodeJS.ErrnoException;
+
+  return !!code && UNREACHABLE_ERROR_CODES.includes(code);
+}
+
+function getLogLevelForError(error: Error): LoggerLevel {
+  return isServerUnreachable(error) ? 'Warn' : 'Error';
+}
 
 export type McpConfiguration = {
   configs: MultiServerMCPClient['config']['mcpServers'];
@@ -41,7 +59,8 @@ export default class McpClient {
           );
           this.tools.push(...extendedTools);
         } catch (error) {
-          this.logger?.('Error', `Error loading tools for ${name}`, error as Error);
+          const logLevel = getLogLevelForError(error as Error);
+          this.logger?.(logLevel, `Error loading tools for ${name}`, error as Error);
           errors.push({ server: name, error: error as Error });
         }
       }),
@@ -50,8 +69,10 @@ export default class McpClient {
     // Surface partial failures to provide better feedback
     if (errors.length > 0) {
       const errorMessage = errors.map(e => `${e.server}: ${e.error.message}`).join('; ');
+      const allConnectionErrors = errors.every(e => isServerUnreachable(e.error));
+      const summaryLogLevel = allConnectionErrors ? 'Warn' : 'Error';
       this.logger?.(
-        'Error',
+        summaryLogLevel,
         `Failed to load tools from ${errors.length}/${Object.keys(this.mcpClients).length} ` +
           `MCP server(s): ${errorMessage}`,
       );
@@ -74,7 +95,8 @@ export default class McpClient {
         await this.closeConnections();
       } catch (cleanupError) {
         // Log but don't throw - we don't want to mask the original connection error
-        this.logger?.('Error', 'Error during test connection cleanup', cleanupError as Error);
+        const logLevel = getLogLevelForError(cleanupError as Error);
+        this.logger?.(logLevel, 'Error during test connection cleanup', cleanupError as Error);
       }
     }
   }
@@ -90,14 +112,16 @@ export default class McpClient {
 
     if (failures.length > 0) {
       failures.forEach(({ name, result }) => {
-        this.logger?.(
-          'Error',
-          `Failed to close MCP connection for ${name}`,
-          (result as PromiseRejectedResult).reason,
-        );
+        const error = (result as PromiseRejectedResult).reason;
+        const logLevel = getLogLevelForError(error);
+        this.logger?.(logLevel, `Failed to close MCP connection for ${name}`, error);
       });
+      const allConnectionErrors = failures.every(({ result }) =>
+        isServerUnreachable((result as PromiseRejectedResult).reason),
+      );
+      const summaryLogLevel = allConnectionErrors ? 'Warn' : 'Error';
       this.logger?.(
-        'Error',
+        summaryLogLevel,
         `Failed to close ${failures.length}/${results.length} MCP connections. ` +
           `This may result in resource leaks.`,
       );
