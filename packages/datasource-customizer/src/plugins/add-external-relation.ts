@@ -13,7 +13,10 @@ export default async function addExternalRelation<
   collectionCustomizer: CollectionCustomizer<S, N>,
   options: { name: string } & OneToManyEmbeddedDefinition<S, N>,
 ): Promise<void> {
-  const primaryKeys = SchemaUtils.getPrimaryKeys(collectionCustomizer.schema) as TFieldName<S, N>[];
+  const primaryKeys = SchemaUtils.getPrimaryKeys(collectionCustomizer.schema) as [
+    TFieldName<S, N>,
+    ...TFieldName<S, N>[],
+  ];
 
   collectionCustomizer.addField(options.name, {
     dependencies: options.dependencies ?? primaryKeys,
