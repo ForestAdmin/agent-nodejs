@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent-testing",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "Testing utilities for Forest Admin agent",
   "author": "Vincent Molinié <vincent.m@forestadmin.com>",
   "homepage": "https://github.com/ForestAdmin/agent-nodejs#readme",

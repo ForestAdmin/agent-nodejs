@@ -1,3 +1,10 @@
+## @forestadmin/agent-testing [1.0.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.0.19...@forestadmin/agent-testing@1.0.20) (2026-03-03)
+
+
+### Bug Fixes
+
+* **agent-testing:** add OIDC mock routes and warn on unhandled URLs in sandbox ([#1486](https://github.com/ForestAdmin/agent-nodejs/issues/1486)) ([a8088e8](https://github.com/ForestAdmin/agent-nodejs/commit/a8088e8da99c1692789cb422b6a7d13af727962f))
+
 ## @forestadmin/agent-testing [1.0.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.0.18...@forestadmin/agent-testing@1.0.19) (2026-02-25)
 
 
