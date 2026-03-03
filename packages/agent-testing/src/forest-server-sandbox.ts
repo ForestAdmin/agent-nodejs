@@ -33,7 +33,7 @@ export default class ForestServerSandbox {
     const server = http.createServer(this.routes.bind(this));
 
     this.fakeForestServer = await new Promise((resolve, reject) => {
-      server.listen(this.port, () => resolve(server));
+      server.listen(this.port, '127.0.0.1', () => resolve(server));
       server.on('error', error => {
         console.error('Server error:', error);
         reject(error);
