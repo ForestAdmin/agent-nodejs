@@ -270,6 +270,36 @@ describe('Action', () => {
       expect(field).toBeDefined();
     });
 
+    it('should return file field for File type', () => {
+      fieldsFormStates.getField.mockReturnValue({
+        getName: () => 'document',
+        getType: () => 'File',
+      } as any);
+
+      const field = action.getField('document');
+      expect(field).toBeDefined();
+    });
+
+    it('should return file list field for FileList type', () => {
+      fieldsFormStates.getField.mockReturnValue({
+        getName: () => 'attachments',
+        getType: () => 'FileList',
+      } as any);
+
+      const field = action.getField('attachments');
+      expect(field).toBeDefined();
+    });
+
+    it('should return file list field for ["File"] type', () => {
+      fieldsFormStates.getField.mockReturnValue({
+        getName: () => 'attachments',
+        getType: () => ['File'],
+      } as any);
+
+      const field = action.getField('attachments');
+      expect(field).toBeDefined();
+    });
+
     it('should return string field as default', () => {
       fieldsFormStates.getField.mockReturnValue({
         getName: () => 'unknown',
@@ -339,6 +369,16 @@ describe('Action', () => {
 
     it('should return ActionFieldRadioGroup', () => {
       const field = action.getRadioGroupField('choice');
+      expect(field).toBeDefined();
+    });
+
+    it('should return ActionFieldFile', () => {
+      const field = action.getFileField('document');
+      expect(field).toBeDefined();
+    });
+
+    it('should return ActionFieldFileList', () => {
+      const field = action.getFileListField('attachments');
       expect(field).toBeDefined();
     });
   });
