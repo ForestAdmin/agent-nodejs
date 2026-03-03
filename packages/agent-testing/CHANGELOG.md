@@ -1,3 +1,10 @@
+## @forestadmin/agent-testing [1.0.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.0.20...@forestadmin/agent-testing@1.0.21) (2026-03-03)
+
+
+### Bug Fixes
+
+* **agent-testing:** bind mock server to IPv4 127.0.0.1 ([#1487](https://github.com/ForestAdmin/agent-nodejs/issues/1487)) ([e36c0c4](https://github.com/ForestAdmin/agent-nodejs/commit/e36c0c4e8c978382d2f1db8ca572fa1f07e43f30))
+
 ## @forestadmin/agent-testing [1.0.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.0.19...@forestadmin/agent-testing@1.0.20) (2026-03-03)
 
 
