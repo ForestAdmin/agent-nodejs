@@ -100,6 +100,25 @@ export default class ForestServerSandbox {
           sendResponse(200);
           break;
 
+        case '/oidc/.well-known/openid-configuration': {
+          const host = `http://${req.headers.host}`;
+          sendResponse(200, {
+            issuer: host,
+            authorization_endpoint: `${host}/oidc/auth`,
+            token_endpoint: `${host}/oidc/token`,
+            registration_endpoint: `${host}/oidc/reg`,
+            jwks_uri: `${host}/oidc/jwks`,
+          });
+          break;
+        }
+
+        case '/oidc/reg':
+          sendResponse(201, {
+            client_id: 'mock-forest-client',
+            token_endpoint_auth_method: 'none',
+          });
+          break;
+
         case '/liana/v1/ip-whitelist-rules':
           sendResponse(200, { data: { attributes: { use_ip_whitelist: false, rules: [] } } });
           break;
@@ -131,7 +150,10 @@ export default class ForestServerSandbox {
           if (req.url?.startsWith('/liana/v4/permissions/renderings/')) {
             sendResponse(200, { team: {}, collections: {}, stats: [] });
           } else {
-            sendResponse(404, { error: 'Not Found' });
+            console.warn(`Forest server sandbox: unhandled ${req.method} ${req.url}`);
+            sendResponse(404, {
+              errors: [{ detail: `Sandbox: no mock for ${req.method} ${req.url}` }],
+            });
           }
       }
     } catch (error) {
