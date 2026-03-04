@@ -63,6 +63,7 @@
     "lerna/js-yaml": "4.1.1",
     "@lerna/create/js-yaml": "4.1.1",
     "hono": ">=4.11.10",
-    "markdown-it": ">=14.1.1"
+    "markdown-it": ">=14.1.1",
+    "@aws-sdk/xml-builder": ">=3.972.9"
   }
 }
