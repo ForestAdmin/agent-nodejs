@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.6.0...@forestadmin/ai-proxy@1.6.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* **deps:** fix easy vulnerabilities ([#1483](https://github.com/ForestAdmin/agent-nodejs/issues/1483)) ([6c3a5b4](https://github.com/ForestAdmin/agent-nodejs/commit/6c3a5b485cc10995575f9e0a29d7349ab68a655a))
+
 # @forestadmin/ai-proxy [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.5.2...@forestadmin/ai-proxy@1.6.0) (2026-02-25)
 
 
