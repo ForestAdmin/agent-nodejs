@@ -79,13 +79,12 @@ The token is printed to stdout, ready to be used as a Bearer token with the MCP 
 | `--env-secret` | `FOREST_ENV_SECRET` | **Yes** | - | Environment secret (64 hex chars) |
 | `--auth-secret` | `FOREST_AUTH_SECRET` | **Yes** | - | Authentication secret (must match your agent) |
 | `--token` | `FOREST_PERSONAL_TOKEN` | **Yes** | - | Forest Admin personal access token |
-| `--rendering-id` | `FOREST_RENDERING_ID` | For PATs | - | Rendering ID from your project URL |
+| `--rendering-id` | `FOREST_RENDERING_ID` | **Yes** | - | Rendering ID from your project URL |
 | `--expires-in` | - | No | `1h` | Token lifetime (`30m`, `2h`, `7d`, etc. Max 60 days) |
-| `--forest-server-url` | `FOREST_SERVER_URL` | No | `https://api.forestadmin.com` | Forest Admin API URL |
 
 All flags can be provided via environment variables (directly or through `--env-file`). CLI flags take precedence over env variables.
 
-The `--rendering-id` is required when using a personal access token (PAT). Find it in your Forest Admin project URL: `app.forestadmin.com/<projectId>/<renderingId>/...`
+Find your rendering ID in your Forest Admin project URL: `app.forestadmin.com/<projectId>/<renderingId>/...`
 
 ## API Endpoint
 

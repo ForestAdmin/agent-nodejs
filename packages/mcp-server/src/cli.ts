@@ -10,7 +10,6 @@ export const KNOWN_FLAGS = new Set([
   'auth-secret',
   'token',
   'expires-in',
-  'forest-server-url',
   'rendering-id',
   'env-file',
 ]);
@@ -64,7 +63,6 @@ export async function handleGenerateToken(args: string[]): Promise<void> {
     token: parsed.token || process.env.FOREST_PERSONAL_TOKEN,
     renderingId: parsed['rendering-id'] || process.env.FOREST_RENDERING_ID,
     expiresIn: parsed['expires-in'],
-    forestServerUrl: parsed['forest-server-url'] || process.env.FOREST_SERVER_URL,
   });
 
   for (const warning of warnings) {

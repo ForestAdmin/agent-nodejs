@@ -134,7 +134,6 @@ describe('handleGenerateToken', () => {
       FOREST_AUTH_SECRET: 'env-auth',
       FOREST_PERSONAL_TOKEN: 'env-token',
       FOREST_RENDERING_ID: '42',
-      FOREST_SERVER_URL: 'https://custom.api.com',
     };
     mockGenerateToken.mockResolvedValue({ token: 'tok', warnings: [] });
 
@@ -146,7 +145,6 @@ describe('handleGenerateToken', () => {
         authSecret: 'env-auth',
         token: 'env-token',
         renderingId: '42',
-        forestServerUrl: 'https://custom.api.com',
       }),
     );
     process.env = env;

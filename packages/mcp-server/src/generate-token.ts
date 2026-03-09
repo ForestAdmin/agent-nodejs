@@ -6,25 +6,8 @@ export interface GenerateTokenOptions {
   token?: string;
   renderingId?: string;
   expiresIn?: string;
-  forestServerUrl?: string;
 }
 
-interface UserInfoResponse {
-  data: {
-    id: string;
-    attributes: {
-      email: string;
-      first_name: string;
-      last_name: string;
-      teams: string[];
-      role: string;
-      permission_level: string;
-      tags?: Array<{ key: string; value: string }>;
-    };
-  };
-}
-
-// PAT structure from Forest Admin personal access tokens
 interface DecodedPat {
   isApplicationToken?: boolean;
   data?: {
@@ -38,7 +21,6 @@ interface DecodedPat {
       };
     };
   };
-  meta?: { renderingId?: number };
   exp?: number;
 }
 
@@ -71,65 +53,8 @@ function parseExpiresIn(value: string): number {
   return seconds;
 }
 
-async function fetchUserInfo(
-  forestServerUrl: string,
-  renderingId: number,
-  pat: string,
-  envSecret: string,
-): Promise<UserInfoResponse> {
-  const url = `${forestServerUrl}/liana/v2/renderings/${renderingId}/authorization`;
-
-  let response: Response;
-
-  try {
-    response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'forest-token': pat,
-        'forest-secret-key': envSecret,
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch (error) {
-    throw new Error(
-      `Failed to connect to Forest Admin API at ${forestServerUrl}: ` +
-        `${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Authentication failed. Check your env secret and token.');
-    }
-
-    if (response.status === 404) {
-      throw new Error('Could not find rendering. Check that your token matches the environment.');
-    }
-
-    let body: string;
-
-    try {
-      body = await response.text();
-    } catch {
-      body = '(could not read response body)';
-    }
-
-    throw new Error(`Forest Admin API error (HTTP ${response.status}): ${body.slice(0, 500)}`);
-  }
-
-  try {
-    return (await response.json()) as UserInfoResponse;
-  } catch (error) {
-    throw new Error(
-      `Failed to parse Forest Admin API response: ` +
-        `${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
-function buildUserInfoFromPat(decoded: DecodedPat, renderingId: number): Record<string, unknown> {
+function buildUserInfo(decoded: DecodedPat, renderingId: number): Record<string, unknown> {
   const attrs = decoded.data?.data?.attributes;
-
   const userId = Number(decoded.data?.data?.id);
 
   if (!attrs?.email) {
@@ -149,54 +74,6 @@ function buildUserInfoFromPat(decoded: DecodedPat, renderingId: number): Record<
   };
 }
 
-async function buildUserInfoFromApi(
-  decoded: DecodedPat,
-  forestServerUrl: string,
-  pat: string,
-  envSecret: string,
-): Promise<{ userInfo: Record<string, unknown>; renderingId: number }> {
-  if (!decoded.meta?.renderingId) {
-    throw new Error('Token does not contain a renderingId (expected in meta.renderingId).');
-  }
-
-  const { renderingId } = decoded.meta;
-  const userInfoResponse = await fetchUserInfo(forestServerUrl, renderingId, pat, envSecret);
-
-  if (!userInfoResponse.data?.attributes) {
-    throw new Error(
-      'Unexpected API response structure. This may indicate an API version mismatch.',
-    );
-  }
-
-  const { attributes } = userInfoResponse.data;
-  const userId = Number(userInfoResponse.data.id);
-
-  if (!attributes.email) {
-    throw new Error('API response is missing the user email. Cannot generate a valid MCP token.');
-  }
-
-  if (Number.isNaN(userId)) {
-    throw new Error(`API response contains an invalid user ID: "${userInfoResponse.data.id}".`);
-  }
-
-  return {
-    renderingId,
-    userInfo: {
-      id: userId,
-      email: attributes.email,
-      firstName: attributes.first_name,
-      lastName: attributes.last_name,
-      team: attributes.teams?.[0],
-      role: attributes.role,
-      permissionLevel: attributes.permission_level,
-      renderingId,
-      tags: attributes.tags
-        ? Object.fromEntries(attributes.tags.map(({ key, value }) => [key, value]))
-        : undefined,
-    },
-  };
-}
-
 export async function generateToken(
   options: GenerateTokenOptions,
 ): Promise<{ token: string; warnings: string[] }> {
@@ -206,7 +83,6 @@ export async function generateToken(
     token: pat,
     renderingId: renderingIdStr,
     expiresIn: expiresInStr = '1h',
-    forestServerUrl = 'https://api.forestadmin.com',
   } = options;
 
   const warnings: string[] = [];
@@ -230,6 +106,12 @@ export async function generateToken(
   if (!decoded || typeof decoded !== 'object') {
     throw new Error(
       'Could not decode token. Ensure it is a valid Forest Admin personal access token.',
+    );
+  }
+
+  if (!decoded.isApplicationToken) {
+    throw new Error(
+      'Token is not a Forest Admin personal access token (missing isApplicationToken flag).',
     );
   }
 
@@ -259,25 +141,16 @@ export async function generateToken(
     }
   }
 
-  let userInfo: Record<string, unknown>;
+  const renderingId = renderingIdStr ? Number(renderingIdStr) : undefined;
 
-  if (decoded.isApplicationToken) {
-    // PAT: user info is embedded in the token, renderingId must be provided via flag
-    const renderingId = renderingIdStr ? Number(renderingIdStr) : undefined;
-
-    if (!renderingId || Number.isNaN(renderingId)) {
-      throw new Error(
-        '--rendering-id is required when using a personal access token. ' +
-          'Find it in your Forest Admin project URL: app.forestadmin.com/<projectId>/<renderingId>/...',
-      );
-    }
-
-    userInfo = buildUserInfoFromPat(decoded, renderingId);
-  } else {
-    // OAuth-style token: fetch user info from the API
-    const result = await buildUserInfoFromApi(decoded, forestServerUrl, pat, envSecret);
-    userInfo = result.userInfo;
+  if (!renderingId || Number.isNaN(renderingId)) {
+    throw new Error(
+      '--rendering-id is required. ' +
+        'Find it in your Forest Admin project URL: app.forestadmin.com/<projectId>/<renderingId>/...',
+    );
   }
+
+  const userInfo = buildUserInfo(decoded, renderingId);
 
   let mcpToken: string;
 
