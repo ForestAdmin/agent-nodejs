@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import { generateToken } from './generate-token';
 import ForestMCPServer from './server';
 
-const KNOWN_FLAGS = new Set([
+export const KNOWN_FLAGS = new Set([
   'env-secret',
   'auth-secret',
   'token',
@@ -15,7 +15,7 @@ const KNOWN_FLAGS = new Set([
   'env-file',
 ]);
 
-function parseArgs(args: string[]): Record<string, string> {
+export function parseArgs(args: string[]): Record<string, string> {
   const parsed: Record<string, string> = {};
   let i = 0;
 
@@ -47,7 +47,7 @@ function parseArgs(args: string[]): Record<string, string> {
   return parsed;
 }
 
-async function handleGenerateToken(args: string[]): Promise<void> {
+export async function handleGenerateToken(args: string[]): Promise<void> {
   const parsed = parseArgs(args);
 
   if (parsed['env-file']) {
