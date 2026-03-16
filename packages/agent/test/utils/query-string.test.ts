@@ -635,4 +635,58 @@ describe('QueryStringParser', () => {
       });
     });
   });
+
+  describe('parseChartContextVariables', () => {
+    test('should merge query and body into a flat Record<string, string>', () => {
+      const context = createMockContext({
+        customProperties: { query: { timezone: 'Europe/Paris', startDate: '2024-01-01' } },
+        requestBody: { endDate: '2024-12-31' },
+      });
+
+      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({
+        timezone: 'Europe/Paris',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      });
+    });
+
+    test('body values should override query values', () => {
+      const context = createMockContext({
+        customProperties: { query: { key: 'fromQuery' } },
+        requestBody: { key: 'fromBody' },
+      });
+
+      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({
+        key: 'fromBody',
+      });
+    });
+
+    test('should ignore null, undefined and object values', () => {
+      const context = createMockContext({
+        customProperties: { query: { valid: 'yes' } },
+        requestBody: { nested: { a: 1 }, empty: null },
+      });
+
+      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({
+        valid: 'yes',
+      });
+    });
+
+    test('should convert non-string primitives to strings', () => {
+      const context = createMockContext({
+        customProperties: { query: { count: 42, active: true } },
+      });
+
+      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({
+        count: '42',
+        active: 'true',
+      });
+    });
+
+    test('should return empty object when no query and no body', () => {
+      const context = createMockContext({});
+
+      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({});
+    });
+  });
 });

@@ -71,6 +71,7 @@ export default class CollectionApiChartRoute extends CollectionRoute {
         this.collection.schema,
         String(body?.record_id ?? context.request.query?.record_id),
       ),
+      QueryStringParser.parseChartContextVariables(context),
     );
   }
 }

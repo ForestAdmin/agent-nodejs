@@ -63,6 +63,6 @@ describe('DataSourceDecorator', () => {
     const caller = factories.caller.build();
 
     decorator.renderChart(caller, 'myChart');
-    expect(dataSource.renderChart).toHaveBeenCalledWith(caller, 'myChart');
+    expect(dataSource.renderChart).toHaveBeenCalledWith(caller, 'myChart', undefined);
   });
 });

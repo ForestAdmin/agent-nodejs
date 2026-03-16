@@ -1,11 +1,11 @@
 import type CollectionChartContext from './context';
+import type DataSourceChartContext from './datasource-chart-context';
 import type ResultBuilder from './result-builder';
-import type AgentCustomizationContext from '../../context/agent-context';
 import type { TCollectionName, TSchema } from '../../templates';
 import type { Chart } from '@forestadmin/datasource-toolkit';
 
 export type DataSourceChartDefinition<S extends TSchema = TSchema> = (
-  context: AgentCustomizationContext<S>,
+  context: DataSourceChartContext<S>,
   resultBuilder: ResultBuilder,
 ) => Promise<Chart> | Chart;
 

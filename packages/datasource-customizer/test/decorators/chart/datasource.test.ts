@@ -23,7 +23,7 @@ describe('ChartDataSourceDecorator', () => {
         const caller = factories.caller.build();
 
         decorator.renderChart(caller, 'myChart');
-        expect(dataSource.renderChart).toHaveBeenCalledWith(caller, 'myChart');
+        expect(dataSource.renderChart).toHaveBeenCalledWith(caller, 'myChart', undefined);
       });
     });
 
@@ -50,6 +50,17 @@ describe('ChartDataSourceDecorator', () => {
 
         expect(result).toStrictEqual({ countCurrent: 34, countPrevious: 45 });
         expect(dataSource.renderChart).not.toHaveBeenCalled();
+      });
+
+      test('renderChart should pass contextVariables to the handler', async () => {
+        const handler = jest.fn((_ctx, resultBuilder) => resultBuilder.value(10));
+        decorator.addChart('chartWithVars', handler);
+
+        const caller = factories.caller.build();
+        const vars = { startDate: '2024-01-01' };
+        await decorator.renderChart(caller, 'chartWithVars', vars);
+
+        expect(handler.mock.calls[0][0].contextVariables).toStrictEqual(vars);
       });
     });
   });

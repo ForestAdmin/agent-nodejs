@@ -44,8 +44,8 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
     return this.decorators.get(collection);
   }
 
-  renderChart(caller: Caller, name: string): Promise<Chart> {
-    return this.childDataSource.renderChart(caller, name);
+  renderChart(caller: Caller, name: string, contextVariables?: Record<string, string>): Promise<Chart> {
+    return this.childDataSource.renderChart(caller, name, contextVariables);
   }
 
   async executeNativeQuery(

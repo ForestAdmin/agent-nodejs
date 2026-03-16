@@ -16,7 +16,11 @@ export interface DataSource<C extends Collection = Collection> {
 
   getCollection(name: string): C;
 
-  renderChart(caller: Caller, name: string): Promise<Chart>;
+  renderChart(
+    caller: Caller,
+    name: string,
+    contextVariables?: Record<string, string>,
+  ): Promise<Chart>;
   executeNativeQuery(
     connectionName: string,
     query: string,
@@ -67,5 +71,10 @@ export interface Collection {
     limit?: number,
   ): Promise<AggregateResult[]>;
 
-  renderChart(caller: Caller, name: string, recordId: CompositeId): Promise<Chart>;
+  renderChart(
+    caller: Caller,
+    name: string,
+    recordId: CompositeId,
+    contextVariables?: Record<string, string>,
+  ): Promise<Chart>;
 }

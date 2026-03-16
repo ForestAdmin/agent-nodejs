@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
 import type {
+  CollectionChartDefinition,
   CollectionCustomizationContext,
   ComputedDefinition,
-  DataSourceChartDefinition,
 } from '../src';
 import type { ActionDefinition } from '../src/decorators/actions/types/actions';
 import type { WriteDefinition } from '../src/decorators/write/write-replace/types';
@@ -204,7 +204,7 @@ describe('Builder > Collection', () => {
     it('should add a chart', async () => {
       const { dsc, customizer } = await setup();
 
-      const chartDefinition: DataSourceChartDefinition = (ctx, rb) => rb.value(1);
+      const chartDefinition: CollectionChartDefinition = (ctx, rb) => rb.value(1);
       const self = customizer.addChart('chart name', chartDefinition);
       await dsc.getDataSource(logger);
 

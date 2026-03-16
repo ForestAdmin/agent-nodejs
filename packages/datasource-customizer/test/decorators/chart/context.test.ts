@@ -31,4 +31,34 @@ describe('CollectionChartContext', () => {
 
     expect(record).toStrictEqual({ id1: 1, id2: 2 });
   });
+
+  describe('contextVariables', () => {
+    test('should return empty object when no context variables are provided', () => {
+      const ctx = new CollectionChartContext(collection, factories.caller.build(), [1, 2]);
+
+      expect(ctx.contextVariables).toStrictEqual({});
+    });
+
+    test('should return the context variables when provided', () => {
+      const ctx = new CollectionChartContext(collection, factories.caller.build(), [1, 2], {
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      });
+
+      expect(ctx.contextVariables).toStrictEqual({
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      });
+    });
+
+    test('should return a frozen object', () => {
+      const ctx = new CollectionChartContext(collection, factories.caller.build(), [1, 2], {
+        key: 'value',
+      });
+
+      expect(() => {
+        (ctx.contextVariables as Record<string, string>).newKey = 'newValue';
+      }).toThrow();
+    });
+  });
 });

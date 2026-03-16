@@ -126,7 +126,12 @@ export default abstract class BaseCollection implements Collection {
     return [];
   }
 
-  async renderChart(caller: Caller, name: string, recordId: CompositeId): Promise<Chart> {
+  async renderChart(
+    caller: Caller,
+    name: string,
+    recordId: CompositeId,
+    contextVariables?: Record<string, string>,
+  ): Promise<Chart> {
     throw new Error(`Chart ${name} is not implemented.`);
   }
 }

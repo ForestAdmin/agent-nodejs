@@ -18,15 +18,20 @@ export default class ChartCollectionDecorator extends CollectionDecorator {
     this.markSchemaAsDirty();
   }
 
-  override async renderChart(caller: Caller, name: string, recordId: CompositeId): Promise<Chart> {
+  override async renderChart(
+    caller: Caller,
+    name: string,
+    recordId: CompositeId,
+    contextVariables?: Record<string, string>,
+  ): Promise<Chart> {
     if (this.charts[name]) {
-      const context = new CollectionChartContext(this, caller, recordId);
+      const context = new CollectionChartContext(this, caller, recordId, contextVariables);
       const resultBuilder = new ResultBuilder();
 
       return this.charts[name](context, resultBuilder);
     }
 
-    return this.childCollection.renderChart(caller, name, recordId);
+    return this.childCollection.renderChart(caller, name, recordId, contextVariables);
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {
