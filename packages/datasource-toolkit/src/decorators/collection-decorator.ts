@@ -114,7 +114,12 @@ export default class CollectionDecorator implements Collection {
     return this.childCollection.aggregate(caller, refinedFilter, aggregation, limit);
   }
 
-  async renderChart(caller: Caller, name: string, recordId: CompositeId, contextVariables?: Record<string, string>): Promise<Chart> {
+  async renderChart(
+    caller: Caller,
+    name: string,
+    recordId: CompositeId,
+    contextVariables?: Record<string, string>,
+  ): Promise<Chart> {
     return this.childCollection.renderChart(caller, name, recordId, contextVariables);
   }
 

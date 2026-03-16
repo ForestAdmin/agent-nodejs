@@ -44,7 +44,11 @@ export default class DataSourceDecorator<CollectionDecorator extends Collection 
     return this.decorators.get(collection);
   }
 
-  renderChart(caller: Caller, name: string, contextVariables?: Record<string, string>): Promise<Chart> {
+  renderChart(
+    caller: Caller,
+    name: string,
+    contextVariables?: Record<string, string>,
+  ): Promise<Chart> {
     return this.childDataSource.renderChart(caller, name, contextVariables);
   }
 
