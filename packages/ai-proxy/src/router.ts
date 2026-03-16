@@ -6,6 +6,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
 import { AIBadRequestError, AIModelNotSupportedError } from './errors';
+import getAiConfiguration from './get-ai-configuration';
 import McpClient from './mcp-client';
 import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
@@ -82,7 +83,11 @@ export class Router {
 
       switch (validatedArgs.route) {
         case 'ai-query': {
-          const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
+          const aiConfiguration = getAiConfiguration(
+            this.aiConfigurations,
+            validatedArgs.query?.['ai-name'],
+            this.logger,
+          );
 
           return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
             validatedArgs.body,
@@ -140,27 +145,5 @@ export class Router {
         return `${path}${issue.message}`;
       })
       .join('; ');
-  }
-
-  private getAiConfiguration(aiName?: string): AiConfiguration | null {
-    if (this.aiConfigurations.length === 0) return null;
-
-    if (aiName) {
-      const config = this.aiConfigurations.find(c => c.name === aiName);
-
-      if (!config) {
-        const fallback = this.aiConfigurations[0];
-        this.logger?.(
-          'Warn',
-          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}' (provider: ${fallback.provider}, model: ${fallback.model})`,
-        );
-
-        return fallback;
-      }
-
-      return config;
-    }
-
-    return this.aiConfigurations[0];
   }
 }
