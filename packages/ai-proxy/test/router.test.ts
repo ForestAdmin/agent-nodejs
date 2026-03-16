@@ -1,7 +1,8 @@
 import type { DispatchBody, InvokeRemoteToolArgs } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
-import { AIModelNotSupportedError, Router } from '../src';
+import { AIModelNotSupportedError, AINotConfiguredError, Router } from '../src';
 import McpClient from '../src/mcp-client';
 import ProviderDispatcher from '../src/provider-dispatcher';
 
@@ -38,6 +39,11 @@ jest.mock('../src/mcp-client', () => {
 });
 
 const MockedMcpClient = McpClient as jest.MockedClass<typeof McpClient>;
+
+const createBaseChatModelMock = jest.fn().mockReturnValue({} as BaseChatModel);
+jest.mock('../src/create-base-chat-model', () => ({
+  createBaseChatModel: (...args: unknown[]) => createBaseChatModelMock(...args),
+}));
 
 describe('route', () => {
   beforeEach(() => {
@@ -508,5 +514,294 @@ describe('route', () => {
         ).toThrow(AIModelNotSupportedError);
       });
     });
+  });
+});
+
+describe('getModel', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns a BaseChatModel by calling createBaseChatModel', () => {
+    const fakeModel = { fake: true } as unknown as BaseChatModel;
+    createBaseChatModelMock.mockReturnValue(fakeModel);
+
+    const router = new Router({
+      aiConfigurations: [{ name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' }],
+    });
+
+    const result = router.getModel('gpt4');
+
+    expect(createBaseChatModelMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'gpt4', provider: 'openai', model: 'gpt-4o' }),
+    );
+    expect(result).toBe(fakeModel);
+  });
+
+  it('returns cached instance on second call with same name', () => {
+    const fakeModel = { fake: true } as unknown as BaseChatModel;
+    createBaseChatModelMock.mockReturnValue(fakeModel);
+
+    const router = new Router({
+      aiConfigurations: [{ name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' }],
+    });
+
+    const first = router.getModel('gpt4');
+    const second = router.getModel('gpt4');
+
+    expect(first).toBe(second);
+    expect(createBaseChatModelMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses first configuration when aiName is not provided', () => {
+    const fakeModel = { fake: true } as unknown as BaseChatModel;
+    createBaseChatModelMock.mockReturnValue(fakeModel);
+
+    const router = new Router({
+      aiConfigurations: [
+        { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+        { name: 'gpt4mini', provider: 'openai', apiKey: 'dev', model: 'gpt-4o-mini' },
+      ],
+    });
+
+    router.getModel();
+
+    expect(createBaseChatModelMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'gpt4', model: 'gpt-4o' }),
+    );
+  });
+
+  it('throws AINotConfiguredError when aiConfigurations is empty', () => {
+    const router = new Router({});
+
+    expect(() => router.getModel()).toThrow(AINotConfiguredError);
+  });
+
+  it('creates separate cached instances for different AI names', () => {
+    const fakeModel1 = { id: 1 } as unknown as BaseChatModel;
+    const fakeModel2 = { id: 2 } as unknown as BaseChatModel;
+    createBaseChatModelMock.mockReturnValueOnce(fakeModel1).mockReturnValueOnce(fakeModel2);
+
+    const router = new Router({
+      aiConfigurations: [
+        { name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+        { name: 'gpt4mini', provider: 'openai', apiKey: 'dev', model: 'gpt-4o-mini' },
+      ],
+    });
+
+    const result1 = router.getModel('gpt4');
+    const result2 = router.getModel('gpt4mini');
+
+    expect(result1).not.toBe(result2);
+    expect(createBaseChatModelMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to first config and caches by resolved name', () => {
+    const fakeModel = { fake: true } as unknown as BaseChatModel;
+    createBaseChatModelMock.mockReturnValue(fakeModel);
+    const mockLogger = jest.fn();
+
+    const router = new Router({
+      aiConfigurations: [{ name: 'gpt4', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' }],
+      logger: mockLogger,
+    });
+
+    const result = router.getModel('non-existent');
+
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining("AI configuration 'non-existent' not found"),
+    );
+    expect(createBaseChatModelMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'gpt4' }),
+    );
+    expect(result).toBe(fakeModel);
+  });
+});
+
+describe('loadRemoteTools', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('creates an McpClient and returns loaded tools', async () => {
+    const fakeTools = [{ name: 'tool1' }];
+    jest.mocked(McpClient).mockImplementation(
+      () =>
+        ({
+          loadTools: jest.fn().mockResolvedValue(fakeTools),
+          closeConnections: jest.fn(),
+        } as unknown as McpClient),
+    );
+
+    const router = new Router({});
+    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+
+    const result = await router.loadRemoteTools(mcpConfig);
+
+    expect(MockedMcpClient).toHaveBeenCalledWith(mcpConfig, undefined);
+    expect(result).toBe(fakeTools);
+  });
+
+  it('closes previous client before creating a new one', async () => {
+    const closeConnectionsMock1 = jest.fn();
+    const closeConnectionsMock2 = jest.fn();
+
+    jest
+      .mocked(McpClient)
+      .mockImplementationOnce(
+        () =>
+          ({
+            loadTools: jest.fn().mockResolvedValue([]),
+            closeConnections: closeConnectionsMock1,
+          } as unknown as McpClient),
+      )
+      .mockImplementationOnce(
+        () =>
+          ({
+            loadTools: jest.fn().mockResolvedValue([]),
+            closeConnections: closeConnectionsMock2,
+          } as unknown as McpClient),
+      );
+
+    const router = new Router({});
+    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+
+    await router.loadRemoteTools(mcpConfig);
+    await router.loadRemoteTools(mcpConfig);
+
+    expect(closeConnectionsMock1).toHaveBeenCalledTimes(1);
+    expect(MockedMcpClient).toHaveBeenCalledTimes(2);
+  });
+
+  it('passes the logger to McpClient', async () => {
+    const customLogger: Logger = jest.fn();
+    jest.mocked(McpClient).mockImplementation(
+      () =>
+        ({
+          loadTools: jest.fn().mockResolvedValue([]),
+          closeConnections: jest.fn(),
+        } as unknown as McpClient),
+    );
+
+    const router = new Router({ logger: customLogger });
+    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+
+    await router.loadRemoteTools(mcpConfig);
+
+    expect(MockedMcpClient).toHaveBeenCalledWith(mcpConfig, customLogger);
+  });
+
+  it('still creates a new client when closing the previous one fails', async () => {
+    const mockLogger = jest.fn();
+    const closeError = new Error('Close failed');
+    const fakeTools = [{ name: 'tool1' }];
+
+    jest
+      .mocked(McpClient)
+      .mockImplementationOnce(
+        () =>
+          ({
+            loadTools: jest.fn().mockResolvedValue([]),
+            closeConnections: jest.fn().mockRejectedValue(closeError),
+          } as unknown as McpClient),
+      )
+      .mockImplementationOnce(
+        () =>
+          ({
+            loadTools: jest.fn().mockResolvedValue(fakeTools),
+            closeConnections: jest.fn(),
+          } as unknown as McpClient),
+      );
+
+    const router = new Router({ logger: mockLogger });
+    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+
+    await router.loadRemoteTools(mcpConfig);
+    const result = await router.loadRemoteTools(mcpConfig);
+
+    expect(result).toBe(fakeTools);
+    expect(MockedMcpClient).toHaveBeenCalledTimes(2);
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      'Error closing previous MCP connection',
+      closeError,
+    );
+  });
+});
+
+describe('closeConnections', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('closes the McpClient', async () => {
+    const closeConnectionsMock = jest.fn();
+    jest.mocked(McpClient).mockImplementation(
+      () =>
+        ({
+          loadTools: jest.fn().mockResolvedValue([]),
+          closeConnections: closeConnectionsMock,
+        } as unknown as McpClient),
+    );
+
+    const router = new Router({});
+    await router.loadRemoteTools({ configs: { server1: { command: 'test', args: [] } } });
+
+    await router.closeConnections();
+
+    expect(closeConnectionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('is a no-op when no McpClient exists', async () => {
+    const router = new Router({});
+
+    await expect(router.closeConnections()).resolves.toBeUndefined();
+  });
+
+  it('logs error and clears reference when closeConnections throws', async () => {
+    const mockLogger = jest.fn();
+    const closeError = new Error('close failed');
+    jest.mocked(McpClient).mockImplementation(
+      () =>
+        ({
+          loadTools: jest.fn().mockResolvedValue([]),
+          closeConnections: jest.fn().mockRejectedValue(closeError),
+        } as unknown as McpClient),
+    );
+
+    const router = new Router({ logger: mockLogger });
+    await router.loadRemoteTools({ configs: { server1: { command: 'test', args: [] } } });
+
+    // Should not throw — error is caught and logged
+    await router.closeConnections();
+
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      'Error during MCP connection cleanup',
+      closeError,
+    );
+
+    // Second call should be a no-op (reference cleared in finally block)
+    await expect(router.closeConnections()).resolves.toBeUndefined();
+  });
+
+  it('is safe to call twice', async () => {
+    const closeConnectionsMock = jest.fn();
+    jest.mocked(McpClient).mockImplementation(
+      () =>
+        ({
+          loadTools: jest.fn().mockResolvedValue([]),
+          closeConnections: closeConnectionsMock,
+        } as unknown as McpClient),
+    );
+
+    const router = new Router({});
+    await router.loadRemoteTools({ configs: { server1: { command: 'test', args: [] } } });
+
+    await router.closeConnections();
+    await router.closeConnections();
+
+    expect(closeConnectionsMock).toHaveBeenCalledTimes(1);
   });
 });

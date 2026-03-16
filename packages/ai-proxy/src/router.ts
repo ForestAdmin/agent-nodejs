@@ -3,9 +3,11 @@ import type { AiConfiguration } from './provider';
 import type { RemoteToolsApiKeys } from './remote-tools';
 import type { RouteArgs } from './schemas/route';
 import type { Logger } from '@forestadmin/datasource-toolkit';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { z } from 'zod';
 
-import { AIBadRequestError, AIModelNotSupportedError } from './errors';
+import { createBaseChatModel } from './create-base-chat-model';
+import { AIBadRequestError, AIModelNotSupportedError, AINotConfiguredError } from './errors';
 import McpClient from './mcp-client';
 import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
@@ -30,6 +32,8 @@ export class Router {
   private readonly localToolsApiKeys?: ApiKeys;
   private readonly aiConfigurations: AiConfiguration[];
   private readonly logger?: Logger;
+  private readonly modelCache = new Map<string, BaseChatModel>();
+  private mcpClient?: McpClient;
 
   constructor(params?: {
     aiConfigurations?: AiConfiguration[];
@@ -120,6 +124,52 @@ export class Router {
           this.logger?.('Error', 'Error during MCP connection cleanup', error);
         }
       }
+    }
+  }
+
+  getModel(aiName?: string): BaseChatModel {
+    const config = this.getAiConfiguration(aiName);
+    if (!config) throw new AINotConfiguredError();
+
+    const cached = this.modelCache.get(config.name);
+    if (cached) return cached;
+
+    const model = createBaseChatModel(config);
+    this.modelCache.set(config.name, model);
+
+    return model;
+  }
+
+  async loadRemoteTools(mcpConfig: McpConfiguration): Promise<McpClient['tools']> {
+    if (this.mcpClient) {
+      try {
+        await this.mcpClient.closeConnections();
+      } catch (error) {
+        this.logger?.(
+          'Error',
+          'Error closing previous MCP connection',
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      } finally {
+        this.mcpClient = undefined;
+      }
+    }
+
+    this.mcpClient = new McpClient(mcpConfig, this.logger);
+
+    return this.mcpClient.loadTools();
+  }
+
+  async closeConnections(): Promise<void> {
+    if (!this.mcpClient) return;
+
+    try {
+      await this.mcpClient.closeConnections();
+    } catch (cleanupError) {
+      const err = cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
+      this.logger?.('Error', 'Error during MCP connection cleanup', err);
+    } finally {
+      this.mcpClient = undefined;
     }
   }
 
