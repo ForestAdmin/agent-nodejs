@@ -99,9 +99,6 @@ describe('executeConditionStep', () => {
 
       expect(result.stepHistory.status).toBe('success');
       expect((result.stepHistory as ConditionStepHistory).selectedOption).toBe('Reject');
-      expect((result.stepHistory as ConditionStepHistory).reasoning).toBe(
-        'The request is incomplete',
-      );
 
       // Verify bindTools received tool with correct enum + tool_choice
       expect(mockModel.bindTools).toHaveBeenCalledWith(
@@ -215,7 +212,6 @@ describe('executeConditionStep', () => {
       const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
 
       expect(result.stepHistory.status).toBe('manual-decision');
-      expect((result.stepHistory as ConditionStepHistory).reasoning).toBe('None apply');
       expect(result.stepHistory.error).toBeUndefined();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -269,7 +265,6 @@ describe('executeConditionStep', () => {
       expect(result.stepHistory.error).toContain('Unknown');
       expect(result.stepHistory.error).toContain('Approve');
       expect(result.stepHistory.error).toContain('Reject');
-      expect((result.stepHistory as ConditionStepHistory).reasoning).toBe('Guessing');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           executionParams: { answer: 'Unknown', reasoning: 'Guessing' },

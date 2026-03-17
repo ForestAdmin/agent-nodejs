@@ -10,6 +10,11 @@
  */
 export type StepStatus = 'success' | 'error' | 'awaiting-input' | 'manual-decision';
 
+/**
+ * StepHistory is sent to the orchestrator — it must NEVER contain client data.
+ * Any privacy-sensitive information (e.g. AI reasoning) must stay in
+ * StepExecutionData (persisted in the RunStore, client-side only).
+ */
 interface BaseStepHistory {
   stepId: string;
   stepIndex: number;
@@ -22,8 +27,6 @@ export interface ConditionStepHistory extends BaseStepHistory {
   type: 'condition';
   /** Present when status is 'success'. */
   selectedOption?: string;
-  /** AI-provided reasoning for its choice. Always set when the AI returned a tool call. */
-  reasoning?: string;
 }
 
 export interface AiTaskStepHistory extends BaseStepHistory {

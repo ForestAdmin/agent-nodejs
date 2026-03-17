@@ -47,7 +47,7 @@ src/
 
 - **Pull-based** — The executor polls for pending steps via a port interface. A `triggerPoll(runId)` mechanism will fast-track a specific run.
 - **Atomic** — Each step executes in isolation. A run store (scoped per run) maintains continuity between steps.
-- **Privacy** — Zero client data leaves the client's infrastructure.
+- **Privacy** — Zero client data leaves the client's infrastructure. `StepHistory` is sent to the orchestrator and must NEVER contain client data. Privacy-sensitive information (e.g. AI reasoning) must stay in `StepExecutionData` (persisted in the RunStore, client-side only).
 - **Ports (IO injection)** — All external IO goes through injected port interfaces, keeping the core pure and testable.
 - **AI integration** — Uses `@langchain/core` (`BaseChatModel`, `DynamicStructuredTool`) for AI-powered steps. `ExecutionContext.model` is a `BaseChatModel`.
 - **No recovery/retry** — Once the executor returns a step result to the orchestrator, the step is considered executed. There is no mechanism to re-dispatch a step, so executors must NOT include recovery checks (e.g. checking the RunStore for cached results before executing). Each step executes exactly once.

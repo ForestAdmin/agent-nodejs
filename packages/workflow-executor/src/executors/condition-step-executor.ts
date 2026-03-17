@@ -76,8 +76,6 @@ export default async function executeConditionStep(
     executionResult: step.options.includes(selectedOption) ? { answer: selectedOption } : undefined,
   });
 
-  stepHistory.reasoning = reasoning;
-
   if (selectedOption === NO_GATEWAY_OPTION_MATCH) {
     stepHistory.status = 'manual-decision';
 
