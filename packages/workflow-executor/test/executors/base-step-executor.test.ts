@@ -92,7 +92,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('"answer":"Yes"');
     });
 
-    it('skips steps without executionResult', async () => {
+    it('falls back to History when step has no executionResult in RunStore', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [
@@ -108,12 +108,13 @@ describe('BaseStepExecutor', () => {
 
       const result = await executor.buildAdditionalContext();
 
-      expect(result).not.toContain('cond-1');
-      expect(result).toContain('cond-2');
-      expect(result).toContain('"answer":"No"');
+      expect(result).toContain('Step "cond-1"');
+      expect(result).toContain('History: {"status":"success"}');
+      expect(result).toContain('Step "cond-2"');
+      expect(result).toContain('Result: {"answer":"No"}');
     });
 
-    it('skips history entries with no matching step execution', async () => {
+    it('falls back to History when no matching step execution in RunStore', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [
@@ -128,8 +129,121 @@ describe('BaseStepExecutor', () => {
 
       const result = await executor.buildAdditionalContext();
 
-      expect(result).not.toContain('orphan');
-      expect(result).toContain('matched');
+      expect(result).toContain('Step "orphan"');
+      expect(result).toContain('History: {"status":"success"}');
+      expect(result).toContain('Step "matched"');
+      expect(result).toContain('Result: {"answer":"B"}');
+    });
+
+    it('includes selectedOption in History for condition steps', async () => {
+      const entry = makeHistoryEntry({
+        stepId: 'cond-approval',
+        stepIndex: 0,
+        prompt: 'Approved?',
+      });
+      (entry.stepHistory as { selectedOption?: string }).selectedOption = 'Yes';
+
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [entry],
+          runStore: makeMockRunStore([]),
+        }),
+      );
+
+      const result = await executor.buildAdditionalContext();
+
+      expect(result).toContain('Step "cond-approval"');
+      expect(result).toContain('"selectedOption":"Yes"');
+    });
+
+    it('includes error in History for failed steps', async () => {
+      const entry = makeHistoryEntry({
+        stepId: 'failing-step',
+        stepIndex: 0,
+        prompt: 'Do something',
+      });
+      entry.stepHistory.status = 'error';
+      (entry.stepHistory as { error?: string }).error = 'AI could not match an option';
+
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [entry],
+          runStore: makeMockRunStore([]),
+        }),
+      );
+
+      const result = await executor.buildAdditionalContext();
+
+      expect(result).toContain('"status":"error"');
+      expect(result).toContain('"error":"AI could not match an option"');
+    });
+
+    it('includes status in History for ai-task steps without RunStore data', async () => {
+      const entry: { step: StepDefinition; stepHistory: StepHistory } = {
+        step: { id: 'ai-step', type: StepType.Condition, options: ['A'], prompt: 'Run task' },
+        stepHistory: { type: 'ai-task', stepId: 'ai-step', stepIndex: 0, status: 'awaiting-input' },
+      };
+
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [entry],
+          runStore: makeMockRunStore([]),
+        }),
+      );
+
+      const result = await executor.buildAdditionalContext();
+
+      expect(result).toContain('Step "ai-step"');
+      expect(result).toContain('History: {"status":"awaiting-input"}');
+    });
+
+    it('uses Result when RunStore has executionResult, History otherwise', async () => {
+      const condEntry = makeHistoryEntry({
+        stepId: 'cond-1',
+        stepIndex: 0,
+        prompt: 'Approved?',
+      });
+      (condEntry.stepHistory as { selectedOption?: string }).selectedOption = 'Yes';
+
+      const aiEntry: { step: StepDefinition; stepHistory: StepHistory } = {
+        step: { id: 'read-customer', type: StepType.ReadRecord, prompt: 'Read name' },
+        stepHistory: { type: 'ai-task', stepId: 'read-customer', stepIndex: 1, status: 'success' },
+      };
+
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [condEntry, aiEntry],
+          runStore: makeMockRunStore([
+            { type: 'ai-task', stepIndex: 1, executionResult: { answer: 'John Doe' } },
+          ]),
+        }),
+      );
+
+      const result = await executor.buildAdditionalContext();
+
+      expect(result).toContain('Step "cond-1"');
+      expect(result).toContain('History: {"status":"success","selectedOption":"Yes"}');
+      expect(result).toContain('Step "read-customer"');
+      expect(result).toContain('Result: {"answer":"John Doe"}');
+    });
+
+    it('prefers RunStore executionResult over History fallback', async () => {
+      const entry = makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' });
+      (entry.stepHistory as { selectedOption?: string }).selectedOption = 'A';
+
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [entry],
+          runStore: makeMockRunStore([
+            { type: 'condition', stepIndex: 0, executionResult: { answer: 'A' } },
+          ]),
+        }),
+      );
+
+      const result = await executor.buildAdditionalContext();
+
+      expect(result).toContain('Result: {"answer":"A"}');
+      expect(result).not.toContain('History:');
     });
 
     it('shows "(no prompt)" when step has no prompt', async () => {

@@ -20,7 +20,8 @@ export default abstract class BaseStepExecutor<
   /**
    * Builds a text summary of previously executed steps for AI prompts.
    * Correlates history entries (step + stepHistory pairs) with execution results
-   * from the RunStore (matched by stepHistory.stepIndex). Steps without an executionResult are omitted.
+   * from the RunStore (matched by stepHistory.stepIndex).
+   * When no executionResult is available, falls back to StepHistory details.
    */
   protected async buildAdditionalContext(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions();
@@ -28,15 +29,29 @@ export default abstract class BaseStepExecutor<
     return this.context.history
       .map(({ step, stepHistory }) => {
         const execution = allStepExecutions.find(e => e.stepIndex === stepHistory.stepIndex);
-        if (!execution?.executionResult) return null;
 
-        const prompt = step.prompt ?? '(no prompt)';
-        const result = JSON.stringify(execution.executionResult);
-
-        return `Step "${step.id}" (index ${stepHistory.stepIndex}):\n  Prompt: ${prompt}\n  Result: ${result}`;
+        return this.buildStepSummary(step, stepHistory, execution?.executionResult);
       })
-      .filter(Boolean)
       .join('\n\n');
+  }
+
+  private buildStepSummary(
+    step: StepDefinition,
+    stepHistory: StepHistory,
+    executionResult: Record<string, unknown> | undefined,
+  ): string {
+    const prompt = step.prompt ?? '(no prompt)';
+    const header = `Step "${step.id}" (index ${stepHistory.stepIndex}):`;
+    const lines = [header, `  Prompt: ${prompt}`];
+
+    if (executionResult) {
+      lines.push(`  Result: ${JSON.stringify(executionResult)}`);
+    } else {
+      const { stepId, stepIndex, type, ...historyDetails } = stepHistory;
+      lines.push(`  History: ${JSON.stringify(historyDetails)}`);
+    }
+
+    return lines.join('\n');
   }
 
   /**
