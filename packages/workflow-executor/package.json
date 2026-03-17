@@ -19,7 +19,7 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
-    "lint": "eslint src",
+    "lint": "eslint src test",
     "test": "jest"
   }
 }
