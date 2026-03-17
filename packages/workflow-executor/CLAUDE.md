@@ -22,27 +22,8 @@ This works for interactive use cases but blocks **automation**: scheduled workfl
 - AI calls (gateway option selection, tool selection, tool execution)
 - Record selection and data access (via AgentPort)
 
-### Frontend reference implementation
-The frontend implementation lives in `forestadmin/frontend` under `app/features/workflow/`. Key files:
-- `services/standalone-package/services/parser-module/bpmn-parser.ts` — BPMN parsing (stays on front)
-- `services/internal-business/execution.ts` — Step sequencing and execution orchestration
-- `services/internal-business/ai-interactions.ts` — AI task execution (record selection → tool selection → execution → formatting)
-- `services/internal-business/utils.ts` — Gateway decision logic (`isAiDecisionAllowed`, prompt building)
-- AI tool: `choose-gateway-option` with Zod schema `{option, question, reasoning}`, `tool_choice: 'any'`, `NO_GATEWAY_OPTION_MATCH` fallback
-
-### ISO with front
-- **Condition step tool schema**: same `{option, question, reasoning}` + `z.enum` + `FOREST_WORKFLOW_NO_GATEWAY_OPTION_MATCH`
-- **`tool_choice: 'any'`**: forced tool use, same as front
-- **Fallback behavior**: `NO_MATCH` → user must decide (front: stays in UI; backend: `manual-decision` status)
-- **Additional context**: previous steps' prompts + execution results passed to AI
-- **`automaticCompletion` / `allowedTools`**: present in types, same semantics
-
-### Known gaps to address
-- **Richer system prompt for conditions**: `step.prompt` is the **user prompt** (written by the user in the workflow designer, e.g. "Is the order above 10k?"). The **system prompt** (semantic matching rules, 80% confidence threshold, `NO_GATEWAY_OPTION_MATCH` instructions) must be built by the executor. The front has a detailed system prompt — ours is minimal.
-- **UserInput for manual-decision**: `UserInput` only supports `{type: 'confirmation'}`, needs `{type: 'option-selection', selectedOption}` for when user overrides AI on conditions.
-- **Richer additional context**: front passes full `toolExecution` objects (toolName, inputArtifacts, outputArtifacts). We only pass `executionResult`. Mostly relevant for AI task steps (not yet implemented) — for condition steps, `{answer}` is sufficient.
-- **AI task executor**: not yet implemented. Front flow: select record → select tool → (confirm?) → execute → format response.
-- **`aiDecision` flag**: front has explicit boolean on conditions (some are manual-only). We always go through AI.
+### Constraint: must be ISO with front
+The executor must produce the same behavior as the frontend implementation (`forestadmin/frontend`, `app/features/workflow/`). Same tool schemas, same AI interactions, same fallback logic.
 
 ## System Architecture
 
