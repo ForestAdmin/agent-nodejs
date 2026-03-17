@@ -18,8 +18,8 @@ class TestableExecutor extends BaseStepExecutor {
     return super.buildAdditionalContext();
   }
 
-  override extractToolCallArgs(response: AIMessage): Record<string, unknown> | null {
-    return super.extractToolCallArgs(response);
+  override extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T | null {
+    return super.extractToolCallArgs<T>(response);
   }
 }
 

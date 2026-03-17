@@ -17,8 +17,8 @@ export default abstract class BaseStepExecutor<
 
   /**
    * Builds a text summary of previously executed steps for AI prompts.
-   * Correlates step definitions from context.history with execution results
-   * from the RunStore (matched by stepIndex). Steps without an executionResult are omitted.
+   * Correlates history entries (step + stepHistory pairs) with execution results
+   * from the RunStore (matched by stepHistory.stepIndex). Steps without an executionResult are omitted.
    */
   protected async buildAdditionalContext(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions();
@@ -39,13 +39,13 @@ export default abstract class BaseStepExecutor<
 
   /**
    * Extracts the first tool call's args from an AI response.
-   * Callers bind a single tool with tool_choice='any', so at most one call is expected.
+   * Callers bind a single tool with tool_choice='any', so only the first tool call is extracted.
    * Throws if the AI returned a malformed tool call (invalid_tool_calls).
    * Returns null if no tool call is present at all.
    */
-  protected extractToolCallArgs(response: AIMessage): Record<string, unknown> | null {
+  protected extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T | null {
     const toolCall = response.tool_calls?.[0];
-    if (toolCall?.args) return toolCall.args as Record<string, unknown>;
+    if (toolCall?.args) return toolCall.args as T;
 
     const invalidCall = response.invalid_tool_calls?.[0];
 

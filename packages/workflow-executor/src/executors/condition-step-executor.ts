@@ -10,6 +10,12 @@ import BaseStepExecutor from './base-step-executor';
 
 export const NO_GATEWAY_OPTION_MATCH = 'FOREST_WORKFLOW_NO_GATEWAY_OPTION_MATCH';
 
+interface GatewayToolArgs {
+  option: string;
+  reasoning: string;
+  question: string;
+}
+
 const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
 
 **Task**: Analyze the question and available options, then select the option that DIRECTLY answers the question. Options must be literal answers, not interpretations.
@@ -93,7 +99,19 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     const modelWithTool = this.context.model.bindTools([tool], { tool_choice: 'any' });
     const response = await modelWithTool.invoke(messages);
 
-    const args = this.extractToolCallArgs(response);
+    let args: GatewayToolArgs | null;
+
+    try {
+      args = this.extractToolCallArgs<GatewayToolArgs>(response);
+    } catch (error) {
+      return {
+        stepHistory: {
+          ...stepHistory,
+          status: 'error',
+          error: error instanceof Error ? error.message : String(error),
+        },
+      };
+    }
 
     if (!args) {
       return {
@@ -101,18 +119,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
       };
     }
 
-    if (typeof args.option !== 'string') {
-      return {
-        stepHistory: {
-          ...stepHistory,
-          status: 'error',
-          error: `AI returned invalid "option" field: expected string, got ${typeof args.option}`,
-        },
-      };
-    }
-
-    const selectedOption = args.option;
-    const reasoning = args.reasoning as string;
+    const { option: selectedOption, reasoning } = args;
 
     // Persist reasoning even for no-match/invalid selections, for debugging and audit
     await this.context.runStore.saveStepExecution({
@@ -133,9 +140,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
         stepHistory: {
           ...stepHistory,
           status: 'error',
-          error: `AI selected "${selectedOption}" which is not among valid options: ${JSON.stringify(
-            step.options,
-          )}`,
+          error: 'AI selected an option that is not among the valid options for this step',
         },
       };
     }
