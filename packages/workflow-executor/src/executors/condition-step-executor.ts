@@ -50,9 +50,16 @@ export default async function executeConditionStep(
   // 5. Extract + validate
   const toolCall = response.tool_calls?.[0];
 
-  if (!toolCall || toolCall.args.option === NO_GATEWAY_OPTION_MATCH) {
+  if (!toolCall) {
     stepHistory.status = 'error';
-    stepHistory.error = 'AI could not match an option';
+    stepHistory.error = 'AI did not return a tool call';
+
+    return { stepHistory };
+  }
+
+  if (toolCall.args.option === NO_GATEWAY_OPTION_MATCH) {
+    stepHistory.status = 'manual-decision';
+    stepHistory.reasoning = toolCall.args.reasoning as string;
 
     return { stepHistory };
   }

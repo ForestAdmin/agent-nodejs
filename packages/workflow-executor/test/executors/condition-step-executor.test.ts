@@ -168,7 +168,7 @@ describe('executeConditionStep', () => {
   });
 
   describe('fallback NO_GATEWAY_OPTION_MATCH', () => {
-    it('returns error when AI selects NO_MATCH', async () => {
+    it('returns manual-decision when AI selects NO_MATCH', async () => {
       const mockModel = makeMockModel({
         option: NO_GATEWAY_OPTION_MATCH,
         reasoning: 'None apply',
@@ -180,8 +180,9 @@ describe('executeConditionStep', () => {
 
       const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('AI could not match an option');
+      expect(result.stepHistory.status).toBe('manual-decision');
+      expect((result.stepHistory as ConditionStepHistory).reasoning).toBe('None apply');
+      expect(result.stepHistory.error).toBeUndefined();
     });
 
     it('returns error when AI returns no tool call', async () => {
@@ -193,7 +194,7 @@ describe('executeConditionStep', () => {
       const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
 
       expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('AI could not match an option');
+      expect(result.stepHistory.error).toBe('AI did not return a tool call');
     });
   });
 
