@@ -57,14 +57,24 @@ export default async function executeConditionStep(
     return { stepHistory };
   }
 
-  if (toolCall.args.option === NO_GATEWAY_OPTION_MATCH) {
+  const selectedOption = toolCall.args.option as string;
+  const reasoning = toolCall.args.reasoning as string;
+
+  // 6. Always persist the AI's reasoning
+  await context.runStore.saveStepExecution({
+    type: 'condition',
+    stepIndex: stepHistory.stepIndex,
+    executionParams: { answer: selectedOption, reasoning },
+    executionResult: step.options.includes(selectedOption) ? { answer: selectedOption } : undefined,
+  });
+
+  stepHistory.reasoning = reasoning;
+
+  if (selectedOption === NO_GATEWAY_OPTION_MATCH) {
     stepHistory.status = 'manual-decision';
-    stepHistory.reasoning = toolCall.args.reasoning as string;
 
     return { stepHistory };
   }
-
-  const selectedOption = toolCall.args.option as string;
 
   if (!step.options.includes(selectedOption)) {
     stepHistory.status = 'error';
@@ -72,14 +82,6 @@ export default async function executeConditionStep(
 
     return { stepHistory };
   }
-
-  // 6. Persist + return success
-  await context.runStore.saveStepExecution({
-    type: 'condition',
-    stepIndex: stepHistory.stepIndex,
-    executionParams: { answer: selectedOption, reasoning: toolCall.args.reasoning as string },
-    executionResult: { answer: selectedOption },
-  });
 
   stepHistory.selectedOption = selectedOption;
   stepHistory.status = 'success';

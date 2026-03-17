@@ -84,6 +84,9 @@ describe('executeConditionStep', () => {
 
       expect(result.stepHistory.status).toBe('success');
       expect((result.stepHistory as ConditionStepHistory).selectedOption).toBe('Reject');
+      expect((result.stepHistory as ConditionStepHistory).reasoning).toBe(
+        'The request is incomplete',
+      );
 
       // Verify bindTools received tool with correct enum + tool_choice
       expect(mockModel.bindTools).toHaveBeenCalledWith(
@@ -174,8 +177,10 @@ describe('executeConditionStep', () => {
         reasoning: 'None apply',
         question: 'N/A',
       });
+      const runStore = makeMockRunStore();
       const context = makeContext({
         model: mockModel.model,
+        runStore,
       });
 
       const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
@@ -183,6 +188,11 @@ describe('executeConditionStep', () => {
       expect(result.stepHistory.status).toBe('manual-decision');
       expect((result.stepHistory as ConditionStepHistory).reasoning).toBe('None apply');
       expect(result.stepHistory.error).toBeUndefined();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executionParams: { answer: NO_GATEWAY_OPTION_MATCH, reasoning: 'None apply' },
+        }),
+      );
     });
 
     it('returns error when AI returns no tool call', async () => {
@@ -205,14 +215,23 @@ describe('executeConditionStep', () => {
         reasoning: 'Guessing',
         question: 'Something',
       });
+      const runStore = makeMockRunStore();
       const context = makeContext({
         model: mockModel.model,
+        runStore,
       });
 
       const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe('No matching option');
+      expect((result.stepHistory as ConditionStepHistory).reasoning).toBe('Guessing');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executionParams: { answer: 'Unknown', reasoning: 'Guessing' },
+          executionResult: undefined,
+        }),
+      );
     });
   });
 
