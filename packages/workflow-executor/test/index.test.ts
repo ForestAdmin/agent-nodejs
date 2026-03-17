@@ -1,7 +1,18 @@
-import * as mod from '../src/index';
+import { StepType } from '../src/index';
 
-describe('workflow-executor', () => {
-  it('should export an empty module', () => {
-    expect(Object.keys(mod)).toHaveLength(0);
+describe('StepType', () => {
+  it('should expose exactly 5 step types', () => {
+    const values = Object.values(StepType);
+    expect(values).toHaveLength(5);
+  });
+
+  it.each([
+    ['Condition', 'condition'],
+    ['ReadRecord', 'read-record'],
+    ['UpdateRecord', 'update-record'],
+    ['TriggerAction', 'trigger-action'],
+    ['LoadRelatedRecord', 'load-related-record'],
+  ] as const)('should have %s = "%s"', (key, value) => {
+    expect(StepType[key]).toBe(value);
   });
 });
