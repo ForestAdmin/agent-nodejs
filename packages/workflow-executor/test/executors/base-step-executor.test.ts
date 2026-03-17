@@ -75,12 +75,17 @@ describe('BaseStepExecutor', () => {
       expect(await executor.summarizePreviousSteps()).toBe('');
     });
 
-    it('includes prompt and result from previous steps', async () => {
+    it('includes prompt, params, and result from previous steps', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' })],
           runStore: makeMockRunStore([
-            { type: 'condition', stepIndex: 0, executionResult: { answer: 'Yes' } },
+            {
+              type: 'condition',
+              stepIndex: 0,
+              executionParams: { answer: 'Yes', reasoning: 'Order is valid' },
+              executionResult: { answer: 'Yes' },
+            },
           ]),
         }),
       );
@@ -89,7 +94,8 @@ describe('BaseStepExecutor', () => {
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('Prompt: Approve?');
-      expect(result).toContain('"answer":"Yes"');
+      expect(result).toContain('Params: {"answer":"Yes","reasoning":"Order is valid"}');
+      expect(result).toContain('Result: {"answer":"Yes"}');
     });
 
     it('falls back to History when step has no executionResult in RunStore', async () => {
@@ -227,7 +233,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Result: {"answer":"John Doe"}');
     });
 
-    it('prefers RunStore executionResult over History fallback', async () => {
+    it('prefers RunStore data over History fallback', async () => {
       const entry = makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' });
       (entry.stepHistory as { selectedOption?: string }).selectedOption = 'A';
 
@@ -235,14 +241,41 @@ describe('BaseStepExecutor', () => {
         makeContext({
           history: [entry],
           runStore: makeMockRunStore([
-            { type: 'condition', stepIndex: 0, executionResult: { answer: 'A' } },
+            {
+              type: 'condition',
+              stepIndex: 0,
+              executionParams: { answer: 'A', reasoning: 'Best fit' },
+              executionResult: { answer: 'A' },
+            },
           ]),
         }),
       );
 
       const result = await executor.summarizePreviousSteps();
 
+      expect(result).toContain('Params: {"answer":"A","reasoning":"Best fit"}');
       expect(result).toContain('Result: {"answer":"A"}');
+      expect(result).not.toContain('History:');
+    });
+
+    it('shows only Params when executionParams exists but no executionResult', async () => {
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' })],
+          runStore: makeMockRunStore([
+            {
+              type: 'condition',
+              stepIndex: 0,
+              executionParams: { answer: 'NO_MATCH', reasoning: 'No option fits' },
+            },
+          ]),
+        }),
+      );
+
+      const result = await executor.summarizePreviousSteps();
+
+      expect(result).toContain('Params: {"answer":"NO_MATCH","reasoning":"No option fits"}');
+      expect(result).not.toContain('Result:');
       expect(result).not.toContain('History:');
     });
 

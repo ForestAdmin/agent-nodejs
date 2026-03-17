@@ -1,5 +1,6 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { StepDefinition } from '../types/step-definition';
+import type { StepExecutionData } from '../types/step-execution-data';
 import type { StepHistory } from '../types/step-history';
 import type { AIMessage } from '@langchain/core/messages';
 
@@ -30,7 +31,7 @@ export default abstract class BaseStepExecutor<
       .map(({ step, stepHistory }) => {
         const execution = allStepExecutions.find(e => e.stepIndex === stepHistory.stepIndex);
 
-        return this.buildStepSummary(step, stepHistory, execution?.executionResult);
+        return this.buildStepSummary(step, stepHistory, execution);
       })
       .join('\n\n');
   }
@@ -38,15 +39,21 @@ export default abstract class BaseStepExecutor<
   private buildStepSummary(
     step: StepDefinition,
     stepHistory: StepHistory,
-    executionResult: Record<string, unknown> | undefined,
+    execution: StepExecutionData | undefined,
   ): string {
     const prompt = step.prompt ?? '(no prompt)';
     const header = `Step "${step.id}" (index ${stepHistory.stepIndex}):`;
     const lines = [header, `  Prompt: ${prompt}`];
 
-    if (executionResult) {
-      lines.push(`  Result: ${JSON.stringify(executionResult)}`);
-    } else {
+    if (execution?.executionParams) {
+      lines.push(`  Params: ${JSON.stringify(execution.executionParams)}`);
+    }
+
+    if (execution?.executionResult) {
+      lines.push(`  Result: ${JSON.stringify(execution.executionResult)}`);
+    }
+
+    if (!execution?.executionParams && !execution?.executionResult) {
       const { stepId, stepIndex, type, ...historyDetails } = stepHistory;
       lines.push(`  History: ${JSON.stringify(historyDetails)}`);
     }
