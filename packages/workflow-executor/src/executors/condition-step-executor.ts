@@ -15,17 +15,7 @@ export default async function executeConditionStep(
   stepHistory: ConditionStepHistory,
   context: ExecutionContext,
 ): Promise<StepExecutionResult> {
-  // 1. Recovery: return cached result if already executed
-  const existing = await context.runStore.getStepExecution(stepHistory.stepIndex);
-
-  if (existing?.type === 'condition' && existing.executionResult) {
-    stepHistory.selectedOption = existing.executionResult.answer;
-    stepHistory.status = 'success';
-
-    return { stepHistory };
-  }
-
-  // 2. Build additional context from previous steps
+  // 1. Build additional context from previous steps
   const allStepExecutions = await context.runStore.getStepExecutions();
   const additionalContext = buildAdditionalContext(context.history, allStepExecutions);
 

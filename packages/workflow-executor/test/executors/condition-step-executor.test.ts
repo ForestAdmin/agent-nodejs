@@ -66,30 +66,6 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
 }
 
 describe('executeConditionStep', () => {
-  describe('recovery', () => {
-    it('returns cached result when RunStore has executionResult', async () => {
-      const runStore = makeMockRunStore({
-        getStepExecution: jest.fn().mockResolvedValue({
-          type: 'condition',
-          stepIndex: 0,
-          executionResult: { answer: 'Approve' },
-        }),
-      });
-      const mockModel = makeMockModel();
-      const context = makeContext({
-        runStore,
-        model: mockModel.model,
-      });
-      const stepHistory = makeStepHistory();
-
-      const result = await executeConditionStep(makeStep(), stepHistory, context);
-
-      expect(result.stepHistory.status).toBe('success');
-      expect((result.stepHistory as ConditionStepHistory).selectedOption).toBe('Approve');
-      expect(mockModel.bindTools).not.toHaveBeenCalled();
-    });
-  });
-
   describe('AI decision', () => {
     it('calls AI and returns selected option on success', async () => {
       const mockModel = makeMockModel({

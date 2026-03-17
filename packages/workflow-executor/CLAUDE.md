@@ -49,7 +49,7 @@ src/
 - **Privacy** — Zero client data leaves the client's infrastructure.
 - **Ports (IO injection)** — All external IO goes through injected port interfaces, keeping the core pure and testable.
 - **AI integration** — Uses `@langchain/core` (`BaseChatModel`, `DynamicStructuredTool`) for AI-powered steps. `ExecutionContext.model` is a `BaseChatModel`.
-- **Recovery** — Executors check the RunStore for cached results before calling the AI, enabling safe retries.
+- **No recovery/retry** — Once the executor returns a step result to the orchestrator, the step is considered executed. There is no mechanism to re-dispatch a step, so executors must NOT include recovery checks (e.g. checking the RunStore for cached results before executing). Each step executes exactly once.
 
 ## Commands
 
