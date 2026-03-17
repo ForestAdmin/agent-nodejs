@@ -39,10 +39,10 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.
 - NEVER mention "${NO_GATEWAY_OPTION_MATCH}" in reasoning, say "no matching option" instead.`;
 
-function buildAdditionalContextMessages(additionalContext: string): SystemMessage[] {
-  if (!additionalContext) return [];
+function buildPreviousStepsMessages(previousStepsSummary: string): SystemMessage[] {
+  if (!previousStepsSummary) return [];
 
-  return [new SystemMessage(additionalContext)];
+  return [new SystemMessage(previousStepsSummary)];
 }
 
 export default class ConditionStepExecutor extends BaseStepExecutor<
@@ -63,7 +63,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
       };
     }
 
-    const additionalContext = await this.buildAdditionalContext();
+    const previousStepsSummary = await this.summarizePreviousSteps();
 
     // Define a structured tool so the LLM is forced to return a valid option.
     // NO_GATEWAY_OPTION_MATCH is appended as an escape hatch when no option fits.
@@ -91,7 +91,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     });
 
     const messages = [
-      ...buildAdditionalContextMessages(additionalContext),
+      ...buildPreviousStepsMessages(previousStepsSummary),
       new SystemMessage(GATEWAY_SYSTEM_PROMPT),
       new HumanMessage(`**Question**: ${step.prompt ?? 'Choose the most appropriate option.'}`),
     ];

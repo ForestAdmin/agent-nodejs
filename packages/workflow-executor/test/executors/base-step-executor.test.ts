@@ -15,8 +15,8 @@ class TestableExecutor extends BaseStepExecutor {
     throw new Error('not used');
   }
 
-  override buildAdditionalContext(): Promise<string> {
-    return super.buildAdditionalContext();
+  override summarizePreviousSteps(): Promise<string> {
+    return super.summarizePreviousSteps();
   }
 
   override extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T {
@@ -68,11 +68,11 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
 }
 
 describe('BaseStepExecutor', () => {
-  describe('buildAdditionalContext', () => {
+  describe('summarizePreviousSteps', () => {
     it('returns empty string for empty history', async () => {
       const executor = new TestableExecutor(makeContext());
 
-      expect(await executor.buildAdditionalContext()).toBe('');
+      expect(await executor.summarizePreviousSteps()).toBe('');
     });
 
     it('includes prompt and result from previous steps', async () => {
@@ -85,7 +85,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('Prompt: Approve?');
@@ -106,7 +106,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success"}');
@@ -127,7 +127,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('Step "orphan"');
       expect(result).toContain('History: {"status":"success"}');
@@ -150,7 +150,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('Step "cond-approval"');
       expect(result).toContain('"selectedOption":"Yes"');
@@ -172,7 +172,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('"status":"error"');
       expect(result).toContain('"error":"AI could not match an option"');
@@ -191,7 +191,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('Step "ai-step"');
       expect(result).toContain('History: {"status":"awaiting-input"}');
@@ -219,7 +219,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success","selectedOption":"Yes"}');
@@ -240,7 +240,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('Result: {"answer":"A"}');
       expect(result).not.toContain('History:');
@@ -259,7 +259,7 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.buildAdditionalContext();
+      const result = await executor.summarizePreviousSteps();
 
       expect(result).toContain('Prompt: (no prompt)');
     });

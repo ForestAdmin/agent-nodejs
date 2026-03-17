@@ -198,7 +198,7 @@ describe('ConditionStepExecutor', () => {
       expect(humanMessage.content).toBe('**Question**: Choose the most appropriate option.');
     });
 
-    it('prepends additionalContext as separate SystemMessage', async () => {
+    it('prepends previous steps summary as separate SystemMessage', async () => {
       const mockModel = makeMockModel({
         option: 'Approve',
         reasoning: 'Based on previous decision',

@@ -23,7 +23,7 @@ export default abstract class BaseStepExecutor<
    * from the RunStore (matched by stepHistory.stepIndex).
    * When no executionResult is available, falls back to StepHistory details.
    */
-  protected async buildAdditionalContext(): Promise<string> {
+  protected async summarizePreviousSteps(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions();
 
     return this.context.history
