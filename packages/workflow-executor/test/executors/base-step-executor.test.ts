@@ -5,6 +5,7 @@ import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { StepHistory } from '../../src/types/step-history';
 import type { AIMessage } from '@langchain/core/messages';
 
+import { MalformedToolCallError, MissingToolCallError } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
@@ -160,39 +161,43 @@ describe('BaseStepExecutor', () => {
       expect(executor.extractToolCallArgs(response)).toEqual({ key: 'value' });
     });
 
-    it('throws when tool_calls is undefined', () => {
+    it('throws MissingToolCallError when tool_calls is undefined', () => {
       const executor = new TestableExecutor(makeContext());
       const response = {} as unknown as AIMessage;
 
+      expect(() => executor.extractToolCallArgs(response)).toThrow(MissingToolCallError);
       expect(() => executor.extractToolCallArgs(response)).toThrow('AI did not return a tool call');
     });
 
-    it('throws when tool_calls is empty', () => {
+    it('throws MissingToolCallError when tool_calls is empty', () => {
       const executor = new TestableExecutor(makeContext());
       const response = { tool_calls: [] } as unknown as AIMessage;
 
+      expect(() => executor.extractToolCallArgs(response)).toThrow(MissingToolCallError);
       expect(() => executor.extractToolCallArgs(response)).toThrow('AI did not return a tool call');
     });
 
-    it('throws when invalid_tool_calls is present', () => {
+    it('throws MalformedToolCallError when invalid_tool_calls is present', () => {
       const executor = new TestableExecutor(makeContext());
       const response = {
         tool_calls: [],
         invalid_tool_calls: [{ name: 'my-tool', args: '{bad', error: 'Parse error' }],
       } as unknown as AIMessage;
 
+      expect(() => executor.extractToolCallArgs(response)).toThrow(MalformedToolCallError);
       expect(() => executor.extractToolCallArgs(response)).toThrow(
         'AI returned a malformed tool call for "my-tool": Parse error',
       );
     });
 
-    it('throws with "unknown" when invalid_tool_call has no name', () => {
+    it('throws MalformedToolCallError with "unknown" when invalid_tool_call has no name', () => {
       const executor = new TestableExecutor(makeContext());
       const response = {
         tool_calls: [],
         invalid_tool_calls: [{ error: 'Something broke' }],
       } as unknown as AIMessage;
 
+      expect(() => executor.extractToolCallArgs(response)).toThrow(MalformedToolCallError);
       expect(() => executor.extractToolCallArgs(response)).toThrow(
         'AI returned a malformed tool call for "unknown": Something broke',
       );

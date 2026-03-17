@@ -3,6 +3,8 @@ import type { StepDefinition } from '../types/step-definition';
 import type { StepHistory } from '../types/step-history';
 import type { AIMessage } from '@langchain/core/messages';
 
+import { MalformedToolCallError, MissingToolCallError } from '../errors';
+
 export default abstract class BaseStepExecutor<
   TStep extends StepDefinition = StepDefinition,
   THistory extends StepHistory = StepHistory,
@@ -49,13 +51,12 @@ export default abstract class BaseStepExecutor<
     const invalidCall = response.invalid_tool_calls?.[0];
 
     if (invalidCall) {
-      throw new Error(
-        `AI returned a malformed tool call for "${invalidCall.name ?? 'unknown'}": ${
-          invalidCall.error ?? 'no details available'
-        }`,
+      throw new MalformedToolCallError(
+        invalidCall.name ?? 'unknown',
+        invalidCall.error ?? 'no details available',
       );
     }
 
-    throw new Error('AI did not return a tool call');
+    throw new MissingToolCallError();
   }
 }
