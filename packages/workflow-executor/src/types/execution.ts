@@ -8,13 +8,18 @@ import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
+export interface StepRecord {
+  step: StepDefinition;
+  stepHistory: StepHistory;
+}
+
 export type UserInput = { type: 'confirmation'; confirmed: boolean };
 
 export interface PendingStepExecution {
   readonly runId: string;
   readonly step: StepDefinition;
   readonly stepHistory: StepHistory;
-  readonly previousSteps: ReadonlyArray<{ step: StepDefinition; stepHistory: StepHistory }>;
+  readonly previousSteps: ReadonlyArray<StepRecord>;
   readonly availableRecords: ReadonlyArray<RecordRef>;
   readonly userInput?: UserInput;
 }
@@ -29,6 +34,6 @@ export interface ExecutionContext {
   readonly agentPort: AgentPort;
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
-  readonly history: ReadonlyArray<{ step: StepDefinition; stepHistory: StepHistory }>;
+  readonly history: ReadonlyArray<StepRecord>;
   readonly remoteTools: unknown[];
 }

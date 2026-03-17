@@ -66,6 +66,21 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
 }
 
 describe('executeConditionStep', () => {
+  describe('empty options', () => {
+    it('returns error when step has no options', async () => {
+      const result = await executeConditionStep(
+        makeStep({ options: [] }),
+        makeStepHistory(),
+        makeContext(),
+      );
+
+      expect(result.stepHistory.status).toBe('error');
+      expect(result.stepHistory.error).toBe(
+        'Condition step "cond-1" has no options to choose from',
+      );
+    });
+  });
+
   describe('AI decision', () => {
     it('calls AI and returns selected option on success', async () => {
       const mockModel = makeMockModel({
@@ -121,6 +136,20 @@ describe('executeConditionStep', () => {
 
       const invokeCall = mockModel.invoke.mock.calls[0][0];
       expect(invokeCall[0].content).toContain('Custom prompt for this step');
+    });
+
+    it('uses default prompt when step.prompt is undefined', async () => {
+      const mockModel = makeMockModel({
+        option: 'Approve',
+        reasoning: 'Default',
+        question: 'Approve?',
+      });
+      const context = makeContext({ model: mockModel.model });
+
+      await executeConditionStep(makeStep({ prompt: undefined }), makeStepHistory(), context);
+
+      const invokeCall = mockModel.invoke.mock.calls[0][0];
+      expect(invokeCall[0].content).toContain('Choose the most appropriate option.');
     });
 
     it('includes additionalContext from previous steps', async () => {
@@ -206,10 +235,23 @@ describe('executeConditionStep', () => {
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe('AI did not return a tool call');
     });
+
+    it('returns error when AI returns empty tool_calls array', async () => {
+      const invoke = jest.fn().mockResolvedValue({ tool_calls: [] });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const context = makeContext({
+        model: { bindTools } as unknown as ExecutionContext['model'],
+      });
+
+      const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
+
+      expect(result.stepHistory.status).toBe('error');
+      expect(result.stepHistory.error).toBe('AI did not return a tool call');
+    });
   });
 
   describe('invalid option', () => {
-    it('returns error when option not in step.options', async () => {
+    it('returns error with diagnostic details when option not in step.options', async () => {
       const mockModel = makeMockModel({
         option: 'Unknown',
         reasoning: 'Guessing',
@@ -224,7 +266,9 @@ describe('executeConditionStep', () => {
       const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
 
       expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('No matching option');
+      expect(result.stepHistory.error).toContain('Unknown');
+      expect(result.stepHistory.error).toContain('Approve');
+      expect(result.stepHistory.error).toContain('Reject');
       expect((result.stepHistory as ConditionStepHistory).reasoning).toBe('Guessing');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({

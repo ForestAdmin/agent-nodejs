@@ -22,6 +22,7 @@ export type {
 export type { RecordFieldRef, RecordRef, RecordData } from './types/record';
 
 export type {
+  StepRecord,
   UserInput,
   PendingStepExecution,
   StepExecutionResult,
@@ -33,5 +34,5 @@ export type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 export type { RunStore } from './ports/run-store';
 
 export { default as executeConditionStep } from './executors/condition-step-executor';
-export { default as buildAdditionalContext } from './utils/build-additional-context';
+export { default as extractToolCallArgs } from './utils/extract-tool-call-args';
 export { NO_GATEWAY_OPTION_MATCH } from './executors/condition-step-executor';

@@ -1,9 +1,8 @@
-import type { StepDefinition } from '../types/step-definition';
+import type { StepRecord } from '../types/execution';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { StepHistory } from '../types/step-history';
 
 export default function buildAdditionalContext(
-  history: ReadonlyArray<{ step: StepDefinition; stepHistory: StepHistory }>,
+  history: ReadonlyArray<StepRecord>,
   stepExecutions: StepExecutionData[],
 ): string {
   return history
