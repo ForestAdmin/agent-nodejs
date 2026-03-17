@@ -31,3 +31,7 @@ export type {
 export type { AgentPort } from './ports/agent-port';
 export type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 export type { RunStore } from './ports/run-store';
+
+export { default as executeConditionStep } from './executors/condition-step-executor';
+export { default as buildAdditionalContext } from './utils/build-additional-context';
+export { CHOOSE_GATEWAY_OPTION_TOOL_NAME, NO_GATEWAY_OPTION_MATCH } from './utils/constants';

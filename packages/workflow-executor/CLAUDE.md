@@ -34,19 +34,23 @@ src/
 ├── ports/                  # IO boundary interfaces (@draft)
 │   ├── agent-port.ts       # Interface to the Forest Admin agent (datasource)
 │   ├── workflow-port.ts    # Interface to the orchestrator
-│   └── run-store.ts        # Interface for persisting run state
+│   └── run-store.ts        # Interface for persisting run state (scoped to a run)
+├── executors/              # Step executor implementations
+│   └── condition-step-executor.ts  # AI-powered condition step (chooses among options)
+├── utils/
+│   ├── constants.ts        # Shared constants (tool names, sentinel values)
+│   └── build-additional-context.ts # Builds text summary of previous steps for AI prompt
 └── index.ts                # Barrel exports
 ```
 
-## Architecture Principles (Planned)
+## Architecture Principles
 
-The following principles will guide implementation. None are implemented yet.
-
-- **Pull-based** — The executor will poll for pending steps via a port interface. A `triggerPoll(runId)` mechanism will fast-track a specific run.
-- **Atomic** — Each step will execute in isolation. A run store will maintain continuity between steps.
+- **Pull-based** — The executor polls for pending steps via a port interface. A `triggerPoll(runId)` mechanism will fast-track a specific run.
+- **Atomic** — Each step executes in isolation. A run store (scoped per run) maintains continuity between steps.
 - **Privacy** — Zero client data leaves the client's infrastructure.
-- **Ports (IO injection)** — All external IO will go through injected port interfaces, keeping the core pure and testable.
-- **AI integration** — Will use `@forestadmin/ai-proxy` (Router) to create models and load remote tools.
+- **Ports (IO injection)** — All external IO goes through injected port interfaces, keeping the core pure and testable.
+- **AI integration** — Uses `@langchain/core` (`BaseChatModel`, `DynamicStructuredTool`) for AI-powered steps. `ExecutionContext.model` is a `BaseChatModel`.
+- **Recovery** — Executors check the RunStore for cached results before calling the AI, enabling safe retries.
 
 ## Commands
 
