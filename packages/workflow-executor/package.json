@@ -1,0 +1,30 @@
+{
+  "name": "@forestadmin/workflow-executor",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/workflow-executor"
+  },
+  "dependencies": {
+    "@forestadmin/ai-proxy": "1.5.0",
+    "sequelize": "^6.37.5",
+    "zod": "^4.3.5"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src",
+    "test": "jest"
+  }
+}
