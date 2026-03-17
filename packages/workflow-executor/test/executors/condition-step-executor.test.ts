@@ -3,9 +3,10 @@ import type { ExecutionContext } from '../../src/types/execution';
 import type { ConditionStepDefinition } from '../../src/types/step-definition';
 import type { ConditionStepHistory } from '../../src/types/step-history';
 
-import executeConditionStep from '../../src/executors/condition-step-executor';
+import executeConditionStep, {
+  NO_GATEWAY_OPTION_MATCH,
+} from '../../src/executors/condition-step-executor';
 import { StepType } from '../../src/types/step-definition';
-import { NO_GATEWAY_OPTION_MATCH } from '../../src/utils/constants';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {

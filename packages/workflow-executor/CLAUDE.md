@@ -38,7 +38,6 @@ src/
 ├── executors/              # Step executor implementations
 │   └── condition-step-executor.ts  # AI-powered condition step (chooses among options)
 ├── utils/
-│   ├── constants.ts        # Shared constants (tool names, sentinel values)
 │   └── build-additional-context.ts # Builds text summary of previous steps for AI prompt
 └── index.ts                # Barrel exports
 ```

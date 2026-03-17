@@ -7,7 +7,8 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
 import buildAdditionalContext from '../utils/build-additional-context';
-import { CHOOSE_GATEWAY_OPTION_TOOL_NAME, NO_GATEWAY_OPTION_MATCH } from '../utils/constants';
+
+export const NO_GATEWAY_OPTION_MATCH = 'FOREST_WORKFLOW_NO_GATEWAY_OPTION_MATCH';
 
 export default async function executeConditionStep(
   step: ConditionStepDefinition,
@@ -35,7 +36,7 @@ export default async function executeConditionStep(
     NO_GATEWAY_OPTION_MATCH,
   ];
   const tool = new DynamicStructuredTool({
-    name: CHOOSE_GATEWAY_OPTION_TOOL_NAME,
+    name: 'choose-gateway-option',
     description:
       'Choose the most appropriate option based on the conversation context. ' +
       `Use "${NO_GATEWAY_OPTION_MATCH}" only if none of the other options apply.`,

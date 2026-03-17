@@ -1,2 +1,0 @@
-export const CHOOSE_GATEWAY_OPTION_TOOL_NAME = 'choose-gateway-option';
-export const NO_GATEWAY_OPTION_MATCH = 'FOREST_WORKFLOW_NO_GATEWAY_OPTION_MATCH';
