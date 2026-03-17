@@ -206,15 +206,13 @@ describe('ConditionStepExecutor', () => {
       });
       const runStore = makeMockRunStore({
         getStepExecution: jest.fn().mockResolvedValue(null),
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            {
-              type: 'condition',
-              stepIndex: 0,
-              executionParams: { answer: 'Yes', reasoning: 'Validated by manager' },
-            },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'condition',
+            stepIndex: 0,
+            executionParams: { answer: 'Yes', reasoning: 'Validated by manager' },
+          },
+        ]),
       });
       const context = makeContext({
         model: mockModel.model,
@@ -305,7 +303,7 @@ describe('ConditionStepExecutor', () => {
   });
 
   describe('error propagation', () => {
-    it('lets model errors propagate', async () => {
+    it('returns error status when model invocation fails', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const context = makeContext({
@@ -313,7 +311,10 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(context);
 
-      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow('API timeout');
+      const result = await executor.execute(makeStep(), makeStepHistory());
+
+      expect(result.stepHistory.status).toBe('error');
+      expect(result.stepHistory.error).toBe('API timeout');
     });
 
     it('lets run store errors propagate', async () => {

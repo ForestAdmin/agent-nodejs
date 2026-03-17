@@ -96,13 +96,10 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
       new HumanMessage(`**Question**: ${step.prompt ?? 'Choose the most appropriate option.'}`),
     ];
 
-    const modelWithTool = this.context.model.bindTools([tool], { tool_choice: 'any' });
-    const response = await modelWithTool.invoke(messages);
-
     let args: GatewayToolArgs;
 
     try {
-      args = this.extractToolCallArgs<GatewayToolArgs>(response);
+      args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
     } catch (error: unknown) {
       return {
         stepHistory: {

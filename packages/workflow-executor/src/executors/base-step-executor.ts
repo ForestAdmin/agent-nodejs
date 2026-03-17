@@ -2,7 +2,8 @@ import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { StepDefinition } from '../types/step-definition';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { StepHistory } from '../types/step-history';
-import type { AIMessage } from '@langchain/core/messages';
+import type { AIMessage, BaseMessage } from '@langchain/core/messages';
+import type { DynamicStructuredTool } from '@langchain/core/tools';
 
 import { MalformedToolCallError, MissingToolCallError } from '../errors';
 
@@ -56,11 +57,24 @@ export default abstract class BaseStepExecutor<
   }
 
   /**
+   * Binds a single tool to the model, invokes it, and extracts the tool call args.
+   * Throws MalformedToolCallError or MissingToolCallError on invalid AI responses.
+   */
+  protected async invokeWithTool<T = Record<string, unknown>>(
+    messages: BaseMessage[],
+    tool: DynamicStructuredTool,
+  ): Promise<T> {
+    const modelWithTool = this.context.model.bindTools([tool], { tool_choice: 'any' });
+    const response = await modelWithTool.invoke(messages);
+
+    return this.extractToolCallArgs<T>(response);
+  }
+
+  /**
    * Extracts the first tool call's args from an AI response.
-   * Callers bind a single tool with tool_choice='any', so only the first tool call is extracted.
    * Throws if the AI returned a malformed tool call (invalid_tool_calls) or no tool call at all.
    */
-  protected extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T {
+  private extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T {
     const toolCall = response.tool_calls?.[0];
     if (toolCall?.args) return toolCall.args as T;
 

@@ -3,7 +3,8 @@ import type { ExecutionContext, StepExecutionResult } from '../../src/types/exec
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { StepHistory } from '../../src/types/step-history';
-import type { AIMessage } from '@langchain/core/messages';
+import type { BaseMessage } from '@langchain/core/messages';
+import type { DynamicStructuredTool } from '@langchain/core/tools';
 
 import { MalformedToolCallError, MissingToolCallError } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
@@ -19,8 +20,11 @@ class TestableExecutor extends BaseStepExecutor {
     return super.summarizePreviousSteps();
   }
 
-  override extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T {
-    return super.extractToolCallArgs<T>(response);
+  override invokeWithTool<T = Record<string, unknown>>(
+    messages: BaseMessage[],
+    tool: DynamicStructuredTool,
+  ): Promise<T> {
+    return super.invokeWithTool<T>(messages, tool);
   }
 }
 
@@ -290,54 +294,87 @@ describe('BaseStepExecutor', () => {
     });
   });
 
-  describe('extractToolCallArgs', () => {
-    it('returns args from the first tool call', () => {
-      const executor = new TestableExecutor(makeContext());
-      const response = {
+  describe('invokeWithTool', () => {
+    function makeMockModel(response: unknown) {
+      const invoke = jest.fn().mockResolvedValue(response);
+
+      return {
+        model: {
+          bindTools: jest.fn().mockReturnValue({ invoke }),
+        } as unknown as ExecutionContext['model'],
+        invoke,
+      };
+    }
+
+    const dummyTool = {} as DynamicStructuredTool;
+    const dummyMessages = [] as BaseMessage[];
+
+    it('returns args from the first tool call', async () => {
+      const { model } = makeMockModel({
         tool_calls: [{ name: 'tool', args: { key: 'value' }, id: 'c1' }],
-      } as unknown as AIMessage;
+      });
+      const executor = new TestableExecutor(makeContext({ model }));
 
-      expect(executor.extractToolCallArgs(response)).toEqual({ key: 'value' });
+      const result = await executor.invokeWithTool(dummyMessages, dummyTool);
+
+      expect(result).toEqual({ key: 'value' });
     });
 
-    it('throws MissingToolCallError when tool_calls is undefined', () => {
-      const executor = new TestableExecutor(makeContext());
-      const response = {} as unknown as AIMessage;
+    it('binds tool with tool_choice "any"', async () => {
+      const { model } = makeMockModel({
+        tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+      });
+      const executor = new TestableExecutor(makeContext({ model }));
 
-      expect(() => executor.extractToolCallArgs(response)).toThrow(MissingToolCallError);
-      expect(() => executor.extractToolCallArgs(response)).toThrow('AI did not return a tool call');
+      await executor.invokeWithTool(dummyMessages, dummyTool);
+
+      expect(model.bindTools).toHaveBeenCalledWith([dummyTool], { tool_choice: 'any' });
     });
 
-    it('throws MissingToolCallError when tool_calls is empty', () => {
-      const executor = new TestableExecutor(makeContext());
-      const response = { tool_calls: [] } as unknown as AIMessage;
+    it('throws MissingToolCallError when tool_calls is undefined', async () => {
+      const { model } = makeMockModel({});
+      const executor = new TestableExecutor(makeContext({ model }));
 
-      expect(() => executor.extractToolCallArgs(response)).toThrow(MissingToolCallError);
-      expect(() => executor.extractToolCallArgs(response)).toThrow('AI did not return a tool call');
+      await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
+        MissingToolCallError,
+      );
     });
 
-    it('throws MalformedToolCallError when invalid_tool_calls is present', () => {
-      const executor = new TestableExecutor(makeContext());
-      const response = {
+    it('throws MissingToolCallError when tool_calls is empty', async () => {
+      const { model } = makeMockModel({ tool_calls: [] });
+      const executor = new TestableExecutor(makeContext({ model }));
+
+      await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
+        MissingToolCallError,
+      );
+    });
+
+    it('throws MalformedToolCallError when invalid_tool_calls is present', async () => {
+      const { model } = makeMockModel({
         tool_calls: [],
         invalid_tool_calls: [{ name: 'my-tool', args: '{bad', error: 'Parse error' }],
-      } as unknown as AIMessage;
+      });
+      const executor = new TestableExecutor(makeContext({ model }));
 
-      expect(() => executor.extractToolCallArgs(response)).toThrow(MalformedToolCallError);
-      expect(() => executor.extractToolCallArgs(response)).toThrow(
+      await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
+        MalformedToolCallError,
+      );
+      await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
         'AI returned a malformed tool call for "my-tool": Parse error',
       );
     });
 
-    it('throws MalformedToolCallError with "unknown" when invalid_tool_call has no name', () => {
-      const executor = new TestableExecutor(makeContext());
-      const response = {
+    it('throws MalformedToolCallError with "unknown" when invalid_tool_call has no name', async () => {
+      const { model } = makeMockModel({
         tool_calls: [],
         invalid_tool_calls: [{ error: 'Something broke' }],
-      } as unknown as AIMessage;
+      });
+      const executor = new TestableExecutor(makeContext({ model }));
 
-      expect(() => executor.extractToolCallArgs(response)).toThrow(MalformedToolCallError);
-      expect(() => executor.extractToolCallArgs(response)).toThrow(
+      await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
+        MalformedToolCallError,
+      );
+      await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
         'AI returned a malformed tool call for "unknown": Something broke',
       );
     });
