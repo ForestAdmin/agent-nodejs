@@ -275,36 +275,6 @@ describe('ConditionStepExecutor', () => {
       });
     });
 
-    it('returns error when AI returns no tool call and does not persist', async () => {
-      const mockModel = makeMockModel();
-      const runStore = makeMockRunStore();
-      const context = makeContext({
-        model: mockModel.model,
-        runStore,
-      });
-      const executor = new ConditionStepExecutor(context);
-
-      const result = await executor.execute(makeStep(), makeStepHistory());
-
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('AI did not return a tool call');
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-
-    it('returns error when AI returns empty tool_calls array', async () => {
-      const invoke = jest.fn().mockResolvedValue({ tool_calls: [] });
-      const bindTools = jest.fn().mockReturnValue({ invoke });
-      const context = makeContext({
-        model: { bindTools } as unknown as ExecutionContext['model'],
-      });
-      const executor = new ConditionStepExecutor(context);
-
-      const result = await executor.execute(makeStep(), makeStepHistory());
-
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('AI did not return a tool call');
-    });
-
     it('returns error when AI returns an invalid (malformed) tool call', async () => {
       const invoke = jest.fn().mockResolvedValue({
         tool_calls: [],
@@ -327,36 +297,6 @@ describe('ConditionStepExecutor', () => {
         'AI returned a malformed tool call for "choose-gateway-option": JSON parse error',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('invalid option', () => {
-    it('returns generic error when option not in step.options', async () => {
-      const mockModel = makeMockModel({
-        option: 'Unknown',
-        reasoning: 'Guessing',
-        question: 'Something',
-      });
-      const runStore = makeMockRunStore();
-      const context = makeContext({
-        model: mockModel.model,
-        runStore,
-      });
-      const executor = new ConditionStepExecutor(context);
-
-      const result = await executor.execute(makeStep(), makeStepHistory());
-
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe(
-        'AI selected an option that is not among the valid options for this step',
-      );
-      expect((result.stepHistory as ConditionStepHistory).selectedOption).toBeUndefined();
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith({
-        type: 'condition',
-        stepIndex: 0,
-        executionParams: { answer: 'Unknown', reasoning: 'Guessing' },
-        executionResult: undefined,
-      });
     });
   });
 

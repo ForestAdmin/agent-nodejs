@@ -99,50 +99,33 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     const modelWithTool = this.context.model.bindTools([tool], { tool_choice: 'any' });
     const response = await modelWithTool.invoke(messages);
 
-    let args: GatewayToolArgs | null;
+    let args: GatewayToolArgs;
 
     try {
       args = this.extractToolCallArgs<GatewayToolArgs>(response);
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         stepHistory: {
           ...stepHistory,
           status: 'error',
-          error: error instanceof Error ? error.message : String(error),
+          error: (error as Error).message,
         },
-      };
-    }
-
-    if (!args) {
-      return {
-        stepHistory: { ...stepHistory, status: 'error', error: 'AI did not return a tool call' },
       };
     }
 
     const { option: selectedOption, reasoning } = args;
 
-    // Persist reasoning even for no-match/invalid selections, for debugging and audit
+    // Persist reasoning even for no-match selections, for debugging and audit
     await this.context.runStore.saveStepExecution({
       type: 'condition',
       stepIndex: stepHistory.stepIndex,
       executionParams: { answer: selectedOption, reasoning },
-      executionResult: step.options.includes(selectedOption)
-        ? { answer: selectedOption }
-        : undefined,
+      executionResult:
+        selectedOption !== NO_GATEWAY_OPTION_MATCH ? { answer: selectedOption } : undefined,
     });
 
     if (selectedOption === NO_GATEWAY_OPTION_MATCH) {
       return { stepHistory: { ...stepHistory, status: 'manual-decision' } };
-    }
-
-    if (!step.options.includes(selectedOption)) {
-      return {
-        stepHistory: {
-          ...stepHistory,
-          status: 'error',
-          error: 'AI selected an option that is not among the valid options for this step',
-        },
-      };
     }
 
     return {

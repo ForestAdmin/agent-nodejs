@@ -40,10 +40,9 @@ export default abstract class BaseStepExecutor<
   /**
    * Extracts the first tool call's args from an AI response.
    * Callers bind a single tool with tool_choice='any', so only the first tool call is extracted.
-   * Throws if the AI returned a malformed tool call (invalid_tool_calls).
-   * Returns null if no tool call is present at all.
+   * Throws if the AI returned a malformed tool call (invalid_tool_calls) or no tool call at all.
    */
-  protected extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T | null {
+  protected extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T {
     const toolCall = response.tool_calls?.[0];
     if (toolCall?.args) return toolCall.args as T;
 
@@ -57,6 +56,6 @@ export default abstract class BaseStepExecutor<
       );
     }
 
-    return null;
+    throw new Error('AI did not return a tool call');
   }
 }

@@ -18,7 +18,7 @@ class TestableExecutor extends BaseStepExecutor {
     return super.buildAdditionalContext();
   }
 
-  override extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T | null {
+  override extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T {
     return super.extractToolCallArgs<T>(response);
   }
 }
@@ -160,18 +160,18 @@ describe('BaseStepExecutor', () => {
       expect(executor.extractToolCallArgs(response)).toEqual({ key: 'value' });
     });
 
-    it('returns null when tool_calls is undefined', () => {
+    it('throws when tool_calls is undefined', () => {
       const executor = new TestableExecutor(makeContext());
       const response = {} as unknown as AIMessage;
 
-      expect(executor.extractToolCallArgs(response)).toBeNull();
+      expect(() => executor.extractToolCallArgs(response)).toThrow('AI did not return a tool call');
     });
 
-    it('returns null when tool_calls is empty', () => {
+    it('throws when tool_calls is empty', () => {
       const executor = new TestableExecutor(makeContext());
       const response = { tool_calls: [] } as unknown as AIMessage;
 
-      expect(executor.extractToolCallArgs(response)).toBeNull();
+      expect(() => executor.extractToolCallArgs(response)).toThrow('AI did not return a tool call');
     });
 
     it('throws when invalid_tool_calls is present', () => {
