@@ -6,13 +6,30 @@
 
 TypeScript library (framework-agnostic) that executes workflow steps on the client's infrastructure, alongside the Forest Admin agent. The orchestrator never sees client data — it only sends step definitions; this package fetches them and runs them locally.
 
-## Architecture Principles
+## System Architecture
 
-- **Pull-based** — The executor polls for pending steps via `WorkflowPort`. `triggerPoll(runId)` fast-tracks a specific run.
-- **Atomic** — Each step is executed in isolation. `RunStore` maintains continuity between steps.
-- **Privacy** — Zero client data leaves the client's infrastructure. All data lives in `RunStore`.
-- **Ports (IO injection)** — Every external IO goes through an injected port interface, making the core pure and testable.
-- **AI integration** — Uses `@forestadmin/ai-proxy` (Router) to create models and load remote tools.
+The workflow system is split into 4 components:
+
+- **Front** — The Forest Admin UI. Users design workflows (sequence of steps) and trigger runs. Displays run progress and results in real time.
+- **Orchestrator** — Forest Admin backend. Stores workflow definitions, manages run state machines, and dispatches steps. Never sees client data — only step metadata.
+- **Executor** _(this package)_ — Runs on the client's infrastructure. Polls the orchestrator for pending steps, executes them locally (with access to client data), and reports results back. Privacy boundary lives here.
+- **Agent** — The Forest Admin agent (`@forestadmin/agent`). Acts as a proxy for the executor — provides access to the datasource layer (collections, actions, fields) so the executor can read/write client data without direct database access.
+
+```
+Front  ──▶  Orchestrator  ◀──pull──  Executor  ──▶  Agent (datasources)
+  ▲                                      │
+  └──────────── progress/results ────────┘
+```
+
+## Architecture Principles (Planned)
+
+The following principles will guide implementation. None are implemented yet.
+
+- **Pull-based** — The executor will poll for pending steps via a port interface. A `triggerPoll(runId)` mechanism will fast-track a specific run.
+- **Atomic** — Each step will execute in isolation. A run store will maintain continuity between steps.
+- **Privacy** — Zero client data leaves the client's infrastructure.
+- **Ports (IO injection)** — All external IO will go through injected port interfaces, keeping the core pure and testable.
+- **AI integration** — Will use `@forestadmin/ai-proxy` (Router) to create models and load remote tools.
 
 ## Commands
 
