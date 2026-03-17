@@ -38,9 +38,9 @@ The frontend implementation lives in `forestadmin/frontend` under `app/features/
 - **`automaticCompletion` / `allowedTools`**: present in types, same semantics
 
 ### Known gaps to address
-- **Richer condition prompt**: front has detailed semantic matching rules + 80% confidence threshold. Our prompt is minimal.
+- **Prompt construction**: the orchestrator is responsible for building the full prompt (including semantic matching rules, confidence threshold, etc.) and passing it via `step.prompt`. The executor just uses it as-is. No prompt enrichment needed here.
 - **UserInput for manual-decision**: `UserInput` only supports `{type: 'confirmation'}`, needs `{type: 'option-selection', selectedOption}` for when user overrides AI on conditions.
-- **Richer additional context**: front passes full `toolExecution` objects (toolName, artifacts). We only pass `executionResult`.
+- **Richer additional context**: front passes full `toolExecution` objects (toolName, inputArtifacts, outputArtifacts). We only pass `executionResult`. Mostly relevant for AI task steps (not yet implemented) — for condition steps, `{answer}` is sufficient.
 - **AI task executor**: not yet implemented. Front flow: select record → select tool → (confirm?) → execute → format response.
 - **`aiDecision` flag**: front has explicit boolean on conditions (some are manual-only). We always go through AI.
 
