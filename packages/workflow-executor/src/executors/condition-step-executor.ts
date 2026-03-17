@@ -2,7 +2,7 @@ import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { ConditionStepDefinition } from '../types/step-definition';
 import type { ConditionStepHistory } from '../types/step-history';
 
-import { SystemMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
@@ -10,6 +10,35 @@ import buildAdditionalContext from '../utils/build-additional-context';
 import extractToolCallArgs from '../utils/extract-tool-call-args';
 
 export const NO_GATEWAY_OPTION_MATCH = 'FOREST_WORKFLOW_NO_GATEWAY_OPTION_MATCH';
+
+const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
+
+**Task**: Analyze the question and available options, then select the option that DIRECTLY answers the question. Options must be literal answers, not interpretations.
+
+**Critical Rule**: Options must semantically match possible answers to the question.
+- Question "Does X contain Y?" expects options like "yes"/"no", NOT colors or unrelated values
+- Question "What is the status?" expects options like "active"/"inactive", NOT arbitrary words
+- If options don't match expected answer types, select ${NO_GATEWAY_OPTION_MATCH}
+
+**NEVER invent mappings** between options and answers (e.g., never assume "purple"="no" or "red"="yes")
+
+**When to select ${NO_GATEWAY_OPTION_MATCH}**:
+- Options are semantically unrelated to the question type (colors for yes/no questions)
+- None of the options literally match the expected answer
+- The question is ambiguous or lacks necessary context
+- You are less than 80% confident in any option
+
+**Reasoning format**:
+- State which option you selected and why
+- If selecting ${NO_GATEWAY_OPTION_MATCH}: explain why options don't match the question
+- Do not refer to yourself as "I" in the response, use a passive formulation instead.
+- NEVER mention "${NO_GATEWAY_OPTION_MATCH}" in reasoning, say "no matching option" instead.`;
+
+function buildAdditionalContextMessages(additionalContext: string): SystemMessage[] {
+  if (!additionalContext) return [];
+
+  return [new SystemMessage(additionalContext)];
+}
 
 export default async function executeConditionStep(
   step: ConditionStepDefinition,
@@ -36,24 +65,30 @@ export default async function executeConditionStep(
   const tool = new DynamicStructuredTool({
     name: 'choose-gateway-option',
     description:
-      'Choose the most appropriate option based on the conversation context. ' +
-      `Use "${NO_GATEWAY_OPTION_MATCH}" only if none of the other options apply.`,
+      `Select the option that answers the question. ` +
+      `Use ${NO_GATEWAY_OPTION_MATCH} if no option matches or you are uncertain. ` +
+      `Explain your reasoning.`,
     schema: z.object({
-      option: z.enum(options).describe('The selected option'),
-      question: z.string().describe('The question this option answers'),
-      reasoning: z.string().describe('Why this option was chosen'),
+      reasoning: z.string().describe('The reasoning behind the choice'),
+      question: z.string().describe('The question to answer by choosing an option'),
+      option: z
+        .enum(options)
+        .describe(
+          `The chosen option. Use ${NO_GATEWAY_OPTION_MATCH} if no option clearly answers the question.`,
+        ),
     }),
     func: async input => JSON.stringify(input),
   });
 
-  // Call AI
-  const systemPrompt = [
-    step.prompt ?? 'Choose the most appropriate option.',
-    additionalContext ? `\nContext from previous steps:\n${additionalContext}` : '',
-  ].join('');
+  // Build messages: additional context + system prompt + user question
+  const messages = [
+    ...buildAdditionalContextMessages(additionalContext),
+    new SystemMessage(GATEWAY_SYSTEM_PROMPT),
+    new HumanMessage(`**Question**: ${step.prompt ?? 'Choose the most appropriate option.'}`),
+  ];
 
   const modelWithTool = context.model.bindTools([tool], { tool_choice: 'any' });
-  const response = await modelWithTool.invoke([new SystemMessage(systemPrompt)]);
+  const response = await modelWithTool.invoke(messages);
 
   // Extract + validate
   const args = extractToolCallArgs(response);

@@ -115,15 +115,13 @@ describe('executeConditionStep', () => {
       });
     });
 
-    it('includes step.prompt in system message', async () => {
+    it('sends system prompt + user question as separate messages', async () => {
       const mockModel = makeMockModel({
         option: 'Approve',
         reasoning: 'Looks good',
         question: 'Should we approve?',
       });
-      const context = makeContext({
-        model: mockModel.model,
-      });
+      const context = makeContext({ model: mockModel.model });
 
       await executeConditionStep(
         makeStep({ prompt: 'Custom prompt for this step' }),
@@ -131,11 +129,14 @@ describe('executeConditionStep', () => {
         context,
       );
 
-      const invokeCall = mockModel.invoke.mock.calls[0][0];
-      expect(invokeCall[0].content).toContain('Custom prompt for this step');
+      const messages = mockModel.invoke.mock.calls[0][0];
+      expect(messages).toHaveLength(2);
+      expect(messages[0].content).toContain('workflow gateway decision');
+      expect(messages[0].content).toContain('80% confident');
+      expect(messages[1].content).toBe('**Question**: Custom prompt for this step');
     });
 
-    it('uses default prompt when step.prompt is undefined', async () => {
+    it('uses default question when step.prompt is undefined', async () => {
       const mockModel = makeMockModel({
         option: 'Approve',
         reasoning: 'Default',
@@ -145,11 +146,12 @@ describe('executeConditionStep', () => {
 
       await executeConditionStep(makeStep({ prompt: undefined }), makeStepHistory(), context);
 
-      const invokeCall = mockModel.invoke.mock.calls[0][0];
-      expect(invokeCall[0].content).toContain('Choose the most appropriate option.');
+      const messages = mockModel.invoke.mock.calls[0][0];
+      const humanMessage = messages[messages.length - 1];
+      expect(humanMessage.content).toBe('**Question**: Choose the most appropriate option.');
     });
 
-    it('includes additionalContext from previous steps', async () => {
+    it('prepends additionalContext as separate SystemMessage', async () => {
       const mockModel = makeMockModel({
         option: 'Approve',
         reasoning: 'Based on previous decision',
@@ -190,9 +192,12 @@ describe('executeConditionStep', () => {
         context,
       );
 
-      const invokeCall = mockModel.invoke.mock.calls[0][0];
-      expect(invokeCall[0].content).toContain('Previous question');
-      expect(invokeCall[0].content).toContain('"answer":"Yes"');
+      const messages = mockModel.invoke.mock.calls[0][0];
+      expect(messages).toHaveLength(3);
+      expect(messages[0].content).toContain('Previous question');
+      expect(messages[0].content).toContain('"answer":"Yes"');
+      expect(messages[1].content).toContain('workflow gateway decision');
+      expect(messages[2].content).toContain('**Question**');
     });
   });
 
