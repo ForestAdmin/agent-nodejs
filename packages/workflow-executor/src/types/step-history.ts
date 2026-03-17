@@ -1,14 +1,15 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-/**
- * - 'success': the step completed normally.
- * - 'error': the step failed (see `error` field for details).
- * - 'awaiting-input': the step needs generic user input to continue (e.g. tool confirmation).
- * - 'manual-decision': the AI could not determine the outcome automatically —
- *    the user must decide manually. Distinct from 'awaiting-input' because
- *    it signals a fallback to human decision, not a mid-step interaction.
- */
-export type StepStatus = 'success' | 'error' | 'awaiting-input' | 'manual-decision';
+type BaseStepStatus = 'success' | 'error';
+
+/** Condition steps can fall back to human decision when the AI is uncertain. */
+export type ConditionStepStatus = BaseStepStatus | 'manual-decision';
+
+/** AI task steps can pause mid-execution to await user input (e.g. tool confirmation). */
+export type AiTaskStepStatus = BaseStepStatus | 'awaiting-input';
+
+/** Union of all step statuses. */
+export type StepStatus = ConditionStepStatus | AiTaskStepStatus;
 
 /**
  * StepHistory is sent to the orchestrator — it must NEVER contain client data.
@@ -18,19 +19,20 @@ export type StepStatus = 'success' | 'error' | 'awaiting-input' | 'manual-decisi
 interface BaseStepHistory {
   stepId: string;
   stepIndex: number;
-  status: StepStatus;
   /** Present when status is 'error'. */
   error?: string;
 }
 
 export interface ConditionStepHistory extends BaseStepHistory {
   type: 'condition';
+  status: ConditionStepStatus;
   /** Present when status is 'success'. */
   selectedOption?: string;
 }
 
 export interface AiTaskStepHistory extends BaseStepHistory {
   type: 'ai-task';
+  status: AiTaskStepStatus;
 }
 
 export type StepHistory = ConditionStepHistory | AiTaskStepHistory;

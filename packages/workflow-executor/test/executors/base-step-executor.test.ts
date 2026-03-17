@@ -3,6 +3,7 @@ import type { ExecutionContext, StepExecutionResult } from '../../src/types/exec
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { StepHistory } from '../../src/types/step-history';
+import type { AIMessage } from '@langchain/core/messages';
 
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import { StepType } from '../../src/types/step-definition';
@@ -15,6 +16,10 @@ class TestableExecutor extends BaseStepExecutor {
 
   override buildAdditionalContext(): Promise<string> {
     return super.buildAdditionalContext();
+  }
+
+  override extractToolCallArgs(response: AIMessage): Record<string, unknown> | null {
+    return super.extractToolCallArgs(response);
   }
 }
 
@@ -107,6 +112,25 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('"answer":"No"');
     });
 
+    it('skips history entries with no matching step execution', async () => {
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [
+            makeHistoryEntry({ stepId: 'orphan', stepIndex: 5, prompt: 'Orphan step' }),
+            makeHistoryEntry({ stepId: 'matched', stepIndex: 1, prompt: 'Matched step' }),
+          ],
+          runStore: makeMockRunStore([
+            { type: 'condition', stepIndex: 1, executionResult: { answer: 'B' } },
+          ]),
+        }),
+      );
+
+      const result = await executor.buildAdditionalContext();
+
+      expect(result).not.toContain('orphan');
+      expect(result).toContain('matched');
+    });
+
     it('shows "(no prompt)" when step has no prompt', async () => {
       const entry = makeHistoryEntry({ stepIndex: 0 });
       entry.step.prompt = undefined;
@@ -123,6 +147,55 @@ describe('BaseStepExecutor', () => {
       const result = await executor.buildAdditionalContext();
 
       expect(result).toContain('Prompt: (no prompt)');
+    });
+  });
+
+  describe('extractToolCallArgs', () => {
+    it('returns args from the first tool call', () => {
+      const executor = new TestableExecutor(makeContext());
+      const response = {
+        tool_calls: [{ name: 'tool', args: { key: 'value' }, id: 'c1' }],
+      } as unknown as AIMessage;
+
+      expect(executor.extractToolCallArgs(response)).toEqual({ key: 'value' });
+    });
+
+    it('returns null when tool_calls is undefined', () => {
+      const executor = new TestableExecutor(makeContext());
+      const response = {} as unknown as AIMessage;
+
+      expect(executor.extractToolCallArgs(response)).toBeNull();
+    });
+
+    it('returns null when tool_calls is empty', () => {
+      const executor = new TestableExecutor(makeContext());
+      const response = { tool_calls: [] } as unknown as AIMessage;
+
+      expect(executor.extractToolCallArgs(response)).toBeNull();
+    });
+
+    it('throws when invalid_tool_calls is present', () => {
+      const executor = new TestableExecutor(makeContext());
+      const response = {
+        tool_calls: [],
+        invalid_tool_calls: [{ name: 'my-tool', args: '{bad', error: 'Parse error' }],
+      } as unknown as AIMessage;
+
+      expect(() => executor.extractToolCallArgs(response)).toThrow(
+        'AI returned a malformed tool call for "my-tool": Parse error',
+      );
+    });
+
+    it('throws with "unknown" when invalid_tool_call has no name', () => {
+      const executor = new TestableExecutor(makeContext());
+      const response = {
+        tool_calls: [],
+        invalid_tool_calls: [{ error: 'Something broke' }],
+      } as unknown as AIMessage;
+
+      expect(() => executor.extractToolCallArgs(response)).toThrow(
+        'AI returned a malformed tool call for "unknown": Something broke',
+      );
     });
   });
 });

@@ -48,16 +48,19 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     stepHistory: ConditionStepHistory,
   ): Promise<StepExecutionResult> {
     if (!step.options.length) {
-      stepHistory.status = 'error';
-      stepHistory.error = `Condition step "${step.id}" has no options to choose from`;
-
-      return { stepHistory };
+      return {
+        stepHistory: {
+          ...stepHistory,
+          status: 'error',
+          error: `Condition step "${step.id}" has no options to choose from`,
+        },
+      };
     }
 
-    // Build additional context from previous steps
     const additionalContext = await this.buildAdditionalContext();
 
-    // Build tool
+    // Define a structured tool so the LLM is forced to return a valid option.
+    // NO_GATEWAY_OPTION_MATCH is appended as an escape hatch when no option fits.
     const options: [string, ...string[]] = [
       step.options[0],
       ...step.options.slice(1),
@@ -81,7 +84,6 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
       func: async input => JSON.stringify(input),
     });
 
-    // Build messages: additional context + system prompt + user question
     const messages = [
       ...buildAdditionalContextMessages(additionalContext),
       new SystemMessage(GATEWAY_SYSTEM_PROMPT),
@@ -91,20 +93,28 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     const modelWithTool = this.context.model.bindTools([tool], { tool_choice: 'any' });
     const response = await modelWithTool.invoke(messages);
 
-    // Extract + validate
     const args = this.extractToolCallArgs(response);
 
     if (!args) {
-      stepHistory.status = 'error';
-      stepHistory.error = 'AI did not return a tool call';
-
-      return { stepHistory };
+      return {
+        stepHistory: { ...stepHistory, status: 'error', error: 'AI did not return a tool call' },
+      };
     }
 
-    const selectedOption = args.option as string;
+    if (typeof args.option !== 'string') {
+      return {
+        stepHistory: {
+          ...stepHistory,
+          status: 'error',
+          error: `AI returned invalid "option" field: expected string, got ${typeof args.option}`,
+        },
+      };
+    }
+
+    const selectedOption = args.option;
     const reasoning = args.reasoning as string;
 
-    // Always persist the AI's reasoning
+    // Persist reasoning even for no-match/invalid selections, for debugging and audit
     await this.context.runStore.saveStepExecution({
       type: 'condition',
       stepIndex: stepHistory.stepIndex,
@@ -115,23 +125,23 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     });
 
     if (selectedOption === NO_GATEWAY_OPTION_MATCH) {
-      stepHistory.status = 'manual-decision';
-
-      return { stepHistory };
+      return { stepHistory: { ...stepHistory, status: 'manual-decision' } };
     }
 
     if (!step.options.includes(selectedOption)) {
-      stepHistory.status = 'error';
-      stepHistory.error = `AI selected "${selectedOption}" which is not among valid options: ${JSON.stringify(
-        step.options,
-      )}`;
-
-      return { stepHistory };
+      return {
+        stepHistory: {
+          ...stepHistory,
+          status: 'error',
+          error: `AI selected "${selectedOption}" which is not among valid options: ${JSON.stringify(
+            step.options,
+          )}`,
+        },
+      };
     }
 
-    stepHistory.selectedOption = selectedOption;
-    stepHistory.status = 'success';
-
-    return { stepHistory };
+    return {
+      stepHistory: { ...stepHistory, status: 'success', selectedOption },
+    };
   }
 }

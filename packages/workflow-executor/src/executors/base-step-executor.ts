@@ -15,7 +15,11 @@ export default abstract class BaseStepExecutor<
 
   abstract execute(step: TStep, stepHistory: THistory): Promise<StepExecutionResult>;
 
-  /** Builds a text summary of previous steps for AI prompts. */
+  /**
+   * Builds a text summary of previously executed steps for AI prompts.
+   * Correlates step definitions from context.history with execution results
+   * from the RunStore (matched by stepIndex). Steps without an executionResult are omitted.
+   */
   protected async buildAdditionalContext(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions();
 
@@ -33,10 +37,26 @@ export default abstract class BaseStepExecutor<
       .join('\n\n');
   }
 
-  /** Extracts the single tool call args from an AI response (ai-proxy guarantees 1 tool call). */
+  /**
+   * Extracts the first tool call's args from an AI response.
+   * Callers bind a single tool with tool_choice='any', so at most one call is expected.
+   * Throws if the AI returned a malformed tool call (invalid_tool_calls).
+   * Returns null if no tool call is present at all.
+   */
   protected extractToolCallArgs(response: AIMessage): Record<string, unknown> | null {
     const toolCall = response.tool_calls?.[0];
+    if (toolCall?.args) return toolCall.args as Record<string, unknown>;
 
-    return toolCall ? (toolCall.args as Record<string, unknown>) : null;
+    const invalidCall = response.invalid_tool_calls?.[0];
+
+    if (invalidCall) {
+      throw new Error(
+        `AI returned a malformed tool call for "${invalidCall.name ?? 'unknown'}": ${
+          invalidCall.error ?? 'no details available'
+        }`,
+      );
+    }
+
+    return null;
   }
 }

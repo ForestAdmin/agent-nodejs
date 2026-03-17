@@ -16,7 +16,7 @@ interface BaseStepDefinition {
 
 export interface ConditionStepDefinition extends BaseStepDefinition {
   type: StepType.Condition;
-  options: string[];
+  options: [string, ...string[]];
   prompt?: string;
 }
 
@@ -38,6 +38,5 @@ export type StepDefinition = ConditionStepDefinition | AiTaskStepDefinition;
 /**
  * Coarse categorization of steps. StepType has 5 fine-grained values;
  * StepCategory collapses the 4 non-condition types into 'ai-task'.
- * Used as discriminant in StepHistory and StepExecutionData.
  */
 export type StepCategory = 'condition' | 'ai-task';

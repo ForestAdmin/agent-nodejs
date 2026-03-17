@@ -35,9 +35,7 @@ The workflow system is split into 4 components:
 - **Agent** — The Forest Admin agent (`@forestadmin/agent`). Acts as a proxy for the executor — provides access to the datasource layer (collections, actions, fields) so the executor can read/write client data without direct database access.
 
 ```
-Front  ──▶  Orchestrator  ◀──pull──  Executor  ──▶  Agent (datasources)
-  ▲                                      │
-  └──────────── progress/results ────────┘
+Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor  ──▶  Agent (datasources)
 ```
 
 ## Package Structure
@@ -62,7 +60,7 @@ src/
 
 ## Architecture Principles
 
-- **Pull-based** — The executor polls for pending steps via a port interface. A `triggerPoll(runId)` mechanism will fast-track a specific run.
+- **Pull-based** — The executor polls for pending steps via a port interface (`WorkflowPort.getPendingStepExecutions`).
 - **Atomic** — Each step executes in isolation. A run store (scoped per run) maintains continuity between steps.
 - **Privacy** — Zero client data leaves the client's infrastructure. `StepHistory` is sent to the orchestrator and must NEVER contain client data. Privacy-sensitive information (e.g. AI reasoning) must stay in `StepExecutionData` (persisted in the RunStore, client-side only).
 - **Ports (IO injection)** — All external IO goes through injected port interfaces, keeping the core pure and testable.

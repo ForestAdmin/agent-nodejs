@@ -34,6 +34,6 @@ export interface ExecutionContext {
   readonly agentPort: AgentPort;
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
-  readonly history: ReadonlyArray<StepRecord>;
-  readonly remoteTools: unknown[];
+  readonly history: ReadonlyArray<Readonly<StepRecord>>;
+  readonly remoteTools: readonly unknown[];
 }
