@@ -3,7 +3,7 @@ import type { ExecutionContext } from '../../src/types/execution';
 import type { ConditionStepDefinition } from '../../src/types/step-definition';
 import type { ConditionStepHistory } from '../../src/types/step-history';
 
-import executeConditionStep, {
+import ConditionStepExecutor, {
   NO_GATEWAY_OPTION_MATCH,
 } from '../../src/executors/condition-step-executor';
 import { StepType } from '../../src/types/step-definition';
@@ -65,14 +65,12 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
   };
 }
 
-describe('executeConditionStep', () => {
+describe('ConditionStepExecutor', () => {
   describe('empty options', () => {
     it('returns error when step has no options', async () => {
-      const result = await executeConditionStep(
-        makeStep({ options: [] }),
-        makeStepHistory(),
-        makeContext(),
-      );
+      const executor = new ConditionStepExecutor(makeContext());
+
+      const result = await executor.execute(makeStep({ options: [] }), makeStepHistory());
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe(
@@ -94,8 +92,9 @@ describe('executeConditionStep', () => {
         runStore,
       });
       const stepHistory = makeStepHistory();
+      const executor = new ConditionStepExecutor(context);
 
-      const result = await executeConditionStep(makeStep(), stepHistory, context);
+      const result = await executor.execute(makeStep(), stepHistory);
 
       expect(result.stepHistory.status).toBe('success');
       expect((result.stepHistory as ConditionStepHistory).selectedOption).toBe('Reject');
@@ -122,11 +121,11 @@ describe('executeConditionStep', () => {
         question: 'Should we approve?',
       });
       const context = makeContext({ model: mockModel.model });
+      const executor = new ConditionStepExecutor(context);
 
-      await executeConditionStep(
+      await executor.execute(
         makeStep({ prompt: 'Custom prompt for this step' }),
         makeStepHistory(),
-        context,
       );
 
       const messages = mockModel.invoke.mock.calls[0][0];
@@ -143,8 +142,9 @@ describe('executeConditionStep', () => {
         question: 'Approve?',
       });
       const context = makeContext({ model: mockModel.model });
+      const executor = new ConditionStepExecutor(context);
 
-      await executeConditionStep(makeStep({ prompt: undefined }), makeStepHistory(), context);
+      await executor.execute(makeStep({ prompt: undefined }), makeStepHistory());
 
       const messages = mockModel.invoke.mock.calls[0][0];
       const humanMessage = messages[messages.length - 1];
@@ -185,11 +185,11 @@ describe('executeConditionStep', () => {
           },
         ],
       });
+      const executor = new ConditionStepExecutor(context);
 
-      await executeConditionStep(
+      await executor.execute(
         makeStep({ id: 'cond-2' }),
         makeStepHistory({ stepId: 'cond-2', stepIndex: 1 }),
-        context,
       );
 
       const messages = mockModel.invoke.mock.calls[0][0];
@@ -213,8 +213,9 @@ describe('executeConditionStep', () => {
         model: mockModel.model,
         runStore,
       });
+      const executor = new ConditionStepExecutor(context);
 
-      const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
+      const result = await executor.execute(makeStep(), makeStepHistory());
 
       expect(result.stepHistory.status).toBe('manual-decision');
       expect(result.stepHistory.error).toBeUndefined();
@@ -230,8 +231,9 @@ describe('executeConditionStep', () => {
       const context = makeContext({
         model: mockModel.model,
       });
+      const executor = new ConditionStepExecutor(context);
 
-      const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
+      const result = await executor.execute(makeStep(), makeStepHistory());
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe('AI did not return a tool call');
@@ -243,8 +245,9 @@ describe('executeConditionStep', () => {
       const context = makeContext({
         model: { bindTools } as unknown as ExecutionContext['model'],
       });
+      const executor = new ConditionStepExecutor(context);
 
-      const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
+      const result = await executor.execute(makeStep(), makeStepHistory());
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe('AI did not return a tool call');
@@ -263,8 +266,9 @@ describe('executeConditionStep', () => {
         model: mockModel.model,
         runStore,
       });
+      const executor = new ConditionStepExecutor(context);
 
-      const result = await executeConditionStep(makeStep(), makeStepHistory(), context);
+      const result = await executor.execute(makeStep(), makeStepHistory());
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toContain('Unknown');
@@ -286,10 +290,9 @@ describe('executeConditionStep', () => {
       const context = makeContext({
         model: { bindTools } as unknown as ExecutionContext['model'],
       });
+      const executor = new ConditionStepExecutor(context);
 
-      await expect(executeConditionStep(makeStep(), makeStepHistory(), context)).rejects.toThrow(
-        'API timeout',
-      );
+      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow('API timeout');
     });
   });
 });

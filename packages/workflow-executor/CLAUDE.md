@@ -55,6 +55,7 @@ src/
 │   ├── workflow-port.ts    # Interface to the orchestrator
 │   └── run-store.ts        # Interface for persisting run state (scoped to a run)
 ├── executors/              # Step executor implementations
+│   ├── base-step-executor.ts       # Abstract base class (context injection + shared helpers)
 │   └── condition-step-executor.ts  # AI-powered condition step (chooses among options)
 ├── utils/
 │   ├── build-additional-context.ts # Builds text summary of previous steps for AI prompt
