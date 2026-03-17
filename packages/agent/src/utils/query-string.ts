@@ -177,7 +177,7 @@ export default class QueryStringParser {
     };
   }
 
-  static parseChartContextVariables(context: Context): Record<string, string> {
+  static parseChartParameters(context: Context): Record<string, string> {
     const query = context.request.query as Record<string, unknown>;
     const body = (context.request.body ?? {}) as Record<string, unknown>;
 

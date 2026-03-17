@@ -636,14 +636,14 @@ describe('QueryStringParser', () => {
     });
   });
 
-  describe('parseChartContextVariables', () => {
+  describe('parseChartParameters', () => {
     test('should merge query and body into a flat Record<string, string>', () => {
       const context = createMockContext({
         customProperties: { query: { timezone: 'Europe/Paris', startDate: '2024-01-01' } },
         requestBody: { endDate: '2024-12-31' },
       });
 
-      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({
+      expect(QueryStringParser.parseChartParameters(context)).toStrictEqual({
         timezone: 'Europe/Paris',
         startDate: '2024-01-01',
         endDate: '2024-12-31',
@@ -656,7 +656,7 @@ describe('QueryStringParser', () => {
         requestBody: { key: 'fromBody' },
       });
 
-      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({
+      expect(QueryStringParser.parseChartParameters(context)).toStrictEqual({
         key: 'fromBody',
       });
     });
@@ -667,7 +667,7 @@ describe('QueryStringParser', () => {
         requestBody: { nested: { a: 1 }, empty: null },
       });
 
-      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({
+      expect(QueryStringParser.parseChartParameters(context)).toStrictEqual({
         valid: 'yes',
       });
     });
@@ -677,7 +677,7 @@ describe('QueryStringParser', () => {
         customProperties: { query: { count: 42, active: true } },
       });
 
-      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({
+      expect(QueryStringParser.parseChartParameters(context)).toStrictEqual({
         count: '42',
         active: 'true',
       });
@@ -686,7 +686,7 @@ describe('QueryStringParser', () => {
     test('should return empty object when no query and no body', () => {
       const context = createMockContext({});
 
-      expect(QueryStringParser.parseChartContextVariables(context)).toStrictEqual({});
+      expect(QueryStringParser.parseChartParameters(context)).toStrictEqual({});
     });
   });
 });

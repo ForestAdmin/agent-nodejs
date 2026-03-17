@@ -130,7 +130,7 @@ export default abstract class BaseCollection implements Collection {
     caller: Caller,
     name: string,
     recordId: CompositeId,
-    contextVariables?: Record<string, string>,
+    parameters?: Record<string, string>,
   ): Promise<Chart> {
     throw new Error(`Chart ${name} is not implemented.`);
   }

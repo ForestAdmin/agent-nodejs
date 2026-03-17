@@ -52,7 +52,7 @@ describe('ChartDataSourceDecorator', () => {
         expect(dataSource.renderChart).not.toHaveBeenCalled();
       });
 
-      test('renderChart should pass contextVariables to the handler', async () => {
+      test('renderChart should pass parameters to the handler', async () => {
         const handler = jest.fn((_ctx, resultBuilder) => resultBuilder.value(10));
         decorator.addChart('chartWithVars', handler);
 
@@ -60,7 +60,7 @@ describe('ChartDataSourceDecorator', () => {
         const vars = { startDate: '2024-01-01' };
         await decorator.renderChart(caller, 'chartWithVars', vars);
 
-        expect(handler.mock.calls[0][0].contextVariables).toStrictEqual(vars);
+        expect(handler.mock.calls[0][0].parameters).toStrictEqual(vars);
       });
     });
   });

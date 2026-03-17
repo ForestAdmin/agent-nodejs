@@ -54,11 +54,7 @@ export default class BaseDataSource<T extends Collection = Collection> implement
     this._nativeQueryConnections[connectionName] = definition;
   }
 
-  renderChart(
-    caller: Caller,
-    name: string,
-    contextVariables?: Record<string, string>,
-  ): Promise<Chart> {
+  renderChart(caller: Caller, name: string, parameters?: Record<string, string>): Promise<Chart> {
     throw new Error(`No chart named '${name}' exists on this datasource.`);
   }
 

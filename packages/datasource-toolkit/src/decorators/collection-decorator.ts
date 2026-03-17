@@ -118,9 +118,9 @@ export default class CollectionDecorator implements Collection {
     caller: Caller,
     name: string,
     recordId: CompositeId,
-    contextVariables?: Record<string, string>,
+    parameters?: Record<string, string>,
   ): Promise<Chart> {
-    return this.childCollection.renderChart(caller, name, recordId, contextVariables);
+    return this.childCollection.renderChart(caller, name, recordId, parameters);
   }
 
   protected markSchemaAsDirty(): void {

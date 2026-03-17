@@ -6,14 +6,14 @@ import AgentCustomizationContext from '../../context/agent-context';
 export default class DataSourceChartContext<
   S extends TSchema = TSchema,
 > extends AgentCustomizationContext<S> {
-  private _contextVariables: Record<string, string>;
+  private _parameters: Record<string, string>;
 
-  get contextVariables(): Record<string, string> {
-    return Object.freeze({ ...this._contextVariables });
+  get parameters(): Record<string, string> {
+    return Object.freeze({ ...this._parameters });
   }
 
-  constructor(dataSource: DataSource, caller: Caller, contextVariables?: Record<string, string>) {
+  constructor(dataSource: DataSource, caller: Caller, parameters?: Record<string, string>) {
     super(dataSource, caller);
-    this._contextVariables = contextVariables ?? {};
+    this._parameters = parameters ?? {};
   }
 }

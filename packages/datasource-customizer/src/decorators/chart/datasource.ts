@@ -35,17 +35,17 @@ export default class ChartDataSourceDecorator extends DataSourceDecorator<ChartC
   override async renderChart(
     caller: Caller,
     name: string,
-    contextVariables?: Record<string, string>,
+    parameters?: Record<string, string>,
   ): Promise<Chart> {
     const chartDefinition = this.charts[name];
 
     if (chartDefinition) {
       return chartDefinition(
-        new DataSourceChartContext(this, caller, contextVariables),
+        new DataSourceChartContext(this, caller, parameters),
         new ResultBuilder(),
       );
     }
 
-    return super.renderChart(caller, name, contextVariables);
+    return super.renderChart(caller, name, parameters);
   }
 }

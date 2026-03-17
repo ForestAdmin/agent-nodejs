@@ -22,16 +22,16 @@ export default class ChartCollectionDecorator extends CollectionDecorator {
     caller: Caller,
     name: string,
     recordId: CompositeId,
-    contextVariables?: Record<string, string>,
+    parameters?: Record<string, string>,
   ): Promise<Chart> {
     if (this.charts[name]) {
-      const context = new CollectionChartContext(this, caller, recordId, contextVariables);
+      const context = new CollectionChartContext(this, caller, recordId, parameters);
       const resultBuilder = new ResultBuilder();
 
       return this.charts[name](context, resultBuilder);
     }
 
-    return this.childCollection.renderChart(caller, name, recordId, contextVariables);
+    return this.childCollection.renderChart(caller, name, recordId, parameters);
   }
 
   protected override refineSchema(subSchema: CollectionSchema): CollectionSchema {

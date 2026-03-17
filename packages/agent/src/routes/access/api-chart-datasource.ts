@@ -56,7 +56,7 @@ export default class DataSourceApiChartRoute extends BaseRoute {
           value: await this.dataSource.renderChart(
             QueryStringParser.parseCaller(context),
             this.chartName,
-            QueryStringParser.parseChartContextVariables(context),
+            QueryStringParser.parseChartParameters(context),
           ),
         },
       },
@@ -68,7 +68,7 @@ export default class DataSourceApiChartRoute extends BaseRoute {
     context.response.body = await this.dataSource.renderChart(
       QueryStringParser.parseCaller(context),
       this.chartName,
-      QueryStringParser.parseChartContextVariables(context),
+      QueryStringParser.parseChartParameters(context),
     );
   }
 }
