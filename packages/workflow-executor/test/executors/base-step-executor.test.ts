@@ -75,7 +75,7 @@ describe('BaseStepExecutor', () => {
       expect(await executor.summarizePreviousSteps()).toBe('');
     });
 
-    it('includes prompt, params, and result from previous steps', async () => {
+    it('includes prompt and executionParams from previous steps', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' })],
@@ -94,11 +94,10 @@ describe('BaseStepExecutor', () => {
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('Prompt: Approve?');
-      expect(result).toContain('Params: {"answer":"Yes","reasoning":"Order is valid"}');
-      expect(result).toContain('Result: {"answer":"Yes"}');
+      expect(result).toContain('Result: {"answer":"Yes","reasoning":"Order is valid"}');
     });
 
-    it('falls back to History when step has no executionResult in RunStore', async () => {
+    it('falls back to History when step has no executionParams in RunStore', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [
@@ -107,7 +106,11 @@ describe('BaseStepExecutor', () => {
           ],
           runStore: makeMockRunStore([
             { type: 'condition', stepIndex: 0 },
-            { type: 'condition', stepIndex: 1, executionResult: { answer: 'No' } },
+            {
+              type: 'condition',
+              stepIndex: 1,
+              executionParams: { answer: 'No', reasoning: 'Clearly no' },
+            },
           ]),
         }),
       );
@@ -117,7 +120,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success"}');
       expect(result).toContain('Step "cond-2"');
-      expect(result).toContain('Result: {"answer":"No"}');
+      expect(result).toContain('Result: {"answer":"No","reasoning":"Clearly no"}');
     });
 
     it('falls back to History when no matching step execution in RunStore', async () => {
@@ -128,7 +131,11 @@ describe('BaseStepExecutor', () => {
             makeHistoryEntry({ stepId: 'matched', stepIndex: 1, prompt: 'Matched step' }),
           ],
           runStore: makeMockRunStore([
-            { type: 'condition', stepIndex: 1, executionResult: { answer: 'B' } },
+            {
+              type: 'condition',
+              stepIndex: 1,
+              executionParams: { answer: 'B', reasoning: 'Option B fits' },
+            },
           ]),
         }),
       );
@@ -138,7 +145,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "orphan"');
       expect(result).toContain('History: {"status":"success"}');
       expect(result).toContain('Step "matched"');
-      expect(result).toContain('Result: {"answer":"B"}');
+      expect(result).toContain('Result: {"answer":"B","reasoning":"Option B fits"}');
     });
 
     it('includes selectedOption in History for condition steps', async () => {
@@ -203,7 +210,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('History: {"status":"awaiting-input"}');
     });
 
-    it('uses Result when RunStore has executionResult, History otherwise', async () => {
+    it('uses Result when RunStore has executionParams, History otherwise', async () => {
       const condEntry = makeHistoryEntry({
         stepId: 'cond-1',
         stepIndex: 0,
@@ -220,7 +227,11 @@ describe('BaseStepExecutor', () => {
         makeContext({
           history: [condEntry, aiEntry],
           runStore: makeMockRunStore([
-            { type: 'ai-task', stepIndex: 1, executionResult: { answer: 'John Doe' } },
+            {
+              type: 'ai-task',
+              stepIndex: 1,
+              executionParams: { answer: 'John Doe' },
+            },
           ]),
         }),
       );
@@ -233,7 +244,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Result: {"answer":"John Doe"}');
     });
 
-    it('prefers RunStore data over History fallback', async () => {
+    it('prefers RunStore executionParams over History fallback', async () => {
       const entry = makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' });
       (entry.stepHistory as { selectedOption?: string }).selectedOption = 'A';
 
@@ -245,7 +256,6 @@ describe('BaseStepExecutor', () => {
               type: 'condition',
               stepIndex: 0,
               executionParams: { answer: 'A', reasoning: 'Best fit' },
-              executionResult: { answer: 'A' },
             },
           ]),
         }),
@@ -253,29 +263,7 @@ describe('BaseStepExecutor', () => {
 
       const result = await executor.summarizePreviousSteps();
 
-      expect(result).toContain('Params: {"answer":"A","reasoning":"Best fit"}');
-      expect(result).toContain('Result: {"answer":"A"}');
-      expect(result).not.toContain('History:');
-    });
-
-    it('shows only Params when executionParams exists but no executionResult', async () => {
-      const executor = new TestableExecutor(
-        makeContext({
-          history: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' })],
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 0,
-              executionParams: { answer: 'NO_MATCH', reasoning: 'No option fits' },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor.summarizePreviousSteps();
-
-      expect(result).toContain('Params: {"answer":"NO_MATCH","reasoning":"No option fits"}');
-      expect(result).not.toContain('Result:');
+      expect(result).toContain('Result: {"answer":"A","reasoning":"Best fit"}');
       expect(result).not.toContain('History:');
     });
 
@@ -287,7 +275,11 @@ describe('BaseStepExecutor', () => {
         makeContext({
           history: [entry],
           runStore: makeMockRunStore([
-            { type: 'condition', stepIndex: 0, executionResult: { answer: 'A' } },
+            {
+              type: 'condition',
+              stepIndex: 0,
+              executionParams: { answer: 'A', reasoning: 'Only option' },
+            },
           ]),
         }),
       );

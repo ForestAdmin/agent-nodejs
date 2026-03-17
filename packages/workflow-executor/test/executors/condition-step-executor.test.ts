@@ -209,7 +209,11 @@ describe('ConditionStepExecutor', () => {
         getStepExecutions: jest
           .fn()
           .mockResolvedValue([
-            { type: 'condition', stepIndex: 0, executionResult: { answer: 'Yes' } },
+            {
+              type: 'condition',
+              stepIndex: 0,
+              executionParams: { answer: 'Yes', reasoning: 'Validated by manager' },
+            },
           ]),
       });
       const context = makeContext({

@@ -20,9 +20,9 @@ export default abstract class BaseStepExecutor<
 
   /**
    * Builds a text summary of previously executed steps for AI prompts.
-   * Correlates history entries (step + stepHistory pairs) with execution results
+   * Correlates history entries (step + stepHistory pairs) with executionParams
    * from the RunStore (matched by stepHistory.stepIndex).
-   * When no executionResult is available, falls back to StepHistory details.
+   * When no executionParams is available, falls back to StepHistory details.
    */
   protected async summarizePreviousSteps(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions();
@@ -46,14 +46,8 @@ export default abstract class BaseStepExecutor<
     const lines = [header, `  Prompt: ${prompt}`];
 
     if (execution?.executionParams) {
-      lines.push(`  Params: ${JSON.stringify(execution.executionParams)}`);
-    }
-
-    if (execution?.executionResult) {
-      lines.push(`  Result: ${JSON.stringify(execution.executionResult)}`);
-    }
-
-    if (!execution?.executionParams && !execution?.executionResult) {
+      lines.push(`  Result: ${JSON.stringify(execution.executionParams)}`);
+    } else {
       const { stepId, stepIndex, type, ...historyDetails } = stepHistory;
       lines.push(`  History: ${JSON.stringify(historyDetails)}`);
     }
