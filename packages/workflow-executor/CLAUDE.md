@@ -6,6 +6,44 @@
 
 TypeScript library (framework-agnostic) that executes workflow steps on the client's infrastructure, alongside the Forest Admin agent. The orchestrator never sees client data — it only sends step definitions; this package fetches them and runs them locally.
 
+## Why this package exists — Frontend → Backend migration
+
+Workflows currently run entirely in the **frontend** (`forestadmin/frontend`). The front parses BPMN, manages the run state machine, calls the AI, executes tools, and handles user interactions — all in the browser.
+
+This works for interactive use cases but blocks **automation**: scheduled workflows, API-triggered runs, and headless execution all require a human with a browser open. The goal of this migration is to move workflow execution to the **backend** (client-side agent infrastructure) so workflows can run without a frontend and without human intervention.
+
+### What stays on the front
+- Workflow designer (BPMN editor)
+- Run monitoring / progress display
+- Manual decisions when the AI can't decide (`manual-decision` status)
+
+### What moves to the backend (this package)
+- Step execution (condition decisions, AI tasks, record operations)
+- AI calls (gateway option selection, tool selection, tool execution)
+- Record selection and data access (via AgentPort)
+
+### Frontend reference implementation
+The frontend implementation lives in `forestadmin/frontend` under `app/features/workflow/`. Key files:
+- `services/standalone-package/services/parser-module/bpmn-parser.ts` — BPMN parsing (stays on front)
+- `services/internal-business/execution.ts` — Step sequencing and execution orchestration
+- `services/internal-business/ai-interactions.ts` — AI task execution (record selection → tool selection → execution → formatting)
+- `services/internal-business/utils.ts` — Gateway decision logic (`isAiDecisionAllowed`, prompt building)
+- AI tool: `choose-gateway-option` with Zod schema `{option, question, reasoning}`, `tool_choice: 'any'`, `NO_GATEWAY_OPTION_MATCH` fallback
+
+### ISO with front
+- **Condition step tool schema**: same `{option, question, reasoning}` + `z.enum` + `FOREST_WORKFLOW_NO_GATEWAY_OPTION_MATCH`
+- **`tool_choice: 'any'`**: forced tool use, same as front
+- **Fallback behavior**: `NO_MATCH` → user must decide (front: stays in UI; backend: `manual-decision` status)
+- **Additional context**: previous steps' prompts + execution results passed to AI
+- **`automaticCompletion` / `allowedTools`**: present in types, same semantics
+
+### Known gaps to address
+- **Richer condition prompt**: front has detailed semantic matching rules + 80% confidence threshold. Our prompt is minimal.
+- **UserInput for manual-decision**: `UserInput` only supports `{type: 'confirmation'}`, needs `{type: 'option-selection', selectedOption}` for when user overrides AI on conditions.
+- **Richer additional context**: front passes full `toolExecution` objects (toolName, artifacts). We only pass `executionResult`.
+- **AI task executor**: not yet implemented. Front flow: select record → select tool → (confirm?) → execute → format response.
+- **`aiDecision` flag**: front has explicit boolean on conditions (some are manual-only). We always go through AI.
+
 ## System Architecture
 
 The workflow system is split into 4 components:
