@@ -1,7 +1,7 @@
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
-import { AINotConfiguredError, AiClient } from '../src';
+import { AIModelNotSupportedError, AINotConfiguredError, AiClient } from '../src';
 import McpClient from '../src/mcp-client';
 
 jest.mock('../src/mcp-client', () => {
@@ -17,6 +17,30 @@ const createBaseChatModelMock = jest.fn().mockReturnValue({} as BaseChatModel);
 jest.mock('../src/create-base-chat-model', () => ({
   createBaseChatModel: (...args: unknown[]) => createBaseChatModelMock(...args),
 }));
+
+describe('Model validation', () => {
+  it('throws AIModelNotSupportedError for unsupported models', () => {
+    expect(
+      () =>
+        new AiClient({
+          aiConfigurations: [
+            { name: 'test', provider: 'openai', apiKey: 'dev', model: 'gpt-4' },
+          ],
+        }),
+    ).toThrow(AIModelNotSupportedError);
+  });
+
+  it('accepts supported models', () => {
+    expect(
+      () =>
+        new AiClient({
+          aiConfigurations: [
+            { name: 'test', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
+          ],
+        }),
+    ).not.toThrow();
+  });
+});
 
 describe('getModel', () => {
   beforeEach(() => {
@@ -74,6 +98,12 @@ describe('getModel', () => {
 
   it('throws AINotConfiguredError when aiConfigurations is empty', () => {
     const client = new AiClient({});
+
+    expect(() => client.getModel()).toThrow(AINotConfiguredError);
+  });
+
+  it('throws AINotConfiguredError when constructed with no arguments', () => {
+    const client = new AiClient();
 
     expect(() => client.getModel()).toThrow(AINotConfiguredError);
   });
@@ -229,6 +259,59 @@ describe('loadRemoteTools', () => {
       closeError,
     );
   });
+
+  it('wraps non-Error thrown values when closing previous client fails', async () => {
+    const mockLogger = jest.fn();
+
+    jest
+      .mocked(McpClient)
+      .mockImplementationOnce(
+        () =>
+          ({
+            loadTools: jest.fn().mockResolvedValue([]),
+            closeConnections: jest.fn().mockRejectedValue('string error'),
+          } as unknown as McpClient),
+      )
+      .mockImplementationOnce(
+        () =>
+          ({
+            loadTools: jest.fn().mockResolvedValue([]),
+            closeConnections: jest.fn(),
+          } as unknown as McpClient),
+      );
+
+    const client = new AiClient({ logger: mockLogger });
+    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+
+    await client.loadRemoteTools(mcpConfig);
+    await client.loadRemoteTools(mcpConfig);
+
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      'Error closing previous MCP connection',
+      expect.objectContaining({ message: 'string error' }),
+    );
+  });
+
+  it('does not store mcpClient reference when loadTools fails', async () => {
+    const loadToolsError = new Error('loadTools failed');
+
+    jest.mocked(McpClient).mockImplementation(
+      () =>
+        ({
+          loadTools: jest.fn().mockRejectedValue(loadToolsError),
+          closeConnections: jest.fn(),
+        } as unknown as McpClient),
+    );
+
+    const client = new AiClient({});
+    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+
+    await expect(client.loadRemoteTools(mcpConfig)).rejects.toThrow(loadToolsError);
+
+    // closeConnections should be a no-op since mcpClient was never stored
+    await expect(client.closeConnections()).resolves.toBeUndefined();
+  });
 });
 
 describe('closeConnections', () => {
@@ -285,6 +368,28 @@ describe('closeConnections', () => {
 
     // Second call should be a no-op (reference cleared in finally block)
     await expect(client.closeConnections()).resolves.toBeUndefined();
+  });
+
+  it('wraps non-Error thrown values during cleanup', async () => {
+    const mockLogger = jest.fn();
+    jest.mocked(McpClient).mockImplementation(
+      () =>
+        ({
+          loadTools: jest.fn().mockResolvedValue([]),
+          closeConnections: jest.fn().mockRejectedValue('string error'),
+        } as unknown as McpClient),
+    );
+
+    const client = new AiClient({ logger: mockLogger });
+    await client.loadRemoteTools({ configs: { server1: { command: 'test', args: [] } } });
+
+    await client.closeConnections();
+
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      'Error during MCP connection cleanup',
+      expect.objectContaining({ message: 'string error' }),
+    );
   });
 
   it('is safe to call twice', async () => {

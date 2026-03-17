@@ -7,6 +7,7 @@ import { createBaseChatModel } from './create-base-chat-model';
 import { AINotConfiguredError } from './errors';
 import getAiConfiguration from './get-ai-configuration';
 import McpClient from './mcp-client';
+import validateAiConfigurations from './validate-ai-configurations';
 
 // eslint-disable-next-line import/prefer-default-export
 export class AiClient {
@@ -18,6 +19,8 @@ export class AiClient {
   constructor(params?: { aiConfigurations?: AiConfiguration[]; logger?: Logger }) {
     this.aiConfigurations = params?.aiConfigurations ?? [];
     this.logger = params?.logger;
+
+    validateAiConfigurations(this.aiConfigurations);
   }
 
   getModel(aiName?: string): BaseChatModel {
@@ -34,33 +37,27 @@ export class AiClient {
   }
 
   async loadRemoteTools(mcpConfig: McpConfiguration): Promise<McpClient['tools']> {
-    if (this.mcpClient) {
-      try {
-        await this.mcpClient.closeConnections();
-      } catch (error) {
-        this.logger?.(
-          'Error',
-          'Error closing previous MCP connection',
-          error instanceof Error ? error : new Error(String(error)),
-        );
-      } finally {
-        this.mcpClient = undefined;
-      }
-    }
+    await this.closeMcpClient('Error closing previous MCP connection');
 
-    this.mcpClient = new McpClient(mcpConfig, this.logger);
+    const newClient = new McpClient(mcpConfig, this.logger);
+    const tools = await newClient.loadTools();
+    this.mcpClient = newClient;
 
-    return this.mcpClient.loadTools();
+    return tools;
   }
 
   async closeConnections(): Promise<void> {
+    await this.closeMcpClient('Error during MCP connection cleanup');
+  }
+
+  private async closeMcpClient(errorMessage: string): Promise<void> {
     if (!this.mcpClient) return;
 
     try {
       await this.mcpClient.closeConnections();
-    } catch (cleanupError) {
-      const err = cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
-      this.logger?.('Error', 'Error during MCP connection cleanup', err);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger?.('Error', errorMessage, err);
     } finally {
       this.mcpClient = undefined;
     }
