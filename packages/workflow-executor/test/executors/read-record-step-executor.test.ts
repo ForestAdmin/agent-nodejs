@@ -28,6 +28,7 @@ function makeStepHistory(overrides: Partial<AiTaskStepHistory> = {}): AiTaskStep
 
 function makeRecord(overrides: Partial<RecordData> = {}): RecordData {
   return {
+    stepIndex: 0,
     recordId: '42',
     collectionName: 'customers',
     collectionDisplayName: 'Customers',
