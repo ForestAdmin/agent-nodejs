@@ -1,7 +1,8 @@
+import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
-import type { CollectionSchema, RecordData } from '../../src/types/record';
+import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/record';
 import type { AiTaskStepDefinition } from '../../src/types/step-definition';
 import type { AiTaskStepHistory } from '../../src/types/step-history';
 
@@ -27,6 +28,15 @@ function makeStepHistory(overrides: Partial<AiTaskStepHistory> = {}): AiTaskStep
   };
 }
 
+function makeRecordRef(overrides: Partial<RecordRef> = {}): RecordRef {
+  return {
+    collectionName: 'customers',
+    recordId: [42],
+    stepIndex: 0,
+    ...overrides,
+  };
+}
+
 function makeRecord(overrides: Partial<RecordData> = {}): RecordData {
   return {
     collectionName: 'customers',
@@ -39,6 +49,23 @@ function makeRecord(overrides: Partial<RecordData> = {}): RecordData {
     },
     ...overrides,
   };
+}
+
+function makeMockAgentPort(
+  recordsByCollection: Record<string, { values: Record<string, unknown> }> = {
+    customers: { values: { email: 'john@example.com', name: 'John Doe', orders: null } },
+  },
+): AgentPort {
+  return {
+    getRecord: jest
+      .fn()
+      .mockImplementation((collectionName: string) =>
+        Promise.resolve(recordsByCollection[collectionName] ?? { values: {} }),
+      ),
+    updateRecord: jest.fn(),
+    getRelatedData: jest.fn(),
+    executeAction: jest.fn(),
+  } as unknown as AgentPort;
 }
 
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
@@ -99,9 +126,9 @@ function makeMockModel(
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
-    baseRecord: makeRecord(),
+    baseRecord: makeRecordRef(),
     model: makeMockModel({ fieldNames: ['email'] }).model,
-    agentPort: {} as ExecutionContext['agentPort'],
+    agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
     history: [],
@@ -254,7 +281,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('multi-record AI selection', () => {
     it('uses AI to select among multiple records then reads fields', async () => {
-      const baseRecord = makeRecord({ stepIndex: 1 });
+      const baseRecord = makeRecordRef({ stepIndex: 1 });
       const relatedRecord = makeRecord({
         stepIndex: 2,
         recordId: [99],
@@ -303,7 +330,10 @@ describe('ReadRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecord, model, runStore, workflowPort });
+      const agentPort = makeMockAgentPort({
+        customers: { values: { email: 'john@example.com', name: 'John Doe', orders: null } },
+      });
+      const context = makeContext({ baseRecord, model, runStore, workflowPort, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -339,7 +369,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('reads fields from the second record when AI selects it', async () => {
-      const baseRecord = makeRecord({ stepIndex: 1 });
+      const baseRecord = makeRecordRef({ stepIndex: 1 });
       const relatedRecord = makeRecord({
         stepIndex: 2,
         recordId: [99],
@@ -383,7 +413,10 @@ describe('ReadRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecord, model, runStore, workflowPort });
+      const agentPort = makeMockAgentPort({
+        orders: { values: { total: 150 } },
+      });
+      const context = makeContext({ baseRecord, model, runStore, workflowPort, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -403,7 +436,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('includes step index in select-record tool schema when records have stepIndex', async () => {
-      const baseRecord = makeRecord({ stepIndex: 3 });
+      const baseRecord = makeRecordRef({ stepIndex: 3 });
       const relatedRecord = makeRecord({
         stepIndex: 5,
         recordId: [99],
@@ -465,7 +498,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('AI record selection failure', () => {
     it('returns error when AI selects a non-existent record identifier', async () => {
-      const baseRecord = makeRecord();
+      const baseRecord = makeRecordRef();
       const relatedRecord = makeRecord({
         stepIndex: 1,
         recordId: [99],
@@ -507,6 +540,25 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepHistory.error).toBe(
         'AI selected record "NonExistent #999" which does not match any available record',
       );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('agentPort.getRecord error', () => {
+    it('returns error when agentPort.getRecord throws', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getRecord as jest.Mock).mockRejectedValue(
+        new Error('Record not found: collection "customers", id "42"'),
+      );
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, runStore, agentPort });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute(makeStep(), makeStepHistory());
+
+      expect(result.stepHistory.status).toBe('error');
+      expect(result.stepHistory.error).toBe('Record not found: collection "customers", id "42"');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });

@@ -1,6 +1,6 @@
 import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext } from '../../src/types/execution';
-import type { RecordData } from '../../src/types/record';
+import type { RecordRef } from '../../src/types/record';
 import type { ConditionStepDefinition } from '../../src/types/step-definition';
 import type { ConditionStepHistory } from '../../src/types/step-history';
 
@@ -54,8 +54,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
       collectionName: 'customers',
       recordId: [1],
       stepIndex: 0,
-      values: {},
-    } as RecordData,
+    } as RecordRef,
     model: makeMockModel().model,
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
