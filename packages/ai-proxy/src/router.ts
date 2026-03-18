@@ -4,12 +4,14 @@ import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
-import { AIBadRequestError, AIModelNotSupportedError } from './errors';
+import { AIBadRequestError } from './errors';
+import getAiConfiguration from './get-ai-configuration';
 import BraveToolProvider from './integrations/brave/brave-tool-provider';
+import McpClient from './mcp-client';
 import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
-import isModelSupportingTools from './supported-models';
+import validateAiConfigurations from './validate-ai-configurations';
 import { createToolProviders } from './tool-provider-factory';
 
 export type {
@@ -40,7 +42,7 @@ export class Router {
     this.localToolProviders = Router.createLocalToolProviders(params?.localToolsApiKeys);
     this.logger = params?.logger;
 
-    this.validateConfigurations();
+    validateAiConfigurations(this.aiConfigurations);
   }
 
   private static createLocalToolProviders(apiKeys?: Record<string, string>): ToolProvider[] {
@@ -53,14 +55,6 @@ export class Router {
     }
 
     return providers;
-  }
-
-  private validateConfigurations(): void {
-    for (const config of this.aiConfigurations) {
-      if (!isModelSupportingTools(config.model, config.provider)) {
-        throw new AIModelNotSupportedError(config.model);
-      }
-    }
   }
 
   /**
@@ -89,7 +83,11 @@ export class Router {
 
       switch (validatedArgs.route) {
         case 'ai-query': {
-          const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
+          const aiConfiguration = getAiConfiguration(
+            this.aiConfigurations,
+            validatedArgs.query?.['ai-name'],
+            this.logger,
+          );
 
           return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
             validatedArgs.body,
@@ -145,27 +143,5 @@ export class Router {
         return `${path}${issue.message}`;
       })
       .join('; ');
-  }
-
-  private getAiConfiguration(aiName?: string): AiConfiguration | null {
-    if (this.aiConfigurations.length === 0) return null;
-
-    if (aiName) {
-      const config = this.aiConfigurations.find(c => c.name === aiName);
-
-      if (!config) {
-        const fallback = this.aiConfigurations[0];
-        this.logger?.(
-          'Warn',
-          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}' (provider: ${fallback.provider}, model: ${fallback.model})`,
-        );
-
-        return fallback;
-      }
-
-      return config;
-    }
-
-    return this.aiConfigurations[0];
   }
 }
