@@ -14,7 +14,11 @@ export type {
 } from './types/step-history';
 
 export type {
+  FieldReadSuccess,
+  FieldReadError,
+  FieldReadResult,
   ConditionStepExecutionData,
+  ReadRecordStepExecutionData,
   AiTaskStepExecutionData,
   StepExecutionData,
 } from './types/step-execution-data';

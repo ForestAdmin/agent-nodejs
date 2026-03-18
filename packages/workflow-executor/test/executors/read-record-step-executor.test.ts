@@ -103,7 +103,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepHistory.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'ai-task',
+          type: 'read-record',
           stepIndex: 0,
           executionParams: { fieldNames: ['email'] },
           executionResult: {
@@ -639,7 +639,7 @@ describe('ReadRecordStepExecutor', () => {
       await executor.execute(makeStep(), makeStepHistory({ stepIndex: 3 }));
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith({
-        type: 'ai-task',
+        type: 'read-record',
         stepIndex: 3,
         executionParams: { fieldNames: ['email', 'name'] },
         executionResult: {
