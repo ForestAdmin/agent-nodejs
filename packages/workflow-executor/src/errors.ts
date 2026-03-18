@@ -21,3 +21,9 @@ export class MalformedToolCallError extends WorkflowExecutorError {
     this.toolName = toolName;
   }
 }
+
+export class RecordNotFoundError extends WorkflowExecutorError {
+  constructor(collectionName: string, recordId: string) {
+    super(`Record not found: collection "${collectionName}", id "${recordId}"`);
+  }
+}
