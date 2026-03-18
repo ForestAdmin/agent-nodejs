@@ -39,11 +39,11 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       selectedRef = await this.selectRecordRef(records, step.prompt);
       schema = await this.context.workflowPort.getCollectionSchema(selectedRef.collectionName);
       fieldNames = await this.selectFields(schema, step.prompt);
-      const agentRecord = await this.context.agentPort.getRecord(
+      const recordData = await this.context.agentPort.getRecord(
         selectedRef.collectionName,
         selectedRef.recordId,
       );
-      values = agentRecord.values;
+      values = recordData.values;
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return { stepHistory: { ...stepHistory, status: 'error', error: error.message } };
@@ -52,7 +52,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       throw error;
     }
 
-    const fieldResults = this.readFieldValues(values, schema, fieldNames);
+    const fieldResults = this.formatFieldResults(values, schema, fieldNames);
 
     await this.context.runStore.saveStepExecution({
       type: 'read-record',
@@ -144,7 +144,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       description: 'Read one or more fields from the selected record.',
       schema: z.object({
         // z.string() (not z.enum) intentionally: an invalid field name in the array
-        // does not fail the whole tool call — per-field errors are handled in readFieldValues.
+        // does not fail the whole tool call — per-field errors are handled in formatFieldResults.
         // This matches the frontend implementation (ISO frontend).
         fieldNames: z
           .array(z.string())
@@ -158,7 +158,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     });
   }
 
-  private readFieldValues(
+  private formatFieldResults(
     values: Record<string, unknown>,
     schema: CollectionSchema,
     fieldNames: string[],
