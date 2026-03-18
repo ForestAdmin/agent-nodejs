@@ -18,8 +18,7 @@ export type UserInput = { type: 'confirmation'; confirmed: boolean };
 export interface PendingStepExecution {
   readonly runId: string;
   readonly baseRecord: RecordRef;
-  readonly step: StepDefinition;
-  readonly stepHistory: StepHistory;
+  readonly currentStep: StepRecord;
   readonly previousSteps: ReadonlyArray<StepRecord>;
   readonly userInput?: UserInput;
 }
