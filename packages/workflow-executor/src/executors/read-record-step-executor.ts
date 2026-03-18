@@ -51,7 +51,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       stepIndex: stepHistory.stepIndex,
       executionParams: { fieldNames },
       executionResult: { fields: fieldResults },
-      selectedRecord: {
+      selectedRecordRef: {
         collectionName: selectedRecord.collectionName,
         recordId: selectedRecord.recordId,
         stepIndex: selectedRecord.stepIndex,

@@ -37,7 +37,7 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
   type: 'read-record';
   executionParams: { fieldNames: string[] };
   executionResult: { fields: FieldReadResult[] };
-  selectedRecord: RecordRef;
+  selectedRecordRef: RecordRef;
 }
 
 // -- Generic AI Task (fallback for untyped steps) --

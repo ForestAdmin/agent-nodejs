@@ -330,7 +330,7 @@ describe('ReadRecordStepExecutor', () => {
           executionResult: {
             fields: [{ value: 'john@example.com', fieldName: 'email', displayName: 'Email' }],
           },
-          selectedRecord: expect.objectContaining({
+          selectedRecordRef: expect.objectContaining({
             recordId: [42],
             collectionName: 'customers',
           }),
@@ -394,7 +394,7 @@ describe('ReadRecordStepExecutor', () => {
           executionResult: {
             fields: [{ value: 150, fieldName: 'total', displayName: 'Total' }],
           },
-          selectedRecord: expect.objectContaining({
+          selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
           }),
@@ -694,7 +694,7 @@ describe('ReadRecordStepExecutor', () => {
             { value: 'John Doe', fieldName: 'name', displayName: 'Full Name' },
           ],
         },
-        selectedRecord: {
+        selectedRecordRef: {
           collectionName: 'customers',
           recordId: [42],
           stepIndex: 0,
