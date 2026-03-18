@@ -172,7 +172,7 @@ describe('ReadRecordStepExecutor', () => {
           executionResult: {
             fields: [
               { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
-              { error: 'Field not found: nonexistent', fieldName: 'nonexistent' },
+              { error: 'Field not found: nonexistent', fieldName: 'nonexistent', displayName: 'nonexistent' },
             ],
           },
         }),
