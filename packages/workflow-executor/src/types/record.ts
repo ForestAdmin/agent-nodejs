@@ -23,5 +23,6 @@ export interface CollectionRef {
 
 export interface RecordData extends CollectionRef {
   recordId: Array<string | number>;
+  stepIndex: number;
   values: Record<string, unknown>;
 }

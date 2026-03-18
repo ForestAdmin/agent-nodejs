@@ -98,7 +98,10 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     if (records.length === 0) throw new NoRecordsError();
     if (records.length === 1) return records[0];
 
-    const identifiers = records.map(ReadRecordStepExecutor.toRecordIdentifier) as [string, ...string[]];
+    const identifiers = records.map(ReadRecordStepExecutor.toRecordIdentifier) as [
+      string,
+      ...string[],
+    ];
 
     const tool = new DynamicStructuredTool({
       name: 'select-record',
@@ -124,7 +127,9 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       tool,
     );
 
-    const selected = records.find(r => ReadRecordStepExecutor.toRecordIdentifier(r) === recordIdentifier);
+    const selected = records.find(
+      r => ReadRecordStepExecutor.toRecordIdentifier(r) === recordIdentifier,
+    );
 
     if (!selected) {
       throw new WorkflowExecutorError(
@@ -184,6 +189,8 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
   }
 
   private static toRecordIdentifier(record: RecordData): string {
-    return `${record.collectionDisplayName} #${record.recordId}`;
+    const stepPrefix = record.stepIndex !== undefined ? `Step ${record.stepIndex} - ` : '';
+
+    return `${stepPrefix}${record.collectionDisplayName} #${record.recordId}`;
   }
 }

@@ -235,8 +235,9 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('multi-record AI selection', () => {
     it('uses AI to select among multiple records then reads fields', async () => {
-      const record1 = makeRecord();
+      const record1 = makeRecord({ stepIndex: 1 });
       const record2 = makeRecord({
+        stepIndex: 2,
         recordId: '99',
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
@@ -253,7 +254,7 @@ describe('ReadRecordStepExecutor', () => {
           tool_calls: [
             {
               name: 'select-record',
-              args: { recordIdentifier: 'Customers #42' },
+              args: { recordIdentifier: 'Step 1 - Customers #42' },
               id: 'call_1',
             },
           ],
@@ -309,8 +310,9 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('reads fields from the second record when AI selects it', async () => {
-      const record1 = makeRecord();
+      const record1 = makeRecord({ stepIndex: 1 });
       const record2 = makeRecord({
+        stepIndex: 2,
         recordId: '99',
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
@@ -324,7 +326,7 @@ describe('ReadRecordStepExecutor', () => {
         .fn()
         .mockResolvedValueOnce({
           tool_calls: [
-            { name: 'select-record', args: { recordIdentifier: 'Orders #99' }, id: 'call_1' },
+            { name: 'select-record', args: { recordIdentifier: 'Step 2 - Orders #99' }, id: 'call_1' },
           ],
         })
         .mockResolvedValueOnce({
@@ -355,6 +357,50 @@ describe('ReadRecordStepExecutor', () => {
           }),
         }),
       );
+    });
+
+    it('includes step index in select-record tool schema when records have stepIndex', async () => {
+      const record1 = makeRecord({ stepIndex: 3 });
+      const record2 = makeRecord({
+        stepIndex: 5,
+        recordId: '99',
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        fields: [
+          { fieldName: 'total', displayName: 'Total', type: 'Number', isRelationship: false },
+        ],
+        values: { total: 150 },
+      });
+
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-record', args: { recordIdentifier: 'Step 3 - Customers #42' }, id: 'call_1' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'read-selected-record-field', args: { fieldName: 'email' }, id: 'call_2' },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getRecords: jest.fn().mockResolvedValue([record1, record2]),
+      });
+      const executor = new ReadRecordStepExecutor(makeContext({ model, runStore }));
+
+      await executor.execute(makeStep(), makeStepHistory());
+
+      const selectTool = bindTools.mock.calls[0][0][0];
+      const schemaShape = selectTool.schema.shape;
+      // Enum values should include step-prefixed identifiers
+      expect(schemaShape.recordIdentifier.options).toEqual([
+        'Step 3 - Customers #42',
+        'Step 5 - Orders #99',
+      ]);
     });
   });
 
