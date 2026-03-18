@@ -103,19 +103,20 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Result: {"answer":"Yes","reasoning":"Order is valid"}');
     });
 
-    it('falls back to History when step has no executionParams in RunStore', async () => {
+    it('falls back to History when no matching step execution in RunStore', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [
             makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0 }),
             makeHistoryEntry({ stepId: 'cond-2', stepIndex: 1, prompt: 'Second?' }),
           ],
+          // Only step 1 has an execution entry — step 0 has no match
           runStore: makeMockRunStore([
-            { type: 'condition', stepIndex: 0 },
             {
               type: 'condition',
               stepIndex: 1,
               executionParams: { answer: 'No', reasoning: 'Clearly no' },
+              executionResult: { answer: 'No' },
             },
           ]),
         }),
@@ -143,6 +144,7 @@ describe('BaseStepExecutor', () => {
               type: 'condition',
               stepIndex: 1,
               executionParams: { answer: 'B', reasoning: 'Option B fits' },
+              executionResult: { answer: 'B' },
             },
           ]),
         }),
@@ -274,6 +276,7 @@ describe('BaseStepExecutor', () => {
               type: 'condition',
               stepIndex: 0,
               executionParams: { answer: 'A', reasoning: 'Best fit' },
+              executionResult: { answer: 'A' },
             },
           ]),
         }),
@@ -299,6 +302,7 @@ describe('BaseStepExecutor', () => {
               type: 'condition',
               stepIndex: 0,
               executionParams: { answer: 'A', reasoning: 'Only option' },
+              executionResult: { answer: 'A' },
             },
           ]),
         }),

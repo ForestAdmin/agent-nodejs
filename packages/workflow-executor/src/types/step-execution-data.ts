@@ -2,15 +2,21 @@
 
 import type { CollectionRef } from './record';
 
+// -- Base --
+
 interface BaseStepExecutionData {
   stepIndex: number;
 }
 
+// -- Condition --
+
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
-  executionParams?: { answer: string | null; reasoning?: string };
-  executionResult?: { answer: string };
+  executionParams: { answer: string | null; reasoning?: string };
+  executionResult: { answer: string };
 }
+
+// -- Read Record --
 
 interface FieldReadBase {
   fieldName: string;
@@ -34,6 +40,8 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
   selectedRecordRef: RecordRef;
 }
 
+// -- Generic AI Task (fallback for untyped steps) --
+
 export interface AiTaskStepExecutionData extends BaseStepExecutionData {
   type: 'ai-task';
   executionParams?: Record<string, unknown>;
@@ -41,6 +49,8 @@ export interface AiTaskStepExecutionData extends BaseStepExecutionData {
   toolConfirmationInterruption?: Record<string, unknown>;
   selectedRecord?: CollectionRef;
 }
+
+// -- Union --
 
 export type StepExecutionData =
   | ConditionStepExecutionData
