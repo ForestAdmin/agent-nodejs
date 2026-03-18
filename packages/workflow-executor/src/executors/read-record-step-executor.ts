@@ -189,8 +189,6 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
   }
 
   private static toRecordIdentifier(record: RecordData): string {
-    const stepPrefix = record.stepIndex !== undefined ? `Step ${record.stepIndex} - ` : '';
-
-    return `${stepPrefix}${record.collectionDisplayName} #${record.recordId}`;
+    return `Step ${record.stepIndex} - ${record.collectionDisplayName} #${record.recordId}`;
   }
 }
