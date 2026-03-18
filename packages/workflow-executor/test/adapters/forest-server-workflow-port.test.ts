@@ -2,7 +2,6 @@ import type { PendingStepExecution } from '../../src/types/execution';
 import type { CollectionSchema } from '../../src/types/record';
 import type { StepHistory } from '../../src/types/step-history';
 
-// @ts-expect-error -- ServerUtils is not yet re-exported from the built package
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 import ForestServerWorkflowPort from '../../src/adapters/forest-server-workflow-port';

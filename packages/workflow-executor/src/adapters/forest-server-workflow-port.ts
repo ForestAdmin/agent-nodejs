@@ -4,7 +4,6 @@ import type { CollectionSchema } from '../types/record';
 import type { StepHistory } from '../types/step-history';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
-// @ts-expect-error -- ServerUtils is not yet re-exported from the built package
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 // TODO: finalize route paths with the team — these are placeholders
