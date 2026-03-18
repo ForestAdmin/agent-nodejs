@@ -175,7 +175,10 @@ describe('AgentClientAgentPort', () => {
     it('should return action names from CollectionRef', async () => {
       const result = await port.getActions('users');
 
-      expect(result).toEqual(['sendEmail', 'archive']);
+      expect(result).toEqual([
+        { name: 'sendEmail', displayName: 'Send Email' },
+        { name: 'archive', displayName: 'Archive' },
+      ]);
     });
 
     it('should return an empty array for an unknown collection', async () => {

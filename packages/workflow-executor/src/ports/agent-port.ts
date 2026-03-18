@@ -1,6 +1,6 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { RecordData } from '../types/record';
+import type { ActionRef, RecordData } from '../types/record';
 
 export interface AgentPort {
   getRecord(collectionName: string, recordId: string): Promise<RecordData>;
@@ -14,6 +14,6 @@ export interface AgentPort {
     recordId: string,
     relationName: string,
   ): Promise<RecordData[]>;
-  getActions(collectionName: string): Promise<string[]>;
+  getActions(collectionName: string): Promise<ActionRef[]>;
   executeAction(collectionName: string, actionName: string, recordIds: string[]): Promise<unknown>;
 }
