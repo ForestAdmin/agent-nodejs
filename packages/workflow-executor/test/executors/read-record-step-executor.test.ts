@@ -66,7 +66,7 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
 
 function makeMockModel(
   toolCallArgs?: Record<string, unknown>,
-  toolName = 'read-selected-record-field',
+  toolName = 'read-selected-record-fields',
 ) {
   const invoke = jest.fn().mockResolvedValue({
     tool_calls: toolCallArgs ? [{ name: toolName, args: toolCallArgs, id: 'call_1' }] : undefined,
@@ -80,7 +80,7 @@ function makeMockModel(
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
-    model: makeMockModel({ fieldName: 'email' }).model,
+    model: makeMockModel({ fieldNames: ['email'] }).model,
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
@@ -93,7 +93,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
 describe('ReadRecordStepExecutor', () => {
   describe('single record, single field', () => {
     it('reads a single field and returns success', async () => {
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -105,7 +105,7 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'ai-task',
           stepIndex: 0,
-          executionParams: { fieldName: 'email' },
+          executionParams: { fieldNames: ['email'] },
           executionResult: {
             fields: [{ value: 'john@example.com', fieldName: 'email', displayName: 'Email' }],
           },
@@ -116,7 +116,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('single record, multiple fields', () => {
     it('reads multiple fields in one call and returns success', async () => {
-      const mockModel = makeMockModel({ fieldName: ['email', 'name'] });
+      const mockModel = makeMockModel({ fieldNames: ['email', 'name'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -126,7 +126,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepHistory.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
-          executionParams: { fieldName: ['email', 'name'] },
+          executionParams: { fieldNames: ['email', 'name'] },
           executionResult: {
             fields: [
               { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
@@ -140,7 +140,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('field resolution by displayName', () => {
     it('resolves fields by displayName', async () => {
-      const mockModel = makeMockModel({ fieldName: 'Full Name' });
+      const mockModel = makeMockModel({ fieldNames: ['Full Name'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -160,7 +160,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('field not found', () => {
     it('returns error per field without failing globally', async () => {
-      const mockModel = makeMockModel({ fieldName: ['email', 'nonexistent'] });
+      const mockModel = makeMockModel({ fieldNames: ['email', 'nonexistent'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -183,7 +183,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('relationship fields excluded', () => {
     it('excludes relationship fields from tool schema', async () => {
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -191,16 +191,19 @@ describe('ReadRecordStepExecutor', () => {
       await executor.execute(makeStep(), makeStepHistory());
 
       const tool = mockModel.bindTools.mock.calls[0][0][0];
-      expect(tool.name).toBe('read-selected-record-field');
+      expect(tool.name).toBe('read-selected-record-fields');
 
-      // 'Email' and 'Full Name' (displayNames) + 'email' and 'name' (fieldNames) should be valid
-      expect(tool.schema.parse({ fieldName: 'Email' })).toBeTruthy();
-      expect(tool.schema.parse({ fieldName: 'Full Name' })).toBeTruthy();
-      expect(tool.schema.parse({ fieldName: 'email' })).toBeTruthy();
-      expect(tool.schema.parse({ fieldName: 'name' })).toBeTruthy();
+      // Valid field names (displayNames and fieldNames) should be accepted in an array
+      expect(tool.schema.parse({ fieldNames: ['Email'] })).toBeTruthy();
+      expect(tool.schema.parse({ fieldNames: ['Full Name'] })).toBeTruthy();
+      expect(tool.schema.parse({ fieldNames: ['email'] })).toBeTruthy();
+      expect(tool.schema.parse({ fieldNames: ['email', 'name'] })).toBeTruthy();
 
-      // 'Orders' (relationship) is excluded from the single-value enum
-      expect(() => tool.schema.parse({ fieldName: 'Orders' })).toThrow();
+      // Schema accepts any strings (per-field errors handled in readFieldValues, ISO frontend)
+      expect(tool.schema.parse({ fieldNames: ['Orders'] })).toBeTruthy();
+
+      // But rejects non-array values
+      expect(() => tool.schema.parse({ fieldNames: 'email' })).toThrow();
     });
   });
 
@@ -217,7 +220,7 @@ describe('ReadRecordStepExecutor', () => {
           },
         ],
       });
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockResolvedValue([record]),
       });
@@ -248,7 +251,7 @@ describe('ReadRecordStepExecutor', () => {
         values: { total: 150 },
       });
 
-      // First call: select-record, second call: read-selected-record-field
+      // First call: select-record, second call: read-selected-record-fields
       const invoke = jest
         .fn()
         .mockResolvedValueOnce({
@@ -263,8 +266,8 @@ describe('ReadRecordStepExecutor', () => {
         .mockResolvedValueOnce({
           tool_calls: [
             {
-              name: 'read-selected-record-field',
-              args: { fieldName: 'email' },
+              name: 'read-selected-record-fields',
+              args: { fieldNames: ['email'] },
               id: 'call_2',
             },
           ],
@@ -287,9 +290,9 @@ describe('ReadRecordStepExecutor', () => {
       const selectTool = bindTools.mock.calls[0][0][0];
       expect(selectTool.name).toBe('select-record');
 
-      // Second call: read-selected-record-field tool
+      // Second call: read-selected-record-fields tool
       const readTool = bindTools.mock.calls[1][0][0];
-      expect(readTool.name).toBe('read-selected-record-field');
+      expect(readTool.name).toBe('read-selected-record-fields');
 
       // Record selection includes previous steps context + system prompt + user prompt
       const selectMessages = invoke.mock.calls[0][0];
@@ -332,7 +335,7 @@ describe('ReadRecordStepExecutor', () => {
         })
         .mockResolvedValueOnce({
           tool_calls: [
-            { name: 'read-selected-record-field', args: { fieldName: 'total' }, id: 'call_2' },
+            { name: 'read-selected-record-fields', args: { fieldNames: ['total'] }, id: 'call_2' },
           ],
         });
       const bindTools = jest.fn().mockReturnValue({ invoke });
@@ -382,7 +385,7 @@ describe('ReadRecordStepExecutor', () => {
         })
         .mockResolvedValueOnce({
           tool_calls: [
-            { name: 'read-selected-record-field', args: { fieldName: 'email' }, id: 'call_2' },
+            { name: 'read-selected-record-fields', args: { fieldNames: ['email'] }, id: 'call_2' },
           ],
         });
       const bindTools = jest.fn().mockReturnValue({ invoke });
@@ -444,7 +447,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('no records available', () => {
     it('returns error when no records exist', async () => {
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockResolvedValue([]),
       });
@@ -483,7 +486,7 @@ describe('ReadRecordStepExecutor', () => {
       const invoke = jest.fn().mockResolvedValue({
         tool_calls: [],
         invalid_tool_calls: [
-          { name: 'read-selected-record-field', args: '{bad json', error: 'JSON parse error' },
+          { name: 'read-selected-record-fields', args: '{bad json', error: 'JSON parse error' },
         ],
       });
       const bindTools = jest.fn().mockReturnValue({ invoke });
@@ -498,7 +501,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe(
-        'AI returned a malformed tool call for "read-selected-record-field": JSON parse error',
+        'AI returned a malformed tool call for "read-selected-record-fields": JSON parse error',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -523,7 +526,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('RunStore error propagation', () => {
     it('lets saveStepExecution errors propagate', async () => {
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Storage full')),
       });
@@ -534,7 +537,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('lets getRecords errors propagate', async () => {
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockRejectedValue(new Error('Connection lost')),
       });
@@ -549,7 +552,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('immutability', () => {
     it('does not mutate the input stepHistory', async () => {
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const stepHistory = makeStepHistory();
       const context = makeContext({ model: mockModel.model });
       const executor = new ReadRecordStepExecutor(context);
@@ -563,7 +566,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('previous steps context', () => {
     it('includes previous steps summary in read-field messages', async () => {
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -611,7 +614,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('default prompt', () => {
     it('uses default prompt when step.prompt is undefined', async () => {
-      const mockModel = makeMockModel({ fieldName: 'email' });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const context = makeContext({ model: mockModel.model });
       const executor = new ReadRecordStepExecutor(context);
 
@@ -626,7 +629,7 @@ describe('ReadRecordStepExecutor', () => {
   describe('saveStepExecution arguments', () => {
     it('saves executionParams, executionResult, and selectedRecordRef', async () => {
       const record = makeRecord();
-      const mockModel = makeMockModel({ fieldName: ['email', 'name'] });
+      const mockModel = makeMockModel({ fieldNames: ['email', 'name'] });
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockResolvedValue([record]),
       });
@@ -638,7 +641,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith({
         type: 'ai-task',
         stepIndex: 3,
-        executionParams: { fieldName: ['email', 'name'] },
+        executionParams: { fieldNames: ['email', 'name'] },
         executionResult: {
           fields: [
             { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
