@@ -19,6 +19,7 @@ interface FieldReadSuccess {
 interface FieldReadError {
   error: string;
   fieldName: string;
+  displayName: string;
 }
 
 type FieldReadResult = (FieldReadSuccess | FieldReadError)[];
@@ -174,7 +175,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     return names.map(name => {
       const field = record.fields.find(f => f.fieldName === name || f.displayName === name);
 
-      if (!field) return { error: `Field not found: ${name}`, fieldName: name };
+      if (!field) return { error: `Field not found: ${name}`, fieldName: name, displayName: name };
 
       return {
         value: record.values[field.fieldName],
