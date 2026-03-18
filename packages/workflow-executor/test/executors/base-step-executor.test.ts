@@ -103,11 +103,11 @@ describe('BaseStepExecutor', () => {
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('Prompt: Approve?');
-      expect(result).toContain('Result: {"answer":"Yes","reasoning":"Order is valid"}');
+      expect(result).toContain('Input: {"answer":"Yes","reasoning":"Order is valid"}');
       expect(result).toContain('Output: {"answer":"Yes"}');
     });
 
-    it('uses Result for matched steps and History for unmatched steps', async () => {
+    it('uses Input for matched steps and History for unmatched steps', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [
@@ -133,7 +133,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success"}');
       expect(result).toContain('Step "cond-2"');
-      expect(result).toContain('Result: {"answer":"No","reasoning":"Clearly no"}');
+      expect(result).toContain('Input: {"answer":"No","reasoning":"Clearly no"}');
       expect(result).toContain('Output: {"answer":"No"}');
     });
 
@@ -162,7 +162,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "orphan"');
       expect(result).toContain('History: {"status":"success"}');
       expect(result).toContain('Step "matched"');
-      expect(result).toContain('Result: {"answer":"B","reasoning":"Option B fits"}');
+      expect(result).toContain('Input: {"answer":"B","reasoning":"Option B fits"}');
       expect(result).toContain('Output: {"answer":"B"}');
     });
 
@@ -234,7 +234,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('History: {"status":"awaiting-input"}');
     });
 
-    it('uses Result when RunStore has executionParams, History otherwise', async () => {
+    it('uses Input when RunStore has executionParams, History otherwise', async () => {
       const condEntry = makeHistoryEntry({
         stepId: 'cond-1',
         stepIndex: 0,
@@ -267,10 +267,10 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success","selectedOption":"Yes"}');
       expect(result).toContain('Step "read-customer"');
-      expect(result).toContain('Result: {"answer":"John Doe"}');
+      expect(result).toContain('Input: {"answer":"John Doe"}');
     });
 
-    it('prefers RunStore executionParams over History fallback', async () => {
+    it('prefers RunStore execution data over History fallback', async () => {
       const entry = makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' });
       (entry.stepHistory as { selectedOption?: string }).selectedOption = 'A';
 
@@ -292,7 +292,7 @@ describe('BaseStepExecutor', () => {
         .buildPreviousStepsMessages()
         .then(msgs => msgs[0]?.content ?? '');
 
-      expect(result).toContain('Result: {"answer":"A","reasoning":"Best fit"}');
+      expect(result).toContain('Input: {"answer":"A","reasoning":"Best fit"}');
       expect(result).toContain('Output: {"answer":"A"}');
       expect(result).not.toContain('History:');
     });
