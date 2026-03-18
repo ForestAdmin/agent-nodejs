@@ -1,5 +1,5 @@
 import type { AgentPort } from '../ports/agent-port';
-import type { ActionRef, CollectionSchema } from '../types/record';
+import type { CollectionSchema } from '../types/record';
 import type { RemoteAgentClient, SelectOptions } from '@forestadmin/agent-client';
 
 import { RecordNotFoundError } from '../errors';
@@ -89,12 +89,6 @@ export default class AgentClientAgentPort implements AgentPort {
       recordId: extractRecordId(relatedSchema.primaryKeyFields, record),
       values: record,
     }));
-  }
-
-  async getActions(collectionName: string): Promise<ActionRef[]> {
-    const schema = this.collectionSchemas[collectionName];
-
-    return schema ? schema.actions : [];
   }
 
   async executeAction(
