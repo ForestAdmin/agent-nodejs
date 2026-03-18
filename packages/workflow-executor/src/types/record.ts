@@ -31,7 +31,5 @@ export interface RecordRef {
   stepIndex: number;
 }
 
-/** A record with its loaded field values. */
-export interface RecordData extends RecordRef {
-  values: Record<string, unknown>;
-}
+/** A record with its loaded field values — no stepIndex (agent doesn't know about steps). */
+export type RecordData = Omit<RecordRef, 'stepIndex'> & { values: Record<string, unknown> };

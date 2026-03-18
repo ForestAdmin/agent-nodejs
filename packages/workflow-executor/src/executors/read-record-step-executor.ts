@@ -47,7 +47,11 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       );
       values = agentRecord.values;
     } catch (error) {
-      return { stepHistory: { ...stepHistory, status: 'error', error: (error as Error).message } };
+      if (error instanceof WorkflowExecutorError) {
+        return { stepHistory: { ...stepHistory, status: 'error', error: error.message } };
+      }
+
+      throw error;
     }
 
     const fieldResults = this.readFieldValues(values, schema, fieldNames);

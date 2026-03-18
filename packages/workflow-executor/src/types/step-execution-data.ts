@@ -1,6 +1,6 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { RecordData, RecordRef } from './record';
+import type { RecordRef } from './record';
 
 // -- Base --
 
@@ -53,7 +53,7 @@ export interface AiTaskStepExecutionData extends BaseStepExecutionData {
 
 export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
   type: 'load-related-record';
-  record: RecordData;
+  record: RecordRef;
 }
 
 // -- Union --

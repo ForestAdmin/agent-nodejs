@@ -2,10 +2,11 @@ import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
-import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/record';
+import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { AiTaskStepDefinition } from '../../src/types/step-definition';
 import type { AiTaskStepHistory } from '../../src/types/step-history';
 
+import { RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
@@ -33,20 +34,6 @@ function makeRecordRef(overrides: Partial<RecordRef> = {}): RecordRef {
     collectionName: 'customers',
     recordId: [42],
     stepIndex: 0,
-    ...overrides,
-  };
-}
-
-function makeRecord(overrides: Partial<RecordData> = {}): RecordData {
-  return {
-    collectionName: 'customers',
-    recordId: [42],
-    stepIndex: 0,
-    values: {
-      email: 'john@example.com',
-      name: 'John Doe',
-      orders: null,
-    },
     ...overrides,
   };
 }
@@ -282,11 +269,10 @@ describe('ReadRecordStepExecutor', () => {
   describe('multi-record AI selection', () => {
     it('uses AI to select among multiple records then reads fields', async () => {
       const baseRecord = makeRecordRef({ stepIndex: 1 });
-      const relatedRecord = makeRecord({
+      const relatedRecord = makeRecordRef({
         stepIndex: 2,
         recordId: [99],
         collectionName: 'orders',
-        values: { total: 150 },
       });
 
       const ordersSchema = makeCollectionSchema({
@@ -330,10 +316,7 @@ describe('ReadRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const agentPort = makeMockAgentPort({
-        customers: { values: { email: 'john@example.com', name: 'John Doe', orders: null } },
-      });
-      const context = makeContext({ baseRecord, model, runStore, workflowPort, agentPort });
+      const context = makeContext({ baseRecord, model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -370,11 +353,10 @@ describe('ReadRecordStepExecutor', () => {
 
     it('reads fields from the second record when AI selects it', async () => {
       const baseRecord = makeRecordRef({ stepIndex: 1 });
-      const relatedRecord = makeRecord({
+      const relatedRecord = makeRecordRef({
         stepIndex: 2,
         recordId: [99],
         collectionName: 'orders',
-        values: { total: 150 },
       });
 
       const ordersSchema = makeCollectionSchema({
@@ -437,11 +419,10 @@ describe('ReadRecordStepExecutor', () => {
 
     it('includes step index in select-record tool schema when records have stepIndex', async () => {
       const baseRecord = makeRecordRef({ stepIndex: 3 });
-      const relatedRecord = makeRecord({
+      const relatedRecord = makeRecordRef({
         stepIndex: 5,
         recordId: [99],
         collectionName: 'orders',
-        values: { total: 150 },
       });
 
       const ordersSchema = makeCollectionSchema({
@@ -499,11 +480,10 @@ describe('ReadRecordStepExecutor', () => {
   describe('AI record selection failure', () => {
     it('returns error when AI selects a non-existent record identifier', async () => {
       const baseRecord = makeRecordRef();
-      const relatedRecord = makeRecord({
+      const relatedRecord = makeRecordRef({
         stepIndex: 1,
         recordId: [99],
         collectionName: 'orders',
-        values: { total: 150 },
       });
 
       const ordersSchema = makeCollectionSchema({
@@ -545,10 +525,10 @@ describe('ReadRecordStepExecutor', () => {
   });
 
   describe('agentPort.getRecord error', () => {
-    it('returns error when agentPort.getRecord throws', async () => {
+    it('returns error when agentPort.getRecord throws a WorkflowExecutorError', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRecord as jest.Mock).mockRejectedValue(
-        new Error('Record not found: collection "customers", id "42"'),
+        new RecordNotFoundError('customers', '42'),
       );
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore();
@@ -561,24 +541,30 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepHistory.error).toBe('Record not found: collection "customers", id "42"');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
+
+    it('lets infrastructure errors propagate', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
+      const context = makeContext({ model: mockModel.model, agentPort });
+      const executor = new ReadRecordStepExecutor(context);
+
+      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow(
+        'Connection refused',
+      );
+    });
   });
 
   describe('model error', () => {
-    it('returns error status when AI invocation fails', async () => {
+    it('lets non-WorkflowExecutorError propagate from AI invocation', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
-      const runStore = makeMockRunStore();
       const context = makeContext({
         model: { bindTools } as unknown as ExecutionContext['model'],
-        runStore,
       });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
-
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('API timeout');
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow('API timeout');
     });
   });
 
