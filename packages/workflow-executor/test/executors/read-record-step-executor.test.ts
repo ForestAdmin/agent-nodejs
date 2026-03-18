@@ -59,10 +59,7 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
     getRecords: jest.fn().mockResolvedValue([makeRecord()]),
-    getRecord: jest.fn().mockResolvedValue(null),
-    saveRecord: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
-    getStepExecution: jest.fn().mockResolvedValue(null),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };

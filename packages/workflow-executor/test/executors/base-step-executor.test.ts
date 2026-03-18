@@ -50,10 +50,7 @@ function makeHistoryEntry(
 function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
   return {
     getRecords: jest.fn().mockResolvedValue([]),
-    getRecord: jest.fn().mockResolvedValue(null),
-    saveRecord: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue(stepExecutions),
-    getStepExecution: jest.fn().mockResolvedValue(null),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
   };
 }
