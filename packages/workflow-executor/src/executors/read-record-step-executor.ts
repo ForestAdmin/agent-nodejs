@@ -1,5 +1,5 @@
 import type { StepExecutionResult } from '../types/execution';
-import type { CollectionSchema, RecordData } from '../types/record';
+import type { CollectionSchema, RecordRef } from '../types/record';
 import type { AiTaskStepDefinition } from '../types/step-definition';
 import type {
   FieldReadResult,
@@ -32,19 +32,25 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
   ): Promise<StepExecutionResult> {
     const records = await this.getAvailableRecords();
 
-    let selectedRecord: RecordData;
+    let selectedRef: RecordRef;
     let schema: CollectionSchema;
     let fieldNames: string[];
+    let values: Record<string, unknown>;
 
     try {
-      selectedRecord = await this.selectRecord(records, step.prompt);
-      schema = await this.context.workflowPort.getCollectionSchema(selectedRecord.collectionName);
+      selectedRef = await this.selectRecord(records, step.prompt);
+      schema = await this.context.workflowPort.getCollectionSchema(selectedRef.collectionName);
       fieldNames = await this.selectFields(schema, step.prompt);
+      const agentRecord = await this.context.agentPort.getRecord(
+        selectedRef.collectionName,
+        selectedRef.recordId,
+      );
+      values = agentRecord.values;
     } catch (error) {
       return { stepHistory: { ...stepHistory, status: 'error', error: (error as Error).message } };
     }
 
-    const fieldResults = this.readFieldValues(selectedRecord.values, schema, fieldNames);
+    const fieldResults = this.readFieldValues(values, schema, fieldNames);
 
     await this.context.runStore.saveStepExecution({
       type: 'read-record',
@@ -52,9 +58,9 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       executionParams: { fieldNames },
       executionResult: { fields: fieldResults },
       selectedRecordRef: {
-        collectionName: selectedRecord.collectionName,
-        recordId: selectedRecord.recordId,
-        stepIndex: selectedRecord.stepIndex,
+        collectionName: selectedRef.collectionName,
+        recordId: selectedRef.recordId,
+        stepIndex: selectedRef.stepIndex,
       },
     });
 
@@ -80,10 +86,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     return args.fieldNames;
   }
 
-  private async selectRecord(
-    records: RecordData[],
-    prompt: string | undefined,
-  ): Promise<RecordData> {
+  private async selectRecord(records: RecordRef[], prompt: string | undefined): Promise<RecordRef> {
     if (records.length === 0) throw new NoRecordsError();
     if (records.length === 1) return records[0];
 
@@ -171,7 +174,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     });
   }
 
-  private async getAvailableRecords(): Promise<RecordData[]> {
+  private async getAvailableRecords(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions();
     const relatedRecords = stepExecutions
       .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')
@@ -180,7 +183,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     return [this.context.baseRecord, ...relatedRecords];
   }
 
-  private async toRecordIdentifier(record: RecordData): Promise<string> {
+  private async toRecordIdentifier(record: RecordRef): Promise<string> {
     const schema = await this.context.workflowPort.getCollectionSchema(record.collectionName);
 
     return `Step ${record.stepIndex} - ${schema.collectionDisplayName} #${record.recordId}`;
