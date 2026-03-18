@@ -1,30 +1,37 @@
-import type { RemoteAgentClient, SelectOptions } from '@forestadmin/agent-client';
-
 import type { AgentPort } from '../ports/agent-port';
 import type { ActionRef, CollectionRef, RecordData } from '../types/record';
+import type { RemoteAgentClient, SelectOptions } from '@forestadmin/agent-client';
 
 import { RecordNotFoundError } from '../errors';
 
-function buildPkFilter(recordId: Record<string, unknown>): SelectOptions['filters'] {
-  const entries = Object.entries(recordId);
-
-  if (entries.length === 1) {
-    return { field: entries[0][0], operator: 'Equal', value: entries[0][1] };
+function buildPkFilter(
+  primaryKeyFields: string[],
+  recordId: Array<string | number>,
+): SelectOptions['filters'] {
+  if (primaryKeyFields.length === 1) {
+    return { field: primaryKeyFields[0], operator: 'Equal', value: recordId[0] };
   }
 
   return {
     aggregator: 'And',
-    conditions: entries.map(([field, value]) => ({ field, operator: 'Equal', value })),
+    conditions: primaryKeyFields.map((field, i) => ({
+      field,
+      operator: 'Equal',
+      value: recordId[i],
+    })),
   };
 }
 
 // agent-client methods (update, relation, action) still expect the pipe-encoded string format
-function encodeRecordId(primaryKeyFields: string[], recordId: Record<string, unknown>): string {
-  return primaryKeyFields.map(field => String(recordId[field] ?? '')).join('|');
+function encodePk(recordId: Array<string | number>): string {
+  return recordId.map(v => String(v)).join('|');
 }
 
-function extractRecordId(primaryKeyFields: string[], record: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(primaryKeyFields.map(field => [field, record[field]]));
+function extractRecordId(
+  primaryKeyFields: string[],
+  record: Record<string, unknown>,
+): Array<string | number> {
+  return primaryKeyFields.map(field => record[field] as string | number);
 }
 
 export default class AgentClientAgentPort implements AgentPort {
@@ -39,15 +46,15 @@ export default class AgentClientAgentPort implements AgentPort {
     this.collectionRefs = params.collectionRefs;
   }
 
-  async getRecord(collectionName: string, recordId: Record<string, unknown>): Promise<RecordData> {
+  async getRecord(collectionName: string, recordId: Array<string | number>): Promise<RecordData> {
     const ref = this.getCollectionRef(collectionName);
     const records = await this.client.collection(collectionName).list<Record<string, unknown>>({
-      filters: buildPkFilter(recordId),
+      filters: buildPkFilter(ref.primaryKeyFields, recordId),
       pagination: { size: 1, number: 1 },
     });
 
     if (records.length === 0) {
-      throw new RecordNotFoundError(collectionName, encodeRecordId(ref.primaryKeyFields, recordId));
+      throw new RecordNotFoundError(collectionName, encodePk(recordId));
     }
 
     return { ...ref, recordId, values: records[0] };
@@ -55,28 +62,27 @@ export default class AgentClientAgentPort implements AgentPort {
 
   async updateRecord(
     collectionName: string,
-    recordId: Record<string, unknown>,
+    recordId: Array<string | number>,
     values: Record<string, unknown>,
   ): Promise<RecordData> {
     const ref = this.getCollectionRef(collectionName);
     const updatedRecord = await this.client
       .collection(collectionName)
-      .update<Record<string, unknown>>(encodeRecordId(ref.primaryKeyFields, recordId), values);
+      .update<Record<string, unknown>>(encodePk(recordId), values);
 
     return { ...ref, recordId, values: updatedRecord };
   }
 
   async getRelatedData(
     collectionName: string,
-    recordId: Record<string, unknown>,
+    recordId: Array<string | number>,
     relationName: string,
   ): Promise<RecordData[]> {
-    const ref = this.getCollectionRef(collectionName);
     const relatedRef = this.getCollectionRef(relationName);
 
     const records = await this.client
       .collection(collectionName)
-      .relation(relationName, encodeRecordId(ref.primaryKeyFields, recordId))
+      .relation(relationName, encodePk(recordId))
       .list<Record<string, unknown>>();
 
     return records.map(record => ({
@@ -95,10 +101,9 @@ export default class AgentClientAgentPort implements AgentPort {
   async executeAction(
     collectionName: string,
     actionName: string,
-    recordIds: Record<string, unknown>[],
+    recordIds: Array<string | number>[],
   ): Promise<unknown> {
-    const ref = this.getCollectionRef(collectionName);
-    const encodedIds = recordIds.map(id => encodeRecordId(ref.primaryKeyFields, id));
+    const encodedIds = recordIds.map(id => encodePk(id));
     const action = await this.client
       .collection(collectionName)
       .action(actionName, { recordIds: encodedIds });

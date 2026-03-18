@@ -22,7 +22,6 @@ export interface CollectionRef {
 }
 
 export interface RecordData extends CollectionRef {
-  // TODO: improve recordId typing — consider a branded type or a stricter shape once the API stabilizes
-  recordId: Record<string, unknown>;
+  recordId: Array<string | number>;
   values: Record<string, unknown>;
 }
