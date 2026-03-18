@@ -1,5 +1,5 @@
 import type { CollectionRef } from '../../src/types/record';
-import type { ActionEndpointsByCollection, RemoteAgentClient } from '@forestadmin/agent-client';
+import type { RemoteAgentClient } from '@forestadmin/agent-client';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
 import { RecordNotFoundError } from '../../src/errors';
@@ -26,7 +26,6 @@ describe('AgentClientAgentPort', () => {
   let mockCollection: ReturnType<typeof createMockClient>['mockCollection'];
   let mockRelation: ReturnType<typeof createMockClient>['mockRelation'];
   let mockAction: ReturnType<typeof createMockClient>['mockAction'];
-  let actionEndpoints: ActionEndpointsByCollection;
   let collectionRefs: Record<string, CollectionRef>;
   let port: AgentClientAgentPort;
 
@@ -34,13 +33,6 @@ describe('AgentClientAgentPort', () => {
     jest.clearAllMocks();
 
     ({ client, mockCollection, mockRelation, mockAction } = createMockClient());
-
-    actionEndpoints = {
-      users: {
-        sendEmail: { name: 'Send Email', endpoint: '/forest/actions/send-email' },
-        archive: { name: 'Archive', endpoint: '/forest/actions/archive' },
-      },
-    };
 
     collectionRefs = {
       users: {
@@ -50,6 +42,10 @@ describe('AgentClientAgentPort', () => {
           { fieldName: 'id', displayName: 'id', type: 'Number', isRelationship: false },
           { fieldName: 'name', displayName: 'name', type: 'String', isRelationship: false },
         ],
+        actions: [
+          { name: 'sendEmail', displayName: 'Send Email' },
+          { name: 'archive', displayName: 'Archive' },
+        ],
       },
       posts: {
         collectionName: 'posts',
@@ -58,10 +54,11 @@ describe('AgentClientAgentPort', () => {
           { fieldName: 'id', displayName: 'id', type: 'Number', isRelationship: false },
           { fieldName: 'title', displayName: 'title', type: 'String', isRelationship: false },
         ],
+        actions: [],
       },
     };
 
-    port = new AgentClientAgentPort({ client, actionEndpoints, collectionRefs });
+    port = new AgentClientAgentPort({ client, collectionRefs });
   });
 
   describe('getRecord', () => {
@@ -80,6 +77,7 @@ describe('AgentClientAgentPort', () => {
         collectionName: 'users',
         collectionDisplayName: 'Users',
         fields: collectionRefs.users.fields,
+        actions: collectionRefs.users.actions,
         values: { id: '42', name: 'Alice' },
       });
     });
@@ -93,7 +91,7 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('should fallback to empty fields when collection is unknown', async () => {
+    it('should fallback to empty fields and actions when collection is unknown', async () => {
       mockCollection.list.mockResolvedValue([{ id: '1' }]);
 
       const result = await port.getRecord('unknown', '1');
@@ -101,6 +99,7 @@ describe('AgentClientAgentPort', () => {
       expect(result.collectionName).toBe('unknown');
       expect(result.collectionDisplayName).toBe('unknown');
       expect(result.fields).toEqual([]);
+      expect(result.actions).toEqual([]);
     });
   });
 
@@ -116,6 +115,7 @@ describe('AgentClientAgentPort', () => {
         collectionName: 'users',
         collectionDisplayName: 'Users',
         fields: collectionRefs.users.fields,
+        actions: collectionRefs.users.actions,
         values: { id: '42', name: 'Bob' },
       });
     });
@@ -138,6 +138,7 @@ describe('AgentClientAgentPort', () => {
           collectionName: 'posts',
           collectionDisplayName: 'Posts',
           fields: collectionRefs.posts.fields,
+          actions: collectionRefs.posts.actions,
           values: { id: '10', title: 'Post A' },
         },
         {
@@ -145,6 +146,7 @@ describe('AgentClientAgentPort', () => {
           collectionName: 'posts',
           collectionDisplayName: 'Posts',
           fields: collectionRefs.posts.fields,
+          actions: collectionRefs.posts.actions,
           values: { id: '11', title: 'Post B' },
         },
       ]);
@@ -157,6 +159,7 @@ describe('AgentClientAgentPort', () => {
 
       expect(result[0].collectionName).toBe('unknownRelation');
       expect(result[0].fields).toEqual([]);
+      expect(result[0].actions).toEqual([]);
     });
 
     it('should return an empty array when no related data exists', async () => {
@@ -169,7 +172,7 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('getActions', () => {
-    it('should return action names from actionEndpoints', async () => {
+    it('should return action names from CollectionRef', async () => {
       const result = await port.getActions('users');
 
       expect(result).toEqual(['sendEmail', 'archive']);
@@ -177,6 +180,12 @@ describe('AgentClientAgentPort', () => {
 
     it('should return an empty array for an unknown collection', async () => {
       const result = await port.getActions('unknown');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return an empty array for a collection with no actions', async () => {
+      const result = await port.getActions('posts');
 
       expect(result).toEqual([]);
     });

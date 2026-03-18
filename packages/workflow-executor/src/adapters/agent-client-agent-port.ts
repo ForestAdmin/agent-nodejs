@@ -1,21 +1,18 @@
 import type { AgentPort } from '../ports/agent-port';
 import type { CollectionRef, RecordData } from '../types/record';
-import type { ActionEndpointsByCollection, RemoteAgentClient } from '@forestadmin/agent-client';
+import type { RemoteAgentClient } from '@forestadmin/agent-client';
 
 import { RecordNotFoundError } from '../errors';
 
 export default class AgentClientAgentPort implements AgentPort {
   private readonly client: RemoteAgentClient;
-  private readonly actionEndpoints: ActionEndpointsByCollection;
   private readonly collectionRefs: Record<string, CollectionRef>;
 
   constructor(params: {
     client: RemoteAgentClient;
-    actionEndpoints: ActionEndpointsByCollection;
     collectionRefs: Record<string, CollectionRef>;
   }) {
     this.client = params.client;
-    this.actionEndpoints = params.actionEndpoints;
     this.collectionRefs = params.collectionRefs;
   }
 
@@ -62,11 +59,7 @@ export default class AgentClientAgentPort implements AgentPort {
       .relation(relationName, recordId)
       .list<Record<string, unknown>>();
 
-    const ref = this.collectionRefs[relationName] ?? {
-      collectionName: relationName,
-      collectionDisplayName: relationName,
-      fields: [],
-    };
+    const ref = this.getCollectionRef(relationName);
 
     return records.map(record => ({
       ...ref,
@@ -76,9 +69,9 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async getActions(collectionName: string): Promise<string[]> {
-    const endpoints = this.actionEndpoints[collectionName];
+    const ref = this.collectionRefs[collectionName];
 
-    return endpoints ? Object.keys(endpoints) : [];
+    return ref ? ref.actions.map(a => a.name) : [];
   }
 
   async executeAction(
@@ -95,7 +88,12 @@ export default class AgentClientAgentPort implements AgentPort {
     const ref = this.collectionRefs[collectionName];
 
     if (!ref) {
-      return { collectionName, collectionDisplayName: collectionName, fields: [] };
+      return {
+        collectionName,
+        collectionDisplayName: collectionName,
+        fields: [],
+        actions: [],
+      };
     }
 
     return ref;
