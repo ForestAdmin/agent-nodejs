@@ -1,7 +1,10 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordData } from '../types/record';
 import type { AiTaskStepDefinition } from '../types/step-definition';
-import type { FieldReadResult } from '../types/step-execution-data';
+import type {
+  FieldReadResult,
+  LoadRelatedRecordStepExecutionData,
+} from '../types/step-execution-data';
 import type { AiTaskStepHistory } from '../types/step-history';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -27,7 +30,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     step: AiTaskStepDefinition,
     stepHistory: AiTaskStepHistory,
   ): Promise<StepExecutionResult> {
-    const records = await this.context.runStore.getRecords();
+    const records = await this.getAvailableRecords();
 
     let selectedRecord: RecordData;
     let schema: CollectionSchema;
@@ -166,6 +169,15 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
         displayName: field.displayName,
       };
     });
+  }
+
+  private async getAvailableRecords(): Promise<RecordData[]> {
+    const stepExecutions = await this.context.runStore.getStepExecutions();
+    const relatedRecords = stepExecutions
+      .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')
+      .map(e => e.record);
+
+    return [this.context.baseRecord, ...relatedRecords];
   }
 
   private async toRecordIdentifier(record: RecordData): Promise<string> {

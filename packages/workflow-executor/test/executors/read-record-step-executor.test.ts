@@ -58,7 +58,6 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
-    getRecords: jest.fn().mockResolvedValue([makeRecord()]),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -100,6 +99,7 @@ function makeMockModel(
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
+    baseRecord: makeRecord(),
     model: makeMockModel({ fieldNames: ['email'] }).model,
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: makeMockWorkflowPort(),
@@ -233,14 +233,11 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('no readable fields', () => {
     it('returns error when all fields are relationships', async () => {
-      const record = makeRecord({ collectionName: 'customers' });
       const schema = makeCollectionSchema({
         fields: [{ fieldName: 'orders', displayName: 'Orders', isRelationship: true }],
       });
       const mockModel = makeMockModel({ fieldNames: ['email'] });
-      const runStore = makeMockRunStore({
-        getRecords: jest.fn().mockResolvedValue([record]),
-      });
+      const runStore = makeMockRunStore();
       const workflowPort = makeMockWorkflowPort({ customers: schema });
       const context = makeContext({ model: mockModel.model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
@@ -257,8 +254,8 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('multi-record AI selection', () => {
     it('uses AI to select among multiple records then reads fields', async () => {
-      const record1 = makeRecord({ stepIndex: 1 });
-      const record2 = makeRecord({
+      const baseRecord = makeRecord({ stepIndex: 1 });
+      const relatedRecord = makeRecord({
         stepIndex: 2,
         recordId: [99],
         collectionName: 'orders',
@@ -296,13 +293,17 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getRecords: jest.fn().mockResolvedValue([record1, record2]),
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
+          ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ model, runStore, workflowPort });
+      const context = makeContext({ baseRecord, model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -338,8 +339,8 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('reads fields from the second record when AI selects it', async () => {
-      const record1 = makeRecord({ stepIndex: 1 });
-      const record2 = makeRecord({
+      const baseRecord = makeRecord({ stepIndex: 1 });
+      const relatedRecord = makeRecord({
         stepIndex: 2,
         recordId: [99],
         collectionName: 'orders',
@@ -372,13 +373,17 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getRecords: jest.fn().mockResolvedValue([record1, record2]),
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
+          ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ model, runStore, workflowPort });
+      const context = makeContext({ baseRecord, model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -398,8 +403,8 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('includes step index in select-record tool schema when records have stepIndex', async () => {
-      const record1 = makeRecord({ stepIndex: 3 });
-      const record2 = makeRecord({
+      const baseRecord = makeRecord({ stepIndex: 3 });
+      const relatedRecord = makeRecord({
         stepIndex: 5,
         recordId: [99],
         collectionName: 'orders',
@@ -432,13 +437,19 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getRecords: jest.fn().mockResolvedValue([record1, record2]),
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            { type: 'load-related-record', stepIndex: 5, record: relatedRecord },
+          ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const executor = new ReadRecordStepExecutor(makeContext({ model, runStore, workflowPort }));
+      const executor = new ReadRecordStepExecutor(
+        makeContext({ baseRecord, model, runStore, workflowPort }),
+      );
 
       await executor.execute(makeStep(), makeStepHistory());
 
@@ -454,8 +465,9 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('AI record selection failure', () => {
     it('returns error when AI selects a non-existent record identifier', async () => {
-      const record1 = makeRecord();
-      const record2 = makeRecord({
+      const baseRecord = makeRecord();
+      const relatedRecord = makeRecord({
+        stepIndex: 1,
         recordId: [99],
         collectionName: 'orders',
         values: { total: 150 },
@@ -476,13 +488,17 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getRecords: jest.fn().mockResolvedValue([record1, record2]),
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            { type: 'load-related-record', stepIndex: 1, record: relatedRecord },
+          ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ model, runStore, workflowPort });
+      const context = makeContext({ baseRecord, model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -491,23 +507,6 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepHistory.error).toBe(
         'AI selected record "NonExistent #999" which does not match any available record',
       );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('no records available', () => {
-    it('returns error when no records exist', async () => {
-      const mockModel = makeMockModel({ fieldNames: ['email'] });
-      const runStore = makeMockRunStore({
-        getRecords: jest.fn().mockResolvedValue([]),
-      });
-      const context = makeContext({ model: mockModel.model, runStore });
-      const executor = new ReadRecordStepExecutor(context);
-
-      const result = await executor.execute(makeStep(), makeStepHistory());
-
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('No records available');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
@@ -586,10 +585,10 @@ describe('ReadRecordStepExecutor', () => {
       await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow('Storage full');
     });
 
-    it('lets getRecords errors propagate', async () => {
+    it('lets getStepExecutions errors propagate', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
-        getRecords: jest.fn().mockRejectedValue(new Error('Connection lost')),
+        getStepExecutions: jest.fn().mockRejectedValue(new Error('Connection lost')),
       });
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -678,11 +677,8 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('saveStepExecution arguments', () => {
     it('saves executionParams, executionResult, and selectedRecord', async () => {
-      const record = makeRecord();
       const mockModel = makeMockModel({ fieldNames: ['email', 'name'] });
-      const runStore = makeMockRunStore({
-        getRecords: jest.fn().mockResolvedValue([record]),
-      });
+      const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
