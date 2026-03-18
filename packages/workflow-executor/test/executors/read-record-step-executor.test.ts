@@ -1,6 +1,7 @@
 import type { RunStore } from '../../src/ports/run-store';
+import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
-import type { RecordData } from '../../src/types/record';
+import type { CollectionSchema, RecordData } from '../../src/types/record';
 import type { AiTaskStepDefinition } from '../../src/types/step-definition';
 import type { AiTaskStepHistory } from '../../src/types/step-history';
 
@@ -28,26 +29,29 @@ function makeStepHistory(overrides: Partial<AiTaskStepHistory> = {}): AiTaskStep
 
 function makeRecord(overrides: Partial<RecordData> = {}): RecordData {
   return {
-    stepIndex: 0,
-    recordId: '42',
     collectionName: 'customers',
-    collectionDisplayName: 'Customers',
-    fields: [
-      { fieldName: 'email', displayName: 'Email', type: 'String', isRelationship: false },
-      { fieldName: 'name', displayName: 'Full Name', type: 'String', isRelationship: false },
-      {
-        fieldName: 'orders',
-        displayName: 'Orders',
-        type: 'HasMany',
-        isRelationship: true,
-        referencedCollectionName: 'orders',
-      },
-    ],
+    recordId: [42],
+    stepIndex: 0,
     values: {
       email: 'john@example.com',
       name: 'John Doe',
       orders: null,
     },
+    ...overrides,
+  };
+}
+
+function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
+  return {
+    collectionName: 'customers',
+    collectionDisplayName: 'Customers',
+    primaryKeyFields: ['id'],
+    fields: [
+      { fieldName: 'email', displayName: 'Email', isRelationship: false },
+      { fieldName: 'name', displayName: 'Full Name', isRelationship: false },
+      { fieldName: 'orders', displayName: 'Orders', isRelationship: true },
+    ],
+    actions: [],
     ...overrides,
   };
 }
@@ -61,6 +65,25 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
     getStepExecution: jest.fn().mockResolvedValue(null),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
+  };
+}
+
+function makeMockWorkflowPort(
+  schemasByCollection: Record<string, CollectionSchema> = {
+    customers: makeCollectionSchema(),
+  },
+): WorkflowPort {
+  return {
+    getPendingStepExecutions: jest.fn().mockResolvedValue([]),
+    completeStepExecution: jest.fn().mockResolvedValue(undefined),
+    getCollectionSchema: jest
+      .fn()
+      .mockImplementation((name: string) =>
+        Promise.resolve(
+          schemasByCollection[name] ?? makeCollectionSchema({ collectionName: name }),
+        ),
+      ),
+    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
   };
 }
 
@@ -82,7 +105,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     runId: 'run-1',
     model: makeMockModel({ fieldNames: ['email'] }).model,
     agentPort: {} as ExecutionContext['agentPort'],
-    workflowPort: {} as ExecutionContext['workflowPort'],
+    workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
     history: [],
     remoteTools: [],
@@ -213,22 +236,16 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('no readable fields', () => {
     it('returns error when all fields are relationships', async () => {
-      const record = makeRecord({
-        fields: [
-          {
-            fieldName: 'orders',
-            displayName: 'Orders',
-            type: 'HasMany',
-            isRelationship: true,
-            referencedCollectionName: 'orders',
-          },
-        ],
+      const record = makeRecord({ collectionName: 'customers' });
+      const schema = makeCollectionSchema({
+        fields: [{ fieldName: 'orders', displayName: 'Orders', isRelationship: true }],
       });
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockResolvedValue([record]),
       });
-      const context = makeContext({ model: mockModel.model, runStore });
+      const workflowPort = makeMockWorkflowPort({ customers: schema });
+      const context = makeContext({ model: mockModel.model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -246,13 +263,15 @@ describe('ReadRecordStepExecutor', () => {
       const record1 = makeRecord({ stepIndex: 1 });
       const record2 = makeRecord({
         stepIndex: 2,
-        recordId: '99',
+        recordId: [99],
+        collectionName: 'orders',
+        values: { total: 150 },
+      });
+
+      const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
-        fields: [
-          { fieldName: 'total', displayName: 'Total', type: 'Number', isRelationship: false },
-        ],
-        values: { total: 150 },
+        fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
       });
 
       // First call: select-record, second call: read-selected-record-fields
@@ -282,7 +301,11 @@ describe('ReadRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockResolvedValue([record1, record2]),
       });
-      const context = makeContext({ model, runStore });
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        orders: ordersSchema,
+      });
+      const context = makeContext({ model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -309,8 +332,8 @@ describe('ReadRecordStepExecutor', () => {
           executionResult: {
             fields: [{ value: 'john@example.com', fieldName: 'email', displayName: 'Email' }],
           },
-          selectedRecordRef: expect.objectContaining({
-            recordId: '42',
+          selectedRecord: expect.objectContaining({
+            recordId: [42],
             collectionName: 'customers',
           }),
         }),
@@ -321,13 +344,15 @@ describe('ReadRecordStepExecutor', () => {
       const record1 = makeRecord({ stepIndex: 1 });
       const record2 = makeRecord({
         stepIndex: 2,
-        recordId: '99',
+        recordId: [99],
+        collectionName: 'orders',
+        values: { total: 150 },
+      });
+
+      const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
-        fields: [
-          { fieldName: 'total', displayName: 'Total', type: 'Number', isRelationship: false },
-        ],
-        values: { total: 150 },
+        fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
       });
 
       const invoke = jest
@@ -352,7 +377,11 @@ describe('ReadRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockResolvedValue([record1, record2]),
       });
-      const context = makeContext({ model, runStore });
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        orders: ordersSchema,
+      });
+      const context = makeContext({ model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -363,8 +392,8 @@ describe('ReadRecordStepExecutor', () => {
           executionResult: {
             fields: [{ value: 150, fieldName: 'total', displayName: 'Total' }],
           },
-          selectedRecordRef: expect.objectContaining({
-            recordId: '99',
+          selectedRecord: expect.objectContaining({
+            recordId: [99],
             collectionName: 'orders',
           }),
         }),
@@ -375,13 +404,15 @@ describe('ReadRecordStepExecutor', () => {
       const record1 = makeRecord({ stepIndex: 3 });
       const record2 = makeRecord({
         stepIndex: 5,
-        recordId: '99',
+        recordId: [99],
+        collectionName: 'orders',
+        values: { total: 150 },
+      });
+
+      const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
-        fields: [
-          { fieldName: 'total', displayName: 'Total', type: 'Number', isRelationship: false },
-        ],
-        values: { total: 150 },
+        fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
       });
 
       const invoke = jest
@@ -406,7 +437,11 @@ describe('ReadRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockResolvedValue([record1, record2]),
       });
-      const executor = new ReadRecordStepExecutor(makeContext({ model, runStore }));
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        orders: ordersSchema,
+      });
+      const executor = new ReadRecordStepExecutor(makeContext({ model, runStore, workflowPort }));
 
       await executor.execute(makeStep(), makeStepHistory());
 
@@ -424,13 +459,15 @@ describe('ReadRecordStepExecutor', () => {
     it('returns error when AI selects a non-existent record identifier', async () => {
       const record1 = makeRecord();
       const record2 = makeRecord({
-        recordId: '99',
+        recordId: [99],
+        collectionName: 'orders',
+        values: { total: 150 },
+      });
+
+      const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
-        fields: [
-          { fieldName: 'total', displayName: 'Total', type: 'Number', isRelationship: false },
-        ],
-        values: { total: 150 },
+        fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
       });
 
       const invoke = jest.fn().mockResolvedValueOnce({
@@ -444,7 +481,11 @@ describe('ReadRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getRecords: jest.fn().mockResolvedValue([record1, record2]),
       });
-      const context = makeContext({ model, runStore });
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        orders: ordersSchema,
+      });
+      const context = makeContext({ model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute(makeStep(), makeStepHistory());
@@ -639,7 +680,7 @@ describe('ReadRecordStepExecutor', () => {
   });
 
   describe('saveStepExecution arguments', () => {
-    it('saves executionParams, executionResult, and selectedRecordRef', async () => {
+    it('saves executionParams, executionResult, and selectedRecord', async () => {
       const record = makeRecord();
       const mockModel = makeMockModel({ fieldNames: ['email', 'name'] });
       const runStore = makeMockRunStore({
@@ -660,11 +701,10 @@ describe('ReadRecordStepExecutor', () => {
             { value: 'John Doe', fieldName: 'name', displayName: 'Full Name' },
           ],
         },
-        selectedRecordRef: {
-          recordId: '42',
+        selectedRecord: {
           collectionName: 'customers',
-          collectionDisplayName: 'Customers',
-          fields: record.fields,
+          recordId: [42],
+          stepIndex: 0,
         },
       });
     });

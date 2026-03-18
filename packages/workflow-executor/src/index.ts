@@ -23,7 +23,13 @@ export type {
   StepExecutionData,
 } from './types/step-execution-data';
 
-export type { RecordFieldRef, ActionRef, CollectionRef, RecordData } from './types/record';
+export type {
+  FieldSchema,
+  ActionRef,
+  CollectionSchema,
+  RecordRef,
+  RecordData,
+} from './types/record';
 
 export type {
   StepRecord,

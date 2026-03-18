@@ -1,5 +1,5 @@
 import type { StepExecutionResult } from '../types/execution';
-import type { RecordData } from '../types/record';
+import type { CollectionSchema, RecordData } from '../types/record';
 import type { AiTaskStepDefinition } from '../types/step-definition';
 import type { FieldReadResult } from '../types/step-execution-data';
 import type { AiTaskStepHistory } from '../types/step-history';
@@ -30,40 +30,44 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     const records = await this.context.runStore.getRecords();
 
     let selectedRecord: RecordData;
+    let schema: CollectionSchema;
     let fieldNames: string[];
 
     try {
       selectedRecord = await this.selectRecord(records, step.prompt);
-      fieldNames = await this.selectFields(selectedRecord, step.prompt);
+      schema = await this.context.workflowPort.getCollectionSchema(selectedRecord.collectionName);
+      fieldNames = await this.selectFields(schema, step.prompt);
     } catch (error) {
       return { stepHistory: { ...stepHistory, status: 'error', error: (error as Error).message } };
     }
 
-    const fieldResults = this.readFieldValues(selectedRecord, fieldNames);
+    const fieldResults = this.readFieldValues(selectedRecord.values, schema, fieldNames);
 
     await this.context.runStore.saveStepExecution({
       type: 'read-record',
       stepIndex: stepHistory.stepIndex,
       executionParams: { fieldNames },
       executionResult: { fields: fieldResults },
-      selectedRecordRef: {
-        recordId: selectedRecord.recordId,
+      selectedRecord: {
         collectionName: selectedRecord.collectionName,
-        collectionDisplayName: selectedRecord.collectionDisplayName,
-        fields: selectedRecord.fields,
+        recordId: selectedRecord.recordId,
+        stepIndex: selectedRecord.stepIndex,
       },
     });
 
     return { stepHistory: { ...stepHistory, status: 'success' } };
   }
 
-  private async selectFields(record: RecordData, prompt: string | undefined): Promise<string[]> {
-    const tool = this.buildReadFieldTool(record);
+  private async selectFields(
+    schema: CollectionSchema,
+    prompt: string | undefined,
+  ): Promise<string[]> {
+    const tool = this.buildReadFieldTool(schema);
     const messages = [
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(READ_RECORD_SYSTEM_PROMPT),
       new SystemMessage(
-        `The selected record belongs to the "${record.collectionDisplayName}" collection.`,
+        `The selected record belongs to the "${schema.collectionDisplayName}" collection.`,
       ),
       new HumanMessage(`**Request**: ${prompt ?? 'Read the relevant fields.'}`),
     ];
@@ -80,16 +84,14 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     if (records.length === 0) throw new NoRecordsError();
     if (records.length === 1) return records[0];
 
-    const identifiers = records.map(ReadRecordStepExecutor.toRecordIdentifier) as [
-      string,
-      ...string[],
-    ];
+    const identifiers = await Promise.all(records.map(r => this.toRecordIdentifier(r)));
+    const identifierTuple = identifiers as [string, ...string[]];
 
     const tool = new DynamicStructuredTool({
       name: 'select-record',
       description: 'Select the most relevant record for this workflow step.',
       schema: z.object({
-        recordIdentifier: z.enum(identifiers),
+        recordIdentifier: z.enum(identifierTuple),
       }),
       func: async input => JSON.stringify(input),
     });
@@ -109,24 +111,22 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       tool,
     );
 
-    const selected = records.find(
-      r => ReadRecordStepExecutor.toRecordIdentifier(r) === recordIdentifier,
-    );
+    const selectedIndex = identifiers.indexOf(recordIdentifier);
 
-    if (!selected) {
+    if (selectedIndex === -1) {
       throw new WorkflowExecutorError(
         `AI selected record "${recordIdentifier}" which does not match any available record`,
       );
     }
 
-    return selected;
+    return records[selectedIndex];
   }
 
-  private buildReadFieldTool(record: RecordData): DynamicStructuredTool {
-    const nonRelationFields = record.fields.filter(f => !f.isRelationship);
+  private buildReadFieldTool(schema: CollectionSchema): DynamicStructuredTool {
+    const nonRelationFields = schema.fields.filter(f => !f.isRelationship);
 
     if (nonRelationFields.length === 0) {
-      throw new NoReadableFieldsError(record.collectionName);
+      throw new NoReadableFieldsError(schema.collectionName);
     }
 
     const displayNames = nonRelationFields.map(f => f.displayName) as [string, ...string[]];
@@ -150,21 +150,27 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     });
   }
 
-  private readFieldValues(record: RecordData, fieldNames: string[]): FieldReadResult[] {
+  private readFieldValues(
+    values: Record<string, unknown>,
+    schema: CollectionSchema,
+    fieldNames: string[],
+  ): FieldReadResult[] {
     return fieldNames.map(name => {
-      const field = record.fields.find(f => f.fieldName === name || f.displayName === name);
+      const field = schema.fields.find(f => f.fieldName === name || f.displayName === name);
 
       if (!field) return { error: `Field not found: ${name}`, fieldName: name, displayName: name };
 
       return {
-        value: record.values[field.fieldName],
+        value: values[field.fieldName],
         fieldName: field.fieldName,
         displayName: field.displayName,
       };
     });
   }
 
-  private static toRecordIdentifier(record: RecordData): string {
-    return `Step ${record.stepIndex} - ${record.collectionDisplayName} #${record.recordId}`;
+  private async toRecordIdentifier(record: RecordData): Promise<string> {
+    const schema = await this.context.workflowPort.getCollectionSchema(record.collectionName);
+
+    return `Step ${record.stepIndex} - ${schema.collectionDisplayName} #${record.recordId}`;
   }
 }

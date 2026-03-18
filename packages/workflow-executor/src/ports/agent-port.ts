@@ -2,18 +2,20 @@
 
 import type { ActionRef, RecordData } from '../types/record';
 
+type AgentRecord = Omit<RecordData, 'stepIndex'>;
+
 export interface AgentPort {
-  getRecord(collectionName: string, recordId: Array<string | number>): Promise<RecordData>;
+  getRecord(collectionName: string, recordId: Array<string | number>): Promise<AgentRecord>;
   updateRecord(
     collectionName: string,
     recordId: Array<string | number>,
     values: Record<string, unknown>,
-  ): Promise<RecordData>;
+  ): Promise<AgentRecord>;
   getRelatedData(
     collectionName: string,
     recordId: Array<string | number>,
     relationName: string,
-  ): Promise<RecordData[]>;
+  ): Promise<AgentRecord[]>;
   getActions(collectionName: string): Promise<ActionRef[]>;
   executeAction(
     collectionName: string,

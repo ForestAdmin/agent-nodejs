@@ -1,4 +1,4 @@
-import type { CollectionRef } from '../../src/types/record';
+import type { CollectionSchema } from '../../src/types/record';
 import type { RemoteAgentClient } from '@forestadmin/agent-client';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
@@ -26,7 +26,7 @@ describe('AgentClientAgentPort', () => {
   let mockCollection: ReturnType<typeof createMockClient>['mockCollection'];
   let mockRelation: ReturnType<typeof createMockClient>['mockRelation'];
   let mockAction: ReturnType<typeof createMockClient>['mockAction'];
-  let collectionRefs: Record<string, CollectionRef>;
+  let collectionSchemas: Record<string, CollectionSchema>;
   let port: AgentClientAgentPort;
 
   beforeEach(() => {
@@ -34,14 +34,14 @@ describe('AgentClientAgentPort', () => {
 
     ({ client, mockCollection, mockRelation, mockAction } = createMockClient());
 
-    collectionRefs = {
+    collectionSchemas = {
       users: {
         collectionName: 'users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
-          { fieldName: 'id', displayName: 'id', type: 'Number', isRelationship: false },
-          { fieldName: 'name', displayName: 'name', type: 'String', isRelationship: false },
+          { fieldName: 'id', displayName: 'id', isRelationship: false },
+          { fieldName: 'name', displayName: 'name', isRelationship: false },
         ],
         actions: [
           { name: 'sendEmail', displayName: 'Send Email' },
@@ -53,8 +53,8 @@ describe('AgentClientAgentPort', () => {
         collectionDisplayName: 'Orders',
         primaryKeyFields: ['tenantId', 'orderId'],
         fields: [
-          { fieldName: 'tenantId', displayName: 'Tenant', type: 'Number', isRelationship: false },
-          { fieldName: 'orderId', displayName: 'Order', type: 'Number', isRelationship: false },
+          { fieldName: 'tenantId', displayName: 'Tenant', isRelationship: false },
+          { fieldName: 'orderId', displayName: 'Order', isRelationship: false },
         ],
         actions: [],
       },
@@ -63,14 +63,14 @@ describe('AgentClientAgentPort', () => {
         collectionDisplayName: 'Posts',
         primaryKeyFields: ['id'],
         fields: [
-          { fieldName: 'id', displayName: 'id', type: 'Number', isRelationship: false },
-          { fieldName: 'title', displayName: 'title', type: 'String', isRelationship: false },
+          { fieldName: 'id', displayName: 'id', isRelationship: false },
+          { fieldName: 'title', displayName: 'title', isRelationship: false },
         ],
         actions: [],
       },
     };
 
-    port = new AgentClientAgentPort({ client, collectionRefs });
+    port = new AgentClientAgentPort({ client, collectionSchemas });
   });
 
   describe('getRecord', () => {
@@ -84,12 +84,8 @@ describe('AgentClientAgentPort', () => {
         pagination: { size: 1, number: 1 },
       });
       expect(result).toEqual({
-        recordId: [42],
         collectionName: 'users',
-        collectionDisplayName: 'Users',
-        primaryKeyFields: ['id'],
-        fields: collectionRefs.users.fields,
-        actions: collectionRefs.users.actions,
+        recordId: [42],
         values: { id: 42, name: 'Alice' },
       });
     });
@@ -128,7 +124,6 @@ describe('AgentClientAgentPort', () => {
         }),
       );
       expect(result.collectionName).toBe('unknown');
-      expect(result.fields).toEqual([]);
     });
   });
 
@@ -140,12 +135,8 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockCollection.update).toHaveBeenCalledWith('42', { name: 'Bob' });
       expect(result).toEqual({
-        recordId: [42],
         collectionName: 'users',
-        collectionDisplayName: 'Users',
-        primaryKeyFields: ['id'],
-        fields: collectionRefs.users.fields,
-        actions: collectionRefs.users.actions,
+        recordId: [42],
         values: { id: 42, name: 'Bob' },
       });
     });
@@ -171,27 +162,19 @@ describe('AgentClientAgentPort', () => {
       expect(mockCollection.relation).toHaveBeenCalledWith('posts', '42');
       expect(result).toEqual([
         {
-          recordId: [10],
           collectionName: 'posts',
-          collectionDisplayName: 'Posts',
-          primaryKeyFields: ['id'],
-          fields: collectionRefs.posts.fields,
-          actions: collectionRefs.posts.actions,
+          recordId: [10],
           values: { id: 10, title: 'Post A' },
         },
         {
-          recordId: [11],
           collectionName: 'posts',
-          collectionDisplayName: 'Posts',
-          primaryKeyFields: ['id'],
-          fields: collectionRefs.posts.fields,
-          actions: collectionRefs.posts.actions,
+          recordId: [11],
           values: { id: 11, title: 'Post B' },
         },
       ]);
     });
 
-    it('should fallback to relationName when no CollectionRef exists', async () => {
+    it('should fallback to relationName when no CollectionSchema exists', async () => {
       mockRelation.list.mockResolvedValue([{ id: 1 }]);
 
       const result = await port.getRelatedData('users', [42], 'unknownRelation');
@@ -208,7 +191,7 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('getActions', () => {
-    it('should return ActionRef[] from CollectionRef', async () => {
+    it('should return ActionRef[] from CollectionSchema', async () => {
       expect(await port.getActions('users')).toEqual([
         { name: 'sendEmail', displayName: 'Send Email' },
         { name: 'archive', displayName: 'Archive' },
