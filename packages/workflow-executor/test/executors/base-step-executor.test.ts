@@ -63,6 +63,18 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
       recordId: [1],
       stepIndex: 0,
     } as RecordRef,
+    step: {
+      id: 'step-0',
+      type: StepType.Condition,
+      options: ['A', 'B'],
+      prompt: 'Pick one',
+    },
+    stepHistory: {
+      type: 'condition',
+      stepId: 'step-0',
+      stepIndex: 0,
+      status: 'success',
+    },
     model: {} as ExecutionContext['model'],
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],

@@ -40,10 +40,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
   ConditionStepDefinition,
   ConditionStepHistory
 > {
-  async execute(
-    step: ConditionStepDefinition,
-    stepHistory: ConditionStepHistory,
-  ): Promise<StepExecutionResult> {
+  async execute(): Promise<StepExecutionResult> {
+    const { step, stepHistory } = this.context;
+
     const tool = new DynamicStructuredTool({
       name: 'choose-gateway-option',
       description:

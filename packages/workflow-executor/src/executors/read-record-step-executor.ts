@@ -26,11 +26,9 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
   AiTaskStepDefinition,
   AiTaskStepHistory
 > {
-  async execute(
-    step: AiTaskStepDefinition,
-    stepHistory: AiTaskStepHistory,
-  ): Promise<StepExecutionResult> {
-    const records = await this.getAvailableRecords();
+  async execute(): Promise<StepExecutionResult> {
+    const { step, stepHistory } = this.context;
+    const records = await this.getAvailableRecordRefs();
 
     let selectedRef: RecordRef;
     let schema: CollectionSchema;
@@ -38,7 +36,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     let values: Record<string, unknown>;
 
     try {
-      selectedRef = await this.selectRecord(records, step.prompt);
+      selectedRef = await this.selectRecordRef(records, step.prompt);
       schema = await this.context.workflowPort.getCollectionSchema(selectedRef.collectionName);
       fieldNames = await this.selectFields(schema, step.prompt);
       const agentRecord = await this.context.agentPort.getRecord(
@@ -90,7 +88,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     return args.fieldNames;
   }
 
-  private async selectRecord(records: RecordRef[], prompt: string | undefined): Promise<RecordRef> {
+  private async selectRecordRef(records: RecordRef[], prompt: string | undefined): Promise<RecordRef> {
     if (records.length === 0) throw new NoRecordsError();
     if (records.length === 1) return records[0];
 
@@ -178,7 +176,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     });
   }
 
-  private async getAvailableRecords(): Promise<RecordRef[]> {
+  private async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions();
     const relatedRecords = stepExecutions
       .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')

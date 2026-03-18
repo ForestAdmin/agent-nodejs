@@ -110,10 +110,14 @@ function makeMockModel(
   return { model, bindTools, invoke };
 }
 
-function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
+function makeContext(
+  overrides: Partial<ExecutionContext<AiTaskStepDefinition, AiTaskStepHistory>> = {},
+): ExecutionContext<AiTaskStepDefinition, AiTaskStepHistory> {
   return {
     runId: 'run-1',
     baseRecord: makeRecordRef(),
+    step: makeStep(),
+    stepHistory: makeStepHistory(),
     model: makeMockModel({ fieldNames: ['email'] }).model,
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
@@ -132,7 +136,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -155,7 +159,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -179,7 +183,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -199,7 +203,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -226,7 +230,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      await executor.execute(makeStep(), makeStepHistory());
+      await executor.execute();
 
       const tool = mockModel.bindTools.mock.calls[0][0][0];
       expect(tool.name).toBe('read-selected-record-fields');
@@ -256,7 +260,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe(
@@ -319,7 +323,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ baseRecord, model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('success');
       expect(bindTools).toHaveBeenCalledTimes(2);
@@ -401,7 +405,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ baseRecord, model, runStore, workflowPort, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -465,7 +469,7 @@ describe('ReadRecordStepExecutor', () => {
         makeContext({ baseRecord, model, runStore, workflowPort }),
       );
 
-      await executor.execute(makeStep(), makeStepHistory());
+      await executor.execute();
 
       const selectTool = bindTools.mock.calls[0][0][0];
       const schemaShape = selectTool.schema.shape;
@@ -514,7 +518,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ baseRecord, model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe(
@@ -535,7 +539,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe('Record not found: collection "customers", id "42"');
@@ -549,9 +553,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow(
-        'Connection refused',
-      );
+      await expect(executor.execute()).rejects.toThrow('Connection refused');
     });
   });
 
@@ -564,7 +566,7 @@ describe('ReadRecordStepExecutor', () => {
       });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow('API timeout');
+      await expect(executor.execute()).rejects.toThrow('API timeout');
     });
   });
 
@@ -584,7 +586,7 @@ describe('ReadRecordStepExecutor', () => {
       });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe(
@@ -603,7 +605,7 @@ describe('ReadRecordStepExecutor', () => {
       });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe('AI did not return a tool call');
@@ -620,7 +622,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow('Storage full');
+      await expect(executor.execute()).rejects.toThrow('Storage full');
     });
 
     it('lets getStepExecutions errors propagate', async () => {
@@ -631,9 +633,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow(
-        'Connection lost',
-      );
+      await expect(executor.execute()).rejects.toThrow('Connection lost');
     });
   });
 
@@ -641,10 +641,10 @@ describe('ReadRecordStepExecutor', () => {
     it('does not mutate the input stepHistory', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const stepHistory = makeStepHistory();
-      const context = makeContext({ model: mockModel.model });
+      const context = makeContext({ model: mockModel.model, stepHistory });
       const executor = new ReadRecordStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), stepHistory);
+      const result = await executor.execute();
 
       expect(result.stepHistory).not.toBe(stepHistory);
       expect(stepHistory.status).toBe('success');
@@ -683,12 +683,13 @@ describe('ReadRecordStepExecutor', () => {
           },
         ],
       });
-      const executor = new ReadRecordStepExecutor(context);
+      const executor = new ReadRecordStepExecutor({
+        ...context,
+        step: makeStep({ id: 'read-2' }),
+        stepHistory: makeStepHistory({ stepId: 'read-2', stepIndex: 1 }),
+      });
 
-      await executor.execute(
-        makeStep({ id: 'read-2' }),
-        makeStepHistory({ stepId: 'read-2', stepIndex: 1 }),
-      );
+      await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
       // previous steps summary + system prompt + collection info + human message = 4
@@ -702,10 +703,13 @@ describe('ReadRecordStepExecutor', () => {
   describe('default prompt', () => {
     it('uses default prompt when step.prompt is undefined', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
-      const context = makeContext({ model: mockModel.model });
+      const context = makeContext({
+        model: mockModel.model,
+        step: makeStep({ prompt: undefined }),
+      });
       const executor = new ReadRecordStepExecutor(context);
 
-      await executor.execute(makeStep({ prompt: undefined }), makeStepHistory());
+      await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
       const humanMessage = messages[messages.length - 1];
@@ -717,10 +721,14 @@ describe('ReadRecordStepExecutor', () => {
     it('saves executionParams, executionResult, and selectedRecord', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email', 'name'] });
       const runStore = makeMockRunStore();
-      const context = makeContext({ model: mockModel.model, runStore });
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepHistory: makeStepHistory({ stepIndex: 3 }),
+      });
       const executor = new ReadRecordStepExecutor(context);
 
-      await executor.execute(makeStep(), makeStepHistory({ stepIndex: 3 }));
+      await executor.execute();
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith({
         type: 'read-record',

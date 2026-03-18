@@ -14,13 +14,13 @@ export default abstract class BaseStepExecutor<
   TStep extends StepDefinition = StepDefinition,
   THistory extends StepHistory = StepHistory,
 > {
-  protected readonly context: ExecutionContext;
+  protected readonly context: ExecutionContext<TStep, THistory>;
 
-  constructor(context: ExecutionContext) {
+  constructor(context: ExecutionContext<TStep, THistory>) {
     this.context = context;
   }
 
-  abstract execute(step: TStep, stepHistory: THistory): Promise<StepExecutionResult>;
+  abstract execute(): Promise<StepExecutionResult>;
 
   /**
    * Returns a SystemMessage array summarizing previously executed steps.

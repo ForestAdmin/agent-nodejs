@@ -17,6 +17,7 @@ export type UserInput = { type: 'confirmation'; confirmed: boolean };
 
 export interface PendingStepExecution {
   readonly runId: string;
+  readonly baseRecord: RecordRef;
   readonly step: StepDefinition;
   readonly stepHistory: StepHistory;
   readonly previousSteps: ReadonlyArray<StepRecord>;
@@ -27,9 +28,14 @@ export interface StepExecutionResult {
   stepHistory: StepHistory;
 }
 
-export interface ExecutionContext {
+export interface ExecutionContext<
+  TStep extends StepDefinition = StepDefinition,
+  THistory extends StepHistory = StepHistory,
+> {
   readonly runId: string;
   readonly baseRecord: RecordRef;
+  readonly step: TStep;
+  readonly stepHistory: THistory;
   readonly model: BaseChatModel;
   readonly agentPort: AgentPort;
   readonly workflowPort: WorkflowPort;
