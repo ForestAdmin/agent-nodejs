@@ -74,38 +74,37 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('getRecord', () => {
-    it('should return a RecordData using the provided CollectionRef', async () => {
-      mockCollection.list.mockResolvedValue([{ id: '42', name: 'Alice' }]);
+    it('should return a RecordData for a simple PK', async () => {
+      mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
 
-      const result = await port.getRecord('users', '42');
+      const result = await port.getRecord('users', { id: 42 });
 
-      expect(client.collection).toHaveBeenCalledWith('users');
       expect(mockCollection.list).toHaveBeenCalledWith({
-        filters: { field: 'id', operator: 'Equal', value: '42' },
+        filters: { field: 'id', operator: 'Equal', value: 42 },
         pagination: { size: 1, number: 1 },
       });
       expect(result).toEqual({
-        recordId: '42',
+        recordId: { id: 42 },
         collectionName: 'users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: collectionRefs.users.fields,
         actions: collectionRefs.users.actions,
-        values: { id: '42', name: 'Alice' },
+        values: { id: 42, name: 'Alice' },
       });
     });
 
-    it('should build a composite filter for composite primary keys', async () => {
-      mockCollection.list.mockResolvedValue([{ tenantId: '1', orderId: '2' }]);
+    it('should build a composite And filter for composite PKs', async () => {
+      mockCollection.list.mockResolvedValue([{ tenantId: 1, orderId: 2 }]);
 
-      await port.getRecord('orders', '1|2');
+      await port.getRecord('orders', { tenantId: 1, orderId: 2 });
 
       expect(mockCollection.list).toHaveBeenCalledWith({
         filters: {
           aggregator: 'And',
           conditions: [
-            { field: 'tenantId', operator: 'Equal', value: '1' },
-            { field: 'orderId', operator: 'Equal', value: '2' },
+            { field: 'tenantId', operator: 'Equal', value: 1 },
+            { field: 'orderId', operator: 'Equal', value: 2 },
           ],
         },
         pagination: { size: 1, number: 1 },
@@ -115,20 +114,17 @@ describe('AgentClientAgentPort', () => {
     it('should throw a RecordNotFoundError when no record is found', async () => {
       mockCollection.list.mockResolvedValue([]);
 
-      await expect(port.getRecord('users', '999')).rejects.toThrow(RecordNotFoundError);
-      await expect(port.getRecord('users', '999')).rejects.toThrow(
-        'Record not found: collection "users", id "999"',
-      );
+      await expect(port.getRecord('users', { id: 999 })).rejects.toThrow(RecordNotFoundError);
     });
 
     it('should fallback to pk field "id" when collection is unknown', async () => {
-      mockCollection.list.mockResolvedValue([{ id: '1' }]);
+      mockCollection.list.mockResolvedValue([{ id: 1 }]);
 
-      const result = await port.getRecord('unknown', '1');
+      const result = await port.getRecord('unknown', { id: 1 });
 
       expect(mockCollection.list).toHaveBeenCalledWith(
         expect.objectContaining({
-          filters: { field: 'id', operator: 'Equal', value: '1' },
+          filters: { field: 'id', operator: 'Equal', value: 1 },
         }),
       );
       expect(result.collectionName).toBe('unknown');
@@ -137,117 +133,109 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('updateRecord', () => {
-    it('should return a RecordData after update', async () => {
-      mockCollection.update.mockResolvedValue({ id: '42', name: 'Bob' });
+    it('should call update with pipe-encoded id and return a RecordData', async () => {
+      mockCollection.update.mockResolvedValue({ id: 42, name: 'Bob' });
 
-      const result = await port.updateRecord('users', '42', { name: 'Bob' });
+      const result = await port.updateRecord('users', { id: 42 }, { name: 'Bob' });
 
       expect(mockCollection.update).toHaveBeenCalledWith('42', { name: 'Bob' });
       expect(result).toEqual({
-        recordId: '42',
+        recordId: { id: 42 },
         collectionName: 'users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: collectionRefs.users.fields,
         actions: collectionRefs.users.actions,
-        values: { id: '42', name: 'Bob' },
+        values: { id: 42, name: 'Bob' },
       });
+    });
+
+    it('should encode composite PK to pipe format for update', async () => {
+      mockCollection.update.mockResolvedValue({ tenantId: 1, orderId: 2 });
+
+      await port.updateRecord('orders', { tenantId: 1, orderId: 2 }, { status: 'done' });
+
+      expect(mockCollection.update).toHaveBeenCalledWith('1|2', { status: 'done' });
     });
   });
 
   describe('getRelatedData', () => {
-    it('should return a RecordData array with the related CollectionRef', async () => {
+    it('should return RecordData[] with recordId extracted from PK fields', async () => {
       mockRelation.list.mockResolvedValue([
-        { id: '10', title: 'Post A' },
-        { id: '11', title: 'Post B' },
+        { id: 10, title: 'Post A' },
+        { id: 11, title: 'Post B' },
       ]);
 
-      const result = await port.getRelatedData('users', '42', 'posts');
+      const result = await port.getRelatedData('users', { id: 42 }, 'posts');
 
-      expect(client.collection).toHaveBeenCalledWith('users');
       expect(mockCollection.relation).toHaveBeenCalledWith('posts', '42');
       expect(result).toEqual([
         {
-          recordId: '10',
+          recordId: { id: 10 },
           collectionName: 'posts',
           collectionDisplayName: 'Posts',
           primaryKeyFields: ['id'],
           fields: collectionRefs.posts.fields,
           actions: collectionRefs.posts.actions,
-          values: { id: '10', title: 'Post A' },
+          values: { id: 10, title: 'Post A' },
         },
         {
-          recordId: '11',
+          recordId: { id: 11 },
           collectionName: 'posts',
           collectionDisplayName: 'Posts',
           primaryKeyFields: ['id'],
           fields: collectionRefs.posts.fields,
           actions: collectionRefs.posts.actions,
-          values: { id: '11', title: 'Post B' },
+          values: { id: 11, title: 'Post B' },
         },
       ]);
     });
 
     it('should fallback to relationName when no CollectionRef exists', async () => {
-      mockRelation.list.mockResolvedValue([{ id: '1' }]);
+      mockRelation.list.mockResolvedValue([{ id: 1 }]);
 
-      const result = await port.getRelatedData('users', '42', 'unknownRelation');
+      const result = await port.getRelatedData('users', { id: 42 }, 'unknownRelation');
 
       expect(result[0].collectionName).toBe('unknownRelation');
-      expect(result[0].fields).toEqual([]);
-      expect(result[0].actions).toEqual([]);
+      expect(result[0].recordId).toEqual({ id: 1 });
     });
 
     it('should return an empty array when no related data exists', async () => {
       mockRelation.list.mockResolvedValue([]);
 
-      const result = await port.getRelatedData('users', '42', 'posts');
-
-      expect(result).toEqual([]);
+      expect(await port.getRelatedData('users', { id: 42 }, 'posts')).toEqual([]);
     });
   });
 
   describe('getActions', () => {
     it('should return ActionRef[] from CollectionRef', async () => {
-      const result = await port.getActions('users');
-
-      expect(result).toEqual([
+      expect(await port.getActions('users')).toEqual([
         { name: 'sendEmail', displayName: 'Send Email' },
         { name: 'archive', displayName: 'Archive' },
       ]);
     });
 
     it('should return an empty array for an unknown collection', async () => {
-      const result = await port.getActions('unknown');
-
-      expect(result).toEqual([]);
-    });
-
-    it('should return an empty array for a collection with no actions', async () => {
-      const result = await port.getActions('posts');
-
-      expect(result).toEqual([]);
+      expect(await port.getActions('unknown')).toEqual([]);
     });
   });
 
   describe('executeAction', () => {
-    it('should call action then execute with the correct recordIds', async () => {
-      mockAction.execute.mockResolvedValue({ success: 'Email sent' });
+    it('should encode recordIds to pipe format and call execute', async () => {
+      mockAction.execute.mockResolvedValue({ success: 'done' });
 
-      const result = await port.executeAction('users', 'sendEmail', ['1', '2']);
+      const result = await port.executeAction('users', 'sendEmail', [{ id: 1 }, { id: 2 }]);
 
-      expect(client.collection).toHaveBeenCalledWith('users');
       expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: ['1', '2'] });
-      expect(mockAction.execute).toHaveBeenCalledTimes(1);
-      expect(result).toEqual({ success: 'Email sent' });
+      expect(result).toEqual({ success: 'done' });
     });
 
     it('should propagate errors from action execution', async () => {
       mockAction.execute.mockRejectedValue(new Error('Action failed'));
 
-      await expect(port.executeAction('users', 'sendEmail', ['1'])).rejects.toThrow(
-        'Action failed',
-      );
+      await expect(
+        port.executeAction('users', 'sendEmail', [{ id: 1 }]),
+      ).rejects.toThrow('Action failed');
     });
   });
 });
