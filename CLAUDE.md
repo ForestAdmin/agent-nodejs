@@ -104,6 +104,11 @@ yarn workspace @forestadmin/agent test
 5. Are edge cases handled?
 6. Is the naming clear and consistent?
 
+## Git Workflow
+
+The **main working branch** for workflow-executor development is `feat/prd-214-setup-workflow-executor-package`.
+All feature branches for this area should be based on and PRs targeted at this branch (not `main`).
+
 ## Linear Tickets
 
 ### MCP Setup
