@@ -1,6 +1,7 @@
 import type { ActionEndpointsByCollection, RemoteAgentClient } from '@forestadmin/agent-client';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
+import { RecordNotFoundError } from '../../src/errors';
 
 function createMockClient() {
   const mockAction = { execute: jest.fn() };
@@ -84,9 +85,10 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    it('should throw when no record is found', async () => {
+    it('should throw a RecordNotFoundError when no record is found', async () => {
       mockCollection.list.mockResolvedValue([]);
 
+      await expect(port.getRecord('users', '999')).rejects.toThrow(RecordNotFoundError);
       await expect(port.getRecord('users', '999')).rejects.toThrow(
         'Record not found: collection "users", id "999"',
       );
@@ -116,18 +118,21 @@ describe('AgentClientAgentPort', () => {
       expect(result.fields).toEqual([expect.objectContaining({ fieldName: 'id', type: 'Number' })]);
     });
 
-    it('should map ManyToOne fields as relationships', async () => {
-      mockCollection.list.mockResolvedValue([{ id: '1', company: 5 }]);
-      mockCollection.capabilities.mockResolvedValue({
-        fields: [{ name: 'company', type: 'ManyToOne', operators: [] }],
-      });
+    it.each(['ManyToOne', 'OneToOne', 'OneToMany', 'ManyToMany'])(
+      'should map %s fields as relationships',
+      async type => {
+        mockCollection.list.mockResolvedValue([{ id: '1' }]);
+        mockCollection.capabilities.mockResolvedValue({
+          fields: [{ name: 'rel', type, operators: [] }],
+        });
 
-      const result = await port.getRecord('users', '1');
+        const result = await port.getRecord('users', '1');
 
-      expect(result.fields[0]).toEqual(
-        expect.objectContaining({ isRelationship: true, fieldName: 'company' }),
-      );
-    });
+        expect(result.fields[0]).toEqual(
+          expect.objectContaining({ isRelationship: true, fieldName: 'rel' }),
+        );
+      },
+    );
   });
 
   describe('updateRecord', () => {

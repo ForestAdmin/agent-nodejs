@@ -33,7 +33,12 @@ export type { AgentPort } from './ports/agent-port';
 export type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 export type { RunStore } from './ports/run-store';
 
-export { WorkflowExecutorError, MissingToolCallError, MalformedToolCallError } from './errors';
+export {
+  WorkflowExecutorError,
+  MissingToolCallError,
+  MalformedToolCallError,
+  RecordNotFoundError,
+} from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';

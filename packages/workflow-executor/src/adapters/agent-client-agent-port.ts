@@ -2,12 +2,16 @@ import type { AgentPort } from '../ports/agent-port';
 import type { RecordData, RecordFieldRef } from '../types/record';
 import type { ActionEndpointsByCollection, RemoteAgentClient } from '@forestadmin/agent-client';
 
+import { RecordNotFoundError } from '../errors';
+
+const RELATIONSHIP_TYPES = new Set(['ManyToOne', 'OneToOne', 'OneToMany', 'ManyToMany']);
+
 function toRecordFieldRef(field: { name: string; type: string }): RecordFieldRef {
   return {
     fieldName: field.name,
     displayName: field.name,
     type: field.type,
-    isRelationship: field.type === 'ManyToOne',
+    isRelationship: RELATIONSHIP_TYPES.has(field.type),
     referencedCollectionName: undefined,
   };
 }
@@ -32,7 +36,7 @@ export default class AgentClientAgentPort implements AgentPort {
     });
 
     if (records.length === 0) {
-      throw new Error(`Record not found: collection "${collectionName}", id "${recordId}"`);
+      throw new RecordNotFoundError(collectionName, recordId);
     }
 
     const capabilities = await this.getCapabilities(collectionName);
