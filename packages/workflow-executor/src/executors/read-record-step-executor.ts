@@ -24,7 +24,6 @@ interface FieldReadError extends FieldReadBase {
 }
 
 type FieldReadResult = FieldReadSuccess | FieldReadError;
-type FieldReadResults = FieldReadResult[];
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
@@ -45,7 +44,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     const records = await this.context.runStore.getRecords();
 
     let selectedRecord: RecordData;
-    let fieldNames: string | string[];
+    let fieldNames: string[];
 
     try {
       selectedRecord = await this.selectRecord(records, step.prompt);
@@ -59,7 +58,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     await this.context.runStore.saveStepExecution({
       type: 'ai-task',
       stepIndex: stepHistory.stepIndex,
-      executionParams: { fieldName: fieldNames },
+      executionParams: { fieldNames },
       executionResult: { fields: fieldResults },
       selectedRecordRef: {
         recordId: selectedRecord.recordId,
@@ -75,7 +74,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
   private async selectFields(
     record: RecordData,
     prompt: string | undefined,
-  ): Promise<string | string[]> {
+  ): Promise<string[]> {
     const tool = this.buildReadFieldTool(record);
     const messages = [
       ...(await this.buildPreviousStepsMessages()),
@@ -86,9 +85,9 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       new HumanMessage(`**Request**: ${prompt ?? 'Read the relevant fields.'}`),
     ];
 
-    const args = await this.invokeWithTool<{ fieldName: string | string[] }>(messages, tool);
+    const args = await this.invokeWithTool<{ fieldNames: string[] }>(messages, tool);
 
-    return args.fieldName;
+    return args.fieldNames;
   }
 
   private async selectRecord(
@@ -151,31 +150,26 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     const fieldNames = nonRelationFields.map(f => f.fieldName) as [string, ...string[]];
 
     return new DynamicStructuredTool({
-      name: 'read-selected-record-field',
+      name: 'read-selected-record-fields',
       description: 'Read one or more fields from the selected record.',
       schema: z.object({
-        fieldName: z.union([
-          z.union([z.enum(displayNames), z.enum(fieldNames)]).describe('Name of the field to get'),
-          // z.string() (not z.enum) intentionally: an invalid field name in the array
-          // does not fail the whole tool call — per-field errors are handled in readFieldValues.
-          // This matches the frontend implementation (ISO frontend).
-          z
-            .array(z.string())
-            .describe(
-              `Names of the fields to get, possible values are: ${displayNames
-                .map(n => `"${n}"`)
-                .join(', ')}`,
-            ),
-        ]),
+        // z.string() (not z.enum) intentionally: an invalid field name in the array
+        // does not fail the whole tool call — per-field errors are handled in readFieldValues.
+        // This matches the frontend implementation (ISO frontend).
+        fieldNames: z
+          .array(z.string())
+          .describe(
+            `Names of the fields to read, possible values are: ${displayNames
+              .map(n => `"${n}"`)
+              .join(', ')}`,
+          ),
       }),
       func: async input => JSON.stringify(input),
     });
   }
 
-  private readFieldValues(record: RecordData, fieldName: string | string[]): FieldReadResult[] {
-    const names = Array.isArray(fieldName) ? fieldName : [fieldName];
-
-    return names.map(name => {
+  private readFieldValues(record: RecordData, fieldNames: string[]): FieldReadResult[] {
+    return fieldNames.map(name => {
       const field = record.fields.find(f => f.fieldName === name || f.displayName === name);
 
       if (!field) return { error: `Field not found: ${name}`, fieldName: name, displayName: name };
