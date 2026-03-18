@@ -20,6 +20,7 @@ export type {
   ConditionStepExecutionData,
   ReadRecordStepExecutionData,
   AiTaskStepExecutionData,
+  LoadRelatedRecordStepExecutionData,
   StepExecutionData,
 } from './types/step-execution-data';
 

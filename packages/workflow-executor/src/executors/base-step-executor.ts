@@ -60,7 +60,7 @@ export default abstract class BaseStepExecutor<
     const header = `Step "${step.id}" (index ${stepHistory.stepIndex}):`;
     const lines = [header, `  Prompt: ${prompt}`];
 
-    if (execution?.executionParams) {
+    if (execution && 'executionParams' in execution) {
       lines.push(`  Result: ${JSON.stringify(execution.executionParams)}`);
     } else {
       const { stepId, stepIndex, type, ...historyDetails } = stepHistory;

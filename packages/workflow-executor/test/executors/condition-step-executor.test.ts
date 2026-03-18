@@ -1,5 +1,6 @@
 import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext } from '../../src/types/execution';
+import type { RecordData } from '../../src/types/record';
 import type { ConditionStepDefinition } from '../../src/types/step-definition';
 import type { ConditionStepHistory } from '../../src/types/step-history';
 
@@ -28,7 +29,6 @@ function makeStepHistory(overrides: Partial<ConditionStepHistory> = {}): Conditi
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
-    getRecords: jest.fn().mockResolvedValue([]),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -50,6 +50,12 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>) {
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
+    baseRecord: {
+      collectionName: 'customers',
+      recordId: [1],
+      stepIndex: 0,
+      values: {},
+    } as RecordData,
     model: makeMockModel().model,
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],

@@ -1,5 +1,6 @@
 import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution';
+import type { RecordData } from '../../src/types/record';
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { StepHistory } from '../../src/types/step-history';
@@ -49,7 +50,6 @@ function makeHistoryEntry(
 
 function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
   return {
-    getRecords: jest.fn().mockResolvedValue([]),
     getStepExecutions: jest.fn().mockResolvedValue(stepExecutions),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
   };
@@ -58,6 +58,12 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
+    baseRecord: {
+      collectionName: 'customers',
+      recordId: [1],
+      stepIndex: 0,
+      values: {},
+    } as RecordData,
     model: {} as ExecutionContext['model'],
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
