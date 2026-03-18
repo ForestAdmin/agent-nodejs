@@ -308,6 +308,33 @@ describe('BaseStepExecutor', () => {
       expect(result).not.toContain('History:');
     });
 
+    it('omits Input line when executionParams is undefined', async () => {
+      const entry: { step: StepDefinition; stepHistory: StepHistory } = {
+        step: { id: 'ai-step', type: StepType.ReadRecord, prompt: 'Do something' },
+        stepHistory: { type: 'ai-task', stepId: 'ai-step', stepIndex: 0, status: 'success' },
+      };
+
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [entry],
+          runStore: makeMockRunStore([
+            {
+              type: 'ai-task',
+              stepIndex: 0,
+            },
+          ]),
+        }),
+      );
+
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
+
+      expect(result).toContain('Step "ai-step"');
+      expect(result).toContain('Prompt: Do something');
+      expect(result).not.toContain('Input:');
+    });
+
     it('shows "(no prompt)" when step has no prompt', async () => {
       const entry = makeHistoryEntry({ stepIndex: 0 });
       entry.step.prompt = undefined;

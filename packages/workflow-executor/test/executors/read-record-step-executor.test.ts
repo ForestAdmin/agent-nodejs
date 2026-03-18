@@ -6,7 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { AiTaskStepDefinition } from '../../src/types/step-definition';
 import type { AiTaskStepHistory } from '../../src/types/step-history';
 
-import { RecordNotFoundError } from '../../src/errors';
+import { NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
@@ -246,6 +246,15 @@ describe('ReadRecordStepExecutor', () => {
 
       // But rejects non-array values
       expect(() => tool.schema.parse({ fieldNames: 'email' })).toThrow();
+    });
+  });
+
+  describe('no records available', () => {
+    it('returns error when no records are available', () => {
+      const error = new NoRecordsError();
+
+      expect(error).toBeInstanceOf(NoRecordsError);
+      expect(error.message).toBe('No records available');
     });
   });
 
