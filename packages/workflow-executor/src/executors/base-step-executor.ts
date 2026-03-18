@@ -62,7 +62,9 @@ export default abstract class BaseStepExecutor<
     const lines = [header, `  Prompt: ${prompt}`];
 
     if (isExecutedStepOnExecutor(execution)) {
-      lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
+      if (execution.executionParams !== undefined) {
+        lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
+      }
 
       if (execution.executionResult) {
         lines.push(`  Output: ${JSON.stringify(execution.executionResult)}`);

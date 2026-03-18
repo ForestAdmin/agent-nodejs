@@ -88,7 +88,10 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     return args.fieldNames;
   }
 
-  private async selectRecordRef(records: RecordRef[], prompt: string | undefined): Promise<RecordRef> {
+  private async selectRecordRef(
+    records: RecordRef[],
+    prompt: string | undefined,
+  ): Promise<RecordRef> {
     if (records.length === 0) throw new NoRecordsError();
     if (records.length === 1) return records[0];
 
