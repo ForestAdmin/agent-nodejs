@@ -63,3 +63,14 @@ export type StepExecutionData =
   | ReadRecordStepExecutionData
   | AiTaskStepExecutionData
   | LoadRelatedRecordStepExecutionData;
+
+export type ExecutedStepExecutionData =
+  | ConditionStepExecutionData
+  | ReadRecordStepExecutionData
+  | AiTaskStepExecutionData;
+
+export function isExecutedStepOnExecutor(
+  data: StepExecutionData | undefined,
+): data is ExecutedStepExecutionData {
+  return !!data && data.type !== 'load-related-record';
+}

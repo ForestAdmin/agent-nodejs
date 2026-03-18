@@ -21,8 +21,11 @@ export type {
   ReadRecordStepExecutionData,
   AiTaskStepExecutionData,
   LoadRelatedRecordStepExecutionData,
+  ExecutedStepExecutionData,
   StepExecutionData,
 } from './types/step-execution-data';
+
+export { isExecutedStepOnExecutor } from './types/step-execution-data';
 
 export type {
   FieldSchema,

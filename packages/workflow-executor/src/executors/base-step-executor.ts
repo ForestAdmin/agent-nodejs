@@ -8,6 +8,7 @@ import type { DynamicStructuredTool } from '@langchain/core/tools';
 import { SystemMessage } from '@langchain/core/messages';
 
 import { MalformedToolCallError, MissingToolCallError } from '../errors';
+import { isExecutedStepOnExecutor } from '../types/step-execution-data';
 
 export default abstract class BaseStepExecutor<
   TStep extends StepDefinition = StepDefinition,
@@ -60,8 +61,12 @@ export default abstract class BaseStepExecutor<
     const header = `Step "${step.id}" (index ${stepHistory.stepIndex}):`;
     const lines = [header, `  Prompt: ${prompt}`];
 
-    if (execution && 'executionParams' in execution) {
+    if (isExecutedStepOnExecutor(execution)) {
       lines.push(`  Result: ${JSON.stringify(execution.executionParams)}`);
+
+      if (execution.executionResult) {
+        lines.push(`  Output: ${JSON.stringify(execution.executionResult)}`);
+      }
     } else {
       const { stepId, stepIndex, type, ...historyDetails } = stepHistory;
       lines.push(`  History: ${JSON.stringify(historyDetails)}`);
