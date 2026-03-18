@@ -3,9 +3,7 @@ import type { ExecutionContext } from '../../src/types/execution';
 import type { ConditionStepDefinition } from '../../src/types/step-definition';
 import type { ConditionStepHistory } from '../../src/types/step-history';
 
-import ConditionStepExecutor, {
-  NO_GATEWAY_OPTION_MATCH,
-} from '../../src/executors/condition-step-executor';
+import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
@@ -116,7 +114,7 @@ describe('ConditionStepExecutor', () => {
       });
     });
 
-    it('binds a tool with all step options plus the NO_MATCH escape hatch', async () => {
+    it('binds a tool with all step options and nullable for no-match', async () => {
       const mockModel = makeMockModel({
         option: 'Approve',
         reasoning: 'Looks good',
@@ -131,13 +129,9 @@ describe('ConditionStepExecutor', () => {
 
       const tool = mockModel.bindTools.mock.calls[0][0][0];
       expect(tool.name).toBe('choose-gateway-option');
-      expect(tool.description).toContain(NO_GATEWAY_OPTION_MATCH);
-      // Verify the schema accepts all step options + the escape hatch
       expect(tool.schema.parse({ option: 'Approve', reasoning: 'r', question: 'q' })).toBeTruthy();
       expect(tool.schema.parse({ option: 'Defer', reasoning: 'r', question: 'q' })).toBeTruthy();
-      expect(
-        tool.schema.parse({ option: NO_GATEWAY_OPTION_MATCH, reasoning: 'r', question: 'q' }),
-      ).toBeTruthy();
+      expect(tool.schema.parse({ option: null, reasoning: 'r', question: 'q' })).toBeTruthy();
       expect(() =>
         tool.schema.parse({ option: 'InvalidOption', reasoning: 'r', question: 'q' }),
       ).toThrow();
@@ -232,10 +226,10 @@ describe('ConditionStepExecutor', () => {
     });
   });
 
-  describe('fallback NO_GATEWAY_OPTION_MATCH', () => {
-    it('returns manual-decision when AI selects NO_MATCH', async () => {
+  describe('no-match fallback', () => {
+    it('returns manual-decision when AI selects null', async () => {
       const mockModel = makeMockModel({
-        option: NO_GATEWAY_OPTION_MATCH,
+        option: null,
         reasoning: 'None apply',
         question: 'N/A',
       });
@@ -254,7 +248,7 @@ describe('ConditionStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith({
         type: 'condition',
         stepIndex: 0,
-        executionParams: { answer: NO_GATEWAY_OPTION_MATCH, reasoning: 'None apply' },
+        executionParams: { answer: null, reasoning: 'None apply' },
         executionResult: undefined,
       });
     });

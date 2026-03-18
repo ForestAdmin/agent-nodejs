@@ -8,7 +8,7 @@ interface BaseStepExecutionData {
 
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
-  executionParams?: { answer: string; reasoning?: string };
+  executionParams?: { answer: string | null; reasoning?: string };
   executionResult?: { answer: string };
 }
 

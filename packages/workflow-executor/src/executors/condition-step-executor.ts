@@ -8,10 +8,8 @@ import { z } from 'zod';
 
 import BaseStepExecutor from './base-step-executor';
 
-export const NO_GATEWAY_OPTION_MATCH = 'FOREST_WORKFLOW_NO_GATEWAY_OPTION_MATCH';
-
 interface GatewayToolArgs {
-  option: string;
+  option: string | null;
   reasoning: string;
   question: string;
 }
@@ -23,11 +21,11 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 **Critical Rule**: Options must semantically match possible answers to the question.
 - Question "Does X contain Y?" expects options like "yes"/"no", NOT colors or unrelated values
 - Question "What is the status?" expects options like "active"/"inactive", NOT arbitrary words
-- If options don't match expected answer types, select ${NO_GATEWAY_OPTION_MATCH}
+- If options don't match expected answer types, select null
 
 **NEVER invent mappings** between options and answers (e.g., never assume "purple"="no" or "red"="yes")
 
-**When to select ${NO_GATEWAY_OPTION_MATCH}**:
+**When to select null**:
 - Options are semantically unrelated to the question type (colors for yes/no questions)
 - None of the options literally match the expected answer
 - The question is ambiguous or lacks necessary context
@@ -35,9 +33,8 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 
 **Reasoning format**:
 - State which option you selected and why
-- If selecting ${NO_GATEWAY_OPTION_MATCH}: explain why options don't match the question
-- Do not refer to yourself as "I" in the response, use a passive formulation instead.
-- NEVER mention "${NO_GATEWAY_OPTION_MATCH}" in reasoning, say "no matching option" instead.`;
+- If selecting null: explain why options don't match the question
+- Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ConditionStepExecutor extends BaseStepExecutor<
   ConditionStepDefinition,
@@ -47,27 +44,19 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     step: ConditionStepDefinition,
     stepHistory: ConditionStepHistory,
   ): Promise<StepExecutionResult> {
-    // Define a structured tool so the LLM is forced to return a valid option.
-    // NO_GATEWAY_OPTION_MATCH is appended as an escape hatch when no option fits.
-    const options: [string, ...string[]] = [
-      step.options[0],
-      ...step.options.slice(1),
-      NO_GATEWAY_OPTION_MATCH,
-    ];
     const tool = new DynamicStructuredTool({
       name: 'choose-gateway-option',
       description:
-        `Select the option that answers the question. ` +
-        `Use ${NO_GATEWAY_OPTION_MATCH} if no option matches or you are uncertain. ` +
-        `Explain your reasoning.`,
+        'Select the option that answers the question. ' +
+        'Use null if no option matches or you are uncertain. ' +
+        'Explain your reasoning.',
       schema: z.object({
         reasoning: z.string().describe('The reasoning behind the choice'),
         question: z.string().describe('The question to answer by choosing an option'),
         option: z
-          .enum(options)
-          .describe(
-            `The chosen option. Use ${NO_GATEWAY_OPTION_MATCH} if no option clearly answers the question.`,
-          ),
+          .enum(step.options)
+          .nullable()
+          .describe('The chosen option, or null if no option clearly answers the question.'),
       }),
       func: async input => JSON.stringify(input),
     });
@@ -94,16 +83,14 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
 
     const { option: selectedOption, reasoning } = args;
 
-    // Persist reasoning even for no-match selections, for debugging and audit
     await this.context.runStore.saveStepExecution({
       type: 'condition',
       stepIndex: stepHistory.stepIndex,
       executionParams: { answer: selectedOption, reasoning },
-      executionResult:
-        selectedOption !== NO_GATEWAY_OPTION_MATCH ? { answer: selectedOption } : undefined,
+      executionResult: selectedOption ? { answer: selectedOption } : undefined,
     });
 
-    if (selectedOption === NO_GATEWAY_OPTION_MATCH) {
+    if (!selectedOption) {
       return { stepHistory: { ...stepHistory, status: 'manual-decision' } };
     }
 

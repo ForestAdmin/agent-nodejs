@@ -36,4 +36,3 @@ export type { RunStore } from './ports/run-store';
 export { WorkflowExecutorError, MissingToolCallError, MalformedToolCallError } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
-export { NO_GATEWAY_OPTION_MATCH } from './executors/condition-step-executor';
