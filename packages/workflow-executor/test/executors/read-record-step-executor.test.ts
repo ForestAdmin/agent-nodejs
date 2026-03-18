@@ -173,7 +173,11 @@ describe('ReadRecordStepExecutor', () => {
           executionResult: {
             fields: [
               { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
-              { error: 'Field not found: nonexistent', fieldName: 'nonexistent', displayName: 'nonexistent' },
+              {
+                error: 'Field not found: nonexistent',
+                fieldName: 'nonexistent',
+                displayName: 'nonexistent',
+              },
             ],
           },
         }),
@@ -330,7 +334,11 @@ describe('ReadRecordStepExecutor', () => {
         .fn()
         .mockResolvedValueOnce({
           tool_calls: [
-            { name: 'select-record', args: { recordIdentifier: 'Step 2 - Orders #99' }, id: 'call_1' },
+            {
+              name: 'select-record',
+              args: { recordIdentifier: 'Step 2 - Orders #99' },
+              id: 'call_1',
+            },
           ],
         })
         .mockResolvedValueOnce({
@@ -380,7 +388,11 @@ describe('ReadRecordStepExecutor', () => {
         .fn()
         .mockResolvedValueOnce({
           tool_calls: [
-            { name: 'select-record', args: { recordIdentifier: 'Step 3 - Customers #42' }, id: 'call_1' },
+            {
+              name: 'select-record',
+              args: { recordIdentifier: 'Step 3 - Customers #42' },
+              id: 'call_1',
+            },
           ],
         })
         .mockResolvedValueOnce({
