@@ -5,6 +5,8 @@ import type { StepHistory } from '../types/step-history';
 import type { AIMessage, BaseMessage } from '@langchain/core/messages';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 
+import { SystemMessage } from '@langchain/core/messages';
+
 import { MalformedToolCallError, MissingToolCallError } from '../errors';
 
 export default abstract class BaseStepExecutor<
@@ -20,12 +22,24 @@ export default abstract class BaseStepExecutor<
   abstract execute(step: TStep, stepHistory: THistory): Promise<StepExecutionResult>;
 
   /**
+   * Returns a SystemMessage array summarizing previously executed steps.
+   * Empty array when there is no history. Ready to spread into a messages array.
+   */
+  protected async buildPreviousStepsMessages(): Promise<SystemMessage[]> {
+    if (!this.context.history.length) return [];
+
+    const summary = await this.summarizePreviousSteps();
+
+    return [new SystemMessage(summary)];
+  }
+
+  /**
    * Builds a text summary of previously executed steps for AI prompts.
    * Correlates history entries (step + stepHistory pairs) with executionParams
    * from the RunStore (matched by stepHistory.stepIndex).
    * When no executionParams is available, falls back to StepHistory details.
    */
-  protected async summarizePreviousSteps(): Promise<string> {
+  private async summarizePreviousSteps(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions();
 
     return this.context.history

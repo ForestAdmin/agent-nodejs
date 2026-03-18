@@ -47,8 +47,6 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     step: ConditionStepDefinition,
     stepHistory: ConditionStepHistory,
   ): Promise<StepExecutionResult> {
-    const previousStepsSummary = await this.summarizePreviousSteps();
-
     // Define a structured tool so the LLM is forced to return a valid option.
     // NO_GATEWAY_OPTION_MATCH is appended as an escape hatch when no option fits.
     const options: [string, ...string[]] = [
@@ -75,7 +73,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     });
 
     const messages = [
-      ...(previousStepsSummary ? [new SystemMessage(previousStepsSummary)] : []),
+      ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(GATEWAY_SYSTEM_PROMPT),
       new HumanMessage(`**Question**: ${step.prompt ?? 'Choose the most appropriate option.'}`),
     ];

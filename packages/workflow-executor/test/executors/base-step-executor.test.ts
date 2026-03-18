@@ -3,7 +3,7 @@ import type { ExecutionContext, StepExecutionResult } from '../../src/types/exec
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { StepHistory } from '../../src/types/step-history';
-import type { BaseMessage } from '@langchain/core/messages';
+import type { BaseMessage, SystemMessage } from '@langchain/core/messages';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 
 import { MalformedToolCallError, MissingToolCallError } from '../../src/errors';
@@ -16,8 +16,8 @@ class TestableExecutor extends BaseStepExecutor {
     throw new Error('not used');
   }
 
-  override summarizePreviousSteps(): Promise<string> {
-    return super.summarizePreviousSteps();
+  override buildPreviousStepsMessages(): Promise<SystemMessage[]> {
+    return super.buildPreviousStepsMessages();
   }
 
   override invokeWithTool<T = Record<string, unknown>>(
@@ -72,11 +72,11 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
 }
 
 describe('BaseStepExecutor', () => {
-  describe('summarizePreviousSteps', () => {
-    it('returns empty string for empty history', async () => {
+  describe('buildPreviousStepsMessages', () => {
+    it('returns empty array for empty history', async () => {
       const executor = new TestableExecutor(makeContext());
 
-      expect(await executor.summarizePreviousSteps()).toBe('');
+      expect(await executor.buildPreviousStepsMessages()).toEqual([]);
     });
 
     it('includes prompt and executionParams from previous steps', async () => {
@@ -94,7 +94,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('Prompt: Approve?');
@@ -119,7 +121,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success"}');
@@ -144,7 +148,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Step "orphan"');
       expect(result).toContain('History: {"status":"success"}');
@@ -167,7 +173,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Step "cond-approval"');
       expect(result).toContain('"selectedOption":"Yes"');
@@ -189,7 +197,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('"status":"error"');
       expect(result).toContain('"error":"AI could not match an option"');
@@ -208,7 +218,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Step "ai-step"');
       expect(result).toContain('History: {"status":"awaiting-input"}');
@@ -240,7 +252,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success","selectedOption":"Yes"}');
@@ -265,7 +279,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Result: {"answer":"A","reasoning":"Best fit"}');
       expect(result).not.toContain('History:');
@@ -288,7 +304,9 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor.summarizePreviousSteps();
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Prompt: (no prompt)');
     });
