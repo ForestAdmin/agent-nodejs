@@ -66,24 +66,6 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
 }
 
 describe('ConditionStepExecutor', () => {
-  describe('empty options', () => {
-    it('returns error and does not persist execution', async () => {
-      const runStore = makeMockRunStore();
-      const executor = new ConditionStepExecutor(makeContext({ runStore }));
-
-      const result = await executor.execute(
-        makeStep({ options: [] as unknown as [string, ...string[]] }),
-        makeStepHistory(),
-      );
-
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe(
-        'Condition step "cond-1" has no options to choose from',
-      );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-  });
-
   describe('immutability', () => {
     it('does not mutate the input stepHistory', async () => {
       const mockModel = makeMockModel({

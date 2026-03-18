@@ -53,16 +53,6 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     step: ConditionStepDefinition,
     stepHistory: ConditionStepHistory,
   ): Promise<StepExecutionResult> {
-    if (!step.options.length) {
-      return {
-        stepHistory: {
-          ...stepHistory,
-          status: 'error',
-          error: `Condition step "${step.id}" has no options to choose from`,
-        },
-      };
-    }
-
     const previousStepsSummary = await this.summarizePreviousSteps();
 
     // Define a structured tool so the LLM is forced to return a valid option.
