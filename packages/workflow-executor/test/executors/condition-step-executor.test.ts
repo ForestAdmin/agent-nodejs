@@ -29,10 +29,7 @@ function makeStepHistory(overrides: Partial<ConditionStepHistory> = {}): Conditi
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
     getRecords: jest.fn().mockResolvedValue([]),
-    getRecord: jest.fn().mockResolvedValue(null),
-    saveRecord: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
-    getStepExecution: jest.fn().mockResolvedValue(null),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -181,7 +178,6 @@ describe('ConditionStepExecutor', () => {
         question: 'Final approval?',
       });
       const runStore = makeMockRunStore({
-        getStepExecution: jest.fn().mockResolvedValue(null),
         getStepExecutions: jest.fn().mockResolvedValue([
           {
             type: 'condition',
