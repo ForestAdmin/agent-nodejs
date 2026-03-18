@@ -21,6 +21,23 @@ Front  ──▶  Orchestrator  ◀──pull──  Executor  ──▶  Agent 
   └──────────── progress/results ────────┘
 ```
 
+## Package Structure
+
+```
+src/
+├── types/                  # Core type definitions (@draft)
+│   ├── step-definition.ts  # StepType enum + step definition interfaces
+│   ├── step-history.ts     # Step outcome tracking types
+│   ├── step-execution-data.ts # Runtime state for in-progress steps
+│   ├── record.ts           # Record references and data types
+│   └── execution.ts        # Top-level execution types (context, results)
+├── ports/                  # IO boundary interfaces (@draft)
+│   ├── agent-port.ts       # Interface to the Forest Admin agent (datasource)
+│   ├── workflow-port.ts    # Interface to the orchestrator
+│   └── run-store.ts        # Interface for persisting run state
+└── index.ts                # Barrel exports
+```
+
 ## Architecture Principles (Planned)
 
 The following principles will guide implementation. None are implemented yet.
