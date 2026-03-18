@@ -1,5 +1,5 @@
 import type { AgentPort } from '../ports/agent-port';
-import type { ActionRef, CollectionRef, RecordData } from '../types/record';
+import type { ActionRef, CollectionSchema } from '../types/record';
 import type { RemoteAgentClient, SelectOptions } from '@forestadmin/agent-client';
 
 import { RecordNotFoundError } from '../errors';
@@ -36,20 +36,20 @@ function extractRecordId(
 
 export default class AgentClientAgentPort implements AgentPort {
   private readonly client: RemoteAgentClient;
-  private readonly collectionRefs: Record<string, CollectionRef>;
+  private readonly collectionSchemas: Record<string, CollectionSchema>;
 
   constructor(params: {
     client: RemoteAgentClient;
-    collectionRefs: Record<string, CollectionRef>;
+    collectionSchemas: Record<string, CollectionSchema>;
   }) {
     this.client = params.client;
-    this.collectionRefs = params.collectionRefs;
+    this.collectionSchemas = params.collectionSchemas;
   }
 
-  async getRecord(collectionName: string, recordId: Array<string | number>): Promise<RecordData> {
-    const ref = this.getCollectionRef(collectionName);
+  async getRecord(collectionName: string, recordId: Array<string | number>) {
+    const schema = this.resolveSchema(collectionName);
     const records = await this.client.collection(collectionName).list<Record<string, unknown>>({
-      filters: buildPkFilter(ref.primaryKeyFields, recordId),
+      filters: buildPkFilter(schema.primaryKeyFields, recordId),
       pagination: { size: 1, number: 1 },
     });
 
@@ -57,28 +57,27 @@ export default class AgentClientAgentPort implements AgentPort {
       throw new RecordNotFoundError(collectionName, encodePk(recordId));
     }
 
-    return { ...ref, recordId, values: records[0] };
+    return { collectionName, recordId, values: records[0] };
   }
 
   async updateRecord(
     collectionName: string,
     recordId: Array<string | number>,
     values: Record<string, unknown>,
-  ): Promise<RecordData> {
-    const ref = this.getCollectionRef(collectionName);
+  ) {
     const updatedRecord = await this.client
       .collection(collectionName)
       .update<Record<string, unknown>>(encodePk(recordId), values);
 
-    return { ...ref, recordId, values: updatedRecord };
+    return { collectionName, recordId, values: updatedRecord };
   }
 
   async getRelatedData(
     collectionName: string,
     recordId: Array<string | number>,
     relationName: string,
-  ): Promise<RecordData[]> {
-    const relatedRef = this.getCollectionRef(relationName);
+  ) {
+    const relatedSchema = this.resolveSchema(relationName);
 
     const records = await this.client
       .collection(collectionName)
@@ -86,16 +85,16 @@ export default class AgentClientAgentPort implements AgentPort {
       .list<Record<string, unknown>>();
 
     return records.map(record => ({
-      ...relatedRef,
-      recordId: extractRecordId(relatedRef.primaryKeyFields, record),
+      collectionName: relatedSchema.collectionName,
+      recordId: extractRecordId(relatedSchema.primaryKeyFields, record),
       values: record,
     }));
   }
 
   async getActions(collectionName: string): Promise<ActionRef[]> {
-    const ref = this.collectionRefs[collectionName];
+    const schema = this.collectionSchemas[collectionName];
 
-    return ref ? ref.actions : [];
+    return schema ? schema.actions : [];
   }
 
   async executeAction(
@@ -111,10 +110,10 @@ export default class AgentClientAgentPort implements AgentPort {
     return action.execute();
   }
 
-  private getCollectionRef(collectionName: string): CollectionRef {
-    const ref = this.collectionRefs[collectionName];
+  private resolveSchema(collectionName: string): CollectionSchema {
+    const schema = this.collectionSchemas[collectionName];
 
-    if (!ref) {
+    if (!schema) {
       return {
         collectionName,
         collectionDisplayName: collectionName,
@@ -124,6 +123,6 @@ export default class AgentClientAgentPort implements AgentPort {
       };
     }
 
-    return ref;
+    return schema;
   }
 }

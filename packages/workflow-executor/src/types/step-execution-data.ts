@@ -1,6 +1,6 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { CollectionRef } from './record';
+import type { RecordRef } from './record';
 
 // -- Base --
 
@@ -37,7 +37,7 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
   type: 'read-record';
   executionParams: { fieldNames: string[] };
   executionResult: { fields: FieldReadResult[] };
-  selectedRecordRef: RecordRef;
+  selectedRecord: RecordRef;
 }
 
 // -- Generic AI Task (fallback for untyped steps) --
@@ -47,7 +47,6 @@ export interface AiTaskStepExecutionData extends BaseStepExecutionData {
   executionParams?: Record<string, unknown>;
   executionResult?: Record<string, unknown>;
   toolConfirmationInterruption?: Record<string, unknown>;
-  selectedRecord?: CollectionRef;
 }
 
 // -- Union --
