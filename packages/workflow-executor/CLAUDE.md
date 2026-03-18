@@ -42,7 +42,7 @@ Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor  ──
 
 ```
 src/
-├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError
+├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError
 ├── types/                  # Core type definitions (@draft)
 │   ├── step-definition.ts  # StepType enum + step definition interfaces
 │   ├── step-history.ts     # Step outcome tracking types
@@ -55,7 +55,8 @@ src/
 │   └── run-store.ts        # Interface for persisting run state (scoped to a run)
 ├── executors/              # Step executor implementations
 │   ├── base-step-executor.ts       # Abstract base class (context injection + shared helpers)
-│   └── condition-step-executor.ts  # AI-powered condition step (chooses among options)
+│   ├── condition-step-executor.ts  # AI-powered condition step (chooses among options)
+│   └── read-record-step-executor.ts # AI-powered record field reading step
 └── index.ts                # Barrel exports
 ```
 

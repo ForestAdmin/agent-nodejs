@@ -38,7 +38,10 @@ export {
   MissingToolCallError,
   MalformedToolCallError,
   RecordNotFoundError,
+  NoRecordsError,
+  NoReadableFieldsError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
+export { default as ReadRecordStepExecutor } from './executors/read-record-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
