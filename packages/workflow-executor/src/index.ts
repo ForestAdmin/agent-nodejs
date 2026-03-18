@@ -25,7 +25,7 @@ export type {
 
 export type {
   FieldSchema,
-  ActionRef,
+  ActionSchema,
   CollectionSchema,
   RecordRef,
   RecordData,

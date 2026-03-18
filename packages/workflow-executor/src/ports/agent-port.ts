@@ -1,6 +1,6 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { ActionRef, RecordData } from '../types/record';
+import type { RecordData } from '../types/record';
 
 type AgentRecord = Omit<RecordData, 'stepIndex'>;
 
@@ -16,7 +16,6 @@ export interface AgentPort {
     recordId: Array<string | number>,
     relationName: string,
   ): Promise<AgentRecord[]>;
-  getActions(collectionName: string): Promise<ActionRef[]>;
   executeAction(
     collectionName: string,
     actionName: string,

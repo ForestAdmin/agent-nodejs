@@ -190,19 +190,6 @@ describe('AgentClientAgentPort', () => {
     });
   });
 
-  describe('getActions', () => {
-    it('should return ActionRef[] from CollectionSchema', async () => {
-      expect(await port.getActions('users')).toEqual([
-        { name: 'sendEmail', displayName: 'Send Email' },
-        { name: 'archive', displayName: 'Archive' },
-      ]);
-    });
-
-    it('should return an empty array for an unknown collection', async () => {
-      expect(await port.getActions('unknown')).toEqual([]);
-    });
-  });
-
   describe('executeAction', () => {
     it('should encode recordIds to pipe format and call execute', async () => {
       mockAction.execute.mockResolvedValue({ success: 'done' });

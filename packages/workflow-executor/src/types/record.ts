@@ -8,7 +8,7 @@ export interface FieldSchema {
   isRelationship: boolean;
 }
 
-export interface ActionRef {
+export interface ActionSchema {
   name: string;
   displayName: string;
 }
@@ -18,7 +18,7 @@ export interface CollectionSchema {
   collectionDisplayName: string;
   primaryKeyFields: string[];
   fields: FieldSchema[];
-  actions: ActionRef[];
+  actions: ActionSchema[];
 }
 
 // -- Record types (data — source: AgentPort/RunStore) --
