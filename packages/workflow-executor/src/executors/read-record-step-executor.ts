@@ -10,19 +10,14 @@ import { z } from 'zod';
 import { NoReadableFieldsError, NoRecordsError, WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
-interface FieldReadSuccess {
-  value: unknown;
+interface FieldReadResult {
   fieldName: string;
   displayName: string;
+  value?: unknown;
+  error?: string;
 }
 
-interface FieldReadError {
-  error: string;
-  fieldName: string;
-  displayName: string;
-}
-
-type FieldReadResult = (FieldReadSuccess | FieldReadError)[];
+type FieldReadResults = FieldReadResult[];
 
 function toRecordIdentifier(record: RecordData): string {
   return `${record.collectionDisplayName} #${record.recordId}`;
@@ -169,7 +164,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     });
   }
 
-  private readFieldValues(record: RecordData, fieldName: string | string[]): FieldReadResult {
+  private readFieldValues(record: RecordData, fieldName: string | string[]): FieldReadResults {
     const names = Array.isArray(fieldName) ? fieldName : [fieldName];
 
     return names.map(name => {
