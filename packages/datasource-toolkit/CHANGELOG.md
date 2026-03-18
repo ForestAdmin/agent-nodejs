@@ -1,3 +1,10 @@
+# @forestadmin/datasource-toolkit [1.53.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.52.0...@forestadmin/datasource-toolkit@1.53.0) (2026-03-18)
+
+
+### Features
+
+* **api chart:** allow customizing api chart with query or body parameters ([#1491](https://github.com/ForestAdmin/agent-nodejs/issues/1491)) ([a7237f2](https://github.com/ForestAdmin/agent-nodejs/commit/a7237f2d6907c3b983f7cad6b268899b6e9ae3ca))
+
 # @forestadmin/datasource-toolkit [1.52.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-toolkit@1.51.1...@forestadmin/datasource-toolkit@1.52.0) (2026-02-25)
 
 
