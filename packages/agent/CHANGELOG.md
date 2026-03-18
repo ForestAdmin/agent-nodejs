@@ -1,3 +1,22 @@
+# @forestadmin/agent [1.75.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.74.1...@forestadmin/agent@1.75.0) (2026-03-18)
+
+
+### Features
+
+* **api chart:** allow customizing api chart with query or body parameters ([#1491](https://github.com/ForestAdmin/agent-nodejs/issues/1491)) ([a7237f2](https://github.com/ForestAdmin/agent-nodejs/commit/a7237f2d6907c3b983f7cad6b268899b6e9ae3ca))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.69.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.18
+* **@forestadmin/mcp-server:** upgraded to 1.8.9
+* **@forestadmin/datasource-sql:** upgraded to 1.17.8
+
 ## @forestadmin/agent [1.74.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.74.0...@forestadmin/agent@1.74.1) (2026-03-04)
 
 
