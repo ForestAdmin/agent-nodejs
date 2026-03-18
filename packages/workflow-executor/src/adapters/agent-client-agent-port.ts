@@ -1,32 +1,22 @@
 import type { AgentPort } from '../ports/agent-port';
-import type { RecordData, RecordFieldRef } from '../types/record';
+import type { CollectionRef, RecordData } from '../types/record';
 import type { ActionEndpointsByCollection, RemoteAgentClient } from '@forestadmin/agent-client';
 
 import { RecordNotFoundError } from '../errors';
 
-const RELATIONSHIP_TYPES = new Set(['ManyToOne', 'OneToOne', 'OneToMany', 'ManyToMany']);
-
-function toRecordFieldRef(field: { name: string; type: string }): RecordFieldRef {
-  return {
-    fieldName: field.name,
-    displayName: field.name,
-    type: field.type,
-    isRelationship: RELATIONSHIP_TYPES.has(field.type),
-    referencedCollectionName: undefined,
-  };
-}
-
 export default class AgentClientAgentPort implements AgentPort {
   private readonly client: RemoteAgentClient;
   private readonly actionEndpoints: ActionEndpointsByCollection;
-  private readonly capabilitiesCache = new Map<
-    string,
-    Promise<{ fields: { name: string; type: string; operators: string[] }[] }>
-  >();
+  private readonly collectionRefs: Record<string, CollectionRef>;
 
-  constructor(params: { client: RemoteAgentClient; actionEndpoints: ActionEndpointsByCollection }) {
+  constructor(params: {
+    client: RemoteAgentClient;
+    actionEndpoints: ActionEndpointsByCollection;
+    collectionRefs: Record<string, CollectionRef>;
+  }) {
     this.client = params.client;
     this.actionEndpoints = params.actionEndpoints;
+    this.collectionRefs = params.collectionRefs;
   }
 
   async getRecord(collectionName: string, recordId: string): Promise<RecordData> {
@@ -39,13 +29,9 @@ export default class AgentClientAgentPort implements AgentPort {
       throw new RecordNotFoundError(collectionName, recordId);
     }
 
-    const capabilities = await this.getCapabilities(collectionName);
-
     return {
+      ...this.getCollectionRef(collectionName),
       recordId,
-      collectionName,
-      collectionDisplayName: collectionName,
-      fields: capabilities.fields.map(toRecordFieldRef),
       values: records[0],
     };
   }
@@ -59,13 +45,9 @@ export default class AgentClientAgentPort implements AgentPort {
       .collection(collectionName)
       .update<Record<string, unknown>>(recordId, values);
 
-    const capabilities = await this.getCapabilities(collectionName);
-
     return {
+      ...this.getCollectionRef(collectionName),
       recordId,
-      collectionName,
-      collectionDisplayName: collectionName,
-      fields: capabilities.fields.map(toRecordFieldRef),
       values: updatedRecord,
     };
   }
@@ -80,11 +62,15 @@ export default class AgentClientAgentPort implements AgentPort {
       .relation(relationName, recordId)
       .list<Record<string, unknown>>();
 
-    return records.map(record => ({
-      recordId: String(record.id ?? ''),
+    const ref = this.collectionRefs[relationName] ?? {
       collectionName: relationName,
       collectionDisplayName: relationName,
       fields: [],
+    };
+
+    return records.map(record => ({
+      ...ref,
+      recordId: String(record.id ?? ''),
       values: record,
     }));
   }
@@ -105,22 +91,13 @@ export default class AgentClientAgentPort implements AgentPort {
     return action.execute();
   }
 
-  private getCapabilities(
-    collectionName: string,
-  ): Promise<{ fields: { name: string; type: string; operators: string[] }[] }> {
-    let cached = this.capabilitiesCache.get(collectionName);
+  private getCollectionRef(collectionName: string): CollectionRef {
+    const ref = this.collectionRefs[collectionName];
 
-    if (!cached) {
-      cached = this.client
-        .collection(collectionName)
-        .capabilities()
-        .catch(error => {
-          this.capabilitiesCache.delete(collectionName);
-          throw error;
-        });
-      this.capabilitiesCache.set(collectionName, cached);
+    if (!ref) {
+      return { collectionName, collectionDisplayName: collectionName, fields: [] };
     }
 
-    return cached;
+    return ref;
   }
 }

@@ -1,3 +1,4 @@
+import type { CollectionRef } from '../../src/types/record';
 import type { ActionEndpointsByCollection, RemoteAgentClient } from '@forestadmin/agent-client';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
@@ -9,7 +10,6 @@ function createMockClient() {
   const mockCollection = {
     list: jest.fn(),
     update: jest.fn(),
-    capabilities: jest.fn(),
     relation: jest.fn().mockReturnValue(mockRelation),
     action: jest.fn().mockResolvedValue(mockAction),
   };
@@ -27,6 +27,7 @@ describe('AgentClientAgentPort', () => {
   let mockRelation: ReturnType<typeof createMockClient>['mockRelation'];
   let mockAction: ReturnType<typeof createMockClient>['mockAction'];
   let actionEndpoints: ActionEndpointsByCollection;
+  let collectionRefs: Record<string, CollectionRef>;
   let port: AgentClientAgentPort;
 
   beforeEach(() => {
@@ -41,18 +42,31 @@ describe('AgentClientAgentPort', () => {
       },
     };
 
-    port = new AgentClientAgentPort({ client, actionEndpoints });
+    collectionRefs = {
+      users: {
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        fields: [
+          { fieldName: 'id', displayName: 'id', type: 'Number', isRelationship: false },
+          { fieldName: 'name', displayName: 'name', type: 'String', isRelationship: false },
+        ],
+      },
+      posts: {
+        collectionName: 'posts',
+        collectionDisplayName: 'Posts',
+        fields: [
+          { fieldName: 'id', displayName: 'id', type: 'Number', isRelationship: false },
+          { fieldName: 'title', displayName: 'title', type: 'String', isRelationship: false },
+        ],
+      },
+    };
+
+    port = new AgentClientAgentPort({ client, actionEndpoints, collectionRefs });
   });
 
   describe('getRecord', () => {
-    it('should return a RecordData when the record exists', async () => {
+    it('should return a RecordData using the provided CollectionRef', async () => {
       mockCollection.list.mockResolvedValue([{ id: '42', name: 'Alice' }]);
-      mockCollection.capabilities.mockResolvedValue({
-        fields: [
-          { name: 'id', type: 'Number', operators: ['equal'] },
-          { name: 'name', type: 'String', operators: ['equal', 'contains'] },
-        ],
-      });
 
       const result = await port.getRecord('users', '42');
 
@@ -64,23 +78,8 @@ describe('AgentClientAgentPort', () => {
       expect(result).toEqual({
         recordId: '42',
         collectionName: 'users',
-        collectionDisplayName: 'users',
-        fields: [
-          {
-            fieldName: 'id',
-            displayName: 'id',
-            type: 'Number',
-            isRelationship: false,
-            referencedCollectionName: undefined,
-          },
-          {
-            fieldName: 'name',
-            displayName: 'name',
-            type: 'String',
-            isRelationship: false,
-            referencedCollectionName: undefined,
-          },
-        ],
+        collectionDisplayName: 'Users',
+        fields: collectionRefs.users.fields,
         values: { id: '42', name: 'Alice' },
       });
     });
@@ -94,53 +93,20 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('should cache capabilities between calls on the same collection', async () => {
+    it('should fallback to empty fields when collection is unknown', async () => {
       mockCollection.list.mockResolvedValue([{ id: '1' }]);
-      mockCollection.capabilities.mockResolvedValue({ fields: [] });
 
-      await port.getRecord('users', '1');
-      await port.getRecord('users', '2');
+      const result = await port.getRecord('unknown', '1');
 
-      expect(mockCollection.capabilities).toHaveBeenCalledTimes(1);
+      expect(result.collectionName).toBe('unknown');
+      expect(result.collectionDisplayName).toBe('unknown');
+      expect(result.fields).toEqual([]);
     });
-
-    it('should evict cache and retry when capabilities rejects', async () => {
-      mockCollection.list.mockResolvedValue([{ id: '1' }]);
-      mockCollection.capabilities
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({ fields: [{ name: 'id', type: 'Number', operators: [] }] });
-
-      await expect(port.getRecord('users', '1')).rejects.toThrow('Network error');
-
-      const result = await port.getRecord('users', '1');
-
-      expect(mockCollection.capabilities).toHaveBeenCalledTimes(2);
-      expect(result.fields).toEqual([expect.objectContaining({ fieldName: 'id', type: 'Number' })]);
-    });
-
-    it.each(['ManyToOne', 'OneToOne', 'OneToMany', 'ManyToMany'])(
-      'should map %s fields as relationships',
-      async type => {
-        mockCollection.list.mockResolvedValue([{ id: '1' }]);
-        mockCollection.capabilities.mockResolvedValue({
-          fields: [{ name: 'rel', type, operators: [] }],
-        });
-
-        const result = await port.getRecord('users', '1');
-
-        expect(result.fields[0]).toEqual(
-          expect.objectContaining({ isRelationship: true, fieldName: 'rel' }),
-        );
-      },
-    );
   });
 
   describe('updateRecord', () => {
     it('should return a RecordData after update', async () => {
       mockCollection.update.mockResolvedValue({ id: '42', name: 'Bob' });
-      mockCollection.capabilities.mockResolvedValue({
-        fields: [{ name: 'name', type: 'String', operators: [] }],
-      });
 
       const result = await port.updateRecord('users', '42', { name: 'Bob' });
 
@@ -148,23 +114,15 @@ describe('AgentClientAgentPort', () => {
       expect(result).toEqual({
         recordId: '42',
         collectionName: 'users',
-        collectionDisplayName: 'users',
-        fields: [
-          {
-            fieldName: 'name',
-            displayName: 'name',
-            type: 'String',
-            isRelationship: false,
-            referencedCollectionName: undefined,
-          },
-        ],
+        collectionDisplayName: 'Users',
+        fields: collectionRefs.users.fields,
         values: { id: '42', name: 'Bob' },
       });
     });
   });
 
   describe('getRelatedData', () => {
-    it('should return a RecordData array', async () => {
+    it('should return a RecordData array with the related CollectionRef', async () => {
       mockRelation.list.mockResolvedValue([
         { id: '10', title: 'Post A' },
         { id: '11', title: 'Post B' },
@@ -178,18 +136,27 @@ describe('AgentClientAgentPort', () => {
         {
           recordId: '10',
           collectionName: 'posts',
-          collectionDisplayName: 'posts',
-          fields: [],
+          collectionDisplayName: 'Posts',
+          fields: collectionRefs.posts.fields,
           values: { id: '10', title: 'Post A' },
         },
         {
           recordId: '11',
           collectionName: 'posts',
-          collectionDisplayName: 'posts',
-          fields: [],
+          collectionDisplayName: 'Posts',
+          fields: collectionRefs.posts.fields,
           values: { id: '11', title: 'Post B' },
         },
       ]);
+    });
+
+    it('should fallback to relationName when no CollectionRef exists', async () => {
+      mockRelation.list.mockResolvedValue([{ id: '1' }]);
+
+      const result = await port.getRelatedData('users', '42', 'unknownRelation');
+
+      expect(result[0].collectionName).toBe('unknownRelation');
+      expect(result[0].fields).toEqual([]);
     });
 
     it('should return an empty array when no related data exists', async () => {
