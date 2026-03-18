@@ -1,7 +1,8 @@
 import type { PendingStepExecution } from '../../src/types/execution';
-import type { CollectionRef } from '../../src/types/record';
+import type { CollectionSchema } from '../../src/types/record';
 import type { StepHistory } from '../../src/types/step-history';
 
+// @ts-expect-error -- ServerUtils is not yet re-exported from the built package
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 import ForestServerWorkflowPort from '../../src/adapters/forest-server-workflow-port';
@@ -61,21 +62,21 @@ describe('ForestServerWorkflowPort', () => {
     });
   });
 
-  describe('getCollectionRef', () => {
-    it('should fetch the collection ref by name', async () => {
-      const collectionRef: CollectionRef = {
+  describe('getCollectionSchema', () => {
+    it('should fetch the collection schema by name', async () => {
+      const collectionSchema: CollectionSchema = {
         collectionName: 'users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [],
         actions: [],
       };
-      mockQuery.mockResolvedValue(collectionRef);
+      mockQuery.mockResolvedValue(collectionSchema);
 
-      const result = await port.getCollectionRef('users');
+      const result = await port.getCollectionSchema('users');
 
       expect(mockQuery).toHaveBeenCalledWith(options, 'get', '/liana/v1/collections/users');
-      expect(result).toEqual(collectionRef);
+      expect(result).toEqual(collectionSchema);
     });
   });
 

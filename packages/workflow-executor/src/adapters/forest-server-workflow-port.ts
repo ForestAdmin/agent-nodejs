@@ -1,16 +1,17 @@
 import type { McpConfiguration, WorkflowPort } from '../ports/workflow-port';
 import type { PendingStepExecution } from '../types/execution';
-import type { CollectionRef } from '../types/record';
+import type { CollectionSchema } from '../types/record';
 import type { StepHistory } from '../types/step-history';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
+// @ts-expect-error -- ServerUtils is not yet re-exported from the built package
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 // TODO: finalize route paths with the team — these are placeholders
 const ROUTES = {
   pendingStepExecutions: '/liana/v1/workflow-step-executions/pending',
   updateStepExecution: (runId: string) => `/liana/v1/workflow-step-executions/${runId}/complete`,
-  collectionRef: (collectionName: string) => `/liana/v1/collections/${collectionName}`,
+  collectionSchema: (collectionName: string) => `/liana/v1/collections/${collectionName}`,
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
 };
 
@@ -39,11 +40,11 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     );
   }
 
-  async getCollectionRef(collectionName: string): Promise<CollectionRef> {
-    return ServerUtils.query<CollectionRef>(
+  async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
+    return ServerUtils.query<CollectionSchema>(
       this.options,
       'get',
-      ROUTES.collectionRef(collectionName),
+      ROUTES.collectionSchema(collectionName),
     );
   }
 
