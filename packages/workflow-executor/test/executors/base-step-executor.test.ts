@@ -104,6 +104,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('Prompt: Approve?');
       expect(result).toContain('Result: {"answer":"Yes","reasoning":"Order is valid"}');
+      expect(result).toContain('Output: {"answer":"Yes"}');
     });
 
     it('uses Result for matched steps and History for unmatched steps', async () => {
@@ -133,6 +134,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('History: {"status":"success"}');
       expect(result).toContain('Step "cond-2"');
       expect(result).toContain('Result: {"answer":"No","reasoning":"Clearly no"}');
+      expect(result).toContain('Output: {"answer":"No"}');
     });
 
     it('falls back to History when no matching step execution in RunStore', async () => {
@@ -161,6 +163,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('History: {"status":"success"}');
       expect(result).toContain('Step "matched"');
       expect(result).toContain('Result: {"answer":"B","reasoning":"Option B fits"}');
+      expect(result).toContain('Output: {"answer":"B"}');
     });
 
     it('includes selectedOption in History for condition steps', async () => {
@@ -290,6 +293,7 @@ describe('BaseStepExecutor', () => {
         .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Result: {"answer":"A","reasoning":"Best fit"}');
+      expect(result).toContain('Output: {"answer":"A"}');
       expect(result).not.toContain('History:');
     });
 
