@@ -8,13 +8,13 @@ export interface RecordFieldRef {
   referencedCollectionName?: string;
 }
 
-export interface RecordRef {
-  recordId: string;
+export interface CollectionRef {
   collectionName: string;
   collectionDisplayName: string;
   fields: RecordFieldRef[];
 }
 
-export interface RecordData extends RecordRef {
+export interface RecordData extends CollectionRef {
+  recordId: string;
   values: Record<string, unknown>;
 }

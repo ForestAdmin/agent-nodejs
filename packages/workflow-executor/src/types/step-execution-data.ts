@@ -1,6 +1,6 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { RecordRef } from './record';
+import type { RecordData } from './record';
 
 interface BaseStepExecutionData {
   stepIndex: number;
@@ -17,7 +17,7 @@ export interface AiTaskStepExecutionData extends BaseStepExecutionData {
   executionParams?: Record<string, unknown>;
   executionResult?: Record<string, unknown>;
   toolConfirmationInterruption?: Record<string, unknown>;
-  selectedRecordRef?: RecordRef;
+  selectedRecord?: RecordData;
 }
 
 export type StepExecutionData = ConditionStepExecutionData | AiTaskStepExecutionData;

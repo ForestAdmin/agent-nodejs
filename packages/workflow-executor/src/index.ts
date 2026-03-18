@@ -19,7 +19,7 @@ export type {
   StepExecutionData,
 } from './types/step-execution-data';
 
-export type { RecordFieldRef, RecordRef, RecordData } from './types/record';
+export type { RecordFieldRef, CollectionRef, RecordData } from './types/record';
 
 export type {
   StepRecord,
