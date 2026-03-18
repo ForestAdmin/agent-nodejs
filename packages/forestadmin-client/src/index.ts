@@ -90,6 +90,7 @@ export { default as ForestAdminClientWithCache } from './forest-admin-client-wit
 export { default as buildApplicationServices } from './build-application-services';
 export { HttpOptions } from './utils/http-options';
 export { default as ForestHttpApi } from './permissions/forest-http-api';
+export { default as ServerUtils } from './utils/server';
 // export is necessary for the agent-generator package
 export { default as SchemaService, SchemaServiceOptions } from './schema';
 export { default as ActivityLogsService, ActivityLogsOptions } from './activity-logs';

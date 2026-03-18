@@ -9,7 +9,7 @@ export type McpConfiguration = unknown;
 
 export interface WorkflowPort {
   getPendingStepExecutions(): Promise<PendingStepExecution[]>;
-  completeStepExecution(runId: string, stepHistory: StepHistory): Promise<void>;
+  updateStepExecution(runId: string, stepHistory: StepHistory): Promise<void>;
   getCollectionRef(collectionName: string): Promise<CollectionRef>;
   getMcpServerConfigs(): Promise<McpConfiguration[]>;
 }

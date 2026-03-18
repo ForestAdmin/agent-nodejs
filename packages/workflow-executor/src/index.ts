@@ -42,3 +42,4 @@ export {
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
+export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
