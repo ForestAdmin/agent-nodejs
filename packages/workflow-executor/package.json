@@ -15,6 +15,9 @@
     "dist/**/*.js",
     "dist/**/*.d.ts"
   ],
+  "dependencies": {
+    "@forestadmin/agent-client": "1.4.13"
+  },
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
