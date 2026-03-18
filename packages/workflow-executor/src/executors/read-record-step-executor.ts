@@ -1,6 +1,7 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { RecordData } from '../types/record';
 import type { AiTaskStepDefinition } from '../types/step-definition';
+import type { FieldReadResult } from '../types/step-execution-data';
 import type { AiTaskStepHistory } from '../types/step-history';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -9,21 +10,6 @@ import { z } from 'zod';
 
 import { NoReadableFieldsError, NoRecordsError, WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
-
-interface FieldReadBase {
-  fieldName: string;
-  displayName: string;
-}
-
-interface FieldReadSuccess extends FieldReadBase {
-  value: unknown;
-}
-
-interface FieldReadError extends FieldReadBase {
-  error: string;
-}
-
-type FieldReadResult = FieldReadSuccess | FieldReadError;
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
@@ -56,7 +42,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     const fieldResults = this.readFieldValues(selectedRecord, fieldNames);
 
     await this.context.runStore.saveStepExecution({
-      type: 'ai-task',
+      type: 'read-record',
       stepIndex: stepHistory.stepIndex,
       executionParams: { fieldNames },
       executionResult: { fields: fieldResults },

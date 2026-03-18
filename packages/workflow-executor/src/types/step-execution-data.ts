@@ -12,6 +12,28 @@ export interface ConditionStepExecutionData extends BaseStepExecutionData {
   executionResult?: { answer: string };
 }
 
+interface FieldReadBase {
+  fieldName: string;
+  displayName: string;
+}
+
+export interface FieldReadSuccess extends FieldReadBase {
+  value: unknown;
+}
+
+export interface FieldReadError extends FieldReadBase {
+  error: string;
+}
+
+export type FieldReadResult = FieldReadSuccess | FieldReadError;
+
+export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
+  type: 'read-record';
+  executionParams: { fieldNames: string[] };
+  executionResult: { fields: FieldReadResult[] };
+  selectedRecordRef: RecordRef;
+}
+
 export interface AiTaskStepExecutionData extends BaseStepExecutionData {
   type: 'ai-task';
   executionParams?: Record<string, unknown>;
@@ -20,4 +42,7 @@ export interface AiTaskStepExecutionData extends BaseStepExecutionData {
   selectedRecord?: CollectionRef;
 }
 
-export type StepExecutionData = ConditionStepExecutionData | AiTaskStepExecutionData;
+export type StepExecutionData =
+  | ConditionStepExecutionData
+  | ReadRecordStepExecutionData
+  | AiTaskStepExecutionData;
