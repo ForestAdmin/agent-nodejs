@@ -2314,6 +2314,23 @@
     uuid "^10.0.0"
     zod "^3.25.76 || ^4"
 
+"@langchain/core@1.1.33":
+  version "1.1.33"
+  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-1.1.33.tgz#414536e9d0a6f90576502e532336104360ed4392"
+  integrity sha512-At1ooBmPlHMkhTkG6NqeOVjNscuJwneBB8F88rFRvBvIfhTACVLzEwMiZFWNTM8DzUXUOcxxqS7xKRyr6JBbOQ==
+  dependencies:
+    "@cfworker/json-schema" "^4.0.2"
+    "@standard-schema/spec" "^1.1.0"
+    ansi-styles "^5.0.0"
+    camelcase "6"
+    decamelize "1.2.0"
+    js-tiktoken "^1.0.12"
+    langsmith ">=0.5.0 <1.0.0"
+    mustache "^4.2.0"
+    p-queue "^6.6.2"
+    uuid "^11.1.0"
+    zod "^3.25.76 || ^4"
+
 "@langchain/langgraph-checkpoint@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@langchain/langgraph-checkpoint/-/langgraph-checkpoint-1.0.1.tgz#0ee5bdfeb9878d8d1d99347f23e199e5afd52995"
@@ -4201,7 +4218,7 @@
   dependencies:
     tslib "^2.6.2"
 
-"@standard-schema/spec@1.1.0":
+"@standard-schema/spec@1.1.0", "@standard-schema/spec@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@standard-schema/spec/-/spec-1.1.0.tgz#a79b55dbaf8604812f52d140b2c9ab41bc150bb8"
   integrity sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==
@@ -11342,6 +11359,18 @@ koa@^3.0.1:
     semver "^7.6.3"
     uuid "^10.0.0"
 
+"langsmith@>=0.5.0 <1.0.0":
+  version "0.5.15"
+  resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.5.15.tgz#6befad73b0cb614c9658bc3b7bc7226c032a6e3f"
+  integrity sha512-S20JnYmIgqGBjA/WEn12ZZJjqd03O5wd8K9KgGBvsKXQBn0bYuFrr1w20L37PpcMmX3/cftpgJ6g2y8KoEmHLw==
+  dependencies:
+    "@types/uuid" "^10.0.0"
+    chalk "^5.6.2"
+    console-table-printer "^2.12.1"
+    p-queue "^6.6.2"
+    semver "^7.6.3"
+    uuid "^10.0.0"
+
 lerna@^8.2.3:
   version "8.2.3"
   resolved "https://registry.yarnpkg.com/lerna/-/lerna-8.2.3.tgz#0a9c07eda4cfac84a480b3e66915189ccfb5bd2c"
@@ -17348,6 +17377,11 @@ uuid@^10.0.0:
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-10.0.0.tgz#5a95aa454e6e002725c79055fd42aaba30ca6294"
   integrity sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==
 
+uuid@^11.1.0:
+  version "11.1.0"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-11.1.0.tgz#9549028be1753bb934fc96e2bca09bb4105ae912"
+  integrity sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==
+
 uuid@^13.0.0:
   version "13.0.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-13.0.0.tgz#263dc341b19b4d755eb8fe36b78d95a6b65707e8"
@@ -17889,6 +17923,11 @@ zod-to-json-schema@^3.25.1:
   version "3.25.1"
   resolved "https://registry.yarnpkg.com/zod-to-json-schema/-/zod-to-json-schema-3.25.1.tgz#7f24962101a439ddade2bf1aeab3c3bfec7d84ba"
   integrity sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==
+
+zod@4.3.6:
+  version "4.3.6"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-4.3.6.tgz#89c56e0aa7d2b05107d894412227087885ab112a"
+  integrity sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==
 
 "zod@^3.25 || ^4.0", "zod@^3.25.76 || ^4", zod@^4.3.5:
   version "4.3.5"

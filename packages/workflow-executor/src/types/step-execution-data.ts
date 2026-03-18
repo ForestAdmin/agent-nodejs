@@ -4,16 +4,18 @@ import type { RecordRef } from './record';
 
 interface BaseStepExecutionData {
   stepIndex: number;
-  executionParams?: Record<string, unknown>;
-  executionResult?: Record<string, unknown>;
 }
 
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
+  executionParams?: { answer: string | null; reasoning?: string };
+  executionResult?: { answer: string };
 }
 
 export interface AiTaskStepExecutionData extends BaseStepExecutionData {
   type: 'ai-task';
+  executionParams?: Record<string, unknown>;
+  executionResult?: Record<string, unknown>;
   toolConfirmationInterruption?: Record<string, unknown>;
   selectedRecordRef?: RecordRef;
 }
