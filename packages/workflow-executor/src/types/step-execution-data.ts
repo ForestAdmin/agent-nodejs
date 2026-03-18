@@ -69,6 +69,8 @@ export type ExecutedStepExecutionData =
   | ReadRecordStepExecutionData
   | AiTaskStepExecutionData;
 
+// TODO: this condition should change when load-related-record gets its own executor
+// and produces executionParams/executionResult like other steps.
 export function isExecutedStepOnExecutor(
   data: StepExecutionData | undefined,
 ): data is ExecutedStepExecutionData {
