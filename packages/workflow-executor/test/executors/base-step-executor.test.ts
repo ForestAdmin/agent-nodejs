@@ -103,7 +103,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Result: {"answer":"Yes","reasoning":"Order is valid"}');
     });
 
-    it('falls back to History when no matching step execution in RunStore', async () => {
+    it('uses Result for matched steps and History for unmatched steps', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [

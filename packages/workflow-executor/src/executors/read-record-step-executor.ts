@@ -57,10 +57,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     return { stepHistory: { ...stepHistory, status: 'success' } };
   }
 
-  private async selectFields(
-    record: RecordData,
-    prompt: string | undefined,
-  ): Promise<string[]> {
+  private async selectFields(record: RecordData, prompt: string | undefined): Promise<string[]> {
     const tool = this.buildReadFieldTool(record);
     const messages = [
       ...(await this.buildPreviousStepsMessages()),
@@ -133,7 +130,6 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     }
 
     const displayNames = nonRelationFields.map(f => f.displayName) as [string, ...string[]];
-    const fieldNames = nonRelationFields.map(f => f.fieldName) as [string, ...string[]];
 
     return new DynamicStructuredTool({
       name: 'read-selected-record-fields',
