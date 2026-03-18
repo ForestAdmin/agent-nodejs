@@ -39,12 +39,6 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.
 - NEVER mention "${NO_GATEWAY_OPTION_MATCH}" in reasoning, say "no matching option" instead.`;
 
-function buildPreviousStepsMessages(previousStepsSummary: string): SystemMessage[] {
-  if (!previousStepsSummary) return [];
-
-  return [new SystemMessage(previousStepsSummary)];
-}
-
 export default class ConditionStepExecutor extends BaseStepExecutor<
   ConditionStepDefinition,
   ConditionStepHistory
@@ -81,7 +75,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     });
 
     const messages = [
-      ...buildPreviousStepsMessages(previousStepsSummary),
+      ...(previousStepsSummary ? [new SystemMessage(previousStepsSummary)] : []),
       new SystemMessage(GATEWAY_SYSTEM_PROMPT),
       new HumanMessage(`**Question**: ${step.prompt ?? 'Choose the most appropriate option.'}`),
     ];
