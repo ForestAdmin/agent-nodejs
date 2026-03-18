@@ -197,7 +197,7 @@ describe('BaseStepExecutor', () => {
 
     it('includes status in History for ai-task steps without RunStore data', async () => {
       const entry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'ai-step', type: StepType.Condition, options: ['A'], prompt: 'Run task' },
+        step: { id: 'ai-step', type: StepType.ReadRecord, prompt: 'Run task' },
         stepHistory: { type: 'ai-task', stepId: 'ai-step', stepIndex: 0, status: 'awaiting-input' },
       };
 
