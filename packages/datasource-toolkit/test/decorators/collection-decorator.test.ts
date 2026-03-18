@@ -255,7 +255,7 @@ describe('CollectionDecorator', () => {
       const result = await decoratedCollection.renderChart(caller, 'a chart name', [123]);
 
       expect(result).toStrictEqual(response);
-      expect(childRenderChart).toHaveBeenCalledWith(caller, 'a chart name', [123]);
+      expect(childRenderChart).toHaveBeenCalledWith(caller, 'a chart name', [123], undefined);
     });
   });
 

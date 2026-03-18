@@ -57,6 +57,7 @@ describe('CollectionApiChartRoute', () => {
           },
           'myChart',
           [123],
+          { timezone: 'Europe/Paris', record_id: '123' },
         );
         expect(context.response.body).toMatchObject({
           data: {
@@ -85,6 +86,7 @@ describe('CollectionApiChartRoute', () => {
           },
           'myChart',
           [123],
+          { timezone: 'Europe/Paris', record_id: '123' },
         );
         expect(context.response.body).toStrictEqual({ countCurrent: 12 });
       });
