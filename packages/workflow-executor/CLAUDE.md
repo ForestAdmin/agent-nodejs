@@ -6,6 +6,25 @@
 
 TypeScript library (framework-agnostic) that executes workflow steps on the client's infrastructure, alongside the Forest Admin agent. The orchestrator never sees client data — it only sends step definitions; this package fetches them and runs them locally.
 
+## Why this package exists — Frontend → Backend migration
+
+Workflows currently run entirely in the **frontend** (`forestadmin/frontend`). The front parses BPMN, manages the run state machine, calls the AI, executes tools, and handles user interactions — all in the browser.
+
+This works for interactive use cases but blocks **automation**: scheduled workflows, API-triggered runs, and headless execution all require a human with a browser open. The goal of this migration is to move workflow execution to the **backend** (client-side agent infrastructure) so workflows can run without a frontend and without human intervention.
+
+### What stays on the front
+- Workflow designer (BPMN editor)
+- Run monitoring / progress display
+- Manual decisions when the AI can't decide (`manual-decision` status)
+
+### What moves to the backend (this package)
+- Step execution (condition decisions, AI tasks, record operations)
+- AI calls (gateway option selection, tool selection, tool execution)
+- Record selection and data access (via AgentPort)
+
+### Constraint: must be ISO with front
+The executor must produce the same behavior as the frontend implementation (`forestadmin/frontend`, `app/features/workflow/`). Same tool schemas, same AI interactions, same fallback logic.
+
 ## System Architecture
 
 The workflow system is split into 4 components:
@@ -16,15 +35,14 @@ The workflow system is split into 4 components:
 - **Agent** — The Forest Admin agent (`@forestadmin/agent`). Acts as a proxy for the executor — provides access to the datasource layer (collections, actions, fields) so the executor can read/write client data without direct database access.
 
 ```
-Front  ──▶  Orchestrator  ◀──pull──  Executor  ──▶  Agent (datasources)
-  ▲                                      │
-  └──────────── progress/results ────────┘
+Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor  ──▶  Agent (datasources)
 ```
 
 ## Package Structure
 
 ```
 src/
+├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError
 ├── types/                  # Core type definitions (@draft)
 │   ├── step-definition.ts  # StepType enum + step definition interfaces
 │   ├── step-history.ts     # Step outcome tracking types
@@ -34,19 +52,21 @@ src/
 ├── ports/                  # IO boundary interfaces (@draft)
 │   ├── agent-port.ts       # Interface to the Forest Admin agent (datasource)
 │   ├── workflow-port.ts    # Interface to the orchestrator
-│   └── run-store.ts        # Interface for persisting run state
+│   └── run-store.ts        # Interface for persisting run state (scoped to a run)
+├── executors/              # Step executor implementations
+│   ├── base-step-executor.ts       # Abstract base class (context injection + shared helpers)
+│   └── condition-step-executor.ts  # AI-powered condition step (chooses among options)
 └── index.ts                # Barrel exports
 ```
 
-## Architecture Principles (Planned)
+## Architecture Principles
 
-The following principles will guide implementation. None are implemented yet.
-
-- **Pull-based** — The executor will poll for pending steps via a port interface. A `triggerPoll(runId)` mechanism will fast-track a specific run.
-- **Atomic** — Each step will execute in isolation. A run store will maintain continuity between steps.
-- **Privacy** — Zero client data leaves the client's infrastructure.
-- **Ports (IO injection)** — All external IO will go through injected port interfaces, keeping the core pure and testable.
-- **AI integration** — Will use `@forestadmin/ai-proxy` (Router) to create models and load remote tools.
+- **Pull-based** — The executor polls for pending steps via a port interface (`WorkflowPort.getPendingStepExecutions`; polling loop not yet implemented).
+- **Atomic** — Each step executes in isolation. A run store (scoped per run) maintains continuity between steps.
+- **Privacy** — Zero client data leaves the client's infrastructure. `StepHistory` is sent to the orchestrator and must NEVER contain client data. Privacy-sensitive information (e.g. AI reasoning) must stay in `StepExecutionData` (persisted in the RunStore, client-side only).
+- **Ports (IO injection)** — All external IO goes through injected port interfaces, keeping the core pure and testable.
+- **AI integration** — Uses `@langchain/core` (`BaseChatModel`, `DynamicStructuredTool`) for AI-powered steps. `ExecutionContext.model` is a `BaseChatModel`.
+- **No recovery/retry** — Once the executor returns a step result to the orchestrator, the step is considered executed. There is no mechanism to re-dispatch a step, so executors must NOT include recovery checks (e.g. checking the RunStore for cached results before executing). Each step executes exactly once.
 
 ## Commands
 
