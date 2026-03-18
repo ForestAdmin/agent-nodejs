@@ -11,23 +11,18 @@ export enum StepType {
 interface BaseStepDefinition {
   id: string;
   type: StepType;
+  prompt?: string;
   aiConfigName?: string;
 }
 
 export interface ConditionStepDefinition extends BaseStepDefinition {
   type: StepType.Condition;
   options: [string, ...string[]];
-  prompt?: string;
 }
 
 export interface AiTaskStepDefinition extends BaseStepDefinition {
-  type:
-    | StepType.ReadRecord
-    | StepType.UpdateRecord
-    | StepType.TriggerAction
-    | StepType.LoadRelatedRecord;
+  type: Exclude<StepType, StepType.Condition>;
   recordSourceStepId?: string;
-  prompt?: string;
   automaticCompletion?: boolean;
   allowedTools?: string[];
   remoteToolsSourceId?: string;
