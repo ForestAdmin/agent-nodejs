@@ -229,6 +229,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepHistory.error).toBe(
         'No readable fields on record from collection "customers"',
       );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -357,6 +358,43 @@ describe('ReadRecordStepExecutor', () => {
     });
   });
 
+  describe('AI record selection failure', () => {
+    it('returns error when AI selects a non-existent record identifier', async () => {
+      const record1 = makeRecord();
+      const record2 = makeRecord({
+        recordId: '99',
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        fields: [
+          { fieldName: 'total', displayName: 'Total', type: 'Number', isRelationship: false },
+        ],
+        values: { total: 150 },
+      });
+
+      const invoke = jest.fn().mockResolvedValueOnce({
+        tool_calls: [
+          { name: 'select-record', args: { recordIdentifier: 'NonExistent #999' }, id: 'call_1' },
+        ],
+      });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getRecords: jest.fn().mockResolvedValue([record1, record2]),
+      });
+      const context = makeContext({ model, runStore });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute(makeStep(), makeStepHistory());
+
+      expect(result.stepHistory.status).toBe('error');
+      expect(result.stepHistory.error).toBe(
+        'AI selected record "NonExistent #999" which does not match any available record',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
   describe('no records available', () => {
     it('returns error when no records exist', async () => {
       const mockModel = makeMockModel({ fieldName: 'email' });
@@ -370,6 +408,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepHistory.status).toBe('error');
       expect(result.stepHistory.error).toBe('No records available');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 

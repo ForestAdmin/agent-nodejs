@@ -23,6 +23,10 @@ interface FieldReadError {
 
 type FieldReadResult = (FieldReadSuccess | FieldReadError)[];
 
+function toRecordIdentifier(record: RecordData): string {
+  return `${record.collectionDisplayName} #${record.recordId}`;
+}
+
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
 
@@ -95,10 +99,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
     if (records.length === 0) throw new NoRecordsError();
     if (records.length === 1) return records[0];
 
-    const identifiers = records.map(r => `${r.collectionDisplayName} #${r.recordId}`) as [
-      string,
-      ...string[],
-    ];
+    const identifiers = records.map(toRecordIdentifier) as [string, ...string[]];
 
     const tool = new DynamicStructuredTool({
       name: 'select-record',
@@ -124,9 +125,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       tool,
     );
 
-    const selected = records.find(
-      r => `${r.collectionDisplayName} #${r.recordId}` === recordIdentifier,
-    );
+    const selected = records.find(r => toRecordIdentifier(r) === recordIdentifier);
 
     if (!selected) {
       throw new WorkflowExecutorError(
