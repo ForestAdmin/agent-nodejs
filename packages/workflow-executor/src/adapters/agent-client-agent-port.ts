@@ -1,8 +1,27 @@
 import type { AgentPort } from '../ports/agent-port';
 import type { ActionRef, CollectionRef, RecordData } from '../types/record';
-import type { RemoteAgentClient } from '@forestadmin/agent-client';
+import type { RemoteAgentClient, SelectOptions } from '@forestadmin/agent-client';
 
 import { RecordNotFoundError } from '../errors';
+
+const PK_SEPARATOR = '|';
+
+function buildPkFilter(primaryKeyFields: string[], recordId: string): SelectOptions['filters'] {
+  const values = recordId.split(PK_SEPARATOR);
+
+  if (primaryKeyFields.length === 1) {
+    return { field: primaryKeyFields[0], operator: 'Equal', value: values[0] };
+  }
+
+  return {
+    aggregator: 'And',
+    conditions: primaryKeyFields.map((field, i) => ({
+      field,
+      operator: 'Equal',
+      value: values[i],
+    })),
+  };
+}
 
 export default class AgentClientAgentPort implements AgentPort {
   private readonly client: RemoteAgentClient;
@@ -17,8 +36,9 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async getRecord(collectionName: string, recordId: string): Promise<RecordData> {
+    const ref = this.getCollectionRef(collectionName);
     const records = await this.client.collection(collectionName).list<Record<string, unknown>>({
-      filters: { field: 'id', operator: 'Equal', value: recordId },
+      filters: buildPkFilter(ref.primaryKeyFields, recordId),
       pagination: { size: 1, number: 1 },
     });
 
@@ -26,11 +46,7 @@ export default class AgentClientAgentPort implements AgentPort {
       throw new RecordNotFoundError(collectionName, recordId);
     }
 
-    return {
-      ...this.getCollectionRef(collectionName),
-      recordId,
-      values: records[0],
-    };
+    return { ...ref, recordId, values: records[0] };
   }
 
   async updateRecord(
@@ -42,11 +58,7 @@ export default class AgentClientAgentPort implements AgentPort {
       .collection(collectionName)
       .update<Record<string, unknown>>(recordId, values);
 
-    return {
-      ...this.getCollectionRef(collectionName),
-      recordId,
-      values: updatedRecord,
-    };
+    return { ...this.getCollectionRef(collectionName), recordId, values: updatedRecord };
   }
 
   async getRelatedData(
@@ -91,6 +103,7 @@ export default class AgentClientAgentPort implements AgentPort {
       return {
         collectionName,
         collectionDisplayName: collectionName,
+        primaryKeyFields: ['id'],
         fields: [],
         actions: [],
       };

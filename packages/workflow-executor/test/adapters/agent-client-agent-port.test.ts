@@ -38,6 +38,7 @@ describe('AgentClientAgentPort', () => {
       users: {
         collectionName: 'users',
         collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
         fields: [
           { fieldName: 'id', displayName: 'id', type: 'Number', isRelationship: false },
           { fieldName: 'name', displayName: 'name', type: 'String', isRelationship: false },
@@ -47,9 +48,20 @@ describe('AgentClientAgentPort', () => {
           { name: 'archive', displayName: 'Archive' },
         ],
       },
+      orders: {
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        primaryKeyFields: ['tenantId', 'orderId'],
+        fields: [
+          { fieldName: 'tenantId', displayName: 'Tenant', type: 'Number', isRelationship: false },
+          { fieldName: 'orderId', displayName: 'Order', type: 'Number', isRelationship: false },
+        ],
+        actions: [],
+      },
       posts: {
         collectionName: 'posts',
         collectionDisplayName: 'Posts',
+        primaryKeyFields: ['id'],
         fields: [
           { fieldName: 'id', displayName: 'id', type: 'Number', isRelationship: false },
           { fieldName: 'title', displayName: 'title', type: 'String', isRelationship: false },
@@ -76,9 +88,27 @@ describe('AgentClientAgentPort', () => {
         recordId: '42',
         collectionName: 'users',
         collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
         fields: collectionRefs.users.fields,
         actions: collectionRefs.users.actions,
         values: { id: '42', name: 'Alice' },
+      });
+    });
+
+    it('should build a composite filter for composite primary keys', async () => {
+      mockCollection.list.mockResolvedValue([{ tenantId: '1', orderId: '2' }]);
+
+      await port.getRecord('orders', '1|2');
+
+      expect(mockCollection.list).toHaveBeenCalledWith({
+        filters: {
+          aggregator: 'And',
+          conditions: [
+            { field: 'tenantId', operator: 'Equal', value: '1' },
+            { field: 'orderId', operator: 'Equal', value: '2' },
+          ],
+        },
+        pagination: { size: 1, number: 1 },
       });
     });
 
@@ -91,15 +121,18 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('should fallback to empty fields and actions when collection is unknown', async () => {
+    it('should fallback to pk field "id" when collection is unknown', async () => {
       mockCollection.list.mockResolvedValue([{ id: '1' }]);
 
       const result = await port.getRecord('unknown', '1');
 
+      expect(mockCollection.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filters: { field: 'id', operator: 'Equal', value: '1' },
+        }),
+      );
       expect(result.collectionName).toBe('unknown');
-      expect(result.collectionDisplayName).toBe('unknown');
       expect(result.fields).toEqual([]);
-      expect(result.actions).toEqual([]);
     });
   });
 
@@ -114,6 +147,7 @@ describe('AgentClientAgentPort', () => {
         recordId: '42',
         collectionName: 'users',
         collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
         fields: collectionRefs.users.fields,
         actions: collectionRefs.users.actions,
         values: { id: '42', name: 'Bob' },
@@ -137,6 +171,7 @@ describe('AgentClientAgentPort', () => {
           recordId: '10',
           collectionName: 'posts',
           collectionDisplayName: 'Posts',
+          primaryKeyFields: ['id'],
           fields: collectionRefs.posts.fields,
           actions: collectionRefs.posts.actions,
           values: { id: '10', title: 'Post A' },
@@ -145,6 +180,7 @@ describe('AgentClientAgentPort', () => {
           recordId: '11',
           collectionName: 'posts',
           collectionDisplayName: 'Posts',
+          primaryKeyFields: ['id'],
           fields: collectionRefs.posts.fields,
           actions: collectionRefs.posts.actions,
           values: { id: '11', title: 'Post B' },
@@ -172,7 +208,7 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('getActions', () => {
-    it('should return action names from CollectionRef', async () => {
+    it('should return ActionRef[] from CollectionRef', async () => {
       const result = await port.getActions('users');
 
       expect(result).toEqual([

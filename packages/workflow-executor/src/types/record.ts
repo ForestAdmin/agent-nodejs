@@ -16,6 +16,7 @@ export interface ActionRef {
 export interface CollectionRef {
   collectionName: string;
   collectionDisplayName: string;
+  primaryKeyFields: string[];
   fields: RecordFieldRef[];
   actions: ActionRef[];
 }
