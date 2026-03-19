@@ -11,7 +11,12 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { NoReadableFieldsError, NoRecordsError, WorkflowExecutorError } from '../errors';
+import {
+  NoReadableFieldsError,
+  NoRecordsError,
+  NoResolvedFieldsError,
+  WorkflowExecutorError,
+} from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
@@ -42,16 +47,16 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
         .filter((f): f is FieldReadSuccess => !('error' in f))
         .map(f => f.fieldName);
 
-      if (resolvedFieldNames.length > 0) {
-        const recordData = await this.context.agentPort.getRecord(
-          selectedRecordRef.collectionName,
-          selectedRecordRef.recordId,
-          resolvedFieldNames,
-        );
-        fieldResults = this.formatFieldResults(recordData.values, resolvedFields);
-      } else {
-        fieldResults = resolvedFields as FieldReadResult[];
+      if (resolvedFieldNames.length === 0) {
+        throw new NoResolvedFieldsError(selectedDisplayNames);
       }
+
+      const recordData = await this.context.agentPort.getRecord(
+        selectedRecordRef.collectionName,
+        selectedRecordRef.recordId,
+        resolvedFieldNames,
+      );
+      fieldResults = this.formatFieldResults(recordData.values, resolvedFields);
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return {

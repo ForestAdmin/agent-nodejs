@@ -211,16 +211,21 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], ['email']);
     });
 
-    it('skips getRecord when all fields are unresolved', async () => {
-      const mockModel = makeMockModel({ fieldNames: ['nonexistent'] });
+    it('returns error when no fields can be resolved', async () => {
+      const mockModel = makeMockModel({ fieldNames: ['nonexistent', 'unknown'] });
       const agentPort = makeMockAgentPort();
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, agentPort, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      await executor.execute();
+      const result = await executor.execute();
 
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'None of the requested fields could be resolved: nonexistent, unknown',
+      );
       expect(agentPort.getRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 

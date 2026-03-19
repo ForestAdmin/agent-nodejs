@@ -53,6 +53,7 @@ export {
   RecordNotFoundError,
   NoRecordsError,
   NoReadableFieldsError,
+  NoResolvedFieldsError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
