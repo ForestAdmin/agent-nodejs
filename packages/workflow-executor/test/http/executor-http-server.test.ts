@@ -1,5 +1,5 @@
 import type { RunStore } from '../../src/ports/run-store';
-import type WorkflowRunner from '../../src/runner';
+import type Runner from '../../src/runner';
 
 import request from 'supertest';
 
@@ -13,13 +13,13 @@ function createMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   };
 }
 
-function createMockWorkflowRunner(overrides: Partial<WorkflowRunner> = {}): WorkflowRunner {
+function createMockRunner(overrides: Partial<Runner> = {}): Runner {
   return {
     start: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn().mockResolvedValue(undefined),
     triggerPoll: jest.fn().mockResolvedValue(undefined),
     ...overrides,
-  } as unknown as WorkflowRunner;
+  } as unknown as Runner;
 }
 
 describe('ExecutorHttpServer', () => {
@@ -34,7 +34,7 @@ describe('ExecutorHttpServer', () => {
       const server = new ExecutorHttpServer({
         port: 0,
         runStoreFactory: { buildRunStore: () => runStore },
-        workflowRunner: createMockWorkflowRunner(),
+        runner: createMockRunner(),
       });
 
       const response = await request(server.callback).get('/runs/run-1');
@@ -47,7 +47,7 @@ describe('ExecutorHttpServer', () => {
       const server = new ExecutorHttpServer({
         port: 0,
         runStoreFactory: { buildRunStore: () => null },
-        workflowRunner: createMockWorkflowRunner(),
+        runner: createMockRunner(),
       });
 
       const response = await request(server.callback).get('/runs/unknown');
@@ -58,31 +58,31 @@ describe('ExecutorHttpServer', () => {
   });
 
   describe('POST /runs/:runId/trigger', () => {
-    it('should call workflowRunner.triggerPoll with the runId', async () => {
-      const workflowRunner = createMockWorkflowRunner();
+    it('should call runner.triggerPoll with the runId', async () => {
+      const runner = createMockRunner();
 
       const server = new ExecutorHttpServer({
         port: 0,
         runStoreFactory: { buildRunStore: () => null },
-        workflowRunner,
+        runner,
       });
 
       const response = await request(server.callback).post('/runs/run-1/trigger');
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ triggered: true });
-      expect(workflowRunner.triggerPoll).toHaveBeenCalledWith('run-1');
+      expect(runner.triggerPoll).toHaveBeenCalledWith('run-1');
     });
 
-    it('should propagate errors from workflowRunner', async () => {
-      const workflowRunner = createMockWorkflowRunner({
+    it('should propagate errors from runner', async () => {
+      const runner = createMockRunner({
         triggerPoll: jest.fn().mockRejectedValue(new Error('poll failed')),
       });
 
       const server = new ExecutorHttpServer({
         port: 0,
         runStoreFactory: { buildRunStore: () => null },
-        workflowRunner,
+        runner,
       });
 
       const response = await request(server.callback).post('/runs/run-1/trigger');
@@ -96,7 +96,7 @@ describe('ExecutorHttpServer', () => {
       const server = new ExecutorHttpServer({
         port: 0,
         runStoreFactory: { buildRunStore: () => null },
-        workflowRunner: createMockWorkflowRunner(),
+        runner: createMockRunner(),
       });
 
       await server.start();
@@ -107,7 +107,7 @@ describe('ExecutorHttpServer', () => {
       const server = new ExecutorHttpServer({
         port: 0,
         runStoreFactory: { buildRunStore: () => null },
-        workflowRunner: createMockWorkflowRunner(),
+        runner: createMockRunner(),
       });
 
       await expect(server.stop()).resolves.toBeUndefined();

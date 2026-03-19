@@ -1,5 +1,5 @@
 import type { RunStoreFactory } from './run-store-factory';
-import type WorkflowRunner from '../runner';
+import type Runner from '../runner';
 import type { Server } from 'http';
 
 import Router from '@koa/router';
@@ -9,7 +9,7 @@ import Koa from 'koa';
 export interface ExecutorHttpServerOptions {
   port: number;
   runStoreFactory: RunStoreFactory;
-  workflowRunner: WorkflowRunner;
+  runner: Runner;
 }
 
 export default class ExecutorHttpServer {
@@ -75,7 +75,7 @@ export default class ExecutorHttpServer {
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
 
-    await this.options.workflowRunner.triggerPoll(runId);
+    await this.options.runner.triggerPoll(runId);
 
     ctx.status = 200;
     ctx.body = { triggered: true };

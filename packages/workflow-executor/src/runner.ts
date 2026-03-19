@@ -6,7 +6,7 @@ import type { WorkflowPort } from './ports/workflow-port';
 
 import ExecutorHttpServer from './http/executor-http-server';
 
-export interface WorkflowRunnerConfig {
+export interface RunnerConfig {
   ports: {
     agent: AgentPort;
     workflow: WorkflowPort;
@@ -16,11 +16,11 @@ export interface WorkflowRunnerConfig {
   httpPort?: number;
 }
 
-export default class WorkflowRunner {
-  private readonly config: WorkflowRunnerConfig;
+export default class Runner {
+  private readonly config: RunnerConfig;
   private httpServer: ExecutorHttpServer | null = null;
 
-  constructor(config: WorkflowRunnerConfig) {
+  constructor(config: RunnerConfig) {
     this.config = config;
   }
 
@@ -29,7 +29,7 @@ export default class WorkflowRunner {
       this.httpServer = new ExecutorHttpServer({
         port: this.config.httpPort,
         runStoreFactory: this.config.runStoreFactory,
-        workflowRunner: this,
+        runner: this,
       });
       await this.httpServer.start();
     }
