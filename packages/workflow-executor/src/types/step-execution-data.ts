@@ -47,6 +47,7 @@ export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   executionParams?: { fieldDisplayName: string; value: string };
   /** User confirmed → values returned by updateRecord. User rejected → skipped. */
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
+  /** AI-selected field and value awaiting user confirmation. Used in the confirmation flow only. */
   pendingUpdate?: {
     fieldDisplayName: string;
     value: string;
