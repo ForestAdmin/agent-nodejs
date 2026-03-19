@@ -1,6 +1,5 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { ConditionStepDefinition } from '../types/step-definition';
-import type { ConditionStepHistory } from '../types/step-history';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
@@ -36,14 +35,10 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 - If selecting null: explain why options don't match the question
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-export default class ConditionStepExecutor extends BaseStepExecutor<
-  ConditionStepDefinition,
-  ConditionStepHistory
-> {
-  async execute(
-    step: ConditionStepDefinition,
-    stepHistory: ConditionStepHistory,
-  ): Promise<StepExecutionResult> {
+export default class ConditionStepExecutor extends BaseStepExecutor<ConditionStepDefinition> {
+  async execute(): Promise<StepExecutionResult> {
+    const { stepDefinition: step } = this.context;
+
     const tool = new DynamicStructuredTool({
       name: 'choose-gateway-option',
       description:
@@ -58,7 +53,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
           .nullable()
           .describe('The chosen option, or null if no option clearly answers the question.'),
       }),
-      func: async input => JSON.stringify(input),
+      func: undefined,
     });
 
     const messages = [
@@ -73,8 +68,10 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
       args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
     } catch (error: unknown) {
       return {
-        stepHistory: {
-          ...stepHistory,
+        stepOutcome: {
+          type: 'condition',
+          stepId: this.context.stepId,
+          stepIndex: this.context.stepIndex,
           status: 'error',
           error: (error as Error).message,
         },
@@ -85,17 +82,30 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
 
     await this.context.runStore.saveStepExecution({
       type: 'condition',
-      stepIndex: stepHistory.stepIndex,
+      stepIndex: this.context.stepIndex,
       executionParams: { answer: selectedOption, reasoning },
       executionResult: selectedOption ? { answer: selectedOption } : undefined,
     });
 
     if (!selectedOption) {
-      return { stepHistory: { ...stepHistory, status: 'manual-decision' } };
+      return {
+        stepOutcome: {
+          type: 'condition',
+          stepId: this.context.stepId,
+          stepIndex: this.context.stepIndex,
+          status: 'manual-decision',
+        },
+      };
     }
 
     return {
-      stepHistory: { ...stepHistory, status: 'success', selectedOption },
+      stepOutcome: {
+        type: 'condition',
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        status: 'success',
+        selectedOption,
+      },
     };
   }
 }

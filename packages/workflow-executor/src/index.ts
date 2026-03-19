@@ -1,6 +1,5 @@
 export { StepType } from './types/step-definition';
 export type {
-  StepCategory,
   ConditionStepDefinition,
   AiTaskStepDefinition,
   StepDefinition,
@@ -8,21 +7,35 @@ export type {
 
 export type {
   StepStatus,
-  ConditionStepHistory,
-  AiTaskStepHistory,
-  StepHistory,
-} from './types/step-history';
+  ConditionStepOutcome,
+  AiTaskStepOutcome,
+  StepOutcome,
+} from './types/step-outcome';
 
 export type {
+  FieldReadSuccess,
+  FieldReadError,
+  FieldReadResult,
   ConditionStepExecutionData,
+  ReadRecordStepExecutionData,
   AiTaskStepExecutionData,
+  LoadRelatedRecordStepExecutionData,
+  ExecutedStepExecutionData,
   StepExecutionData,
 } from './types/step-execution-data';
 
-export type { RecordFieldRef, ActionRef, CollectionRef, RecordData } from './types/record';
+export { isExecutedStepOnExecutor } from './types/step-execution-data';
 
 export type {
-  StepRecord,
+  FieldSchema,
+  ActionSchema,
+  CollectionSchema,
+  RecordRef,
+  RecordData,
+} from './types/record';
+
+export type {
+  Step,
   UserInput,
   PendingStepExecution,
   StepExecutionResult,
@@ -38,8 +51,12 @@ export {
   MissingToolCallError,
   MalformedToolCallError,
   RecordNotFoundError,
+  NoRecordsError,
+  NoReadableFieldsError,
+  NoResolvedFieldsError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
+export { default as ReadRecordStepExecutor } from './executors/read-record-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
