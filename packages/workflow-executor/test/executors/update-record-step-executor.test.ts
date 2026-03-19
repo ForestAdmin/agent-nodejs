@@ -213,7 +213,7 @@ describe('UpdateRecordStepExecutor', () => {
           type: 'update-record',
           executionParams: { fieldName: 'Status', value: 'active' },
           executionResult: { updatedValues },
-          pendingUpdate: undefined,
+          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         }),
       );
     });
@@ -242,7 +242,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingUpdate: undefined,
+          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         }),
       );
     });
