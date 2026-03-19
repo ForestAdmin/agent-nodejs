@@ -46,9 +46,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       await this.context.runStore.saveStepExecution({
         ...execution,
         pendingUpdate: undefined,
-        executionResult: {
-          skipped: true,
-        } as unknown as UpdateRecordStepExecutionData['executionResult'],
+        executionResult: { skipped: true },
       });
 
       return {
