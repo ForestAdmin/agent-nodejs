@@ -46,11 +46,12 @@ export default class AgentClientAgentPort implements AgentPort {
     this.collectionSchemas = params.collectionSchemas;
   }
 
-  async getRecord(collectionName: string, recordId: Array<string | number>) {
+  async getRecord(collectionName: string, recordId: Array<string | number>, fieldNames?: string[]) {
     const schema = this.resolveSchema(collectionName);
     const records = await this.client.collection(collectionName).list<Record<string, unknown>>({
       filters: buildPkFilter(schema.primaryKeyFields, recordId),
       pagination: { size: 1, number: 1 },
+      ...(fieldNames?.length && { fields: fieldNames }),
     });
 
     if (records.length === 0) {

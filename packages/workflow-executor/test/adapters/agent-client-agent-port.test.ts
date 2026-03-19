@@ -113,6 +113,40 @@ describe('AgentClientAgentPort', () => {
       await expect(port.getRecord('users', [999])).rejects.toThrow(RecordNotFoundError);
     });
 
+    it('should pass fields to list when fieldNames is provided', async () => {
+      mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
+
+      await port.getRecord('users', [42], ['id', 'name']);
+
+      expect(mockCollection.list).toHaveBeenCalledWith({
+        filters: { field: 'id', operator: 'Equal', value: 42 },
+        pagination: { size: 1, number: 1 },
+        fields: ['id', 'name'],
+      });
+    });
+
+    it('should not pass fields to list when fieldNames is an empty array', async () => {
+      mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
+
+      await port.getRecord('users', [42], []);
+
+      expect(mockCollection.list).toHaveBeenCalledWith({
+        filters: { field: 'id', operator: 'Equal', value: 42 },
+        pagination: { size: 1, number: 1 },
+      });
+    });
+
+    it('should not pass fields to list when fieldNames is undefined', async () => {
+      mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
+
+      await port.getRecord('users', [42]);
+
+      expect(mockCollection.list).toHaveBeenCalledWith({
+        filters: { field: 'id', operator: 'Equal', value: 42 },
+        pagination: { size: 1, number: 1 },
+      });
+    });
+
     it('should fallback to pk field "id" when collection is unknown', async () => {
       mockCollection.list.mockResolvedValue([{ id: 1 }]);
 

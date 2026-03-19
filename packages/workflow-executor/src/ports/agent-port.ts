@@ -3,7 +3,11 @@
 import type { RecordData } from '../types/record';
 
 export interface AgentPort {
-  getRecord(collectionName: string, recordId: Array<string | number>): Promise<RecordData>;
+  getRecord(
+    collectionName: string,
+    recordId: Array<string | number>,
+    fieldNames?: string[],
+  ): Promise<RecordData>;
   updateRecord(
     collectionName: string,
     recordId: Array<string | number>,

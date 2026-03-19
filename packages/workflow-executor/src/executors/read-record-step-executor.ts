@@ -3,6 +3,7 @@ import type { CollectionSchema, RecordRef } from '../types/record';
 import type { AiTaskStepDefinition } from '../types/step-definition';
 import type {
   FieldReadResult,
+  FieldReadSuccess,
   LoadRelatedRecordStepExecutionData,
 } from '../types/step-execution-data';
 
@@ -30,18 +31,22 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
 
     let selectedRecordRef: RecordRef;
     let schema: CollectionSchema;
-    let fieldNames: string[];
-    let values: Record<string, unknown>;
+    let fieldResults: FieldReadResult[];
 
     try {
       selectedRecordRef = await this.selectRecordRef(records, step.prompt);
       schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-      fieldNames = await this.selectFields(schema, step.prompt);
+      const selectedDisplayNames = await this.selectFields(schema, step.prompt);
+      const resolvedFields = this.resolveFieldNames(schema, selectedDisplayNames);
+      const resolvedFieldNames = resolvedFields
+        .filter((f): f is FieldReadSuccess => !('error' in f))
+        .map(f => f.fieldName);
       const recordData = await this.context.agentPort.getRecord(
         selectedRecordRef.collectionName,
         selectedRecordRef.recordId,
+        resolvedFieldNames.length > 0 ? resolvedFieldNames : undefined,
       );
-      values = recordData.values;
+      fieldResults = this.formatFieldResults(recordData.values, resolvedFields);
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return {
@@ -58,12 +63,10 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       throw error;
     }
 
-    const fieldResults = this.formatFieldResults(values, schema, fieldNames);
-
     await this.context.runStore.saveStepExecution({
       type: 'read-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { fieldNames },
+      executionParams: { fieldNames: fieldResults.map(f => f.fieldName) },
       executionResult: { fields: fieldResults },
       selectedRecordRef,
     });
@@ -170,15 +173,22 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
     });
   }
 
-  private formatFieldResults(
-    values: Record<string, unknown>,
-    schema: CollectionSchema,
-    fieldNames: string[],
-  ): FieldReadResult[] {
-    return fieldNames.map(name => {
+  private resolveFieldNames(schema: CollectionSchema, displayNames: string[]): FieldReadResult[] {
+    return displayNames.map(name => {
       const field = schema.fields.find(f => f.fieldName === name || f.displayName === name);
 
       if (!field) return { error: `Field not found: ${name}`, fieldName: name, displayName: name };
+
+      return { value: undefined, fieldName: field.fieldName, displayName: field.displayName };
+    });
+  }
+
+  private formatFieldResults(
+    values: Record<string, unknown>,
+    resolvedFields: FieldReadResult[],
+  ): FieldReadResult[] {
+    return resolvedFields.map(field => {
+      if ('error' in field) return field;
 
       return {
         value: values[field.fieldName],

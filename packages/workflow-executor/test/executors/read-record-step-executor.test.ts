@@ -177,11 +177,50 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
+          executionParams: { fieldNames: ['name'] },
           executionResult: {
             fields: [{ value: 'John Doe', fieldName: 'name', displayName: 'Full Name' }],
           },
         }),
       );
+    });
+  });
+
+  describe('getRecord receives resolved field names', () => {
+    it('passes resolved field names (not display names) to getRecord', async () => {
+      const mockModel = makeMockModel({ fieldNames: ['Full Name', 'Email'] });
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, agentPort, runStore });
+      const executor = new ReadRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], ['name', 'email']);
+    });
+
+    it('passes only resolved field names when some fields are unresolved', async () => {
+      const mockModel = makeMockModel({ fieldNames: ['Email', 'nonexistent'] });
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, agentPort, runStore });
+      const executor = new ReadRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], ['email']);
+    });
+
+    it('omits fieldNames from getRecord when all fields are unresolved', async () => {
+      const mockModel = makeMockModel({ fieldNames: ['nonexistent'] });
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, agentPort, runStore });
+      const executor = new ReadRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], undefined);
     });
   });
 
