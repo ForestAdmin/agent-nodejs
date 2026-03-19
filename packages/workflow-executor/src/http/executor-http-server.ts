@@ -1,5 +1,5 @@
 import type { RunStoreFactory } from './run-store-factory';
-import type WorkflowRunner from '../workflow-runner';
+import type WorkflowRunner from '../runner';
 import type { Server } from 'http';
 
 import Router from '@koa/router';
@@ -44,8 +44,11 @@ export default class ExecutorHttpServer {
         return;
       }
 
-      this.server.close(err => (err ? reject(err) : resolve()));
-      this.server = null;
+      this.server.close(err => {
+        this.server = null;
+        if (err) reject(err);
+        else resolve();
+      });
     });
   }
 
@@ -55,7 +58,7 @@ export default class ExecutorHttpServer {
 
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
-    const runStore = this.options.runStoreFactory.getRunStore(runId);
+    const runStore = this.options.runStoreFactory.buildRunStore(runId);
 
     if (!runStore) {
       ctx.status = 404;

@@ -1,5 +1,5 @@
 import type { RunStore } from '../../src/ports/run-store';
-import type WorkflowRunner from '../../src/workflow-runner';
+import type WorkflowRunner from '../../src/runner';
 
 import request from 'supertest';
 
@@ -33,7 +33,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { getRunStore: () => runStore },
+        runStoreFactory: { buildRunStore: () => runStore },
         workflowRunner: createMockWorkflowRunner(),
       });
 
@@ -46,7 +46,7 @@ describe('ExecutorHttpServer', () => {
     it('should return 404 when run is not found', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { getRunStore: () => null },
+        runStoreFactory: { buildRunStore: () => null },
         workflowRunner: createMockWorkflowRunner(),
       });
 
@@ -63,7 +63,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { getRunStore: () => null },
+        runStoreFactory: { buildRunStore: () => null },
         workflowRunner,
       });
 
@@ -81,7 +81,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { getRunStore: () => null },
+        runStoreFactory: { buildRunStore: () => null },
         workflowRunner,
       });
 
@@ -95,7 +95,7 @@ describe('ExecutorHttpServer', () => {
     it('should start and stop the server', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { getRunStore: () => null },
+        runStoreFactory: { buildRunStore: () => null },
         workflowRunner: createMockWorkflowRunner(),
       });
 
@@ -106,7 +106,7 @@ describe('ExecutorHttpServer', () => {
     it('should handle stop when not started', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { getRunStore: () => null },
+        runStoreFactory: { buildRunStore: () => null },
         workflowRunner: createMockWorkflowRunner(),
       });
 

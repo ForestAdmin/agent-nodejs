@@ -63,5 +63,5 @@ export { default as ForestServerWorkflowPort } from './adapters/forest-server-wo
 export { default as ExecutorHttpServer } from './http/executor-http-server';
 export type { ExecutorHttpServerOptions } from './http/executor-http-server';
 export type { RunStoreFactory } from './http/run-store-factory';
-export { default as WorkflowRunner } from './workflow-runner';
-export type { WorkflowRunnerConfig } from './workflow-runner';
+export { default as WorkflowRunner } from './runner';
+export type { WorkflowRunnerConfig } from './runner';
