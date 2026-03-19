@@ -1,4 +1,4 @@
-import type { RunStoreFactory } from './run-store-factory';
+import type { RunStoreFactory } from '../run-store-factory';
 import type Runner from '../runner';
 import type { Server } from 'http';
 

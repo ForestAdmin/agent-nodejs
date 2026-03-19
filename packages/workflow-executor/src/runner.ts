@@ -1,8 +1,8 @@
 // TODO: implement polling loop, execution dispatch, AI wiring (see spec section 4.1)
 
-import type { RunStoreFactory } from './http/run-store-factory';
 import type { AgentPort } from './ports/agent-port';
 import type { WorkflowPort } from './ports/workflow-port';
+import type { RunStoreFactory } from './run-store-factory';
 
 import ExecutorHttpServer from './http/executor-http-server';
 
