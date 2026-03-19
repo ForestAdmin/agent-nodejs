@@ -45,3 +45,9 @@ export class NoResolvedFieldsError extends WorkflowExecutorError {
     super(`None of the requested fields could be resolved: ${fieldNames.join(', ')}`);
   }
 }
+
+export class NoWritableFieldsError extends WorkflowExecutorError {
+  constructor(collectionName: string) {
+    super(`No writable fields on record from collection "${collectionName}"`);
+  }
+}

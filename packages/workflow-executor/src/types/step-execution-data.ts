@@ -40,6 +40,19 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
   selectedRecordRef: RecordRef;
 }
 
+// -- Update Record --
+
+export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
+  type: 'update-record';
+  executionParams?: { fieldName: string; value: string };
+  executionResult?: { updatedValues: Record<string, unknown> };
+  toolConfirmationInterruption?: {
+    fieldDisplayName: string;
+    value: string;
+  };
+  selectedRecordRef: RecordRef;
+}
+
 // -- Generic AI Task (fallback for untyped steps) --
 
 export interface AiTaskStepExecutionData extends BaseStepExecutionData {
@@ -61,12 +74,14 @@ export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionDat
 export type StepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
+  | UpdateRecordStepExecutionData
   | AiTaskStepExecutionData
   | LoadRelatedRecordStepExecutionData;
 
 export type ExecutedStepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
+  | UpdateRecordStepExecutionData
   | AiTaskStepExecutionData;
 
 // TODO: this condition should change when load-related-record gets its own executor

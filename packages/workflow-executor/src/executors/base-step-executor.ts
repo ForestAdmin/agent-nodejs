@@ -1,17 +1,29 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
+import type { CollectionSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
-import type { StepExecutionData } from '../types/step-execution-data';
+import type {
+  LoadRelatedRecordStepExecutionData,
+  StepExecutionData,
+} from '../types/step-execution-data';
 import type { StepOutcome } from '../types/step-outcome';
 import type { AIMessage, BaseMessage } from '@langchain/core/messages';
-import type { DynamicStructuredTool } from '@langchain/core/tools';
 
-import { SystemMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { DynamicStructuredTool } from '@langchain/core/tools';
+import { z } from 'zod';
 
-import { MalformedToolCallError, MissingToolCallError } from '../errors';
+import {
+  MalformedToolCallError,
+  MissingToolCallError,
+  NoRecordsError,
+  WorkflowExecutorError,
+} from '../errors';
 import { isExecutedStepOnExecutor } from '../types/step-execution-data';
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition> {
   protected readonly context: ExecutionContext<TStep>;
+
+  protected readonly schemaCache = new Map<string, CollectionSchema>();
 
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
@@ -106,5 +118,79 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     }
 
     throw new MissingToolCallError();
+  }
+
+  /** Returns baseRecordRef + any related records loaded by previous steps. */
+  protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
+    const stepExecutions = await this.context.runStore.getStepExecutions();
+    const relatedRecords = stepExecutions
+      .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')
+      .map(e => e.record);
+
+    return [this.context.baseRecordRef, ...relatedRecords];
+  }
+
+  /** Selects a record ref via AI when multiple are available, returns directly when only one. */
+  protected async selectRecordRef(
+    records: RecordRef[],
+    prompt: string | undefined,
+  ): Promise<RecordRef> {
+    if (records.length === 0) throw new NoRecordsError();
+    if (records.length === 1) return records[0];
+
+    const identifiers = await Promise.all(records.map(r => this.toRecordIdentifier(r)));
+    const identifierTuple = identifiers as [string, ...string[]];
+
+    const tool = new DynamicStructuredTool({
+      name: 'select-record',
+      description: 'Select the most relevant record for this workflow step.',
+      schema: z.object({
+        recordIdentifier: z.enum(identifierTuple),
+      }),
+      func: undefined,
+    });
+
+    const messages = [
+      ...(await this.buildPreviousStepsMessages()),
+      new SystemMessage(
+        'You are an AI agent selecting the most relevant record for a workflow step.\n' +
+          'Choose the record whose collection best matches the user request.\n' +
+          'Pay attention to the collection name of each record.',
+      ),
+      new HumanMessage(prompt ?? 'Select the most relevant record.'),
+    ];
+
+    const { recordIdentifier } = await this.invokeWithTool<{ recordIdentifier: string }>(
+      messages,
+      tool,
+    );
+
+    const selectedIndex = identifiers.indexOf(recordIdentifier);
+
+    if (selectedIndex === -1) {
+      throw new WorkflowExecutorError(
+        `AI selected record "${recordIdentifier}" which does not match any available record`,
+      );
+    }
+
+    return records[selectedIndex];
+  }
+
+  /** Fetches a collection schema from WorkflowPort, with caching. */
+  protected async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
+    const cached = this.schemaCache.get(collectionName);
+    if (cached) return cached;
+
+    const schema = await this.context.workflowPort.getCollectionSchema(collectionName);
+    this.schemaCache.set(collectionName, schema);
+
+    return schema;
+  }
+
+  /** Formats a record ref as "Step X - CollectionDisplayName #id". */
+  protected async toRecordIdentifier(record: RecordRef): Promise<string> {
+    const schema = await this.getCollectionSchema(record.collectionName);
+
+    return `Step ${record.stepIndex} - ${schema.collectionDisplayName} #${record.recordId}`;
   }
 }
