@@ -157,7 +157,7 @@ describe('UpdateRecordStepExecutor', () => {
   });
 
   describe('without automaticCompletion: awaiting-input (Branch C)', () => {
-    it('saves interruption and returns awaiting-input', async () => {
+    it('saves execution and returns awaiting-input', async () => {
       const mockModel = makeMockModel({
         fieldName: 'Status',
         value: 'active',
@@ -191,14 +191,14 @@ describe('UpdateRecordStepExecutor', () => {
     it('updates the record when user confirms', async () => {
       const updatedValues = { status: 'active', name: 'John Doe' };
       const agentPort = makeMockAgentPort(updatedValues);
-      const interruption: UpdateRecordStepExecutionData = {
+      const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
         pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([interruption]),
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const userInput: UserInput = { type: 'confirmation', confirmed: true };
       const context = makeContext({ agentPort, runStore, userInput });
@@ -222,14 +222,14 @@ describe('UpdateRecordStepExecutor', () => {
   describe('confirmation rejected (Branch A)', () => {
     it('skips the update when user rejects', async () => {
       const agentPort = makeMockAgentPort();
-      const interruption: UpdateRecordStepExecutionData = {
+      const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
         pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([interruption]),
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const userInput: UserInput = { type: 'confirmation', confirmed: false };
       const context = makeContext({ agentPort, runStore, userInput });
@@ -248,8 +248,8 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
-  describe('no interruption in phase 2 (Branch A)', () => {
-    it('returns error when no pending confirmation is found', async () => {
+  describe('no pending update in phase 2 (Branch A)', () => {
+    it('throws when no pending update is found', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
@@ -257,10 +257,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userInput });
       const executor = new UpdateRecordStepExecutor(context);
 
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('No pending confirmation found for this step');
+      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
     });
   });
 
@@ -444,14 +441,14 @@ describe('UpdateRecordStepExecutor', () => {
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(
         new WorkflowExecutorError('Record locked'),
       );
-      const interruption: UpdateRecordStepExecutionData = {
+      const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
         pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([interruption]),
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const userInput: UserInput = { type: 'confirmation', confirmed: true };
       const context = makeContext({ agentPort, runStore, userInput });
@@ -486,14 +483,14 @@ describe('UpdateRecordStepExecutor', () => {
     it('lets infrastructure errors propagate (Branch A)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
-      const interruption: UpdateRecordStepExecutionData = {
+      const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
         pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([interruption]),
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const userInput: UserInput = { type: 'confirmation', confirmed: true };
       const context = makeContext({ agentPort, runStore, userInput });

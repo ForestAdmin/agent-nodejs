@@ -31,28 +31,20 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
 
   private async handleConfirmation(): Promise<StepExecutionResult> {
     const stepExecutions = await this.context.runStore.getStepExecutions();
-    const interruption = stepExecutions.find(
+    const execution = stepExecutions.find(
       (e): e is UpdateRecordStepExecutionData =>
         e.type === 'update-record' && e.stepIndex === this.context.stepIndex,
     );
 
-    if (!interruption?.pendingUpdate) {
-      return {
-        stepOutcome: {
-          type: 'ai-task',
-          stepId: this.context.stepId,
-          stepIndex: this.context.stepIndex,
-          status: 'error',
-          error: 'No pending confirmation found for this step',
-        },
-      };
+    if (!execution?.pendingUpdate) {
+      throw new WorkflowExecutorError('No pending update found for this step');
     }
 
     const { confirmed } = this.context.userInput as { confirmed: boolean };
 
     if (!confirmed) {
       await this.context.runStore.saveStepExecution({
-        ...interruption,
+        ...execution,
         pendingUpdate: undefined,
         executionResult: {
           skipped: true,
@@ -70,7 +62,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     }
 
     // User confirmed — resolve and update
-    const { selectedRecordRef, pendingUpdate } = interruption;
+    const { selectedRecordRef, pendingUpdate } = execution;
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const { fieldDisplayName, value } = pendingUpdate;
 
@@ -84,7 +76,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       );
 
       await this.context.runStore.saveStepExecution({
-        ...interruption,
+        ...execution,
         pendingUpdate: undefined,
         executionParams: { fieldName: fieldDisplayName, value },
         executionResult: { updatedValues: updated.values },
