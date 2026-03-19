@@ -22,6 +22,9 @@ function createMockRunner(overrides: Partial<Runner> = {}): Runner {
   } as unknown as Runner;
 }
 
+const defaultRunStore = createMockRunStore();
+const defaultRunStoreFactory = { buildRunStore: () => defaultRunStore };
+
 describe('ExecutorHttpServer', () => {
   describe('GET /runs/:runId', () => {
     it('should return steps from the run store', async () => {
@@ -42,19 +45,6 @@ describe('ExecutorHttpServer', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ steps });
     });
-
-    it('should return 404 when run is not found', async () => {
-      const server = new ExecutorHttpServer({
-        port: 0,
-        runStoreFactory: { buildRunStore: () => null },
-        runner: createMockRunner(),
-      });
-
-      const response = await request(server.callback).get('/runs/unknown');
-
-      expect(response.status).toBe(404);
-      expect(response.body.error).toContain('unknown');
-    });
   });
 
   describe('POST /runs/:runId/trigger', () => {
@@ -63,7 +53,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => null },
+        runStoreFactory: defaultRunStoreFactory,
         runner,
       });
 
@@ -81,7 +71,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => null },
+        runStoreFactory: defaultRunStoreFactory,
         runner,
       });
 
@@ -95,7 +85,7 @@ describe('ExecutorHttpServer', () => {
     it('should start and stop the server', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => null },
+        runStoreFactory: defaultRunStoreFactory,
         runner: createMockRunner(),
       });
 
@@ -106,7 +96,7 @@ describe('ExecutorHttpServer', () => {
     it('should handle stop when not started', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => null },
+        runStoreFactory: defaultRunStoreFactory,
         runner: createMockRunner(),
       });
 

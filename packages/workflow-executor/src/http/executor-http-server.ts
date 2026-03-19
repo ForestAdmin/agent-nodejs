@@ -68,14 +68,6 @@ export default class ExecutorHttpServer {
     }
 
     const runStore = this.options.runStoreFactory.buildRunStore(runId);
-
-    if (!runStore) {
-      ctx.status = 404;
-      ctx.body = { error: `Run "${runId}" not found` };
-
-      return;
-    }
-
     const steps = await runStore.getStepExecutions();
 
     ctx.body = { steps };
