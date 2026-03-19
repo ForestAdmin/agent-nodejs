@@ -31,4 +31,7 @@ export interface ToolTaskStepDefinition extends BaseStepDefinition {
   automaticCompletion?: boolean;
 }
 
-export type StepDefinition = ConditionStepDefinition | RecordTaskStepDefinition | ToolTaskStepDefinition;
+export type StepDefinition =
+  | ConditionStepDefinition
+  | RecordTaskStepDefinition
+  | ToolTaskStepDefinition;
