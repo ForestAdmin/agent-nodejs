@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { NoWritableFieldsError, WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { findField } from '../types/record';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
 Select the field to update and provide the new value.
@@ -195,9 +196,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
   }
 
   private resolveFieldName(schema: CollectionSchema, displayName: string): string {
-    const field = schema.fields.find(
-      f => f.displayName === displayName || f.fieldName === displayName,
-    );
+    const field = findField(schema, displayName);
 
     if (!field) {
       throw new WorkflowExecutorError(

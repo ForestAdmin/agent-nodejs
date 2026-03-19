@@ -34,6 +34,7 @@ export type {
   RecordRef,
   RecordData,
 } from './types/record';
+export { findField } from './types/record';
 
 export type {
   Step,

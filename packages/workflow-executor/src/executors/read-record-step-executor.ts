@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { NoReadableFieldsError, NoResolvedFieldsError, WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { findField } from '../types/record';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
@@ -32,10 +33,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const selectedDisplayNames = await this.selectFields(schema, step.prompt);
       const resolvedFieldNames = selectedDisplayNames
-        .map(
-          name =>
-            schema.fields.find(f => f.fieldName === name || f.displayName === name)?.fieldName,
-        )
+        .map(name => findField(schema, name)?.fieldName)
         .filter((name): name is string => name !== undefined);
 
       if (resolvedFieldNames.length === 0) {
@@ -135,7 +133,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
     fieldNames: string[],
   ): FieldReadResult[] {
     return fieldNames.map(name => {
-      const field = schema.fields.find(f => f.fieldName === name || f.displayName === name);
+      const field = findField(schema, name);
 
       if (!field) return { error: `Field not found: ${name}`, fieldName: name, displayName: name };
 
