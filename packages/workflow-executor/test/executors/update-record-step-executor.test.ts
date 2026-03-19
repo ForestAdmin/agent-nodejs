@@ -3,14 +3,14 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext, UserInput } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
-import type { AiTaskStepDefinition } from '../../src/types/step-definition';
+import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
 
 import { WorkflowExecutorError } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<AiTaskStepDefinition> = {}): AiTaskStepDefinition {
+function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
   return {
     type: StepType.UpdateRecord,
     prompt: 'Set the customer status to active',
@@ -96,8 +96,8 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'updat
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<AiTaskStepDefinition>> = {},
-): ExecutionContext<AiTaskStepDefinition> {
+  overrides: Partial<ExecutionContext<RecordTaskStepDefinition>> = {},
+): ExecutionContext<RecordTaskStepDefinition> {
   return {
     runId: 'run-1',
     stepId: 'update-1',

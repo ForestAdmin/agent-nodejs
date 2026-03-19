@@ -19,7 +19,7 @@ export interface ConditionStepDefinition extends BaseStepDefinition {
   options: [string, ...string[]];
 }
 
-export interface AiTaskStepDefinition extends BaseStepDefinition {
+export interface RecordTaskStepDefinition extends BaseStepDefinition {
   type: Exclude<StepType, StepType.Condition>;
   recordSourceStepId?: string;
   automaticCompletion?: boolean;
@@ -27,4 +27,4 @@ export interface AiTaskStepDefinition extends BaseStepDefinition {
   remoteToolsSourceId?: string;
 }
 
-export type StepDefinition = ConditionStepDefinition | AiTaskStepDefinition;
+export type StepDefinition = ConditionStepDefinition | RecordTaskStepDefinition;

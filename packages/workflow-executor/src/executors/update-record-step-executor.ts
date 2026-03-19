@@ -1,6 +1,6 @@
 import type { StepExecutionResult, UserInput } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
-import type { AiTaskStepDefinition } from '../types/step-definition';
+import type { RecordTaskStepDefinition } from '../types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../types/step-execution-data';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -18,7 +18,7 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskStepDefinition> {
+export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry with user confirmation
     if (this.context.userInput) {

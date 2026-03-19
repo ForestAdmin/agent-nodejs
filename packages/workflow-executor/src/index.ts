@@ -1,14 +1,14 @@
 export { StepType } from './types/step-definition';
 export type {
   ConditionStepDefinition,
-  AiTaskStepDefinition,
+  RecordTaskStepDefinition,
   StepDefinition,
 } from './types/step-definition';
 
 export type {
   StepStatus,
   ConditionStepOutcome,
-  AiTaskStepOutcome,
+  RecordTaskStepOutcome,
   StepOutcome,
 } from './types/step-outcome';
 
@@ -19,7 +19,7 @@ export type {
   ConditionStepExecutionData,
   ReadRecordStepExecutionData,
   UpdateRecordStepExecutionData,
-  AiTaskStepExecutionData,
+  RecordTaskStepExecutionData,
   LoadRelatedRecordStepExecutionData,
   ExecutedStepExecutionData,
   StepExecutionData,

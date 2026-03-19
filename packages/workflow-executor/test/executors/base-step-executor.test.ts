@@ -220,14 +220,14 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('"error":"AI could not match an option"');
     });
 
-    it('includes status in History for ai-task steps without RunStore data', async () => {
+    it('includes status in History for record-task steps without RunStore data', async () => {
       const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
         stepDefinition: {
           type: StepType.ReadRecord,
           prompt: 'Run task',
         },
         stepOutcome: {
-          type: 'ai-task',
+          type: 'record-task',
           stepId: 'ai-step',
           stepIndex: 0,
           status: 'awaiting-input',
@@ -263,7 +263,7 @@ describe('BaseStepExecutor', () => {
           prompt: 'Read name',
         },
         stepOutcome: {
-          type: 'ai-task',
+          type: 'record-task',
           stepId: 'read-customer',
           stepIndex: 1,
           status: 'success',
@@ -275,7 +275,7 @@ describe('BaseStepExecutor', () => {
           previousSteps: [condEntry, aiEntry],
           runStore: makeMockRunStore([
             {
-              type: 'ai-task',
+              type: 'record-task',
               stepIndex: 1,
               executionParams: { answer: 'John Doe' },
             },
@@ -327,7 +327,7 @@ describe('BaseStepExecutor', () => {
           prompt: 'Do something',
         },
         stepOutcome: {
-          type: 'ai-task',
+          type: 'record-task',
           stepId: 'ai-step',
           stepIndex: 0,
           status: 'success',
@@ -339,7 +339,7 @@ describe('BaseStepExecutor', () => {
           previousSteps: [entry],
           runStore: makeMockRunStore([
             {
-              type: 'ai-task',
+              type: 'record-task',
               stepIndex: 0,
             },
           ]),

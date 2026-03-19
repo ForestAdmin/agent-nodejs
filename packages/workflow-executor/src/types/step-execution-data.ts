@@ -57,8 +57,8 @@ export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Generic AI Task (fallback for untyped steps) --
 
-export interface AiTaskStepExecutionData extends BaseStepExecutionData {
-  type: 'ai-task';
+export interface RecordTaskStepExecutionData extends BaseStepExecutionData {
+  type: 'record-task';
   executionParams?: Record<string, unknown>;
   executionResult?: Record<string, unknown>;
   toolConfirmationInterruption?: Record<string, unknown>;
@@ -77,14 +77,14 @@ export type StepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
   | UpdateRecordStepExecutionData
-  | AiTaskStepExecutionData
+  | RecordTaskStepExecutionData
   | LoadRelatedRecordStepExecutionData;
 
 export type ExecutedStepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
   | UpdateRecordStepExecutionData
-  | AiTaskStepExecutionData;
+  | RecordTaskStepExecutionData;
 
 // TODO: this condition should change when load-related-record gets its own executor
 // and produces executionParams/executionResult like other steps.

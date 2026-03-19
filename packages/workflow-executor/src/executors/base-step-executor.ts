@@ -46,7 +46,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   ): StepExecutionResult {
     return {
       stepOutcome: {
-        type: 'ai-task',
+        type: 'record-task',
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
         status,
