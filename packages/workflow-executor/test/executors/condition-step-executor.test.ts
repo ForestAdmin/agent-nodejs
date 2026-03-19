@@ -261,7 +261,7 @@ describe('ConditionStepExecutor', () => {
   });
 
   describe('error propagation', () => {
-    it('returns error status when model invocation fails', async () => {
+    it('lets infrastructure errors propagate', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const context = makeContext({
@@ -269,10 +269,7 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(context);
 
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('API timeout');
+      await expect(executor.execute()).rejects.toThrow('API timeout');
     });
 
     it('lets run store errors propagate', async () => {

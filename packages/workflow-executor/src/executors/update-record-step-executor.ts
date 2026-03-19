@@ -9,7 +9,6 @@ import { z } from 'zod';
 
 import { NoWritableFieldsError, WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
-import { findField } from '../types/record';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
 Select the field to update and provide the new value.
@@ -109,23 +108,16 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     value: string,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
+    let updated: { values: Record<string, unknown> };
+
     try {
       const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const fieldName = this.resolveFieldName(schema, fieldDisplayName);
-      const updated = await this.context.agentPort.updateRecord(
+      updated = await this.context.agentPort.updateRecord(
         selectedRecordRef.collectionName,
         selectedRecordRef.recordId,
         { [fieldName]: value },
       );
-
-      await this.context.runStore.saveStepExecution({
-        ...existingExecution,
-        type: 'update-record',
-        stepIndex: this.context.stepIndex,
-        executionParams: { fieldDisplayName, value },
-        executionResult: { updatedValues: updated.values },
-        selectedRecordRef,
-      });
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return this.buildOutcomeResult('error', error.message);
@@ -134,22 +126,16 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       throw error;
     }
 
-    return this.buildOutcomeResult('success');
-  }
+    await this.context.runStore.saveStepExecution({
+      ...existingExecution,
+      type: 'update-record',
+      stepIndex: this.context.stepIndex,
+      executionParams: { fieldDisplayName, value },
+      executionResult: { updatedValues: updated.values },
+      selectedRecordRef,
+    });
 
-  private buildOutcomeResult(
-    status: 'success' | 'error' | 'awaiting-input',
-    error?: string,
-  ): StepExecutionResult {
-    return {
-      stepOutcome: {
-        type: 'ai-task',
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        status,
-        ...(error && { error }),
-      },
-    };
+    return this.buildOutcomeResult('success');
   }
 
   private async selectFieldAndValue(
@@ -196,7 +182,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
   }
 
   private resolveFieldName(schema: CollectionSchema, displayName: string): string {
-    const field = findField(schema, displayName);
+    const field = this.findField(schema, displayName);
 
     if (!field) {
       throw new WorkflowExecutorError(

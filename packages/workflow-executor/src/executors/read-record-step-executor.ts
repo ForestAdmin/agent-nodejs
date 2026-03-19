@@ -9,7 +9,6 @@ import { z } from 'zod';
 
 import { NoReadableFieldsError, NoResolvedFieldsError, WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
-import { findField } from '../types/record';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
@@ -33,7 +32,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const selectedDisplayNames = await this.selectFields(schema, step.prompt);
       const resolvedFieldNames = selectedDisplayNames
-        .map(name => findField(schema, name)?.fieldName)
+        .map(name => this.findField(schema, name)?.fieldName)
         .filter((name): name is string => name !== undefined);
 
       if (resolvedFieldNames.length === 0) {
@@ -48,15 +47,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
-        return {
-          stepOutcome: {
-            type: 'ai-task',
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
-            status: 'error',
-            error: error.message,
-          },
-        };
+        return this.buildOutcomeResult('error', error.message);
       }
 
       throw error;
@@ -70,14 +61,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       selectedRecordRef,
     });
 
-    return {
-      stepOutcome: {
-        type: 'ai-task',
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        status: 'success',
-      },
-    };
+    return this.buildOutcomeResult('success');
   }
 
   private async selectFields(
@@ -133,7 +117,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
     fieldNames: string[],
   ): FieldReadResult[] {
     return fieldNames.map(name => {
-      const field = findField(schema, name);
+      const field = this.findField(schema, name);
 
       if (!field) return { error: `Field not found: ${name}`, fieldName: name, displayName: name };
 

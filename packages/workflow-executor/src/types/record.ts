@@ -21,11 +21,6 @@ export interface CollectionSchema {
   actions: ActionSchema[];
 }
 
-/** Find a field by fieldName or displayName. */
-export function findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
-  return schema.fields.find(f => f.fieldName === name || f.displayName === name);
-}
-
 // -- Record types (data — source: AgentPort/RunStore) --
 
 /** Lightweight pointer to a specific record. */

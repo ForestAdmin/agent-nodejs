@@ -1,5 +1,5 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
-import type { CollectionSchema, RecordRef } from '../types/record';
+import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type {
   LoadRelatedRecordStepExecutionData,
@@ -30,6 +30,30 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   abstract execute(): Promise<StepExecutionResult>;
+
+  /** Find a field by displayName first, then fallback to fieldName. */
+  protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
+    return (
+      schema.fields.find(f => f.displayName === name) ??
+      schema.fields.find(f => f.fieldName === name)
+    );
+  }
+
+  /** Builds a StepExecutionResult with the given status and optional error. */
+  protected buildOutcomeResult(
+    status: 'success' | 'error' | 'awaiting-input',
+    error?: string,
+  ): StepExecutionResult {
+    return {
+      stepOutcome: {
+        type: 'ai-task',
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        status,
+        ...(error !== undefined && { error }),
+      },
+    };
+  }
 
   /**
    * Returns a SystemMessage array summarizing previously executed steps.
@@ -73,6 +97,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     if (isExecutedStepOnExecutor(execution)) {
       if (execution.executionParams !== undefined) {
         lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
+      } else if (execution.type === 'update-record' && execution.pendingUpdate) {
+        lines.push(`  Pending: ${JSON.stringify(execution.pendingUpdate)}`);
       }
 
       if (execution.executionResult) {
