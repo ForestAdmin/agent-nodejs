@@ -1,4 +1,4 @@
-import type { StepExecutionResult } from '../types/execution';
+import type { StepExecutionResult, UserInput } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
 import type { AiTaskStepDefinition } from '../types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../types/step-execution-data';
@@ -22,14 +22,14 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
   async execute(): Promise<StepExecutionResult> {
     // Branch A — Re-entry with user confirmation
     if (this.context.userInput) {
-      return this.handleConfirmation();
+      return this.handleConfirmation(this.context.userInput);
     }
 
     // Branches B & C — First call
     return this.handleFirstCall();
   }
 
-  private async handleConfirmation(): Promise<StepExecutionResult> {
+  private async handleConfirmation(userInput: UserInput): Promise<StepExecutionResult> {
     const stepExecutions = await this.context.runStore.getStepExecutions();
     const execution = stepExecutions.find(
       (e): e is UpdateRecordStepExecutionData =>
@@ -40,7 +40,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       throw new WorkflowExecutorError('No pending update found for this step');
     }
 
-    const { confirmed } = this.context.userInput as { confirmed: boolean };
+    const { confirmed } = userInput;
 
     if (!confirmed) {
       await this.context.runStore.saveStepExecution({
@@ -63,9 +63,8 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const { fieldDisplayName, value } = pendingUpdate;
 
-    const fieldName = this.resolveFieldName(schema, fieldDisplayName);
-
     try {
+      const fieldName = this.resolveFieldName(schema, fieldDisplayName);
       const updated = await this.context.agentPort.updateRecord(
         selectedRecordRef.collectionName,
         selectedRecordRef.recordId,
@@ -163,9 +162,8 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     fieldDisplayName: string,
     value: string,
   ): Promise<StepExecutionResult> {
-    const fieldName = this.resolveFieldName(schema, fieldDisplayName);
-
     try {
+      const fieldName = this.resolveFieldName(schema, fieldDisplayName);
       const updated = await this.context.agentPort.updateRecord(
         selectedRecordRef.collectionName,
         selectedRecordRef.recordId,
