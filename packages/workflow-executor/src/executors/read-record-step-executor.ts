@@ -3,7 +3,6 @@ import type { CollectionSchema, RecordRef } from '../types/record';
 import type { AiTaskStepDefinition } from '../types/step-definition';
 import type {
   FieldReadResult,
-  FieldReadSuccess,
   LoadRelatedRecordStepExecutionData,
 } from '../types/step-execution-data';
 
@@ -42,10 +41,12 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       selectedRecordRef = await this.selectRecordRef(records, step.prompt);
       schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const selectedDisplayNames = await this.selectFields(schema, step.prompt);
-      const resolvedFields = this.resolveFieldNames(schema, selectedDisplayNames);
-      const resolvedFieldNames = resolvedFields
-        .filter((f): f is FieldReadSuccess => !('error' in f))
-        .map(f => f.fieldName);
+      const resolvedFieldNames = selectedDisplayNames
+        .map(
+          name =>
+            schema.fields.find(f => f.fieldName === name || f.displayName === name)?.fieldName,
+        )
+        .filter((name): name is string => name !== undefined);
 
       if (resolvedFieldNames.length === 0) {
         throw new NoResolvedFieldsError(selectedDisplayNames);
@@ -56,7 +57,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
         selectedRecordRef.recordId,
         resolvedFieldNames,
       );
-      fieldResults = this.formatFieldResults(recordData.values, resolvedFields);
+      fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return {
@@ -183,22 +184,15 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
     });
   }
 
-  private resolveFieldNames(schema: CollectionSchema, displayNames: string[]): FieldReadResult[] {
-    return displayNames.map(name => {
+  private formatFieldResults(
+    values: Record<string, unknown>,
+    schema: CollectionSchema,
+    fieldNames: string[],
+  ): FieldReadResult[] {
+    return fieldNames.map(name => {
       const field = schema.fields.find(f => f.fieldName === name || f.displayName === name);
 
       if (!field) return { error: `Field not found: ${name}`, fieldName: name, displayName: name };
-
-      return { value: undefined, fieldName: field.fieldName, displayName: field.displayName };
-    });
-  }
-
-  private formatFieldResults(
-    values: Record<string, unknown>,
-    resolvedFields: FieldReadResult[],
-  ): FieldReadResult[] {
-    return resolvedFields.map(field => {
-      if ('error' in field) return field;
 
       return {
         value: values[field.fieldName],
