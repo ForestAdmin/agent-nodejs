@@ -6,6 +6,7 @@ export enum StepType {
   UpdateRecord = 'update-record',
   TriggerAction = 'trigger-action',
   LoadRelatedRecord = 'load-related-record',
+  ToolTask = 'tool-task',
 }
 
 interface BaseStepDefinition {
@@ -20,9 +21,14 @@ export interface ConditionStepDefinition extends BaseStepDefinition {
 }
 
 export interface RecordTaskStepDefinition extends BaseStepDefinition {
-  type: Exclude<StepType, StepType.Condition>;
+  type: Exclude<StepType, StepType.Condition | StepType.ToolTask>;
   automaticCompletion?: boolean;
-  allowedTools?: string[];
 }
 
-export type StepDefinition = ConditionStepDefinition | RecordTaskStepDefinition;
+export interface ToolTaskStepDefinition extends BaseStepDefinition {
+  type: StepType.ToolTask;
+  allowedTools?: string[];
+  automaticCompletion?: boolean;
+}
+
+export type StepDefinition = ConditionStepDefinition | RecordTaskStepDefinition | ToolTaskStepDefinition;

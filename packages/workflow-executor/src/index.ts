@@ -2,6 +2,7 @@ export { StepType } from './types/step-definition';
 export type {
   ConditionStepDefinition,
   RecordTaskStepDefinition,
+  ToolTaskStepDefinition,
   StepDefinition,
 } from './types/step-definition';
 
