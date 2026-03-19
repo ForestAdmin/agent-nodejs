@@ -8,6 +8,8 @@ import ActionFieldColorPicker from '../action-fields/action-field-color-picker';
 import ActionFieldDate from '../action-fields/action-field-date';
 import ActionFieldDropdown from '../action-fields/action-field-dropdown';
 import ActionFieldEnum from '../action-fields/action-field-enum';
+import ActionFieldFile from '../action-fields/action-field-file';
+import ActionFieldFileList from '../action-fields/action-field-file-list';
 import ActionFieldJson from '../action-fields/action-field-json';
 import ActionFieldNumber from '../action-fields/action-field-number';
 import ActionFieldNumberList from '../action-fields/action-field-number-list';
@@ -124,6 +126,11 @@ export default class Action {
         return this.getDateField(fieldName);
       case 'Enum':
         return this.getEnumField(fieldName);
+      case 'File':
+        return this.getFileField(fieldName);
+      case 'FileList':
+      case '["File"]':
+        return this.getFileListField(fieldName);
       case 'String':
       default:
         return this.getFieldString(fieldName);
@@ -172,6 +179,14 @@ export default class Action {
 
   getEnumField(fieldName: string): ActionFieldEnum {
     return new ActionFieldEnum(fieldName, this.fieldsFormStates);
+  }
+
+  getFileField(fieldName: string): ActionFieldFile {
+    return new ActionFieldFile(fieldName, this.fieldsFormStates);
+  }
+
+  getFileListField(fieldName: string): ActionFieldFileList {
+    return new ActionFieldFileList(fieldName, this.fieldsFormStates);
   }
 
   getRadioGroupField(fieldName: string): ActionFieldRadioGroup {
