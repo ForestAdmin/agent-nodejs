@@ -20,12 +20,12 @@ Important rules:
 
 export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
-    // Branch A — Re-entry with user confirmation
+    // Branch A -- Re-entry with user confirmation
     if (this.context.userInput) {
       return this.handleConfirmation(this.context.userInput);
     }
 
-    // Branches B & C — First call
+    // Branches B & C -- First call
     return this.handleFirstCall();
   }
 
@@ -40,66 +40,23 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       throw new WorkflowExecutorError('No pending update found for this step');
     }
 
-    const { confirmed } = userInput;
-
-    if (!confirmed) {
+    if (!userInput.confirmed) {
       await this.context.runStore.saveStepExecution({
         ...execution,
         executionResult: { skipped: true },
       });
 
-      return {
-        stepOutcome: {
-          type: 'ai-task',
-          stepId: this.context.stepId,
-          stepIndex: this.context.stepIndex,
-          status: 'success',
-        },
-      };
+      return this.buildSuccessResult();
     }
 
-    // User confirmed — resolve and update
     const { selectedRecordRef, pendingUpdate } = execution;
-    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const { fieldDisplayName, value } = pendingUpdate;
 
-    try {
-      const fieldName = this.resolveFieldName(schema, fieldDisplayName);
-      const updated = await this.context.agentPort.updateRecord(
-        selectedRecordRef.collectionName,
-        selectedRecordRef.recordId,
-        { [fieldName]: value },
-      );
-
-      await this.context.runStore.saveStepExecution({
-        ...execution,
-        executionParams: { fieldName: fieldDisplayName, value },
-        executionResult: { updatedValues: updated.values },
-      });
-    } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return {
-          stepOutcome: {
-            type: 'ai-task',
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
-            status: 'error',
-            error: error.message,
-          },
-        };
-      }
-
-      throw error;
-    }
-
-    return {
-      stepOutcome: {
-        type: 'ai-task',
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        status: 'success',
-      },
-    };
+    return this.resolveAndUpdate(
+      selectedRecordRef,
+      pendingUpdate.fieldDisplayName,
+      pendingUpdate.value,
+      execution,
+    );
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
@@ -107,38 +64,29 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     const records = await this.getAvailableRecordRefs();
 
     let selectedRecordRef: RecordRef;
-    let schema: CollectionSchema;
     let fieldDisplayName: string;
     let value: string;
 
     try {
       selectedRecordRef = await this.selectRecordRef(records, step.prompt);
-      schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+      const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const args = await this.selectFieldAndValue(schema, step.prompt);
       fieldDisplayName = args.fieldName;
       value = args.value;
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
-        return {
-          stepOutcome: {
-            type: 'ai-task',
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
-            status: 'error',
-            error: error.message,
-          },
-        };
+        return this.buildErrorResult(error.message);
       }
 
       throw error;
     }
 
-    // Branch B — automaticCompletion
+    // Branch B -- automaticCompletion
     if (step.automaticCompletion) {
-      return this.executeUpdate(selectedRecordRef, schema, fieldDisplayName, value);
+      return this.resolveAndUpdate(selectedRecordRef, fieldDisplayName, value);
     }
 
-    // Branch C — Awaiting confirmation
+    // Branch C -- Awaiting confirmation
     await this.context.runStore.saveStepExecution({
       type: 'update-record',
       stepIndex: this.context.stepIndex,
@@ -146,23 +94,22 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       selectedRecordRef,
     });
 
-    return {
-      stepOutcome: {
-        type: 'ai-task',
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        status: 'awaiting-input',
-      },
-    };
+    return this.buildOutcomeResult('awaiting-input');
   }
 
-  private async executeUpdate(
+  /**
+   * Resolves the field name, calls updateRecord, and persists execution data.
+   * When `existingExecution` is provided (confirmation flow), it spreads its
+   * properties into the saved execution to preserve pendingUpdate for traceability.
+   */
+  private async resolveAndUpdate(
     selectedRecordRef: RecordRef,
-    schema: CollectionSchema,
     fieldDisplayName: string,
     value: string,
+    existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
     try {
+      const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const fieldName = this.resolveFieldName(schema, fieldDisplayName);
       const updated = await this.context.agentPort.updateRecord(
         selectedRecordRef.collectionName,
@@ -171,36 +118,45 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       );
 
       await this.context.runStore.saveStepExecution({
+        ...existingExecution,
         type: 'update-record',
         stepIndex: this.context.stepIndex,
-        executionParams: { fieldName: fieldDisplayName, value },
+        executionParams: { fieldDisplayName, value },
         executionResult: { updatedValues: updated.values },
         selectedRecordRef,
       });
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
-        return {
-          stepOutcome: {
-            type: 'ai-task',
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
-            status: 'error',
-            error: error.message,
-          },
-        };
+        return this.buildErrorResult(error.message);
       }
 
       throw error;
     }
 
+    return this.buildSuccessResult();
+  }
+
+  private buildOutcomeResult(
+    status: 'success' | 'error' | 'awaiting-input',
+    error?: string,
+  ): StepExecutionResult {
     return {
       stepOutcome: {
         type: 'ai-task',
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
-        status: 'success',
+        status,
+        ...(error && { error }),
       },
     };
+  }
+
+  private buildSuccessResult(): StepExecutionResult {
+    return this.buildOutcomeResult('success');
+  }
+
+  private buildErrorResult(error: string): StepExecutionResult {
+    return this.buildOutcomeResult('error', error);
   }
 
   private async selectFieldAndValue(

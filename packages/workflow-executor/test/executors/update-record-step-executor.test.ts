@@ -145,7 +145,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          executionParams: { fieldName: 'Status', value: 'active' },
+          executionParams: { fieldDisplayName: 'Status', value: 'active' },
           executionResult: { updatedValues },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
@@ -211,7 +211,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'update-record',
-          executionParams: { fieldName: 'Status', value: 'active' },
+          executionParams: { fieldDisplayName: 'Status', value: 'active' },
           executionResult: { updatedValues },
           pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         }),
@@ -362,6 +362,86 @@ describe('UpdateRecordStepExecutor', () => {
         'No writable fields on record from collection "customers"',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resolveFieldName failure', () => {
+    it('returns error when field is not found during confirmation (Branch A)', async () => {
+      const schema = makeCollectionSchema({
+        fields: [{ fieldName: 'email', displayName: 'Email', isRelationship: false }],
+      });
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingUpdate: { fieldDisplayName: 'NonExistentField', value: 'active' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const workflowPort = makeMockWorkflowPort({ customers: schema });
+      const userInput: UserInput = { type: 'confirmation', confirmed: true };
+      const context = makeContext({ runStore, workflowPort, userInput });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'Field "NonExistentField" not found in collection "customers"',
+      );
+    });
+
+    it('returns error when field is not found during automaticCompletion (Branch B)', async () => {
+      // AI returns a display name that doesn't match any field in the schema
+      const mockModel = makeMockModel({
+        fieldName: 'NonExistentField',
+        value: 'test',
+        reasoning: 'test',
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ automaticCompletion: true }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'Field "NonExistentField" not found in collection "customers"',
+      );
+    });
+  });
+
+  describe('relationship fields excluded from update tool', () => {
+    it('excludes relationship fields from the tool schema', async () => {
+      const mockModel = makeMockModel({
+        fieldName: 'Status',
+        value: 'active',
+        reasoning: 'test',
+      });
+      const context = makeContext({ model: mockModel.model });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      // Second bindTools call is for update-record-field (first may be select-record)
+      const lastCall = mockModel.bindTools.mock.calls[mockModel.bindTools.mock.calls.length - 1];
+      const tool = lastCall[0][0];
+      expect(tool.name).toBe('update-record-field');
+
+      // Non-relationship display names should be accepted
+      expect(tool.schema.parse({ fieldName: 'Email', value: 'x', reasoning: 'r' })).toBeTruthy();
+      expect(tool.schema.parse({ fieldName: 'Status', value: 'x', reasoning: 'r' })).toBeTruthy();
+      expect(
+        tool.schema.parse({ fieldName: 'Full Name', value: 'x', reasoning: 'r' }),
+      ).toBeTruthy();
+
+      // Relationship display name should be rejected
+      expect(() =>
+        tool.schema.parse({ fieldName: 'Orders', value: 'x', reasoning: 'r' }),
+      ).toThrow();
     });
   });
 
