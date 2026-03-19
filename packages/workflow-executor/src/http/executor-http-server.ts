@@ -59,6 +59,14 @@ export default class ExecutorHttpServer {
 
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
+
+    if (!runId) {
+      ctx.status = 400;
+      ctx.body = { error: 'Missing runId parameter' };
+
+      return;
+    }
+
     const runStore = this.options.runStoreFactory.buildRunStore(runId);
 
     if (!runStore) {
@@ -75,6 +83,13 @@ export default class ExecutorHttpServer {
 
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
+
+    if (!runId) {
+      ctx.status = 400;
+      ctx.body = { error: 'Missing runId parameter' };
+
+      return;
+    }
 
     await this.options.runner.triggerPoll(runId);
 
