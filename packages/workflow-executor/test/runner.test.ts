@@ -11,10 +11,8 @@ const MockedExecutorHttpServer = ExecutorHttpServer as jest.MockedClass<typeof E
 
 function createRunnerConfig(overrides: { httpPort?: number } = {}) {
   return {
-    ports: {
-      agent: {} as AgentPort,
-      workflow: {} as WorkflowPort,
-    },
+    agentPort: {} as AgentPort,
+    workflowPort: {} as WorkflowPort,
     runStoreFactory: { buildRunStore: jest.fn() } as unknown as RunStoreFactory,
     pollingIntervalMs: 2000,
     ...overrides,

@@ -7,10 +7,8 @@ import type { RunStoreFactory } from './run-store-factory';
 import ExecutorHttpServer from './http/executor-http-server';
 
 export interface RunnerConfig {
-  ports: {
-    agent: AgentPort;
-    workflow: WorkflowPort;
-  };
+  agentPort: AgentPort;
+  workflowPort: WorkflowPort;
   runStoreFactory: RunStoreFactory;
   pollingIntervalMs: number;
   httpPort?: number;
