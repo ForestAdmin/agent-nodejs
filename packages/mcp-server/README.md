@@ -59,6 +59,33 @@ export MCP_SERVER_PORT=3931
 npx forest-mcp-server
 ```
 
+### Token Generation
+
+Generate an MCP authentication token from a Forest Admin Personal Access Token, without the browser OAuth flow:
+
+```bash
+npx @forestadmin/mcp-server generate-token \
+  --env-file .env \
+  --rendering-id <RENDERING_ID>
+```
+
+The token is printed to stdout, ready to be used as a Bearer token with the MCP server.
+
+#### Options
+
+| Flag | Env Variable | Required | Default | Description |
+|------|-------------|----------|---------|-------------|
+| `--env-file` | - | No | - | Path to a `.env` file to load |
+| `--env-secret` | `FOREST_ENV_SECRET` | **Yes** | - | Environment secret (64 hex chars) |
+| `--auth-secret` | `FOREST_AUTH_SECRET` | **Yes** | - | Authentication secret (must match your agent) |
+| `--token` | `FOREST_PERSONAL_TOKEN` | **Yes** | - | Forest Admin personal access token |
+| `--rendering-id` | `FOREST_RENDERING_ID` | **Yes** | - | Rendering ID from your project URL |
+| `--expires-in` | - | No | `1h` | Token lifetime (`30m`, `2h`, `7d`, etc. Max 60 days) |
+
+All flags can be provided via environment variables (directly or through `--env-file`). CLI flags take precedence over env variables.
+
+Find your rendering ID in your Forest Admin project URL: `app.forestadmin.com/<projectId>/<renderingId>/...`
+
 ## API Endpoint
 
 Once running, the MCP server exposes a single endpoint:
