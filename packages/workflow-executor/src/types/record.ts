@@ -1,27 +1,35 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-export interface RecordFieldRef {
+// -- Schema types (structure of a collection — source: WorkflowPort) --
+
+export interface FieldSchema {
   fieldName: string;
   displayName: string;
-  type: string;
   isRelationship: boolean;
-  referencedCollectionName?: string;
 }
 
-export interface ActionRef {
+export interface ActionSchema {
   name: string;
   displayName: string;
 }
 
-export interface CollectionRef {
+export interface CollectionSchema {
   collectionName: string;
   collectionDisplayName: string;
   primaryKeyFields: string[];
-  fields: RecordFieldRef[];
-  actions: ActionRef[];
+  fields: FieldSchema[];
+  actions: ActionSchema[];
 }
 
-export interface RecordData extends CollectionRef {
+// -- Record types (data — source: AgentPort/RunStore) --
+
+/** Lightweight pointer to a specific record. */
+export interface RecordRef {
+  collectionName: string;
   recordId: Array<string | number>;
-  values: Record<string, unknown>;
+  /** Index of the workflow step that loaded this record. */
+  stepIndex: number;
 }
+
+/** A record with its loaded field values — no stepIndex (agent doesn't know about steps). */
+export type RecordData = Omit<RecordRef, 'stepIndex'> & { values: Record<string, unknown> };

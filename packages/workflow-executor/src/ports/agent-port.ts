@@ -1,9 +1,13 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { ActionRef, RecordData } from '../types/record';
+import type { RecordData } from '../types/record';
 
 export interface AgentPort {
-  getRecord(collectionName: string, recordId: Array<string | number>): Promise<RecordData>;
+  getRecord(
+    collectionName: string,
+    recordId: Array<string | number>,
+    fieldNames?: string[],
+  ): Promise<RecordData>;
   updateRecord(
     collectionName: string,
     recordId: Array<string | number>,
@@ -14,7 +18,6 @@ export interface AgentPort {
     recordId: Array<string | number>,
     relationName: string,
   ): Promise<RecordData[]>;
-  getActions(collectionName: string): Promise<ActionRef[]>;
   executeAction(
     collectionName: string,
     actionName: string,

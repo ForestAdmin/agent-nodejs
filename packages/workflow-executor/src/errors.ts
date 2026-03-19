@@ -27,3 +27,21 @@ export class RecordNotFoundError extends WorkflowExecutorError {
     super(`Record not found: collection "${collectionName}", id "${recordId}"`);
   }
 }
+
+export class NoRecordsError extends WorkflowExecutorError {
+  constructor() {
+    super('No records available');
+  }
+}
+
+export class NoReadableFieldsError extends WorkflowExecutorError {
+  constructor(collectionName: string) {
+    super(`No readable fields on record from collection "${collectionName}"`);
+  }
+}
+
+export class NoResolvedFieldsError extends WorkflowExecutorError {
+  constructor(fieldNames: string[]) {
+    super(`None of the requested fields could be resolved: ${fieldNames.join(', ')}`);
+  }
+}

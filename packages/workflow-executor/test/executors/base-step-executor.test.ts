@@ -1,8 +1,9 @@
 import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution';
+import type { RecordRef } from '../../src/types/record';
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
-import type { StepHistory } from '../../src/types/step-history';
+import type { StepOutcome } from '../../src/types/step-outcome';
 import type { BaseMessage, SystemMessage } from '@langchain/core/messages';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 
@@ -30,15 +31,14 @@ class TestableExecutor extends BaseStepExecutor {
 
 function makeHistoryEntry(
   overrides: { stepId?: string; stepIndex?: number; prompt?: string } = {},
-): { step: StepDefinition; stepHistory: StepHistory } {
+): { stepDefinition: StepDefinition; stepOutcome: StepOutcome } {
   return {
-    step: {
-      id: overrides.stepId ?? 'step-1',
+    stepDefinition: {
       type: StepType.Condition,
       options: ['A', 'B'],
       prompt: overrides.prompt ?? 'Pick one',
     },
-    stepHistory: {
+    stepOutcome: {
       type: 'condition',
       stepId: overrides.stepId ?? 'step-1',
       stepIndex: overrides.stepIndex ?? 0,
@@ -49,11 +49,7 @@ function makeHistoryEntry(
 
 function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
   return {
-    getRecords: jest.fn().mockResolvedValue([]),
-    getRecord: jest.fn().mockResolvedValue(null),
-    saveRecord: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue(stepExecutions),
-    getStepExecution: jest.fn().mockResolvedValue(null),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
   };
 }
@@ -61,6 +57,18 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
+    stepId: 'step-0',
+    stepIndex: 0,
+    baseRecordRef: {
+      collectionName: 'customers',
+      recordId: [1],
+      stepIndex: 0,
+    } as RecordRef,
+    stepDefinition: {
+      type: StepType.Condition,
+      options: ['A', 'B'],
+      prompt: 'Pick one',
+    },
     model: {} as ExecutionContext['model'],
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
@@ -100,22 +108,24 @@ describe('BaseStepExecutor', () => {
 
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('Prompt: Approve?');
-      expect(result).toContain('Result: {"answer":"Yes","reasoning":"Order is valid"}');
+      expect(result).toContain('Input: {"answer":"Yes","reasoning":"Order is valid"}');
+      expect(result).toContain('Output: {"answer":"Yes"}');
     });
 
-    it('falls back to History when step has no executionParams in RunStore', async () => {
+    it('uses Input for matched steps and History for unmatched steps', async () => {
       const executor = new TestableExecutor(
         makeContext({
           history: [
             makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0 }),
             makeHistoryEntry({ stepId: 'cond-2', stepIndex: 1, prompt: 'Second?' }),
           ],
+          // Only step 1 has an execution entry — step 0 has no match
           runStore: makeMockRunStore([
-            { type: 'condition', stepIndex: 0 },
             {
               type: 'condition',
               stepIndex: 1,
               executionParams: { answer: 'No', reasoning: 'Clearly no' },
+              executionResult: { answer: 'No' },
             },
           ]),
         }),
@@ -128,7 +138,8 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success"}');
       expect(result).toContain('Step "cond-2"');
-      expect(result).toContain('Result: {"answer":"No","reasoning":"Clearly no"}');
+      expect(result).toContain('Input: {"answer":"No","reasoning":"Clearly no"}');
+      expect(result).toContain('Output: {"answer":"No"}');
     });
 
     it('falls back to History when no matching step execution in RunStore', async () => {
@@ -143,6 +154,7 @@ describe('BaseStepExecutor', () => {
               type: 'condition',
               stepIndex: 1,
               executionParams: { answer: 'B', reasoning: 'Option B fits' },
+              executionResult: { answer: 'B' },
             },
           ]),
         }),
@@ -155,7 +167,8 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "orphan"');
       expect(result).toContain('History: {"status":"success"}');
       expect(result).toContain('Step "matched"');
-      expect(result).toContain('Result: {"answer":"B","reasoning":"Option B fits"}');
+      expect(result).toContain('Input: {"answer":"B","reasoning":"Option B fits"}');
+      expect(result).toContain('Output: {"answer":"B"}');
     });
 
     it('includes selectedOption in History for condition steps', async () => {
@@ -164,7 +177,7 @@ describe('BaseStepExecutor', () => {
         stepIndex: 0,
         prompt: 'Approved?',
       });
-      (entry.stepHistory as { selectedOption?: string }).selectedOption = 'Yes';
+      (entry.stepOutcome as { selectedOption?: string }).selectedOption = 'Yes';
 
       const executor = new TestableExecutor(
         makeContext({
@@ -187,8 +200,8 @@ describe('BaseStepExecutor', () => {
         stepIndex: 0,
         prompt: 'Do something',
       });
-      entry.stepHistory.status = 'error';
-      (entry.stepHistory as { error?: string }).error = 'AI could not match an option';
+      entry.stepOutcome.status = 'error';
+      (entry.stepOutcome as { error?: string }).error = 'AI could not match an option';
 
       const executor = new TestableExecutor(
         makeContext({
@@ -206,9 +219,17 @@ describe('BaseStepExecutor', () => {
     });
 
     it('includes status in History for ai-task steps without RunStore data', async () => {
-      const entry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'ai-step', type: StepType.ReadRecord, prompt: 'Run task' },
-        stepHistory: { type: 'ai-task', stepId: 'ai-step', stepIndex: 0, status: 'awaiting-input' },
+      const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
+        stepDefinition: {
+          type: StepType.ReadRecord,
+          prompt: 'Run task',
+        },
+        stepOutcome: {
+          type: 'ai-task',
+          stepId: 'ai-step',
+          stepIndex: 0,
+          status: 'awaiting-input',
+        },
       };
 
       const executor = new TestableExecutor(
@@ -226,17 +247,25 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('History: {"status":"awaiting-input"}');
     });
 
-    it('uses Result when RunStore has executionParams, History otherwise', async () => {
+    it('uses Input when RunStore has executionParams, History otherwise', async () => {
       const condEntry = makeHistoryEntry({
         stepId: 'cond-1',
         stepIndex: 0,
         prompt: 'Approved?',
       });
-      (condEntry.stepHistory as { selectedOption?: string }).selectedOption = 'Yes';
+      (condEntry.stepOutcome as { selectedOption?: string }).selectedOption = 'Yes';
 
-      const aiEntry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'read-customer', type: StepType.ReadRecord, prompt: 'Read name' },
-        stepHistory: { type: 'ai-task', stepId: 'read-customer', stepIndex: 1, status: 'success' },
+      const aiEntry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
+        stepDefinition: {
+          type: StepType.ReadRecord,
+          prompt: 'Read name',
+        },
+        stepOutcome: {
+          type: 'ai-task',
+          stepId: 'read-customer',
+          stepIndex: 1,
+          status: 'success',
+        },
       };
 
       const executor = new TestableExecutor(
@@ -259,12 +288,12 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Step "cond-1"');
       expect(result).toContain('History: {"status":"success","selectedOption":"Yes"}');
       expect(result).toContain('Step "read-customer"');
-      expect(result).toContain('Result: {"answer":"John Doe"}');
+      expect(result).toContain('Input: {"answer":"John Doe"}');
     });
 
-    it('prefers RunStore executionParams over History fallback', async () => {
+    it('prefers RunStore execution data over History fallback', async () => {
       const entry = makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' });
-      (entry.stepHistory as { selectedOption?: string }).selectedOption = 'A';
+      (entry.stepOutcome as { selectedOption?: string }).selectedOption = 'A';
 
       const executor = new TestableExecutor(
         makeContext({
@@ -274,6 +303,7 @@ describe('BaseStepExecutor', () => {
               type: 'condition',
               stepIndex: 0,
               executionParams: { answer: 'A', reasoning: 'Best fit' },
+              executionResult: { answer: 'A' },
             },
           ]),
         }),
@@ -283,13 +313,49 @@ describe('BaseStepExecutor', () => {
         .buildPreviousStepsMessages()
         .then(msgs => msgs[0]?.content ?? '');
 
-      expect(result).toContain('Result: {"answer":"A","reasoning":"Best fit"}');
+      expect(result).toContain('Input: {"answer":"A","reasoning":"Best fit"}');
+      expect(result).toContain('Output: {"answer":"A"}');
       expect(result).not.toContain('History:');
+    });
+
+    it('omits Input line when executionParams is undefined', async () => {
+      const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
+        stepDefinition: {
+          type: StepType.ReadRecord,
+          prompt: 'Do something',
+        },
+        stepOutcome: {
+          type: 'ai-task',
+          stepId: 'ai-step',
+          stepIndex: 0,
+          status: 'success',
+        },
+      };
+
+      const executor = new TestableExecutor(
+        makeContext({
+          history: [entry],
+          runStore: makeMockRunStore([
+            {
+              type: 'ai-task',
+              stepIndex: 0,
+            },
+          ]),
+        }),
+      );
+
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
+
+      expect(result).toContain('Step "ai-step"');
+      expect(result).toContain('Prompt: Do something');
+      expect(result).not.toContain('Input:');
     });
 
     it('shows "(no prompt)" when step has no prompt', async () => {
       const entry = makeHistoryEntry({ stepIndex: 0 });
-      entry.step.prompt = undefined;
+      entry.stepDefinition.prompt = undefined;
 
       const executor = new TestableExecutor(
         makeContext({
@@ -299,6 +365,7 @@ describe('BaseStepExecutor', () => {
               type: 'condition',
               stepIndex: 0,
               executionParams: { answer: 'A', reasoning: 'Only option' },
+              executionResult: { answer: 'A' },
             },
           ]),
         }),

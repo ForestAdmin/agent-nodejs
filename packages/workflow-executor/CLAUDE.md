@@ -42,10 +42,10 @@ Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor  ──
 
 ```
 src/
-├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError
+├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError
 ├── types/                  # Core type definitions (@draft)
 │   ├── step-definition.ts  # StepType enum + step definition interfaces
-│   ├── step-history.ts     # Step outcome tracking types
+│   ├── step-outcome.ts     # Step outcome tracking types (StepOutcome, sent to orchestrator)
 │   ├── step-execution-data.ts # Runtime state for in-progress steps
 │   ├── record.ts           # Record references and data types
 │   └── execution.ts        # Top-level execution types (context, results)
@@ -55,7 +55,8 @@ src/
 │   └── run-store.ts        # Interface for persisting run state (scoped to a run)
 ├── executors/              # Step executor implementations
 │   ├── base-step-executor.ts       # Abstract base class (context injection + shared helpers)
-│   └── condition-step-executor.ts  # AI-powered condition step (chooses among options)
+│   ├── condition-step-executor.ts  # AI-powered condition step (chooses among options)
+│   └── read-record-step-executor.ts # AI-powered record field reading step
 └── index.ts                # Barrel exports
 ```
 
@@ -63,7 +64,7 @@ src/
 
 - **Pull-based** — The executor polls for pending steps via a port interface (`WorkflowPort.getPendingStepExecutions`; polling loop not yet implemented).
 - **Atomic** — Each step executes in isolation. A run store (scoped per run) maintains continuity between steps.
-- **Privacy** — Zero client data leaves the client's infrastructure. `StepHistory` is sent to the orchestrator and must NEVER contain client data. Privacy-sensitive information (e.g. AI reasoning) must stay in `StepExecutionData` (persisted in the RunStore, client-side only).
+- **Privacy** — Zero client data leaves the client's infrastructure. `StepOutcome` is sent to the orchestrator and must NEVER contain client data. Privacy-sensitive information (e.g. AI reasoning) must stay in `StepExecutionData` (persisted in the RunStore, client-side only).
 - **Ports (IO injection)** — All external IO goes through injected port interfaces, keeping the core pure and testable.
 - **AI integration** — Uses `@langchain/core` (`BaseChatModel`, `DynamicStructuredTool`) for AI-powered steps. `ExecutionContext.model` is a `BaseChatModel`.
 - **No recovery/retry** — Once the executor returns a step result to the orchestrator, the step is considered executed. There is no mechanism to re-dispatch a step, so executors must NOT include recovery checks (e.g. checking the RunStore for cached results before executing). Each step executes exactly once.

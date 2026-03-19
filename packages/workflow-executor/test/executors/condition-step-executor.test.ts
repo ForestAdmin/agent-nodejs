@@ -1,14 +1,14 @@
 import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext } from '../../src/types/execution';
+import type { RecordRef } from '../../src/types/record';
 import type { ConditionStepDefinition } from '../../src/types/step-definition';
-import type { ConditionStepHistory } from '../../src/types/step-history';
+import type { ConditionStepOutcome } from '../../src/types/step-outcome';
 
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {
-    id: 'cond-1',
     type: StepType.Condition,
     options: ['Approve', 'Reject'],
     prompt: 'Should we approve this?',
@@ -16,23 +16,9 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
   };
 }
 
-function makeStepHistory(overrides: Partial<ConditionStepHistory> = {}): ConditionStepHistory {
-  return {
-    type: 'condition',
-    stepId: 'cond-1',
-    stepIndex: 0,
-    status: 'success',
-    ...overrides,
-  };
-}
-
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
-    getRecords: jest.fn().mockResolvedValue([]),
-    getRecord: jest.fn().mockResolvedValue(null),
-    saveRecord: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
-    getStepExecution: jest.fn().mockResolvedValue(null),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -50,9 +36,19 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>) {
   return { model, bindTools, invoke };
 }
 
-function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
+function makeContext(
+  overrides: Partial<ExecutionContext<ConditionStepDefinition>> = {},
+): ExecutionContext<ConditionStepDefinition> {
   return {
     runId: 'run-1',
+    stepId: 'cond-1',
+    stepIndex: 0,
+    baseRecordRef: {
+      collectionName: 'customers',
+      recordId: [1],
+      stepIndex: 0,
+    } as RecordRef,
+    stepDefinition: makeStep(),
     model: makeMockModel().model,
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
@@ -64,24 +60,6 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
 }
 
 describe('ConditionStepExecutor', () => {
-  describe('immutability', () => {
-    it('does not mutate the input stepHistory', async () => {
-      const mockModel = makeMockModel({
-        option: 'Reject',
-        reasoning: 'Incomplete',
-        question: 'Approve?',
-      });
-      const stepHistory = makeStepHistory();
-      const executor = new ConditionStepExecutor(makeContext({ model: mockModel.model }));
-
-      const result = await executor.execute(makeStep(), stepHistory);
-
-      expect(result.stepHistory).not.toBe(stepHistory);
-      expect(stepHistory.status).toBe('success');
-      expect(stepHistory.selectedOption).toBeUndefined();
-    });
-  });
-
   describe('AI decision', () => {
     it('calls AI and returns selected option on success', async () => {
       const mockModel = makeMockModel({
@@ -96,10 +74,10 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('success');
-      expect((result.stepHistory as ConditionStepHistory).selectedOption).toBe('Reject');
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Reject');
 
       expect(mockModel.bindTools).toHaveBeenCalledWith(
         [expect.objectContaining({ name: 'choose-gateway-option' })],
@@ -120,12 +98,14 @@ describe('ConditionStepExecutor', () => {
         reasoning: 'Looks good',
         question: 'Should we?',
       });
-      const executor = new ConditionStepExecutor(makeContext({ model: mockModel.model }));
-
-      await executor.execute(
-        makeStep({ options: ['Approve', 'Reject', 'Defer'] }),
-        makeStepHistory(),
+      const executor = new ConditionStepExecutor(
+        makeContext({
+          model: mockModel.model,
+          stepDefinition: makeStep({ options: ['Approve', 'Reject', 'Defer'] }),
+        }),
       );
+
+      await executor.execute();
 
       const tool = mockModel.bindTools.mock.calls[0][0][0];
       expect(tool.name).toBe('choose-gateway-option');
@@ -143,13 +123,13 @@ describe('ConditionStepExecutor', () => {
         reasoning: 'Looks good',
         question: 'Should we approve?',
       });
-      const context = makeContext({ model: mockModel.model });
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ prompt: 'Custom prompt for this step' }),
+      });
       const executor = new ConditionStepExecutor(context);
 
-      await executor.execute(
-        makeStep({ prompt: 'Custom prompt for this step' }),
-        makeStepHistory(),
-      );
+      await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
       expect(messages).toHaveLength(2);
@@ -164,10 +144,13 @@ describe('ConditionStepExecutor', () => {
         reasoning: 'Default',
         question: 'Approve?',
       });
-      const context = makeContext({ model: mockModel.model });
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ prompt: undefined }),
+      });
       const executor = new ConditionStepExecutor(context);
 
-      await executor.execute(makeStep({ prompt: undefined }), makeStepHistory());
+      await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
       const humanMessage = messages[messages.length - 1];
@@ -181,7 +164,6 @@ describe('ConditionStepExecutor', () => {
         question: 'Final approval?',
       });
       const runStore = makeMockRunStore({
-        getStepExecution: jest.fn().mockResolvedValue(null),
         getStepExecutions: jest.fn().mockResolvedValue([
           {
             type: 'condition',
@@ -195,13 +177,12 @@ describe('ConditionStepExecutor', () => {
         runStore,
         history: [
           {
-            step: {
-              id: 'prev-step',
+            stepDefinition: {
               type: StepType.Condition,
               options: ['Yes', 'No'],
               prompt: 'Previous question',
             },
-            stepHistory: {
+            stepOutcome: {
               type: 'condition',
               stepId: 'prev-step',
               stepIndex: 0,
@@ -210,12 +191,13 @@ describe('ConditionStepExecutor', () => {
           },
         ],
       });
-      const executor = new ConditionStepExecutor(context);
+      const executor = new ConditionStepExecutor({
+        ...context,
+        stepId: 'cond-2',
+        stepIndex: 1,
+      });
 
-      await executor.execute(
-        makeStep({ id: 'cond-2' }),
-        makeStepHistory({ stepId: 'cond-2', stepIndex: 1 }),
-      );
+      await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
       expect(messages).toHaveLength(3);
@@ -240,11 +222,11 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('manual-decision');
-      expect(result.stepHistory.error).toBeUndefined();
-      expect((result.stepHistory as ConditionStepHistory).selectedOption).toBeUndefined();
+      expect(result.stepOutcome.status).toBe('manual-decision');
+      expect(result.stepOutcome.error).toBeUndefined();
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBeUndefined();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith({
         type: 'condition',
         stepIndex: 0,
@@ -268,10 +250,10 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe(
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
         'AI returned a malformed tool call for "choose-gateway-option": JSON parse error',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -287,10 +269,10 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(context);
 
-      const result = await executor.execute(makeStep(), makeStepHistory());
+      const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('API timeout');
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('API timeout');
     });
 
     it('lets run store errors propagate', async () => {
@@ -304,7 +286,7 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(makeContext({ model: mockModel.model, runStore }));
 
-      await expect(executor.execute(makeStep(), makeStepHistory())).rejects.toThrow('Storage full');
+      await expect(executor.execute()).rejects.toThrow('Storage full');
     });
   });
 });
