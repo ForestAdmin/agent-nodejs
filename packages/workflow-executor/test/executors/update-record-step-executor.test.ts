@@ -177,7 +177,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          toolConfirmationInterruption: { fieldDisplayName: 'Status', value: 'active' },
+          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -194,7 +194,7 @@ describe('UpdateRecordStepExecutor', () => {
       const interruption: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        toolConfirmationInterruption: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -213,7 +213,7 @@ describe('UpdateRecordStepExecutor', () => {
           type: 'update-record',
           executionParams: { fieldName: 'Status', value: 'active' },
           executionResult: { updatedValues },
-          toolConfirmationInterruption: undefined,
+          pendingUpdate: undefined,
         }),
       );
     });
@@ -225,7 +225,7 @@ describe('UpdateRecordStepExecutor', () => {
       const interruption: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        toolConfirmationInterruption: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -242,7 +242,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           executionResult: { skipped: true },
-          toolConfirmationInterruption: undefined,
+          pendingUpdate: undefined,
         }),
       );
     });
@@ -333,7 +333,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
-          toolConfirmationInterruption: { fieldDisplayName: 'Order Status', value: 'shipped' },
+          pendingUpdate: { fieldDisplayName: 'Order Status', value: 'shipped' },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
@@ -447,7 +447,7 @@ describe('UpdateRecordStepExecutor', () => {
       const interruption: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        toolConfirmationInterruption: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -489,7 +489,7 @@ describe('UpdateRecordStepExecutor', () => {
       const interruption: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        toolConfirmationInterruption: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({

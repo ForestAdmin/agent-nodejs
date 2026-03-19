@@ -46,7 +46,7 @@ export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   type: 'update-record';
   executionParams?: { fieldName: string; value: string };
   executionResult?: { updatedValues: Record<string, unknown> };
-  toolConfirmationInterruption?: {
+  pendingUpdate?: {
     fieldDisplayName: string;
     value: string;
   };

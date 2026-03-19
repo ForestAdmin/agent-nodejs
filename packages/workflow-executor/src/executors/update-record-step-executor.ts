@@ -36,7 +36,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
         e.type === 'update-record' && e.stepIndex === this.context.stepIndex,
     );
 
-    if (!interruption?.toolConfirmationInterruption) {
+    if (!interruption?.pendingUpdate) {
       return {
         stepOutcome: {
           type: 'ai-task',
@@ -53,7 +53,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     if (!confirmed) {
       await this.context.runStore.saveStepExecution({
         ...interruption,
-        toolConfirmationInterruption: undefined,
+        pendingUpdate: undefined,
         executionResult: {
           skipped: true,
         } as unknown as UpdateRecordStepExecutionData['executionResult'],
@@ -70,9 +70,9 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     }
 
     // User confirmed — resolve and update
-    const { selectedRecordRef, toolConfirmationInterruption } = interruption;
+    const { selectedRecordRef, pendingUpdate } = interruption;
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const { fieldDisplayName, value } = toolConfirmationInterruption;
+    const { fieldDisplayName, value } = pendingUpdate;
 
     const fieldName = this.resolveFieldName(schema, fieldDisplayName);
 
@@ -85,7 +85,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
 
       await this.context.runStore.saveStepExecution({
         ...interruption,
-        toolConfirmationInterruption: undefined,
+        pendingUpdate: undefined,
         executionParams: { fieldName: fieldDisplayName, value },
         executionResult: { updatedValues: updated.values },
       });
@@ -155,7 +155,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     await this.context.runStore.saveStepExecution({
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      toolConfirmationInterruption: { fieldDisplayName, value },
+      pendingUpdate: { fieldDisplayName, value },
       selectedRecordRef,
     });
 
