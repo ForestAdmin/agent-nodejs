@@ -33,12 +33,10 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     const stepExecutions = await this.context.runStore.getStepExecutions();
     const interruption = stepExecutions.find(
       (e): e is UpdateRecordStepExecutionData =>
-        e.type === 'update-record' &&
-        e.stepIndex === this.context.stepIndex &&
-        !!e.toolConfirmationInterruption,
+        e.type === 'update-record' && e.stepIndex === this.context.stepIndex,
     );
 
-    if (!interruption) {
+    if (!interruption?.toolConfirmationInterruption) {
       return {
         stepOutcome: {
           type: 'ai-task',
@@ -74,10 +72,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
     // User confirmed — resolve and update
     const { selectedRecordRef, toolConfirmationInterruption } = interruption;
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const { fieldDisplayName, value } = toolConfirmationInterruption as {
-      fieldDisplayName: string;
-      value: string;
-    };
+    const { fieldDisplayName, value } = toolConfirmationInterruption;
 
     const fieldName = this.resolveFieldName(schema, fieldDisplayName);
 
