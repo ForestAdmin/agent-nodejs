@@ -10,13 +10,10 @@ import { SystemMessage } from '@langchain/core/messages';
 import { MalformedToolCallError, MissingToolCallError } from '../errors';
 import { isExecutedStepOnExecutor } from '../types/step-execution-data';
 
-export default abstract class BaseStepExecutor<
-  TStep extends StepDefinition = StepDefinition,
-  THistory extends StepHistory = StepHistory,
-> {
-  protected readonly context: ExecutionContext<TStep, THistory>;
+export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition> {
+  protected readonly context: ExecutionContext<TStep>;
 
-  constructor(context: ExecutionContext<TStep, THistory>) {
+  constructor(context: ExecutionContext<TStep>) {
     this.context = context;
   }
 
@@ -58,7 +55,7 @@ export default abstract class BaseStepExecutor<
     execution: StepExecutionData | undefined,
   ): string {
     const prompt = step.prompt ?? '(no prompt)';
-    const header = `Step "${step.id}" (index ${stepHistory.stepIndex}):`;
+    const header = `Step "${step.id}" (index ${step.stepIndex}):`;
     const lines = [header, `  Prompt: ${prompt}`];
 
     if (isExecutedStepOnExecutor(execution)) {

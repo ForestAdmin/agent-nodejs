@@ -36,6 +36,7 @@ function makeHistoryEntry(
     step: {
       id: overrides.stepId ?? 'step-1',
       type: StepType.Condition,
+      stepIndex: overrides.stepIndex ?? 0,
       options: ['A', 'B'],
       prompt: overrides.prompt ?? 'Pick one',
     },
@@ -58,7 +59,7 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
-    baseRecord: {
+    baseRecordRef: {
       collectionName: 'customers',
       recordId: [1],
       stepIndex: 0,
@@ -66,14 +67,9 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     step: {
       id: 'step-0',
       type: StepType.Condition,
+      stepIndex: 0,
       options: ['A', 'B'],
       prompt: 'Pick one',
-    },
-    stepHistory: {
-      type: 'condition',
-      stepId: 'step-0',
-      stepIndex: 0,
-      status: 'success',
     },
     model: {} as ExecutionContext['model'],
     agentPort: {} as ExecutionContext['agentPort'],
@@ -226,7 +222,7 @@ describe('BaseStepExecutor', () => {
 
     it('includes status in History for ai-task steps without RunStore data', async () => {
       const entry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'ai-step', type: StepType.ReadRecord, prompt: 'Run task' },
+        step: { id: 'ai-step', type: StepType.ReadRecord, stepIndex: 0, prompt: 'Run task' },
         stepHistory: { type: 'ai-task', stepId: 'ai-step', stepIndex: 0, status: 'awaiting-input' },
       };
 
@@ -254,7 +250,7 @@ describe('BaseStepExecutor', () => {
       (condEntry.stepHistory as { selectedOption?: string }).selectedOption = 'Yes';
 
       const aiEntry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'read-customer', type: StepType.ReadRecord, prompt: 'Read name' },
+        step: { id: 'read-customer', type: StepType.ReadRecord, stepIndex: 1, prompt: 'Read name' },
         stepHistory: { type: 'ai-task', stepId: 'read-customer', stepIndex: 1, status: 'success' },
       };
 
@@ -310,7 +306,7 @@ describe('BaseStepExecutor', () => {
 
     it('omits Input line when executionParams is undefined', async () => {
       const entry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'ai-step', type: StepType.ReadRecord, prompt: 'Do something' },
+        step: { id: 'ai-step', type: StepType.ReadRecord, stepIndex: 0, prompt: 'Do something' },
         stepHistory: { type: 'ai-task', stepId: 'ai-step', stepIndex: 0, status: 'success' },
       };
 

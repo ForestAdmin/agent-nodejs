@@ -1,6 +1,5 @@
 export { StepType } from './types/step-definition';
 export type {
-  StepCategory,
   ConditionStepDefinition,
   AiTaskStepDefinition,
   StepDefinition,

@@ -4,7 +4,6 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { AiTaskStepDefinition } from '../../src/types/step-definition';
-import type { AiTaskStepHistory } from '../../src/types/step-history';
 
 import { NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
@@ -14,17 +13,8 @@ function makeStep(overrides: Partial<AiTaskStepDefinition> = {}): AiTaskStepDefi
   return {
     id: 'read-1',
     type: StepType.ReadRecord,
-    prompt: 'Read the customer email',
-    ...overrides,
-  };
-}
-
-function makeStepHistory(overrides: Partial<AiTaskStepHistory> = {}): AiTaskStepHistory {
-  return {
-    type: 'ai-task',
-    stepId: 'read-1',
     stepIndex: 0,
-    status: 'success',
+    prompt: 'Read the customer email',
     ...overrides,
   };
 }
@@ -111,13 +101,12 @@ function makeMockModel(
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<AiTaskStepDefinition, AiTaskStepHistory>> = {},
-): ExecutionContext<AiTaskStepDefinition, AiTaskStepHistory> {
+  overrides: Partial<ExecutionContext<AiTaskStepDefinition>> = {},
+): ExecutionContext<AiTaskStepDefinition> {
   return {
     runId: 'run-1',
-    baseRecord: makeRecordRef(),
+    baseRecordRef: makeRecordRef(),
     step: makeStep(),
-    stepHistory: makeStepHistory(),
     model: makeMockModel({ fieldNames: ['email'] }).model,
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
@@ -281,7 +270,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('multi-record AI selection', () => {
     it('uses AI to select among multiple records then reads fields', async () => {
-      const baseRecord = makeRecordRef({ stepIndex: 1 });
+      const baseRecordRef = makeRecordRef({ stepIndex: 1 });
       const relatedRecord = makeRecordRef({
         stepIndex: 2,
         recordId: [99],
@@ -329,7 +318,7 @@ describe('ReadRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecord, model, runStore, workflowPort });
+      const context = makeContext({ baseRecordRef, model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -365,7 +354,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('reads fields from the second record when AI selects it', async () => {
-      const baseRecord = makeRecordRef({ stepIndex: 1 });
+      const baseRecordRef = makeRecordRef({ stepIndex: 1 });
       const relatedRecord = makeRecordRef({
         stepIndex: 2,
         recordId: [99],
@@ -411,7 +400,7 @@ describe('ReadRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort({
         orders: { values: { total: 150 } },
       });
-      const context = makeContext({ baseRecord, model, runStore, workflowPort, agentPort });
+      const context = makeContext({ baseRecordRef, model, runStore, workflowPort, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -431,7 +420,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('includes step index in select-record tool schema when records have stepIndex', async () => {
-      const baseRecord = makeRecordRef({ stepIndex: 3 });
+      const baseRecordRef = makeRecordRef({ stepIndex: 3 });
       const relatedRecord = makeRecordRef({
         stepIndex: 5,
         recordId: [99],
@@ -475,7 +464,7 @@ describe('ReadRecordStepExecutor', () => {
         orders: ordersSchema,
       });
       const executor = new ReadRecordStepExecutor(
-        makeContext({ baseRecord, model, runStore, workflowPort }),
+        makeContext({ baseRecordRef, model, runStore, workflowPort }),
       );
 
       await executor.execute();
@@ -492,7 +481,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('AI record selection failure', () => {
     it('returns error when AI selects a non-existent record identifier', async () => {
-      const baseRecord = makeRecordRef();
+      const baseRecordRef = makeRecordRef();
       const relatedRecord = makeRecordRef({
         stepIndex: 1,
         recordId: [99],
@@ -524,7 +513,7 @@ describe('ReadRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecord, model, runStore, workflowPort });
+      const context = makeContext({ baseRecordRef, model, runStore, workflowPort });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -646,20 +635,6 @@ describe('ReadRecordStepExecutor', () => {
     });
   });
 
-  describe('immutability', () => {
-    it('does not mutate the input stepHistory', async () => {
-      const mockModel = makeMockModel({ fieldNames: ['email'] });
-      const stepHistory = makeStepHistory();
-      const context = makeContext({ model: mockModel.model, stepHistory });
-      const executor = new ReadRecordStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepHistory).not.toBe(stepHistory);
-      expect(stepHistory.status).toBe('success');
-    });
-  });
-
   describe('previous steps context', () => {
     it('includes previous steps summary in read-field messages', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
@@ -680,6 +655,7 @@ describe('ReadRecordStepExecutor', () => {
             step: {
               id: 'prev-step',
               type: StepType.Condition,
+              stepIndex: 0,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },
@@ -694,8 +670,7 @@ describe('ReadRecordStepExecutor', () => {
       });
       const executor = new ReadRecordStepExecutor({
         ...context,
-        step: makeStep({ id: 'read-2' }),
-        stepHistory: makeStepHistory({ stepId: 'read-2', stepIndex: 1 }),
+        step: makeStep({ id: 'read-2', stepIndex: 1 }),
       });
 
       await executor.execute();
@@ -733,7 +708,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         runStore,
-        stepHistory: makeStepHistory({ stepIndex: 3 }),
+        step: makeStep({ stepIndex: 3 }),
       });
       const executor = new ReadRecordStepExecutor(context);
 

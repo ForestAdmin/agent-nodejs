@@ -11,6 +11,7 @@ export enum StepType {
 interface BaseStepDefinition {
   id: string;
   type: StepType;
+  stepIndex: number;
   prompt?: string;
   aiConfigName?: string;
 }
@@ -29,9 +30,3 @@ export interface AiTaskStepDefinition extends BaseStepDefinition {
 }
 
 export type StepDefinition = ConditionStepDefinition | AiTaskStepDefinition;
-
-/**
- * Coarse categorization of steps. StepType has 5 fine-grained values;
- * StepCategory collapses the 4 non-condition types into 'ai-task'.
- */
-export type StepCategory = 'condition' | 'ai-task';

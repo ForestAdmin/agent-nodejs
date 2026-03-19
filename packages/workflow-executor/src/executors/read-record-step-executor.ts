@@ -5,7 +5,6 @@ import type {
   FieldReadResult,
   LoadRelatedRecordStepExecutionData,
 } from '../types/step-execution-data';
-import type { AiTaskStepHistory } from '../types/step-history';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
@@ -22,31 +21,38 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-export default class ReadRecordStepExecutor extends BaseStepExecutor<
-  AiTaskStepDefinition,
-  AiTaskStepHistory
-> {
+export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
-    const { step, stepHistory } = this.context;
+    const { step } = this.context;
     const records = await this.getAvailableRecordRefs();
 
-    let selectedRef: RecordRef;
+    let selectedRecordRef: RecordRef;
     let schema: CollectionSchema;
     let fieldNames: string[];
     let values: Record<string, unknown>;
 
     try {
-      selectedRef = await this.selectRecordRef(records, step.prompt);
-      schema = await this.context.workflowPort.getCollectionSchema(selectedRef.collectionName);
+      selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+      schema = await this.context.workflowPort.getCollectionSchema(
+        selectedRecordRef.collectionName,
+      );
       fieldNames = await this.selectFields(schema, step.prompt);
       const recordData = await this.context.agentPort.getRecord(
-        selectedRef.collectionName,
-        selectedRef.recordId,
+        selectedRecordRef.collectionName,
+        selectedRecordRef.recordId,
       );
       values = recordData.values;
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
-        return { stepHistory: { ...stepHistory, status: 'error', error: error.message } };
+        return {
+          stepHistory: {
+            type: 'ai-task',
+            stepId: step.id,
+            stepIndex: step.stepIndex,
+            status: 'error',
+            error: error.message,
+          },
+        };
       }
 
       throw error;
@@ -56,17 +62,20 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
 
     await this.context.runStore.saveStepExecution({
       type: 'read-record',
-      stepIndex: stepHistory.stepIndex,
+      stepIndex: step.stepIndex,
       executionParams: { fieldNames },
       executionResult: { fields: fieldResults },
-      selectedRecordRef: {
-        collectionName: selectedRef.collectionName,
-        recordId: selectedRef.recordId,
-        stepIndex: selectedRef.stepIndex,
-      },
+      selectedRecordRef,
     });
 
-    return { stepHistory: { ...stepHistory, status: 'success' } };
+    return {
+      stepHistory: {
+        type: 'ai-task',
+        stepId: step.id,
+        stepIndex: step.stepIndex,
+        status: 'success',
+      },
+    };
   }
 
   private async selectFields(
@@ -185,7 +194,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<
       .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')
       .map(e => e.record);
 
-    return [this.context.baseRecord, ...relatedRecords];
+    return [this.context.baseRecordRef, ...relatedRecords];
   }
 
   private async toRecordIdentifier(record: RecordRef): Promise<string> {

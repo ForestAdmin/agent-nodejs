@@ -1,6 +1,5 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { ConditionStepDefinition } from '../types/step-definition';
-import type { ConditionStepHistory } from '../types/step-history';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
@@ -36,12 +35,9 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 - If selecting null: explain why options don't match the question
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-export default class ConditionStepExecutor extends BaseStepExecutor<
-  ConditionStepDefinition,
-  ConditionStepHistory
-> {
+export default class ConditionStepExecutor extends BaseStepExecutor<ConditionStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
-    const { step, stepHistory } = this.context;
+    const { step } = this.context;
 
     const tool = new DynamicStructuredTool({
       name: 'choose-gateway-option',
@@ -73,7 +69,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
     } catch (error: unknown) {
       return {
         stepHistory: {
-          ...stepHistory,
+          type: 'condition',
+          stepId: step.id,
+          stepIndex: step.stepIndex,
           status: 'error',
           error: (error as Error).message,
         },
@@ -84,17 +82,30 @@ export default class ConditionStepExecutor extends BaseStepExecutor<
 
     await this.context.runStore.saveStepExecution({
       type: 'condition',
-      stepIndex: stepHistory.stepIndex,
+      stepIndex: step.stepIndex,
       executionParams: { answer: selectedOption, reasoning },
       executionResult: selectedOption ? { answer: selectedOption } : undefined,
     });
 
     if (!selectedOption) {
-      return { stepHistory: { ...stepHistory, status: 'manual-decision' } };
+      return {
+        stepHistory: {
+          type: 'condition',
+          stepId: step.id,
+          stepIndex: step.stepIndex,
+          status: 'manual-decision',
+        },
+      };
     }
 
     return {
-      stepHistory: { ...stepHistory, status: 'success', selectedOption },
+      stepHistory: {
+        type: 'condition',
+        stepId: step.id,
+        stepIndex: step.stepIndex,
+        status: 'success',
+        selectedOption,
+      },
     };
   }
 }

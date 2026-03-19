@@ -11,18 +11,9 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
   return {
     id: 'cond-1',
     type: StepType.Condition,
+    stepIndex: 0,
     options: ['Approve', 'Reject'],
     prompt: 'Should we approve this?',
-    ...overrides,
-  };
-}
-
-function makeStepHistory(overrides: Partial<ConditionStepHistory> = {}): ConditionStepHistory {
-  return {
-    type: 'condition',
-    stepId: 'cond-1',
-    stepIndex: 0,
-    status: 'success',
     ...overrides,
   };
 }
@@ -48,17 +39,16 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>) {
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<ConditionStepDefinition, ConditionStepHistory>> = {},
-): ExecutionContext<ConditionStepDefinition, ConditionStepHistory> {
+  overrides: Partial<ExecutionContext<ConditionStepDefinition>> = {},
+): ExecutionContext<ConditionStepDefinition> {
   return {
     runId: 'run-1',
-    baseRecord: {
+    baseRecordRef: {
       collectionName: 'customers',
       recordId: [1],
       stepIndex: 0,
     } as RecordRef,
     step: makeStep(),
-    stepHistory: makeStepHistory(),
     model: makeMockModel().model,
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
@@ -70,26 +60,6 @@ function makeContext(
 }
 
 describe('ConditionStepExecutor', () => {
-  describe('immutability', () => {
-    it('does not mutate the input stepHistory', async () => {
-      const mockModel = makeMockModel({
-        option: 'Reject',
-        reasoning: 'Incomplete',
-        question: 'Approve?',
-      });
-      const stepHistory = makeStepHistory();
-      const executor = new ConditionStepExecutor(
-        makeContext({ model: mockModel.model, stepHistory }),
-      );
-
-      const result = await executor.execute();
-
-      expect(result.stepHistory).not.toBe(stepHistory);
-      expect(stepHistory.status).toBe('success');
-      expect(stepHistory.selectedOption).toBeUndefined();
-    });
-  });
-
   describe('AI decision', () => {
     it('calls AI and returns selected option on success', async () => {
       const mockModel = makeMockModel({
@@ -210,6 +180,7 @@ describe('ConditionStepExecutor', () => {
             step: {
               id: 'prev-step',
               type: StepType.Condition,
+              stepIndex: 0,
               options: ['Yes', 'No'],
               prompt: 'Previous question',
             },
@@ -224,8 +195,7 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor({
         ...context,
-        step: makeStep({ id: 'cond-2' }),
-        stepHistory: makeStepHistory({ stepId: 'cond-2', stepIndex: 1 }),
+        step: makeStep({ id: 'cond-2', stepIndex: 1 }),
       });
 
       await executor.execute();
