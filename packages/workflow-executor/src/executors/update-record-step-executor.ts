@@ -46,7 +46,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
         executionResult: { skipped: true },
       });
 
-      return this.buildSuccessResult();
+      return this.buildOutcomeResult('success');
     }
 
     const { selectedRecordRef, pendingUpdate } = execution;
@@ -75,7 +75,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       value = args.value;
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
-        return this.buildErrorResult(error.message);
+        return this.buildOutcomeResult('error', error.message);
       }
 
       throw error;
@@ -127,13 +127,13 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
       });
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
-        return this.buildErrorResult(error.message);
+        return this.buildOutcomeResult('error', error.message);
       }
 
       throw error;
     }
 
-    return this.buildSuccessResult();
+    return this.buildOutcomeResult('success');
   }
 
   private buildOutcomeResult(
@@ -149,14 +149,6 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<AiTaskSte
         ...(error && { error }),
       },
     };
-  }
-
-  private buildSuccessResult(): StepExecutionResult {
-    return this.buildOutcomeResult('success');
-  }
-
-  private buildErrorResult(error: string): StepExecutionResult {
-    return this.buildOutcomeResult('error', error);
   }
 
   private async selectFieldAndValue(
