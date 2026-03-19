@@ -41,12 +41,17 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       const resolvedFieldNames = resolvedFields
         .filter((f): f is FieldReadSuccess => !('error' in f))
         .map(f => f.fieldName);
-      const recordData = await this.context.agentPort.getRecord(
-        selectedRecordRef.collectionName,
-        selectedRecordRef.recordId,
-        resolvedFieldNames.length > 0 ? resolvedFieldNames : undefined,
-      );
-      fieldResults = this.formatFieldResults(recordData.values, resolvedFields);
+
+      if (resolvedFieldNames.length > 0) {
+        const recordData = await this.context.agentPort.getRecord(
+          selectedRecordRef.collectionName,
+          selectedRecordRef.recordId,
+          resolvedFieldNames,
+        );
+        fieldResults = this.formatFieldResults(recordData.values, resolvedFields);
+      } else {
+        fieldResults = resolvedFields as FieldReadResult[];
+      }
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return {

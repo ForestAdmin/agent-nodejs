@@ -211,7 +211,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], ['email']);
     });
 
-    it('omits fieldNames from getRecord when all fields are unresolved', async () => {
+    it('skips getRecord when all fields are unresolved', async () => {
       const mockModel = makeMockModel({ fieldNames: ['nonexistent'] });
       const agentPort = makeMockAgentPort();
       const runStore = makeMockRunStore();
@@ -220,7 +220,7 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], undefined);
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
     });
   });
 
