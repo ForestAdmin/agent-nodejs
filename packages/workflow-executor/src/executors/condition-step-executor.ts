@@ -53,7 +53,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
           .nullable()
           .describe('The chosen option, or null if no option clearly answers the question.'),
       }),
-      func: async input => JSON.stringify(input),
+      func: undefined,
     });
 
     const messages = [

@@ -22,6 +22,8 @@ Important rules:
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepDefinition> {
+  private readonly schemaCache = new Map<string, CollectionSchema>();
+
   async execute(): Promise<StepExecutionResult> {
     const { step } = this.context;
     const records = await this.getAvailableRecordRefs();
@@ -33,9 +35,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
 
     try {
       selectedRecordRef = await this.selectRecordRef(records, step.prompt);
-      schema = await this.context.workflowPort.getCollectionSchema(
-        selectedRecordRef.collectionName,
-      );
+      schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       fieldNames = await this.selectFields(schema, step.prompt);
       const recordData = await this.context.agentPort.getRecord(
         selectedRecordRef.collectionName,
@@ -113,7 +113,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       schema: z.object({
         recordIdentifier: z.enum(identifierTuple),
       }),
-      func: async input => JSON.stringify(input),
+      func: undefined,
     });
 
     const messages = [
@@ -166,7 +166,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
               .join(', ')}`,
           ),
       }),
-      func: async input => JSON.stringify(input),
+      func: undefined,
     });
   }
 
@@ -197,8 +197,18 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
     return [this.context.baseRecordRef, ...relatedRecords];
   }
 
+  private async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
+    const cached = this.schemaCache.get(collectionName);
+    if (cached) return cached;
+
+    const schema = await this.context.workflowPort.getCollectionSchema(collectionName);
+    this.schemaCache.set(collectionName, schema);
+
+    return schema;
+  }
+
   private async toRecordIdentifier(record: RecordRef): Promise<string> {
-    const schema = await this.context.workflowPort.getCollectionSchema(record.collectionName);
+    const schema = await this.getCollectionSchema(record.collectionName);
 
     return `Step ${record.stepIndex} - ${schema.collectionDisplayName} #${record.recordId}`;
   }
