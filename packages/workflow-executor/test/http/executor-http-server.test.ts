@@ -22,9 +22,6 @@ function createMockRunner(overrides: Partial<Runner> = {}): Runner {
   } as unknown as Runner;
 }
 
-const defaultRunStore = createMockRunStore();
-const defaultRunStoreFactory = { buildRunStore: () => defaultRunStore };
-
 describe('ExecutorHttpServer', () => {
   describe('GET /runs/:runId', () => {
     it('should return steps from the run store', async () => {
@@ -32,6 +29,25 @@ describe('ExecutorHttpServer', () => {
 
       const runStore = createMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue(steps),
+      });
+      const buildRunStore = jest.fn().mockReturnValue(runStore);
+
+      const server = new ExecutorHttpServer({
+        port: 0,
+        runStoreFactory: { buildRunStore },
+        runner: createMockRunner(),
+      });
+
+      const response = await request(server.callback).get('/runs/run-1');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ steps });
+      expect(buildRunStore).toHaveBeenCalledWith('run-1');
+    });
+
+    it('should return 500 when getStepExecutions rejects', async () => {
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockRejectedValue(new Error('db error')),
       });
 
       const server = new ExecutorHttpServer({
@@ -42,8 +58,8 @@ describe('ExecutorHttpServer', () => {
 
       const response = await request(server.callback).get('/runs/run-1');
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({ steps });
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'db error' });
     });
   });
 
@@ -53,7 +69,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: defaultRunStoreFactory,
+        runStoreFactory: { buildRunStore: () => createMockRunStore() },
         runner,
       });
 
@@ -71,13 +87,14 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: defaultRunStoreFactory,
+        runStoreFactory: { buildRunStore: () => createMockRunStore() },
         runner,
       });
 
       const response = await request(server.callback).post('/runs/run-1/trigger');
 
       expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'poll failed' });
     });
   });
 
@@ -85,7 +102,7 @@ describe('ExecutorHttpServer', () => {
     it('should start and stop the server', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: defaultRunStoreFactory,
+        runStoreFactory: { buildRunStore: () => createMockRunStore() },
         runner: createMockRunner(),
       });
 
@@ -96,7 +113,7 @@ describe('ExecutorHttpServer', () => {
     it('should handle stop when not started', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: defaultRunStoreFactory,
+        runStoreFactory: { buildRunStore: () => createMockRunStore() },
         runner: createMockRunner(),
       });
 

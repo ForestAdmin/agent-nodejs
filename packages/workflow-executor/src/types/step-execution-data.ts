@@ -13,7 +13,8 @@ interface BaseStepExecutionData {
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
   executionParams: { answer: string | null; reasoning?: string };
-  executionResult: { answer: string };
+  /** Present when status is 'success'. Absent when AI selected null (manual-decision). */
+  executionResult?: { answer: string };
 }
 
 // -- Read Record --

@@ -25,13 +25,14 @@ export default class Runner {
   }
 
   async start(): Promise<void> {
-    if (this.config.httpPort && !this.httpServer) {
-      this.httpServer = new ExecutorHttpServer({
+    if (this.config.httpPort !== undefined && !this.httpServer) {
+      const server = new ExecutorHttpServer({
         port: this.config.httpPort,
         runStoreFactory: this.config.runStoreFactory,
         runner: this,
       });
-      await this.httpServer.start();
+      await server.start();
+      this.httpServer = server;
     }
 
     // TODO: start polling loop

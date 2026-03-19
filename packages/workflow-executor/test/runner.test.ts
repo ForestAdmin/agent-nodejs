@@ -30,13 +30,16 @@ describe('Runner', () => {
 
   describe('start', () => {
     it('should start the HTTP server when httpPort is configured', async () => {
-      const runner = new Runner(createRunnerConfig({ httpPort: 3100 }));
+      const config = createRunnerConfig({ httpPort: 3100 });
+      const runner = new Runner(config);
 
       await runner.start();
 
-      expect(MockedExecutorHttpServer).toHaveBeenCalledWith(
-        expect.objectContaining({ port: 3100 }),
-      );
+      expect(MockedExecutorHttpServer).toHaveBeenCalledWith({
+        port: 3100,
+        runStoreFactory: config.runStoreFactory,
+        runner,
+      });
       expect(MockedExecutorHttpServer.prototype.start).toHaveBeenCalled();
     });
 

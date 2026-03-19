@@ -21,6 +21,16 @@ export default class ExecutorHttpServer {
     this.options = options;
     this.app = new Koa();
 
+    // Error middleware — catches all async handler errors and returns structured JSON
+    this.app.use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (err: unknown) {
+        ctx.status = 500;
+        ctx.body = { error: err instanceof Error ? err.message : 'Internal server error' };
+      }
+    });
+
     const router = new Router();
     router.get('/runs/:runId', this.handleGetRun.bind(this));
     router.post('/runs/:runId/trigger', this.handleTrigger.bind(this));
@@ -32,7 +42,7 @@ export default class ExecutorHttpServer {
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.server = http.createServer(this.app.callback());
-      this.server.on('error', reject);
+      this.server.once('error', reject);
       this.server.listen(this.options.port, resolve);
     });
   }
@@ -46,9 +56,12 @@ export default class ExecutorHttpServer {
       }
 
       this.server.close(err => {
-        this.server = null;
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          reject(err);
+        } else {
+          this.server = null;
+          resolve();
+        }
       });
     });
   }
@@ -59,14 +72,6 @@ export default class ExecutorHttpServer {
 
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
-
-    if (!runId) {
-      ctx.status = 400;
-      ctx.body = { error: 'Missing runId parameter' };
-
-      return;
-    }
-
     const runStore = this.options.runStoreFactory.buildRunStore(runId);
     const steps = await runStore.getStepExecutions();
 
@@ -75,13 +80,6 @@ export default class ExecutorHttpServer {
 
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
-
-    if (!runId) {
-      ctx.status = 400;
-      ctx.body = { error: 'Missing runId parameter' };
-
-      return;
-    }
 
     await this.options.runner.triggerPoll(runId);
 
