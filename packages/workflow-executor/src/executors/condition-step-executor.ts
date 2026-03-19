@@ -37,7 +37,7 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 
 export default class ConditionStepExecutor extends BaseStepExecutor<ConditionStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
-    const { step } = this.context;
+    const { stepDefinition: step } = this.context;
 
     const tool = new DynamicStructuredTool({
       name: 'choose-gateway-option',
@@ -68,10 +68,10 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
     } catch (error: unknown) {
       return {
-        stepHistory: {
+        stepOutcome: {
           type: 'condition',
-          stepId: step.id,
-          stepIndex: step.stepIndex,
+          stepId: this.context.stepId,
+          stepIndex: this.context.stepIndex,
           status: 'error',
           error: (error as Error).message,
         },
@@ -82,27 +82,27 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
     await this.context.runStore.saveStepExecution({
       type: 'condition',
-      stepIndex: step.stepIndex,
+      stepIndex: this.context.stepIndex,
       executionParams: { answer: selectedOption, reasoning },
       executionResult: selectedOption ? { answer: selectedOption } : undefined,
     });
 
     if (!selectedOption) {
       return {
-        stepHistory: {
+        stepOutcome: {
           type: 'condition',
-          stepId: step.id,
-          stepIndex: step.stepIndex,
+          stepId: this.context.stepId,
+          stepIndex: this.context.stepIndex,
           status: 'manual-decision',
         },
       };
     }
 
     return {
-      stepHistory: {
+      stepOutcome: {
         type: 'condition',
-        stepId: step.id,
-        stepIndex: step.stepIndex,
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
         status: 'success',
         selectedOption,
       },

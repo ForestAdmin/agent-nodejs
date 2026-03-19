@@ -25,7 +25,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
   private readonly schemaCache = new Map<string, CollectionSchema>();
 
   async execute(): Promise<StepExecutionResult> {
-    const { step } = this.context;
+    const { stepDefinition: step } = this.context;
     const records = await this.getAvailableRecordRefs();
 
     let selectedRecordRef: RecordRef;
@@ -45,10 +45,10 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return {
-          stepHistory: {
+          stepOutcome: {
             type: 'ai-task',
-            stepId: step.id,
-            stepIndex: step.stepIndex,
+            stepId: this.context.stepId,
+            stepIndex: this.context.stepIndex,
             status: 'error',
             error: error.message,
           },
@@ -62,17 +62,17 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
 
     await this.context.runStore.saveStepExecution({
       type: 'read-record',
-      stepIndex: step.stepIndex,
+      stepIndex: this.context.stepIndex,
       executionParams: { fieldNames },
       executionResult: { fields: fieldResults },
       selectedRecordRef,
     });
 
     return {
-      stepHistory: {
+      stepOutcome: {
         type: 'ai-task',
-        stepId: step.id,
-        stepIndex: step.stepIndex,
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
         status: 'success',
       },
     };

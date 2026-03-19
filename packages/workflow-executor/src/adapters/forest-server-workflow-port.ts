@@ -1,7 +1,7 @@
 import type { McpConfiguration, WorkflowPort } from '../ports/workflow-port';
 import type { PendingStepExecution } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
-import type { StepHistory } from '../types/step-history';
+import type { StepOutcome } from '../types/step-outcome';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
@@ -29,13 +29,13 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     );
   }
 
-  async updateStepExecution(runId: string, stepHistory: StepHistory): Promise<void> {
+  async updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void> {
     await ServerUtils.query(
       this.options,
       'post',
       ROUTES.updateStepExecution(runId),
       {},
-      stepHistory,
+      stepOutcome,
     );
   }
 

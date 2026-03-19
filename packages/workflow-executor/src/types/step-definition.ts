@@ -9,9 +9,7 @@ export enum StepType {
 }
 
 interface BaseStepDefinition {
-  id: string;
   type: StepType;
-  stepIndex: number;
   prompt?: string;
   aiConfigName?: string;
 }

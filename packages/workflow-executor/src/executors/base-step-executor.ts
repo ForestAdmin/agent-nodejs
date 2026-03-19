@@ -1,7 +1,7 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { StepDefinition } from '../types/step-definition';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { StepHistory } from '../types/step-history';
+import type { StepOutcome } from '../types/step-outcome';
 import type { AIMessage, BaseMessage } from '@langchain/core/messages';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 
@@ -33,29 +33,29 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   /**
    * Builds a text summary of previously executed steps for AI prompts.
-   * Correlates history entries (step + stepHistory pairs) with execution data
-   * from the RunStore (matched by stepHistory.stepIndex).
-   * When no execution data is available, falls back to StepHistory details.
+   * Correlates history entries (step + stepOutcome pairs) with execution data
+   * from the RunStore (matched by stepOutcome.stepIndex).
+   * When no execution data is available, falls back to StepOutcome details.
    */
   private async summarizePreviousSteps(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions();
 
     return this.context.history
-      .map(({ step, stepHistory }) => {
-        const execution = allStepExecutions.find(e => e.stepIndex === stepHistory.stepIndex);
+      .map(({ stepDefinition, stepOutcome }) => {
+        const execution = allStepExecutions.find(e => e.stepIndex === stepOutcome.stepIndex);
 
-        return this.buildStepSummary(step, stepHistory, execution);
+        return this.buildStepSummary(stepDefinition, stepOutcome, execution);
       })
       .join('\n\n');
   }
 
   private buildStepSummary(
     step: StepDefinition,
-    stepHistory: StepHistory,
+    stepOutcome: StepOutcome,
     execution: StepExecutionData | undefined,
   ): string {
     const prompt = step.prompt ?? '(no prompt)';
-    const header = `Step "${step.id}" (index ${step.stepIndex}):`;
+    const header = `Step "${stepOutcome.stepId}" (index ${stepOutcome.stepIndex}):`;
     const lines = [header, `  Prompt: ${prompt}`];
 
     if (isExecutedStepOnExecutor(execution)) {
@@ -67,7 +67,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         lines.push(`  Output: ${JSON.stringify(execution.executionResult)}`);
       }
     } else {
-      const { stepId, stepIndex, type, ...historyDetails } = stepHistory;
+      const { stepId, stepIndex, type, ...historyDetails } = stepOutcome;
       lines.push(`  History: ${JSON.stringify(historyDetails)}`);
     }
 

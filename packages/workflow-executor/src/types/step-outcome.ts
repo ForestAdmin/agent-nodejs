@@ -12,27 +12,27 @@ export type AiTaskStepStatus = BaseStepStatus | 'awaiting-input';
 export type StepStatus = ConditionStepStatus | AiTaskStepStatus;
 
 /**
- * StepHistory is sent to the orchestrator — it must NEVER contain client data.
+ * StepOutcome is sent to the orchestrator — it must NEVER contain client data.
  * Any privacy-sensitive information (e.g. AI reasoning) must stay in
  * StepExecutionData (persisted in the RunStore, client-side only).
  */
-interface BaseStepHistory {
+interface BaseStepOutcome {
   stepId: string;
   stepIndex: number;
   /** Present when status is 'error'. */
   error?: string;
 }
 
-export interface ConditionStepHistory extends BaseStepHistory {
+export interface ConditionStepOutcome extends BaseStepOutcome {
   type: 'condition';
   status: ConditionStepStatus;
   /** Present when status is 'success'. */
   selectedOption?: string;
 }
 
-export interface AiTaskStepHistory extends BaseStepHistory {
+export interface AiTaskStepOutcome extends BaseStepOutcome {
   type: 'ai-task';
   status: AiTaskStepStatus;
 }
 
-export type StepHistory = ConditionStepHistory | AiTaskStepHistory;
+export type StepOutcome = ConditionStepOutcome | AiTaskStepOutcome;

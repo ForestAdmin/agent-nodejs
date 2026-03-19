@@ -1,6 +1,6 @@
 import type { PendingStepExecution } from '../../src/types/execution';
 import type { CollectionSchema } from '../../src/types/record';
-import type { StepHistory } from '../../src/types/step-history';
+import type { StepOutcome } from '../../src/types/step-outcome';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
@@ -39,9 +39,9 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('updateStepExecution', () => {
-    it('should post step history to the complete route', async () => {
+    it('should post step outcome to the complete route', async () => {
       mockQuery.mockResolvedValue(undefined);
-      const stepHistory: StepHistory = {
+      const stepOutcome: StepOutcome = {
         type: 'condition',
         stepId: 'step-1',
         stepIndex: 0,
@@ -49,14 +49,14 @@ describe('ForestServerWorkflowPort', () => {
         selectedOption: 'optionA',
       };
 
-      await port.updateStepExecution('run-42', stepHistory);
+      await port.updateStepExecution('run-42', stepOutcome);
 
       expect(mockQuery).toHaveBeenCalledWith(
         options,
         'post',
         '/liana/v1/workflow-step-executions/run-42/complete',
         {},
-        stepHistory,
+        stepOutcome,
       );
     });
   });

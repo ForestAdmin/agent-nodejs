@@ -3,7 +3,7 @@ import type { ExecutionContext, StepExecutionResult } from '../../src/types/exec
 import type { RecordRef } from '../../src/types/record';
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
-import type { StepHistory } from '../../src/types/step-history';
+import type { StepOutcome } from '../../src/types/step-outcome';
 import type { BaseMessage, SystemMessage } from '@langchain/core/messages';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 
@@ -31,16 +31,14 @@ class TestableExecutor extends BaseStepExecutor {
 
 function makeHistoryEntry(
   overrides: { stepId?: string; stepIndex?: number; prompt?: string } = {},
-): { step: StepDefinition; stepHistory: StepHistory } {
+): { stepDefinition: StepDefinition; stepOutcome: StepOutcome } {
   return {
-    step: {
-      id: overrides.stepId ?? 'step-1',
+    stepDefinition: {
       type: StepType.Condition,
-      stepIndex: overrides.stepIndex ?? 0,
       options: ['A', 'B'],
       prompt: overrides.prompt ?? 'Pick one',
     },
-    stepHistory: {
+    stepOutcome: {
       type: 'condition',
       stepId: overrides.stepId ?? 'step-1',
       stepIndex: overrides.stepIndex ?? 0,
@@ -59,15 +57,15 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
+    stepId: 'step-0',
+    stepIndex: 0,
     baseRecordRef: {
       collectionName: 'customers',
       recordId: [1],
       stepIndex: 0,
     } as RecordRef,
-    step: {
-      id: 'step-0',
+    stepDefinition: {
       type: StepType.Condition,
-      stepIndex: 0,
       options: ['A', 'B'],
       prompt: 'Pick one',
     },
@@ -179,7 +177,7 @@ describe('BaseStepExecutor', () => {
         stepIndex: 0,
         prompt: 'Approved?',
       });
-      (entry.stepHistory as { selectedOption?: string }).selectedOption = 'Yes';
+      (entry.stepOutcome as { selectedOption?: string }).selectedOption = 'Yes';
 
       const executor = new TestableExecutor(
         makeContext({
@@ -202,8 +200,8 @@ describe('BaseStepExecutor', () => {
         stepIndex: 0,
         prompt: 'Do something',
       });
-      entry.stepHistory.status = 'error';
-      (entry.stepHistory as { error?: string }).error = 'AI could not match an option';
+      entry.stepOutcome.status = 'error';
+      (entry.stepOutcome as { error?: string }).error = 'AI could not match an option';
 
       const executor = new TestableExecutor(
         makeContext({
@@ -221,9 +219,17 @@ describe('BaseStepExecutor', () => {
     });
 
     it('includes status in History for ai-task steps without RunStore data', async () => {
-      const entry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'ai-step', type: StepType.ReadRecord, stepIndex: 0, prompt: 'Run task' },
-        stepHistory: { type: 'ai-task', stepId: 'ai-step', stepIndex: 0, status: 'awaiting-input' },
+      const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
+        stepDefinition: {
+          type: StepType.ReadRecord,
+          prompt: 'Run task',
+        },
+        stepOutcome: {
+          type: 'ai-task',
+          stepId: 'ai-step',
+          stepIndex: 0,
+          status: 'awaiting-input',
+        },
       };
 
       const executor = new TestableExecutor(
@@ -247,11 +253,19 @@ describe('BaseStepExecutor', () => {
         stepIndex: 0,
         prompt: 'Approved?',
       });
-      (condEntry.stepHistory as { selectedOption?: string }).selectedOption = 'Yes';
+      (condEntry.stepOutcome as { selectedOption?: string }).selectedOption = 'Yes';
 
-      const aiEntry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'read-customer', type: StepType.ReadRecord, stepIndex: 1, prompt: 'Read name' },
-        stepHistory: { type: 'ai-task', stepId: 'read-customer', stepIndex: 1, status: 'success' },
+      const aiEntry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
+        stepDefinition: {
+          type: StepType.ReadRecord,
+          prompt: 'Read name',
+        },
+        stepOutcome: {
+          type: 'ai-task',
+          stepId: 'read-customer',
+          stepIndex: 1,
+          status: 'success',
+        },
       };
 
       const executor = new TestableExecutor(
@@ -279,7 +293,7 @@ describe('BaseStepExecutor', () => {
 
     it('prefers RunStore execution data over History fallback', async () => {
       const entry = makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' });
-      (entry.stepHistory as { selectedOption?: string }).selectedOption = 'A';
+      (entry.stepOutcome as { selectedOption?: string }).selectedOption = 'A';
 
       const executor = new TestableExecutor(
         makeContext({
@@ -305,9 +319,17 @@ describe('BaseStepExecutor', () => {
     });
 
     it('omits Input line when executionParams is undefined', async () => {
-      const entry: { step: StepDefinition; stepHistory: StepHistory } = {
-        step: { id: 'ai-step', type: StepType.ReadRecord, stepIndex: 0, prompt: 'Do something' },
-        stepHistory: { type: 'ai-task', stepId: 'ai-step', stepIndex: 0, status: 'success' },
+      const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
+        stepDefinition: {
+          type: StepType.ReadRecord,
+          prompt: 'Do something',
+        },
+        stepOutcome: {
+          type: 'ai-task',
+          stepId: 'ai-step',
+          stepIndex: 0,
+          status: 'success',
+        },
       };
 
       const executor = new TestableExecutor(
@@ -333,7 +355,7 @@ describe('BaseStepExecutor', () => {
 
     it('shows "(no prompt)" when step has no prompt', async () => {
       const entry = makeHistoryEntry({ stepIndex: 0 });
-      entry.step.prompt = undefined;
+      entry.stepDefinition.prompt = undefined;
 
       const executor = new TestableExecutor(
         makeContext({

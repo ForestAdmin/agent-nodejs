@@ -2,16 +2,14 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { RecordRef } from '../../src/types/record';
 import type { ConditionStepDefinition } from '../../src/types/step-definition';
-import type { ConditionStepHistory } from '../../src/types/step-history';
+import type { ConditionStepOutcome } from '../../src/types/step-outcome';
 
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {
-    id: 'cond-1',
     type: StepType.Condition,
-    stepIndex: 0,
     options: ['Approve', 'Reject'],
     prompt: 'Should we approve this?',
     ...overrides,
@@ -43,12 +41,14 @@ function makeContext(
 ): ExecutionContext<ConditionStepDefinition> {
   return {
     runId: 'run-1',
+    stepId: 'cond-1',
+    stepIndex: 0,
     baseRecordRef: {
       collectionName: 'customers',
       recordId: [1],
       stepIndex: 0,
     } as RecordRef,
-    step: makeStep(),
+    stepDefinition: makeStep(),
     model: makeMockModel().model,
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
@@ -76,8 +76,8 @@ describe('ConditionStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('success');
-      expect((result.stepHistory as ConditionStepHistory).selectedOption).toBe('Reject');
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Reject');
 
       expect(mockModel.bindTools).toHaveBeenCalledWith(
         [expect.objectContaining({ name: 'choose-gateway-option' })],
@@ -101,7 +101,7 @@ describe('ConditionStepExecutor', () => {
       const executor = new ConditionStepExecutor(
         makeContext({
           model: mockModel.model,
-          step: makeStep({ options: ['Approve', 'Reject', 'Defer'] }),
+          stepDefinition: makeStep({ options: ['Approve', 'Reject', 'Defer'] }),
         }),
       );
 
@@ -125,7 +125,7 @@ describe('ConditionStepExecutor', () => {
       });
       const context = makeContext({
         model: mockModel.model,
-        step: makeStep({ prompt: 'Custom prompt for this step' }),
+        stepDefinition: makeStep({ prompt: 'Custom prompt for this step' }),
       });
       const executor = new ConditionStepExecutor(context);
 
@@ -146,7 +146,7 @@ describe('ConditionStepExecutor', () => {
       });
       const context = makeContext({
         model: mockModel.model,
-        step: makeStep({ prompt: undefined }),
+        stepDefinition: makeStep({ prompt: undefined }),
       });
       const executor = new ConditionStepExecutor(context);
 
@@ -177,14 +177,12 @@ describe('ConditionStepExecutor', () => {
         runStore,
         history: [
           {
-            step: {
-              id: 'prev-step',
+            stepDefinition: {
               type: StepType.Condition,
-              stepIndex: 0,
               options: ['Yes', 'No'],
               prompt: 'Previous question',
             },
-            stepHistory: {
+            stepOutcome: {
               type: 'condition',
               stepId: 'prev-step',
               stepIndex: 0,
@@ -195,7 +193,8 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor({
         ...context,
-        step: makeStep({ id: 'cond-2', stepIndex: 1 }),
+        stepId: 'cond-2',
+        stepIndex: 1,
       });
 
       await executor.execute();
@@ -225,9 +224,9 @@ describe('ConditionStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('manual-decision');
-      expect(result.stepHistory.error).toBeUndefined();
-      expect((result.stepHistory as ConditionStepHistory).selectedOption).toBeUndefined();
+      expect(result.stepOutcome.status).toBe('manual-decision');
+      expect(result.stepOutcome.error).toBeUndefined();
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBeUndefined();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith({
         type: 'condition',
         stepIndex: 0,
@@ -253,8 +252,8 @@ describe('ConditionStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe(
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
         'AI returned a malformed tool call for "choose-gateway-option": JSON parse error',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -272,8 +271,8 @@ describe('ConditionStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('API timeout');
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('API timeout');
     });
 
     it('lets run store errors propagate', async () => {

@@ -7,10 +7,10 @@ export type {
 
 export type {
   StepStatus,
-  ConditionStepHistory,
-  AiTaskStepHistory,
-  StepHistory,
-} from './types/step-history';
+  ConditionStepOutcome,
+  AiTaskStepOutcome,
+  StepOutcome,
+} from './types/step-outcome';
 
 export type {
   FieldReadSuccess,
@@ -35,7 +35,7 @@ export type {
 } from './types/record';
 
 export type {
-  StepRecord,
+  Step,
   UserInput,
   PendingStepExecution,
   StepExecutionResult,

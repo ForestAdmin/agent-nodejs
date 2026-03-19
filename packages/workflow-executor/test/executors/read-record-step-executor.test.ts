@@ -11,9 +11,7 @@ import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<AiTaskStepDefinition> = {}): AiTaskStepDefinition {
   return {
-    id: 'read-1',
     type: StepType.ReadRecord,
-    stepIndex: 0,
     prompt: 'Read the customer email',
     ...overrides,
   };
@@ -105,8 +103,10 @@ function makeContext(
 ): ExecutionContext<AiTaskStepDefinition> {
   return {
     runId: 'run-1',
+    stepId: 'read-1',
+    stepIndex: 0,
     baseRecordRef: makeRecordRef(),
-    step: makeStep(),
+    stepDefinition: makeStep(),
     model: makeMockModel({ fieldNames: ['email'] }).model,
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
@@ -127,7 +127,7 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('success');
+      expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'read-record',
@@ -150,7 +150,7 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('success');
+      expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           executionParams: { fieldNames: ['email', 'name'] },
@@ -174,7 +174,7 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('success');
+      expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           executionResult: {
@@ -194,7 +194,7 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('success');
+      expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           executionResult: {
@@ -260,8 +260,8 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe(
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
         'No readable fields on record from collection "customers"',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -323,7 +323,7 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('success');
+      expect(result.stepOutcome.status).toBe('success');
       expect(bindTools).toHaveBeenCalledTimes(2);
 
       // First call: select-record tool
@@ -405,7 +405,7 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('success');
+      expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           executionResult: {
@@ -518,8 +518,8 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe(
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
         'AI selected record "NonExistent #999" which does not match any available record',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -539,8 +539,8 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('Record not found: collection "customers", id "42"');
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('Record not found: collection "customers", id "42"');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
@@ -586,8 +586,8 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe(
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
         'AI returned a malformed tool call for "read-selected-record-fields": JSON parse error',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -605,8 +605,8 @@ describe('ReadRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepHistory.status).toBe('error');
-      expect(result.stepHistory.error).toBe('AI did not return a tool call');
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('AI did not return a tool call');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
@@ -652,14 +652,12 @@ describe('ReadRecordStepExecutor', () => {
         runStore,
         history: [
           {
-            step: {
-              id: 'prev-step',
+            stepDefinition: {
               type: StepType.Condition,
-              stepIndex: 0,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },
-            stepHistory: {
+            stepOutcome: {
               type: 'condition',
               stepId: 'prev-step',
               stepIndex: 0,
@@ -670,7 +668,8 @@ describe('ReadRecordStepExecutor', () => {
       });
       const executor = new ReadRecordStepExecutor({
         ...context,
-        step: makeStep({ id: 'read-2', stepIndex: 1 }),
+        stepId: 'read-2',
+        stepIndex: 1,
       });
 
       await executor.execute();
@@ -689,7 +688,7 @@ describe('ReadRecordStepExecutor', () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const context = makeContext({
         model: mockModel.model,
-        step: makeStep({ prompt: undefined }),
+        stepDefinition: makeStep({ prompt: undefined }),
       });
       const executor = new ReadRecordStepExecutor(context);
 
@@ -708,7 +707,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         runStore,
-        step: makeStep({ stepIndex: 3 }),
+        stepIndex: 3,
       });
       const executor = new ReadRecordStepExecutor(context);
 
