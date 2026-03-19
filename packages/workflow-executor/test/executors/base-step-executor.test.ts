@@ -73,7 +73,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
-    history: [],
+    previousSteps: [],
     remoteTools: [],
     ...overrides,
   };
@@ -98,7 +98,7 @@ describe('BaseStepExecutor', () => {
       ]);
       const executor = new TestableExecutor(
         makeContext({
-          history: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' })],
+          previousSteps: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' })],
           runStore,
         }),
       );
@@ -117,7 +117,7 @@ describe('BaseStepExecutor', () => {
     it('uses Input for matched steps and History for unmatched steps', async () => {
       const executor = new TestableExecutor(
         makeContext({
-          history: [
+          previousSteps: [
             makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0 }),
             makeHistoryEntry({ stepId: 'cond-2', stepIndex: 1, prompt: 'Second?' }),
           ],
@@ -147,7 +147,7 @@ describe('BaseStepExecutor', () => {
     it('falls back to History when no matching step execution in RunStore', async () => {
       const executor = new TestableExecutor(
         makeContext({
-          history: [
+          previousSteps: [
             makeHistoryEntry({ stepId: 'orphan', stepIndex: 5, prompt: 'Orphan step' }),
             makeHistoryEntry({ stepId: 'matched', stepIndex: 1, prompt: 'Matched step' }),
           ],
@@ -183,7 +183,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([]),
         }),
       );
@@ -207,7 +207,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([]),
         }),
       );
@@ -236,7 +236,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([]),
         }),
       );
@@ -272,7 +272,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [condEntry, aiEntry],
+          previousSteps: [condEntry, aiEntry],
           runStore: makeMockRunStore([
             {
               type: 'ai-task',
@@ -299,7 +299,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([
             {
               type: 'condition',
@@ -336,7 +336,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([
             {
               type: 'ai-task',
@@ -361,7 +361,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([
             {
               type: 'condition',

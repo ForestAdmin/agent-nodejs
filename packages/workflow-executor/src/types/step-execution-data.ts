@@ -45,6 +45,7 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   type: 'update-record';
   executionParams?: { fieldDisplayName: string; value: string };
+  /** User confirmed → values returned by updateRecord. User rejected → skipped. */
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
   pendingUpdate?: {
     fieldDisplayName: string;

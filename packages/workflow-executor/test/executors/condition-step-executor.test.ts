@@ -53,7 +53,7 @@ function makeContext(
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
-    history: [],
+    previousSteps: [],
     remoteTools: [],
     ...overrides,
   };
@@ -175,7 +175,7 @@ describe('ConditionStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         runStore,
-        history: [
+        previousSteps: [
           {
             stepDefinition: {
               type: StepType.Condition,

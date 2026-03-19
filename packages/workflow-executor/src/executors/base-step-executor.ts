@@ -36,7 +36,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
    * Empty array when there is no history. Ready to spread into a messages array.
    */
   protected async buildPreviousStepsMessages(): Promise<SystemMessage[]> {
-    if (!this.context.history.length) return [];
+    if (!this.context.previousSteps.length) return [];
 
     const summary = await this.summarizePreviousSteps();
 
@@ -52,7 +52,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   private async summarizePreviousSteps(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
 
-    return this.context.history
+    return this.context.previousSteps
       .map(({ stepDefinition, stepOutcome }) => {
         const execution = allStepExecutions.find(e => e.stepIndex === stepOutcome.stepIndex);
 

@@ -111,7 +111,7 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
-    history: [],
+    previousSteps: [],
     remoteTools: [],
     ...overrides,
   };
@@ -700,7 +700,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         runStore,
-        history: [
+        previousSteps: [
           {
             stepDefinition: {
               type: StepType.Condition,
