@@ -25,7 +25,7 @@ export default class Runner {
   }
 
   async start(): Promise<void> {
-    if (this.config.httpPort) {
+    if (this.config.httpPort && !this.httpServer) {
       this.httpServer = new ExecutorHttpServer({
         port: this.config.httpPort,
         runStoreFactory: this.config.runStoreFactory,

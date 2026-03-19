@@ -30,8 +30,9 @@ export default class ExecutorHttpServer {
   }
 
   async start(): Promise<void> {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       this.server = http.createServer(this.app.callback());
+      this.server.on('error', reject);
       this.server.listen(this.options.port, resolve);
     });
   }
