@@ -88,17 +88,18 @@ describe('BaseStepExecutor', () => {
     });
 
     it('includes prompt and executionParams from previous steps', async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 0,
+          executionParams: { answer: 'Yes', reasoning: 'Order is valid' },
+          executionResult: { answer: 'Yes' },
+        },
+      ]);
       const executor = new TestableExecutor(
         makeContext({
           history: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' })],
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 0,
-              executionParams: { answer: 'Yes', reasoning: 'Order is valid' },
-              executionResult: { answer: 'Yes' },
-            },
-          ]),
+          runStore,
         }),
       );
 
@@ -110,6 +111,7 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('Prompt: Approve?');
       expect(result).toContain('Input: {"answer":"Yes","reasoning":"Order is valid"}');
       expect(result).toContain('Output: {"answer":"Yes"}');
+      expect(runStore.getStepExecutions).toHaveBeenCalledWith('run-1');
     });
 
     it('uses Input for matched steps and History for unmatched steps', async () => {

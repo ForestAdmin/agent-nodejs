@@ -62,6 +62,5 @@ export { default as AgentClientAgentPort } from './adapters/agent-client-agent-p
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
 export { default as ExecutorHttpServer } from './http/executor-http-server';
 export type { ExecutorHttpServerOptions } from './http/executor-http-server';
-export type { RunStoreFactory } from './run-store-factory';
 export { default as Runner } from './runner';
 export type { RunnerConfig } from './runner';

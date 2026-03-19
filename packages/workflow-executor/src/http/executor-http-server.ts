@@ -1,4 +1,4 @@
-import type { RunStoreFactory } from '../run-store-factory';
+import type { RunStore } from '../ports/run-store';
 import type Runner from '../runner';
 import type { Server } from 'http';
 
@@ -8,7 +8,7 @@ import Koa from 'koa';
 
 export interface ExecutorHttpServerOptions {
   port: number;
-  runStoreFactory: RunStoreFactory;
+  runStore: RunStore;
   runner: Runner;
 }
 
@@ -72,8 +72,7 @@ export default class ExecutorHttpServer {
 
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
-    const runStore = this.options.runStoreFactory.buildRunStore(runId);
-    const steps = await runStore.getStepExecutions();
+    const steps = await this.options.runStore.getStepExecutions(runId);
 
     ctx.body = { steps };
   }

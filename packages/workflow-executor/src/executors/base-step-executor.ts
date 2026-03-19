@@ -38,7 +38,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
    * When no execution data is available, falls back to StepOutcome details.
    */
   private async summarizePreviousSteps(): Promise<string> {
-    const allStepExecutions = await this.context.runStore.getStepExecutions();
+    const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
 
     return this.context.history
       .map(({ stepDefinition, stepOutcome }) => {

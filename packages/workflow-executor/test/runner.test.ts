@@ -1,6 +1,6 @@
 import type { AgentPort } from '../src/ports/agent-port';
+import type { RunStore } from '../src/ports/run-store';
 import type { WorkflowPort } from '../src/ports/workflow-port';
-import type { RunStoreFactory } from '../src/run-store-factory';
 
 import ExecutorHttpServer from '../src/http/executor-http-server';
 import Runner from '../src/runner';
@@ -13,7 +13,7 @@ function createRunnerConfig(overrides: { httpPort?: number } = {}) {
   return {
     agentPort: {} as AgentPort,
     workflowPort: {} as WorkflowPort,
-    runStoreFactory: { buildRunStore: jest.fn() } as unknown as RunStoreFactory,
+    runStore: {} as RunStore,
     pollingIntervalMs: 2000,
     ...overrides,
   };
@@ -35,7 +35,7 @@ describe('Runner', () => {
 
       expect(MockedExecutorHttpServer).toHaveBeenCalledWith({
         port: 3100,
-        runStoreFactory: config.runStoreFactory,
+        runStore: config.runStore,
         runner,
       });
       expect(MockedExecutorHttpServer.prototype.start).toHaveBeenCalled();

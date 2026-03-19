@@ -129,6 +129,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           type: 'read-record',
           stepIndex: 0,
@@ -152,6 +153,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           executionParams: { fieldNames: ['email', 'name'] },
           executionResult: {
@@ -176,6 +178,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           executionParams: { fieldNames: ['name'] },
           executionResult: {
@@ -240,6 +243,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           executionResult: {
             fields: [
@@ -385,6 +389,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(selectMessages[1].content).toContain('Read the customer email');
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           executionResult: {
             fields: [{ value: 'john@example.com', fieldName: 'email', displayName: 'Email' }],
@@ -451,6 +456,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           executionResult: {
             fields: [{ value: 150, fieldName: 'total', displayName: 'Total' }],
@@ -757,7 +763,7 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith({
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'read-record',
         stepIndex: 3,
         executionParams: { fieldNames: ['email', 'name'] },

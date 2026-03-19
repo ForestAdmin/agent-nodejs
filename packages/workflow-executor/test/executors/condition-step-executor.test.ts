@@ -84,7 +84,7 @@ describe('ConditionStepExecutor', () => {
         { tool_choice: 'any' },
       );
 
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith({
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'condition',
         stepIndex: 0,
         executionParams: { answer: 'Reject', reasoning: 'The request is incomplete' },
@@ -227,7 +227,7 @@ describe('ConditionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('manual-decision');
       expect(result.stepOutcome.error).toBeUndefined();
       expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBeUndefined();
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith({
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'condition',
         stepIndex: 0,
         executionParams: { answer: null, reasoning: 'None apply' },

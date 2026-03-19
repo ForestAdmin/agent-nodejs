@@ -62,8 +62,7 @@ src/
 │   ├── condition-step-executor.ts  # AI-powered condition step (chooses among options)
 │   └── read-record-step-executor.ts # AI-powered record field reading step
 ├── http/                   # HTTP server (optional, for frontend data access)
-│   ├── executor-http-server.ts  # Koa server: GET /runs/:runId, POST /runs/:runId/trigger
-│   └── run-store-factory.ts     # RunStoreFactory interface (buildRunStore)
+│   └── executor-http-server.ts  # Koa server: GET /runs/:runId, POST /runs/:runId/trigger
 └── index.ts                # Barrel exports
 ```
 

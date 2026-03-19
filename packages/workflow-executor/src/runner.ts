@@ -1,15 +1,15 @@
 // TODO: implement polling loop, execution dispatch, AI wiring (see spec section 4.1)
 
 import type { AgentPort } from './ports/agent-port';
+import type { RunStore } from './ports/run-store';
 import type { WorkflowPort } from './ports/workflow-port';
-import type { RunStoreFactory } from './run-store-factory';
 
 import ExecutorHttpServer from './http/executor-http-server';
 
 export interface RunnerConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
-  runStoreFactory: RunStoreFactory;
+  runStore: RunStore;
   pollingIntervalMs: number;
   httpPort?: number;
 }
@@ -26,7 +26,7 @@ export default class Runner {
     if (this.config.httpPort !== undefined && !this.httpServer) {
       const server = new ExecutorHttpServer({
         port: this.config.httpPort,
-        runStoreFactory: this.config.runStoreFactory,
+        runStore: this.config.runStore,
         runner: this,
       });
       await server.start();

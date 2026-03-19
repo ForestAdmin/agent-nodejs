@@ -30,11 +30,10 @@ describe('ExecutorHttpServer', () => {
       const runStore = createMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue(steps),
       });
-      const buildRunStore = jest.fn().mockReturnValue(runStore);
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore },
+        runStore,
         runner: createMockRunner(),
       });
 
@@ -42,7 +41,7 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ steps });
-      expect(buildRunStore).toHaveBeenCalledWith('run-1');
+      expect(runStore.getStepExecutions).toHaveBeenCalledWith('run-1');
     });
 
     it('should return 500 when getStepExecutions rejects', async () => {
@@ -52,7 +51,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => runStore },
+        runStore,
         runner: createMockRunner(),
       });
 
@@ -69,7 +68,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => createMockRunStore() },
+        runStore: createMockRunStore(),
         runner,
       });
 
@@ -87,7 +86,7 @@ describe('ExecutorHttpServer', () => {
 
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => createMockRunStore() },
+        runStore: createMockRunStore(),
         runner,
       });
 
@@ -102,7 +101,7 @@ describe('ExecutorHttpServer', () => {
     it('should start and stop the server', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => createMockRunStore() },
+        runStore: createMockRunStore(),
         runner: createMockRunner(),
       });
 
@@ -113,7 +112,7 @@ describe('ExecutorHttpServer', () => {
     it('should handle stop when not started', async () => {
       const server = new ExecutorHttpServer({
         port: 0,
-        runStoreFactory: { buildRunStore: () => createMockRunStore() },
+        runStore: createMockRunStore(),
         runner: createMockRunner(),
       });
 
