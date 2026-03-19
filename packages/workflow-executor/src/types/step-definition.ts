@@ -21,10 +21,8 @@ export interface ConditionStepDefinition extends BaseStepDefinition {
 
 export interface RecordTaskStepDefinition extends BaseStepDefinition {
   type: Exclude<StepType, StepType.Condition>;
-  recordSourceStepId?: string;
   automaticCompletion?: boolean;
   allowedTools?: string[];
-  remoteToolsSourceId?: string;
 }
 
 export type StepDefinition = ConditionStepDefinition | RecordTaskStepDefinition;
