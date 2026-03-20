@@ -56,7 +56,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { fieldNames: fieldResults.map(f => f.fieldName) },
+      executionParams: { fieldNames: fieldResults.map(f => f.name) },
       executionResult: { fields: fieldResults },
       selectedRecordRef,
     });
@@ -119,11 +119,11 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
     return fieldNames.map(name => {
       const field = this.findField(schema, name);
 
-      if (!field) return { error: `Field not found: ${name}`, fieldName: name, displayName: name };
+      if (!field) return { error: `Field not found: ${name}`, name, displayName: name };
 
       return {
         value: values[field.fieldName],
-        fieldName: field.fieldName,
+        name: field.fieldName,
         displayName: field.displayName,
       };
     });

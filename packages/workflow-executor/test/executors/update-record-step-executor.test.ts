@@ -146,7 +146,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          executionParams: { fieldDisplayName: 'Status', value: 'active' },
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
@@ -179,7 +179,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+          pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -196,7 +196,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -214,9 +214,9 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           type: 'update-record',
-          executionParams: { fieldDisplayName: 'Status', value: 'active' },
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
-          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+          pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
         }),
       );
     });
@@ -228,7 +228,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -246,7 +246,7 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+          pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
         }),
       );
     });
@@ -270,7 +270,7 @@ describe('UpdateRecordStepExecutor', () => {
           {
             type: 'update-record',
             stepIndex: 5,
-            pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+            pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -370,7 +370,11 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingUpdate: { fieldDisplayName: 'Order Status', value: 'shipped' },
+          pendingUpdate: {
+            displayName: 'Order Status',
+            name: 'status',
+            value: 'shipped',
+          },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
@@ -406,32 +410,6 @@ describe('UpdateRecordStepExecutor', () => {
   });
 
   describe('resolveFieldName failure', () => {
-    it('returns error when field is not found during confirmation (Branch A)', async () => {
-      const schema = makeCollectionSchema({
-        fields: [{ fieldName: 'email', displayName: 'Email', isRelationship: false }],
-      });
-      const execution: UpdateRecordStepExecutionData = {
-        type: 'update-record',
-        stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'NonExistentField', value: 'active' },
-        selectedRecordRef: makeRecordRef(),
-      };
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
-      });
-      const workflowPort = makeMockWorkflowPort({ customers: schema });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, workflowPort, userConfirmed });
-      const executor = new UpdateRecordStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'Field "NonExistentField" not found in collection "customers"',
-      );
-    });
-
     it('returns error when field is not found during automaticExecution (Branch B)', async () => {
       // AI returns a display name that doesn't match any field in the schema
       const mockModel = makeMockModel({
@@ -564,7 +542,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -606,7 +584,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -666,8 +644,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       await executor.execute();
 
-      // Branch B calls getCollectionSchema in handleFirstCall and again in resolveAndUpdate
-      // but the cache should prevent the second network call
+      // resolveFieldName is called in handleFirstCall, so getCollectionSchema is only fetched once
       expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
     });
   });
@@ -688,7 +665,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({

@@ -135,7 +135,7 @@ describe('ReadRecordStepExecutor', () => {
           stepIndex: 0,
           executionParams: { fieldNames: ['email'] },
           executionResult: {
-            fields: [{ value: 'john@example.com', fieldName: 'email', displayName: 'Email' }],
+            fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
           },
         }),
       );
@@ -158,8 +158,8 @@ describe('ReadRecordStepExecutor', () => {
           executionParams: { fieldNames: ['email', 'name'] },
           executionResult: {
             fields: [
-              { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
-              { value: 'John Doe', fieldName: 'name', displayName: 'Full Name' },
+              { value: 'john@example.com', name: 'email', displayName: 'Email' },
+              { value: 'John Doe', name: 'name', displayName: 'Full Name' },
             ],
           },
         }),
@@ -182,7 +182,7 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({
           executionParams: { fieldNames: ['name'] },
           executionResult: {
-            fields: [{ value: 'John Doe', fieldName: 'name', displayName: 'Full Name' }],
+            fields: [{ value: 'John Doe', name: 'name', displayName: 'Full Name' }],
           },
         }),
       );
@@ -247,10 +247,10 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({
           executionResult: {
             fields: [
-              { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
+              { value: 'john@example.com', name: 'email', displayName: 'Email' },
               {
                 error: 'Field not found: nonexistent',
-                fieldName: 'nonexistent',
+                name: 'nonexistent',
                 displayName: 'nonexistent',
               },
             ],
@@ -392,7 +392,7 @@ describe('ReadRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: {
-            fields: [{ value: 'john@example.com', fieldName: 'email', displayName: 'Email' }],
+            fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
           },
           selectedRecordRef: expect.objectContaining({
             recordId: [42],
@@ -459,7 +459,7 @@ describe('ReadRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: {
-            fields: [{ value: 150, fieldName: 'total', displayName: 'Total' }],
+            fields: [{ value: 150, name: 'total', displayName: 'Total' }],
           },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
@@ -769,8 +769,8 @@ describe('ReadRecordStepExecutor', () => {
         executionParams: { fieldNames: ['email', 'name'] },
         executionResult: {
           fields: [
-            { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
-            { value: 'John Doe', fieldName: 'name', displayName: 'Full Name' },
+            { value: 'john@example.com', name: 'email', displayName: 'Email' },
+            { value: 'John Doe', name: 'name', displayName: 'Full Name' },
           ],
         },
         selectedRecordRef: {

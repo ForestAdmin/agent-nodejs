@@ -16,6 +16,8 @@ export type {
   FieldReadSuccess,
   FieldReadError,
   FieldReadResult,
+  ActionRef,
+  FieldRef,
   ConditionStepExecutionData,
   ReadRecordStepExecutionData,
   UpdateRecordStepExecutionData,

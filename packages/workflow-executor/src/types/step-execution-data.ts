@@ -16,18 +16,20 @@ export interface ConditionStepExecutionData extends BaseStepExecutionData {
   executionResult: { answer: string };
 }
 
-// -- Read Record --
+// -- Shared --
 
-interface FieldReadBase {
-  fieldName: string;
+export interface FieldRef {
+  name: string;
   displayName: string;
 }
 
-export interface FieldReadSuccess extends FieldReadBase {
+// -- Read Record --
+
+export interface FieldReadSuccess extends FieldRef {
   value: unknown;
 }
 
-export interface FieldReadError extends FieldReadBase {
+export interface FieldReadError extends FieldRef {
   error: string;
 }
 
@@ -44,26 +46,28 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   type: 'update-record';
-  executionParams?: { fieldDisplayName: string; value: string };
+  executionParams?: FieldRef & { value: string };
   /** User confirmed → values returned by updateRecord. User rejected → skipped. */
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
   /** AI-selected field and value awaiting user confirmation. Used in the confirmation flow only. */
-  pendingUpdate?: {
-    fieldDisplayName: string;
-    value: string;
-  };
+  pendingUpdate?: FieldRef & { value: string };
   selectedRecordRef: RecordRef;
 }
 
 // -- Trigger Action --
 
+export interface ActionRef {
+  name: string;
+  displayName: string;
+}
+
 export interface TriggerActionStepExecutionData extends BaseStepExecutionData {
   type: 'trigger-action';
   /** Display name and technical name of the executed action. */
-  executionParams?: { actionDisplayName: string; actionName: string };
+  executionParams?: ActionRef;
   executionResult?: { success: true } | { skipped: true };
   /** AI-selected action awaiting user confirmation. Used in the confirmation flow only. */
-  pendingAction?: { actionDisplayName: string; actionName: string };
+  pendingAction?: ActionRef;
   selectedRecordRef: RecordRef;
 }
 

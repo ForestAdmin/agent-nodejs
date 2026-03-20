@@ -373,7 +373,7 @@ describe('BaseStepExecutor', () => {
             {
               type: 'update-record',
               stepIndex: 0,
-              pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+              pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
               selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
             },
           ]),
@@ -385,8 +385,43 @@ describe('BaseStepExecutor', () => {
         .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Pending:');
-      expect(result).toContain('"fieldDisplayName":"Status"');
+      expect(result).toContain('"displayName":"Status"');
       expect(result).toContain('"value":"active"');
+      expect(result).not.toContain('Input:');
+    });
+
+    it('includes pending action in summary for trigger-action step', async () => {
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [
+            {
+              stepDefinition: { type: StepType.TriggerAction, prompt: 'Archive the customer' },
+              stepOutcome: {
+                type: 'record-task',
+                stepId: 'trigger-1',
+                stepIndex: 0,
+                status: 'awaiting-input',
+              },
+            },
+          ],
+          runStore: makeMockRunStore([
+            {
+              type: 'trigger-action',
+              stepIndex: 0,
+              pendingAction: { displayName: 'Archive Customer', name: 'archive' },
+              selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+            },
+          ]),
+        }),
+      );
+
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
+
+      expect(result).toContain('Pending:');
+      expect(result).toContain('"displayName":"Archive Customer"');
+      expect(result).toContain('"name":"archive"');
       expect(result).not.toContain('Input:');
     });
 

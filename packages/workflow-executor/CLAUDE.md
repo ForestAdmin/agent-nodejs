@@ -42,7 +42,7 @@ Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor  ──
 
 ```
 src/
-├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError, NoWritableFieldsError
+├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError, NoWritableFieldsError, NoActionsError
 ├── runner.ts               # Runner class — main entry point (start/stop/triggerPoll, HTTP server wiring)
 ├── types/                  # Core type definitions (@draft)
 │   ├── step-definition.ts  # StepType enum + step definition interfaces
@@ -61,7 +61,8 @@ src/
 │   ├── base-step-executor.ts       # Abstract base class (context injection + shared helpers)
 │   ├── condition-step-executor.ts  # AI-powered condition step (chooses among options)
 │   ├── read-record-step-executor.ts  # AI-powered record field reading step
-│   └── update-record-step-executor.ts # AI-powered record field update step (with confirmation flow)
+│   ├── update-record-step-executor.ts # AI-powered record field update step (with confirmation flow)
+│   └── trigger-action-step-executor.ts  # AI-powered action trigger step (with confirmation flow)
 ├── http/                   # HTTP server (optional, for frontend data access)
 │   └── executor-http-server.ts  # Koa server: GET /runs/:runId, POST /runs/:runId/trigger
 └── index.ts                # Barrel exports

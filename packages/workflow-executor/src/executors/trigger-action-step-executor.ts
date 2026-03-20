@@ -1,7 +1,7 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
 import type { RecordTaskStepDefinition } from '../types/step-definition';
-import type { TriggerActionStepExecutionData } from '../types/step-execution-data';
+import type { ActionRef, TriggerActionStepExecutionData } from '../types/step-execution-data';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
@@ -18,10 +18,8 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-interface ActionTarget {
+interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
-  actionDisplayName: string;
-  actionName: string;
 }
 
 export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
@@ -58,8 +56,8 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
     const { selectedRecordRef, pendingAction } = execution;
     const target: ActionTarget = {
       selectedRecordRef,
-      actionDisplayName: pendingAction.actionDisplayName,
-      actionName: pendingAction.actionName,
+      displayName: pendingAction.displayName,
+      name: pendingAction.name,
     };
 
     return this.resolveAndExecute(target, execution);
@@ -75,8 +73,8 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
       const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const args = await this.selectAction(schema, step.prompt);
-      const actionName = this.resolveActionName(schema, args.actionDisplayName);
-      target = { selectedRecordRef, actionDisplayName: args.actionDisplayName, actionName };
+      const name = this.resolveActionName(schema, args.displayName);
+      target = { selectedRecordRef, displayName: args.displayName, name };
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return this.buildOutcomeResult('error', error.message);
@@ -94,7 +92,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      pendingAction: { actionDisplayName: target.actionDisplayName, actionName: target.actionName },
+      pendingAction: { displayName: target.displayName, name: target.name },
       selectedRecordRef: target.selectedRecordRef,
     });
 
@@ -110,12 +108,12 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
     target: ActionTarget,
     existingExecution?: TriggerActionStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, actionDisplayName, actionName } = target;
+    const { selectedRecordRef, displayName, name } = target;
 
     try {
       // Return value intentionally discarded: action results may contain client data
       // and must not leave the client's infrastructure (privacy constraint).
-      await this.context.agentPort.executeAction(selectedRecordRef.collectionName, actionName, [
+      await this.context.agentPort.executeAction(selectedRecordRef.collectionName, name, [
         selectedRecordRef.recordId,
       ]);
     } catch (error) {
@@ -130,7 +128,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       ...existingExecution,
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      executionParams: { actionDisplayName, actionName },
+      executionParams: { displayName, name },
       executionResult: { success: true },
       selectedRecordRef,
     });
@@ -141,7 +139,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
   private async selectAction(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ actionDisplayName: string; reasoning: string }> {
+  ): Promise<{ displayName: string; reasoning: string }> {
     const tool = this.buildSelectActionTool(schema);
     const messages = [
       ...(await this.buildPreviousStepsMessages()),
@@ -152,7 +150,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       new HumanMessage(`**Request**: ${prompt ?? 'Trigger the relevant action.'}`),
     ];
 
-    return this.invokeWithTool<{ actionDisplayName: string; reasoning: string }>(messages, tool);
+    return this.invokeWithTool<{ displayName: string; reasoning: string }>(messages, tool);
   }
 
   private buildSelectActionTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -169,7 +167,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       name: 'select-action',
       description: 'Select the action to trigger on the record.',
       schema: z.object({
-        actionDisplayName: z
+        displayName: z
           .enum(displayNames)
           .describe(`The display name of the action to trigger. Available: ${technicalNames}`),
         reasoning: z.string().describe('Why this action was chosen'),

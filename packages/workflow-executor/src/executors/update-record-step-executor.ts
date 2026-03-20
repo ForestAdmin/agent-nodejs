@@ -1,7 +1,7 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
 import type { RecordTaskStepDefinition } from '../types/step-definition';
-import type { UpdateRecordStepExecutionData } from '../types/step-execution-data';
+import type { FieldRef, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
@@ -18,9 +18,8 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-interface UpdateTarget {
+interface UpdateTarget extends FieldRef {
   selectedRecordRef: RecordRef;
-  fieldDisplayName: string;
   value: string;
 }
 
@@ -58,7 +57,8 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
     const { selectedRecordRef, pendingUpdate } = execution;
     const target: UpdateTarget = {
       selectedRecordRef,
-      fieldDisplayName: pendingUpdate.fieldDisplayName,
+      displayName: pendingUpdate.displayName,
+      name: pendingUpdate.name,
       value: pendingUpdate.value,
     };
 
@@ -75,7 +75,13 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
       const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
       const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const args = await this.selectFieldAndValue(schema, step.prompt);
-      target = { selectedRecordRef, fieldDisplayName: args.fieldName, value: args.value };
+      const name = this.resolveFieldName(schema, args.fieldName);
+      target = {
+        selectedRecordRef,
+        displayName: args.fieldName,
+        name,
+        value: args.value,
+      };
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return this.buildOutcomeResult('error', error.message);
@@ -93,7 +99,11 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      pendingUpdate: { fieldDisplayName: target.fieldDisplayName, value: target.value },
+      pendingUpdate: {
+        displayName: target.displayName,
+        name: target.name,
+        value: target.value,
+      },
       selectedRecordRef: target.selectedRecordRef,
     });
 
@@ -109,16 +119,14 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, fieldDisplayName, value } = target;
+    const { selectedRecordRef, displayName, name, value } = target;
     let updated: { values: Record<string, unknown> };
 
     try {
-      const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-      const fieldName = this.resolveFieldName(schema, fieldDisplayName);
       updated = await this.context.agentPort.updateRecord(
         selectedRecordRef.collectionName,
         selectedRecordRef.recordId,
-        { [fieldName]: value },
+        { [name]: value },
       );
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
@@ -132,7 +140,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { fieldDisplayName, value },
+      executionParams: { displayName, name, value },
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,
     });

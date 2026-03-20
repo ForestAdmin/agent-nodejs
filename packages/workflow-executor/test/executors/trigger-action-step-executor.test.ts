@@ -100,7 +100,7 @@ function makeContext(
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
     model: makeMockModel({
-      actionDisplayName: 'Send Welcome Email',
+      displayName: 'Send Welcome Email',
       reasoning: 'User requested welcome email',
     }).model,
     agentPort: makeMockAgentPort(),
@@ -117,7 +117,7 @@ describe('TriggerActionStepExecutor', () => {
     it('triggers the action and returns success', async () => {
       const agentPort = makeMockAgentPort();
       const mockModel = makeMockModel({
-        actionDisplayName: 'Send Welcome Email',
+        displayName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',
       });
       const runStore = makeMockRunStore();
@@ -141,8 +141,8 @@ describe('TriggerActionStepExecutor', () => {
           type: 'trigger-action',
           stepIndex: 0,
           executionParams: {
-            actionDisplayName: 'Send Welcome Email',
-            actionName: 'send-welcome-email',
+            displayName: 'Send Welcome Email',
+            name: 'send-welcome-email',
           },
           executionResult: { success: true },
           selectedRecordRef: expect.objectContaining({
@@ -157,7 +157,7 @@ describe('TriggerActionStepExecutor', () => {
   describe('without automaticExecution: awaiting-input (Branch C)', () => {
     it('saves pendingAction and returns awaiting-input', async () => {
       const mockModel = makeMockModel({
-        actionDisplayName: 'Send Welcome Email',
+        displayName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',
       });
       const runStore = makeMockRunStore();
@@ -175,7 +175,10 @@ describe('TriggerActionStepExecutor', () => {
         expect.objectContaining({
           type: 'trigger-action',
           stepIndex: 0,
-          pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+          pendingAction: {
+            displayName: 'Send Welcome Email',
+            name: 'send-welcome-email',
+          },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -191,7 +194,10 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+        pendingAction: {
+          displayName: 'Send Welcome Email',
+          name: 'send-welcome-email',
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -212,11 +218,14 @@ describe('TriggerActionStepExecutor', () => {
         expect.objectContaining({
           type: 'trigger-action',
           executionParams: {
-            actionDisplayName: 'Send Welcome Email',
-            actionName: 'send-welcome-email',
+            displayName: 'Send Welcome Email',
+            name: 'send-welcome-email',
           },
           executionResult: { success: true },
-          pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+          pendingAction: {
+            displayName: 'Send Welcome Email',
+            name: 'send-welcome-email',
+          },
         }),
       );
     });
@@ -228,7 +237,10 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+        pendingAction: {
+          displayName: 'Send Welcome Email',
+          name: 'send-welcome-email',
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -246,7 +258,10 @@ describe('TriggerActionStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+          pendingAction: {
+            displayName: 'Send Welcome Email',
+            name: 'send-welcome-email',
+          },
         }),
       );
     });
@@ -270,7 +285,7 @@ describe('TriggerActionStepExecutor', () => {
           {
             type: 'trigger-action',
             stepIndex: 5,
-            pendingAction: { actionDisplayName: 'Send Welcome Email' },
+            pendingAction: { displayName: 'Send Welcome Email' },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -304,7 +319,7 @@ describe('TriggerActionStepExecutor', () => {
     it('returns error when collection has no actions', async () => {
       const schema = makeCollectionSchema({ actions: [] });
       const mockModel = makeMockModel({
-        actionDisplayName: 'Send Welcome Email',
+        displayName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const runStore = makeMockRunStore();
@@ -320,6 +335,38 @@ describe('TriggerActionStepExecutor', () => {
     });
   });
 
+  describe('resolveActionName failure', () => {
+    it('returns error when AI returns an action name not found in the schema', async () => {
+      const agentPort = makeMockAgentPort();
+      const mockModel = makeMockModel({
+        displayName: 'NonExistentAction',
+        reasoning: 'hallucinated',
+      });
+      const schema = makeCollectionSchema({
+        actions: [{ name: 'archive', displayName: 'Archive Customer' }],
+      });
+      const runStore = makeMockRunStore();
+      const workflowPort = makeMockWorkflowPort({ customers: schema });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new TriggerActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'Action "NonExistentAction" not found in collection "customers"',
+      );
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
   describe('agentPort.executeAction WorkflowExecutorError (Branch B)', () => {
     it('returns error when executeAction throws WorkflowExecutorError', async () => {
       const agentPort = makeMockAgentPort();
@@ -327,7 +374,7 @@ describe('TriggerActionStepExecutor', () => {
         new WorkflowExecutorError('Action not permitted'),
       );
       const mockModel = makeMockModel({
-        actionDisplayName: 'Send Welcome Email',
+        displayName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const runStore = makeMockRunStore();
@@ -343,6 +390,7 @@ describe('TriggerActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('Action not permitted');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -355,7 +403,10 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+        pendingAction: {
+          displayName: 'Send Welcome Email',
+          name: 'send-welcome-email',
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -369,6 +420,7 @@ describe('TriggerActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('Action not permitted');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -377,7 +429,7 @@ describe('TriggerActionStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({
-        actionDisplayName: 'Send Welcome Email',
+        displayName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const context = makeContext({
@@ -396,7 +448,10 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+        pendingAction: {
+          displayName: 'Send Welcome Email',
+          name: 'send-welcome-email',
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -415,7 +470,7 @@ describe('TriggerActionStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       // AI returns displayName 'Archive Customer', technical name is 'archive'
       const mockModel = makeMockModel({
-        actionDisplayName: 'Archive Customer',
+        displayName: 'Archive Customer',
         reasoning: 'User wants to archive',
       });
       const context = makeContext({
@@ -435,7 +490,7 @@ describe('TriggerActionStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       // AI returns technical name 'archive' instead of display name 'Archive Customer'
       const mockModel = makeMockModel({
-        actionDisplayName: 'archive',
+        displayName: 'archive',
         reasoning: 'fallback to technical name',
       });
       const schema = makeCollectionSchema({
@@ -488,7 +543,7 @@ describe('TriggerActionStepExecutor', () => {
           tool_calls: [
             {
               name: 'select-action',
-              args: { actionDisplayName: 'Cancel Order', reasoning: 'Cancel the order' },
+              args: { displayName: 'Cancel Order', reasoning: 'Cancel the order' },
               id: 'call_2',
             },
           ],
@@ -525,7 +580,7 @@ describe('TriggerActionStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingAction: { actionDisplayName: 'Cancel Order', actionName: 'cancel-order' },
+          pendingAction: { displayName: 'Cancel Order', name: 'cancel-order' },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
@@ -625,7 +680,10 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+        pendingAction: {
+          displayName: 'Send Welcome Email',
+          name: 'send-welcome-email',
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -666,7 +724,10 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
+        pendingAction: {
+          displayName: 'Send Welcome Email',
+          name: 'send-welcome-email',
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -684,7 +745,7 @@ describe('TriggerActionStepExecutor', () => {
   describe('default prompt', () => {
     it('uses default prompt when step.prompt is undefined', async () => {
       const mockModel = makeMockModel({
-        actionDisplayName: 'Send Welcome Email',
+        displayName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const context = makeContext({
@@ -704,7 +765,7 @@ describe('TriggerActionStepExecutor', () => {
   describe('previous steps context', () => {
     it('includes previous steps summary in select-action messages', async () => {
       const mockModel = makeMockModel({
-        actionDisplayName: 'Send Welcome Email',
+        displayName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const runStore = makeMockRunStore({
