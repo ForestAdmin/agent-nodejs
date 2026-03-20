@@ -37,7 +37,7 @@ export type FieldReadResult = FieldReadSuccess | FieldReadError;
 
 export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
   type: 'read-record';
-  executionParams: { fieldNames: string[] };
+  executionParams: { fieldDisplayNames: string[] };
   executionResult: { fields: FieldReadResult[] };
   selectedRecordRef: RecordRef;
 }

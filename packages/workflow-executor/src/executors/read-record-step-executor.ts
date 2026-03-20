@@ -56,7 +56,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { fieldNames: fieldResults.map(f => f.name) },
+      executionParams: { fieldDisplayNames: fieldResults.map(f => f.displayName) },
       executionResult: { fields: fieldResults },
       selectedRecordRef,
     });
@@ -78,9 +78,9 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
       new HumanMessage(`**Request**: ${prompt ?? 'Read the relevant fields.'}`),
     ];
 
-    const args = await this.invokeWithTool<{ fieldNames: string[] }>(messages, tool);
+    const args = await this.invokeWithTool<{ fieldDisplayNames: string[] }>(messages, tool);
 
-    return args.fieldNames;
+    return args.fieldDisplayNames;
   }
 
   private buildReadFieldTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -99,7 +99,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
         // z.string() (not z.enum) intentionally: an invalid field name in the array
         // does not fail the whole tool call — per-field errors are handled in formatFieldResults.
         // This matches the frontend implementation (ISO frontend).
-        fieldNames: z
+        fieldDisplayNames: z
           .array(z.string())
           .describe(
             `Names of the fields to read, possible values are: ${displayNames
@@ -114,9 +114,9 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
   private formatFieldResults(
     values: Record<string, unknown>,
     schema: CollectionSchema,
-    fieldNames: string[],
+    fieldDisplayNames: string[],
   ): FieldReadResult[] {
-    return fieldNames.map(name => {
+    return fieldDisplayNames.map(name => {
       const field = this.findField(schema, name);
 
       if (!field) return { error: `Field not found: ${name}`, name, displayName: name };
