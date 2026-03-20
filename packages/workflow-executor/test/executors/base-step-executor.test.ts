@@ -228,7 +228,7 @@ describe('BaseStepExecutor', () => {
         },
         stepOutcome: {
           type: 'record-task',
-          stepId: 'ai-step',
+          stepId: 'read-record-1',
           stepIndex: 0,
           status: 'awaiting-input',
         },
@@ -245,7 +245,7 @@ describe('BaseStepExecutor', () => {
         .buildPreviousStepsMessages()
         .then(msgs => msgs[0]?.content ?? '');
 
-      expect(result).toContain('Step "ai-step"');
+      expect(result).toContain('Step "read-record-1"');
       expect(result).toContain('History: {"status":"awaiting-input"}');
     });
 
@@ -328,7 +328,7 @@ describe('BaseStepExecutor', () => {
         },
         stepOutcome: {
           type: 'record-task',
-          stepId: 'ai-step',
+          stepId: 'read-record-1',
           stepIndex: 0,
           status: 'success',
         },
@@ -350,7 +350,7 @@ describe('BaseStepExecutor', () => {
         .buildPreviousStepsMessages()
         .then(msgs => msgs[0]?.content ?? '');
 
-      expect(result).toContain('Step "ai-step"');
+      expect(result).toContain('Step "read-record-1"');
       expect(result).toContain('Prompt: Do something');
       expect(result).not.toContain('Input:');
     });
