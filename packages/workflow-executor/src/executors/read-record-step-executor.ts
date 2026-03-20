@@ -74,7 +74,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
       throw error;
     }
 
-    await this.context.runStore.saveStepExecution({
+    await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',
       stepIndex: this.context.stepIndex,
       executionParams: { fieldNames: fieldResults.map(f => f.fieldName) },
@@ -203,7 +203,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<AiTaskStepD
   }
 
   private async getAvailableRecordRefs(): Promise<RecordRef[]> {
-    const stepExecutions = await this.context.runStore.getStepExecutions();
+    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const relatedRecords = stepExecutions
       .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')
       .map(e => e.record);

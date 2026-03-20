@@ -43,6 +43,7 @@ Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor  ──
 ```
 src/
 ├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError
+├── runner.ts               # Runner class — main entry point (start/stop/triggerPoll, HTTP server wiring)
 ├── types/                  # Core type definitions (@draft)
 │   ├── step-definition.ts  # StepType enum + step definition interfaces
 │   ├── step-outcome.ts     # Step outcome tracking types (StepOutcome, sent to orchestrator)
@@ -53,10 +54,15 @@ src/
 │   ├── agent-port.ts       # Interface to the Forest Admin agent (datasource)
 │   ├── workflow-port.ts    # Interface to the orchestrator
 │   └── run-store.ts        # Interface for persisting run state (scoped to a run)
+├── adapters/               # Port implementations
+│   ├── agent-client-agent-port.ts      # AgentPort via @forestadmin/agent-client
+│   └── forest-server-workflow-port.ts  # WorkflowPort via HTTP (forestadmin-client ServerUtils)
 ├── executors/              # Step executor implementations
 │   ├── base-step-executor.ts       # Abstract base class (context injection + shared helpers)
 │   ├── condition-step-executor.ts  # AI-powered condition step (chooses among options)
 │   └── read-record-step-executor.ts # AI-powered record field reading step
+├── http/                   # HTTP server (optional, for frontend data access)
+│   └── executor-http-server.ts  # Koa server: GET /runs/:runId, POST /runs/:runId/trigger
 └── index.ts                # Barrel exports
 ```
 
