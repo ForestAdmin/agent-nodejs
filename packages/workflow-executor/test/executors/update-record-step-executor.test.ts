@@ -142,6 +142,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
@@ -174,6 +175,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
@@ -209,6 +211,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           type: 'update-record',
           executionParams: { fieldDisplayName: 'Status', value: 'active' },
@@ -240,6 +243,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
           pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
@@ -329,6 +333,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(updateTool.name).toBe('update-record-field');
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
         expect.objectContaining({
           pendingUpdate: { fieldDisplayName: 'Order Status', value: 'shipped' },
           selectedRecordRef: expect.objectContaining({

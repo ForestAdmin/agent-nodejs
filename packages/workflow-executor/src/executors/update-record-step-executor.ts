@@ -18,6 +18,12 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
+interface UpdateTarget {
+  selectedRecordRef: RecordRef;
+  fieldDisplayName: string;
+  value: string;
+}
+
 export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry with user confirmation
@@ -30,7 +36,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
   }
 
   private async handleConfirmation(userInput: UserInput): Promise<StepExecutionResult> {
-    const stepExecutions = await this.context.runStore.getStepExecutions();
+    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const execution = stepExecutions.find(
       (e): e is UpdateRecordStepExecutionData =>
         e.type === 'update-record' && e.stepIndex === this.context.stepIndex,
@@ -41,7 +47,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
     }
 
     if (!userInput.confirmed) {
-      await this.context.runStore.saveStepExecution({
+      await this.context.runStore.saveStepExecution(this.context.runId, {
         ...execution,
         executionResult: { skipped: true },
       });
@@ -50,29 +56,26 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
     }
 
     const { selectedRecordRef, pendingUpdate } = execution;
-
-    return this.resolveAndUpdate(
+    const target: UpdateTarget = {
       selectedRecordRef,
-      pendingUpdate.fieldDisplayName,
-      pendingUpdate.value,
-      execution,
-    );
+      fieldDisplayName: pendingUpdate.fieldDisplayName,
+      value: pendingUpdate.value,
+    };
+
+    return this.resolveAndUpdate(target, execution);
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const records = await this.getAvailableRecordRefs();
 
-    let selectedRecordRef: RecordRef;
-    let fieldDisplayName: string;
-    let value: string;
+    let target: UpdateTarget;
 
     try {
-      selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+      const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
       const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const args = await this.selectFieldAndValue(schema, step.prompt);
-      fieldDisplayName = args.fieldName;
-      value = args.value;
+      target = { selectedRecordRef, fieldDisplayName: args.fieldName, value: args.value };
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return this.buildOutcomeResult('error', error.message);
@@ -83,15 +86,15 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
 
     // Branch B -- automaticCompletion
     if (step.automaticCompletion) {
-      return this.resolveAndUpdate(selectedRecordRef, fieldDisplayName, value);
+      return this.resolveAndUpdate(target);
     }
 
     // Branch C -- Awaiting confirmation
-    await this.context.runStore.saveStepExecution({
+    await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      pendingUpdate: { fieldDisplayName, value },
-      selectedRecordRef,
+      pendingUpdate: { fieldDisplayName: target.fieldDisplayName, value: target.value },
+      selectedRecordRef: target.selectedRecordRef,
     });
 
     return this.buildOutcomeResult('awaiting-input');
@@ -99,15 +102,14 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
 
   /**
    * Resolves the field name, calls updateRecord, and persists execution data.
-   * When `existingExecution` is provided (confirmation flow), it spreads its
-   * properties into the saved execution to preserve pendingUpdate for traceability.
+   * When `existingExecution` is provided (confirmation flow), it is spread into the
+   * saved execution to preserve pendingUpdate for traceability.
    */
   private async resolveAndUpdate(
-    selectedRecordRef: RecordRef,
-    fieldDisplayName: string,
-    value: string,
+    target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
+    const { selectedRecordRef, fieldDisplayName, value } = target;
     let updated: { values: Record<string, unknown> };
 
     try {
@@ -126,7 +128,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
       throw error;
     }
 
-    await this.context.runStore.saveStepExecution({
+    await this.context.runStore.saveStepExecution(this.context.runId, {
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,

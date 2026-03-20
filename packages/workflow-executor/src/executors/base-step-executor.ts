@@ -148,7 +148,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   /** Returns baseRecordRef + any related records loaded by previous steps. */
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
-    const stepExecutions = await this.context.runStore.getStepExecutions();
+    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const relatedRecords = stepExecutions
       .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')
       .map(e => e.record);
