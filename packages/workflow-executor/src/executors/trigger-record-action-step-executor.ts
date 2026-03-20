@@ -7,7 +7,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { NoActionsError, WorkflowExecutorError } from '../errors';
+import { NoActionsError, StepPersistenceError, WorkflowExecutorError } from '../errors';
 import RecordTaskStepExecutor from './record-task-step-executor';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
@@ -23,7 +23,7 @@ interface ActionTarget extends ActionRef {
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
-  async execute(): Promise<StepExecutionResult> {
+  protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry with user confirmation
     if (this.context.userConfirmed !== undefined) {
       return this.handleConfirmation();
@@ -34,50 +34,29 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
   }
 
   private async handleConfirmation(): Promise<StepExecutionResult> {
-    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const execution = stepExecutions.find(
-      (e): e is TriggerRecordActionStepExecutionData =>
-        e.type === 'trigger-action' && e.stepIndex === this.context.stepIndex,
+    return this.handleConfirmationFlow<TriggerRecordActionStepExecutionData>(
+      'trigger-action',
+      async execution => {
+        const { selectedRecordRef, pendingData } = execution;
+        const target: ActionTarget = {
+          selectedRecordRef,
+          ...(pendingData as ActionRef),
+        };
+
+        return this.resolveAndExecute(target, execution);
+      },
     );
-
-    if (!execution?.pendingData) {
-      throw new WorkflowExecutorError('No pending action found for this step');
-    }
-
-    if (!this.context.userConfirmed) {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...execution,
-        executionResult: { skipped: true },
-      });
-
-      return this.buildOutcomeResult({ status: 'success' });
-    }
-
-    const { selectedRecordRef, pendingData } = execution;
-    const target: ActionTarget = {
-      selectedRecordRef,
-      displayName: pendingData.displayName,
-      name: pendingData.name,
-    };
-
-    return this.resolveAndExecute(target, execution);
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const records = await this.getAvailableRecordRefs();
 
-    let target: ActionTarget;
-
-    try {
-      const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
-      const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-      const args = await this.selectAction(schema, step.prompt);
-      const name = this.resolveActionName(schema, args.actionName);
-      target = { selectedRecordRef, displayName: args.actionName, name };
-    } catch (error) {
-      return this.buildErrorOutcomeOrThrow(error);
-    }
+    const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const args = await this.selectAction(schema, step.prompt);
+    const name = this.resolveActionName(schema, args.actionName);
+    const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
 
     // Branch B -- automaticExecution
     if (step.automaticExecution) {
@@ -98,7 +77,7 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
   /**
    * Resolves the action name, calls executeAction, and persists execution data.
    * When `existingExecution` is provided (confirmation flow), it is spread into the
-   * saved execution to preserve pendingAction for traceability.
+   * saved execution to preserve pendingData for traceability.
    */
   private async resolveAndExecute(
     target: ActionTarget,
@@ -106,24 +85,28 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    try {
-      // Return value intentionally discarded: action results may contain client data
-      // and must not leave the client's infrastructure (privacy constraint).
-      await this.context.agentPort.executeAction(selectedRecordRef.collectionName, name, [
-        selectedRecordRef.recordId,
-      ]);
-    } catch (error) {
-      return this.buildErrorOutcomeOrThrow(error);
-    }
+    // Return value intentionally discarded: action results may contain client data
+    // and must not leave the client's infrastructure (privacy constraint).
+    await this.context.agentPort.executeAction(selectedRecordRef.collectionName, name, [
+      selectedRecordRef.recordId,
+    ]);
 
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      ...existingExecution,
-      type: 'trigger-action',
-      stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name },
-      executionResult: { success: true },
-      selectedRecordRef,
-    });
+    try {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existingExecution,
+        type: 'trigger-action',
+        stepIndex: this.context.stepIndex,
+        executionParams: { displayName, name },
+        executionResult: { success: true },
+        selectedRecordRef,
+      });
+    } catch (cause) {
+      throw new StepPersistenceError(
+        `Action "${name}" executed but step state could not be persisted ` +
+          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+        cause,
+      );
+    }
 
     return this.buildOutcomeResult({ status: 'success' });
   }

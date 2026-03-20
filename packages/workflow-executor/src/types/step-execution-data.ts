@@ -6,8 +6,6 @@ import type { RecordRef } from './record';
 
 interface BaseStepExecutionData {
   stepIndex: number;
-  /** Populated by executors awaiting confirmation; used to display pending state in AI context. */
-  pendingData?: object;
 }
 
 // -- Condition --
@@ -15,7 +13,7 @@ interface BaseStepExecutionData {
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
   executionParams: { answer: string | null; reasoning?: string };
-  executionResult: { answer: string };
+  executionResult?: { answer: string };
 }
 
 // -- Shared --

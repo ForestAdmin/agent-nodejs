@@ -57,3 +57,16 @@ export class NoActionsError extends WorkflowExecutorError {
     super(`No actions available on collection "${collectionName}"`);
   }
 }
+
+/**
+ * Thrown when a step's side effect succeeded (action/update/decision)
+ * but the resulting state could not be persisted to the RunStore.
+ */
+export class StepPersistenceError extends WorkflowExecutorError {
+  readonly cause?: unknown;
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    if (cause !== undefined) this.cause = cause;
+  }
+}

@@ -252,6 +252,7 @@ describe('ConditionStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('condition');
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
         'AI returned a malformed tool call for "choose-gateway-option": JSON parse error',
@@ -264,15 +265,18 @@ describe('ConditionStepExecutor', () => {
     it('lets infrastructure errors propagate', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
+      const runStore = makeMockRunStore();
       const context = makeContext({
         model: { bindTools } as unknown as ExecutionContext['model'],
+        runStore,
       });
       const executor = new ConditionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('API timeout');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('lets run store errors propagate', async () => {
+    it('returns error outcome when run store save fails with context', async () => {
       const mockModel = makeMockModel({
         option: 'Approve',
         reasoning: 'OK',
@@ -283,7 +287,10 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(makeContext({ model: mockModel.model, runStore }));
 
-      await expect(executor.execute()).rejects.toThrow('Storage full');
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain('Condition step state could not be persisted');
     });
   });
 });

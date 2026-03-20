@@ -5,7 +5,7 @@ import type {
   LoadRelatedRecordStepExecutionData,
   StepExecutionData,
 } from '../types/step-execution-data';
-import type { StepOutcome, StepStatus } from '../types/step-outcome';
+import type { BaseStepStatus, StepOutcome } from '../types/step-outcome';
 import type { AIMessage, BaseMessage } from '@langchain/core/messages';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -29,7 +29,18 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     this.context = context;
   }
 
-  abstract execute(): Promise<StepExecutionResult>;
+  async execute(): Promise<StepExecutionResult> {
+    try {
+      return await this.doExecute();
+    } catch (error) {
+      if (error instanceof WorkflowExecutorError) {
+        return this.buildOutcomeResult({ status: 'error', error: error.message });
+      }
+      throw error;
+    }
+  }
+
+  protected abstract doExecute(): Promise<StepExecutionResult>;
 
   /** Find a field by displayName first, then fallback to fieldName. */
   protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
@@ -41,21 +52,9 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   /** Builds a StepExecutionResult with the step-type-specific outcome shape. */
   protected abstract buildOutcomeResult(outcome: {
-    status: StepStatus;
+    status: BaseStepStatus;
     error?: string;
   }): StepExecutionResult;
-
-  /**
-   * Returns an error outcome for WorkflowExecutorErrors; rethrows everything else.
-   * Convenience wrapper around buildOutcomeResult for use in catch blocks.
-   */
-  protected buildErrorOutcomeOrThrow(error: unknown): StepExecutionResult {
-    if (error instanceof WorkflowExecutorError) {
-      return this.buildOutcomeResult({ status: 'error', error: error.message });
-    }
-
-    throw error;
-  }
 
   /**
    * Returns a SystemMessage array summarizing previously executed steps.
@@ -99,7 +98,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     if (isExecutedStepOnExecutor(execution)) {
       if (execution.executionParams !== undefined) {
         lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
-      } else if (execution.pendingData) {
+      } else if ('pendingData' in execution && execution.pendingData !== undefined) {
         lines.push(`  Pending: ${JSON.stringify(execution.pendingData)}`);
       }
 
@@ -134,7 +133,14 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
    */
   private extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T {
     const toolCall = response.tool_calls?.[0];
-    if (toolCall?.args) return toolCall.args as T;
+
+    if (toolCall !== undefined) {
+      if (toolCall.args !== undefined && toolCall.args !== null) {
+        return toolCall.args as T;
+      }
+
+      throw new MalformedToolCallError(toolCall.name ?? 'unknown', 'args field is missing or null');
+    }
 
     const invalidCall = response.invalid_tool_calls?.[0];
 

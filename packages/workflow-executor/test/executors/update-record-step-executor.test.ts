@@ -253,7 +253,7 @@ describe('UpdateRecordStepExecutor', () => {
   });
 
   describe('no pending update in phase 2 (Branch A)', () => {
-    it('throws when no pending update is found', async () => {
+    it('returns error outcome when no pending update is found', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
@@ -261,10 +261,19 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'No execution record found for step at index 0',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('throws when execution exists but stepIndex does not match', async () => {
+    it('returns error outcome when execution exists but stepIndex does not match', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -279,10 +288,19 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'No execution record found for step at index 0',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('throws when execution exists but pendingUpdate is absent', async () => {
+    it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -296,7 +314,16 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'Step at index 0 has no pending data',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -481,6 +508,9 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('update-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
         'AI returned a malformed tool call for "update-record-field": JSON parse error',
@@ -500,6 +530,9 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('update-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('AI did not return a tool call');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -528,6 +561,9 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('update-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('Record locked');
     });
@@ -554,6 +590,9 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('update-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('Record locked');
     });
@@ -689,7 +728,7 @@ describe('UpdateRecordStepExecutor', () => {
       await expect(executor.execute()).rejects.toThrow('Disk full');
     });
 
-    it('lets saveStepExecution errors propagate after successful updateRecord (Branch B)', async () => {
+    it('returns error outcome after successful updateRecord when saveStepExecution fails (Branch B)', async () => {
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
@@ -699,7 +738,12 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain(
+        'Record update persisted but step state could not be saved',
+      );
     });
   });
 

@@ -1,5 +1,5 @@
 import type { StepExecutionResult } from '../types/execution';
-import type { CollectionSchema, RecordRef } from '../types/record';
+import type { CollectionSchema } from '../types/record';
 import type { RecordTaskStepDefinition } from '../types/step-definition';
 import type { FieldReadResult } from '../types/step-execution-data';
 
@@ -19,35 +19,27 @@ Important rules:
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
-  async execute(): Promise<StepExecutionResult> {
+  protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const records = await this.getAvailableRecordRefs();
 
-    let selectedRecordRef: RecordRef;
-    let schema: CollectionSchema;
-    let fieldResults: FieldReadResult[];
+    const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const selectedDisplayNames = await this.selectFields(schema, step.prompt);
+    const resolvedFieldNames = selectedDisplayNames
+      .map(name => this.findField(schema, name)?.fieldName)
+      .filter((name): name is string => name !== undefined);
 
-    try {
-      selectedRecordRef = await this.selectRecordRef(records, step.prompt);
-      schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-      const selectedDisplayNames = await this.selectFields(schema, step.prompt);
-      const resolvedFieldNames = selectedDisplayNames
-        .map(name => this.findField(schema, name)?.fieldName)
-        .filter((name): name is string => name !== undefined);
-
-      if (resolvedFieldNames.length === 0) {
-        throw new NoResolvedFieldsError(selectedDisplayNames);
-      }
-
-      const recordData = await this.context.agentPort.getRecord(
-        selectedRecordRef.collectionName,
-        selectedRecordRef.recordId,
-        resolvedFieldNames,
-      );
-      fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
-    } catch (error) {
-      return this.buildErrorOutcomeOrThrow(error);
+    if (resolvedFieldNames.length === 0) {
+      throw new NoResolvedFieldsError(selectedDisplayNames);
     }
+
+    const recordData = await this.context.agentPort.getRecord(
+      selectedRecordRef.collectionName,
+      selectedRecordRef.recordId,
+      resolvedFieldNames,
+    );
+    const fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',

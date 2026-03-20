@@ -7,7 +7,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { NoWritableFieldsError, WorkflowExecutorError } from '../errors';
+import { NoWritableFieldsError, StepPersistenceError, WorkflowExecutorError } from '../errors';
 import RecordTaskStepExecutor from './record-task-step-executor';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
@@ -24,7 +24,7 @@ interface UpdateTarget extends FieldRef {
 }
 
 export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
-  async execute(): Promise<StepExecutionResult> {
+  protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry with user confirmation
     if (this.context.userConfirmed !== undefined) {
       return this.handleConfirmation();
@@ -35,56 +35,34 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
   }
 
   private async handleConfirmation(): Promise<StepExecutionResult> {
-    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const execution = stepExecutions.find(
-      (e): e is UpdateRecordStepExecutionData =>
-        e.type === 'update-record' && e.stepIndex === this.context.stepIndex,
+    return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(
+      'update-record',
+      async execution => {
+        const { selectedRecordRef, pendingData } = execution;
+        const target: UpdateTarget = {
+          selectedRecordRef,
+          ...(pendingData as FieldRef & { value: string }),
+        };
+
+        return this.resolveAndUpdate(target, execution);
+      },
     );
-
-    if (!execution?.pendingData) {
-      throw new WorkflowExecutorError('No pending update found for this step');
-    }
-
-    if (!this.context.userConfirmed) {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...execution,
-        executionResult: { skipped: true },
-      });
-
-      return this.buildOutcomeResult({ status: 'success' });
-    }
-
-    const { selectedRecordRef, pendingData } = execution;
-    const target: UpdateTarget = {
-      selectedRecordRef,
-      displayName: pendingData.displayName,
-      name: pendingData.name,
-      value: pendingData.value,
-    };
-
-    return this.resolveAndUpdate(target, execution);
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const records = await this.getAvailableRecordRefs();
 
-    let target: UpdateTarget;
-
-    try {
-      const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
-      const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-      const args = await this.selectFieldAndValue(schema, step.prompt);
-      const name = this.resolveFieldName(schema, args.fieldName);
-      target = {
-        selectedRecordRef,
-        displayName: args.fieldName,
-        name,
-        value: args.value,
-      };
-    } catch (error) {
-      return this.buildErrorOutcomeOrThrow(error);
-    }
+    const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const args = await this.selectFieldAndValue(schema, step.prompt);
+    const name = this.resolveFieldName(schema, args.fieldName);
+    const target: UpdateTarget = {
+      selectedRecordRef,
+      displayName: args.fieldName,
+      name,
+      value: args.value,
+    };
 
     // Branch B -- automaticExecution
     if (step.automaticExecution) {
@@ -109,33 +87,36 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
   /**
    * Resolves the field name, calls updateRecord, and persists execution data.
    * When `existingExecution` is provided (confirmation flow), it is spread into the
-   * saved execution to preserve pendingUpdate for traceability.
+   * saved execution to preserve pendingData for traceability.
    */
   private async resolveAndUpdate(
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name, value } = target;
-    let updated: { values: Record<string, unknown> };
+
+    const updated = await this.context.agentPort.updateRecord(
+      selectedRecordRef.collectionName,
+      selectedRecordRef.recordId,
+      { [name]: value },
+    );
 
     try {
-      updated = await this.context.agentPort.updateRecord(
-        selectedRecordRef.collectionName,
-        selectedRecordRef.recordId,
-        { [name]: value },
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existingExecution,
+        type: 'update-record',
+        stepIndex: this.context.stepIndex,
+        executionParams: { displayName, name, value },
+        executionResult: { updatedValues: updated.values },
+        selectedRecordRef,
+      });
+    } catch (cause) {
+      throw new StepPersistenceError(
+        `Record update persisted but step state could not be saved ` +
+          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+        cause,
       );
-    } catch (error) {
-      return this.buildErrorOutcomeOrThrow(error);
     }
-
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      ...existingExecution,
-      type: 'update-record',
-      stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name, value },
-      executionResult: { updatedValues: updated.values },
-      selectedRecordRef,
-    });
 
     return this.buildOutcomeResult({ status: 'success' });
   }

@@ -4,22 +4,41 @@ import type { ExecutionContext, StepExecutionResult } from '../../src/types/exec
 import type { RecordRef } from '../../src/types/record';
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
-import type { StepOutcome } from '../../src/types/step-outcome';
+import type { BaseStepStatus, StepOutcome } from '../../src/types/step-outcome';
 import type { BaseMessage, SystemMessage } from '@langchain/core/messages';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
 
-import { MalformedToolCallError, MissingToolCallError } from '../../src/errors';
+import { MalformedToolCallError, MissingToolCallError, NoRecordsError } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
 class TestableExecutor extends BaseStepExecutor {
-  async execute(): Promise<StepExecutionResult> {
-    throw new Error('not used');
+  constructor(
+    context: ExecutionContext,
+    private readonly errorToThrow?: unknown,
+  ) {
+    super(context);
   }
 
-  protected buildOutcomeResult(): StepExecutionResult {
-    throw new Error('not used');
+  protected async doExecute(): Promise<StepExecutionResult> {
+    if (this.errorToThrow !== undefined) throw this.errorToThrow;
+    return this.buildOutcomeResult({ status: 'success' });
+  }
+
+  protected buildOutcomeResult(outcome: {
+    status: BaseStepStatus;
+    error?: string;
+  }): StepExecutionResult {
+    return {
+      stepOutcome: {
+        type: 'record-task',
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        status: outcome.status,
+        ...(outcome.error !== undefined && { error: outcome.error }),
+      },
+    };
   }
 
   override buildPreviousStepsMessages(): Promise<SystemMessage[]> {
@@ -453,6 +472,23 @@ describe('BaseStepExecutor', () => {
         .then(msgs => msgs[0]?.content ?? '');
 
       expect(result).toContain('Prompt: (no prompt)');
+    });
+  });
+
+  describe('execute error handling', () => {
+    it('converts NoRecordsError to error outcome', async () => {
+      const executor = new TestableExecutor(makeContext(), new NoRecordsError());
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('No records available');
+    });
+
+    it('rethrows non-WorkflowExecutorError errors', async () => {
+      const executor = new TestableExecutor(makeContext(), new Error('infrastructure failure'));
+
+      await expect(executor.execute()).rejects.toThrow('infrastructure failure');
     });
   });
 

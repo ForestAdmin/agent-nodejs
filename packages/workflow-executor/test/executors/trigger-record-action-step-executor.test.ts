@@ -268,7 +268,7 @@ describe('TriggerRecordActionStepExecutor', () => {
   });
 
   describe('no pending action in confirmation flow (Branch A)', () => {
-    it('throws when no pending action is found', async () => {
+    it('returns error outcome when no pending action is found', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
@@ -276,10 +276,19 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending action found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'No execution record found for step at index 0',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('throws when execution exists but stepIndex does not match', async () => {
+    it('returns error outcome when execution exists but stepIndex does not match', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -294,10 +303,19 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending action found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'No execution record found for step at index 0',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('throws when execution exists but pendingAction is absent', async () => {
+    it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -311,7 +329,16 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending action found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'Step at index 0 has no pending data',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -388,6 +415,9 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('trigger-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('Action not permitted');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -418,6 +448,9 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('trigger-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('Action not permitted');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -639,6 +672,9 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('trigger-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
         'AI returned a malformed tool call for "select-action": JSON parse error',
@@ -658,6 +694,9 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('trigger-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('AI did not return a tool call');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -707,7 +746,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       await expect(executor.execute()).rejects.toThrow('Disk full');
     });
 
-    it('lets saveStepExecution errors propagate after successful executeAction (Branch B)', async () => {
+    it('returns error outcome after successful executeAction when saveStepExecution fails (Branch B)', async () => {
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
@@ -717,10 +756,15 @@ describe('TriggerRecordActionStepExecutor', () => {
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain(
+        'Action "send-welcome-email" executed but step state could not be persisted',
+      );
     });
 
-    it('lets saveStepExecution errors propagate after successful executeAction (Branch A confirmed)', async () => {
+    it('returns error outcome after successful executeAction when saveStepExecution fails (Branch A confirmed)', async () => {
       const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
@@ -738,7 +782,12 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain(
+        'Action "send-welcome-email" executed but step state could not be persisted',
+      );
     });
   });
 
