@@ -133,7 +133,7 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'read-record',
           stepIndex: 0,
-          executionParams: { fieldDisplayNames: ['Email'] },
+          executionParams: { fields: [{ name: 'email', displayName: 'Email' }] },
           executionResult: {
             fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
           },
@@ -155,7 +155,12 @@ describe('ReadRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionParams: { fieldDisplayNames: ['Email', 'Full Name'] },
+          executionParams: {
+            fields: [
+              { name: 'email', displayName: 'Email' },
+              { name: 'name', displayName: 'Full Name' },
+            ],
+          },
           executionResult: {
             fields: [
               { value: 'john@example.com', name: 'email', displayName: 'Email' },
@@ -180,7 +185,7 @@ describe('ReadRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionParams: { fieldDisplayNames: ['Full Name'] },
+          executionParams: { fields: [{ name: 'name', displayName: 'Full Name' }] },
           executionResult: {
             fields: [{ value: 'John Doe', name: 'name', displayName: 'Full Name' }],
           },
@@ -774,7 +779,12 @@ describe('ReadRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'read-record',
         stepIndex: 3,
-        executionParams: { fieldDisplayNames: ['Email', 'Full Name'] },
+        executionParams: {
+          fields: [
+            { name: 'email', displayName: 'Email' },
+            { name: 'name', displayName: 'Full Name' },
+          ],
+        },
         executionResult: {
           fields: [
             { value: 'john@example.com', name: 'email', displayName: 'Email' },
