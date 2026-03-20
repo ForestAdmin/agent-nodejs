@@ -103,6 +103,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
       } else if (execution.type === 'update-record' && execution.pendingUpdate) {
         lines.push(`  Pending: ${JSON.stringify(execution.pendingUpdate)}`);
+      } else if (execution.type === 'trigger-action' && execution.pendingAction) {
+        lines.push(`  Pending: ${JSON.stringify(execution.pendingAction)}`);
       }
 
       if (execution.executionResult) {

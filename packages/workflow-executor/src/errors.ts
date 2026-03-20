@@ -51,3 +51,9 @@ export class NoWritableFieldsError extends WorkflowExecutorError {
     super(`No writable fields on record from collection "${collectionName}"`);
   }
 }
+
+export class NoActionsError extends WorkflowExecutorError {
+  constructor(collectionName: string) {
+    super(`No actions available on collection "${collectionName}"`);
+  }
+}

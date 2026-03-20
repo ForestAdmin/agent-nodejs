@@ -55,6 +55,18 @@ export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   selectedRecordRef: RecordRef;
 }
 
+// -- Trigger Action --
+
+export interface TriggerActionStepExecutionData extends BaseStepExecutionData {
+  type: 'trigger-action';
+  /** Display name and technical name of the executed action. */
+  executionParams?: { actionDisplayName: string; actionName: string };
+  executionResult?: { success: true } | { skipped: true };
+  /** AI-selected action awaiting user confirmation. Used in the confirmation flow only. */
+  pendingAction?: { actionDisplayName: string };
+  selectedRecordRef: RecordRef;
+}
+
 // -- Generic AI Task (fallback for untyped steps) --
 
 export interface RecordTaskStepExecutionData extends BaseStepExecutionData {
@@ -77,6 +89,7 @@ export type StepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
   | UpdateRecordStepExecutionData
+  | TriggerActionStepExecutionData
   | RecordTaskStepExecutionData
   | LoadRelatedRecordStepExecutionData;
 
@@ -84,6 +97,7 @@ export type ExecutedStepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
   | UpdateRecordStepExecutionData
+  | TriggerActionStepExecutionData
   | RecordTaskStepExecutionData;
 
 // TODO: this condition should change when load-related-record gets its own executor
