@@ -56,7 +56,9 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { fields: fieldResults.map(({ name, displayName }) => ({ name, displayName })) },
+      executionParams: {
+        fields: fieldResults.map(({ name, displayName }) => ({ name, displayName })),
+      },
       executionResult: { fields: fieldResults },
       selectedRecordRef,
     });
