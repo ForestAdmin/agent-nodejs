@@ -80,7 +80,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
     const { option: selectedOption, reasoning } = args;
 
-    await this.context.runStore.saveStepExecution({
+    await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'condition',
       stepIndex: this.context.stepIndex,
       executionParams: { answer: selectedOption, reasoning },
