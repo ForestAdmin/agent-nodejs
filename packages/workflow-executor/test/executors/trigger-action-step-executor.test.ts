@@ -100,7 +100,7 @@ function makeContext(
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
     model: makeMockModel({
-      displayName: 'Send Welcome Email',
+      actionName: 'Send Welcome Email',
       reasoning: 'User requested welcome email',
     }).model,
     agentPort: makeMockAgentPort(),
@@ -117,7 +117,7 @@ describe('TriggerActionStepExecutor', () => {
     it('triggers the action and returns success', async () => {
       const agentPort = makeMockAgentPort();
       const mockModel = makeMockModel({
-        displayName: 'Send Welcome Email',
+        actionName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',
       });
       const runStore = makeMockRunStore();
@@ -157,7 +157,7 @@ describe('TriggerActionStepExecutor', () => {
   describe('without automaticExecution: awaiting-input (Branch C)', () => {
     it('saves pendingAction and returns awaiting-input', async () => {
       const mockModel = makeMockModel({
-        displayName: 'Send Welcome Email',
+        actionName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',
       });
       const runStore = makeMockRunStore();
@@ -319,7 +319,7 @@ describe('TriggerActionStepExecutor', () => {
     it('returns error when collection has no actions', async () => {
       const schema = makeCollectionSchema({ actions: [] });
       const mockModel = makeMockModel({
-        displayName: 'Send Welcome Email',
+        actionName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const runStore = makeMockRunStore();
@@ -339,7 +339,7 @@ describe('TriggerActionStepExecutor', () => {
     it('returns error when AI returns an action name not found in the schema', async () => {
       const agentPort = makeMockAgentPort();
       const mockModel = makeMockModel({
-        displayName: 'NonExistentAction',
+        actionName: 'NonExistentAction',
         reasoning: 'hallucinated',
       });
       const schema = makeCollectionSchema({
@@ -374,7 +374,7 @@ describe('TriggerActionStepExecutor', () => {
         new WorkflowExecutorError('Action not permitted'),
       );
       const mockModel = makeMockModel({
-        displayName: 'Send Welcome Email',
+        actionName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const runStore = makeMockRunStore();
@@ -429,7 +429,7 @@ describe('TriggerActionStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({
-        displayName: 'Send Welcome Email',
+        actionName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const context = makeContext({
@@ -470,7 +470,7 @@ describe('TriggerActionStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       // AI returns displayName 'Archive Customer', technical name is 'archive'
       const mockModel = makeMockModel({
-        displayName: 'Archive Customer',
+        actionName: 'Archive Customer',
         reasoning: 'User wants to archive',
       });
       const context = makeContext({
@@ -490,7 +490,7 @@ describe('TriggerActionStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       // AI returns technical name 'archive' instead of display name 'Archive Customer'
       const mockModel = makeMockModel({
-        displayName: 'archive',
+        actionName: 'archive',
         reasoning: 'fallback to technical name',
       });
       const schema = makeCollectionSchema({
@@ -543,7 +543,7 @@ describe('TriggerActionStepExecutor', () => {
           tool_calls: [
             {
               name: 'select-action',
-              args: { displayName: 'Cancel Order', reasoning: 'Cancel the order' },
+              args: { actionName: 'Cancel Order', reasoning: 'Cancel the order' },
               id: 'call_2',
             },
           ],
@@ -745,7 +745,7 @@ describe('TriggerActionStepExecutor', () => {
   describe('default prompt', () => {
     it('uses default prompt when step.prompt is undefined', async () => {
       const mockModel = makeMockModel({
-        displayName: 'Send Welcome Email',
+        actionName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const context = makeContext({
@@ -765,7 +765,7 @@ describe('TriggerActionStepExecutor', () => {
   describe('previous steps context', () => {
     it('includes previous steps summary in select-action messages', async () => {
       const mockModel = makeMockModel({
-        displayName: 'Send Welcome Email',
+        actionName: 'Send Welcome Email',
         reasoning: 'test',
       });
       const runStore = makeMockRunStore({

@@ -107,7 +107,7 @@ function makeContext(
     stepIndex: 0,
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
-    model: makeMockModel({ fieldDisplayNames: ['email'] }).model,
+    model: makeMockModel({ fieldNames: ['email'] }).model,
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
@@ -120,7 +120,7 @@ function makeContext(
 describe('ReadRecordStepExecutor', () => {
   describe('single record, single field', () => {
     it('reads a single field and returns success', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -144,7 +144,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('single record, multiple fields', () => {
     it('reads multiple fields in one call and returns success', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email', 'name'] });
+      const mockModel = makeMockModel({ fieldNames: ['email', 'name'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -174,7 +174,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('field resolution by displayName', () => {
     it('resolves fields by displayName', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['Full Name'] });
+      const mockModel = makeMockModel({ fieldNames: ['Full Name'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -196,7 +196,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('getRecord receives resolved field names', () => {
     it('passes resolved field names (not display names) to getRecord', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['Full Name', 'Email'] });
+      const mockModel = makeMockModel({ fieldNames: ['Full Name', 'Email'] });
       const agentPort = makeMockAgentPort();
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, agentPort, runStore });
@@ -208,7 +208,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('passes only resolved field names when some fields are unresolved', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['Email', 'nonexistent'] });
+      const mockModel = makeMockModel({ fieldNames: ['Email', 'nonexistent'] });
       const agentPort = makeMockAgentPort();
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, agentPort, runStore });
@@ -220,7 +220,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('returns error when no fields can be resolved', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['nonexistent', 'unknown'] });
+      const mockModel = makeMockModel({ fieldNames: ['nonexistent', 'unknown'] });
       const agentPort = makeMockAgentPort();
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, agentPort, runStore });
@@ -239,7 +239,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('field not found', () => {
     it('returns error per field without failing globally', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email', 'nonexistent'] });
+      const mockModel = makeMockModel({ fieldNames: ['email', 'nonexistent'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -267,7 +267,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('relationship fields excluded', () => {
     it('excludes relationship fields from tool schema', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
@@ -278,16 +278,16 @@ describe('ReadRecordStepExecutor', () => {
       expect(tool.name).toBe('read-selected-record-fields');
 
       // Valid field names (displayNames and fieldNames) should be accepted in an array
-      expect(tool.schema.parse({ fieldDisplayNames: ['Email'] })).toBeTruthy();
-      expect(tool.schema.parse({ fieldDisplayNames: ['Full Name'] })).toBeTruthy();
-      expect(tool.schema.parse({ fieldDisplayNames: ['email'] })).toBeTruthy();
-      expect(tool.schema.parse({ fieldDisplayNames: ['email', 'name'] })).toBeTruthy();
+      expect(tool.schema.parse({ fieldNames: ['Email'] })).toBeTruthy();
+      expect(tool.schema.parse({ fieldNames: ['Full Name'] })).toBeTruthy();
+      expect(tool.schema.parse({ fieldNames: ['email'] })).toBeTruthy();
+      expect(tool.schema.parse({ fieldNames: ['email', 'name'] })).toBeTruthy();
 
       // Schema accepts any strings (per-field errors handled in readFieldValues, ISO frontend)
-      expect(tool.schema.parse({ fieldDisplayNames: ['Orders'] })).toBeTruthy();
+      expect(tool.schema.parse({ fieldNames: ['Orders'] })).toBeTruthy();
 
       // But rejects non-array values
-      expect(() => tool.schema.parse({ fieldDisplayNames: 'email' })).toThrow();
+      expect(() => tool.schema.parse({ fieldNames: 'email' })).toThrow();
     });
   });
 
@@ -305,7 +305,7 @@ describe('ReadRecordStepExecutor', () => {
       const schema = makeCollectionSchema({
         fields: [{ fieldName: 'orders', displayName: 'Orders', isRelationship: true }],
       });
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore();
       const workflowPort = makeMockWorkflowPort({ customers: schema });
       const context = makeContext({ model: mockModel.model, runStore, workflowPort });
@@ -352,7 +352,7 @@ describe('ReadRecordStepExecutor', () => {
           tool_calls: [
             {
               name: 'read-selected-record-fields',
-              args: { fieldDisplayNames: ['email'] },
+              args: { fieldNames: ['email'] },
               id: 'call_2',
             },
           ],
@@ -436,7 +436,7 @@ describe('ReadRecordStepExecutor', () => {
           tool_calls: [
             {
               name: 'read-selected-record-fields',
-              args: { fieldDisplayNames: ['total'] },
+              args: { fieldNames: ['total'] },
               id: 'call_2',
             },
           ],
@@ -507,7 +507,7 @@ describe('ReadRecordStepExecutor', () => {
           tool_calls: [
             {
               name: 'read-selected-record-fields',
-              args: { fieldDisplayNames: ['email'] },
+              args: { fieldNames: ['email'] },
               id: 'call_2',
             },
           ],
@@ -595,7 +595,7 @@ describe('ReadRecordStepExecutor', () => {
       (agentPort.getRecord as jest.Mock).mockRejectedValue(
         new RecordNotFoundError('customers', '42'),
       );
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, runStore, agentPort });
       const executor = new ReadRecordStepExecutor(context);
@@ -610,7 +610,7 @@ describe('ReadRecordStepExecutor', () => {
     it('lets infrastructure errors propagate', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const context = makeContext({ model: mockModel.model, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
@@ -676,7 +676,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('RunStore error propagation', () => {
     it('lets saveStepExecution errors propagate', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Storage full')),
       });
@@ -687,7 +687,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('lets getStepExecutions errors propagate', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('Connection lost')),
       });
@@ -700,7 +700,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('previous steps context', () => {
     it('includes previous steps summary in read-field messages', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -748,7 +748,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('default prompt', () => {
     it('uses default prompt when step.prompt is undefined', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email'] });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const context = makeContext({
         model: mockModel.model,
         stepDefinition: makeStep({ prompt: undefined }),
@@ -765,7 +765,7 @@ describe('ReadRecordStepExecutor', () => {
 
   describe('saveStepExecution arguments', () => {
     it('saves executionParams, executionResult, and selectedRecord', async () => {
-      const mockModel = makeMockModel({ fieldDisplayNames: ['email', 'name'] });
+      const mockModel = makeMockModel({ fieldNames: ['email', 'name'] });
       const runStore = makeMockRunStore();
       const context = makeContext({
         model: mockModel.model,

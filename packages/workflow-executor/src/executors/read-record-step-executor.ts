@@ -80,9 +80,9 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
       new HumanMessage(`**Request**: ${prompt ?? 'Read the relevant fields.'}`),
     ];
 
-    const args = await this.invokeWithTool<{ fieldDisplayNames: string[] }>(messages, tool);
+    const args = await this.invokeWithTool<{ fieldNames: string[] }>(messages, tool);
 
-    return args.fieldDisplayNames;
+    return args.fieldNames;
   }
 
   private buildReadFieldTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -101,7 +101,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
         // z.string() (not z.enum) intentionally: an invalid field name in the array
         // does not fail the whole tool call — per-field errors are handled in formatFieldResults.
         // This matches the frontend implementation (ISO frontend).
-        fieldDisplayNames: z
+        fieldNames: z
           .array(z.string())
           .describe(
             `Names of the fields to read, possible values are: ${displayNames

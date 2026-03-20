@@ -73,8 +73,8 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
       const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const args = await this.selectAction(schema, step.prompt);
-      const name = this.resolveActionName(schema, args.displayName);
-      target = { selectedRecordRef, displayName: args.displayName, name };
+      const name = this.resolveActionName(schema, args.actionName);
+      target = { selectedRecordRef, displayName: args.actionName, name };
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return this.buildOutcomeResult('error', error.message);
@@ -139,7 +139,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
   private async selectAction(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ displayName: string; reasoning: string }> {
+  ): Promise<{ actionName: string; reasoning: string }> {
     const tool = this.buildSelectActionTool(schema);
     const messages = [
       ...(await this.buildPreviousStepsMessages()),
@@ -150,7 +150,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       new HumanMessage(`**Request**: ${prompt ?? 'Trigger the relevant action.'}`),
     ];
 
-    return this.invokeWithTool<{ displayName: string; reasoning: string }>(messages, tool);
+    return this.invokeWithTool<{ actionName: string; reasoning: string }>(messages, tool);
   }
 
   private buildSelectActionTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -167,9 +167,9 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       name: 'select-action',
       description: 'Select the action to trigger on the record.',
       schema: z.object({
-        displayName: z
+        actionName: z
           .enum(displayNames)
-          .describe(`The display name of the action to trigger. Available: ${technicalNames}`),
+          .describe(`The name of the action to trigger. Available: ${technicalNames}`),
         reasoning: z.string().describe('Why this action was chosen'),
       }),
       func: undefined,
