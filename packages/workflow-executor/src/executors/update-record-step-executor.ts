@@ -36,6 +36,12 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
   }
 
   private async handleConfirmation(userInput: UserInput): Promise<StepExecutionResult> {
+    if (userInput.type !== 'confirmation') {
+      throw new WorkflowExecutorError(
+        `UpdateRecordStepExecutor received unexpected userInput type: "${(userInput as { type: string }).type}"`,
+      );
+    }
+
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const execution = stepExecutions.find(
       (e): e is UpdateRecordStepExecutionData =>

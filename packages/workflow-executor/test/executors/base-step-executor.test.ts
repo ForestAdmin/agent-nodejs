@@ -355,6 +355,41 @@ describe('BaseStepExecutor', () => {
       expect(result).not.toContain('Input:');
     });
 
+    it('uses Pending when update-record step has pendingUpdate but no executionParams', async () => {
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [
+            {
+              stepDefinition: { type: StepType.UpdateRecord, prompt: 'Set status to active' },
+              stepOutcome: {
+                type: 'record-task',
+                stepId: 'update-1',
+                stepIndex: 0,
+                status: 'awaiting-input',
+              },
+            },
+          ],
+          runStore: makeMockRunStore([
+            {
+              type: 'update-record',
+              stepIndex: 0,
+              pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+              selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+            },
+          ]),
+        }),
+      );
+
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
+
+      expect(result).toContain('Pending:');
+      expect(result).toContain('"fieldDisplayName":"Status"');
+      expect(result).toContain('"value":"active"');
+      expect(result).not.toContain('Input:');
+    });
+
     it('shows "(no prompt)" when step has no prompt', async () => {
       const entry = makeHistoryEntry({ stepIndex: 0 });
       entry.stepDefinition.prompt = undefined;

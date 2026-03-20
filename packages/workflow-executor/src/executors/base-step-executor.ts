@@ -39,7 +39,11 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  /** Builds a StepExecutionResult with the given status and optional error. */
+  /**
+   * Builds a StepExecutionResult with the given status and optional error.
+   * Only for record-task executors — hardcodes type: 'record-task'.
+   * ConditionStepExecutor and future non-record-task executors must NOT call this method.
+   */
   protected buildOutcomeResult(
     status: 'success' | 'error' | 'awaiting-input',
     error?: string,

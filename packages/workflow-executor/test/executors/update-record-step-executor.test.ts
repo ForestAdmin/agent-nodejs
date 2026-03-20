@@ -263,6 +263,41 @@ describe('UpdateRecordStepExecutor', () => {
 
       await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
     });
+
+    it('throws when execution exists but stepIndex does not match', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'update-record',
+            stepIndex: 5,
+            pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const userInput: UserInput = { type: 'confirmation', confirmed: true };
+      const context = makeContext({ runStore, userInput });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
+    });
+
+    it('throws when execution exists but pendingUpdate is absent', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'update-record',
+            stepIndex: 0,
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const userInput: UserInput = { type: 'confirmation', confirmed: true };
+      const context = makeContext({ runStore, userInput });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
+    });
   });
 
   describe('multi-record AI selection', () => {
@@ -582,6 +617,124 @@ describe('UpdateRecordStepExecutor', () => {
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Connection refused');
+    });
+  });
+
+  describe('stepOutcome shape', () => {
+    it('emits correct type, stepId and stepIndex in the outcome', async () => {
+      const context = makeContext({ stepDefinition: makeStep({ automaticCompletion: true }) });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome).toMatchObject({
+        type: 'record-task',
+        stepId: 'update-1',
+        stepIndex: 0,
+        status: 'success',
+      });
+    });
+  });
+
+  describe('unexpected userInput type', () => {
+    it('throws when userInput has an unknown type', async () => {
+      const userInput = { type: 'text-input', value: 'hello' } as unknown as UserInput;
+      const context = makeContext({ userInput });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await expect(executor.execute()).rejects.toThrow(
+        'UpdateRecordStepExecutor received unexpected userInput type: "text-input"',
+      );
+    });
+  });
+
+  describe('findField fieldName fallback', () => {
+    it('resolves update when AI returns raw fieldName instead of displayName', async () => {
+      const agentPort = makeMockAgentPort();
+      // AI returns 'status' (fieldName) instead of 'Status' (displayName)
+      const mockModel = makeMockModel({ fieldName: 'status', value: 'active', reasoning: 'test' });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({ automaticCompletion: true }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
+    });
+  });
+
+  describe('schema caching', () => {
+    it('fetches getCollectionSchema once per collection even when called twice (Branch B)', async () => {
+      const workflowPort = makeMockWorkflowPort();
+      const context = makeContext({
+        workflowPort,
+        stepDefinition: makeStep({ automaticCompletion: true }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      // Branch B calls getCollectionSchema in handleFirstCall and again in resolveAndUpdate
+      // but the cache should prevent the second network call
+      expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('RunStore error propagation', () => {
+    it('lets getStepExecutions errors propagate (Branch A)', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
+      });
+      const userInput: UserInput = { type: 'confirmation', confirmed: true };
+      const context = makeContext({ runStore, userInput });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await expect(executor.execute()).rejects.toThrow('DB timeout');
+    });
+
+    it('lets saveStepExecution errors propagate when user rejects (Branch A)', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+      });
+      const userInput: UserInput = { type: 'confirmation', confirmed: false };
+      const context = makeContext({ runStore, userInput });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await expect(executor.execute()).rejects.toThrow('Disk full');
+    });
+
+    it('lets saveStepExecution errors propagate when saving awaiting-input (Branch C)', async () => {
+      const runStore = makeMockRunStore({
+        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+      });
+      const context = makeContext({ runStore });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await expect(executor.execute()).rejects.toThrow('Disk full');
+    });
+
+    it('lets saveStepExecution errors propagate after successful updateRecord (Branch B)', async () => {
+      const runStore = makeMockRunStore({
+        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+      });
+      const context = makeContext({
+        runStore,
+        stepDefinition: makeStep({ automaticCompletion: true }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await expect(executor.execute()).rejects.toThrow('Disk full');
     });
   });
 
