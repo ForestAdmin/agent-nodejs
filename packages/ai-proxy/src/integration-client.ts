@@ -1,4 +1,4 @@
-import type McpServerRemoteTool from './types/mcp-server-remote-tool';
+import type McpServerRemoteTool from './mcp-server-remote-tool';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
@@ -9,9 +9,11 @@ export type McpConfiguration = {
   configs: MultiServerMCPClient['config']['mcpServers'];
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
 
+export type CustomConfig = SlackConfig | ZendeskConfig;
+
 export interface ForestIntegrationConfig {
-  integrationName: 'slack' | 'zendesk';
-  config: SlackConfig | ZendeskConfig;
+  integrationName: string;
+  config: CustomConfig;
 }
 
 export default class IntegrationClient {

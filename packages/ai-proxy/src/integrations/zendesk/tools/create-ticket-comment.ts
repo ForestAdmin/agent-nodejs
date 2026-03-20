@@ -15,7 +15,9 @@ export default function createCreateTicketCommentTool(
         .boolean()
         .optional()
         .default(true)
-        .describe('Whether the comment is visible to the requester (true) or internal only (false)'),
+        .describe(
+          'Whether the comment is visible to the requester (true) or internal only (false)',
+        ),
     }),
     func: async ({ ticket_id, comment, public: isPublic }) => {
       const updateData = {

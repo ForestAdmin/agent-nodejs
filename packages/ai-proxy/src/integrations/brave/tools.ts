@@ -1,8 +1,8 @@
-import type RemoteTool from '../../types/remote-tool';
+import type RemoteTool from '../../remote-tool';
 
 import { BraveSearch } from '@langchain/community/tools/brave_search';
 
-import ServerRemoteTool from '../../types/server-remote-tool';
+import ServerRemoteTool from '../../server-remote-tool';
 
 export interface BraveConfig {
   apiKey: string;

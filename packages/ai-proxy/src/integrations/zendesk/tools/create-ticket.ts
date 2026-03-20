@@ -32,7 +32,16 @@ export default function createCreateTicketTool(
         .optional()
         .describe('Custom fields to set on the ticket'),
     }),
-    func: async ({ subject, description, requester_id, assignee_id, priority, type, tags, custom_fields }) => {
+    func: async ({
+      subject,
+      description,
+      requester_id,
+      assignee_id,
+      priority,
+      type,
+      tags,
+      custom_fields,
+    }) => {
       const ticketData: Record<string, unknown> = {
         ticket: {
           subject,

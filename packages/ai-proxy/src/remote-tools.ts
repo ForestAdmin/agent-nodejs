@@ -5,7 +5,7 @@ import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/ch
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
 import { AIToolNotFoundError, AIToolUnprocessableError } from './errors';
-import getIntegratedTools from './integrations/tools';
+import getIntegratedTools, { type IntegrationConfigs } from './integrations/tools';
 
 export type Messages = ChatCompletionCreateParamsNonStreaming['messages'];
 

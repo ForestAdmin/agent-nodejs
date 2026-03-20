@@ -9,7 +9,13 @@ export default function createGetTicketsTool(
     name: 'zendesk_get_tickets',
     description: 'Fetch a paginated list of Zendesk tickets with sorting options',
     schema: z.object({
-      page: z.number().int().positive().optional().default(1).describe('Page number for pagination'),
+      page: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .default(1)
+        .describe('Page number for pagination'),
       per_page: z
         .number()
         .int()

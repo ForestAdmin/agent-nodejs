@@ -1,11 +1,11 @@
-import type RemoteTool from '../../types/remote-tool';
+import type RemoteTool from '../../remote-tool';
 
+import ServerRemoteTool from '../../server-remote-tool';
 import createDraftTool from './tools/create-draft';
 import createGetMessageTool from './tools/get-message';
 import createGetThreadTool from './tools/get-thread';
 import createSearchTool from './tools/search';
 import createSendMessageTool from './tools/send-message';
-import ServerRemoteTool from '../../types/server-remote-tool';
 
 export interface GmailConfig {
   accessToken: string;

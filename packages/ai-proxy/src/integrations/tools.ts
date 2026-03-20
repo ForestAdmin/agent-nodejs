@@ -1,4 +1,4 @@
-import type RemoteTool from '../types/remote-tool';
+import type RemoteTool from '../remote-tool';
 import type { BraveConfig } from './brave/tools';
 import type { GmailConfig } from './gmail/tools';
 import type { SlackConfig } from './slack/tools';

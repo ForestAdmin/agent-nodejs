@@ -1,4 +1,4 @@
-import type RemoteTool from '../../types/remote-tool';
+import type RemoteTool from '../../remote-tool';
 
 import createCreateTicketTool from './tools/create-ticket';
 import createCreateTicketCommentTool from './tools/create-ticket-comment';
@@ -6,17 +6,22 @@ import createGetTicketTool from './tools/get-ticket';
 import createGetTicketCommentsTool from './tools/get-ticket-comments';
 import createGetTicketsTool from './tools/get-tickets';
 import createUpdateTicketTool from './tools/update-ticket';
-import ServerRemoteTool from '../../types/server-remote-tool';
+import ServerRemoteTool from '../../server-remote-tool';
 
 export interface ZendeskConfig {
   subdomain: string;
   email: string;
   apiToken: string;
+
+  // TODO: remove - for now the front sends auth instead of apiToken
+  authorization: string;
 }
 
 export default function getZendeskTools(config: ZendeskConfig): RemoteTool[] {
   const baseUrl = `https://${config.subdomain}.zendesk.com/api/v2`;
-  const auth = Buffer.from(`${config.email}/token:${config.apiToken}`).toString('base64');
+  // TODO: this is a hack for now, the config should have the good props
+  const apiToken = config.authorization.split(' ')[1];
+  const auth = Buffer.from(`${config.email}/token:${apiToken}`).toString('base64');
   const headers = {
     Authorization: `Basic ${auth}`,
     'Content-Type': 'application/json',

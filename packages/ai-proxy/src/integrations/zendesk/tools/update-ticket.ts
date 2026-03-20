@@ -23,9 +23,22 @@ export default function createUpdateTicketTool(
         .enum(['problem', 'incident', 'question', 'task'])
         .optional()
         .describe('New type for the ticket'),
-      assignee_id: z.number().int().positive().optional().describe('New assignee ID for the ticket'),
-      requester_id: z.number().int().positive().optional().describe('New requester ID for the ticket'),
-      tags: z.array(z.string()).optional().describe('New tags for the ticket (replaces existing tags)'),
+      assignee_id: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe('New assignee ID for the ticket'),
+      requester_id: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe('New requester ID for the ticket'),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe('New tags for the ticket (replaces existing tags)'),
       custom_fields: z
         .array(
           z.object({
