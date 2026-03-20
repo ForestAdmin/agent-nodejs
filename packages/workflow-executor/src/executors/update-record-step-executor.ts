@@ -8,7 +8,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
 import { NoWritableFieldsError, WorkflowExecutorError } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import RecordTaskStepExecutor from './record-task-step-executor';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
 Select the field to update and provide the new value.
@@ -23,7 +23,7 @@ interface UpdateTarget extends FieldRef {
   value: string;
 }
 
-export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
+export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry with user confirmation
     if (this.context.userConfirmed !== undefined) {
@@ -41,7 +41,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
         e.type === 'update-record' && e.stepIndex === this.context.stepIndex,
     );
 
-    if (!execution?.pendingUpdate) {
+    if (!execution?.pendingData) {
       throw new WorkflowExecutorError('No pending update found for this step');
     }
 
@@ -51,15 +51,15 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
         executionResult: { skipped: true },
       });
 
-      return this.buildOutcomeResult('success');
+      return this.buildOutcomeResult({ status: 'success' });
     }
 
-    const { selectedRecordRef, pendingUpdate } = execution;
+    const { selectedRecordRef, pendingData } = execution;
     const target: UpdateTarget = {
       selectedRecordRef,
-      displayName: pendingUpdate.displayName,
-      name: pendingUpdate.name,
-      value: pendingUpdate.value,
+      displayName: pendingData.displayName,
+      name: pendingData.name,
+      value: pendingData.value,
     };
 
     return this.resolveAndUpdate(target, execution);
@@ -83,11 +83,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
         value: args.value,
       };
     } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return this.buildOutcomeResult('error', error.message);
-      }
-
-      throw error;
+      return this.buildErrorOutcomeOrThrow(error);
     }
 
     // Branch B -- automaticExecution
@@ -99,7 +95,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      pendingUpdate: {
+      pendingData: {
         displayName: target.displayName,
         name: target.name,
         value: target.value,
@@ -107,7 +103,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
       selectedRecordRef: target.selectedRecordRef,
     });
 
-    return this.buildOutcomeResult('awaiting-input');
+    return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
   /**
@@ -129,11 +125,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
         { [name]: value },
       );
     } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return this.buildOutcomeResult('error', error.message);
-      }
-
-      throw error;
+      return this.buildErrorOutcomeOrThrow(error);
     }
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -145,7 +137,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
       selectedRecordRef,
     });
 
-    return this.buildOutcomeResult('success');
+    return this.buildOutcomeResult({ status: 'success' });
   }
 
   private async selectFieldAndValue(

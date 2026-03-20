@@ -7,8 +7,8 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { NoReadableFieldsError, NoResolvedFieldsError, WorkflowExecutorError } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import { NoReadableFieldsError, NoResolvedFieldsError } from '../errors';
+import RecordTaskStepExecutor from './record-task-step-executor';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
@@ -18,7 +18,7 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
+export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const records = await this.getAvailableRecordRefs();
@@ -46,11 +46,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
       );
       fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
     } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return this.buildOutcomeResult('error', error.message);
-      }
-
-      throw error;
+      return this.buildErrorOutcomeOrThrow(error);
     }
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -63,7 +59,7 @@ export default class ReadRecordStepExecutor extends BaseStepExecutor<RecordTaskS
       selectedRecordRef,
     });
 
-    return this.buildOutcomeResult('success');
+    return this.buildOutcomeResult({ status: 'success' });
   }
 
   private async selectFields(

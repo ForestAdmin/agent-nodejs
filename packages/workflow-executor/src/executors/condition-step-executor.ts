@@ -1,11 +1,11 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { ConditionStepDefinition } from '../types/step-definition';
+import type { ConditionStepStatus } from '../types/step-outcome';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 interface GatewayToolArgs {
@@ -37,6 +37,21 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ConditionStepExecutor extends BaseStepExecutor<ConditionStepDefinition> {
+  protected buildOutcomeResult(outcome: {
+    status: ConditionStepStatus;
+    error?: string;
+    selectedOption?: string;
+  }): StepExecutionResult {
+    return {
+      stepOutcome: {
+        type: 'condition',
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        ...outcome,
+      },
+    };
+  }
+
   async execute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
 
@@ -68,19 +83,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     try {
       args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
     } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return {
-          stepOutcome: {
-            type: 'condition',
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
-            status: 'error',
-            error: error.message,
-          },
-        };
-      }
-
-      throw error;
+      return this.buildErrorOutcomeOrThrow(error);
     }
 
     const { option: selectedOption, reasoning } = args;
@@ -93,24 +96,9 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     });
 
     if (!selectedOption) {
-      return {
-        stepOutcome: {
-          type: 'condition',
-          stepId: this.context.stepId,
-          stepIndex: this.context.stepIndex,
-          status: 'manual-decision',
-        },
-      };
+      return this.buildOutcomeResult({ status: 'manual-decision' });
     }
 
-    return {
-      stepOutcome: {
-        type: 'condition',
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        status: 'success',
-        selectedOption,
-      },
-    };
+    return this.buildOutcomeResult({ status: 'success', selectedOption });
   }
 }

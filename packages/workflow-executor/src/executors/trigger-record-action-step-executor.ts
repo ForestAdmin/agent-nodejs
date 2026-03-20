@@ -1,14 +1,14 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
 import type { RecordTaskStepDefinition } from '../types/step-definition';
-import type { ActionRef, TriggerActionStepExecutionData } from '../types/step-execution-data';
+import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
 import { NoActionsError, WorkflowExecutorError } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import RecordTaskStepExecutor from './record-task-step-executor';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
 Select the action to trigger.
@@ -22,7 +22,7 @@ interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
 }
 
-export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
+export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry with user confirmation
     if (this.context.userConfirmed !== undefined) {
@@ -36,11 +36,11 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
   private async handleConfirmation(): Promise<StepExecutionResult> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const execution = stepExecutions.find(
-      (e): e is TriggerActionStepExecutionData =>
+      (e): e is TriggerRecordActionStepExecutionData =>
         e.type === 'trigger-action' && e.stepIndex === this.context.stepIndex,
     );
 
-    if (!execution?.pendingAction) {
+    if (!execution?.pendingData) {
       throw new WorkflowExecutorError('No pending action found for this step');
     }
 
@@ -50,14 +50,14 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
         executionResult: { skipped: true },
       });
 
-      return this.buildOutcomeResult('success');
+      return this.buildOutcomeResult({ status: 'success' });
     }
 
-    const { selectedRecordRef, pendingAction } = execution;
+    const { selectedRecordRef, pendingData } = execution;
     const target: ActionTarget = {
       selectedRecordRef,
-      displayName: pendingAction.displayName,
-      name: pendingAction.name,
+      displayName: pendingData.displayName,
+      name: pendingData.name,
     };
 
     return this.resolveAndExecute(target, execution);
@@ -76,11 +76,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       const name = this.resolveActionName(schema, args.actionName);
       target = { selectedRecordRef, displayName: args.actionName, name };
     } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return this.buildOutcomeResult('error', error.message);
-      }
-
-      throw error;
+      return this.buildErrorOutcomeOrThrow(error);
     }
 
     // Branch B -- automaticExecution
@@ -92,11 +88,11 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      pendingAction: { displayName: target.displayName, name: target.name },
+      pendingData: { displayName: target.displayName, name: target.name },
       selectedRecordRef: target.selectedRecordRef,
     });
 
-    return this.buildOutcomeResult('awaiting-input');
+    return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
   /**
@@ -106,7 +102,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
    */
   private async resolveAndExecute(
     target: ActionTarget,
-    existingExecution?: TriggerActionStepExecutionData,
+    existingExecution?: TriggerRecordActionStepExecutionData,
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
@@ -117,11 +113,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
         selectedRecordRef.recordId,
       ]);
     } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return this.buildOutcomeResult('error', error.message);
-      }
-
-      throw error;
+      return this.buildErrorOutcomeOrThrow(error);
     }
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -133,7 +125,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
       selectedRecordRef,
     });
 
-    return this.buildOutcomeResult('success');
+    return this.buildOutcomeResult({ status: 'success' });
   }
 
   private async selectAction(

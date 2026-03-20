@@ -179,7 +179,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -196,7 +196,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -216,7 +216,7 @@ describe('UpdateRecordStepExecutor', () => {
           type: 'update-record',
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
-          pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         }),
       );
     });
@@ -228,7 +228,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -246,7 +246,7 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         }),
       );
     });
@@ -270,7 +270,7 @@ describe('UpdateRecordStepExecutor', () => {
           {
             type: 'update-record',
             stepIndex: 5,
-            pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+            pendingData: { displayName: 'Status', name: 'status', value: 'active' },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -370,7 +370,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingUpdate: {
+          pendingData: {
             displayName: 'Order Status',
             name: 'status',
             value: 'shipped',
@@ -542,7 +542,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -584,7 +584,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -665,7 +665,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({

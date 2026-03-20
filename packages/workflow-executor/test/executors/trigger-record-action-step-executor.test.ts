@@ -4,10 +4,10 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
-import type { TriggerActionStepExecutionData } from '../../src/types/step-execution-data';
+import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-execution-data';
 
 import { WorkflowExecutorError } from '../../src/errors';
-import TriggerActionStepExecutor from '../../src/executors/trigger-action-step-executor';
+import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
@@ -112,7 +112,7 @@ function makeContext(
   };
 }
 
-describe('TriggerActionStepExecutor', () => {
+describe('TriggerRecordActionStepExecutor', () => {
   describe('automaticExecution: trigger direct (Branch B)', () => {
     it('triggers the action and returns success', async () => {
       const agentPort = makeMockAgentPort();
@@ -127,7 +127,7 @@ describe('TriggerActionStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -165,7 +165,7 @@ describe('TriggerActionStepExecutor', () => {
         model: mockModel.model,
         runStore,
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -175,7 +175,7 @@ describe('TriggerActionStepExecutor', () => {
         expect.objectContaining({
           type: 'trigger-action',
           stepIndex: 0,
-          pendingAction: {
+          pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
@@ -191,10 +191,10 @@ describe('TriggerActionStepExecutor', () => {
   describe('confirmation accepted (Branch A)', () => {
     it('triggers the action when user confirms and preserves pendingAction', async () => {
       const agentPort = makeMockAgentPort();
-      const execution: TriggerActionStepExecutionData = {
+      const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: {
+        pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
@@ -205,7 +205,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = true;
       const context = makeContext({ agentPort, runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -222,7 +222,7 @@ describe('TriggerActionStepExecutor', () => {
             name: 'send-welcome-email',
           },
           executionResult: { success: true },
-          pendingAction: {
+          pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
@@ -234,10 +234,10 @@ describe('TriggerActionStepExecutor', () => {
   describe('confirmation rejected (Branch A)', () => {
     it('skips the action when user rejects', async () => {
       const agentPort = makeMockAgentPort();
-      const execution: TriggerActionStepExecutionData = {
+      const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: {
+        pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
@@ -248,7 +248,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = false;
       const context = makeContext({ agentPort, runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -258,7 +258,7 @@ describe('TriggerActionStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingAction: {
+          pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
@@ -274,7 +274,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = true;
       const context = makeContext({ runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('No pending action found for this step');
     });
@@ -285,14 +285,14 @@ describe('TriggerActionStepExecutor', () => {
           {
             type: 'trigger-action',
             stepIndex: 5,
-            pendingAction: { displayName: 'Send Welcome Email' },
+            pendingData: { displayName: 'Send Welcome Email' },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
       });
       const userConfirmed = true;
       const context = makeContext({ runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('No pending action found for this step');
     });
@@ -309,7 +309,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = true;
       const context = makeContext({ runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('No pending action found for this step');
     });
@@ -325,7 +325,7 @@ describe('TriggerActionStepExecutor', () => {
       const runStore = makeMockRunStore();
       const workflowPort = makeMockWorkflowPort({ customers: schema });
       const context = makeContext({ model: mockModel.model, runStore, workflowPort });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -354,7 +354,7 @@ describe('TriggerActionStepExecutor', () => {
         workflowPort,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -384,7 +384,7 @@ describe('TriggerActionStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -400,10 +400,10 @@ describe('TriggerActionStepExecutor', () => {
       (agentPort.executeAction as jest.Mock).mockRejectedValue(
         new WorkflowExecutorError('Action not permitted'),
       );
-      const execution: TriggerActionStepExecutionData = {
+      const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: {
+        pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
@@ -414,7 +414,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = true;
       const context = makeContext({ agentPort, runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -437,7 +437,7 @@ describe('TriggerActionStepExecutor', () => {
         agentPort,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Connection refused');
     });
@@ -445,10 +445,10 @@ describe('TriggerActionStepExecutor', () => {
     it('lets infrastructure errors propagate (Branch A)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('Connection refused'));
-      const execution: TriggerActionStepExecutionData = {
+      const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: {
+        pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
@@ -459,7 +459,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = true;
       const context = makeContext({ agentPort, runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Connection refused');
     });
@@ -478,7 +478,7 @@ describe('TriggerActionStepExecutor', () => {
         agentPort,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -503,7 +503,7 @@ describe('TriggerActionStepExecutor', () => {
         workflowPort,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -564,7 +564,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const agentPort = makeMockAgentPort();
       const context = makeContext({ baseRecordRef, model, runStore, workflowPort, agentPort });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -580,7 +580,7 @@ describe('TriggerActionStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingAction: { displayName: 'Cancel Order', name: 'cancel-order' },
+          pendingData: { displayName: 'Cancel Order', name: 'cancel-order' },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
@@ -593,7 +593,7 @@ describe('TriggerActionStepExecutor', () => {
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
       const context = makeContext({ stepDefinition: makeStep({ automaticExecution: true }) });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -613,7 +613,7 @@ describe('TriggerActionStepExecutor', () => {
         workflowPort,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await executor.execute();
 
@@ -635,7 +635,7 @@ describe('TriggerActionStepExecutor', () => {
         model: { bindTools } as unknown as ExecutionContext['model'],
         runStore,
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -654,7 +654,7 @@ describe('TriggerActionStepExecutor', () => {
         model: { bindTools } as unknown as ExecutionContext['model'],
         runStore,
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
@@ -671,16 +671,16 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = true;
       const context = makeContext({ runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('DB timeout');
     });
 
     it('lets saveStepExecution errors propagate when user rejects (Branch A)', async () => {
-      const execution: TriggerActionStepExecutionData = {
+      const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: {
+        pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
@@ -692,7 +692,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = false;
       const context = makeContext({ runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Disk full');
     });
@@ -702,7 +702,7 @@ describe('TriggerActionStepExecutor', () => {
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
       const context = makeContext({ runStore });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Disk full');
     });
@@ -715,16 +715,16 @@ describe('TriggerActionStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Disk full');
     });
 
     it('lets saveStepExecution errors propagate after successful executeAction (Branch A confirmed)', async () => {
-      const execution: TriggerActionStepExecutionData = {
+      const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: {
+        pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
@@ -736,7 +736,7 @@ describe('TriggerActionStepExecutor', () => {
       });
       const userConfirmed = true;
       const context = makeContext({ runStore, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Disk full');
     });
@@ -752,7 +752,7 @@ describe('TriggerActionStepExecutor', () => {
         model: mockModel.model,
         stepDefinition: makeStep({ prompt: undefined }),
       });
-      const executor = new TriggerActionStepExecutor(context);
+      const executor = new TriggerRecordActionStepExecutor(context);
 
       await executor.execute();
 
@@ -796,7 +796,7 @@ describe('TriggerActionStepExecutor', () => {
           },
         ],
       });
-      const executor = new TriggerActionStepExecutor({
+      const executor = new TriggerRecordActionStepExecutor({
         ...context,
         stepId: 'trigger-2',
         stepIndex: 1,

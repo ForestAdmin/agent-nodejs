@@ -6,6 +6,8 @@ import type { RecordRef } from './record';
 
 interface BaseStepExecutionData {
   stepIndex: number;
+  /** Populated by executors awaiting confirmation; used to display pending state in AI context. */
+  pendingData?: object;
 }
 
 // -- Condition --
@@ -50,7 +52,7 @@ export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   /** User confirmed → values returned by updateRecord. User rejected → skipped. */
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
   /** AI-selected field and value awaiting user confirmation. Used in the confirmation flow only. */
-  pendingUpdate?: FieldRef & { value: string };
+  pendingData?: FieldRef & { value: string };
   selectedRecordRef: RecordRef;
 }
 
@@ -61,13 +63,13 @@ export interface ActionRef {
   displayName: string;
 }
 
-export interface TriggerActionStepExecutionData extends BaseStepExecutionData {
+export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionData {
   type: 'trigger-action';
   /** Display name and technical name of the executed action. */
   executionParams?: ActionRef;
   executionResult?: { success: true } | { skipped: true };
   /** AI-selected action awaiting user confirmation. Used in the confirmation flow only. */
-  pendingAction?: ActionRef;
+  pendingData?: ActionRef;
   selectedRecordRef: RecordRef;
 }
 
@@ -93,7 +95,7 @@ export type StepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
   | UpdateRecordStepExecutionData
-  | TriggerActionStepExecutionData
+  | TriggerRecordActionStepExecutionData
   | RecordTaskStepExecutionData
   | LoadRelatedRecordStepExecutionData;
 
@@ -101,7 +103,7 @@ export type ExecutedStepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
   | UpdateRecordStepExecutionData
-  | TriggerActionStepExecutionData
+  | TriggerRecordActionStepExecutionData
   | RecordTaskStepExecutionData;
 
 // TODO: this condition should change when load-related-record gets its own executor

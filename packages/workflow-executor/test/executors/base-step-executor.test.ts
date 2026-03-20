@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution';
 import type { RecordRef } from '../../src/types/record';
@@ -14,6 +15,10 @@ import { StepType } from '../../src/types/step-definition';
 /** Concrete subclass that exposes protected methods for testing. */
 class TestableExecutor extends BaseStepExecutor {
   async execute(): Promise<StepExecutionResult> {
+    throw new Error('not used');
+  }
+
+  protected buildOutcomeResult(): StepExecutionResult {
     throw new Error('not used');
   }
 
@@ -373,7 +378,7 @@ describe('BaseStepExecutor', () => {
             {
               type: 'update-record',
               stepIndex: 0,
-              pendingUpdate: { displayName: 'Status', name: 'status', value: 'active' },
+              pendingData: { displayName: 'Status', name: 'status', value: 'active' },
               selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
             },
           ]),
@@ -408,7 +413,7 @@ describe('BaseStepExecutor', () => {
             {
               type: 'trigger-action',
               stepIndex: 0,
-              pendingAction: { displayName: 'Archive Customer', name: 'archive' },
+              pendingData: { displayName: 'Archive Customer', name: 'archive' },
               selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
             },
           ]),

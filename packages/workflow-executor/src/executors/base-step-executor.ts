@@ -5,7 +5,7 @@ import type {
   LoadRelatedRecordStepExecutionData,
   StepExecutionData,
 } from '../types/step-execution-data';
-import type { StepOutcome } from '../types/step-outcome';
+import type { StepOutcome, StepStatus } from '../types/step-outcome';
 import type { AIMessage, BaseMessage } from '@langchain/core/messages';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -39,24 +39,22 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
+  /** Builds a StepExecutionResult with the step-type-specific outcome shape. */
+  protected abstract buildOutcomeResult(outcome: {
+    status: StepStatus;
+    error?: string;
+  }): StepExecutionResult;
+
   /**
-   * Builds a StepExecutionResult with the given status and optional error.
-   * Only for record-task executors — hardcodes type: 'record-task'.
-   * ConditionStepExecutor and future non-record-task executors must NOT call this method.
+   * Returns an error outcome for WorkflowExecutorErrors; rethrows everything else.
+   * Convenience wrapper around buildOutcomeResult for use in catch blocks.
    */
-  protected buildOutcomeResult(
-    status: 'success' | 'error' | 'awaiting-input',
-    error?: string,
-  ): StepExecutionResult {
-    return {
-      stepOutcome: {
-        type: 'record-task',
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        status,
-        ...(error !== undefined && { error }),
-      },
-    };
+  protected buildErrorOutcomeOrThrow(error: unknown): StepExecutionResult {
+    if (error instanceof WorkflowExecutorError) {
+      return this.buildOutcomeResult({ status: 'error', error: error.message });
+    }
+
+    throw error;
   }
 
   /**
@@ -101,10 +99,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     if (isExecutedStepOnExecutor(execution)) {
       if (execution.executionParams !== undefined) {
         lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
-      } else if (execution.type === 'update-record' && execution.pendingUpdate) {
-        lines.push(`  Pending: ${JSON.stringify(execution.pendingUpdate)}`);
-      } else if (execution.type === 'trigger-action' && execution.pendingAction) {
-        lines.push(`  Pending: ${JSON.stringify(execution.pendingAction)}`);
+      } else if (execution.pendingData) {
+        lines.push(`  Pending: ${JSON.stringify(execution.pendingData)}`);
       }
 
       if (execution.executionResult) {
