@@ -12,7 +12,7 @@ describe('StepType', () => {
     ['UpdateRecord', 'update-record'],
     ['TriggerAction', 'trigger-action'],
     ['LoadRelatedRecord', 'load-related-record'],
-    ['ToolTask', 'tool-task'],
+    ['McpTask', 'mcp-task'],
   ] as const)('should have %s = "%s"', (key, value) => {
     expect(StepType[key]).toBe(value);
   });

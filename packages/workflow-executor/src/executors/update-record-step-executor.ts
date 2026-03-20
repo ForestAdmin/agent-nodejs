@@ -38,7 +38,9 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
   private async handleConfirmation(userInput: UserInput): Promise<StepExecutionResult> {
     if (userInput.type !== 'confirmation') {
       throw new WorkflowExecutorError(
-        `UpdateRecordStepExecutor received unexpected userInput type: "${(userInput as { type: string }).type}"`,
+        `UpdateRecordStepExecutor received unexpected userInput type: "${
+          (userInput as { type: string }).type
+        }"`,
       );
     }
 
@@ -90,8 +92,8 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
       throw error;
     }
 
-    // Branch B -- automaticCompletion
-    if (step.automaticCompletion) {
+    // Branch B -- automaticExecution
+    if (step.automaticExecution) {
       return this.resolveAndUpdate(target);
     }
 

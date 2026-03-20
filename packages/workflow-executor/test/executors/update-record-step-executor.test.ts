@@ -119,7 +119,7 @@ function makeContext(
 }
 
 describe('UpdateRecordStepExecutor', () => {
-  describe('automaticCompletion: update direct (Branch B)', () => {
+  describe('automaticExecution: update direct (Branch B)', () => {
     it('updates the record and returns success', async () => {
       const updatedValues = { status: 'active', name: 'John Doe' };
       const agentPort = makeMockAgentPort(updatedValues);
@@ -133,7 +133,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticCompletion: true }),
+        stepDefinition: makeStep({ automaticExecution: true }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -157,7 +157,7 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
-  describe('without automaticCompletion: awaiting-input (Branch C)', () => {
+  describe('without automaticExecution: awaiting-input (Branch C)', () => {
     it('saves execution and returns awaiting-input', async () => {
       const mockModel = makeMockModel({
         fieldName: 'Status',
@@ -432,7 +432,7 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
-    it('returns error when field is not found during automaticCompletion (Branch B)', async () => {
+    it('returns error when field is not found during automaticExecution (Branch B)', async () => {
       // AI returns a display name that doesn't match any field in the schema
       const mockModel = makeMockModel({
         fieldName: 'NonExistentField',
@@ -441,7 +441,7 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const context = makeContext({
         model: mockModel.model,
-        stepDefinition: makeStep({ automaticCompletion: true }),
+        stepDefinition: makeStep({ automaticExecution: true }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -544,7 +544,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticCompletion: true }),
+        stepDefinition: makeStep({ automaticExecution: true }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -593,7 +593,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ automaticCompletion: true }),
+        stepDefinition: makeStep({ automaticExecution: true }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -622,7 +622,7 @@ describe('UpdateRecordStepExecutor', () => {
 
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
-      const context = makeContext({ stepDefinition: makeStep({ automaticCompletion: true }) });
+      const context = makeContext({ stepDefinition: makeStep({ automaticExecution: true }) });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -656,7 +656,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ automaticCompletion: true }),
+        stepDefinition: makeStep({ automaticExecution: true }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -672,7 +672,7 @@ describe('UpdateRecordStepExecutor', () => {
       const workflowPort = makeMockWorkflowPort();
       const context = makeContext({
         workflowPort,
-        stepDefinition: makeStep({ automaticCompletion: true }),
+        stepDefinition: makeStep({ automaticExecution: true }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -730,7 +730,7 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const context = makeContext({
         runStore,
-        stepDefinition: makeStep({ automaticCompletion: true }),
+        stepDefinition: makeStep({ automaticExecution: true }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
