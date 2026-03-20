@@ -18,9 +18,10 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-interface TriggerTarget {
+interface ActionTarget {
   selectedRecordRef: RecordRef;
   actionDisplayName: string;
+  actionName: string;
 }
 
 export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
@@ -55,9 +56,10 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
     }
 
     const { selectedRecordRef, pendingAction } = execution;
-    const target: TriggerTarget = {
+    const target: ActionTarget = {
       selectedRecordRef,
       actionDisplayName: pendingAction.actionDisplayName,
+      actionName: pendingAction.actionName,
     };
 
     return this.resolveAndExecute(target, execution);
@@ -67,13 +69,14 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
     const { stepDefinition: step } = this.context;
     const records = await this.getAvailableRecordRefs();
 
-    let target: TriggerTarget;
+    let target: ActionTarget;
 
     try {
       const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
       const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
       const args = await this.selectAction(schema, step.prompt);
-      target = { selectedRecordRef, actionDisplayName: args.actionDisplayName };
+      const actionName = this.resolveActionName(schema, args.actionDisplayName);
+      target = { selectedRecordRef, actionDisplayName: args.actionDisplayName, actionName };
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         return this.buildOutcomeResult('error', error.message);
@@ -91,7 +94,7 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      pendingAction: { actionDisplayName: target.actionDisplayName },
+      pendingAction: { actionDisplayName: target.actionDisplayName, actionName: target.actionName },
       selectedRecordRef: target.selectedRecordRef,
     });
 
@@ -104,15 +107,12 @@ export default class TriggerActionStepExecutor extends BaseStepExecutor<RecordTa
    * saved execution to preserve pendingAction for traceability.
    */
   private async resolveAndExecute(
-    target: TriggerTarget,
+    target: ActionTarget,
     existingExecution?: TriggerActionStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, actionDisplayName } = target;
-    let actionName: string;
+    const { selectedRecordRef, actionDisplayName, actionName } = target;
 
     try {
-      const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-      actionName = this.resolveActionName(schema, actionDisplayName);
       // Return value intentionally discarded: action results may contain client data
       // and must not leave the client's infrastructure (privacy constraint).
       await this.context.agentPort.executeAction(selectedRecordRef.collectionName, actionName, [

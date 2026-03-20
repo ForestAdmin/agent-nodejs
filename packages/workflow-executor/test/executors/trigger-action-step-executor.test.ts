@@ -175,7 +175,7 @@ describe('TriggerActionStepExecutor', () => {
         expect.objectContaining({
           type: 'trigger-action',
           stepIndex: 0,
-          pendingAction: { actionDisplayName: 'Send Welcome Email' },
+          pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -191,7 +191,7 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email' },
+        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -216,7 +216,7 @@ describe('TriggerActionStepExecutor', () => {
             actionName: 'send-welcome-email',
           },
           executionResult: { success: true },
-          pendingAction: { actionDisplayName: 'Send Welcome Email' },
+          pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
         }),
       );
     });
@@ -228,7 +228,7 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email' },
+        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -246,7 +246,7 @@ describe('TriggerActionStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingAction: { actionDisplayName: 'Send Welcome Email' },
+          pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
         }),
       );
     });
@@ -355,7 +355,7 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email' },
+        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -396,7 +396,7 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email' },
+        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -525,7 +525,7 @@ describe('TriggerActionStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingAction: { actionDisplayName: 'Cancel Order' },
+          pendingAction: { actionDisplayName: 'Cancel Order', actionName: 'cancel-order' },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
@@ -562,8 +562,6 @@ describe('TriggerActionStepExecutor', () => {
 
       await executor.execute();
 
-      // Branch B calls getCollectionSchema in handleFirstCall and again in resolveAndExecute
-      // but the cache should prevent the second network call
       expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
     });
   });
@@ -611,34 +609,6 @@ describe('TriggerActionStepExecutor', () => {
     });
   });
 
-  describe('resolveActionName failure', () => {
-    it('returns error when action display name stored in pendingAction no longer exists (Branch A)', async () => {
-      const schema = makeCollectionSchema({
-        actions: [{ name: 'archive', displayName: 'Archive Customer' }],
-      });
-      const execution: TriggerActionStepExecutionData = {
-        type: 'trigger-action',
-        stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Deleted Action' },
-        selectedRecordRef: makeRecordRef(),
-      };
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
-      });
-      const workflowPort = makeMockWorkflowPort({ customers: schema });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, workflowPort, userConfirmed });
-      const executor = new TriggerActionStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'Action "Deleted Action" not found in collection "customers"',
-      );
-    });
-  });
-
   describe('RunStore error propagation', () => {
     it('lets getStepExecutions errors propagate (Branch A)', async () => {
       const runStore = makeMockRunStore({
@@ -655,7 +625,7 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email' },
+        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -696,7 +666,7 @@ describe('TriggerActionStepExecutor', () => {
       const execution: TriggerActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        pendingAction: { actionDisplayName: 'Send Welcome Email' },
+        pendingAction: { actionDisplayName: 'Send Welcome Email', actionName: 'send-welcome-email' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({

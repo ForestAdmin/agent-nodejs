@@ -63,7 +63,7 @@ export interface TriggerActionStepExecutionData extends BaseStepExecutionData {
   executionParams?: { actionDisplayName: string; actionName: string };
   executionResult?: { success: true } | { skipped: true };
   /** AI-selected action awaiting user confirmation. Used in the confirmation flow only. */
-  pendingAction?: { actionDisplayName: string };
+  pendingAction?: { actionDisplayName: string; actionName: string };
   selectedRecordRef: RecordRef;
 }
 
