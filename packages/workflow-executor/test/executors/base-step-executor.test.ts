@@ -73,7 +73,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
-    history: [],
+    previousSteps: [],
     remoteTools: [],
     ...overrides,
   };
@@ -98,7 +98,7 @@ describe('BaseStepExecutor', () => {
       ]);
       const executor = new TestableExecutor(
         makeContext({
-          history: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' })],
+          previousSteps: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' })],
           runStore,
         }),
       );
@@ -117,7 +117,7 @@ describe('BaseStepExecutor', () => {
     it('uses Input for matched steps and History for unmatched steps', async () => {
       const executor = new TestableExecutor(
         makeContext({
-          history: [
+          previousSteps: [
             makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0 }),
             makeHistoryEntry({ stepId: 'cond-2', stepIndex: 1, prompt: 'Second?' }),
           ],
@@ -147,7 +147,7 @@ describe('BaseStepExecutor', () => {
     it('falls back to History when no matching step execution in RunStore', async () => {
       const executor = new TestableExecutor(
         makeContext({
-          history: [
+          previousSteps: [
             makeHistoryEntry({ stepId: 'orphan', stepIndex: 5, prompt: 'Orphan step' }),
             makeHistoryEntry({ stepId: 'matched', stepIndex: 1, prompt: 'Matched step' }),
           ],
@@ -183,7 +183,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([]),
         }),
       );
@@ -207,7 +207,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([]),
         }),
       );
@@ -220,15 +220,15 @@ describe('BaseStepExecutor', () => {
       expect(result).toContain('"error":"AI could not match an option"');
     });
 
-    it('includes status in History for ai-task steps without RunStore data', async () => {
+    it('includes status in History for record-task steps without RunStore data', async () => {
       const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
         stepDefinition: {
           type: StepType.ReadRecord,
           prompt: 'Run task',
         },
         stepOutcome: {
-          type: 'ai-task',
-          stepId: 'ai-step',
+          type: 'record-task',
+          stepId: 'read-record-1',
           stepIndex: 0,
           status: 'awaiting-input',
         },
@@ -236,7 +236,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([]),
         }),
       );
@@ -245,7 +245,7 @@ describe('BaseStepExecutor', () => {
         .buildPreviousStepsMessages()
         .then(msgs => msgs[0]?.content ?? '');
 
-      expect(result).toContain('Step "ai-step"');
+      expect(result).toContain('Step "read-record-1"');
       expect(result).toContain('History: {"status":"awaiting-input"}');
     });
 
@@ -263,7 +263,7 @@ describe('BaseStepExecutor', () => {
           prompt: 'Read name',
         },
         stepOutcome: {
-          type: 'ai-task',
+          type: 'record-task',
           stepId: 'read-customer',
           stepIndex: 1,
           status: 'success',
@@ -272,10 +272,10 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [condEntry, aiEntry],
+          previousSteps: [condEntry, aiEntry],
           runStore: makeMockRunStore([
             {
-              type: 'ai-task',
+              type: 'record-task',
               stepIndex: 1,
               executionParams: { answer: 'John Doe' },
             },
@@ -299,7 +299,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([
             {
               type: 'condition',
@@ -327,8 +327,8 @@ describe('BaseStepExecutor', () => {
           prompt: 'Do something',
         },
         stepOutcome: {
-          type: 'ai-task',
-          stepId: 'ai-step',
+          type: 'record-task',
+          stepId: 'read-record-1',
           stepIndex: 0,
           status: 'success',
         },
@@ -336,10 +336,10 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([
             {
-              type: 'ai-task',
+              type: 'record-task',
               stepIndex: 0,
             },
           ]),
@@ -350,8 +350,43 @@ describe('BaseStepExecutor', () => {
         .buildPreviousStepsMessages()
         .then(msgs => msgs[0]?.content ?? '');
 
-      expect(result).toContain('Step "ai-step"');
+      expect(result).toContain('Step "read-record-1"');
       expect(result).toContain('Prompt: Do something');
+      expect(result).not.toContain('Input:');
+    });
+
+    it('uses Pending when update-record step has pendingUpdate but no executionParams', async () => {
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [
+            {
+              stepDefinition: { type: StepType.UpdateRecord, prompt: 'Set status to active' },
+              stepOutcome: {
+                type: 'record-task',
+                stepId: 'update-1',
+                stepIndex: 0,
+                status: 'awaiting-input',
+              },
+            },
+          ],
+          runStore: makeMockRunStore([
+            {
+              type: 'update-record',
+              stepIndex: 0,
+              pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+              selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+            },
+          ]),
+        }),
+      );
+
+      const result = await executor
+        .buildPreviousStepsMessages()
+        .then(msgs => msgs[0]?.content ?? '');
+
+      expect(result).toContain('Pending:');
+      expect(result).toContain('"fieldDisplayName":"Status"');
+      expect(result).toContain('"value":"active"');
       expect(result).not.toContain('Input:');
     });
 
@@ -361,7 +396,7 @@ describe('BaseStepExecutor', () => {
 
       const executor = new TestableExecutor(
         makeContext({
-          history: [entry],
+          previousSteps: [entry],
           runStore: makeMockRunStore([
             {
               type: 'condition',

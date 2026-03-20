@@ -3,13 +3,13 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
-import type { AiTaskStepDefinition } from '../../src/types/step-definition';
+import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 
 import { NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<AiTaskStepDefinition> = {}): AiTaskStepDefinition {
+function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
   return {
     type: StepType.ReadRecord,
     prompt: 'Read the customer email',
@@ -99,8 +99,8 @@ function makeMockModel(
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<AiTaskStepDefinition>> = {},
-): ExecutionContext<AiTaskStepDefinition> {
+  overrides: Partial<ExecutionContext<RecordTaskStepDefinition>> = {},
+): ExecutionContext<RecordTaskStepDefinition> {
   return {
     runId: 'run-1',
     stepId: 'read-1',
@@ -111,7 +111,7 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
-    history: [],
+    previousSteps: [],
     remoteTools: [],
     ...overrides,
   };
@@ -700,7 +700,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         runStore,
-        history: [
+        previousSteps: [
           {
             stepDefinition: {
               type: StepType.Condition,

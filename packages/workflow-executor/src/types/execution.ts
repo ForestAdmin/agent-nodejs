@@ -13,8 +13,6 @@ export interface Step {
   stepOutcome: StepOutcome;
 }
 
-export type UserInput = { type: 'confirmation'; confirmed: boolean };
-
 export interface PendingStepExecution {
   readonly runId: string;
   readonly stepId: string;
@@ -22,7 +20,7 @@ export interface PendingStepExecution {
   readonly baseRecordRef: RecordRef;
   readonly stepDefinition: StepDefinition;
   readonly previousSteps: ReadonlyArray<Step>;
-  readonly userInput?: UserInput;
+  readonly userConfirmed?: boolean;
 }
 
 export interface StepExecutionResult {
@@ -39,6 +37,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly agentPort: AgentPort;
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
-  readonly history: ReadonlyArray<Readonly<Step>>;
+  readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly remoteTools: readonly unknown[];
+  readonly userConfirmed?: boolean;
 }

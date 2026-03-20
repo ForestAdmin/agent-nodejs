@@ -5,6 +5,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import { WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 interface GatewayToolArgs {
@@ -66,16 +67,20 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
     try {
       args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
-    } catch (error: unknown) {
-      return {
-        stepOutcome: {
-          type: 'condition',
-          stepId: this.context.stepId,
-          stepIndex: this.context.stepIndex,
-          status: 'error',
-          error: (error as Error).message,
-        },
-      };
+    } catch (error) {
+      if (error instanceof WorkflowExecutorError) {
+        return {
+          stepOutcome: {
+            type: 'condition',
+            stepId: this.context.stepId,
+            stepIndex: this.context.stepIndex,
+            status: 'error',
+            error: error.message,
+          },
+        };
+      }
+
+      throw error;
     }
 
     const { option: selectedOption, reasoning } = args;

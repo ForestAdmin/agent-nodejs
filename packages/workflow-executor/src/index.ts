@@ -1,14 +1,14 @@
 export { StepType } from './types/step-definition';
 export type {
   ConditionStepDefinition,
-  AiTaskStepDefinition,
+  RecordTaskStepDefinition,
   StepDefinition,
 } from './types/step-definition';
 
 export type {
   StepStatus,
   ConditionStepOutcome,
-  AiTaskStepOutcome,
+  RecordTaskStepOutcome,
   StepOutcome,
 } from './types/step-outcome';
 
@@ -18,7 +18,8 @@ export type {
   FieldReadResult,
   ConditionStepExecutionData,
   ReadRecordStepExecutionData,
-  AiTaskStepExecutionData,
+  UpdateRecordStepExecutionData,
+  RecordTaskStepExecutionData,
   LoadRelatedRecordStepExecutionData,
   ExecutedStepExecutionData,
   StepExecutionData,
@@ -36,7 +37,6 @@ export type {
 
 export type {
   Step,
-  UserInput,
   PendingStepExecution,
   StepExecutionResult,
   ExecutionContext,
@@ -54,10 +54,12 @@ export {
   NoRecordsError,
   NoReadableFieldsError,
   NoResolvedFieldsError,
+  NoWritableFieldsError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
 export { default as ReadRecordStepExecutor } from './executors/read-record-step-executor';
+export { default as UpdateRecordStepExecutor } from './executors/update-record-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
 export { default as ExecutorHttpServer } from './http/executor-http-server';
