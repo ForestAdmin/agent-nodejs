@@ -12,16 +12,11 @@ export interface ZendeskConfig {
   subdomain: string;
   email: string;
   apiToken: string;
-
-  // TODO: remove - for now the front sends auth instead of apiToken
-  authorization: string;
 }
 
 export default function getZendeskTools(config: ZendeskConfig): RemoteTool[] {
   const baseUrl = `https://${config.subdomain}.zendesk.com/api/v2`;
-  // TODO: this is a hack for now, the config should have the good props
-  const apiToken = config.authorization.split(' ')[1];
-  const auth = Buffer.from(`${config.email}/token:${apiToken}`).toString('base64');
+  const auth = Buffer.from(`${config.email}/token:${config.apiToken}`).toString('base64');
   const headers = {
     Authorization: `Basic ${auth}`,
     'Content-Type': 'application/json',
