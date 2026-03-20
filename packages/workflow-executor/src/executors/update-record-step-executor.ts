@@ -1,4 +1,4 @@
-import type { StepExecutionResult, UserInput } from '../types/execution';
+import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
 import type { RecordTaskStepDefinition } from '../types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../types/step-execution-data';
@@ -27,23 +27,15 @@ interface UpdateTarget {
 export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
   async execute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry with user confirmation
-    if (this.context.userInput) {
-      return this.handleConfirmation(this.context.userInput);
+    if (this.context.userConfirmed !== undefined) {
+      return this.handleConfirmation();
     }
 
     // Branches B & C -- First call
     return this.handleFirstCall();
   }
 
-  private async handleConfirmation(userInput: UserInput): Promise<StepExecutionResult> {
-    if (userInput.type !== 'confirmation') {
-      throw new WorkflowExecutorError(
-        `UpdateRecordStepExecutor received unexpected userInput type: "${
-          (userInput as { type: string }).type
-        }"`,
-      );
-    }
-
+  private async handleConfirmation(): Promise<StepExecutionResult> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const execution = stepExecutions.find(
       (e): e is UpdateRecordStepExecutionData =>
@@ -54,7 +46,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
       throw new WorkflowExecutorError('No pending update found for this step');
     }
 
-    if (!userInput.confirmed) {
+    if (!this.context.userConfirmed) {
       await this.context.runStore.saveStepExecution(this.context.runId, {
         ...execution,
         executionResult: { skipped: true },

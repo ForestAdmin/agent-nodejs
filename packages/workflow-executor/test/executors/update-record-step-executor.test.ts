@@ -1,7 +1,7 @@
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
-import type { ExecutionContext, UserInput } from '../../src/types/execution';
+import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
@@ -202,8 +202,8 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: true };
-      const context = makeContext({ agentPort, runStore, userInput });
+      const userConfirmed = true;
+      const context = makeContext({ agentPort, runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -234,8 +234,8 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: false };
-      const context = makeContext({ agentPort, runStore, userInput });
+      const userConfirmed = false;
+      const context = makeContext({ agentPort, runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -257,8 +257,8 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: true };
-      const context = makeContext({ runStore, userInput });
+      const userConfirmed = true;
+      const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
@@ -275,8 +275,8 @@ describe('UpdateRecordStepExecutor', () => {
           },
         ]),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: true };
-      const context = makeContext({ runStore, userInput });
+      const userConfirmed = true;
+      const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
@@ -292,8 +292,8 @@ describe('UpdateRecordStepExecutor', () => {
           },
         ]),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: true };
-      const context = makeContext({ runStore, userInput });
+      const userConfirmed = true;
+      const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
@@ -420,8 +420,8 @@ describe('UpdateRecordStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const workflowPort = makeMockWorkflowPort({ customers: schema });
-      const userInput: UserInput = { type: 'confirmation', confirmed: true };
-      const context = makeContext({ runStore, workflowPort, userInput });
+      const userConfirmed = true;
+      const context = makeContext({ runStore, workflowPort, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -570,8 +570,8 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: true };
-      const context = makeContext({ agentPort, runStore, userInput });
+      const userConfirmed = true;
+      const context = makeContext({ agentPort, runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -612,8 +612,8 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: true };
-      const context = makeContext({ agentPort, runStore, userInput });
+      const userConfirmed = true;
+      const context = makeContext({ agentPort, runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Connection refused');
@@ -633,18 +633,6 @@ describe('UpdateRecordStepExecutor', () => {
         stepIndex: 0,
         status: 'success',
       });
-    });
-  });
-
-  describe('unexpected userInput type', () => {
-    it('throws when userInput has an unknown type', async () => {
-      const userInput = { type: 'text-input', value: 'hello' } as unknown as UserInput;
-      const context = makeContext({ userInput });
-      const executor = new UpdateRecordStepExecutor(context);
-
-      await expect(executor.execute()).rejects.toThrow(
-        'UpdateRecordStepExecutor received unexpected userInput type: "text-input"',
-      );
     });
   });
 
@@ -689,8 +677,8 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: true };
-      const context = makeContext({ runStore, userInput });
+      const userConfirmed = true;
+      const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('DB timeout');
@@ -707,8 +695,8 @@ describe('UpdateRecordStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const userInput: UserInput = { type: 'confirmation', confirmed: false };
-      const context = makeContext({ runStore, userInput });
+      const userConfirmed = false;
+      const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).rejects.toThrow('Disk full');

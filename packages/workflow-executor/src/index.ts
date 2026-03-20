@@ -37,7 +37,6 @@ export type {
 
 export type {
   Step,
-  UserInput,
   PendingStepExecution,
   StepExecutionResult,
   ExecutionContext,
