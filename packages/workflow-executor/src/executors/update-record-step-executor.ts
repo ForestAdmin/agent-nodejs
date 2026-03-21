@@ -1,14 +1,14 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
 import type { RecordTaskStepDefinition } from '../types/step-definition';
-import type { UpdateRecordStepExecutionData } from '../types/step-execution-data';
+import type { FieldRef, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { NoWritableFieldsError, WorkflowExecutorError } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import { FieldNotFoundError, NoWritableFieldsError, StepPersistenceError } from '../errors';
+import RecordTaskStepExecutor from './record-task-step-executor';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
 Select the field to update and provide the new value.
@@ -18,14 +18,13 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-interface UpdateTarget {
+interface UpdateTarget extends FieldRef {
   selectedRecordRef: RecordRef;
-  fieldDisplayName: string;
   value: string;
 }
 
-export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTaskStepDefinition> {
-  async execute(): Promise<StepExecutionResult> {
+export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
+  protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry with user confirmation
     if (this.context.userConfirmed !== undefined) {
       return this.handleConfirmation();
@@ -36,53 +35,34 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
   }
 
   private async handleConfirmation(): Promise<StepExecutionResult> {
-    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const execution = stepExecutions.find(
-      (e): e is UpdateRecordStepExecutionData =>
-        e.type === 'update-record' && e.stepIndex === this.context.stepIndex,
+    return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(
+      'update-record',
+      async execution => {
+        const { selectedRecordRef, pendingData } = execution;
+        const target: UpdateTarget = {
+          selectedRecordRef,
+          ...(pendingData as FieldRef & { value: string }),
+        };
+
+        return this.resolveAndUpdate(target, execution);
+      },
     );
-
-    if (!execution?.pendingUpdate) {
-      throw new WorkflowExecutorError('No pending update found for this step');
-    }
-
-    if (!this.context.userConfirmed) {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...execution,
-        executionResult: { skipped: true },
-      });
-
-      return this.buildOutcomeResult('success');
-    }
-
-    const { selectedRecordRef, pendingUpdate } = execution;
-    const target: UpdateTarget = {
-      selectedRecordRef,
-      fieldDisplayName: pendingUpdate.fieldDisplayName,
-      value: pendingUpdate.value,
-    };
-
-    return this.resolveAndUpdate(target, execution);
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const records = await this.getAvailableRecordRefs();
 
-    let target: UpdateTarget;
-
-    try {
-      const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
-      const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-      const args = await this.selectFieldAndValue(schema, step.prompt);
-      target = { selectedRecordRef, fieldDisplayName: args.fieldName, value: args.value };
-    } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return this.buildOutcomeResult('error', error.message);
-      }
-
-      throw error;
-    }
+    const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const args = await this.selectFieldAndValue(schema, step.prompt);
+    const name = this.resolveFieldName(schema, args.fieldName);
+    const target: UpdateTarget = {
+      selectedRecordRef,
+      displayName: args.fieldName,
+      name,
+      value: args.value,
+    };
 
     // Branch B -- automaticExecution
     if (step.automaticExecution) {
@@ -93,51 +73,52 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      pendingUpdate: { fieldDisplayName: target.fieldDisplayName, value: target.value },
+      pendingData: {
+        displayName: target.displayName,
+        name: target.name,
+        value: target.value,
+      },
       selectedRecordRef: target.selectedRecordRef,
     });
 
-    return this.buildOutcomeResult('awaiting-input');
+    return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
   /**
    * Resolves the field name, calls updateRecord, and persists execution data.
    * When `existingExecution` is provided (confirmation flow), it is spread into the
-   * saved execution to preserve pendingUpdate for traceability.
+   * saved execution to preserve pendingData for traceability.
    */
   private async resolveAndUpdate(
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, fieldDisplayName, value } = target;
-    let updated: { values: Record<string, unknown> };
+    const { selectedRecordRef, displayName, name, value } = target;
 
-    try {
-      const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-      const fieldName = this.resolveFieldName(schema, fieldDisplayName);
-      updated = await this.context.agentPort.updateRecord(
-        selectedRecordRef.collectionName,
-        selectedRecordRef.recordId,
-        { [fieldName]: value },
-      );
-    } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return this.buildOutcomeResult('error', error.message);
-      }
-
-      throw error;
-    }
-
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      ...existingExecution,
-      type: 'update-record',
-      stepIndex: this.context.stepIndex,
-      executionParams: { fieldDisplayName, value },
-      executionResult: { updatedValues: updated.values },
-      selectedRecordRef,
+    const updated = await this.context.agentPort.updateRecord({
+      collection: selectedRecordRef.collectionName,
+      id: selectedRecordRef.recordId,
+      values: { [name]: value },
     });
 
-    return this.buildOutcomeResult('success');
+    try {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existingExecution,
+        type: 'update-record',
+        stepIndex: this.context.stepIndex,
+        executionParams: { displayName, name, value },
+        executionResult: { updatedValues: updated.values },
+        selectedRecordRef,
+      });
+    } catch (cause) {
+      throw new StepPersistenceError(
+        `Record update persisted but step state could not be saved ` +
+          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+        cause,
+      );
+    }
+
+    return this.buildOutcomeResult({ status: 'success' });
   }
 
   private async selectFieldAndValue(
@@ -187,9 +168,7 @@ export default class UpdateRecordStepExecutor extends BaseStepExecutor<RecordTas
     const field = this.findField(schema, displayName);
 
     if (!field) {
-      throw new WorkflowExecutorError(
-        `Field "${displayName}" not found in collection "${schema.collectionName}"`,
-      );
+      throw new FieldNotFoundError(displayName, schema.collectionName);
     }
 
     return field.fieldName;

@@ -1,11 +1,12 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { ConditionStepDefinition } from '../types/step-definition';
+import type { ConditionStepStatus } from '../types/step-outcome';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { WorkflowExecutorError } from '../errors';
+import { StepPersistenceError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 interface GatewayToolArgs {
@@ -37,7 +38,22 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ConditionStepExecutor extends BaseStepExecutor<ConditionStepDefinition> {
-  async execute(): Promise<StepExecutionResult> {
+  protected buildOutcomeResult(outcome: {
+    status: ConditionStepStatus;
+    error?: string;
+    selectedOption?: string;
+  }): StepExecutionResult {
+    return {
+      stepOutcome: {
+        type: 'condition',
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        ...outcome,
+      },
+    };
+  }
+
+  protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
 
     const tool = new DynamicStructuredTool({
@@ -63,54 +79,28 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
       new HumanMessage(`**Question**: ${step.prompt ?? 'Choose the most appropriate option.'}`),
     ];
 
-    let args: GatewayToolArgs;
-
-    try {
-      args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
-    } catch (error) {
-      if (error instanceof WorkflowExecutorError) {
-        return {
-          stepOutcome: {
-            type: 'condition',
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
-            status: 'error',
-            error: error.message,
-          },
-        };
-      }
-
-      throw error;
-    }
-
+    const args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
     const { option: selectedOption, reasoning } = args;
 
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      type: 'condition',
-      stepIndex: this.context.stepIndex,
-      executionParams: { answer: selectedOption, reasoning },
-      executionResult: selectedOption ? { answer: selectedOption } : undefined,
-    });
-
-    if (!selectedOption) {
-      return {
-        stepOutcome: {
-          type: 'condition',
-          stepId: this.context.stepId,
-          stepIndex: this.context.stepIndex,
-          status: 'manual-decision',
-        },
-      };
+    try {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        type: 'condition',
+        stepIndex: this.context.stepIndex,
+        executionParams: { answer: selectedOption, reasoning },
+        executionResult: selectedOption ? { answer: selectedOption } : undefined,
+      });
+    } catch (cause) {
+      throw new StepPersistenceError(
+        `Condition step state could not be persisted ` +
+          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+        cause,
+      );
     }
 
-    return {
-      stepOutcome: {
-        type: 'condition',
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        status: 'success',
-        selectedOption,
-      },
-    };
+    if (!selectedOption) {
+      return this.buildOutcomeResult({ status: 'manual-decision' });
+    }
+
+    return this.buildOutcomeResult({ status: 'success', selectedOption });
   }
 }

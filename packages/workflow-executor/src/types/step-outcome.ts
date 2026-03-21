@@ -1,6 +1,6 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-type BaseStepStatus = 'success' | 'error';
+export type BaseStepStatus = 'success' | 'error';
 
 /** Condition steps can fall back to human decision when the AI is uncertain. */
 export type ConditionStepStatus = BaseStepStatus | 'manual-decision';

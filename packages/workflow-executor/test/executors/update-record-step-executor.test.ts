@@ -6,7 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
 
-import { WorkflowExecutorError } from '../../src/errors';
+import { StepStateError } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
@@ -114,6 +114,7 @@ function makeContext(
     runStore: makeMockRunStore(),
     previousSteps: [],
     remoteTools: [],
+    logger: { error: jest.fn() },
     ...overrides,
   };
 }
@@ -140,13 +141,17 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        id: [42],
+        values: { status: 'active' },
+      });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          executionParams: { fieldDisplayName: 'Status', value: 'active' },
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
@@ -179,7 +184,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -196,7 +201,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -209,14 +214,18 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        id: [42],
+        values: { status: 'active' },
+      });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
           type: 'update-record',
-          executionParams: { fieldDisplayName: 'Status', value: 'active' },
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
-          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         }),
       );
     });
@@ -228,7 +237,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -246,14 +255,14 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         }),
       );
     });
   });
 
   describe('no pending update in phase 2 (Branch A)', () => {
-    it('throws when no pending update is found', async () => {
+    it('returns error outcome when no pending update is found', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
@@ -261,16 +270,25 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'An unexpected error occurred while processing this step.',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('throws when execution exists but stepIndex does not match', async () => {
+    it('returns error outcome when execution exists but stepIndex does not match', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
             type: 'update-record',
             stepIndex: 5,
-            pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+            pendingData: { displayName: 'Status', name: 'status', value: 'active' },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -279,10 +297,19 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'An unexpected error occurred while processing this step.',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('throws when execution exists but pendingUpdate is absent', async () => {
+    it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -296,7 +323,16 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('No pending update found for this step');
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          type: 'record-task',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'error',
+          error: 'An unexpected error occurred while processing this step.',
+        },
+      });
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -343,11 +379,17 @@ describe('UpdateRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -370,7 +412,11 @@ describe('UpdateRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingUpdate: { fieldDisplayName: 'Order Status', value: 'shipped' },
+          pendingData: {
+            displayName: 'Order Status',
+            name: 'status',
+            value: 'shipped',
+          },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
@@ -399,39 +445,13 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'No writable fields on record from collection "customers"',
+        'This record type has no editable fields configured in Forest Admin.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
   describe('resolveFieldName failure', () => {
-    it('returns error when field is not found during confirmation (Branch A)', async () => {
-      const schema = makeCollectionSchema({
-        fields: [{ fieldName: 'email', displayName: 'Email', isRelationship: false }],
-      });
-      const execution: UpdateRecordStepExecutionData = {
-        type: 'update-record',
-        stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'NonExistentField', value: 'active' },
-        selectedRecordRef: makeRecordRef(),
-      };
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
-      });
-      const workflowPort = makeMockWorkflowPort({ customers: schema });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, workflowPort, userConfirmed });
-      const executor = new UpdateRecordStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'Field "NonExistentField" not found in collection "customers"',
-      );
-    });
-
     it('returns error when field is not found during automaticExecution (Branch B)', async () => {
       // AI returns a display name that doesn't match any field in the schema
       const mockModel = makeMockModel({
@@ -449,7 +469,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'Field "NonExistentField" not found in collection "customers"',
+        "The AI selected a field that doesn't exist on this record. Try rephrasing the step's prompt.",
       );
     });
   });
@@ -503,9 +523,12 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('update-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned a malformed tool call for "update-record-field": JSON parse error',
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -522,8 +545,13 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('update-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('AI did not return a tool call');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide what to do. Try rephrasing the step's prompt.",
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
@@ -531,9 +559,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('agentPort.updateRecord WorkflowExecutorError (Branch B)', () => {
     it('returns error when updateRecord throws WorkflowExecutorError', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.updateRecord as jest.Mock).mockRejectedValue(
-        new WorkflowExecutorError('Record locked'),
-      );
+      (agentPort.updateRecord as jest.Mock).mockRejectedValue(new StepStateError('Record locked'));
       const mockModel = makeMockModel({
         fieldName: 'Status',
         value: 'active',
@@ -550,21 +576,24 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('update-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('Record locked');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
     });
   });
 
   describe('agentPort.updateRecord WorkflowExecutorError (Branch A)', () => {
     it('returns error when updateRecord throws WorkflowExecutorError during confirmation', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.updateRecord as jest.Mock).mockRejectedValue(
-        new WorkflowExecutorError('Record locked'),
-      );
+      (agentPort.updateRecord as jest.Mock).mockRejectedValue(new StepStateError('Record locked'));
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -576,13 +605,18 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.stepId).toBe('update-1');
+      expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('Record locked');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
     });
   });
 
   describe('agentPort.updateRecord infra error', () => {
-    it('lets infrastructure errors propagate (Branch B)', async () => {
+    it('returns error outcome for infrastructure errors (Branch B)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({
@@ -597,16 +631,17 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets infrastructure errors propagate (Branch A)', async () => {
+    it('returns error outcome for infrastructure errors (Branch A)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -616,7 +651,8 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ agentPort, runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -651,7 +687,11 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        id: [42],
+        values: { status: 'active' },
+      });
     });
   });
 
@@ -666,14 +706,13 @@ describe('UpdateRecordStepExecutor', () => {
 
       await executor.execute();
 
-      // Branch B calls getCollectionSchema in handleFirstCall and again in resolveAndUpdate
-      // but the cache should prevent the second network call
+      // resolveFieldName is called in handleFirstCall, so getCollectionSchema is only fetched once
       expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('RunStore error propagation', () => {
-    it('lets getStepExecutions errors propagate (Branch A)', async () => {
+    it('returns error outcome when getStepExecutions fails (Branch A)', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
@@ -681,14 +720,15 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('DB timeout');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate when user rejects (Branch A)', async () => {
+    it('returns error outcome when saveStepExecution fails on user reject (Branch A)', async () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -699,20 +739,22 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate when saving awaiting-input (Branch C)', async () => {
+    it('returns error outcome when saveStepExecution fails saving awaiting-input (Branch C)', async () => {
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
       const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate after successful updateRecord (Branch B)', async () => {
+    it('returns error outcome after successful updateRecord when saveStepExecution fails (Branch B)', async () => {
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
@@ -722,7 +764,10 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
   });
 

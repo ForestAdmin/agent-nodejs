@@ -1,11 +1,7 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
-import type {
-  LoadRelatedRecordStepExecutionData,
-  StepExecutionData,
-} from '../types/step-execution-data';
-import type { StepOutcome } from '../types/step-outcome';
+import type { BaseStepStatus } from '../types/step-outcome';
 import type { AIMessage, BaseMessage } from '@langchain/core/messages';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -13,12 +9,13 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
 import {
+  InvalidAIResponseError,
   MalformedToolCallError,
   MissingToolCallError,
   NoRecordsError,
   WorkflowExecutorError,
 } from '../errors';
-import { isExecutedStepOnExecutor } from '../types/step-execution-data';
+import StepSummaryBuilder from './step-summary-builder';
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition> {
   protected readonly context: ExecutionContext<TStep>;
@@ -29,7 +26,30 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     this.context = context;
   }
 
-  abstract execute(): Promise<StepExecutionResult>;
+  async execute(): Promise<StepExecutionResult> {
+    try {
+      return await this.doExecute();
+    } catch (error) {
+      if (error instanceof WorkflowExecutorError) {
+        return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
+      }
+
+      this.context.logger.error('Unexpected error during step execution', {
+        runId: this.context.runId,
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      return this.buildOutcomeResult({
+        status: 'error',
+        error: 'Unexpected error during step execution',
+      });
+    }
+  }
+
+  protected abstract doExecute(): Promise<StepExecutionResult>;
 
   /** Find a field by displayName first, then fallback to fieldName. */
   protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
@@ -39,25 +59,11 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  /**
-   * Builds a StepExecutionResult with the given status and optional error.
-   * Only for record-task executors — hardcodes type: 'record-task'.
-   * ConditionStepExecutor and future non-record-task executors must NOT call this method.
-   */
-  protected buildOutcomeResult(
-    status: 'success' | 'error' | 'awaiting-input',
-    error?: string,
-  ): StepExecutionResult {
-    return {
-      stepOutcome: {
-        type: 'record-task',
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        status,
-        ...(error !== undefined && { error }),
-      },
-    };
-  }
+  /** Builds a StepExecutionResult with the step-type-specific outcome shape. */
+  protected abstract buildOutcomeResult(outcome: {
+    status: BaseStepStatus;
+    error?: string;
+  }): StepExecutionResult;
 
   /**
    * Returns a SystemMessage array summarizing previously executed steps.
@@ -66,54 +72,16 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   protected async buildPreviousStepsMessages(): Promise<SystemMessage[]> {
     if (!this.context.previousSteps.length) return [];
 
-    const summary = await this.summarizePreviousSteps();
-
-    return [new SystemMessage(summary)];
-  }
-
-  /**
-   * Builds a text summary of previously executed steps for AI prompts.
-   * Correlates history entries (step + stepOutcome pairs) with execution data
-   * from the RunStore (matched by stepOutcome.stepIndex).
-   * When no execution data is available, falls back to StepOutcome details.
-   */
-  private async summarizePreviousSteps(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-
-    return this.context.previousSteps
+    const summary = this.context.previousSteps
       .map(({ stepDefinition, stepOutcome }) => {
         const execution = allStepExecutions.find(e => e.stepIndex === stepOutcome.stepIndex);
 
-        return this.buildStepSummary(stepDefinition, stepOutcome, execution);
+        return StepSummaryBuilder.build(stepDefinition, stepOutcome, execution);
       })
       .join('\n\n');
-  }
 
-  private buildStepSummary(
-    step: StepDefinition,
-    stepOutcome: StepOutcome,
-    execution: StepExecutionData | undefined,
-  ): string {
-    const prompt = step.prompt ?? '(no prompt)';
-    const header = `Step "${stepOutcome.stepId}" (index ${stepOutcome.stepIndex}):`;
-    const lines = [header, `  Prompt: ${prompt}`];
-
-    if (isExecutedStepOnExecutor(execution)) {
-      if (execution.executionParams !== undefined) {
-        lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
-      } else if (execution.type === 'update-record' && execution.pendingUpdate) {
-        lines.push(`  Pending: ${JSON.stringify(execution.pendingUpdate)}`);
-      }
-
-      if (execution.executionResult) {
-        lines.push(`  Output: ${JSON.stringify(execution.executionResult)}`);
-      }
-    } else {
-      const { stepId, stepIndex, type, ...historyDetails } = stepOutcome;
-      lines.push(`  History: ${JSON.stringify(historyDetails)}`);
-    }
-
-    return lines.join('\n');
+    return [new SystemMessage(summary)];
   }
 
   /**
@@ -136,7 +104,14 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
    */
   private extractToolCallArgs<T = Record<string, unknown>>(response: AIMessage): T {
     const toolCall = response.tool_calls?.[0];
-    if (toolCall?.args) return toolCall.args as T;
+
+    if (toolCall !== undefined) {
+      if (toolCall.args !== undefined && toolCall.args !== null) {
+        return toolCall.args as T;
+      }
+
+      throw new MalformedToolCallError(toolCall.name ?? 'unknown', 'args field is missing or null');
+    }
 
     const invalidCall = response.invalid_tool_calls?.[0];
 
@@ -153,9 +128,17 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   /** Returns baseRecordRef + any related records loaded by previous steps. */
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = stepExecutions
-      .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')
-      .map(e => e.record);
+    const relatedRecords = stepExecutions.flatMap(e => {
+      if (
+        e.type === 'load-related-record' &&
+        e.executionResult !== undefined &&
+        'record' in e.executionResult
+      ) {
+        return [e.executionResult.record];
+      }
+
+      return [];
+    });
 
     return [this.context.baseRecordRef, ...relatedRecords];
   }
@@ -198,7 +181,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const selectedIndex = identifiers.indexOf(recordIdentifier);
 
     if (selectedIndex === -1) {
-      throw new WorkflowExecutorError(
+      throw new InvalidAIResponseError(
         `AI selected record "${recordIdentifier}" which does not match any available record`,
       );
     }
