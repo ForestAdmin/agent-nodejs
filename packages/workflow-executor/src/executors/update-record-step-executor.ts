@@ -7,7 +7,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { NoWritableFieldsError, StepPersistenceError, WorkflowExecutorError } from '../errors';
+import { FieldNotFoundError, NoWritableFieldsError, StepPersistenceError } from '../errors';
 import RecordTaskStepExecutor from './record-task-step-executor';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
@@ -95,11 +95,11 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name, value } = target;
 
-    const updated = await this.context.agentPort.updateRecord(
-      selectedRecordRef.collectionName,
-      selectedRecordRef.recordId,
-      { [name]: value },
-    );
+    const updated = await this.context.agentPort.updateRecord({
+      collection: selectedRecordRef.collectionName,
+      ids: selectedRecordRef.recordId,
+      values: { [name]: value },
+    });
 
     try {
       await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -168,9 +168,7 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
     const field = this.findField(schema, displayName);
 
     if (!field) {
-      throw new WorkflowExecutorError(
-        `Field "${displayName}" not found in collection "${schema.collectionName}"`,
-      );
+      throw new FieldNotFoundError(displayName, schema.collectionName);
     }
 
     return field.fieldName;

@@ -34,8 +34,8 @@ function makeMockAgentPort(
   return {
     getRecord: jest
       .fn()
-      .mockImplementation((collectionName: string) =>
-        Promise.resolve(recordsByCollection[collectionName] ?? { values: {} }),
+      .mockImplementation(({ collection }: { collection: string }) =>
+        Promise.resolve(recordsByCollection[collection] ?? { values: {} }),
       ),
     updateRecord: jest.fn(),
     getRelatedData: jest.fn(),
@@ -204,7 +204,11 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], ['name', 'email']);
+      expect(agentPort.getRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        ids: [42],
+        fields: ['name', 'email'],
+      });
     });
 
     it('passes only resolved field names when some fields are unresolved', async () => {
@@ -216,7 +220,11 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], ['email']);
+      expect(agentPort.getRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        ids: [42],
+        fields: ['email'],
+      });
     });
 
     it('returns error when no fields can be resolved', async () => {
@@ -361,11 +369,14 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            record: relatedRecord,
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -445,11 +456,14 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            record: relatedRecord,
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -516,11 +530,14 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 5, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 5,
+            record: relatedRecord,
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -566,11 +583,14 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 1, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            record: relatedRecord,
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),

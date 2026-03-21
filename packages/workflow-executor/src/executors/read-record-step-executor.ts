@@ -34,11 +34,11 @@ export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<Recor
       throw new NoResolvedFieldsError(selectedDisplayNames);
     }
 
-    const recordData = await this.context.agentPort.getRecord(
-      selectedRecordRef.collectionName,
-      selectedRecordRef.recordId,
-      resolvedFieldNames,
-    );
+    const recordData = await this.context.agentPort.getRecord({
+      collection: selectedRecordRef.collectionName,
+      ids: selectedRecordRef.recordId,
+      fields: resolvedFieldNames,
+    });
     const fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {

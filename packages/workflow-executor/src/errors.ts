@@ -1,6 +1,6 @@
 /* eslint-disable max-classes-per-file */
 
-export class WorkflowExecutorError extends Error {
+export abstract class WorkflowExecutorError extends Error {
   constructor(message: string) {
     super(message);
     this.name = this.constructor.name;
@@ -63,10 +63,53 @@ export class NoActionsError extends WorkflowExecutorError {
  * but the resulting state could not be persisted to the RunStore.
  */
 export class StepPersistenceError extends WorkflowExecutorError {
-  readonly cause?: unknown;
+  // Not readonly — allows standard Error.cause semantics without shadowing the built-in with a
+  // stricter modifier that would prevent downstream code from re-assigning if needed.
+  cause?: unknown;
 
   constructor(message: string, cause?: unknown) {
     super(message);
     if (cause !== undefined) this.cause = cause;
   }
 }
+
+export class NoRelationshipFieldsError extends WorkflowExecutorError {
+  constructor(collectionName: string) {
+    super(`No relationship fields on record from collection "${collectionName}"`);
+  }
+}
+
+export class RelatedRecordNotFoundError extends WorkflowExecutorError {
+  constructor(collectionName: string, relationName: string) {
+    super(
+      `No related record found for relation "${relationName}" on collection "${collectionName}"`,
+    );
+  }
+}
+
+/** Thrown when the AI returns a response that violates expected constraints (bad index, empty selection, unknown identifier, etc.). */
+export class InvalidAIResponseError extends WorkflowExecutorError {}
+
+/** Thrown when a named relation is not found in the collection schema. */
+export class RelationNotFoundError extends WorkflowExecutorError {
+  constructor(name: string, collectionName: string) {
+    super(`Relation "${name}" not found in collection "${collectionName}"`);
+  }
+}
+
+/** Thrown when a named field is not found in the collection schema. */
+export class FieldNotFoundError extends WorkflowExecutorError {
+  constructor(name: string, collectionName: string) {
+    super(`Field "${name}" not found in collection "${collectionName}"`);
+  }
+}
+
+/** Thrown when a named action is not found in the collection schema. */
+export class ActionNotFoundError extends WorkflowExecutorError {
+  constructor(name: string, collectionName: string) {
+    super(`Action "${name}" not found in collection "${collectionName}"`);
+  }
+}
+
+/** Thrown when step execution state is invalid (missing execution record, missing pending data, etc.). */
+export class StepStateError extends WorkflowExecutorError {}

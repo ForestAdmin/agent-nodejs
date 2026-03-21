@@ -4,7 +4,7 @@ import type { StepDefinition } from '../types/step-definition';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { RecordTaskStepStatus } from '../types/step-outcome';
 
-import { WorkflowExecutorError } from '../errors';
+import { StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 /** Execution data that includes the fields required by the confirmation flow. */
@@ -42,15 +42,13 @@ export default abstract class RecordTaskStepExecutor<
     );
 
     if (!execution) {
-      throw new WorkflowExecutorError(
+      throw new StepStateError(
         `No execution record found for step at index ${this.context.stepIndex}`,
       );
     }
 
     if (!execution.pendingData) {
-      throw new WorkflowExecutorError(
-        `Step at index ${this.context.stepIndex} has no pending data`,
-      );
+      throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
     if (!this.context.userConfirmed) {

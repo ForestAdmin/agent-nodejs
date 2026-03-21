@@ -17,18 +17,18 @@ export type {
   FieldReadError,
   FieldReadResult,
   ActionRef,
+  RelationRef,
   FieldRef,
   ConditionStepExecutionData,
   ReadRecordStepExecutionData,
   UpdateRecordStepExecutionData,
   TriggerRecordActionStepExecutionData,
   RecordTaskStepExecutionData,
+  LoadRelatedRecordPendingData,
   LoadRelatedRecordStepExecutionData,
   ExecutedStepExecutionData,
   StepExecutionData,
 } from './types/step-execution-data';
-
-export { isExecutedStepOnExecutor } from './types/step-execution-data';
 
 export type {
   FieldSchema,
@@ -45,7 +45,7 @@ export type {
   ExecutionContext,
 } from './types/execution';
 
-export type { AgentPort } from './ports/agent-port';
+export type { AgentPort, Id, QueryBase, Limit } from './ports/agent-port';
 export type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 export type { RunStore } from './ports/run-store';
 
@@ -59,12 +59,21 @@ export {
   NoResolvedFieldsError,
   NoWritableFieldsError,
   NoActionsError,
+  StepPersistenceError,
+  NoRelationshipFieldsError,
+  RelatedRecordNotFoundError,
+  InvalidAIResponseError,
+  RelationNotFoundError,
+  FieldNotFoundError,
+  ActionNotFoundError,
+  StepStateError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
 export { default as ReadRecordStepExecutor } from './executors/read-record-step-executor';
 export { default as UpdateRecordStepExecutor } from './executors/update-record-step-executor';
 export { default as TriggerRecordActionStepExecutor } from './executors/trigger-record-action-step-executor';
+export { default as LoadRelatedRecordStepExecutor } from './executors/load-related-record-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
 export { default as ExecutorHttpServer } from './http/executor-http-server';

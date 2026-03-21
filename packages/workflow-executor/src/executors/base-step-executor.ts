@@ -13,12 +13,12 @@ import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
 import {
+  InvalidAIResponseError,
   MalformedToolCallError,
   MissingToolCallError,
   NoRecordsError,
   WorkflowExecutorError,
 } from '../errors';
-import { isExecutedStepOnExecutor } from '../types/step-execution-data';
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition> {
   protected readonly context: ExecutionContext<TStep>;
@@ -36,6 +36,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       if (error instanceof WorkflowExecutorError) {
         return this.buildOutcomeResult({ status: 'error', error: error.message });
       }
+
       throw error;
     }
   }
@@ -95,7 +96,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const header = `Step "${stepOutcome.stepId}" (index ${stepOutcome.stepIndex}):`;
     const lines = [header, `  Prompt: ${prompt}`];
 
-    if (isExecutedStepOnExecutor(execution)) {
+    if (execution !== undefined) {
       if (execution.executionParams !== undefined) {
         lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
       } else if ('pendingData' in execution && execution.pendingData !== undefined) {
@@ -158,7 +159,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const relatedRecords = stepExecutions
-      .filter((e): e is LoadRelatedRecordStepExecutionData => e.type === 'load-related-record')
+      .filter(
+        (e): e is LoadRelatedRecordStepExecutionData & { record: RecordRef } =>
+          e.type === 'load-related-record' && e.record !== undefined,
+      )
       .map(e => e.record);
 
     return [this.context.baseRecordRef, ...relatedRecords];
@@ -202,7 +206,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const selectedIndex = identifiers.indexOf(recordIdentifier);
 
     if (selectedIndex === -1) {
-      throw new WorkflowExecutorError(
+      throw new InvalidAIResponseError(
         `AI selected record "${recordIdentifier}" which does not match any available record`,
       );
     }

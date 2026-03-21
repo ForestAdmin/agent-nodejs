@@ -6,7 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-execution-data';
 
-import { WorkflowExecutorError } from '../../src/errors';
+import { StepStateError } from '../../src/errors';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
@@ -132,9 +132,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith('customers', 'send-welcome-email', [
-        [42],
-      ]);
+      expect(agentPort.executeAction).toHaveBeenCalledWith({
+        collection: 'customers',
+        action: 'send-welcome-email',
+        ids: [42],
+      });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -210,9 +212,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith('customers', 'send-welcome-email', [
-        [42],
-      ]);
+      expect(agentPort.executeAction).toHaveBeenCalledWith({
+        collection: 'customers',
+        action: 'send-welcome-email',
+        ids: [42],
+      });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -398,7 +402,7 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('returns error when executeAction throws WorkflowExecutorError', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new WorkflowExecutorError('Action not permitted'),
+        new StepStateError('Action not permitted'),
       );
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
@@ -428,7 +432,7 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('returns error when executeAction throws WorkflowExecutorError during confirmation', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new WorkflowExecutorError('Action not permitted'),
+        new StepStateError('Action not permitted'),
       );
       const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
@@ -516,7 +520,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith('customers', 'archive', [[42]]);
+      expect(agentPort.executeAction).toHaveBeenCalledWith({
+        collection: 'customers',
+        action: 'archive',
+        ids: [42],
+      });
     });
 
     it('resolves action when AI returns technical name instead of displayName', async () => {
@@ -541,7 +549,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith('customers', 'archive', [[42]]);
+      expect(agentPort.executeAction).toHaveBeenCalledWith({
+        collection: 'customers',
+        action: 'archive',
+        ids: [42],
+      });
     });
   });
 
@@ -585,11 +597,14 @@ describe('TriggerRecordActionStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            record: relatedRecord,
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),

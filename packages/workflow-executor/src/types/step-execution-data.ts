@@ -61,6 +61,13 @@ export interface ActionRef {
   displayName: string;
 }
 
+// Intentionally separate from ActionRef/FieldRef: expected to gain relation-specific
+// fields (e.g. relationType) in a future iteration.
+export interface RelationRef {
+  name: string;
+  displayName: string;
+}
+
 export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionData {
   type: 'trigger-action';
   /** Display name and technical name of the executed action. */
@@ -82,9 +89,34 @@ export interface RecordTaskStepExecutionData extends BaseStepExecutionData {
 
 // -- Load Related Record --
 
+export interface LoadRelatedRecordPendingData extends RelationRef {
+  /** Collection name of the related records — needed to build RecordRef in Branch A. */
+  relatedCollectionName: string;
+  /** AI-selected fields suggested for display on the frontend. undefined = not computed (no non-relation fields). */
+  suggestedFields?: string[];
+  /** AI's best pick from the 50 candidates — proposed to the user as default. */
+  suggestedRecordId: Array<string | number>;
+  /**
+   * Record id chosen by the user. Written by the HTTP endpoint (dedicated ticket, not yet implemented).
+   * Falls back to suggestedRecordId when absent.
+   */
+  selectedRecordId?: Array<string | number>;
+}
+
 export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
   type: 'load-related-record';
-  record: RecordRef;
+  /**
+   * The record ref of the loaded related record. Absent during the pending phase.
+   * Also stored in executionResult.record for display consistency with other step types.
+   * This top-level field is used by getAvailableRecordRefs to build the record pool.
+   */
+  record?: RecordRef;
+  /** AI-selected relation with pre-fetched candidates awaiting user confirmation. */
+  pendingData?: LoadRelatedRecordPendingData;
+  /** The record ref used to load the relation. Required for handleConfirmationFlow. */
+  selectedRecordRef: RecordRef;
+  executionParams?: RelationRef;
+  executionResult?: { record: RecordRef } | { skipped: true };
 }
 
 // -- Union --
@@ -97,17 +129,5 @@ export type StepExecutionData =
   | RecordTaskStepExecutionData
   | LoadRelatedRecordStepExecutionData;
 
-export type ExecutedStepExecutionData =
-  | ConditionStepExecutionData
-  | ReadRecordStepExecutionData
-  | UpdateRecordStepExecutionData
-  | TriggerRecordActionStepExecutionData
-  | RecordTaskStepExecutionData;
-
-// TODO: this condition should change when load-related-record gets its own executor
-// and produces executionParams/executionResult like other steps.
-export function isExecutedStepOnExecutor(
-  data: StepExecutionData | undefined,
-): data is ExecutedStepExecutionData {
-  return !!data && data.type !== 'load-related-record';
-}
+/** Alias for StepExecutionData — kept for backwards-compatible consumption at the call sites. */
+export type ExecutedStepExecutionData = StepExecutionData;

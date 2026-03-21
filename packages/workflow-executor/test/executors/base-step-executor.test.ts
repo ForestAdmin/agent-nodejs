@@ -14,15 +14,13 @@ import { StepType } from '../../src/types/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
 class TestableExecutor extends BaseStepExecutor {
-  constructor(
-    context: ExecutionContext,
-    private readonly errorToThrow?: unknown,
-  ) {
+  constructor(context: ExecutionContext, private readonly errorToThrow?: unknown) {
     super(context);
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
     if (this.errorToThrow !== undefined) throw this.errorToThrow;
+
     return this.buildOutcomeResult({ status: 'success' });
   }
 

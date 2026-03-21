@@ -2,25 +2,22 @@
 
 import type { RecordData } from '../types/record';
 
+export type Id = string | number;
+
+export type QueryBase = {
+  collection: string;
+  ids: Id[];
+  fields?: string[];
+};
+
+export type Limit = { limit: number } | { limit: null };
+
 export interface AgentPort {
-  getRecord(
-    collectionName: string,
-    recordId: Array<string | number>,
-    fieldNames?: string[],
-  ): Promise<RecordData>;
-  updateRecord(
-    collectionName: string,
-    recordId: Array<string | number>,
-    values: Record<string, unknown>,
-  ): Promise<RecordData>;
-  getRelatedData(
-    collectionName: string,
-    recordId: Array<string | number>,
-    relationName: string,
-  ): Promise<RecordData[]>;
-  executeAction(
-    collectionName: string,
-    actionName: string,
-    recordIds: Array<string | number>[],
-  ): Promise<unknown>;
+  getRecord(query: QueryBase): Promise<RecordData>;
+
+  updateRecord(query: QueryBase & { values: Record<string, unknown> }): Promise<RecordData>;
+
+  getRelatedData(query: QueryBase & { relation: string } & Limit): Promise<RecordData[]>;
+
+  executeAction(query: { collection: string; action: string; ids?: Id[] }): Promise<unknown>;
 }

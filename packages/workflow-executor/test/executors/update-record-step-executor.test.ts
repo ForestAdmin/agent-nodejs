@@ -6,7 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
 
-import { WorkflowExecutorError } from '../../src/errors';
+import { StepStateError } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
@@ -140,7 +140,11 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        ids: [42],
+        values: { status: 'active' },
+      });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -209,7 +213,11 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        ids: [42],
+        values: { status: 'active' },
+      });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -370,11 +378,14 @@ describe('UpdateRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            record: relatedRecord,
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -542,9 +553,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('agentPort.updateRecord WorkflowExecutorError (Branch B)', () => {
     it('returns error when updateRecord throws WorkflowExecutorError', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.updateRecord as jest.Mock).mockRejectedValue(
-        new WorkflowExecutorError('Record locked'),
-      );
+      (agentPort.updateRecord as jest.Mock).mockRejectedValue(new StepStateError('Record locked'));
       const mockModel = makeMockModel({
         fieldName: 'Status',
         value: 'active',
@@ -572,9 +581,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('agentPort.updateRecord WorkflowExecutorError (Branch A)', () => {
     it('returns error when updateRecord throws WorkflowExecutorError during confirmation', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.updateRecord as jest.Mock).mockRejectedValue(
-        new WorkflowExecutorError('Record locked'),
-      );
+      (agentPort.updateRecord as jest.Mock).mockRejectedValue(new StepStateError('Record locked'));
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
@@ -668,7 +675,11 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith('customers', [42], { status: 'active' });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        ids: [42],
+        values: { status: 'active' },
+      });
     });
   });
 

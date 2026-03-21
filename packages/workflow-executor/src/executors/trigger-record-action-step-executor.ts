@@ -7,7 +7,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-import { NoActionsError, StepPersistenceError, WorkflowExecutorError } from '../errors';
+import { ActionNotFoundError, NoActionsError, StepPersistenceError } from '../errors';
 import RecordTaskStepExecutor from './record-task-step-executor';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
@@ -87,9 +87,11 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
 
     // Return value intentionally discarded: action results may contain client data
     // and must not leave the client's infrastructure (privacy constraint).
-    await this.context.agentPort.executeAction(selectedRecordRef.collectionName, name, [
-      selectedRecordRef.recordId,
-    ]);
+    await this.context.agentPort.executeAction({
+      collection: selectedRecordRef.collectionName,
+      action: name,
+      ids: selectedRecordRef.recordId,
+    });
 
     try {
       await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -157,9 +159,7 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
       schema.actions.find(a => a.name === displayName);
 
     if (!action) {
-      throw new WorkflowExecutorError(
-        `Action "${displayName}" not found in collection "${schema.collectionName}"`,
-      );
+      throw new ActionNotFoundError(displayName, schema.collectionName);
     }
 
     return action.name;
