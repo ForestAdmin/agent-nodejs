@@ -103,7 +103,6 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
     previousSteps: [],
-    remoteTools: [],
     logger: makeMockLogger(),
     ...overrides,
   };

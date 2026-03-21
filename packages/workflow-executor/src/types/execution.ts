@@ -39,7 +39,6 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
-  readonly remoteTools: readonly unknown[];
   readonly userConfirmed?: boolean;
   readonly logger: Logger;
 }

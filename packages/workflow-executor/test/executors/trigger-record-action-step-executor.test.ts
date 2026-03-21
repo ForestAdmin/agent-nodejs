@@ -107,7 +107,6 @@ function makeContext(
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
     previousSteps: [],
-    remoteTools: [],
     logger: { error: jest.fn() },
     ...overrides,
   };
