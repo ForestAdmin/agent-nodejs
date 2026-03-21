@@ -45,7 +45,15 @@ export type {
   ExecutionContext,
 } from './types/execution';
 
-export type { AgentPort, Id, QueryBase, Limit } from './ports/agent-port';
+export type {
+  AgentPort,
+  ExecuteActionQuery,
+  GetRecordQuery,
+  GetRelatedDataQuery,
+  Id,
+  Limit,
+  UpdateRecordQuery,
+} from './ports/agent-port';
 export type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 export type { RunStore } from './ports/run-store';
 export type { Logger } from './ports/logger-port';

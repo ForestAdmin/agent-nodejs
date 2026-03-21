@@ -1,6 +1,6 @@
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 
-import StepExecutionFormatters from '../../src/executors/step-execution-formatters';
+import StepExecutionFormatters from '../../src/executors/summary/step-execution-formatters';
 
 describe('StepExecutionFormatters', () => {
   describe('format', () => {

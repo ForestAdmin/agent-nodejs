@@ -1,6 +1,6 @@
-import type { StepDefinition } from '../types/step-definition';
-import type { StepExecutionData } from '../types/step-execution-data';
-import type { StepOutcome } from '../types/step-outcome';
+import type { StepDefinition } from '../../types/step-definition';
+import type { StepExecutionData } from '../../types/step-execution-data';
+import type { StepOutcome } from '../../types/step-outcome';
 
 import StepExecutionFormatters from './step-execution-formatters';
 

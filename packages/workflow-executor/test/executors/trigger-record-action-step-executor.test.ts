@@ -117,6 +117,7 @@ describe('TriggerRecordActionStepExecutor', () => {
   describe('automaticExecution: trigger direct (Branch B)', () => {
     it('triggers the action and returns success', async () => {
       const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ message: 'Email sent' });
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',
@@ -147,7 +148,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
-          executionResult: { success: true },
+          executionResult: { success: true, actionResult: { message: 'Email sent' } },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -194,6 +195,7 @@ describe('TriggerRecordActionStepExecutor', () => {
   describe('confirmation accepted (Branch A)', () => {
     it('triggers the action when user confirms and preserves pendingAction', async () => {
       const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ message: 'Email sent' });
       const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
@@ -226,7 +228,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
-          executionResult: { success: true },
+          executionResult: { success: true, actionResult: { message: 'Email sent' } },
           pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',

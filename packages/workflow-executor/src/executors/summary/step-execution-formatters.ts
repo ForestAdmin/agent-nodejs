@@ -1,7 +1,7 @@
 import type {
   LoadRelatedRecordStepExecutionData,
   StepExecutionData,
-} from '../types/step-execution-data';
+} from '../../types/step-execution-data';
 
 /**
  * Stateless utility class — all methods are static.

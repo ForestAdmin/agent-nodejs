@@ -1,4 +1,11 @@
-import type { AgentPort, Id, Limit, QueryBase } from '../ports/agent-port';
+import type {
+  AgentPort,
+  ExecuteActionQuery,
+  GetRecordQuery,
+  GetRelatedDataQuery,
+  Id,
+  UpdateRecordQuery,
+} from '../ports/agent-port';
 import type { CollectionSchema } from '../types/record';
 import type { RemoteAgentClient, SelectOptions } from '@forestadmin/agent-client';
 
@@ -46,7 +53,7 @@ export default class AgentClientAgentPort implements AgentPort {
     this.collectionSchemas = params.collectionSchemas;
   }
 
-  async getRecord({ collection, id, fields }: QueryBase) {
+  async getRecord({ collection, id, fields }: GetRecordQuery) {
     const schema = this.resolveSchema(collection);
     const records = await this.client.collection(collection).list<Record<string, unknown>>({
       filters: buildPkFilter(schema.primaryKeyFields, id),
@@ -61,7 +68,7 @@ export default class AgentClientAgentPort implements AgentPort {
     return { collectionName: collection, recordId: id, values: records[0] };
   }
 
-  async updateRecord({ collection, id, values }: QueryBase & { values: Record<string, unknown> }) {
+  async updateRecord({ collection, id, values }: UpdateRecordQuery) {
     const updatedRecord = await this.client
       .collection(collection)
       .update<Record<string, unknown>>(encodePk(id), values);
@@ -75,7 +82,7 @@ export default class AgentClientAgentPort implements AgentPort {
     relation,
     limit,
     fields,
-  }: QueryBase & { relation: string } & Limit) {
+  }: GetRelatedDataQuery) {
     const relatedSchema = this.resolveSchema(relation);
 
     const records = await this.client
@@ -93,15 +100,7 @@ export default class AgentClientAgentPort implements AgentPort {
     }));
   }
 
-  async executeAction({
-    collection,
-    action,
-    id,
-  }: {
-    collection: string;
-    action: string;
-    id?: Id[];
-  }): Promise<unknown> {
+  async executeAction({ collection, action, id }: ExecuteActionQuery): Promise<unknown> {
     const encodedId = id?.length ? [encodePk(id)] : [];
     const act = await this.client.collection(collection).action(action, { recordIds: encodedId });
 

@@ -85,9 +85,7 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    // Return value intentionally discarded: action results may contain client data
-    // and must not leave the client's infrastructure (privacy constraint).
-    await this.context.agentPort.executeAction({
+    const actionResult = await this.context.agentPort.executeAction({
       collection: selectedRecordRef.collectionName,
       action: name,
       id: selectedRecordRef.recordId,
@@ -99,7 +97,7 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
         type: 'trigger-action',
         stepIndex: this.context.stepIndex,
         executionParams: { displayName, name },
-        executionResult: { success: true },
+        executionResult: { success: true, actionResult },
         selectedRecordRef,
       });
     } catch (cause) {

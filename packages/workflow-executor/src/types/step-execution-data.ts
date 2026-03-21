@@ -72,7 +72,7 @@ export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionD
   type: 'trigger-action';
   /** Display name and technical name of the executed action. */
   executionParams?: ActionRef;
-  executionResult?: { success: true } | { skipped: true };
+  executionResult?: { success: true; actionResult: unknown } | { skipped: true };
   /** AI-selected action awaiting user confirmation. Used in the confirmation flow only. */
   pendingData?: ActionRef;
   selectedRecordRef: RecordRef;

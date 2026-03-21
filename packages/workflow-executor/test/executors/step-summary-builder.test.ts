@@ -2,7 +2,7 @@ import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { StepOutcome } from '../../src/types/step-outcome';
 
-import StepSummaryBuilder from '../../src/executors/step-summary-builder';
+import StepSummaryBuilder from '../../src/executors/summary/step-summary-builder';
 import { StepType } from '../../src/types/step-definition';
 
 function makeConditionStep(prompt?: string): StepDefinition {

@@ -15,7 +15,7 @@ import {
   NoRecordsError,
   WorkflowExecutorError,
 } from '../errors';
-import StepSummaryBuilder from './step-summary-builder';
+import StepSummaryBuilder from './summary/step-summary-builder';
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition> {
   protected readonly context: ExecutionContext<TStep>;
