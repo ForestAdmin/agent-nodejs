@@ -53,8 +53,9 @@ function makeContext(
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
-    history: [],
+    previousSteps: [],
     remoteTools: [],
+    logger: { error: jest.fn() },
     ...overrides,
   };
 }
@@ -175,7 +176,7 @@ describe('ConditionStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         runStore,
-        history: [
+        previousSteps: [
           {
             stepDefinition: {
               type: StepType.Condition,
@@ -252,30 +253,32 @@ describe('ConditionStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.type).toBe('condition');
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned a malformed tool call for "choose-gateway-option": JSON parse error',
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
   describe('error propagation', () => {
-    it('returns error status when model invocation fails', async () => {
+    it('returns error outcome for infrastructure errors', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
+      const runStore = makeMockRunStore();
       const context = makeContext({
         model: { bindTools } as unknown as ExecutionContext['model'],
+        runStore,
       });
       const executor = new ConditionStepExecutor(context);
 
       const result = await executor.execute();
-
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('API timeout');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('lets run store errors propagate', async () => {
+    it('returns error outcome when run store save fails with context', async () => {
       const mockModel = makeMockModel({
         option: 'Approve',
         reasoning: 'OK',
@@ -286,7 +289,10 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(makeContext({ model: mockModel.model, runStore }));
 
-      await expect(executor.execute()).rejects.toThrow('Storage full');
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
   });
 });

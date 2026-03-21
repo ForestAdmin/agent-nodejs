@@ -1,9 +1,9 @@
 import { StepType } from '../src/index';
 
 describe('StepType', () => {
-  it('should expose exactly 5 step types', () => {
+  it('should expose exactly 6 step types', () => {
     const values = Object.values(StepType);
-    expect(values).toHaveLength(5);
+    expect(values).toHaveLength(6);
   });
 
   it.each([
@@ -12,6 +12,7 @@ describe('StepType', () => {
     ['UpdateRecord', 'update-record'],
     ['TriggerAction', 'trigger-action'],
     ['LoadRelatedRecord', 'load-related-record'],
+    ['McpTask', 'mcp-task'],
   ] as const)('should have %s = "%s"', (key, value) => {
     expect(StepType[key]).toBe(value);
   });

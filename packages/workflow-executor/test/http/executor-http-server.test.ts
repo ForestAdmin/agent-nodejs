@@ -58,7 +58,7 @@ describe('ExecutorHttpServer', () => {
       const response = await request(server.callback).get('/runs/run-1');
 
       expect(response.status).toBe(500);
-      expect(response.body).toEqual({ error: 'db error' });
+      expect(response.body).toEqual({ error: 'Internal server error' });
     });
   });
 
@@ -93,7 +93,7 @@ describe('ExecutorHttpServer', () => {
       const response = await request(server.callback).post('/runs/run-1/trigger');
 
       expect(response.status).toBe(500);
-      expect(response.body).toEqual({ error: 'poll failed' });
+      expect(response.body).toEqual({ error: 'Internal server error' });
     });
   });
 

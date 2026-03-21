@@ -4,6 +4,7 @@ import type { RecordRef } from './record';
 import type { StepDefinition } from './step-definition';
 import type { StepOutcome } from './step-outcome';
 import type { AgentPort } from '../ports/agent-port';
+import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -13,8 +14,6 @@ export interface Step {
   stepOutcome: StepOutcome;
 }
 
-export type UserInput = { type: 'confirmation'; confirmed: boolean };
-
 export interface PendingStepExecution {
   readonly runId: string;
   readonly stepId: string;
@@ -22,7 +21,7 @@ export interface PendingStepExecution {
   readonly baseRecordRef: RecordRef;
   readonly stepDefinition: StepDefinition;
   readonly previousSteps: ReadonlyArray<Step>;
-  readonly userInput?: UserInput;
+  readonly userConfirmed?: boolean;
 }
 
 export interface StepExecutionResult {
@@ -39,6 +38,8 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly agentPort: AgentPort;
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
-  readonly history: ReadonlyArray<Readonly<Step>>;
+  readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly remoteTools: readonly unknown[];
+  readonly userConfirmed?: boolean;
+  readonly logger: Logger;
 }

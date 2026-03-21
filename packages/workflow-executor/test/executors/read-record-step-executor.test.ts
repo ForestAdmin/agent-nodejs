@@ -3,13 +3,13 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
-import type { AiTaskStepDefinition } from '../../src/types/step-definition';
+import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 
 import { NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<AiTaskStepDefinition> = {}): AiTaskStepDefinition {
+function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
   return {
     type: StepType.ReadRecord,
     prompt: 'Read the customer email',
@@ -34,8 +34,8 @@ function makeMockAgentPort(
   return {
     getRecord: jest
       .fn()
-      .mockImplementation((collectionName: string) =>
-        Promise.resolve(recordsByCollection[collectionName] ?? { values: {} }),
+      .mockImplementation(({ collection }: { collection: string }) =>
+        Promise.resolve(recordsByCollection[collection] ?? { values: {} }),
       ),
     updateRecord: jest.fn(),
     getRelatedData: jest.fn(),
@@ -99,8 +99,8 @@ function makeMockModel(
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<AiTaskStepDefinition>> = {},
-): ExecutionContext<AiTaskStepDefinition> {
+  overrides: Partial<ExecutionContext<RecordTaskStepDefinition>> = {},
+): ExecutionContext<RecordTaskStepDefinition> {
   return {
     runId: 'run-1',
     stepId: 'read-1',
@@ -111,8 +111,9 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
-    history: [],
+    previousSteps: [],
     remoteTools: [],
+    logger: { error: jest.fn() },
     ...overrides,
   };
 }
@@ -133,9 +134,9 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'read-record',
           stepIndex: 0,
-          executionParams: { fieldNames: ['email'] },
+          executionParams: { fields: [{ name: 'email', displayName: 'Email' }] },
           executionResult: {
-            fields: [{ value: 'john@example.com', fieldName: 'email', displayName: 'Email' }],
+            fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
           },
         }),
       );
@@ -155,11 +156,16 @@ describe('ReadRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionParams: { fieldNames: ['email', 'name'] },
+          executionParams: {
+            fields: [
+              { name: 'email', displayName: 'Email' },
+              { name: 'name', displayName: 'Full Name' },
+            ],
+          },
           executionResult: {
             fields: [
-              { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
-              { value: 'John Doe', fieldName: 'name', displayName: 'Full Name' },
+              { value: 'john@example.com', name: 'email', displayName: 'Email' },
+              { value: 'John Doe', name: 'name', displayName: 'Full Name' },
             ],
           },
         }),
@@ -180,9 +186,9 @@ describe('ReadRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionParams: { fieldNames: ['name'] },
+          executionParams: { fields: [{ name: 'name', displayName: 'Full Name' }] },
           executionResult: {
-            fields: [{ value: 'John Doe', fieldName: 'name', displayName: 'Full Name' }],
+            fields: [{ value: 'John Doe', name: 'name', displayName: 'Full Name' }],
           },
         }),
       );
@@ -199,7 +205,11 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], ['name', 'email']);
+      expect(agentPort.getRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        id: [42],
+        fields: ['name', 'email'],
+      });
     });
 
     it('passes only resolved field names when some fields are unresolved', async () => {
@@ -211,7 +221,11 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith('customers', [42], ['email']);
+      expect(agentPort.getRecord).toHaveBeenCalledWith({
+        collection: 'customers',
+        id: [42],
+        fields: ['email'],
+      });
     });
 
     it('returns error when no fields can be resolved', async () => {
@@ -225,7 +239,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'None of the requested fields could be resolved: nonexistent, unknown',
+        "The AI selected fields that don't exist on this record. Try rephrasing the step's prompt.",
       );
       expect(agentPort.getRecord).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -247,10 +261,10 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({
           executionResult: {
             fields: [
-              { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
+              { value: 'john@example.com', name: 'email', displayName: 'Email' },
               {
                 error: 'Field not found: nonexistent',
-                fieldName: 'nonexistent',
+                name: 'nonexistent',
                 displayName: 'nonexistent',
               },
             ],
@@ -310,7 +324,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'No readable fields on record from collection "customers"',
+        'This record type has no readable fields configured in Forest Admin.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -356,11 +370,17 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -392,7 +412,7 @@ describe('ReadRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: {
-            fields: [{ value: 'john@example.com', fieldName: 'email', displayName: 'Email' }],
+            fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
           },
           selectedRecordRef: expect.objectContaining({
             recordId: [42],
@@ -429,18 +449,28 @@ describe('ReadRecordStepExecutor', () => {
         })
         .mockResolvedValueOnce({
           tool_calls: [
-            { name: 'read-selected-record-fields', args: { fieldNames: ['total'] }, id: 'call_2' },
+            {
+              name: 'read-selected-record-fields',
+              args: { fieldNames: ['total'] },
+              id: 'call_2',
+            },
           ],
         });
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 2, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -459,7 +489,7 @@ describe('ReadRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: {
-            fields: [{ value: 150, fieldName: 'total', displayName: 'Total' }],
+            fields: [{ value: 150, name: 'total', displayName: 'Total' }],
           },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
@@ -496,18 +526,28 @@ describe('ReadRecordStepExecutor', () => {
         })
         .mockResolvedValueOnce({
           tool_calls: [
-            { name: 'read-selected-record-fields', args: { fieldNames: ['email'] }, id: 'call_2' },
+            {
+              name: 'read-selected-record-fields',
+              args: { fieldNames: ['email'] },
+              id: 'call_2',
+            },
           ],
         });
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 5, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 5,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -553,11 +593,17 @@ describe('ReadRecordStepExecutor', () => {
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
       const runStore = makeMockRunStore({
-        getStepExecutions: jest
-          .fn()
-          .mockResolvedValue([
-            { type: 'load-related-record', stepIndex: 1, record: relatedRecord },
-          ]),
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema(),
@@ -570,7 +616,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI selected record "NonExistent #999" which does not match any available record',
+        "The AI made an unexpected choice. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -590,23 +636,26 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('Record not found: collection "customers", id "42"');
+      expect(result.stepOutcome.error).toBe(
+        'The record no longer exists. It may have been deleted.',
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('lets infrastructure errors propagate', async () => {
+    it('returns error outcome for infrastructure errors', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const context = makeContext({ model: mockModel.model, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
   describe('model error', () => {
-    it('lets non-WorkflowExecutorError propagate from AI invocation', async () => {
+    it('returns error outcome for non-WorkflowExecutorError from AI invocation', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const context = makeContext({
@@ -614,7 +663,8 @@ describe('ReadRecordStepExecutor', () => {
       });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('API timeout');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -638,7 +688,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned a malformed tool call for "read-selected-record-fields": JSON parse error',
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -656,13 +706,15 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('AI did not return a tool call');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide what to do. Try rephrasing the step's prompt.",
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
   describe('RunStore error propagation', () => {
-    it('lets saveStepExecution errors propagate', async () => {
+    it('returns error outcome when saveStepExecution fails', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Storage full')),
@@ -670,10 +722,11 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Storage full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets getStepExecutions errors propagate', async () => {
+    it('returns error outcome when getStepExecutions fails', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('Connection lost')),
@@ -681,7 +734,8 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection lost');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -700,7 +754,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         runStore,
-        history: [
+        previousSteps: [
           {
             stepDefinition: {
               type: StepType.Condition,
@@ -766,11 +820,16 @@ describe('ReadRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'read-record',
         stepIndex: 3,
-        executionParams: { fieldNames: ['email', 'name'] },
+        executionParams: {
+          fields: [
+            { name: 'email', displayName: 'Email' },
+            { name: 'name', displayName: 'Full Name' },
+          ],
+        },
         executionResult: {
           fields: [
-            { value: 'john@example.com', fieldName: 'email', displayName: 'Email' },
-            { value: 'John Doe', fieldName: 'name', displayName: 'Full Name' },
+            { value: 'john@example.com', name: 'email', displayName: 'Email' },
+            { value: 'John Doe', name: 'name', displayName: 'Full Name' },
           ],
         },
         selectedRecordRef: {
