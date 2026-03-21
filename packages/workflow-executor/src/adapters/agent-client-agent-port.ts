@@ -3,7 +3,6 @@ import type {
   ExecuteActionQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
-  Id,
   UpdateRecordQuery,
 } from '../ports/agent-port';
 import type { CollectionSchema } from '../types/record';
@@ -76,13 +75,7 @@ export default class AgentClientAgentPort implements AgentPort {
     return { collectionName: collection, recordId: id, values: updatedRecord };
   }
 
-  async getRelatedData({
-    collection,
-    id,
-    relation,
-    limit,
-    fields,
-  }: GetRelatedDataQuery) {
+  async getRelatedData({ collection, id, relation, limit, fields }: GetRelatedDataQuery) {
     const relatedSchema = this.resolveSchema(relation);
 
     const records = await this.client
