@@ -143,7 +143,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         values: { status: 'active' },
       });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -216,7 +216,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         values: { status: 'active' },
       });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -383,7 +383,10 @@ describe('UpdateRecordStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 2,
-            record: relatedRecord,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -686,7 +689,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         values: { status: 'active' },
       });
     });

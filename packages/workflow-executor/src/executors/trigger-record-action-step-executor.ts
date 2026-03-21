@@ -90,7 +90,7 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
     await this.context.agentPort.executeAction({
       collection: selectedRecordRef.collectionName,
       action: name,
-      ids: selectedRecordRef.recordId,
+      id: selectedRecordRef.recordId,
     });
 
     try {

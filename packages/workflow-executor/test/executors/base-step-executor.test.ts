@@ -6,8 +6,10 @@ import type { RecordRef } from '../../src/types/record';
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { BaseStepStatus, StepOutcome } from '../../src/types/step-outcome';
-import type { BaseMessage, SystemMessage } from '@langchain/core/messages';
+import type { BaseMessage } from '@langchain/core/messages';
 import type { DynamicStructuredTool } from '@langchain/core/tools';
+
+import { SystemMessage } from '@langchain/core/messages';
 
 import { MalformedToolCallError, MissingToolCallError, NoRecordsError } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
@@ -115,7 +117,7 @@ describe('BaseStepExecutor', () => {
       expect(await executor.buildPreviousStepsMessages()).toEqual([]);
     });
 
-    it('includes prompt and executionParams from previous steps', async () => {
+    it('calls getStepExecutions with runId and returns a SystemMessage with step content', async () => {
       const runStore = makeMockRunStore([
         {
           type: 'condition',
@@ -131,351 +133,46 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
+      const messages = await executor.buildPreviousStepsMessages();
 
-      expect(result).toContain('Step "cond-1"');
-      expect(result).toContain('Prompt: Approve?');
-      expect(result).toContain('Input: {"answer":"Yes","reasoning":"Order is valid"}');
-      expect(result).toContain('Output: {"answer":"Yes"}');
       expect(runStore.getStepExecutions).toHaveBeenCalledWith('run-1');
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toBeInstanceOf(SystemMessage);
+      expect(messages[0].content).toContain('Step "cond-1"');
+      expect(messages[0].content).toContain('Prompt: Approve?');
     });
 
-    it('uses Input for matched steps and History for unmatched steps', async () => {
+    it('separates multiple previous steps with a blank line', async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 0,
+          executionParams: { answer: 'Yes', reasoning: 'Valid' },
+          executionResult: { answer: 'Yes' },
+        },
+        {
+          type: 'condition',
+          stepIndex: 1,
+          executionParams: { answer: 'No', reasoning: 'Wrong' },
+          executionResult: { answer: 'No' },
+        },
+      ]);
       const executor = new TestableExecutor(
         makeContext({
           previousSteps: [
-            makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0 }),
+            makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'First?' }),
             makeHistoryEntry({ stepId: 'cond-2', stepIndex: 1, prompt: 'Second?' }),
           ],
-          // Only step 1 has an execution entry — step 0 has no match
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 1,
-              executionParams: { answer: 'No', reasoning: 'Clearly no' },
-              executionResult: { answer: 'No' },
-            },
-          ]),
+          runStore,
         }),
       );
 
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
 
-      expect(result).toContain('Step "cond-1"');
-      expect(result).toContain('History: {"status":"success"}');
-      expect(result).toContain('Step "cond-2"');
-      expect(result).toContain('Input: {"answer":"No","reasoning":"Clearly no"}');
-      expect(result).toContain('Output: {"answer":"No"}');
-    });
-
-    it('falls back to History when no matching step execution in RunStore', async () => {
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [
-            makeHistoryEntry({ stepId: 'orphan', stepIndex: 5, prompt: 'Orphan step' }),
-            makeHistoryEntry({ stepId: 'matched', stepIndex: 1, prompt: 'Matched step' }),
-          ],
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 1,
-              executionParams: { answer: 'B', reasoning: 'Option B fits' },
-              executionResult: { answer: 'B' },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "orphan"');
-      expect(result).toContain('History: {"status":"success"}');
-      expect(result).toContain('Step "matched"');
-      expect(result).toContain('Input: {"answer":"B","reasoning":"Option B fits"}');
-      expect(result).toContain('Output: {"answer":"B"}');
-    });
-
-    it('includes selectedOption in History for condition steps', async () => {
-      const entry = makeHistoryEntry({
-        stepId: 'cond-approval',
-        stepIndex: 0,
-        prompt: 'Approved?',
-      });
-      (entry.stepOutcome as { selectedOption?: string }).selectedOption = 'Yes';
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "cond-approval"');
-      expect(result).toContain('"selectedOption":"Yes"');
-    });
-
-    it('includes error in History for failed steps', async () => {
-      const entry = makeHistoryEntry({
-        stepId: 'failing-step',
-        stepIndex: 0,
-        prompt: 'Do something',
-      });
-      entry.stepOutcome.status = 'error';
-      (entry.stepOutcome as { error?: string }).error = 'AI could not match an option';
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('"status":"error"');
-      expect(result).toContain('"error":"AI could not match an option"');
-    });
-
-    it('includes status in History for record-task steps without RunStore data', async () => {
-      const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
-        stepDefinition: {
-          type: StepType.ReadRecord,
-          prompt: 'Run task',
-        },
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'read-record-1',
-          stepIndex: 0,
-          status: 'awaiting-input',
-        },
-      };
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "read-record-1"');
-      expect(result).toContain('History: {"status":"awaiting-input"}');
-    });
-
-    it('uses Input when RunStore has executionParams, History otherwise', async () => {
-      const condEntry = makeHistoryEntry({
-        stepId: 'cond-1',
-        stepIndex: 0,
-        prompt: 'Approved?',
-      });
-      (condEntry.stepOutcome as { selectedOption?: string }).selectedOption = 'Yes';
-
-      const aiEntry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
-        stepDefinition: {
-          type: StepType.ReadRecord,
-          prompt: 'Read name',
-        },
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'read-customer',
-          stepIndex: 1,
-          status: 'success',
-        },
-      };
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [condEntry, aiEntry],
-          runStore: makeMockRunStore([
-            {
-              type: 'record-task',
-              stepIndex: 1,
-              executionParams: { answer: 'John Doe' },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "cond-1"');
-      expect(result).toContain('History: {"status":"success","selectedOption":"Yes"}');
-      expect(result).toContain('Step "read-customer"');
-      expect(result).toContain('Input: {"answer":"John Doe"}');
-    });
-
-    it('prefers RunStore execution data over History fallback', async () => {
-      const entry = makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' });
-      (entry.stepOutcome as { selectedOption?: string }).selectedOption = 'A';
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 0,
-              executionParams: { answer: 'A', reasoning: 'Best fit' },
-              executionResult: { answer: 'A' },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Input: {"answer":"A","reasoning":"Best fit"}');
-      expect(result).toContain('Output: {"answer":"A"}');
-      expect(result).not.toContain('History:');
-    });
-
-    it('omits Input line when executionParams is undefined', async () => {
-      const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
-        stepDefinition: {
-          type: StepType.ReadRecord,
-          prompt: 'Do something',
-        },
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'read-record-1',
-          stepIndex: 0,
-          status: 'success',
-        },
-      };
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([
-            {
-              type: 'record-task',
-              stepIndex: 0,
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "read-record-1"');
-      expect(result).toContain('Prompt: Do something');
-      expect(result).not.toContain('Input:');
-    });
-
-    it('uses Pending when update-record step has pendingUpdate but no executionParams', async () => {
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [
-            {
-              stepDefinition: { type: StepType.UpdateRecord, prompt: 'Set status to active' },
-              stepOutcome: {
-                type: 'record-task',
-                stepId: 'update-1',
-                stepIndex: 0,
-                status: 'awaiting-input',
-              },
-            },
-          ],
-          runStore: makeMockRunStore([
-            {
-              type: 'update-record',
-              stepIndex: 0,
-              pendingData: { displayName: 'Status', name: 'status', value: 'active' },
-              selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Pending:');
-      expect(result).toContain('"displayName":"Status"');
-      expect(result).toContain('"value":"active"');
-      expect(result).not.toContain('Input:');
-    });
-
-    it('includes pending action in summary for trigger-action step', async () => {
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [
-            {
-              stepDefinition: { type: StepType.TriggerAction, prompt: 'Archive the customer' },
-              stepOutcome: {
-                type: 'record-task',
-                stepId: 'trigger-1',
-                stepIndex: 0,
-                status: 'awaiting-input',
-              },
-            },
-          ],
-          runStore: makeMockRunStore([
-            {
-              type: 'trigger-action',
-              stepIndex: 0,
-              pendingData: { displayName: 'Archive Customer', name: 'archive' },
-              selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Pending:');
-      expect(result).toContain('"displayName":"Archive Customer"');
-      expect(result).toContain('"name":"archive"');
-      expect(result).not.toContain('Input:');
-    });
-
-    it('shows "(no prompt)" when step has no prompt', async () => {
-      const entry = makeHistoryEntry({ stepIndex: 0 });
-      entry.stepDefinition.prompt = undefined;
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 0,
-              executionParams: { answer: 'A', reasoning: 'Only option' },
-              executionResult: { answer: 'A' },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Prompt: (no prompt)');
+      expect(content).toContain('Step "cond-1"');
+      expect(content).toContain('Step "cond-2"');
+      expect(content).toContain('\n\nStep "cond-2"');
     });
   });
 

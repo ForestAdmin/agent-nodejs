@@ -97,7 +97,7 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
 
     const updated = await this.context.agentPort.updateRecord({
       collection: selectedRecordRef.collectionName,
-      ids: selectedRecordRef.recordId,
+      id: selectedRecordRef.recordId,
       values: { [name]: value },
     });
 

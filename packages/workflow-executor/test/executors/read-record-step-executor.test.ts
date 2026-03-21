@@ -207,7 +207,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(agentPort.getRecord).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         fields: ['name', 'email'],
       });
     });
@@ -223,7 +223,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(agentPort.getRecord).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         fields: ['email'],
       });
     });
@@ -374,7 +374,10 @@ describe('ReadRecordStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 2,
-            record: relatedRecord,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -461,7 +464,10 @@ describe('ReadRecordStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 2,
-            record: relatedRecord,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -535,7 +541,10 @@ describe('ReadRecordStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 5,
-            record: relatedRecord,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -588,7 +597,10 @@ describe('ReadRecordStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 1,
-            record: relatedRecord,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
             selectedRecordRef: makeRecordRef(),
           },
         ]),

@@ -160,7 +160,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.getRelatedData).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         relation: 'order',
         limit: 1,
       });
@@ -170,18 +170,17 @@ describe('LoadRelatedRecordStepExecutor', () => {
           type: 'load-related-record',
           stepIndex: 0,
           executionParams: { displayName: 'Order', name: 'order' },
-          executionResult: {
+          executionResult: expect.objectContaining({
             record: expect.objectContaining({
               collectionName: 'orders',
               recordId: [99],
               stepIndex: 0,
             }),
-          },
+          }),
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
           }),
-          record: expect.objectContaining({ collectionName: 'orders', recordId: [99] }),
         }),
       );
     });
@@ -268,7 +267,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // Fetches 50 candidates (HasMany)
       expect(agentPort.getRelatedData).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         relation: 'address',
         limit: 50,
       });
@@ -276,9 +275,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionResult: {
+          executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'addresses', recordId: [2] }),
-          },
+          }),
         }),
       );
     });
@@ -547,16 +546,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // HasOne uses the same fetchFirstCandidate path as BelongsTo — limit: 1
       expect(agentPort.getRelatedData).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         relation: 'profile',
         limit: 1,
       });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionResult: {
+          executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'profiles', recordId: [5] }),
-          },
+          }),
         }),
       );
     });
@@ -575,7 +574,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(agentPort.getRelatedData).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         relation: 'order',
         limit: 50,
       });
@@ -754,9 +753,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'load-related-record',
           executionParams: { displayName: 'Order', name: 'order' },
-          executionResult: {
+          executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'orders', recordId: [99] }),
-          },
+          }),
           pendingData: expect.objectContaining({
             displayName: 'Order',
             name: 'order',
@@ -792,9 +791,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionResult: {
+          executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
-          },
+          }),
         }),
       );
     });
@@ -1166,7 +1165,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 2,
-            record: relatedRecord,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -1352,7 +1354,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.getRelatedData).toHaveBeenCalledWith({
         collection: 'customers',
-        ids: [42],
+        id: [42],
         relation: 'order',
         limit: 1,
       });
@@ -1439,7 +1441,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 2,
-            record: completedRecord,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: completedRecord,
+            },
             selectedRecordRef: makeRecordRef(),
           },
           pendingExecution,

@@ -6,10 +6,10 @@ import { RecordNotFoundError } from '../errors';
 
 function buildPkFilter(
   primaryKeyFields: string[],
-  ids: Array<string | number>,
+  id: Array<string | number>,
 ): SelectOptions['filters'] {
   if (primaryKeyFields.length === 1) {
-    return { field: primaryKeyFields[0], operator: 'Equal', value: ids[0] };
+    return { field: primaryKeyFields[0], operator: 'Equal', value: id[0] };
   }
 
   return {
@@ -17,14 +17,14 @@ function buildPkFilter(
     conditions: primaryKeyFields.map((field, i) => ({
       field,
       operator: 'Equal',
-      value: ids[i],
+      value: id[i],
     })),
   };
 }
 
 // agent-client methods (update, relation, action) still expect the pipe-encoded string format
-function encodePk(ids: Array<string | number>): string {
-  return ids.map(v => String(v)).join('|');
+function encodePk(id: Array<string | number>): string {
+  return id.map(v => String(v)).join('|');
 }
 
 function extractRecordId(
@@ -46,32 +46,32 @@ export default class AgentClientAgentPort implements AgentPort {
     this.collectionSchemas = params.collectionSchemas;
   }
 
-  async getRecord({ collection, ids, fields }: QueryBase) {
+  async getRecord({ collection, id, fields }: QueryBase) {
     const schema = this.resolveSchema(collection);
     const records = await this.client.collection(collection).list<Record<string, unknown>>({
-      filters: buildPkFilter(schema.primaryKeyFields, ids),
+      filters: buildPkFilter(schema.primaryKeyFields, id),
       pagination: { size: 1, number: 1 },
       ...(fields?.length && { fields }),
     });
 
     if (records.length === 0) {
-      throw new RecordNotFoundError(collection, encodePk(ids));
+      throw new RecordNotFoundError(collection, encodePk(id));
     }
 
-    return { collectionName: collection, recordId: ids, values: records[0] };
+    return { collectionName: collection, recordId: id, values: records[0] };
   }
 
-  async updateRecord({ collection, ids, values }: QueryBase & { values: Record<string, unknown> }) {
+  async updateRecord({ collection, id, values }: QueryBase & { values: Record<string, unknown> }) {
     const updatedRecord = await this.client
       .collection(collection)
-      .update<Record<string, unknown>>(encodePk(ids), values);
+      .update<Record<string, unknown>>(encodePk(id), values);
 
-    return { collectionName: collection, recordId: ids, values: updatedRecord };
+    return { collectionName: collection, recordId: id, values: updatedRecord };
   }
 
   async getRelatedData({
     collection,
-    ids,
+    id,
     relation,
     limit,
     fields,
@@ -80,7 +80,7 @@ export default class AgentClientAgentPort implements AgentPort {
 
     const records = await this.client
       .collection(collection)
-      .relation(relation, encodePk(ids))
+      .relation(relation, encodePk(id))
       .list<Record<string, unknown>>({
         ...(limit !== null && { pagination: { size: limit, number: 1 } }),
         ...(fields?.length && { fields }),
@@ -96,14 +96,14 @@ export default class AgentClientAgentPort implements AgentPort {
   async executeAction({
     collection,
     action,
-    ids,
+    id,
   }: {
     collection: string;
     action: string;
-    ids?: Id[];
+    id?: Id[];
   }): Promise<unknown> {
-    const encodedIds = ids?.length ? [encodePk(ids)] : [];
-    const act = await this.client.collection(collection).action(action, { recordIds: encodedIds });
+    const encodedId = id?.length ? [encodePk(id)] : [];
+    const act = await this.client.collection(collection).action(action, { recordIds: encodedId });
 
     return act.execute();
   }

@@ -77,7 +77,7 @@ describe('AgentClientAgentPort', () => {
     it('should return a RecordData for a simple PK', async () => {
       mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
 
-      const result = await port.getRecord({ collection: 'users', ids: [42] });
+      const result = await port.getRecord({ collection: 'users', id: [42] });
 
       expect(mockCollection.list).toHaveBeenCalledWith({
         filters: { field: 'id', operator: 'Equal', value: 42 },
@@ -93,7 +93,7 @@ describe('AgentClientAgentPort', () => {
     it('should build a composite And filter for composite PKs', async () => {
       mockCollection.list.mockResolvedValue([{ tenantId: 1, orderId: 2 }]);
 
-      await port.getRecord({ collection: 'orders', ids: [1, 2] });
+      await port.getRecord({ collection: 'orders', id: [1, 2] });
 
       expect(mockCollection.list).toHaveBeenCalledWith({
         filters: {
@@ -110,7 +110,7 @@ describe('AgentClientAgentPort', () => {
     it('should throw a RecordNotFoundError when no record is found', async () => {
       mockCollection.list.mockResolvedValue([]);
 
-      await expect(port.getRecord({ collection: 'users', ids: [999] })).rejects.toThrow(
+      await expect(port.getRecord({ collection: 'users', id: [999] })).rejects.toThrow(
         RecordNotFoundError,
       );
     });
@@ -118,7 +118,7 @@ describe('AgentClientAgentPort', () => {
     it('should pass fields to list when fields is provided', async () => {
       mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
 
-      await port.getRecord({ collection: 'users', ids: [42], fields: ['id', 'name'] });
+      await port.getRecord({ collection: 'users', id: [42], fields: ['id', 'name'] });
 
       expect(mockCollection.list).toHaveBeenCalledWith({
         filters: { field: 'id', operator: 'Equal', value: 42 },
@@ -130,7 +130,7 @@ describe('AgentClientAgentPort', () => {
     it('should not pass fields to list when fields is an empty array', async () => {
       mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
 
-      await port.getRecord({ collection: 'users', ids: [42], fields: [] });
+      await port.getRecord({ collection: 'users', id: [42], fields: [] });
 
       expect(mockCollection.list).toHaveBeenCalledWith({
         filters: { field: 'id', operator: 'Equal', value: 42 },
@@ -141,7 +141,7 @@ describe('AgentClientAgentPort', () => {
     it('should not pass fields to list when fields is undefined', async () => {
       mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
 
-      await port.getRecord({ collection: 'users', ids: [42] });
+      await port.getRecord({ collection: 'users', id: [42] });
 
       expect(mockCollection.list).toHaveBeenCalledWith({
         filters: { field: 'id', operator: 'Equal', value: 42 },
@@ -152,7 +152,7 @@ describe('AgentClientAgentPort', () => {
     it('should fallback to pk field "id" when collection is unknown', async () => {
       mockCollection.list.mockResolvedValue([{ id: 1 }]);
 
-      const result = await port.getRecord({ collection: 'unknown', ids: [1] });
+      const result = await port.getRecord({ collection: 'unknown', id: [1] });
 
       expect(mockCollection.list).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -169,7 +169,7 @@ describe('AgentClientAgentPort', () => {
 
       const result = await port.updateRecord({
         collection: 'users',
-        ids: [42],
+        id: [42],
         values: { name: 'Bob' },
       });
 
@@ -184,7 +184,7 @@ describe('AgentClientAgentPort', () => {
     it('should encode composite PK to pipe format for update', async () => {
       mockCollection.update.mockResolvedValue({ tenantId: 1, orderId: 2 });
 
-      await port.updateRecord({ collection: 'orders', ids: [1, 2], values: { status: 'done' } });
+      await port.updateRecord({ collection: 'orders', id: [1, 2], values: { status: 'done' } });
 
       expect(mockCollection.update).toHaveBeenCalledWith('1|2', { status: 'done' });
     });
@@ -199,7 +199,7 @@ describe('AgentClientAgentPort', () => {
 
       const result = await port.getRelatedData({
         collection: 'users',
-        ids: [42],
+        id: [42],
         relation: 'posts',
         limit: null,
       });
@@ -222,7 +222,7 @@ describe('AgentClientAgentPort', () => {
     it('should apply pagination when limit is a number', async () => {
       mockRelation.list.mockResolvedValue([{ id: 10, title: 'Post A' }]);
 
-      await port.getRelatedData({ collection: 'users', ids: [42], relation: 'posts', limit: 5 });
+      await port.getRelatedData({ collection: 'users', id: [42], relation: 'posts', limit: 5 });
 
       expect(mockRelation.list).toHaveBeenCalledWith(
         expect.objectContaining({ pagination: { size: 5, number: 1 } }),
@@ -232,7 +232,7 @@ describe('AgentClientAgentPort', () => {
     it('should not apply pagination when limit is null', async () => {
       mockRelation.list.mockResolvedValue([]);
 
-      await port.getRelatedData({ collection: 'users', ids: [42], relation: 'posts', limit: null });
+      await port.getRelatedData({ collection: 'users', id: [42], relation: 'posts', limit: null });
 
       expect(mockRelation.list).toHaveBeenCalledWith({});
     });
@@ -242,7 +242,7 @@ describe('AgentClientAgentPort', () => {
 
       const result = await port.getRelatedData({
         collection: 'users',
-        ids: [42],
+        id: [42],
         relation: 'unknownRelation',
         limit: null,
       });
@@ -257,7 +257,7 @@ describe('AgentClientAgentPort', () => {
       expect(
         await port.getRelatedData({
           collection: 'users',
-          ids: [42],
+          id: [42],
           relation: 'posts',
           limit: null,
         }),
@@ -269,7 +269,7 @@ describe('AgentClientAgentPort', () => {
 
       await port.getRelatedData({
         collection: 'users',
-        ids: [42],
+        id: [42],
         relation: 'posts',
         limit: null,
         fields: ['title'],
@@ -283,7 +283,7 @@ describe('AgentClientAgentPort', () => {
     it('should omit fields from the list call when not provided', async () => {
       mockRelation.list.mockResolvedValue([{ id: 10 }]);
 
-      await port.getRelatedData({ collection: 'users', ids: [42], relation: 'posts', limit: null });
+      await port.getRelatedData({ collection: 'users', id: [42], relation: 'posts', limit: null });
 
       expect(mockRelation.list).toHaveBeenCalledWith(
         expect.not.objectContaining({ fields: expect.anything() }),
@@ -298,7 +298,7 @@ describe('AgentClientAgentPort', () => {
       const result = await port.executeAction({
         collection: 'users',
         action: 'sendEmail',
-        ids: [1],
+        id: [1],
       });
 
       expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: ['1'] });
@@ -318,7 +318,7 @@ describe('AgentClientAgentPort', () => {
       mockAction.execute.mockRejectedValue(new Error('Action failed'));
 
       await expect(
-        port.executeAction({ collection: 'users', action: 'sendEmail', ids: [1] }),
+        port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }),
       ).rejects.toThrow('Action failed');
     });
   });

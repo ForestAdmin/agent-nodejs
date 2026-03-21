@@ -6,7 +6,7 @@ export type Id = string | number;
 
 export type QueryBase = {
   collection: string;
-  ids: Id[];
+  id: Id[];
   fields?: string[];
 };
 
@@ -19,5 +19,5 @@ export interface AgentPort {
 
   getRelatedData(query: QueryBase & { relation: string } & Limit): Promise<RecordData[]>;
 
-  executeAction(query: { collection: string; action: string; ids?: Id[] }): Promise<unknown>;
+  executeAction(query: { collection: string; action: string; id?: Id[] }): Promise<unknown>;
 }

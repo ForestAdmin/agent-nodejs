@@ -163,7 +163,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
 
     const relatedData = await this.context.agentPort.getRelatedData({
       collection: selectedRecordRef.collectionName,
-      ids: selectedRecordRef.recordId,
+      id: selectedRecordRef.recordId,
       relation: name,
       limit,
     });
@@ -215,7 +215,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
     const { selectedRecordRef, name } = target;
     const relatedData = await this.context.agentPort.getRelatedData({
       collection: selectedRecordRef.collectionName,
-      ids: selectedRecordRef.recordId,
+      id: selectedRecordRef.recordId,
       relation: name,
       limit,
     });
@@ -241,9 +241,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
         type: 'load-related-record',
         stepIndex: this.context.stepIndex,
         executionParams: { displayName, name },
-        executionResult: { record },
+        executionResult: { relation: { name, displayName }, record },
         selectedRecordRef,
-        record,
       });
     } catch (cause) {
       throw new StepPersistenceError(

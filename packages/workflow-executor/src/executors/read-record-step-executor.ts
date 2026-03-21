@@ -36,7 +36,7 @@ export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<Recor
 
     const recordData = await this.context.agentPort.getRecord({
       collection: selectedRecordRef.collectionName,
-      ids: selectedRecordRef.recordId,
+      id: selectedRecordRef.recordId,
       fields: resolvedFieldNames,
     });
     const fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);

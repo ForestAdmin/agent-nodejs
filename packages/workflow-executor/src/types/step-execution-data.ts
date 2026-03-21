@@ -105,18 +105,16 @@ export interface LoadRelatedRecordPendingData extends RelationRef {
 
 export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
   type: 'load-related-record';
-  /**
-   * The record ref of the loaded related record. Absent during the pending phase.
-   * Also stored in executionResult.record for display consistency with other step types.
-   * This top-level field is used by getAvailableRecordRefs to build the record pool.
-   */
-  record?: RecordRef;
   /** AI-selected relation with pre-fetched candidates awaiting user confirmation. */
   pendingData?: LoadRelatedRecordPendingData;
   /** The record ref used to load the relation. Required for handleConfirmationFlow. */
   selectedRecordRef: RecordRef;
   executionParams?: RelationRef;
-  executionResult?: { record: RecordRef } | { skipped: true };
+  /**
+   * Navigation path captured at execution time — used by StepSummaryBuilder for AI context.
+   * Source is not repeated here — it is always selectedRecordRef, consistent with other step types.
+   */
+  executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
 }
 
 // -- Union --

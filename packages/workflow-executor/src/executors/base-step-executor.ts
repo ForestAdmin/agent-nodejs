@@ -1,11 +1,7 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
-import type {
-  LoadRelatedRecordStepExecutionData,
-  StepExecutionData,
-} from '../types/step-execution-data';
-import type { BaseStepStatus, StepOutcome } from '../types/step-outcome';
+import type { BaseStepStatus } from '../types/step-outcome';
 import type { AIMessage, BaseMessage } from '@langchain/core/messages';
 
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -19,6 +15,7 @@ import {
   NoRecordsError,
   WorkflowExecutorError,
 } from '../errors';
+import StepSummaryBuilder from './step-summary-builder';
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition> {
   protected readonly context: ExecutionContext<TStep>;
@@ -75,54 +72,16 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   protected async buildPreviousStepsMessages(): Promise<SystemMessage[]> {
     if (!this.context.previousSteps.length) return [];
 
-    const summary = await this.summarizePreviousSteps();
-
-    return [new SystemMessage(summary)];
-  }
-
-  /**
-   * Builds a text summary of previously executed steps for AI prompts.
-   * Correlates history entries (step + stepOutcome pairs) with execution data
-   * from the RunStore (matched by stepOutcome.stepIndex).
-   * When no execution data is available, falls back to StepOutcome details.
-   */
-  private async summarizePreviousSteps(): Promise<string> {
     const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-
-    return this.context.previousSteps
+    const summary = this.context.previousSteps
       .map(({ stepDefinition, stepOutcome }) => {
         const execution = allStepExecutions.find(e => e.stepIndex === stepOutcome.stepIndex);
 
-        return this.buildStepSummary(stepDefinition, stepOutcome, execution);
+        return StepSummaryBuilder.build(stepDefinition, stepOutcome, execution);
       })
       .join('\n\n');
-  }
 
-  private buildStepSummary(
-    step: StepDefinition,
-    stepOutcome: StepOutcome,
-    execution: StepExecutionData | undefined,
-  ): string {
-    const prompt = step.prompt ?? '(no prompt)';
-    const header = `Step "${stepOutcome.stepId}" (index ${stepOutcome.stepIndex}):`;
-    const lines = [header, `  Prompt: ${prompt}`];
-
-    if (execution !== undefined) {
-      if (execution.executionParams !== undefined) {
-        lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
-      } else if ('pendingData' in execution && execution.pendingData !== undefined) {
-        lines.push(`  Pending: ${JSON.stringify(execution.pendingData)}`);
-      }
-
-      if (execution.executionResult) {
-        lines.push(`  Output: ${JSON.stringify(execution.executionResult)}`);
-      }
-    } else {
-      const { stepId, stepIndex, type, ...historyDetails } = stepOutcome;
-      lines.push(`  History: ${JSON.stringify(historyDetails)}`);
-    }
-
-    return lines.join('\n');
+    return [new SystemMessage(summary)];
   }
 
   /**
@@ -169,12 +128,17 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   /** Returns baseRecordRef + any related records loaded by previous steps. */
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = stepExecutions
-      .filter(
-        (e): e is LoadRelatedRecordStepExecutionData & { record: RecordRef } =>
-          e.type === 'load-related-record' && e.record !== undefined,
-      )
-      .map(e => e.record);
+    const relatedRecords = stepExecutions.flatMap(e => {
+      if (
+        e.type === 'load-related-record' &&
+        e.executionResult !== undefined &&
+        'record' in e.executionResult
+      ) {
+        return [e.executionResult.record];
+      }
+
+      return [];
+    });
 
     return [this.context.baseRecordRef, ...relatedRecords];
   }

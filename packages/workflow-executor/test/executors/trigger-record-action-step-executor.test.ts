@@ -136,7 +136,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith({
         collection: 'customers',
         action: 'send-welcome-email',
-        ids: [42],
+        id: [42],
       });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -216,7 +216,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith({
         collection: 'customers',
         action: 'send-welcome-email',
-        ids: [42],
+        id: [42],
       });
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -530,7 +530,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith({
         collection: 'customers',
         action: 'archive',
-        ids: [42],
+        id: [42],
       });
     });
 
@@ -559,7 +559,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).toHaveBeenCalledWith({
         collection: 'customers',
         action: 'archive',
-        ids: [42],
+        id: [42],
       });
     });
   });
@@ -608,7 +608,10 @@ describe('TriggerRecordActionStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 2,
-            record: relatedRecord,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
