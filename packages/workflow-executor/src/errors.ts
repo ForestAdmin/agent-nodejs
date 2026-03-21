@@ -1,15 +1,21 @@
 /* eslint-disable max-classes-per-file */
 
 export abstract class WorkflowExecutorError extends Error {
-  constructor(message: string) {
+  readonly userMessage: string;
+
+  constructor(message: string, userMessage?: string) {
     super(message);
     this.name = this.constructor.name;
+    this.userMessage = userMessage ?? message;
   }
 }
 
 export class MissingToolCallError extends WorkflowExecutorError {
   constructor() {
-    super('AI did not return a tool call');
+    super(
+      'AI did not return a tool call',
+      "The AI couldn't decide what to do. Try rephrasing the step's prompt.",
+    );
   }
 }
 
@@ -17,14 +23,20 @@ export class MalformedToolCallError extends WorkflowExecutorError {
   readonly toolName: string;
 
   constructor(toolName: string, details: string) {
-    super(`AI returned a malformed tool call for "${toolName}": ${details}`);
+    super(
+      `AI returned a malformed tool call for "${toolName}": ${details}`,
+      "The AI returned an unexpected response. Try rephrasing the step's prompt.",
+    );
     this.toolName = toolName;
   }
 }
 
 export class RecordNotFoundError extends WorkflowExecutorError {
   constructor(collectionName: string, recordId: string) {
-    super(`Record not found: collection "${collectionName}", id "${recordId}"`);
+    super(
+      `Record not found: collection "${collectionName}", id "${recordId}"`,
+      'The record no longer exists. It may have been deleted.',
+    );
   }
 }
 
@@ -36,25 +48,37 @@ export class NoRecordsError extends WorkflowExecutorError {
 
 export class NoReadableFieldsError extends WorkflowExecutorError {
   constructor(collectionName: string) {
-    super(`No readable fields on record from collection "${collectionName}"`);
+    super(
+      `No readable fields on record from collection "${collectionName}"`,
+      'This record type has no readable fields configured in Forest Admin.',
+    );
   }
 }
 
 export class NoResolvedFieldsError extends WorkflowExecutorError {
   constructor(fieldNames: string[]) {
-    super(`None of the requested fields could be resolved: ${fieldNames.join(', ')}`);
+    super(
+      `None of the requested fields could be resolved: ${fieldNames.join(', ')}`,
+      "The AI selected fields that don't exist on this record. Try rephrasing the step's prompt.",
+    );
   }
 }
 
 export class NoWritableFieldsError extends WorkflowExecutorError {
   constructor(collectionName: string) {
-    super(`No writable fields on record from collection "${collectionName}"`);
+    super(
+      `No writable fields on record from collection "${collectionName}"`,
+      'This record type has no editable fields configured in Forest Admin.',
+    );
   }
 }
 
 export class NoActionsError extends WorkflowExecutorError {
   constructor(collectionName: string) {
-    super(`No actions available on collection "${collectionName}"`);
+    super(
+      `No actions available on collection "${collectionName}"`,
+      'No actions are available on this record.',
+    );
   }
 }
 
@@ -68,14 +92,17 @@ export class StepPersistenceError extends WorkflowExecutorError {
   cause?: unknown;
 
   constructor(message: string, cause?: unknown) {
-    super(message);
+    super(message, 'The step result could not be saved. Please retry.');
     if (cause !== undefined) this.cause = cause;
   }
 }
 
 export class NoRelationshipFieldsError extends WorkflowExecutorError {
   constructor(collectionName: string) {
-    super(`No relationship fields on record from collection "${collectionName}"`);
+    super(
+      `No relationship fields on record from collection "${collectionName}"`,
+      'This record type has no relations configured in Forest Admin.',
+    );
   }
 }
 
@@ -83,33 +110,51 @@ export class RelatedRecordNotFoundError extends WorkflowExecutorError {
   constructor(collectionName: string, relationName: string) {
     super(
       `No related record found for relation "${relationName}" on collection "${collectionName}"`,
+      'The related record could not be found. It may have been deleted.',
     );
   }
 }
 
 /** Thrown when the AI returns a response that violates expected constraints (bad index, empty selection, unknown identifier, etc.). */
-export class InvalidAIResponseError extends WorkflowExecutorError {}
+export class InvalidAIResponseError extends WorkflowExecutorError {
+  constructor(message: string) {
+    super(message, "The AI made an unexpected choice. Try rephrasing the step's prompt.");
+  }
+}
 
 /** Thrown when a named relation is not found in the collection schema. */
 export class RelationNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
-    super(`Relation "${name}" not found in collection "${collectionName}"`);
+    super(
+      `Relation "${name}" not found in collection "${collectionName}"`,
+      "The AI selected a relation that doesn't exist on this record. Try rephrasing the step's prompt.",
+    );
   }
 }
 
 /** Thrown when a named field is not found in the collection schema. */
 export class FieldNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
-    super(`Field "${name}" not found in collection "${collectionName}"`);
+    super(
+      `Field "${name}" not found in collection "${collectionName}"`,
+      "The AI selected a field that doesn't exist on this record. Try rephrasing the step's prompt.",
+    );
   }
 }
 
 /** Thrown when a named action is not found in the collection schema. */
 export class ActionNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
-    super(`Action "${name}" not found in collection "${collectionName}"`);
+    super(
+      `Action "${name}" not found in collection "${collectionName}"`,
+      "The AI selected an action that doesn't exist on this record. Try rephrasing the step's prompt.",
+    );
   }
 }
 
 /** Thrown when step execution state is invalid (missing execution record, missing pending data, etc.). */
-export class StepStateError extends WorkflowExecutorError {}
+export class StepStateError extends WorkflowExecutorError {
+  constructor(message: string) {
+    super(message, 'An unexpected error occurred while processing this step.');
+  }
+}

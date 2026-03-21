@@ -113,6 +113,7 @@ function makeContext(
     runStore: makeMockRunStore(),
     previousSteps: [],
     remoteTools: [],
+    logger: { error: jest.fn() },
     ...overrides,
   };
 }
@@ -238,7 +239,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'None of the requested fields could be resolved: nonexistent, unknown',
+        "The AI selected fields that don't exist on this record. Try rephrasing the step's prompt.",
       );
       expect(agentPort.getRecord).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -323,7 +324,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'No readable fields on record from collection "customers"',
+        'This record type has no readable fields configured in Forest Admin.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -603,7 +604,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI selected record "NonExistent #999" which does not match any available record',
+        "The AI made an unexpected choice. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -623,23 +624,26 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('Record not found: collection "customers", id "42"');
+      expect(result.stepOutcome.error).toBe(
+        'The record no longer exists. It may have been deleted.',
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('lets infrastructure errors propagate', async () => {
+    it('returns error outcome for infrastructure errors', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const context = makeContext({ model: mockModel.model, agentPort });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
   describe('model error', () => {
-    it('lets non-WorkflowExecutorError propagate from AI invocation', async () => {
+    it('returns error outcome for non-WorkflowExecutorError from AI invocation', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const context = makeContext({
@@ -647,7 +651,8 @@ describe('ReadRecordStepExecutor', () => {
       });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('API timeout');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -671,7 +676,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned a malformed tool call for "read-selected-record-fields": JSON parse error',
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -689,13 +694,15 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('AI did not return a tool call');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide what to do. Try rephrasing the step's prompt.",
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
   describe('RunStore error propagation', () => {
-    it('lets saveStepExecution errors propagate', async () => {
+    it('returns error outcome when saveStepExecution fails', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Storage full')),
@@ -703,10 +710,11 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Storage full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets getStepExecutions errors propagate', async () => {
+    it('returns error outcome when getStepExecutions fails', async () => {
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('Connection lost')),
@@ -714,7 +722,8 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({ model: mockModel.model, runStore });
       const executor = new ReadRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection lost');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 

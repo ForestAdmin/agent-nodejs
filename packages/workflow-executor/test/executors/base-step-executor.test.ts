@@ -1,4 +1,5 @@
 /* eslint-disable max-classes-per-file */
+import type { Logger } from '../../src/ports/logger-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution';
 import type { RecordRef } from '../../src/types/record';
@@ -76,6 +77,10 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
   };
 }
 
+function makeMockLogger(): Logger {
+  return { error: jest.fn() };
+}
+
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
@@ -97,6 +102,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     runStore: makeMockRunStore(),
     previousSteps: [],
     remoteTools: [],
+    logger: makeMockLogger(),
     ...overrides,
   };
 }
@@ -483,10 +489,48 @@ describe('BaseStepExecutor', () => {
       expect(result.stepOutcome.error).toBe('No records available');
     });
 
-    it('rethrows non-WorkflowExecutorError errors', async () => {
-      const executor = new TestableExecutor(makeContext(), new Error('infrastructure failure'));
+    describe('unexpected error handling', () => {
+      it('returns error outcome instead of rethrowing', async () => {
+        const executor = new TestableExecutor(makeContext(), new Error('db connection refused'));
+        const result = await executor.execute();
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.error).toBe('Unexpected error during step execution');
+      });
 
-      await expect(executor.execute()).rejects.toThrow('infrastructure failure');
+      it('logs the full error context when logger is provided', async () => {
+        const logger = makeMockLogger();
+        const executor = new TestableExecutor(
+          makeContext({ logger }),
+          new Error('db connection refused'),
+        );
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({
+            runId: 'run-1',
+            stepId: 'step-0',
+            stepIndex: 0,
+            error: 'db connection refused',
+          }),
+        );
+      });
+
+      it('includes stack trace in log context', async () => {
+        const logger = makeMockLogger();
+        const err = new Error('db connection refused');
+        const executor = new TestableExecutor(makeContext({ logger }), err);
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({ stack: err.stack }),
+        );
+      });
+
+      it('handles non-Error throwables without crashing', async () => {
+        const executor = new TestableExecutor(makeContext(), 'a raw string thrown');
+        const result = await executor.execute();
+        expect(result.stepOutcome.status).toBe('error');
+      });
     });
   });
 

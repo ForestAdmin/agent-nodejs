@@ -55,6 +55,7 @@ function makeContext(
     runStore: makeMockRunStore(),
     previousSteps: [],
     remoteTools: [],
+    logger: { error: jest.fn() },
     ...overrides,
   };
 }
@@ -255,14 +256,14 @@ describe('ConditionStepExecutor', () => {
       expect(result.stepOutcome.type).toBe('condition');
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned a malformed tool call for "choose-gateway-option": JSON parse error',
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
   describe('error propagation', () => {
-    it('lets infrastructure errors propagate', async () => {
+    it('returns error outcome for infrastructure errors', async () => {
       const invoke = jest.fn().mockRejectedValue(new Error('API timeout'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const runStore = makeMockRunStore();
@@ -272,7 +273,8 @@ describe('ConditionStepExecutor', () => {
       });
       const executor = new ConditionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('API timeout');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
@@ -290,7 +292,7 @@ describe('ConditionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain('Condition step state could not be persisted');
+      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
   });
 });

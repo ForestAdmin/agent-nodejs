@@ -108,6 +108,7 @@ function makeContext(
     runStore: makeMockRunStore(),
     previousSteps: [],
     remoteTools: [],
+    logger: { error: jest.fn() },
     ...overrides,
   };
 }
@@ -286,7 +287,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           stepId: 'trigger-1',
           stepIndex: 0,
           status: 'error',
-          error: 'No execution record found for step at index 0',
+          error: 'An unexpected error occurred while processing this step.',
         },
       });
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -313,7 +314,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           stepId: 'trigger-1',
           stepIndex: 0,
           status: 'error',
-          error: 'No execution record found for step at index 0',
+          error: 'An unexpected error occurred while processing this step.',
         },
       });
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -339,7 +340,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           stepId: 'trigger-1',
           stepIndex: 0,
           status: 'error',
-          error: 'Step at index 0 has no pending data',
+          error: 'An unexpected error occurred while processing this step.',
         },
       });
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -361,7 +362,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('No actions available on collection "customers"');
+      expect(result.stepOutcome.error).toBe('No actions are available on this record.');
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
@@ -391,7 +392,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'Action "NonExistentAction" not found in collection "customers"',
+        "The AI selected an action that doesn't exist on this record. Try rephrasing the step's prompt.",
       );
       expect(agentPort.executeAction).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -423,7 +424,9 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.stepId).toBe('trigger-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('Action not permitted');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
@@ -456,13 +459,15 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.stepId).toBe('trigger-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('Action not permitted');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
   describe('agentPort.executeAction infra error', () => {
-    it('lets infrastructure errors propagate (Branch B)', async () => {
+    it('returns error outcome for infrastructure errors (Branch B)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({
@@ -476,10 +481,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets infrastructure errors propagate (Branch A)', async () => {
+    it('returns error outcome for infrastructure errors (Branch A)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const execution: TriggerRecordActionStepExecutionData = {
@@ -498,7 +504,8 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ agentPort, runStore, userConfirmed });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -692,7 +699,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned a malformed tool call for "select-action": JSON parse error',
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -713,13 +720,15 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.stepId).toBe('trigger-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('AI did not return a tool call');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide what to do. Try rephrasing the step's prompt.",
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
   describe('RunStore error propagation', () => {
-    it('lets getStepExecutions errors propagate (Branch A)', async () => {
+    it('returns error outcome when getStepExecutions fails (Branch A)', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
@@ -727,10 +736,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('DB timeout');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate when user rejects (Branch A)', async () => {
+    it('returns error outcome when saveStepExecution fails on user reject (Branch A)', async () => {
       const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
@@ -748,17 +758,19 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate when saving awaiting-input (Branch C)', async () => {
+    it('returns error outcome when saveStepExecution fails saving awaiting-input (Branch C)', async () => {
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
       const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
     it('returns error outcome after successful executeAction when saveStepExecution fails (Branch B)', async () => {
@@ -774,9 +786,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain(
-        'Action "send-welcome-email" executed but step state could not be persisted',
-      );
+      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
 
     it('returns error outcome after successful executeAction when saveStepExecution fails (Branch A confirmed)', async () => {
@@ -800,9 +810,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain(
-        'Action "send-welcome-email" executed but step state could not be persisted',
-      );
+      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
   });
 

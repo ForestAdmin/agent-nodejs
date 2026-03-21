@@ -34,10 +34,21 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       return await this.doExecute();
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
-        return this.buildOutcomeResult({ status: 'error', error: error.message });
+        return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
       }
 
-      throw error;
+      this.context.logger.error('Unexpected error during step execution', {
+        runId: this.context.runId,
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      return this.buildOutcomeResult({
+        status: 'error',
+        error: 'Unexpected error during step execution',
+      });
     }
   }
 

@@ -6,7 +6,6 @@ import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/re
 import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-execution-data';
 
-import { StepPersistenceError } from '../../src/errors';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
@@ -118,6 +117,7 @@ function makeContext(
     runStore: makeMockRunStore(),
     previousSteps: [],
     remoteTools: [],
+    logger: { error: jest.fn() },
     ...overrides,
   };
 }
@@ -450,7 +450,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI selected record index 999 which is out of range (0-1)',
+        "The AI made an unexpected choice. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -509,7 +509,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned no field names for field selection in collection "addresses"',
+        "The AI made an unexpected choice. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -838,7 +838,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           stepId: 'load-1',
           stepIndex: 0,
           status: 'error',
-          error: 'No execution record found for step at index 0',
+          error: 'An unexpected error occurred while processing this step.',
         },
       });
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -863,7 +863,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           stepId: 'load-1',
           stepIndex: 0,
           status: 'error',
-          error: 'Step at index 0 has no pending data',
+          error: 'An unexpected error occurred while processing this step.',
         },
       });
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -885,7 +885,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'No relationship fields on record from collection "customers"',
+        'This record type has no relations configured in Forest Admin.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -908,7 +908,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'No related record found for relation "order" on collection "customers"',
+        'The related record could not be found. It may have been deleted.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -940,7 +940,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'No related record found for relation "address" on collection "customers"',
+        'The related record could not be found. It may have been deleted.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -956,7 +956,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'No related record found for relation "order" on collection "customers"',
+        'The related record could not be found. It may have been deleted.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -978,10 +978,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain(
-        'Related record loaded but step state could not be persisted',
-      );
-      expect(result.stepOutcome.error).toContain('run "run-1", step 0');
+      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
 
     it('returns error outcome when saveStepExecution fails after load (Branch A confirmed)', async () => {
@@ -996,10 +993,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain(
-        'Related record loaded but step state could not be persisted',
-      );
-      expect(result.stepOutcome.error).toContain('run "run-1", step 0');
+      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
   });
 
@@ -1032,7 +1026,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'Relation "NonExistentRelation" not found in collection "customers"',
+        "The AI selected a relation that doesn't exist on this record. Try rephrasing the step's prompt.",
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
     });
@@ -1061,7 +1055,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned a malformed tool call for "select-relation": JSON parse error',
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -1082,13 +1076,15 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.stepId).toBe('load-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('AI did not return a tool call');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide what to do. Try rephrasing the step's prompt.",
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
   describe('infra error propagation', () => {
-    it('lets getRelatedData infrastructure errors propagate (Branch B)', async () => {
+    it('returns error outcome for getRelatedData infrastructure errors (Branch B)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
@@ -1099,17 +1095,19 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets getRelatedData infrastructure errors propagate (Branch C)', async () => {
+    it('returns error outcome for getRelatedData infrastructure errors (Branch C)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
       const context = makeContext({ model: mockModel.model, agentPort });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -1288,33 +1286,30 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('RunStore error propagation', () => {
-    it('lets getStepExecutions errors propagate (Branch A)', async () => {
+    it('returns error outcome when getStepExecutions fails (Branch A)', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
       const context = makeContext({ runStore, userConfirmed: true });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('DB timeout');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate when saving awaiting-input (Branch C)', async () => {
+    it('returns error outcome when saveStepExecution fails saving awaiting-input (Branch C)', async () => {
       const agentPort = makeMockAgentPort();
-      const rawError = new Error('Disk full');
       const runStore = makeMockRunStore({
-        saveStepExecution: jest.fn().mockRejectedValue(rawError),
+        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
       const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
-      // Branch C propagates the raw error directly — it is NOT wrapped in StepPersistenceError,
-      // preserving retry-safety (the relation-load has not yet happened).
-      const error = await executor.execute().catch(e => e);
-      expect(error).toBe(rawError);
-      expect(error).not.toBeInstanceOf(StepPersistenceError);
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate when user rejects (Branch A)', async () => {
+    it('returns error outcome when saveStepExecution fails on user reject (Branch A)', async () => {
       const execution = makePendingExecution();
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1323,7 +1318,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed: false });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 

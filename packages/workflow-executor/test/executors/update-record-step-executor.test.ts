@@ -114,6 +114,7 @@ function makeContext(
     runStore: makeMockRunStore(),
     previousSteps: [],
     remoteTools: [],
+    logger: { error: jest.fn() },
     ...overrides,
   };
 }
@@ -275,7 +276,7 @@ describe('UpdateRecordStepExecutor', () => {
           stepId: 'update-1',
           stepIndex: 0,
           status: 'error',
-          error: 'No execution record found for step at index 0',
+          error: 'An unexpected error occurred while processing this step.',
         },
       });
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -302,7 +303,7 @@ describe('UpdateRecordStepExecutor', () => {
           stepId: 'update-1',
           stepIndex: 0,
           status: 'error',
-          error: 'No execution record found for step at index 0',
+          error: 'An unexpected error occurred while processing this step.',
         },
       });
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -328,7 +329,7 @@ describe('UpdateRecordStepExecutor', () => {
           stepId: 'update-1',
           stepIndex: 0,
           status: 'error',
-          error: 'Step at index 0 has no pending data',
+          error: 'An unexpected error occurred while processing this step.',
         },
       });
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
@@ -441,7 +442,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'No writable fields on record from collection "customers"',
+        'This record type has no editable fields configured in Forest Admin.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -465,7 +466,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'Field "NonExistentField" not found in collection "customers"',
+        "The AI selected a field that doesn't exist on this record. Try rephrasing the step's prompt.",
       );
     });
   });
@@ -524,7 +525,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'AI returned a malformed tool call for "update-record-field": JSON parse error',
+        "The AI returned an unexpected response. Try rephrasing the step's prompt.",
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -545,7 +546,9 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.stepId).toBe('update-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('AI did not return a tool call');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide what to do. Try rephrasing the step's prompt.",
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
@@ -574,7 +577,9 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.stepId).toBe('update-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('Record locked');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
     });
   });
 
@@ -601,12 +606,14 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.stepId).toBe('update-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('Record locked');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
     });
   });
 
   describe('agentPort.updateRecord infra error', () => {
-    it('lets infrastructure errors propagate (Branch B)', async () => {
+    it('returns error outcome for infrastructure errors (Branch B)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({
@@ -621,10 +628,11 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets infrastructure errors propagate (Branch A)', async () => {
+    it('returns error outcome for infrastructure errors (Branch A)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const execution: UpdateRecordStepExecutionData = {
@@ -640,7 +648,8 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ agentPort, runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Connection refused');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -700,7 +709,7 @@ describe('UpdateRecordStepExecutor', () => {
   });
 
   describe('RunStore error propagation', () => {
-    it('lets getStepExecutions errors propagate (Branch A)', async () => {
+    it('returns error outcome when getStepExecutions fails (Branch A)', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
@@ -708,10 +717,11 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('DB timeout');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate when user rejects (Branch A)', async () => {
+    it('returns error outcome when saveStepExecution fails on user reject (Branch A)', async () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
@@ -726,17 +736,19 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore, userConfirmed });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('lets saveStepExecution errors propagate when saving awaiting-input (Branch C)', async () => {
+    it('returns error outcome when saveStepExecution fails saving awaiting-input (Branch C)', async () => {
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
       const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).rejects.toThrow('Disk full');
+      const result = await executor.execute();
+      expect(result.stepOutcome.status).toBe('error');
     });
 
     it('returns error outcome after successful updateRecord when saveStepExecution fails (Branch B)', async () => {
@@ -752,9 +764,7 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toContain(
-        'Record update persisted but step state could not be saved',
-      );
+      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
   });
 
