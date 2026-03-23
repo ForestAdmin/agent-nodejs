@@ -3,9 +3,9 @@
 import type { PendingStepExecution } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
 import type { StepOutcome } from '../types/step-outcome';
+import type { McpConfiguration } from '@forestadmin/ai-proxy';
 
-/** Placeholder -- will be typed as McpConfiguration from @forestadmin/ai-proxy/mcp-client once added as dependency. */
-export type McpConfiguration = unknown;
+export type { McpConfiguration };
 
 export interface WorkflowPort {
   getPendingStepExecutions(): Promise<PendingStepExecution[]>;

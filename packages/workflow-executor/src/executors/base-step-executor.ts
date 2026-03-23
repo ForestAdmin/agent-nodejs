@@ -48,11 +48,13 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
       }
 
+      const { cause: errorCause } = error as { cause?: unknown };
       this.context.logger.error('Unexpected error during step execution', {
         runId: this.context.runId,
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
         error: error instanceof Error ? error.message : String(error),
+        cause: errorCause instanceof Error ? errorCause.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 

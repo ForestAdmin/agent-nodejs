@@ -231,6 +231,18 @@ describe('BaseStepExecutor', () => {
         const result = await executor.execute();
         expect(result.stepOutcome.status).toBe('error');
       });
+
+      it('includes cause in log when non-WorkflowExecutorError has a cause', async () => {
+        const logger = makeMockLogger();
+        const cause = new Error('root cause');
+        const error = Object.assign(new Error('wrapper error'), { cause });
+        const executor = new TestableExecutor(makeContext({ logger }), error);
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({ cause: 'root cause' }),
+        );
+      });
     });
 
     it('logs cause when WorkflowExecutorError has a cause', async () => {
