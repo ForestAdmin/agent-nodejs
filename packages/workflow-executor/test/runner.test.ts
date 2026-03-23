@@ -7,6 +7,7 @@ import type { PendingStepExecution } from '../src/types/execution';
 import type { StepDefinition } from '../src/types/step-definition';
 import type { AiClient, BaseChatModel } from '@forestadmin/ai-proxy';
 
+import { RunNotFoundError } from '../src/errors';
 import BaseStepExecutor from '../src/executors/base-step-executor';
 import ConditionStepExecutor from '../src/executors/condition-step-executor';
 import LoadRelatedRecordStepExecutor from '../src/executors/load-related-record-step-executor';
@@ -38,6 +39,7 @@ const flushPromises = async () => {
 function createMockWorkflowPort(): jest.Mocked<WorkflowPort> {
   return {
     getPendingStepExecutions: jest.fn().mockResolvedValue([]),
+    getPendingStepExecutionsForRun: jest.fn(),
     updateStepExecution: jest.fn().mockResolvedValue(undefined),
     getCollectionSchema: jest.fn(),
     getMcpServerConfigs: jest.fn().mockResolvedValue([]),
@@ -288,7 +290,7 @@ describe('deduplication', () => {
   it('skips a step whose key is already in inFlightSteps', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'inflight-step' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
     // Block the first execution so the key stays in-flight
     const unblockRef = { fn: (): void => {} };
@@ -309,7 +311,7 @@ describe('deduplication', () => {
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
     const poll1 = runner.triggerPoll('run-1');
-    await Promise.resolve(); // let getPendingStepExecutions resolve and step key get added
+    await Promise.resolve(); // let getPendingStepExecutionsForRun resolve and step key get added
 
     // Second poll: step is in-flight → should be skipped
     await runner.triggerPoll('run-1');
@@ -323,7 +325,7 @@ describe('deduplication', () => {
   it('removes the step key after successful execution', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-dedup' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
@@ -337,7 +339,7 @@ describe('deduplication', () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-throws' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('construction error');
     });
@@ -365,25 +367,24 @@ describe('deduplication', () => {
 // ---------------------------------------------------------------------------
 
 describe('triggerPoll', () => {
-  it('executes only steps for the given runId', async () => {
+  it('calls getPendingStepExecutionsForRun with the given runId and executes the step', async () => {
     const workflowPort = createMockWorkflowPort();
-    const stepA = makePendingStep({ runId: 'run-A', stepId: 'step-a' });
-    const stepB = makePendingStep({ runId: 'run-B', stepId: 'step-b' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([stepA, stepB]);
+    const step = makePendingStep({ runId: 'run-A', stepId: 'step-a' });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
     await runner.triggerPoll('run-A');
 
+    expect(workflowPort.getPendingStepExecutionsForRun).toHaveBeenCalledWith('run-A');
+    expect(workflowPort.getPendingStepExecutions).not.toHaveBeenCalled();
     expect(executeSpy).toHaveBeenCalledTimes(1);
-    // The one execution was for run-A
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith('run-A', expect.anything());
-    expect(workflowPort.updateStepExecution).not.toHaveBeenCalledWith('run-B', expect.anything());
   });
 
   it('skips in-flight steps', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-inflight' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
     const unblockRef = { fn: (): void => {} };
     executeSpy.mockReturnValueOnce(
@@ -413,18 +414,33 @@ describe('triggerPoll', () => {
     await poll1;
   });
 
-  it('resolves after all matching steps have settled', async () => {
+  it('resolves after the step has settled', async () => {
     const workflowPort = createMockWorkflowPort();
-    const steps = [
-      makePendingStep({ runId: 'run-1', stepId: 'step-a' }),
-      makePendingStep({ runId: 'run-1', stepId: 'step-b' }),
-    ];
-    workflowPort.getPendingStepExecutions.mockResolvedValue(steps);
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-a' });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
     await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
-    expect(executeSpy).toHaveBeenCalledTimes(2);
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects with RunNotFoundError when getPendingStepExecutionsForRun returns null', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(runner.triggerPoll('run-1')).rejects.toThrow(RunNotFoundError);
+  });
+
+  it('propagates errors from getPendingStepExecutionsForRun as-is', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getPendingStepExecutionsForRun.mockRejectedValue(new Error('Network error'));
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(runner.triggerPoll('run-1')).rejects.toThrow('Network error');
   });
 });
 
@@ -437,7 +453,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepType: StepType.ReadRecord });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
@@ -448,14 +464,15 @@ describe('MCP lazy loading (via once thunk)', () => {
     expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
   });
 
-  it('calls fetchRemoteTools at most once even with multiple McpTask steps', async () => {
+  it('calls fetchRemoteTools once for an McpTask step', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
-    const steps = [
-      makePendingStep({ runId: 'run-1', stepId: 'step-mcp-1', stepType: StepType.McpTask }),
-      makePendingStep({ runId: 'run-1', stepId: 'step-mcp-2', stepType: StepType.McpTask }),
-    ];
-    workflowPort.getPendingStepExecutions.mockResolvedValue(steps);
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-mcp-1',
+      stepType: StepType.McpTask,
+    });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     // Provide a non-empty config so fetchRemoteTools actually calls loadRemoteTools
     workflowPort.getMcpServerConfigs.mockResolvedValue([{ configs: {} }] as never);
 
@@ -599,7 +616,7 @@ describe('error handling', () => {
     const mockLogger = createMockLogger();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-err' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('AI not configured');
     });
@@ -639,7 +656,7 @@ describe('error handling', () => {
       stepId: 'step-mcp-err',
       stepType: StepType.McpTask,
     });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('AI not configured');
     });
@@ -661,7 +678,7 @@ describe('error handling', () => {
     const aiClient = createMockAiClient();
     const error = new Error('something blew up');
     const step = makePendingStep({ runId: 'run-2', stepId: 'step-log' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     aiClient.getModel.mockImplementationOnce(() => {
       throw error;
     });
@@ -691,7 +708,7 @@ describe('error handling', () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-fallback' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('construction error');
     });
@@ -708,7 +725,7 @@ describe('error handling', () => {
     const workflowPort = createMockWorkflowPort();
     const mockLogger = createMockLogger();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-fatal' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
     // Simulate a broken executor that violates the never-throw contract
     jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
@@ -733,7 +750,7 @@ describe('error handling', () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-string-throw' });
-    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     aiClient.getModel.mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/no-throw-literal
       throw 'plain string error';

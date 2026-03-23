@@ -7,7 +7,7 @@ import type { PendingStepExecution, StepExecutionResult } from './types/executio
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
-import { causeMessage } from './errors';
+import { RunNotFoundError, causeMessage } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import ExecutorHttpServer from './http/executor-http-server';
 
@@ -89,12 +89,14 @@ export default class Runner {
   }
 
   async triggerPoll(runId: string): Promise<void> {
-    const steps = await this.config.workflowPort.getPendingStepExecutions();
-    const pending = steps.filter(
-      s => s.runId === runId && !this.inFlightSteps.has(Runner.stepKey(s)),
-    );
+    const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
+
+    if (!step) throw new RunNotFoundError(runId);
+
+    if (this.inFlightSteps.has(Runner.stepKey(step))) return;
+
     const loadTools = Runner.once(() => this.fetchRemoteTools());
-    await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools)));
+    await this.executeStep(step, loadTools);
   }
 
   private schedulePoll(): void {

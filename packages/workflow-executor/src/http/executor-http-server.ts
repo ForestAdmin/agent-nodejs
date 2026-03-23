@@ -7,6 +7,8 @@ import Router from '@koa/router';
 import http from 'http';
 import Koa from 'koa';
 
+import { RunNotFoundError } from '../errors';
+
 export interface ExecutorHttpServerOptions {
   port: number;
   runStore: RunStore;
@@ -88,7 +90,18 @@ export default class ExecutorHttpServer {
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
 
-    await this.options.runner.triggerPoll(runId);
+    try {
+      await this.options.runner.triggerPoll(runId);
+    } catch (err) {
+      if (err instanceof RunNotFoundError) {
+        ctx.status = 404;
+        ctx.body = { error: 'Run not found or unavailable' };
+
+        return;
+      }
+
+      throw err;
+    }
 
     ctx.status = 200;
     ctx.body = { triggered: true };

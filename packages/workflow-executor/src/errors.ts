@@ -198,3 +198,13 @@ export class McpToolInvocationError extends WorkflowExecutorError {
     this.cause = cause;
   }
 }
+
+export class RunNotFoundError extends Error {
+  cause?: unknown;
+
+  constructor(runId: string, cause?: unknown) {
+    super(`Run "${runId}" not found or unavailable`);
+    this.name = 'RunNotFoundError';
+    if (cause !== undefined) this.cause = cause;
+  }
+}
