@@ -6,10 +6,9 @@ import type { RecordRef } from '../../src/types/record';
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { BaseStepStatus, StepOutcome } from '../../src/types/step-outcome';
-import type { BaseMessage } from '@langchain/core/messages';
-import type { DynamicStructuredTool } from '@langchain/core/tools';
+import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
-import { SystemMessage } from '@langchain/core/messages';
+import { SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
   MalformedToolCallError,

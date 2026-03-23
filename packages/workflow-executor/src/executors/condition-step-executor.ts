@@ -2,8 +2,7 @@ import type { StepExecutionResult } from '../types/execution';
 import type { ConditionStepDefinition } from '../types/step-definition';
 import type { ConditionStepStatus } from '../types/step-outcome';
 
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { DynamicStructuredTool } from '@langchain/core/tools';
+import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
 import { StepPersistenceError } from '../errors';

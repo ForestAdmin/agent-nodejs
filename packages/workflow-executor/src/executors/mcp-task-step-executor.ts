@@ -3,7 +3,7 @@ import type { McpTaskStepDefinition } from '../types/step-definition';
 import type { McpTaskStepExecutionData, McpToolCall } from '../types/step-execution-data';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
   McpToolInvocationError,

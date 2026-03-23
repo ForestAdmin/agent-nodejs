@@ -3,8 +3,7 @@ import type { CollectionSchema, RecordRef } from '../types/record';
 import type { RecordTaskStepDefinition } from '../types/step-definition';
 import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
 
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { DynamicStructuredTool } from '@langchain/core/tools';
+import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
 import { ActionNotFoundError, NoActionsError, StepPersistenceError } from '../errors';

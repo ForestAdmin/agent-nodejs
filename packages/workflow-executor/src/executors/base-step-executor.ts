@@ -3,11 +3,9 @@ import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type { BaseStepStatus } from '../types/step-outcome';
-import type { BaseMessage } from '@langchain/core/messages';
-import type { StructuredToolInterface } from '@langchain/core/tools';
+import type { BaseMessage, StructuredToolInterface } from '@forestadmin/ai-proxy';
 
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { DynamicStructuredTool } from '@langchain/core/tools';
+import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
 import {

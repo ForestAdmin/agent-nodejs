@@ -7,7 +7,7 @@ import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 export interface Step {
   stepDefinition: StepDefinition;
