@@ -33,33 +33,6 @@ export interface RunnerConfig {
   httpPort?: number;
 }
 
-function once<T>(fn: () => Promise<T>): () => Promise<T> {
-  let cached: Promise<T> | undefined;
-
-  return () => {
-    cached ??= fn();
-
-    return cached;
-  };
-}
-
-function stepKey(step: PendingStepExecution): string {
-  return `${step.runId}:${step.stepId}`;
-}
-
-function stepOutcomeType(step: PendingStepExecution): 'condition' | 'record-task' | 'mcp-task' {
-  if (step.stepDefinition.type === StepType.Condition) return 'condition';
-  if (step.stepDefinition.type === StepType.McpTask) return 'mcp-task';
-
-  return 'record-task';
-}
-
-function causeMessage(error: unknown): string | undefined {
-  const { cause } = error as { cause?: unknown };
-
-  return cause instanceof Error ? cause.message : undefined;
-}
-
 export async function getExecutor(
   step: PendingStepExecution,
   context: ExecutionContext,
@@ -99,6 +72,35 @@ export default class Runner {
   private readonly inFlightSteps = new Set<string>();
   private isRunning = false;
   private readonly logger: Logger;
+
+  private static once<T>(fn: () => Promise<T>): () => Promise<T> {
+    let cached: Promise<T> | undefined;
+
+    return () => {
+      cached ??= fn();
+
+      return cached;
+    };
+  }
+
+  private static stepKey(step: PendingStepExecution): string {
+    return `${step.runId}:${step.stepId}`;
+  }
+
+  private static stepOutcomeType(
+    step: PendingStepExecution,
+  ): 'condition' | 'record-task' | 'mcp-task' {
+    if (step.stepDefinition.type === StepType.Condition) return 'condition';
+    if (step.stepDefinition.type === StepType.McpTask) return 'mcp-task';
+
+    return 'record-task';
+  }
+
+  private static causeMessage(error: unknown): string | undefined {
+    const { cause } = error as { cause?: unknown };
+
+    return cause instanceof Error ? cause.message : undefined;
+  }
 
   constructor(config: RunnerConfig) {
     this.config = config;
@@ -147,8 +149,10 @@ export default class Runner {
 
   async triggerPoll(runId: string): Promise<void> {
     const steps = await this.config.workflowPort.getPendingStepExecutions();
-    const pending = steps.filter(s => s.runId === runId && !this.inFlightSteps.has(stepKey(s)));
-    const loadTools = once(() => this.fetchRemoteTools());
+    const pending = steps.filter(
+      s => s.runId === runId && !this.inFlightSteps.has(Runner.stepKey(s)),
+    );
+    const loadTools = Runner.once(() => this.fetchRemoteTools());
     await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools)));
   }
 
@@ -160,8 +164,8 @@ export default class Runner {
   private async runPollCycle(): Promise<void> {
     try {
       const steps = await this.config.workflowPort.getPendingStepExecutions();
-      const pending = steps.filter(s => !this.inFlightSteps.has(stepKey(s)));
-      const loadTools = once(() => this.fetchRemoteTools());
+      const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
+      const loadTools = Runner.once(() => this.fetchRemoteTools());
       await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools)));
     } catch (error) {
       this.logger.error('Poll cycle failed', {
@@ -189,7 +193,7 @@ export default class Runner {
     step: PendingStepExecution,
     loadTools: () => Promise<RemoteTool[]>,
   ): Promise<void> {
-    const key = stepKey(step);
+    const key = Runner.stepKey(step);
     this.inFlightSteps.add(key);
 
     let stepOutcome: StepOutcome;
@@ -204,11 +208,11 @@ export default class Runner {
         stepId: step.stepId,
         stepIndex: step.stepIndex,
         error: error instanceof Error ? error.message : String(error),
-        cause: causeMessage(error),
+        cause: Runner.causeMessage(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
       stepOutcome = {
-        type: stepOutcomeType(step),
+        type: Runner.stepOutcomeType(step),
         stepId: step.stepId,
         stepIndex: step.stepIndex,
         status: 'error',
@@ -226,7 +230,7 @@ export default class Runner {
         stepId: step.stepId,
         stepIndex: step.stepIndex,
         error: error instanceof Error ? error.message : String(error),
-        cause: causeMessage(error),
+        cause: Runner.causeMessage(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
     }
