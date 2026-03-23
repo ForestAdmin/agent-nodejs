@@ -5,7 +5,7 @@ export type BaseStepStatus = 'success' | 'error';
 /** Condition steps can fall back to human decision when the AI is uncertain. */
 export type ConditionStepStatus = BaseStepStatus | 'manual-decision';
 
-/** AI task steps can pause mid-execution to await user input (e.g. tool confirmation). */
+/** AI task steps can pause mid-execution to await user input (e.g. awaiting-input). */
 export type RecordTaskStepStatus = BaseStepStatus | 'awaiting-input';
 
 /** Union of all step statuses. */

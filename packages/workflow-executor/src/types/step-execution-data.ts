@@ -93,7 +93,9 @@ export interface McpToolCall extends McpToolRef {
 export interface McpTaskStepExecutionData extends BaseStepExecutionData {
   type: 'mcp-task';
   executionParams?: McpToolCall;
-  executionResult?: { success: true; toolResult: unknown } | { skipped: true };
+  executionResult?:
+    | { success: true; toolResult: unknown; formattedResponse?: string }
+    | { skipped: true };
   pendingData?: McpToolCall;
 }
 

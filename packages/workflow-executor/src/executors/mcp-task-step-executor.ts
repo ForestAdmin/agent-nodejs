@@ -3,7 +3,8 @@ import type { McpTaskStepDefinition } from '../types/step-definition';
 import type { McpTaskStepExecutionData, McpToolCall } from '../types/step-execution-data';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
-import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
+import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
+import { z } from 'zod';
 
 import {
   McpToolInvocationError,
@@ -83,14 +84,18 @@ export default class McpTaskStepExecutor extends RecordTaskStepExecutor<McpTaskS
       throw new McpToolInvocationError(target.name, cause);
     }
 
+    // 1. Persist raw result immediately — safe state before any further network calls
+    const baseExecutionResult = { success: true as const, toolResult };
+    const baseData: McpTaskStepExecutionData = {
+      ...existingExecution,
+      type: 'mcp-task',
+      stepIndex: this.context.stepIndex,
+      executionParams: { name: target.name, input: target.input },
+      executionResult: baseExecutionResult,
+    };
+
     try {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...existingExecution,
-        type: 'mcp-task',
-        stepIndex: this.context.stepIndex,
-        executionParams: { name: target.name, input: target.input },
-        executionResult: { success: true, toolResult },
-      });
+      await this.context.runStore.saveStepExecution(this.context.runId, baseData);
     } catch (cause) {
       throw new StepPersistenceError(
         `MCP tool "${target.name}" executed but step state could not be persisted ` +
@@ -99,7 +104,59 @@ export default class McpTaskStepExecutor extends RecordTaskStepExecutor<McpTaskS
       );
     }
 
+    // 2. AI formatting — non-blocking; errors are logged but do not fail the step
+    try {
+      const formattedResponse = await this.formatToolResult(target, toolResult);
+
+      if (formattedResponse) {
+        await this.context.runStore.saveStepExecution(this.context.runId, {
+          ...baseData,
+          executionResult: { ...baseExecutionResult, formattedResponse },
+        });
+      }
+    } catch (cause) {
+      this.context.logger.error('Failed to format MCP tool result, using generic fallback', {
+        runId: this.context.runId,
+        stepIndex: this.context.stepIndex,
+        toolName: target.name,
+        cause: cause instanceof Error ? cause.message : String(cause),
+      });
+    }
+
     return this.buildOutcomeResult({ status: 'success' });
+  }
+
+  private async formatToolResult(tool: McpToolCall, toolResult: unknown): Promise<string | null> {
+    if (toolResult === null || toolResult === undefined) return null;
+
+    const resultStr = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
+    const truncatedResult =
+      resultStr.length > 20_000 ? `${resultStr.slice(0, 20_000)}\n... [truncated]` : resultStr;
+
+    const summaryTool = new DynamicStructuredTool({
+      name: 'summarize-result',
+      description: 'Provides a human-readable summary of the tool execution result.',
+      schema: z.object({
+        summary: z.string().min(1).describe('Concise human-readable summary of the tool result.'),
+      }),
+      func: undefined,
+    });
+
+    const messages = [
+      new SystemMessage(
+        'You are summarizing the result of a workflow tool execution for the end user. ' +
+          'Be concise and factual. Do not include raw JSON or technical identifiers.',
+      ),
+      new HumanMessage(
+        `Tool "${tool.name}" was executed with input: ${JSON.stringify(tool.input)}.\n` +
+          `Result: ${truncatedResult}\n\n` +
+          `Provide a concise human-readable summary.`,
+      ),
+    ];
+
+    const { summary } = await this.invokeWithTool<{ summary: string }>(messages, summaryTool);
+
+    return summary || null;
   }
 
   private async selectTool(tools: RemoteTool[]) {

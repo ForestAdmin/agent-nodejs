@@ -1,5 +1,6 @@
 import type {
   LoadRelatedRecordStepExecutionData,
+  McpTaskStepExecutionData,
   StepExecutionData,
 } from '../../types/step-execution-data';
 
@@ -20,9 +21,25 @@ export default class StepExecutionFormatters {
     switch (execution.type) {
       case 'load-related-record':
         return StepExecutionFormatters.formatLoadRelatedRecord(execution);
+      case 'mcp-task':
+        return StepExecutionFormatters.formatMcpTask(execution as McpTaskStepExecutionData);
       default:
         return null;
     }
+  }
+
+  private static formatMcpTask(execution: McpTaskStepExecutionData): string | null {
+    const { executionResult } = execution;
+    if (!executionResult) return null;
+    if ('skipped' in executionResult) return null;
+
+    if (executionResult.formattedResponse) {
+      return `  Result: ${executionResult.formattedResponse}`;
+    }
+
+    const toolName = execution.executionParams?.name ?? 'unknown tool';
+
+    return `  Executed: ${toolName} (result not summarized)`;
   }
 
   private static formatLoadRelatedRecord(

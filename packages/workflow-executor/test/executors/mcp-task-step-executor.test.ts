@@ -132,8 +132,130 @@ describe('McpTaskStepExecutor', () => {
           executionResult: { success: true, toolResult: { result: 'notification sent' } },
         }),
       );
-      // Verify the model was bound with the tool's base interface
+      // Model is invoked twice: once for tool selection, once for AI formatting
+      expect(modelInvoke).toHaveBeenCalledTimes(2);
+    });
+
+    it('persists formattedResponse when AI formatting succeeds', async () => {
+      const toolResult = { result: 'notification sent' };
+      const invokeFn = jest.fn().mockResolvedValue(toolResult);
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: invokeFn,
+      });
+      const { model, invoke: modelInvoke } = makeMockModel('send_notification', {
+        message: 'Hello',
+      });
+      // Second model call (formatting) returns a summary
+      modelInvoke
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'send_notification', args: { message: 'Hello' }, id: 'call_1' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'summarize-result', args: { summary: 'Found 3 results.' }, id: 'call_2' },
+          ],
+        });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new McpTaskStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(modelInvoke).toHaveBeenCalledTimes(2);
+      // First save: raw result only
+      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
+        1,
+        'run-1',
+        expect.objectContaining({
+          executionResult: { success: true, toolResult },
+        }),
+      );
+      // Second save: raw result + formattedResponse
+      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
+        2,
+        'run-1',
+        expect.objectContaining({
+          executionResult: { success: true, toolResult, formattedResponse: 'Found 3 results.' },
+        }),
+      );
+    });
+
+    it('returns success and logs when AI formatting throws', async () => {
+      const invokeFn = jest.fn().mockResolvedValue({ result: 'ok' });
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: invokeFn,
+      });
+      const { model, invoke: modelInvoke } = makeMockModel('send_notification', { message: 'Hi' });
+      // Second call (formatting) returns no tool calls → MissingToolCallError
+      modelInvoke
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'send_notification', args: { message: 'Hi' }, id: 'call_1' }],
+        })
+        .mockResolvedValueOnce({ tool_calls: [] });
+      const logger = { error: jest.fn() };
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ automaticExecution: true }),
+        logger,
+      });
+      const executor = new McpTaskStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Only the first save (raw result) — no second save since formatting failed
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: { success: true, toolResult: { result: 'ok' } },
+        }),
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to format MCP tool result, using generic fallback',
+        expect.objectContaining({ toolName: 'send_notification' }),
+      );
+    });
+
+    it('does not call AI formatting when toolResult is null', async () => {
+      const invokeFn = jest.fn().mockResolvedValue(null);
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: invokeFn,
+      });
+      const { model, invoke: modelInvoke } = makeMockModel('send_notification', { message: 'Hi' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new McpTaskStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Model called only once (tool selection) — no formatting call for null result
       expect(modelInvoke).toHaveBeenCalledTimes(1);
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: { success: true, toolResult: null },
+        }),
+      );
     });
   });
 
