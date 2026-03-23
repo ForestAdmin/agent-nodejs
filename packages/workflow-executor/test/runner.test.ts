@@ -1,3 +1,4 @@
+import type { StepContextConfig } from '../src/executors/step-executor-factory';
 import type { AgentPort } from '../src/ports/agent-port';
 import type { Logger } from '../src/ports/logger-port';
 import type { RunStore } from '../src/ports/run-store';
@@ -8,6 +9,7 @@ import type { AiClient, BaseChatModel } from '@forestadmin/ai-proxy';
 
 import BaseStepExecutor from '../src/executors/base-step-executor';
 import ConditionStepExecutor from '../src/executors/condition-step-executor';
+import ErrorStepExecutor from '../src/executors/error-step-executor';
 import LoadRelatedRecordStepExecutor from '../src/executors/load-related-record-step-executor';
 import McpTaskStepExecutor from '../src/executors/mcp-task-step-executor';
 import ReadRecordStepExecutor from '../src/executors/read-record-step-executor';
@@ -332,18 +334,30 @@ describe('deduplication', () => {
     expect(executeSpy).toHaveBeenCalledTimes(2);
   });
 
-  it('removes the step key even if execute throws', async () => {
+  it('removes the step key even when executor construction fails', async () => {
     const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-throws' });
     workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
-    executeSpy.mockRejectedValueOnce(new Error('execution error'));
+    aiClient.getModel.mockImplementationOnce(() => {
+      throw new Error('construction error');
+    });
 
-    runner = new Runner(createRunnerConfig({ workflowPort }));
+    runner = new Runner(
+      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+    );
 
     await runner.triggerPoll('run-1');
     await runner.triggerPoll('run-1');
 
-    expect(executeSpy).toHaveBeenCalledTimes(2);
+    // Both polls completed: the step key was cleared after the first (failed) execution
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(2);
+    // First poll produced an error outcome from the construction failure
+    expect(workflowPort.updateStepExecution).toHaveBeenNthCalledWith(
+      1,
+      'run-1',
+      expect.objectContaining({ status: 'error', error: 'An unexpected error occurred.' }),
+    );
   });
 });
 
@@ -460,86 +474,76 @@ describe('MCP lazy loading (via once thunk)', () => {
 // getExecutor — factory
 // ---------------------------------------------------------------------------
 
-function makeCtxStepDef(type: StepType) {
-  if (type === StepType.Condition) {
-    return { type: StepType.Condition as const, options: ['opt1'] as [string, ...string[]] };
-  }
-
-  if (type === StepType.McpTask) {
-    return { type: StepType.McpTask as const };
-  }
-
-  return { type: type as Exclude<StepType, StepType.Condition | StepType.McpTask> };
-}
-
 describe('StepExecutorFactory.create — factory', () => {
-  const makeCtx = (type: StepType) => ({
-    runId: 'run-1',
-    stepId: 'step-1',
-    stepIndex: 0,
-    baseRecordRef: { collectionName: 'customers', recordId: ['1'], stepIndex: 0 },
-    stepDefinition: makeCtxStepDef(type),
-    model: {} as BaseChatModel,
+  const makeContextConfig = (): StepContextConfig => ({
+    aiClient: {
+      getModel: jest.fn().mockReturnValue({} as BaseChatModel),
+    } as unknown as AiClient,
     agentPort: {} as AgentPort,
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
-    previousSteps: [] as [],
     logger: { error: jest.fn() },
   });
 
   it('dispatches Condition steps to ConditionStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.Condition });
-    const ctx = makeCtx(StepType.Condition);
-    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(ConditionStepExecutor);
   });
 
   it('dispatches ReadRecord steps to ReadRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.ReadRecord });
-    const ctx = makeCtx(StepType.ReadRecord);
-    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(ReadRecordStepExecutor);
   });
 
   it('dispatches UpdateRecord steps to UpdateRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.UpdateRecord });
-    const ctx = makeCtx(StepType.UpdateRecord);
-    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(UpdateRecordStepExecutor);
   });
 
   it('dispatches TriggerAction steps to TriggerRecordActionStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.TriggerAction });
-    const ctx = makeCtx(StepType.TriggerAction);
-    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(TriggerRecordActionStepExecutor);
   });
 
   it('dispatches LoadRelatedRecord steps to LoadRelatedRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.LoadRelatedRecord });
-    const ctx = makeCtx(StepType.LoadRelatedRecord);
-    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
     expect(executor).toBeInstanceOf(LoadRelatedRecordStepExecutor);
   });
 
   it('dispatches McpTask steps to McpTaskStepExecutor and calls loadTools', async () => {
     const step = makePendingStep({ stepType: StepType.McpTask });
-    const ctx = makeCtx(StepType.McpTask);
     const loadTools = jest.fn().mockResolvedValue([]);
-    const executor = await StepExecutorFactory.create(step, ctx, loadTools);
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
     expect(executor).toBeInstanceOf(McpTaskStepExecutor);
     expect(loadTools).toHaveBeenCalledTimes(1);
   });
 
-  it('throws for an unknown step type', async () => {
+  it('returns an ErrorStepExecutor for an unknown step type', async () => {
     const step = {
       ...makePendingStep(),
       stepDefinition: { type: 'unknown-type' as StepType },
     } as unknown as PendingStepExecution;
-    const ctx = makeCtx(StepType.ReadRecord);
-    await expect(StepExecutorFactory.create(step, ctx, jest.fn())).rejects.toThrow(
-      'Unknown step type: unknown-type',
-    );
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
+    expect(executor).toBeInstanceOf(ErrorStepExecutor);
+    const { stepOutcome } = await executor.execute();
+    expect(stepOutcome.status).toBe('error');
+    expect(stepOutcome.error).toBe('An unexpected error occurred.');
+  });
+
+  it('returns an ErrorStepExecutor when loadTools rejects for a McpTask step', async () => {
+    const step = makePendingStep({ stepType: StepType.McpTask });
+    const loadTools = jest.fn().mockRejectedValueOnce(new Error('MCP server down'));
+    const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
+    expect(executor).toBeInstanceOf(ErrorStepExecutor);
+    const { stepOutcome } = await executor.execute();
+    expect(stepOutcome.status).toBe('error');
+    expect(stepOutcome.type).toBe('mcp-task');
+    expect(stepOutcome.error).toBe('An unexpected error occurred.');
   });
 });
 
@@ -609,15 +613,24 @@ describe('error handling', () => {
     );
   });
 
-  it('logs unexpected errors with runId, stepId, and stack', async () => {
+  it('logs unexpected errors with runId, stepId, and stack when getModel throws', async () => {
     const workflowPort = createMockWorkflowPort();
     const mockLogger = createMockLogger();
+    const aiClient = createMockAiClient();
     const error = new Error('something blew up');
     const step = makePendingStep({ runId: 'run-2', stepId: 'step-log' });
     workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
-    executeSpy.mockRejectedValueOnce(error);
+    aiClient.getModel.mockImplementationOnce(() => {
+      throw error;
+    });
 
-    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    runner = new Runner(
+      createRunnerConfig({
+        workflowPort,
+        aiClient: aiClient as unknown as AiClient,
+        logger: mockLogger,
+      }),
+    );
     await runner.triggerPoll('run-2');
 
     expect(mockLogger.error).toHaveBeenCalledWith(
@@ -632,16 +645,67 @@ describe('error handling', () => {
     );
   });
 
-  it('does not re-throw if updateStepExecution fails in the fallback path', async () => {
+  it('does not re-throw if updateStepExecution fails after a construction error', async () => {
     const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-fallback' });
     workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
-    executeSpy.mockRejectedValueOnce(new Error('exec error'));
+    aiClient.getModel.mockImplementationOnce(() => {
+      throw new Error('construction error');
+    });
     workflowPort.updateStepExecution.mockRejectedValueOnce(new Error('update failed'));
 
-    runner = new Runner(createRunnerConfig({ workflowPort }));
+    runner = new Runner(
+      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+    );
 
     await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
+  });
+
+  it('logs FATAL and does not call updateStepExecution if executor.execute() rejects', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-fatal' });
+    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+
+    // Simulate a broken executor that violates the never-throw contract
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+      execute: jest.fn().mockRejectedValueOnce(new Error('contract violated')),
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.triggerPoll('run-1');
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'FATAL: executor contract violated — step outcome not reported',
+      expect.objectContaining({
+        runId: 'run-1',
+        stepId: 'step-fatal',
+        error: 'contract violated',
+      }),
+    );
+    expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
+  });
+
+  it('reports an outcome when getModel throws a non-Error throwable', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-string-throw' });
+    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    aiClient.getModel.mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw 'plain string error';
+    });
+
+    runner = new Runner(
+      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ status: 'error', error: 'An unexpected error occurred.' }),
+    );
   });
 
   it('catches getPendingStepExecutions failure, logs it, and reschedules', async () => {

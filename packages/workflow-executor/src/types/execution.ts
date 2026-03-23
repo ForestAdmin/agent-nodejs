@@ -28,6 +28,10 @@ export interface StepExecutionResult {
   stepOutcome: StepOutcome;
 }
 
+export interface IStepExecutor {
+  execute(): Promise<StepExecutionResult>;
+}
+
 export interface ExecutionContext<TStep extends StepDefinition = StepDefinition> {
   readonly runId: string;
   readonly stepId: string;

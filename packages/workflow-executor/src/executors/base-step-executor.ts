@@ -1,5 +1,5 @@
 import type { AgentPort } from '../ports/agent-port';
-import type { ExecutionContext, StepExecutionResult } from '../types/execution';
+import type { ExecutionContext, IStepExecutor, StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type { StepExecutionData } from '../types/step-execution-data';
@@ -22,7 +22,9 @@ import StepSummaryBuilder from './summary/step-summary-builder';
 
 type WithPendingData = StepExecutionData & { pendingData?: object };
 
-export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition> {
+export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
+  implements IStepExecutor
+{
   protected readonly context: ExecutionContext<TStep>;
 
   protected readonly agentPort: AgentPort;

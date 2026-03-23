@@ -1,15 +1,15 @@
+import type { StepContextConfig } from './executors/step-executor-factory';
 import type { AgentPort } from './ports/agent-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
-import type { ExecutionContext, PendingStepExecution } from './types/execution';
-import type { StepOutcome } from './types/step-outcome';
+import type { PendingStepExecution, StepExecutionResult } from './types/execution';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
+import { causeMessage } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import ExecutorHttpServer from './http/executor-http-server';
-import { StepType } from './types/step-definition';
 
 export interface RunnerConfig {
   agentPort: AgentPort;
@@ -41,21 +41,6 @@ export default class Runner {
 
   private static stepKey(step: PendingStepExecution): string {
     return `${step.runId}:${step.stepId}`;
-  }
-
-  private static stepOutcomeType(
-    step: PendingStepExecution,
-  ): 'condition' | 'record-task' | 'mcp-task' {
-    if (step.stepDefinition.type === StepType.Condition) return 'condition';
-    if (step.stepDefinition.type === StepType.McpTask) return 'mcp-task';
-
-    return 'record-task';
-  }
-
-  private static causeMessage(error: unknown): string | undefined {
-    const { cause } = error as { cause?: unknown };
-
-    return cause instanceof Error ? cause.message : undefined;
   }
 
   constructor(config: RunnerConfig) {
@@ -152,50 +137,42 @@ export default class Runner {
     const key = Runner.stepKey(step);
     this.inFlightSteps.add(key);
 
-    let stepOutcome: StepOutcome;
+    let result: StepExecutionResult;
 
     try {
-      const context = this.buildContext(step);
-      const executor = await StepExecutorFactory.create(step, context, loadTools);
-      ({ stepOutcome } = await executor.execute());
+      const executor = await StepExecutorFactory.create(step, this.contextConfig, loadTools);
+      result = await executor.execute();
     } catch (error) {
-      this.logger.error('Step execution failed unexpectedly', {
+      // This block should never execute: the factory and executor contracts guarantee no rejection.
+      // It guards against future regressions.
+      this.logger.error('FATAL: executor contract violated — step outcome not reported', {
         runId: step.runId,
         stepId: step.stepId,
-        stepIndex: step.stepIndex,
         error: error instanceof Error ? error.message : String(error),
-        cause: Runner.causeMessage(error),
-        stack: error instanceof Error ? error.stack : undefined,
       });
-      stepOutcome = {
-        type: Runner.stepOutcomeType(step),
-        stepId: step.stepId,
-        stepIndex: step.stepIndex,
-        status: 'error',
-        error: 'An unexpected error occurred.',
-      } as StepOutcome;
+
+      return; // Cannot report an outcome: the orchestrator will timeout on this step
     } finally {
       this.inFlightSteps.delete(key);
     }
 
     try {
-      await this.config.workflowPort.updateStepExecution(step.runId, stepOutcome);
+      await this.config.workflowPort.updateStepExecution(step.runId, result.stepOutcome);
     } catch (error) {
       this.logger.error('Failed to report step outcome', {
         runId: step.runId,
         stepId: step.stepId,
         stepIndex: step.stepIndex,
         error: error instanceof Error ? error.message : String(error),
-        cause: Runner.causeMessage(error),
+        cause: causeMessage(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
     }
   }
 
-  private buildContext(step: PendingStepExecution): ExecutionContext {
+  private get contextConfig(): StepContextConfig {
     return {
-      ...step,
-      model: this.config.aiClient.getModel(step.stepDefinition.aiConfigName),
+      aiClient: this.config.aiClient,
       agentPort: this.config.agentPort,
       workflowPort: this.config.workflowPort,
       runStore: this.config.runStore,

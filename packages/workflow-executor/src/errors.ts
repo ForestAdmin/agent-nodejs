@@ -1,5 +1,11 @@
 /* eslint-disable max-classes-per-file */
 
+export function causeMessage(error: unknown): string | undefined {
+  const { cause } = error as { cause?: unknown };
+
+  return cause instanceof Error ? cause.message : undefined;
+}
+
 export abstract class WorkflowExecutorError extends Error {
   readonly userMessage: string;
   cause?: unknown;

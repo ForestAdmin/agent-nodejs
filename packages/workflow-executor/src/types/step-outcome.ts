@@ -1,5 +1,7 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
+import { StepType } from './step-definition';
+
 export type BaseStepStatus = 'success' | 'error';
 
 /** Condition steps can fall back to human decision when the AI is uncertain. */
@@ -41,3 +43,10 @@ export interface McpTaskStepOutcome extends BaseStepOutcome {
 }
 
 export type StepOutcome = ConditionStepOutcome | RecordTaskStepOutcome | McpTaskStepOutcome;
+
+export function stepTypeToOutcomeType(type: StepType): 'condition' | 'record-task' | 'mcp-task' {
+  if (type === StepType.Condition) return 'condition';
+  if (type === StepType.McpTask) return 'mcp-task';
+
+  return 'record-task';
+}
