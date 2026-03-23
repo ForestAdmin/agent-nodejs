@@ -11,7 +11,12 @@ import type { DynamicStructuredTool } from '@langchain/core/tools';
 
 import { SystemMessage } from '@langchain/core/messages';
 
-import { MalformedToolCallError, MissingToolCallError, NoRecordsError } from '../../src/errors';
+import {
+  MalformedToolCallError,
+  MissingToolCallError,
+  NoRecordsError,
+  StepPersistenceError,
+} from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
@@ -227,6 +232,28 @@ describe('BaseStepExecutor', () => {
         const result = await executor.execute();
         expect(result.stepOutcome.status).toBe('error');
       });
+    });
+
+    it('logs cause when WorkflowExecutorError has a cause', async () => {
+      const logger = makeMockLogger();
+      const cause = new Error('db timeout');
+      const error = new StepPersistenceError('write failed', cause);
+      const executor = new TestableExecutor(makeContext({ logger }), error);
+      await executor.execute();
+      expect(logger.error).toHaveBeenCalledWith(
+        'write failed',
+        expect.objectContaining({
+          cause: 'db timeout',
+          stack: cause.stack,
+        }),
+      );
+    });
+
+    it('does not log when WorkflowExecutorError has no cause', async () => {
+      const logger = makeMockLogger();
+      const executor = new TestableExecutor(makeContext({ logger }), new MissingToolCallError());
+      await executor.execute();
+      expect(logger.error).not.toHaveBeenCalled();
     });
   });
 

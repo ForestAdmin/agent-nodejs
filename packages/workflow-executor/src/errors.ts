@@ -2,6 +2,7 @@
 
 export abstract class WorkflowExecutorError extends Error {
   readonly userMessage: string;
+  cause?: unknown;
 
   constructor(message: string, userMessage?: string) {
     super(message);
@@ -87,10 +88,6 @@ export class NoActionsError extends WorkflowExecutorError {
  * but the resulting state could not be persisted to the RunStore.
  */
 export class StepPersistenceError extends WorkflowExecutorError {
-  // Not readonly — allows standard Error.cause semantics without shadowing the built-in with a
-  // stricter modifier that would prevent downstream code from re-assigning if needed.
-  cause?: unknown;
-
   constructor(message: string, cause?: unknown) {
     super(message, 'The step result could not be saved. Please retry.');
     if (cause !== undefined) this.cause = cause;
@@ -156,5 +153,32 @@ export class ActionNotFoundError extends WorkflowExecutorError {
 export class StepStateError extends WorkflowExecutorError {
   constructor(message: string) {
     super(message, 'An unexpected error occurred while processing this step.');
+  }
+}
+
+export class NoMcpToolsError extends WorkflowExecutorError {
+  constructor() {
+    super('No MCP tools available', 'No tools are available to execute this step.');
+  }
+}
+
+export class McpToolNotFoundError extends WorkflowExecutorError {
+  constructor(name: string) {
+    super(
+      `MCP tool "${name}" not found`,
+      "The AI selected a tool that doesn't exist. Try rephrasing the step's prompt.",
+    );
+  }
+}
+
+export class McpToolInvocationError extends WorkflowExecutorError {
+  constructor(toolName: string, cause: unknown) {
+    super(
+      `MCP tool "${toolName}" invocation failed: ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+      'The tool failed to execute. Please try again or contact your administrator.',
+    );
+    this.cause = cause;
   }
 }

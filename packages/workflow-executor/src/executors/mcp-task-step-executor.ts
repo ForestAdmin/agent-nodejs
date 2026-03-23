@@ -80,12 +80,6 @@ export default class McpTaskStepExecutor extends RecordTaskStepExecutor<McpTaskS
     try {
       toolResult = await tool.base.invoke(target.input);
     } catch (cause) {
-      this.context.logger.error('MCP tool invocation failed', {
-        runId: this.context.runId,
-        stepIndex: this.context.stepIndex,
-        toolName: target.name,
-        error: cause instanceof Error ? cause.message : String(cause),
-      });
       throw new McpToolInvocationError(target.name, cause);
     }
 

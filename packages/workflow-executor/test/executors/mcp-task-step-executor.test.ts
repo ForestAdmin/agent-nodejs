@@ -173,8 +173,8 @@ describe('McpTaskStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
       expect(logger.error).toHaveBeenCalledWith(
-        'Step side effect succeeded but persistence failed',
-        expect.objectContaining({ cause: 'DB unavailable' }),
+        'MCP task step state could not be persisted (run "run-1", step 0)',
+        expect.objectContaining({ cause: 'DB unavailable', stepId: 'mcp-1' }),
       );
     });
   });
@@ -353,8 +353,8 @@ describe('McpTaskStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
       expect(logger.error).toHaveBeenCalledWith(
-        'Step side effect succeeded but persistence failed',
-        expect.objectContaining({ cause: 'Disk full' }),
+        'MCP tool "send_notification" executed but step state could not be persisted (run "run-1", step 0)',
+        expect.objectContaining({ cause: 'Disk full', stepId: 'mcp-1' }),
       );
     });
 
@@ -383,8 +383,8 @@ describe('McpTaskStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
       expect(logger.error).toHaveBeenCalledWith(
-        'Step side effect succeeded but persistence failed',
-        expect.objectContaining({ cause: 'Disk full' }),
+        'MCP tool "send_notification" executed but step state could not be persisted (run "run-1", step 0)',
+        expect.objectContaining({ cause: 'Disk full', stepId: 'mcp-1' }),
       );
     });
   });
@@ -492,8 +492,8 @@ describe('McpTaskStepExecutor', () => {
         'The tool failed to execute. Please try again or contact your administrator.',
       );
       expect(logger.error).toHaveBeenCalledWith(
-        'MCP tool invocation failed',
-        expect.objectContaining({ toolName: 'send_notification', error: 'Connection refused' }),
+        'MCP tool "send_notification" invocation failed: Connection refused',
+        expect.objectContaining({ cause: 'Connection refused' }),
       );
     });
   });
