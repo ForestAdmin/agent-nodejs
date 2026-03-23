@@ -1,25 +1,13 @@
-import type BaseStepExecutor from './executors/base-step-executor';
 import type { AgentPort } from './ports/agent-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 import type { ExecutionContext, PendingStepExecution } from './types/execution';
-import type {
-  ConditionStepDefinition,
-  McpTaskStepDefinition,
-  RecordTaskStepDefinition,
-} from './types/step-definition';
 import type { StepOutcome } from './types/step-outcome';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
-import { StepStateError } from './errors';
-import ConditionStepExecutor from './executors/condition-step-executor';
-import LoadRelatedRecordStepExecutor from './executors/load-related-record-step-executor';
-import McpTaskStepExecutor from './executors/mcp-task-step-executor';
-import ReadRecordStepExecutor from './executors/read-record-step-executor';
-import TriggerRecordActionStepExecutor from './executors/trigger-record-action-step-executor';
-import UpdateRecordStepExecutor from './executors/update-record-step-executor';
+import StepExecutorFactory from './executors/step-executor-factory';
 import ExecutorHttpServer from './http/executor-http-server';
 import { StepType } from './types/step-definition';
 
@@ -31,38 +19,6 @@ export interface RunnerConfig {
   aiClient: AiClient;
   logger?: Logger;
   httpPort?: number;
-}
-
-export async function getExecutor(
-  step: PendingStepExecution,
-  context: ExecutionContext,
-  loadTools: () => Promise<RemoteTool[]>,
-): Promise<BaseStepExecutor> {
-  switch (step.stepDefinition.type) {
-    case StepType.Condition:
-      return new ConditionStepExecutor(context as ExecutionContext<ConditionStepDefinition>);
-    case StepType.ReadRecord:
-      return new ReadRecordStepExecutor(context as ExecutionContext<RecordTaskStepDefinition>);
-    case StepType.UpdateRecord:
-      return new UpdateRecordStepExecutor(context as ExecutionContext<RecordTaskStepDefinition>);
-    case StepType.TriggerAction:
-      return new TriggerRecordActionStepExecutor(
-        context as ExecutionContext<RecordTaskStepDefinition>,
-      );
-    case StepType.LoadRelatedRecord:
-      return new LoadRelatedRecordStepExecutor(
-        context as ExecutionContext<RecordTaskStepDefinition>,
-      );
-    case StepType.McpTask:
-      return new McpTaskStepExecutor(
-        context as ExecutionContext<McpTaskStepDefinition>,
-        await loadTools(),
-      );
-    default:
-      throw new StepStateError(
-        `Unknown step type: ${(step.stepDefinition as { type: string }).type}`,
-      );
-  }
 }
 
 export default class Runner {
@@ -200,7 +156,7 @@ export default class Runner {
 
     try {
       const context = this.buildContext(step);
-      const executor = await getExecutor(step, context, loadTools);
+      const executor = await StepExecutorFactory.create(step, context, loadTools);
       ({ stepOutcome } = await executor.execute());
     } catch (error) {
       this.logger.error('Step execution failed unexpectedly', {

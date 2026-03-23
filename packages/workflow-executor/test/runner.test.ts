@@ -11,10 +11,11 @@ import ConditionStepExecutor from '../src/executors/condition-step-executor';
 import LoadRelatedRecordStepExecutor from '../src/executors/load-related-record-step-executor';
 import McpTaskStepExecutor from '../src/executors/mcp-task-step-executor';
 import ReadRecordStepExecutor from '../src/executors/read-record-step-executor';
+import StepExecutorFactory from '../src/executors/step-executor-factory';
 import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
 import ExecutorHttpServer from '../src/http/executor-http-server';
-import Runner, { getExecutor } from '../src/runner';
+import Runner from '../src/runner';
 import { StepType } from '../src/types/step-definition';
 
 jest.mock('../src/http/executor-http-server');
@@ -471,7 +472,7 @@ function makeCtxStepDef(type: StepType) {
   return { type: type as Exclude<StepType, StepType.Condition | StepType.McpTask> };
 }
 
-describe('getExecutor — factory', () => {
+describe('StepExecutorFactory.create — factory', () => {
   const makeCtx = (type: StepType) => ({
     runId: 'run-1',
     stepId: 'step-1',
@@ -489,35 +490,35 @@ describe('getExecutor — factory', () => {
   it('dispatches Condition steps to ConditionStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.Condition });
     const ctx = makeCtx(StepType.Condition);
-    const executor = await getExecutor(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
     expect(executor).toBeInstanceOf(ConditionStepExecutor);
   });
 
   it('dispatches ReadRecord steps to ReadRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.ReadRecord });
     const ctx = makeCtx(StepType.ReadRecord);
-    const executor = await getExecutor(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
     expect(executor).toBeInstanceOf(ReadRecordStepExecutor);
   });
 
   it('dispatches UpdateRecord steps to UpdateRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.UpdateRecord });
     const ctx = makeCtx(StepType.UpdateRecord);
-    const executor = await getExecutor(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
     expect(executor).toBeInstanceOf(UpdateRecordStepExecutor);
   });
 
   it('dispatches TriggerAction steps to TriggerRecordActionStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.TriggerAction });
     const ctx = makeCtx(StepType.TriggerAction);
-    const executor = await getExecutor(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
     expect(executor).toBeInstanceOf(TriggerRecordActionStepExecutor);
   });
 
   it('dispatches LoadRelatedRecord steps to LoadRelatedRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.LoadRelatedRecord });
     const ctx = makeCtx(StepType.LoadRelatedRecord);
-    const executor = await getExecutor(step, ctx, jest.fn());
+    const executor = await StepExecutorFactory.create(step, ctx, jest.fn());
     expect(executor).toBeInstanceOf(LoadRelatedRecordStepExecutor);
   });
 
@@ -525,7 +526,7 @@ describe('getExecutor — factory', () => {
     const step = makePendingStep({ stepType: StepType.McpTask });
     const ctx = makeCtx(StepType.McpTask);
     const loadTools = jest.fn().mockResolvedValue([]);
-    const executor = await getExecutor(step, ctx, loadTools);
+    const executor = await StepExecutorFactory.create(step, ctx, loadTools);
     expect(executor).toBeInstanceOf(McpTaskStepExecutor);
     expect(loadTools).toHaveBeenCalledTimes(1);
   });
@@ -536,7 +537,7 @@ describe('getExecutor — factory', () => {
       stepDefinition: { type: 'unknown-type' as StepType },
     } as unknown as PendingStepExecution;
     const ctx = makeCtx(StepType.ReadRecord);
-    await expect(getExecutor(step, ctx, jest.fn())).rejects.toThrow(
+    await expect(StepExecutorFactory.create(step, ctx, jest.fn())).rejects.toThrow(
       'Unknown step type: unknown-type',
     );
   });
