@@ -524,7 +524,7 @@ describe('McpTaskStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome).toMatchObject({
-        type: 'record-task',
+        type: 'mcp-task',
         stepId: 'mcp-1',
         stepIndex: 0,
         status: 'success',

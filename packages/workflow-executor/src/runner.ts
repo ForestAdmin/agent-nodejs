@@ -13,6 +13,7 @@ import type { StepOutcome } from './types/step-outcome';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
+import { StepStateError } from './errors';
 import ConditionStepExecutor from './executors/condition-step-executor';
 import LoadRelatedRecordStepExecutor from './executors/load-related-record-step-executor';
 import McpTaskStepExecutor from './executors/mcp-task-step-executor';
@@ -46,8 +47,11 @@ function stepKey(step: PendingStepExecution): string {
   return `${step.runId}:${step.stepId}`;
 }
 
-function stepOutcomeType(step: PendingStepExecution): 'condition' | 'record-task' {
-  return step.stepDefinition.type === StepType.Condition ? 'condition' : 'record-task';
+function stepOutcomeType(step: PendingStepExecution): 'condition' | 'record-task' | 'mcp-task' {
+  if (step.stepDefinition.type === StepType.Condition) return 'condition';
+  if (step.stepDefinition.type === StepType.McpTask) return 'mcp-task';
+
+  return 'record-task';
 }
 
 function causeMessage(error: unknown): string | undefined {
@@ -82,7 +86,9 @@ export async function getExecutor(
         await loadTools(),
       );
     default:
-      throw new Error(`Unknown step type: ${(step.stepDefinition as { type: string }).type}`);
+      throw new StepStateError(
+        `Unknown step type: ${(step.stepDefinition as { type: string }).type}`,
+      );
   }
 }
 
@@ -207,7 +213,7 @@ export default class Runner {
         stepIndex: step.stepIndex,
         status: 'error',
         error: 'An unexpected error occurred.',
-      };
+      } as StepOutcome;
     } finally {
       this.inFlightSteps.delete(key);
     }

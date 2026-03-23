@@ -35,4 +35,9 @@ export interface RecordTaskStepOutcome extends BaseStepOutcome {
   status: RecordTaskStepStatus;
 }
 
-export type StepOutcome = ConditionStepOutcome | RecordTaskStepOutcome;
+export interface McpTaskStepOutcome extends BaseStepOutcome {
+  type: 'mcp-task';
+  status: RecordTaskStepStatus;
+}
+
+export type StepOutcome = ConditionStepOutcome | RecordTaskStepOutcome | McpTaskStepOutcome;

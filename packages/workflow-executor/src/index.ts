@@ -10,6 +10,7 @@ export type {
   StepStatus,
   ConditionStepOutcome,
   RecordTaskStepOutcome,
+  McpTaskStepOutcome,
   StepOutcome,
 } from './types/step-outcome';
 

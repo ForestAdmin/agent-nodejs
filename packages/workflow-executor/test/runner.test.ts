@@ -584,6 +584,30 @@ describe('error handling', () => {
     });
   });
 
+  it('reports type mcp-task in fallback error outcome for McpTask steps', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-mcp-err',
+      stepType: StepType.McpTask,
+    });
+    workflowPort.getPendingStepExecutions.mockResolvedValue([step]);
+    aiClient.getModel.mockImplementationOnce(() => {
+      throw new Error('AI not configured');
+    });
+
+    runner = new Runner(
+      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ type: 'mcp-task', status: 'error' }),
+    );
+  });
+
   it('logs unexpected errors with runId, stepId, and stack', async () => {
     const workflowPort = createMockWorkflowPort();
     const mockLogger = createMockLogger();

@@ -1,6 +1,7 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { McpTaskStepDefinition } from '../types/step-definition';
 import type { McpTaskStepExecutionData, McpToolCall } from '../types/step-execution-data';
+import type { RecordTaskStepStatus } from '../types/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -12,7 +13,7 @@ import {
   NoMcpToolsError,
   StepPersistenceError,
 } from '../errors';
-import RecordTaskStepExecutor from './record-task-step-executor';
+import BaseStepExecutor from './base-step-executor';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
 Select the most appropriate tool and fill in its parameters precisely.
@@ -21,7 +22,7 @@ Important rules:
 - Select only the tool directly relevant to the request.
 - Final answer is definitive, you won't receive any other input from the user.`;
 
-export default class McpTaskStepExecutor extends RecordTaskStepExecutor<McpTaskStepDefinition> {
+export default class McpTaskStepExecutor extends BaseStepExecutor<McpTaskStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
 
   constructor(
@@ -30,6 +31,20 @@ export default class McpTaskStepExecutor extends RecordTaskStepExecutor<McpTaskS
   ) {
     super(context);
     this.remoteTools = remoteTools;
+  }
+
+  protected buildOutcomeResult(outcome: {
+    status: RecordTaskStepStatus;
+    error?: string;
+  }): StepExecutionResult {
+    return {
+      stepOutcome: {
+        type: 'mcp-task',
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        ...outcome,
+      },
+    };
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
