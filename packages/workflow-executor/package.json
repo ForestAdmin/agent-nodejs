@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "@forestadmin/ai-proxy": "1.6.1",
-    "@langchain/core": "1.1.15",
     "@forestadmin/agent-client": "1.4.13",
     "@forestadmin/forestadmin-client": "1.37.17",
     "@koa/router": "^13.1.0",
