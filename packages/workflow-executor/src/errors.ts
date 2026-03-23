@@ -171,6 +171,16 @@ export class McpToolNotFoundError extends WorkflowExecutorError {
   }
 }
 
+export class AgentPortError extends WorkflowExecutorError {
+  constructor(operation: string, cause: unknown) {
+    super(
+      `Agent port "${operation}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      'An error occurred while accessing your data. Please try again.',
+    );
+    this.cause = cause;
+  }
+}
+
 export class McpToolInvocationError extends WorkflowExecutorError {
   constructor(toolName: string, cause: unknown) {
     super(

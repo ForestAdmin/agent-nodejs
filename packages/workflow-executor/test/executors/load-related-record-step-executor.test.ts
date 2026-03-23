@@ -1107,6 +1107,31 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
       expect(result.stepOutcome.status).toBe('error');
     });
+
+    it('returns user message and logs cause when agentPort.getRelatedData throws an infra error', async () => {
+      const logger = { error: jest.fn() };
+      const agentPort = makeMockAgentPort();
+      (agentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        logger,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An error occurred while accessing your data. Please try again.',
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'Agent port "getRelatedData" failed: DB connection lost',
+        expect.objectContaining({ cause: 'DB connection lost' }),
+      );
+    });
   });
 
   describe('multi-record AI selection (base record pool)', () => {

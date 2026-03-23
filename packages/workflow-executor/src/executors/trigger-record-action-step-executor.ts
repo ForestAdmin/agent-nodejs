@@ -85,7 +85,7 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    const actionResult = await this.context.agentPort.executeAction({
+    const actionResult = await this.agentPort.executeAction({
       collection: selectedRecordRef.collectionName,
       action: name,
       id: selectedRecordRef.recordId,

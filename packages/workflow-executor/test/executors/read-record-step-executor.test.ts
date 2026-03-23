@@ -651,6 +651,26 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
       expect(result.stepOutcome.status).toBe('error');
     });
+
+    it('returns user message and logs cause when agentPort.getRecord throws an infra error', async () => {
+      const logger = { error: jest.fn() };
+      const agentPort = makeMockAgentPort();
+      (agentPort.getRecord as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
+      const context = makeContext({ model: mockModel.model, agentPort, logger });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An error occurred while accessing your data. Please try again.',
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'Agent port "getRecord" failed: DB connection lost',
+        expect.objectContaining({ cause: 'DB connection lost' }),
+      );
+    });
   });
 
   describe('model error', () => {

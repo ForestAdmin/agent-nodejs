@@ -653,6 +653,35 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
       expect(result.stepOutcome.status).toBe('error');
     });
+
+    it('returns user message and logs cause when agentPort.updateRecord throws an infra error', async () => {
+      const logger = { error: jest.fn() };
+      const agentPort = makeMockAgentPort();
+      (agentPort.updateRecord as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const mockModel = makeMockModel({
+        fieldName: 'Status',
+        value: 'active',
+        reasoning: 'test',
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        logger,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An error occurred while accessing your data. Please try again.',
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'Agent port "updateRecord" failed: DB connection lost',
+        expect.objectContaining({ cause: 'DB connection lost' }),
+      );
+    });
   });
 
   describe('stepOutcome shape', () => {

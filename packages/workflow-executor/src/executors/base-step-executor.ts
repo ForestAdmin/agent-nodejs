@@ -1,3 +1,4 @@
+import type { AgentPort } from '../ports/agent-port';
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
@@ -16,15 +17,19 @@ import {
   NoRecordsError,
   WorkflowExecutorError,
 } from '../errors';
+import SafeAgentPort from './safe-agent-port';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition> {
   protected readonly context: ExecutionContext<TStep>;
 
+  protected readonly agentPort: AgentPort;
+
   protected readonly schemaCache = new Map<string, CollectionSchema>();
 
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
+    this.agentPort = new SafeAgentPort(context.agentPort);
   }
 
   async execute(): Promise<StepExecutionResult> {

@@ -161,7 +161,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
   ): Promise<{ relatedData: RecordData[]; bestIndex: number; suggestedFields: string[] }> {
     const { selectedRecordRef, name } = target;
 
-    const relatedData = await this.context.agentPort.getRelatedData({
+    const relatedData = await this.agentPort.getRelatedData({
       collection: selectedRecordRef.collectionName,
       id: selectedRecordRef.recordId,
       relation: name,
@@ -213,7 +213,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
     limit: number,
   ): Promise<RecordRef[]> {
     const { selectedRecordRef, name } = target;
-    const relatedData = await this.context.agentPort.getRelatedData({
+    const relatedData = await this.agentPort.getRelatedData({
       collection: selectedRecordRef.collectionName,
       id: selectedRecordRef.recordId,
       relation: name,

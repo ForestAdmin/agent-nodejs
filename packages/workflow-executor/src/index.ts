@@ -2,6 +2,7 @@ export { StepType } from './types/step-definition';
 export type {
   ConditionStepDefinition,
   RecordTaskStepDefinition,
+  McpTaskStepDefinition,
   StepDefinition,
 } from './types/step-definition';
 
@@ -26,6 +27,9 @@ export type {
   RecordTaskStepExecutionData,
   LoadRelatedRecordPendingData,
   LoadRelatedRecordStepExecutionData,
+  McpToolRef,
+  McpToolCall,
+  McpTaskStepExecutionData,
   ExecutedStepExecutionData,
   StepExecutionData,
 } from './types/step-execution-data';
@@ -77,6 +81,10 @@ export {
   FieldNotFoundError,
   ActionNotFoundError,
   StepStateError,
+  NoMcpToolsError,
+  McpToolNotFoundError,
+  McpToolInvocationError,
+  AgentPortError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
@@ -84,6 +92,7 @@ export { default as ReadRecordStepExecutor } from './executors/read-record-step-
 export { default as UpdateRecordStepExecutor } from './executors/update-record-step-executor';
 export { default as TriggerRecordActionStepExecutor } from './executors/trigger-record-action-step-executor';
 export { default as LoadRelatedRecordStepExecutor } from './executors/load-related-record-step-executor';
+export { default as McpTaskStepExecutor } from './executors/mcp-task-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
 export { default as ExecutorHttpServer } from './http/executor-http-server';

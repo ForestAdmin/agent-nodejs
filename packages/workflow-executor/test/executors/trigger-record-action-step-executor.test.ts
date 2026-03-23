@@ -508,6 +508,34 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
       expect(result.stepOutcome.status).toBe('error');
     });
+
+    it('returns user message and logs cause when agentPort.executeAction throws an infra error', async () => {
+      const logger = { error: jest.fn() };
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const mockModel = makeMockModel({
+        actionName: 'Send Welcome Email',
+        reasoning: 'User requested welcome email',
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        logger,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An error occurred while accessing your data. Please try again.',
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        'Agent port "executeAction" failed: DB connection lost',
+        expect.objectContaining({ cause: 'DB connection lost' }),
+      );
+    });
   });
 
   describe('displayName → name resolution', () => {
