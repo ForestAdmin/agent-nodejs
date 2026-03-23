@@ -1,5 +1,4 @@
 import type { StepExecutionResult } from '../types/execution';
-import type { RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { RecordTaskStepStatus } from '../types/step-outcome';
@@ -8,7 +7,7 @@ import { StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 /** Execution data that includes the fields required by the confirmation flow. */
-type WithPendingData = StepExecutionData & { pendingData?: object; selectedRecordRef: RecordRef };
+type WithPendingData = StepExecutionData & { pendingData?: object };
 
 export default abstract class RecordTaskStepExecutor<
   TStep extends StepDefinition = StepDefinition,
