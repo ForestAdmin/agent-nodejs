@@ -2,7 +2,12 @@ import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
-import type { ExecutionContext, IStepExecutor, PendingStepExecution } from '../types/execution';
+import type {
+  ExecutionContext,
+  IStepExecutor,
+  PendingStepExecution,
+  StepExecutionResult,
+} from '../types/execution';
 import type {
   ConditionStepDefinition,
   McpTaskStepDefinition,
@@ -10,15 +15,15 @@ import type {
 } from '../types/step-definition';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
-import { StepStateError } from '../errors';
+import { StepStateError, causeMessage } from '../errors';
 import ConditionStepExecutor from './condition-step-executor';
-import ErrorStepExecutor from './error-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
 import McpTaskStepExecutor from './mcp-task-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
 import { StepType } from '../types/step-definition';
+import { stepTypeToOutcomeType } from '../types/step-outcome';
 
 export interface StepContextConfig {
   aiClient: AiClient;
@@ -65,7 +70,26 @@ export default class StepExecutorFactory {
           );
       }
     } catch (error) {
-      return new ErrorStepExecutor(step, error, contextConfig.logger);
+      contextConfig.logger.error('Step execution failed unexpectedly', {
+        runId: step.runId,
+        stepId: step.stepId,
+        stepIndex: step.stepIndex,
+        error: error instanceof Error ? error.message : String(error),
+        cause: causeMessage(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      return {
+        execute: async (): Promise<StepExecutionResult> => ({
+          stepOutcome: {
+            type: stepTypeToOutcomeType(step.stepDefinition.type),
+            stepId: step.stepId,
+            stepIndex: step.stepIndex,
+            status: 'error',
+            error: 'An unexpected error occurred.',
+          },
+        }),
+      };
     }
   }
 

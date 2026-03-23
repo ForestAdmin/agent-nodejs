@@ -9,7 +9,6 @@ import type { AiClient, BaseChatModel } from '@forestadmin/ai-proxy';
 
 import BaseStepExecutor from '../src/executors/base-step-executor';
 import ConditionStepExecutor from '../src/executors/condition-step-executor';
-import ErrorStepExecutor from '../src/executors/error-step-executor';
 import LoadRelatedRecordStepExecutor from '../src/executors/load-related-record-step-executor';
 import McpTaskStepExecutor from '../src/executors/mcp-task-step-executor';
 import ReadRecordStepExecutor from '../src/executors/read-record-step-executor';
@@ -523,27 +522,70 @@ describe('StepExecutorFactory.create — factory', () => {
     expect(loadTools).toHaveBeenCalledTimes(1);
   });
 
-  it('returns an ErrorStepExecutor for an unknown step type', async () => {
+  it('returns an executor with an error outcome for an unknown step type', async () => {
     const step = {
       ...makePendingStep(),
       stepDefinition: { type: 'unknown-type' as StepType },
     } as unknown as PendingStepExecution;
     const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
-    expect(executor).toBeInstanceOf(ErrorStepExecutor);
     const { stepOutcome } = await executor.execute();
     expect(stepOutcome.status).toBe('error');
     expect(stepOutcome.error).toBe('An unexpected error occurred.');
   });
 
-  it('returns an ErrorStepExecutor when loadTools rejects for a McpTask step', async () => {
+  it('returns an executor with an error outcome when loadTools rejects for a McpTask step', async () => {
     const step = makePendingStep({ stepType: StepType.McpTask });
     const loadTools = jest.fn().mockRejectedValueOnce(new Error('MCP server down'));
     const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
-    expect(executor).toBeInstanceOf(ErrorStepExecutor);
     const { stepOutcome } = await executor.execute();
     expect(stepOutcome.status).toBe('error');
     expect(stepOutcome.type).toBe('mcp-task');
     expect(stepOutcome.error).toBe('An unexpected error occurred.');
+  });
+
+  it('logs cause message when construction error has an Error cause', async () => {
+    const rootCause = new Error('root cause');
+    const error = new Error('wrapper');
+    (error as Error & { cause: Error }).cause = rootCause;
+    const logger = { error: jest.fn() };
+    const contextConfig: StepContextConfig = {
+      ...makeContextConfig(),
+      aiClient: {
+        getModel: jest.fn().mockImplementationOnce(() => {
+          throw error;
+        }),
+      } as unknown as AiClient,
+      logger,
+    };
+
+    await StepExecutorFactory.create(makePendingStep(), contextConfig, jest.fn());
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'Step execution failed unexpectedly',
+      expect.objectContaining({ cause: 'root cause' }),
+    );
+  });
+
+  it('logs cause as undefined when construction error cause is not an Error instance', async () => {
+    const error = new Error('wrapper');
+    (error as Error & { cause: string }).cause = 'plain string';
+    const logger = { error: jest.fn() };
+    const contextConfig: StepContextConfig = {
+      ...makeContextConfig(),
+      aiClient: {
+        getModel: jest.fn().mockImplementationOnce(() => {
+          throw error;
+        }),
+      } as unknown as AiClient,
+      logger,
+    };
+
+    await StepExecutorFactory.create(makePendingStep(), contextConfig, jest.fn());
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'Step execution failed unexpectedly',
+      expect.objectContaining({ cause: undefined }),
+    );
   });
 });
 
