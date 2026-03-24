@@ -14,7 +14,6 @@ const ROUTES = {
   updateStepExecution: (runId: string) => `/liana/v1/workflow-step-executions/${runId}/complete`,
   collectionSchema: (collectionName: string) => `/liana/v1/collections/${collectionName}`,
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
-  runAccess: (runId: string) => `/liana/v1/workflow-runs/${encodeURIComponent(runId)}/access`,
 };
 
 export default class ForestServerWorkflowPort implements WorkflowPort {

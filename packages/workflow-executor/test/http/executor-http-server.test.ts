@@ -44,7 +44,12 @@ function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): Workflow
 }
 
 function createServer(
-  overrides: { runStore?: RunStore; runner?: Runner; workflowPort?: WorkflowPort } = {},
+  overrides: {
+    runStore?: RunStore;
+    runner?: Runner;
+    workflowPort?: WorkflowPort;
+    logger?: { error: jest.Mock };
+  } = {},
 ) {
   return new ExecutorHttpServer({
     port: 0,
@@ -52,6 +57,7 @@ function createServer(
     runner: overrides.runner ?? createMockRunner(),
     authSecret: AUTH_SECRET,
     workflowPort: overrides.workflowPort ?? createMockWorkflowPort(),
+    logger: overrides.logger,
   });
 }
 
@@ -191,8 +197,11 @@ describe('ExecutorHttpServer', () => {
       const server = createServer({ workflowPort });
       const token = signToken({ id: 'user-1' });
 
-      await request(server.callback).get('/runs/run-42').set('Authorization', `Bearer ${token}`);
+      const response = await request(server.callback)
+        .get('/runs/run-42')
+        .set('Authorization', `Bearer ${token}`);
 
+      expect(response.status).toBe(200);
       expect(workflowPort.hasRunAccess).toHaveBeenCalledWith('run-42', token);
     });
 
@@ -201,18 +210,20 @@ describe('ExecutorHttpServer', () => {
       const server = createServer({ workflowPort });
       const token = signToken({ id: 'user-1' });
 
-      await request(server.callback)
+      const response = await request(server.callback)
         .get('/runs/run-cookie')
         .set('Cookie', `forest_session_token=${token}`);
 
+      expect(response.status).toBe(200);
       expect(workflowPort.hasRunAccess).toHaveBeenCalledWith('run-cookie', token);
     });
 
     it('returns 503 when hasRunAccess throws', async () => {
+      const logger = { error: jest.fn() };
       const workflowPort = createMockWorkflowPort({
         hasRunAccess: jest.fn().mockRejectedValue(new Error('orchestrator down')),
       });
-      const server = createServer({ workflowPort });
+      const server = createServer({ workflowPort, logger });
       const token = signToken({ id: 'user-1' });
 
       const response = await request(server.callback)
@@ -221,6 +232,10 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(503);
       expect(response.body).toEqual({ error: 'Service unavailable' });
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to check run access',
+        expect.objectContaining({ runId: 'run-1', error: 'orchestrator down' }),
+      );
     });
 
     it('does not call getStepExecutions when hasRunAccess returns false', async () => {

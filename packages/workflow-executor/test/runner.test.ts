@@ -167,6 +167,7 @@ describe('start', () => {
       runner,
       authSecret: VALID_AUTH_SECRET,
       workflowPort: config.workflowPort,
+      logger: config.logger,
     });
     expect(MockedExecutorHttpServer.prototype.start).toHaveBeenCalled();
   });

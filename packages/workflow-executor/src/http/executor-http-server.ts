@@ -80,7 +80,10 @@ export default class ExecutorHttpServer {
       } catch (err) {
         this.options.logger?.error('Failed to check run access', {
           runId: ctx.params.runId,
+          method: ctx.method,
+          path: ctx.path,
           error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
         });
         ctx.status = 503;
         ctx.body = { error: 'Service unavailable' };
