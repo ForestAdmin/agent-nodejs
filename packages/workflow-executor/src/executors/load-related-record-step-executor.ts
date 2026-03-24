@@ -103,12 +103,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
     );
 
     const relatedCollectionName = relatedData[0].collectionName;
-    const suggestedRecordId = relatedData[bestIndex].recordId;
+    const selectedRecordId = relatedData[bestIndex].recordId;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
-      pendingData: { displayName, name, relatedCollectionName, suggestedFields, suggestedRecordId },
+      pendingData: { displayName, name, relatedCollectionName, suggestedFields, selectedRecordId },
       selectedRecordRef,
     });
 
@@ -126,7 +126,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
   }
 
   /**
-   * Branch A: builds RecordRef from pendingData suggestion or user's selectedRecordId override.
+   * Branch A: builds RecordRef from pendingData.selectedRecordId.
    * No additional getRelatedData call.
    */
   private async resolveFromSelection(
@@ -138,12 +138,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const { name, displayName, relatedCollectionName, suggestedRecordId, selectedRecordId } =
-      pendingData;
+    const { name, displayName, relatedCollectionName, selectedRecordId } = pendingData;
 
     const record: RecordRef = {
       collectionName: relatedCollectionName,
-      recordId: selectedRecordId ?? suggestedRecordId,
+      recordId: selectedRecordId,
       stepIndex: this.context.stepIndex,
     };
 

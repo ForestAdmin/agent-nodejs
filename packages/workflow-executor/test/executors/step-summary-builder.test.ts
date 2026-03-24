@@ -253,7 +253,7 @@ describe('StepSummaryBuilder', () => {
           displayName: 'Address',
           name: 'address',
           relatedCollectionName: 'addresses',
-          suggestedRecordId: [1],
+          selectedRecordId: [1],
         },
       };
 

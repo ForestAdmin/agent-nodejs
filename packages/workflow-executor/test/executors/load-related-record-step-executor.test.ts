@@ -133,7 +133,7 @@ function makePendingExecution(
       displayName: 'Order',
       name: 'order',
       relatedCollectionName: 'orders',
-      suggestedRecordId: [99],
+      selectedRecordId: [99],
       suggestedFields: ['status', 'amount'],
     },
     selectedRecordRef: makeRecordRef(),
@@ -589,7 +589,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Order',
             name: 'order',
             relatedCollectionName: 'orders',
-            suggestedRecordId: [99],
+            selectedRecordId: [99],
             suggestedFields: [],
           },
           selectedRecordRef: expect.objectContaining({
@@ -662,7 +662,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Order',
             name: 'order',
             relatedCollectionName: 'orders',
-            suggestedRecordId: [2], // record at index 1
+            selectedRecordId: [2], // record at index 1
             suggestedFields: ['status'],
           },
         }),
@@ -726,7 +726,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           pendingData: expect.objectContaining({
-            suggestedRecordId: [1],
+            selectedRecordId: [1],
             suggestedFields: [],
           }),
         }),
@@ -735,9 +735,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('confirmation accepted (Branch A)', () => {
-    it('uses suggestedRecordId when selectedRecordId is absent, no getRelatedData call', async () => {
+    it('uses selectedRecordId from pendingData, no getRelatedData call', async () => {
       const agentPort = makeMockAgentPort();
-      const execution = makePendingExecution(); // suggestedRecordId: [99], no selectedRecordId
+      const execution = makePendingExecution(); // selectedRecordId: [99]
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
@@ -760,20 +760,19 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Order',
             name: 'order',
             relatedCollectionName: 'orders',
-            suggestedRecordId: [99],
+            selectedRecordId: [99],
           }),
         }),
       );
     });
 
-    it('uses selectedRecordId over suggestedRecordId when the user overrides the suggestion', async () => {
+    it('uses selectedRecordId when the user overrides the AI suggestion', async () => {
       const agentPort = makeMockAgentPort();
       const execution = makePendingExecution({
         pendingData: {
           displayName: 'Order',
           name: 'order',
           relatedCollectionName: 'orders',
-          suggestedRecordId: [99],
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [42],
         },
@@ -1223,7 +1222,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Invoice',
             name: 'invoice',
             relatedCollectionName: 'invoices',
-            suggestedRecordId: [55],
+            selectedRecordId: [55],
           }),
           selectedRecordRef: expect.objectContaining({ recordId: [99], collectionName: 'orders' }),
         }),
@@ -1419,7 +1418,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           displayName: 'Invoice',
           name: 'invoice',
           relatedCollectionName: 'invoices',
-          suggestedRecordId: [55],
+          selectedRecordId: [55],
         },
       };
 

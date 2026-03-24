@@ -115,13 +115,11 @@ export interface LoadRelatedRecordPendingData extends RelationRef {
   relatedCollectionName: string;
   /** AI-selected fields suggested for display on the frontend. undefined = not computed (no non-relation fields). */
   suggestedFields?: string[];
-  /** AI's best pick from the 50 candidates — proposed to the user as default. */
-  suggestedRecordId: Array<string | number>;
   /**
-   * Record id chosen by the user. Written by the HTTP endpoint (dedicated ticket, not yet implemented).
-   * Falls back to suggestedRecordId when absent.
+   * The record id to load. Initially set by the AI; overwritten by the frontend via
+   * PATCH /runs/:runId/steps/:stepIndex/pending-data (not yet implemented).
    */
-  selectedRecordId?: Array<string | number>;
+  selectedRecordId: Array<string | number>;
 }
 
 export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
