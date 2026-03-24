@@ -6,16 +6,23 @@ import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
+import { Sequelize } from 'sequelize';
+
 import ConsoleLogger from './adapters/console-logger';
 import { RunNotFoundError, causeMessage } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import ExecutorHttpServer from './http/executor-http-server';
+import DatabaseStore from './stores/database-store';
 import validateSecrets from './validate-secrets';
 
-export interface RunnerConfig {
+export interface DatabaseConfig {
+  dialect: string;
+  uri: string;
+}
+
+interface BaseRunnerConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
-  runStore: RunStore;
   pollingIntervalMs: number;
   aiClient: AiClient;
   envSecret: string;
@@ -24,6 +31,9 @@ export interface RunnerConfig {
   httpPort?: number;
 }
 
+export type RunnerConfig = BaseRunnerConfig &
+  ({ runStore: RunStore; database?: never } | { database: DatabaseConfig; runStore?: never });
+
 export default class Runner {
   private readonly config: RunnerConfig;
   private httpServer: ExecutorHttpServer | null = null;
@@ -31,6 +41,7 @@ export default class Runner {
   private readonly inFlightSteps = new Set<string>();
   private isRunning = false;
   private readonly logger: Logger;
+  private databaseStore: DatabaseStore | null = null;
 
   private static once<T>(fn: () => Promise<T>): () => Promise<T> {
     let cached: Promise<T> | undefined;
@@ -59,10 +70,20 @@ export default class Runner {
     this.isRunning = true;
 
     try {
+      // Create DatabaseStore from config if no runStore was provided
+      if (this.config.database && !this.databaseStore) {
+        const sequelize = new Sequelize(this.config.database.uri, {
+          dialect: this.config.database.dialect as never,
+          logging: false,
+        });
+        this.databaseStore = new DatabaseStore({ sequelize });
+        await this.databaseStore.migrate();
+      }
+
       if (this.config.httpPort !== undefined && !this.httpServer) {
         const server = new ExecutorHttpServer({
           port: this.config.httpPort,
-          runStore: this.config.runStore,
+          runStore: this.runStore,
           runner: this,
           authSecret: this.config.authSecret,
           workflowPort: this.config.workflowPort,
@@ -94,7 +115,19 @@ export default class Runner {
 
     await this.config.aiClient.closeConnections();
 
+    if (this.databaseStore) {
+      await this.databaseStore.close();
+      this.databaseStore = null;
+    }
+
     // TODO: graceful drain of in-flight steps (out of scope PRD-223)
+  }
+
+  private get runStore(): RunStore {
+    if (this.databaseStore) return this.databaseStore;
+    if (this.config.runStore) return this.config.runStore;
+
+    throw new Error('No RunStore available: provide either runStore or database in RunnerConfig');
   }
 
   async triggerPoll(runId: string): Promise<void> {
@@ -186,7 +219,7 @@ export default class Runner {
       aiClient: this.config.aiClient,
       agentPort: this.config.agentPort,
       workflowPort: this.config.workflowPort,
-      runStore: this.config.runStore,
+      runStore: this.runStore,
       logger: this.logger,
     };
   }
