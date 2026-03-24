@@ -2,6 +2,7 @@ import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
+import type { StepExecutionData } from '../types/step-execution-data';
 import type { Server } from 'http';
 
 import bodyParser from '@koa/bodyparser';
@@ -206,7 +207,7 @@ export default class ExecutorHttpServer {
     await this.options.runStore.saveStepExecution(runId, {
       ...execution,
       pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
-    } as Parameters<RunStore['saveStepExecution']>[1]);
+    } as StepExecutionData);
 
     ctx.status = 204;
   }
