@@ -23,9 +23,7 @@ describe('Model validation', () => {
     expect(
       () =>
         new AiClient({
-          aiConfigurations: [
-            { name: 'test', provider: 'openai', apiKey: 'dev', model: 'gpt-4' },
-          ],
+          aiConfigurations: [{ name: 'test', provider: 'openai', apiKey: 'dev', model: 'gpt-4' }],
         }),
     ).toThrow(AIModelNotSupportedError);
   });
@@ -34,9 +32,7 @@ describe('Model validation', () => {
     expect(
       () =>
         new AiClient({
-          aiConfigurations: [
-            { name: 'test', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' },
-          ],
+          aiConfigurations: [{ name: 'test', provider: 'openai', apiKey: 'dev', model: 'gpt-4o' }],
         }),
     ).not.toThrow();
   });
@@ -143,9 +139,7 @@ describe('getModel', () => {
       'Warn',
       expect.stringContaining("AI configuration 'non-existent' not found"),
     );
-    expect(createBaseChatModelMock).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'gpt4' }),
-    );
+    expect(createBaseChatModelMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'gpt4' }));
     expect(result).toBe(fakeModel);
   });
 });

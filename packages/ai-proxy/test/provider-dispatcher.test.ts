@@ -181,9 +181,7 @@ describe('ProviderDispatcher', () => {
         const thrown = await dispatcher.dispatch(buildBody()).catch(e => e);
 
         expect(thrown).toBeInstanceOf(AIProviderUnavailableError);
-        expect(thrown.message).toBe(
-          'OpenAI server error (HTTP 500): Internal Server Error',
-        );
+        expect(thrown.message).toBe('OpenAI server error (HTTP 500): Internal Server Error');
         expect(thrown.provider).toBe('OpenAI');
         expect(thrown.providerStatusCode).toBe(500);
         expect(thrown.baseBusinessErrorName).toBe('InternalServerError');
@@ -468,9 +466,7 @@ describe('ProviderDispatcher', () => {
           .catch(e => e);
 
         expect(thrown).toBeInstanceOf(AIProviderUnavailableError);
-        expect(thrown.message).toBe(
-          'Anthropic server error (HTTP 503): Service Unavailable',
-        );
+        expect(thrown.message).toBe('Anthropic server error (HTTP 503): Service Unavailable');
         expect(thrown.provider).toBe('Anthropic');
         expect(thrown.providerStatusCode).toBe(503);
         expect(thrown.baseBusinessErrorName).toBe('InternalServerError');

@@ -13,21 +13,23 @@ interface BaseStepExecutionData {
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
   type: 'condition';
   executionParams: { answer: string | null; reasoning?: string };
-  executionResult: { answer: string };
+  executionResult?: { answer: string };
+}
+
+// -- Shared --
+
+export interface FieldRef {
+  name: string;
+  displayName: string;
 }
 
 // -- Read Record --
 
-interface FieldReadBase {
-  fieldName: string;
-  displayName: string;
-}
-
-export interface FieldReadSuccess extends FieldReadBase {
+export interface FieldReadSuccess extends FieldRef {
   value: unknown;
 }
 
-export interface FieldReadError extends FieldReadBase {
+export interface FieldReadError extends FieldRef {
   error: string;
 }
 
@@ -35,7 +37,7 @@ export type FieldReadResult = FieldReadSuccess | FieldReadError;
 
 export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
   type: 'read-record';
-  executionParams: { fieldNames: string[] };
+  executionParams: { fields: FieldRef[] };
   executionResult: { fields: FieldReadResult[] };
   selectedRecordRef: RecordRef;
 }
@@ -44,15 +46,57 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   type: 'update-record';
-  executionParams?: { fieldDisplayName: string; value: string };
+  executionParams?: FieldRef & { value: string };
   /** User confirmed → values returned by updateRecord. User rejected → skipped. */
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
   /** AI-selected field and value awaiting user confirmation. Used in the confirmation flow only. */
-  pendingUpdate?: {
-    fieldDisplayName: string;
-    value: string;
-  };
+  pendingData?: FieldRef & { value: string };
   selectedRecordRef: RecordRef;
+}
+
+// -- Trigger Action --
+
+export interface ActionRef {
+  name: string;
+  displayName: string;
+}
+
+// Intentionally separate from ActionRef/FieldRef: expected to gain relation-specific
+// fields (e.g. relationType) in a future iteration.
+export interface RelationRef {
+  name: string;
+  displayName: string;
+}
+
+export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionData {
+  type: 'trigger-action';
+  /** Display name and technical name of the executed action. */
+  executionParams?: ActionRef;
+  executionResult?: { success: true; actionResult: unknown } | { skipped: true };
+  /** AI-selected action awaiting user confirmation. Used in the confirmation flow only. */
+  pendingData?: ActionRef;
+  selectedRecordRef: RecordRef;
+}
+
+// -- Mcp Task --
+
+/** Reference to an MCP tool by its sanitized name (OpenAI-safe, alphanumeric + underscores/hyphens). */
+export interface McpToolRef {
+  name: string;
+}
+
+/** A resolved tool call: sanitized tool name + input parameters sent to the tool. */
+export interface McpToolCall extends McpToolRef {
+  input: Record<string, unknown>;
+}
+
+export interface McpTaskStepExecutionData extends BaseStepExecutionData {
+  type: 'mcp-task';
+  executionParams?: McpToolCall;
+  executionResult?:
+    | { success: true; toolResult: unknown; formattedResponse?: string }
+    | { skipped: true };
+  pendingData?: McpToolCall;
 }
 
 // -- Generic AI Task (fallback for untyped steps) --
@@ -66,9 +110,30 @@ export interface RecordTaskStepExecutionData extends BaseStepExecutionData {
 
 // -- Load Related Record --
 
+export interface LoadRelatedRecordPendingData extends RelationRef {
+  /** Collection name of the related records — needed to build RecordRef in Branch A. */
+  relatedCollectionName: string;
+  /** AI-selected fields suggested for display on the frontend. undefined = not computed (no non-relation fields). */
+  suggestedFields?: string[];
+  /**
+   * The record id to load. Initially set by the AI; overwritten by the frontend via
+   * PATCH /runs/:runId/steps/:stepIndex/pending-data (not yet implemented).
+   */
+  selectedRecordId: Array<string | number>;
+}
+
 export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
   type: 'load-related-record';
-  record: RecordRef;
+  /** AI-selected relation with pre-fetched candidates awaiting user confirmation. */
+  pendingData?: LoadRelatedRecordPendingData;
+  /** The record ref used to load the relation. Required for handleConfirmationFlow. */
+  selectedRecordRef: RecordRef;
+  executionParams?: RelationRef;
+  /**
+   * Navigation path captured at execution time — used by StepSummaryBuilder for AI context.
+   * Source is not repeated here — it is always selectedRecordRef, consistent with other step types.
+   */
+  executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
 }
 
 // -- Union --
@@ -77,19 +142,10 @@ export type StepExecutionData =
   | ConditionStepExecutionData
   | ReadRecordStepExecutionData
   | UpdateRecordStepExecutionData
+  | TriggerRecordActionStepExecutionData
   | RecordTaskStepExecutionData
-  | LoadRelatedRecordStepExecutionData;
+  | LoadRelatedRecordStepExecutionData
+  | McpTaskStepExecutionData;
 
-export type ExecutedStepExecutionData =
-  | ConditionStepExecutionData
-  | ReadRecordStepExecutionData
-  | UpdateRecordStepExecutionData
-  | RecordTaskStepExecutionData;
-
-// TODO: this condition should change when load-related-record gets its own executor
-// and produces executionParams/executionResult like other steps.
-export function isExecutedStepOnExecutor(
-  data: StepExecutionData | undefined,
-): data is ExecutedStepExecutionData {
-  return !!data && data.type !== 'load-related-record';
-}
+/** Alias for StepExecutionData — kept for backwards-compatible consumption at the call sites. */
+export type ExecutedStepExecutionData = StepExecutionData;

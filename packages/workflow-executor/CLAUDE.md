@@ -42,7 +42,7 @@ Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor  ──
 
 ```
 src/
-├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError, NoWritableFieldsError
+├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError, NoWritableFieldsError, NoActionsError, StepPersistenceError, NoRelationshipFieldsError, RelatedRecordNotFoundError
 ├── runner.ts               # Runner class — main entry point (start/stop/triggerPoll, HTTP server wiring)
 ├── types/                  # Core type definitions (@draft)
 │   ├── step-definition.ts  # StepType enum + step definition interfaces
@@ -61,7 +61,9 @@ src/
 │   ├── base-step-executor.ts       # Abstract base class (context injection + shared helpers)
 │   ├── condition-step-executor.ts  # AI-powered condition step (chooses among options)
 │   ├── read-record-step-executor.ts  # AI-powered record field reading step
-│   └── update-record-step-executor.ts # AI-powered record field update step (with confirmation flow)
+│   ├── update-record-step-executor.ts # AI-powered record field update step (with confirmation flow)
+│   ├── trigger-record-action-step-executor.ts  # AI-powered action trigger step (with confirmation flow)
+│   └── load-related-record-step-executor.ts  # AI-powered relation loading step (with confirmation flow)
 ├── http/                   # HTTP server (optional, for frontend data access)
 │   └── executor-http-server.ts  # Koa server: GET /runs/:runId, POST /runs/:runId/trigger
 └── index.ts                # Barrel exports
@@ -74,7 +76,11 @@ src/
 - **Privacy** — Zero client data leaves the client's infrastructure. `StepOutcome` is sent to the orchestrator and must NEVER contain client data. Privacy-sensitive information (e.g. AI reasoning) must stay in `StepExecutionData` (persisted in the RunStore, client-side only).
 - **Ports (IO injection)** — All external IO goes through injected port interfaces, keeping the core pure and testable.
 - **AI integration** — Uses `@langchain/core` (`BaseChatModel`, `DynamicStructuredTool`) for AI-powered steps. `ExecutionContext.model` is a `BaseChatModel`.
+- **Error hierarchy** — All domain errors must extend `WorkflowExecutorError` (defined in `src/errors.ts`). This ensures executors can distinguish domain errors (caught → error outcome) from infrastructure errors (uncaught → propagate to caller). Never throw a plain `Error` for a domain error case.
+- **Dual error messages** — `WorkflowExecutorError` carries two messages: `message` (technical, for dev logs) and `userMessage` (human-readable, surfaced to the Forest Admin UI via `stepOutcome.error`). The mapping happens in a single place: `base-step-executor.ts` uses `error.userMessage` when building the error outcome. When adding a new error subclass, always provide a distinct `userMessage` oriented toward end-users (no collection names, field names, or AI internals). If `userMessage` is omitted in the constructor call, it falls back to `message`.
+- **displayName in AI tools** — All `DynamicStructuredTool` schemas and system message prompts must use `displayName`, never `fieldName`. `displayName` is a Forest Admin frontend feature that replaces the technical field/relation/action name with a product-oriented label configured by the Forest Admin admin. End users write their workflow prompts using these display names, not the underlying technical names. After an AI tool call returns display names, map them back to `fieldName`/`name` before using them in datasource operations (e.g. filtering record values, calling `getRecord`).
 - **No recovery/retry** — Once the executor returns a step result to the orchestrator, the step is considered executed. There is no mechanism to re-dispatch a step, so executors must NOT include recovery checks (e.g. checking the RunStore for cached results before executing). Each step executes exactly once.
+- **Fetched steps must be executed** — Any step retrieved from the orchestrator via `getPendingStepExecutions()` must be executed. Silently discarding a fetched step (e.g. filtering it out by `runId` after fetching) violates the executor contract: the orchestrator assumes execution is guaranteed once the step is dispatched. The only valid filter before executing is deduplication via `inFlightSteps` (to avoid running the same step twice concurrently).
 
 ## Commands
 

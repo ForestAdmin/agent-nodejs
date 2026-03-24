@@ -9,6 +9,8 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 // TODO: finalize route paths with the team — these are placeholders
 const ROUTES = {
   pendingStepExecutions: '/liana/v1/workflow-step-executions/pending',
+  pendingStepExecutionForRun: (runId: string) =>
+    `/liana/v1/workflow-step-executions/pending?runId=${encodeURIComponent(runId)}`,
   updateStepExecution: (runId: string) => `/liana/v1/workflow-step-executions/${runId}/complete`,
   collectionSchema: (collectionName: string) => `/liana/v1/collections/${collectionName}`,
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
@@ -26,6 +28,14 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       this.options,
       'get',
       ROUTES.pendingStepExecutions,
+    );
+  }
+
+  async getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null> {
+    return ServerUtils.query<PendingStepExecution | null>(
+      this.options,
+      'get',
+      ROUTES.pendingStepExecutionForRun(runId),
     );
   }
 

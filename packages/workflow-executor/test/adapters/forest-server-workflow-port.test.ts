@@ -38,6 +38,34 @@ describe('ForestServerWorkflowPort', () => {
     });
   });
 
+  describe('getPendingStepExecutionsForRun', () => {
+    it('calls the pending step execution route with the runId query param', async () => {
+      const step = { runId: 'run-42' } as PendingStepExecution;
+      mockQuery.mockResolvedValue(step);
+
+      const result = await port.getPendingStepExecutionsForRun('run-42');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/liana/v1/workflow-step-executions/pending?runId=run-42',
+      );
+      expect(result).toBe(step);
+    });
+
+    it('encodes special characters in the runId', async () => {
+      mockQuery.mockResolvedValue({} as PendingStepExecution);
+
+      await port.getPendingStepExecutionsForRun('run/42 special');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/liana/v1/workflow-step-executions/pending?runId=run%2F42%20special',
+      );
+    });
+  });
+
   describe('updateStepExecution', () => {
     it('should post step outcome to the complete route', async () => {
       mockQuery.mockResolvedValue(undefined);
@@ -100,6 +128,12 @@ describe('ForestServerWorkflowPort', () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
       await expect(port.getPendingStepExecutions()).rejects.toThrow('Network error');
+    });
+
+    it('should propagate errors from getPendingStepExecutionsForRun', async () => {
+      mockQuery.mockRejectedValue(new Error('Network error'));
+
+      await expect(port.getPendingStepExecutionsForRun('run-1')).rejects.toThrow('Network error');
     });
   });
 });

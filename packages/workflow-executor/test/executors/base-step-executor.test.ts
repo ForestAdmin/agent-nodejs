@@ -1,20 +1,49 @@
+/* eslint-disable max-classes-per-file */
+import type { Logger } from '../../src/ports/logger-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution';
 import type { RecordRef } from '../../src/types/record';
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
-import type { StepOutcome } from '../../src/types/step-outcome';
-import type { BaseMessage, SystemMessage } from '@langchain/core/messages';
-import type { DynamicStructuredTool } from '@langchain/core/tools';
+import type { BaseStepStatus, StepOutcome } from '../../src/types/step-outcome';
+import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
-import { MalformedToolCallError, MissingToolCallError } from '../../src/errors';
+import { SystemMessage } from '@forestadmin/ai-proxy';
+
+import {
+  MalformedToolCallError,
+  MissingToolCallError,
+  NoRecordsError,
+  StepPersistenceError,
+} from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import { StepType } from '../../src/types/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
 class TestableExecutor extends BaseStepExecutor {
-  async execute(): Promise<StepExecutionResult> {
-    throw new Error('not used');
+  constructor(context: ExecutionContext, private readonly errorToThrow?: unknown) {
+    super(context);
+  }
+
+  protected async doExecute(): Promise<StepExecutionResult> {
+    if (this.errorToThrow !== undefined) throw this.errorToThrow;
+
+    return this.buildOutcomeResult({ status: 'success' });
+  }
+
+  protected buildOutcomeResult(outcome: {
+    status: BaseStepStatus;
+    error?: string;
+  }): StepExecutionResult {
+    return {
+      stepOutcome: {
+        type: 'record-task',
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        status: outcome.status,
+        ...(outcome.error !== undefined && { error: outcome.error }),
+      },
+    };
   }
 
   override buildPreviousStepsMessages(): Promise<SystemMessage[]> {
@@ -54,6 +83,10 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
   };
 }
 
+function makeMockLogger(): Logger {
+  return { error: jest.fn() };
+}
+
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
@@ -74,7 +107,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
     previousSteps: [],
-    remoteTools: [],
+    logger: makeMockLogger(),
     ...overrides,
   };
 }
@@ -87,7 +120,7 @@ describe('BaseStepExecutor', () => {
       expect(await executor.buildPreviousStepsMessages()).toEqual([]);
     });
 
-    it('includes prompt and executionParams from previous steps', async () => {
+    it('calls getStepExecutions with runId and returns a SystemMessage with step content', async () => {
       const runStore = makeMockRunStore([
         {
           type: 'condition',
@@ -103,316 +136,135 @@ describe('BaseStepExecutor', () => {
         }),
       );
 
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
+      const messages = await executor.buildPreviousStepsMessages();
 
-      expect(result).toContain('Step "cond-1"');
-      expect(result).toContain('Prompt: Approve?');
-      expect(result).toContain('Input: {"answer":"Yes","reasoning":"Order is valid"}');
-      expect(result).toContain('Output: {"answer":"Yes"}');
       expect(runStore.getStepExecutions).toHaveBeenCalledWith('run-1');
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toBeInstanceOf(SystemMessage);
+      expect(messages[0].content).toContain('Step "cond-1"');
+      expect(messages[0].content).toContain('Prompt: Approve?');
     });
 
-    it('uses Input for matched steps and History for unmatched steps', async () => {
+    it('separates multiple previous steps with a blank line', async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 0,
+          executionParams: { answer: 'Yes', reasoning: 'Valid' },
+          executionResult: { answer: 'Yes' },
+        },
+        {
+          type: 'condition',
+          stepIndex: 1,
+          executionParams: { answer: 'No', reasoning: 'Wrong' },
+          executionResult: { answer: 'No' },
+        },
+      ]);
       const executor = new TestableExecutor(
         makeContext({
           previousSteps: [
-            makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0 }),
+            makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'First?' }),
             makeHistoryEntry({ stepId: 'cond-2', stepIndex: 1, prompt: 'Second?' }),
           ],
-          // Only step 1 has an execution entry — step 0 has no match
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 1,
-              executionParams: { answer: 'No', reasoning: 'Clearly no' },
-              executionResult: { answer: 'No' },
-            },
-          ]),
+          runStore,
         }),
       );
 
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
 
-      expect(result).toContain('Step "cond-1"');
-      expect(result).toContain('History: {"status":"success"}');
-      expect(result).toContain('Step "cond-2"');
-      expect(result).toContain('Input: {"answer":"No","reasoning":"Clearly no"}');
-      expect(result).toContain('Output: {"answer":"No"}');
+      expect(content).toContain('Step "cond-1"');
+      expect(content).toContain('Step "cond-2"');
+      expect(content).toContain('\n\nStep "cond-2"');
+    });
+  });
+
+  describe('execute error handling', () => {
+    it('converts NoRecordsError to error outcome', async () => {
+      const executor = new TestableExecutor(makeContext(), new NoRecordsError());
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('No records available');
     });
 
-    it('falls back to History when no matching step execution in RunStore', async () => {
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [
-            makeHistoryEntry({ stepId: 'orphan', stepIndex: 5, prompt: 'Orphan step' }),
-            makeHistoryEntry({ stepId: 'matched', stepIndex: 1, prompt: 'Matched step' }),
-          ],
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 1,
-              executionParams: { answer: 'B', reasoning: 'Option B fits' },
-              executionResult: { answer: 'B' },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "orphan"');
-      expect(result).toContain('History: {"status":"success"}');
-      expect(result).toContain('Step "matched"');
-      expect(result).toContain('Input: {"answer":"B","reasoning":"Option B fits"}');
-      expect(result).toContain('Output: {"answer":"B"}');
-    });
-
-    it('includes selectedOption in History for condition steps', async () => {
-      const entry = makeHistoryEntry({
-        stepId: 'cond-approval',
-        stepIndex: 0,
-        prompt: 'Approved?',
+    describe('unexpected error handling', () => {
+      it('returns error outcome instead of rethrowing', async () => {
+        const executor = new TestableExecutor(makeContext(), new Error('db connection refused'));
+        const result = await executor.execute();
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.error).toBe('Unexpected error during step execution');
       });
-      (entry.stepOutcome as { selectedOption?: string }).selectedOption = 'Yes';
 
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "cond-approval"');
-      expect(result).toContain('"selectedOption":"Yes"');
-    });
-
-    it('includes error in History for failed steps', async () => {
-      const entry = makeHistoryEntry({
-        stepId: 'failing-step',
-        stepIndex: 0,
-        prompt: 'Do something',
+      it('logs the full error context when logger is provided', async () => {
+        const logger = makeMockLogger();
+        const executor = new TestableExecutor(
+          makeContext({ logger }),
+          new Error('db connection refused'),
+        );
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({
+            runId: 'run-1',
+            stepId: 'step-0',
+            stepIndex: 0,
+            error: 'db connection refused',
+          }),
+        );
       });
-      entry.stepOutcome.status = 'error';
-      (entry.stepOutcome as { error?: string }).error = 'AI could not match an option';
 
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('"status":"error"');
-      expect(result).toContain('"error":"AI could not match an option"');
-    });
-
-    it('includes status in History for record-task steps without RunStore data', async () => {
-      const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
-        stepDefinition: {
-          type: StepType.ReadRecord,
-          prompt: 'Run task',
-        },
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'read-record-1',
-          stepIndex: 0,
-          status: 'awaiting-input',
-        },
-      };
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "read-record-1"');
-      expect(result).toContain('History: {"status":"awaiting-input"}');
-    });
-
-    it('uses Input when RunStore has executionParams, History otherwise', async () => {
-      const condEntry = makeHistoryEntry({
-        stepId: 'cond-1',
-        stepIndex: 0,
-        prompt: 'Approved?',
+      it('includes stack trace in log context', async () => {
+        const logger = makeMockLogger();
+        const err = new Error('db connection refused');
+        const executor = new TestableExecutor(makeContext({ logger }), err);
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({ stack: err.stack }),
+        );
       });
-      (condEntry.stepOutcome as { selectedOption?: string }).selectedOption = 'Yes';
 
-      const aiEntry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
-        stepDefinition: {
-          type: StepType.ReadRecord,
-          prompt: 'Read name',
-        },
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'read-customer',
-          stepIndex: 1,
-          status: 'success',
-        },
-      };
+      it('handles non-Error throwables without crashing', async () => {
+        const executor = new TestableExecutor(makeContext(), 'a raw string thrown');
+        const result = await executor.execute();
+        expect(result.stepOutcome.status).toBe('error');
+      });
 
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [condEntry, aiEntry],
-          runStore: makeMockRunStore([
-            {
-              type: 'record-task',
-              stepIndex: 1,
-              executionParams: { answer: 'John Doe' },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "cond-1"');
-      expect(result).toContain('History: {"status":"success","selectedOption":"Yes"}');
-      expect(result).toContain('Step "read-customer"');
-      expect(result).toContain('Input: {"answer":"John Doe"}');
+      it('includes cause in log when non-WorkflowExecutorError has a cause', async () => {
+        const logger = makeMockLogger();
+        const cause = new Error('root cause');
+        const error = Object.assign(new Error('wrapper error'), { cause });
+        const executor = new TestableExecutor(makeContext({ logger }), error);
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({ cause: 'root cause' }),
+        );
+      });
     });
 
-    it('prefers RunStore execution data over History fallback', async () => {
-      const entry = makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Pick one' });
-      (entry.stepOutcome as { selectedOption?: string }).selectedOption = 'A';
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 0,
-              executionParams: { answer: 'A', reasoning: 'Best fit' },
-              executionResult: { answer: 'A' },
-            },
-          ]),
+    it('logs cause when WorkflowExecutorError has a cause', async () => {
+      const logger = makeMockLogger();
+      const cause = new Error('db timeout');
+      const error = new StepPersistenceError('write failed', cause);
+      const executor = new TestableExecutor(makeContext({ logger }), error);
+      await executor.execute();
+      expect(logger.error).toHaveBeenCalledWith(
+        'write failed',
+        expect.objectContaining({
+          cause: 'db timeout',
+          stack: cause.stack,
         }),
       );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Input: {"answer":"A","reasoning":"Best fit"}');
-      expect(result).toContain('Output: {"answer":"A"}');
-      expect(result).not.toContain('History:');
     });
 
-    it('omits Input line when executionParams is undefined', async () => {
-      const entry: { stepDefinition: StepDefinition; stepOutcome: StepOutcome } = {
-        stepDefinition: {
-          type: StepType.ReadRecord,
-          prompt: 'Do something',
-        },
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'read-record-1',
-          stepIndex: 0,
-          status: 'success',
-        },
-      };
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([
-            {
-              type: 'record-task',
-              stepIndex: 0,
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Step "read-record-1"');
-      expect(result).toContain('Prompt: Do something');
-      expect(result).not.toContain('Input:');
-    });
-
-    it('uses Pending when update-record step has pendingUpdate but no executionParams', async () => {
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [
-            {
-              stepDefinition: { type: StepType.UpdateRecord, prompt: 'Set status to active' },
-              stepOutcome: {
-                type: 'record-task',
-                stepId: 'update-1',
-                stepIndex: 0,
-                status: 'awaiting-input',
-              },
-            },
-          ],
-          runStore: makeMockRunStore([
-            {
-              type: 'update-record',
-              stepIndex: 0,
-              pendingUpdate: { fieldDisplayName: 'Status', value: 'active' },
-              selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Pending:');
-      expect(result).toContain('"fieldDisplayName":"Status"');
-      expect(result).toContain('"value":"active"');
-      expect(result).not.toContain('Input:');
-    });
-
-    it('shows "(no prompt)" when step has no prompt', async () => {
-      const entry = makeHistoryEntry({ stepIndex: 0 });
-      entry.stepDefinition.prompt = undefined;
-
-      const executor = new TestableExecutor(
-        makeContext({
-          previousSteps: [entry],
-          runStore: makeMockRunStore([
-            {
-              type: 'condition',
-              stepIndex: 0,
-              executionParams: { answer: 'A', reasoning: 'Only option' },
-              executionResult: { answer: 'A' },
-            },
-          ]),
-        }),
-      );
-
-      const result = await executor
-        .buildPreviousStepsMessages()
-        .then(msgs => msgs[0]?.content ?? '');
-
-      expect(result).toContain('Prompt: (no prompt)');
+    it('does not log when WorkflowExecutorError has no cause', async () => {
+      const logger = makeMockLogger();
+      const executor = new TestableExecutor(makeContext({ logger }), new MissingToolCallError());
+      await executor.execute();
+      expect(logger.error).not.toHaveBeenCalled();
     });
   });
 

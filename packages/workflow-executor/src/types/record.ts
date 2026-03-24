@@ -6,6 +6,8 @@ export interface FieldSchema {
   fieldName: string;
   displayName: string;
   isRelationship: boolean;
+  /** Cardinality of the relation. Absent for non-relationship fields. */
+  relationType?: 'BelongsTo' | 'HasMany' | 'HasOne';
 }
 
 export interface ActionSchema {
