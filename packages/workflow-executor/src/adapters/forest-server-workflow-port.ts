@@ -14,6 +14,7 @@ const ROUTES = {
   updateStepExecution: (runId: string) => `/liana/v1/workflow-step-executions/${runId}/complete`,
   collectionSchema: (collectionName: string) => `/liana/v1/collections/${collectionName}`,
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
+  runAccess: (runId: string) => `/liana/v1/workflow-runs/${encodeURIComponent(runId)}/access`,
 };
 
 export default class ForestServerWorkflowPort implements WorkflowPort {
@@ -59,5 +60,13 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
 
   async getMcpServerConfigs(): Promise<McpConfiguration[]> {
     return ServerUtils.query<McpConfiguration[]>(this.options, 'get', ROUTES.mcpServerConfigs);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async hasRunAccess(_runId: string, _userToken: string): Promise<boolean> {
+    // TODO: implement once GET /liana/v1/workflow-runs/:runId/access is available.
+    // When live: call ServerUtils.query with extra header 'forest-user-token': userToken
+    // to let the orchestrator verify ownership.
+    return true;
   }
 }

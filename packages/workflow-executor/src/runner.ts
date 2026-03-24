@@ -65,6 +65,7 @@ export default class Runner {
           runStore: this.config.runStore,
           runner: this,
           authSecret: this.config.authSecret,
+          workflowPort: this.config.workflowPort,
         });
         await server.start();
         this.httpServer = server;

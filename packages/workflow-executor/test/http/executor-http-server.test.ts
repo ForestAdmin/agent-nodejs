@@ -1,4 +1,5 @@
 import type { RunStore } from '../../src/ports/run-store';
+import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type Runner from '../../src/runner';
 
 import jsonwebtoken from 'jsonwebtoken';
@@ -30,12 +31,27 @@ function createMockRunner(overrides: Partial<Runner> = {}): Runner {
   } as unknown as Runner;
 }
 
-function createServer(overrides: { runStore?: RunStore; runner?: Runner } = {}) {
+function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): WorkflowPort {
+  return {
+    getPendingStepExecutions: jest.fn().mockResolvedValue([]),
+    getPendingStepExecutionsForRun: jest.fn(),
+    updateStepExecution: jest.fn().mockResolvedValue(undefined),
+    getCollectionSchema: jest.fn(),
+    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    hasRunAccess: jest.fn().mockResolvedValue(true),
+    ...overrides,
+  } as unknown as WorkflowPort;
+}
+
+function createServer(
+  overrides: { runStore?: RunStore; runner?: Runner; workflowPort?: WorkflowPort } = {},
+) {
   return new ExecutorHttpServer({
     port: 0,
     runStore: overrides.runStore ?? createMockRunStore(),
     runner: overrides.runner ?? createMockRunner(),
     authSecret: AUTH_SECRET,
+    workflowPort: overrides.workflowPort ?? createMockWorkflowPort(),
   });
 }
 
@@ -136,6 +152,103 @@ describe('ExecutorHttpServer', () => {
       expect(capturedUser).toEqual(
         expect.objectContaining({ id: 'user-42', email: 'admin@forest.com', firstName: 'Ada' }),
       );
+    });
+  });
+
+  describe('run access authorization', () => {
+    it('returns 403 when hasRunAccess returns false on GET /runs/:runId', async () => {
+      const workflowPort = createMockWorkflowPort({
+        hasRunAccess: jest.fn().mockResolvedValue(false),
+      });
+      const server = createServer({ workflowPort });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({ error: 'Forbidden' });
+    });
+
+    it('returns 403 when hasRunAccess returns false on POST /runs/:runId/trigger', async () => {
+      const workflowPort = createMockWorkflowPort({
+        hasRunAccess: jest.fn().mockResolvedValue(false),
+      });
+      const server = createServer({ workflowPort });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({ error: 'Forbidden' });
+    });
+
+    it('calls hasRunAccess with the correct runId and userToken', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const server = createServer({ workflowPort });
+      const token = signToken({ id: 'user-1' });
+
+      await request(server.callback).get('/runs/run-42').set('Authorization', `Bearer ${token}`);
+
+      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith('run-42', token);
+    });
+
+    it('calls hasRunAccess with token from cookie', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const server = createServer({ workflowPort });
+      const token = signToken({ id: 'user-1' });
+
+      await request(server.callback)
+        .get('/runs/run-cookie')
+        .set('Cookie', `forest_session_token=${token}`);
+
+      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith('run-cookie', token);
+    });
+
+    it('returns 503 when hasRunAccess throws', async () => {
+      const workflowPort = createMockWorkflowPort({
+        hasRunAccess: jest.fn().mockRejectedValue(new Error('orchestrator down')),
+      });
+      const server = createServer({ workflowPort });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(503);
+      expect(response.body).toEqual({ error: 'Service unavailable' });
+    });
+
+    it('does not call getStepExecutions when hasRunAccess returns false', async () => {
+      const runStore = createMockRunStore();
+      const workflowPort = createMockWorkflowPort({
+        hasRunAccess: jest.fn().mockResolvedValue(false),
+      });
+      const server = createServer({ runStore, workflowPort });
+      const token = signToken({ id: 'user-1' });
+
+      await request(server.callback).get('/runs/run-1').set('Authorization', `Bearer ${token}`);
+
+      expect(runStore.getStepExecutions).not.toHaveBeenCalled();
+    });
+
+    it('does not call triggerPoll when hasRunAccess returns false', async () => {
+      const runner = createMockRunner();
+      const workflowPort = createMockWorkflowPort({
+        hasRunAccess: jest.fn().mockResolvedValue(false),
+      });
+      const server = createServer({ runner, workflowPort });
+      const token = signToken({ id: 'user-1' });
+
+      await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(runner.triggerPoll).not.toHaveBeenCalled();
     });
   });
 

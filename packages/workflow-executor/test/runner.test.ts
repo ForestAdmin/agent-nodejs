@@ -43,6 +43,7 @@ function createMockWorkflowPort(): jest.Mocked<WorkflowPort> {
     updateStepExecution: jest.fn().mockResolvedValue(undefined),
     getCollectionSchema: jest.fn(),
     getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }
 
@@ -165,6 +166,7 @@ describe('start', () => {
       runStore: config.runStore,
       runner,
       authSecret: VALID_AUTH_SECRET,
+      workflowPort: config.workflowPort,
     });
     expect(MockedExecutorHttpServer.prototype.start).toHaveBeenCalled();
   });
