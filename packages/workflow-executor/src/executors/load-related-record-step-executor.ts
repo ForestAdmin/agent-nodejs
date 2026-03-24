@@ -38,23 +38,18 @@ interface RelationTarget extends RelationRef {
 export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
-    const pending =
-      await this.findPendingExecution<LoadRelatedRecordStepExecutionData>('load-related-record');
+    const pending = await this.findPendingExecution<LoadRelatedRecordStepExecutionData>(
+      'load-related-record',
+    );
+
     if (pending) {
-      return this.handleConfirmation(pending);
+      return this.handleConfirmationFlow<LoadRelatedRecordStepExecutionData>(pending, async exec =>
+        this.resolveFromSelection(exec),
+      );
     }
 
     // Branches B & C -- First call
     return this.handleFirstCall();
-  }
-
-  private async handleConfirmation(
-    execution: LoadRelatedRecordStepExecutionData,
-  ): Promise<StepExecutionResult> {
-    return this.handleConfirmationFlow<LoadRelatedRecordStepExecutionData>(
-      execution,
-      async exec => this.resolveFromSelection(exec),
-    );
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {

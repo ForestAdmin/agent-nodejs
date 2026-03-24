@@ -27,28 +27,22 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
     const pending =
       await this.findPendingExecution<TriggerRecordActionStepExecutionData>('trigger-action');
     if (pending) {
-      return this.handleConfirmation(pending);
+      return this.handleConfirmationFlow<TriggerRecordActionStepExecutionData>(
+        pending,
+        async exec => {
+          const { selectedRecordRef, pendingData } = exec;
+          const target: ActionTarget = {
+            selectedRecordRef,
+            ...(pendingData as ActionRef),
+          };
+
+          return this.resolveAndExecute(target, exec);
+        },
+      );
     }
 
     // Branches B & C -- First call
     return this.handleFirstCall();
-  }
-
-  private async handleConfirmation(
-    execution: TriggerRecordActionStepExecutionData,
-  ): Promise<StepExecutionResult> {
-    return this.handleConfirmationFlow<TriggerRecordActionStepExecutionData>(
-      execution,
-      async exec => {
-        const { selectedRecordRef, pendingData } = exec;
-        const target: ActionTarget = {
-          selectedRecordRef,
-          ...(pendingData as ActionRef),
-        };
-
-        return this.resolveAndExecute(target, exec);
-      },
-    );
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {

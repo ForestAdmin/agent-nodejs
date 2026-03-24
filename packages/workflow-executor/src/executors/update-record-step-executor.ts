@@ -27,19 +27,7 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<UpdateRecordStepExecutionData>('update-record');
     if (pending) {
-      return this.handleConfirmation(pending);
-    }
-
-    // Branches B & C -- First call
-    return this.handleFirstCall();
-  }
-
-  private async handleConfirmation(
-    execution: UpdateRecordStepExecutionData,
-  ): Promise<StepExecutionResult> {
-    return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(
-      execution,
-      async exec => {
+      return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
         const { selectedRecordRef, pendingData } = exec;
         const target: UpdateTarget = {
           selectedRecordRef,
@@ -47,8 +35,11 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
         };
 
         return this.resolveAndUpdate(target, exec);
-      },
-    );
+      });
+    }
+
+    // Branches B & C -- First call
+    return this.handleFirstCall();
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
