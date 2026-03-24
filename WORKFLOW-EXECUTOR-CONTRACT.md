@@ -134,11 +134,15 @@ After executing a step, the executor posts the outcome back to the server. The b
 
 ## 3. Pending Data
 
-Steps that require user input pause with `status: "awaiting-input"`. The frontend writes `pendingData` to unblock them, via a dedicated endpoint on the executor HTTP server (route TBD — PRD-240).
+Steps that require user input pause with `status: "awaiting-input"`. The frontend writes `pendingData` to unblock them via a dedicated endpoint on the executor HTTP server.
+
+> **TODO** — The pending-data write endpoint is not yet implemented. Route, method, and per-step-type body shapes are TBD (PRD-240).
 
 Once written, the frontend calls `POST /runs/:runId/trigger` and the executor resumes with `userConfirmed: true`.
 
 ### update-record — user picks a field + value to write
+
+> **TODO** — Pending-data write endpoint TBD (PRD-240).
 
 ```typescript
 interface UpdateRecordPendingData {
@@ -160,26 +164,24 @@ POST /runs/:runId/trigger
 
 The frontend can override **both** the relation (field) and the selected record.
 
-> **Current status** — The frontend cannot yet override the AI selection. The executor HTTP server does not yet expose the PATCH endpoint described below. Until it is implemented, the executor writes the AI's pick directly into `selectedRecordId`.
+> **Current status** — The frontend cannot yet override the AI selection. The executor HTTP server does not yet expose the pending-data write endpoint. Until it is implemented, the executor writes the AI's pick directly into `selectedRecordId`.
 
 ```typescript
-// Written by the executor and overwritable by the frontend via PATCH (not yet implemented)
+// Written by the executor; overwritable by the frontend via the pending-data endpoint (TBD)
 interface LoadRelatedRecordPendingData {
   name:                  string;               // technical relation name
   displayName:           string;               // label shown in the UI
   relatedCollectionName: string;               // collection of the related record
   suggestedFields?:      string[];             // fields suggested for display
-  selectedRecordId:      Array<string|number>; // AI's pick; overwritten by the frontend via PATCH
+  selectedRecordId:      Array<string|number>; // AI's pick; overwritten by the frontend via the pending-data endpoint
 }
 ```
 
-The executor initially writes the AI's pick into `selectedRecordId`. The PATCH endpoint overwrites it (and optionally `name`, `displayName`, `relatedCollectionName`) when the user changes the selection.
+The executor initially writes the AI's pick into `selectedRecordId`. The pending-data endpoint overwrites it (and optionally `name`, `displayName`, `relatedCollectionName`) when the user changes the selection.
 
-#### Future endpoint — PATCH pending data (not yet implemented)
+#### Future endpoint — pending-data write (not yet implemented)
 
-```
-PATCH /runs/:runId/steps/:stepIndex/pending-data
-```
+> **TODO** — Route and method TBD (PRD-240).
 
 Request body:
 
@@ -221,7 +223,7 @@ Orchestrator ──► GET pending?runId=X ──► Executor
                    status: awaiting-input          POST /complete
                             │                         (StepOutcome)
                  Frontend writes pendingData
-                 to executor HTTP server
+                 to executor HTTP server       TODO: route TBD
                             │
                   POST /runs/:runId/trigger
                   (next poll: userConfirmed = true)
