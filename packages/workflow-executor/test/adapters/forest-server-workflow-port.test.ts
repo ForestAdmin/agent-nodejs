@@ -123,6 +123,15 @@ describe('ForestServerWorkflowPort', () => {
     });
   });
 
+  describe('hasRunAccess', () => {
+    it('always returns true (stub until orchestrator endpoint is available)', async () => {
+      const result = await port.hasRunAccess('run-42', 'some-token');
+
+      expect(result).toBe(true);
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+  });
+
   describe('error propagation', () => {
     it('should propagate errors from ServerUtils.query', async () => {
       mockQuery.mockRejectedValue(new Error('Network error'));

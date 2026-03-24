@@ -13,4 +13,5 @@ export interface WorkflowPort {
   updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void>;
   getCollectionSchema(collectionName: string): Promise<CollectionSchema>;
   getMcpServerConfigs(): Promise<McpConfiguration[]>;
+  hasRunAccess(runId: string, userToken: string): Promise<boolean>;
 }
