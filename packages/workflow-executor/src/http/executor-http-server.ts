@@ -6,6 +6,7 @@ import type { Server } from 'http';
 import Router from '@koa/router';
 import http from 'http';
 import Koa from 'koa';
+import koaJwt from 'koa-jwt';
 
 import { RunNotFoundError } from '../errors';
 
@@ -13,6 +14,7 @@ export interface ExecutorHttpServerOptions {
   port: number;
   runStore: RunStore;
   runner: Runner;
+  authSecret: string;
   logger?: Logger;
 }
 
@@ -25,11 +27,20 @@ export default class ExecutorHttpServer {
     this.options = options;
     this.app = new Koa();
 
-    // Error middleware — catches all async handler errors and returns structured JSON
+    // Error middleware — catches all errors (including JWT 401) and returns structured JSON
     this.app.use(async (ctx, next) => {
       try {
         await next();
       } catch (err: unknown) {
+        const { status } = err as { status?: number };
+
+        if (status === 401) {
+          ctx.status = 401;
+          ctx.body = { error: 'Unauthorized' };
+
+          return;
+        }
+
         this.options.logger?.error('Unhandled HTTP error', {
           method: ctx.method,
           path: ctx.path,
@@ -40,6 +51,9 @@ export default class ExecutorHttpServer {
         ctx.body = { error: 'Internal server error' };
       }
     });
+
+    // JWT middleware — validates Bearer token using authSecret
+    this.app.use(koaJwt({ secret: options.authSecret, cookie: 'forest_session_token' }));
 
     const router = new Router();
     router.get('/runs/:runId', this.handleGetRun.bind(this));

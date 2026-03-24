@@ -86,6 +86,7 @@ export {
   McpToolNotFoundError,
   McpToolInvocationError,
   AgentPortError,
+  ConfigurationError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
@@ -100,3 +101,4 @@ export { default as ExecutorHttpServer } from './http/executor-http-server';
 export type { ExecutorHttpServerOptions } from './http/executor-http-server';
 export { default as Runner } from './runner';
 export type { RunnerConfig } from './runner';
+export { default as validateSecrets } from './validate-secrets';

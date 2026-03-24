@@ -7,7 +7,7 @@ import type { PendingStepExecution } from '../src/types/execution';
 import type { StepDefinition } from '../src/types/step-definition';
 import type { AiClient, BaseChatModel } from '@forestadmin/ai-proxy';
 
-import { RunNotFoundError } from '../src/errors';
+import { ConfigurationError, RunNotFoundError } from '../src/errors';
 import BaseStepExecutor from '../src/executors/base-step-executor';
 import ConditionStepExecutor from '../src/executors/condition-step-executor';
 import LoadRelatedRecordStepExecutor from '../src/executors/load-related-record-step-executor';
@@ -58,12 +58,17 @@ function createMockLogger(): jest.Mocked<Logger> {
   return { error: jest.fn() };
 }
 
+const VALID_ENV_SECRET = 'a'.repeat(64);
+const VALID_AUTH_SECRET = 'test-auth-secret';
+
 function createRunnerConfig(
   overrides: Partial<{
     workflowPort: WorkflowPort;
     aiClient: AiClient;
     logger: Logger;
     httpPort: number;
+    envSecret: string;
+    authSecret: string;
   }> = {},
 ) {
   return {
@@ -73,6 +78,8 @@ function createRunnerConfig(
     pollingIntervalMs: POLLING_INTERVAL_MS,
     aiClient: createMockAiClient() as unknown as AiClient,
     logger: createMockLogger(),
+    envSecret: VALID_ENV_SECRET,
+    authSecret: VALID_AUTH_SECRET,
     ...overrides,
   };
 }
@@ -157,6 +164,7 @@ describe('start', () => {
       port: 3100,
       runStore: config.runStore,
       runner,
+      authSecret: VALID_AUTH_SECRET,
     });
     expect(MockedExecutorHttpServer.prototype.start).toHaveBeenCalled();
   });
@@ -176,6 +184,20 @@ describe('start', () => {
     await runner.start();
 
     expect(MockedExecutorHttpServer).toHaveBeenCalledTimes(1);
+  });
+
+  it('should throw ConfigurationError when envSecret is invalid', async () => {
+    runner = new Runner(createRunnerConfig({ envSecret: 'bad' }));
+
+    await expect(runner.start()).rejects.toThrow(ConfigurationError);
+    await expect(runner.start()).rejects.toThrow('envSecret must be a 64-character hex string');
+  });
+
+  it('should throw ConfigurationError when authSecret is empty', async () => {
+    runner = new Runner(createRunnerConfig({ authSecret: '' }));
+
+    await expect(runner.start()).rejects.toThrow(ConfigurationError);
+    await expect(runner.start()).rejects.toThrow('authSecret must be a non-empty string');
   });
 });
 

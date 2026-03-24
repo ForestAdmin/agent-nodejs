@@ -10,6 +10,7 @@ import ConsoleLogger from './adapters/console-logger';
 import { RunNotFoundError, causeMessage } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import ExecutorHttpServer from './http/executor-http-server';
+import validateSecrets from './validate-secrets';
 
 export interface RunnerConfig {
   agentPort: AgentPort;
@@ -17,6 +18,8 @@ export interface RunnerConfig {
   runStore: RunStore;
   pollingIntervalMs: number;
   aiClient: AiClient;
+  envSecret: string;
+  authSecret: string;
   logger?: Logger;
   httpPort?: number;
 }
@@ -50,6 +53,9 @@ export default class Runner {
 
   async start(): Promise<void> {
     if (this.isRunning) return;
+
+    validateSecrets({ envSecret: this.config.envSecret, authSecret: this.config.authSecret });
+
     this.isRunning = true;
 
     try {
@@ -58,6 +64,7 @@ export default class Runner {
           port: this.config.httpPort,
           runStore: this.config.runStore,
           runner: this,
+          authSecret: this.config.authSecret,
         });
         await server.start();
         this.httpServer = server;
