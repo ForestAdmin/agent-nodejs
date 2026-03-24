@@ -738,11 +738,20 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('confirmation accepted (Branch A)', () => {
     it('uses selectedRecordId from pendingData, no getRelatedData call', async () => {
       const agentPort = makeMockAgentPort();
-      const execution = makePendingExecution(); // selectedRecordId: [99]
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          relatedCollectionName: 'orders',
+          suggestedFields: ['status', 'amount'],
+          selectedRecordId: [99],
+          userConfirmed: true,
+        },
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ agentPort, runStore, userConfirmed: true });
+      const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -776,12 +785,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedCollectionName: 'orders',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [42],
+          userConfirmed: true,
         },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ agentPort, runStore, userConfirmed: true });
+      const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -802,11 +812,20 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('confirmation rejected (Branch A)', () => {
     it('skips the load when user rejects', async () => {
       const agentPort = makeMockAgentPort();
-      const execution = makePendingExecution();
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          relatedCollectionName: 'orders',
+          suggestedFields: ['status', 'amount'],
+          selectedRecordId: [99],
+          userConfirmed: false,
+        },
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ agentPort, runStore, userConfirmed: false });
+      const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -823,26 +842,25 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('no pending data in confirmation flow (Branch A)', () => {
-    it('returns error outcome when no execution record is found', async () => {
+  describe('trigger before PATCH (Branch A)', () => {
+    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
+      const agentPort = makeMockAgentPort();
+      const execution = makePendingExecution(); // pendingData has no userConfirmed
       const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([]),
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'load-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
+  });
 
+  describe('no pending data in confirmation flow (Branch A)', () => {
     it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
@@ -853,7 +871,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           },
         ]),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -981,12 +999,21 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('returns error outcome when saveStepExecution fails after load (Branch A confirmed)', async () => {
-      const execution = makePendingExecution();
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          relatedCollectionName: 'orders',
+          suggestedFields: ['status', 'amount'],
+          selectedRecordId: [99],
+          userConfirmed: true,
+        },
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const context = makeContext({ runId: 'run-1', stepIndex: 0, runStore, userConfirmed: true });
+      const context = makeContext({ runId: 'run-1', stepIndex: 0, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -1317,7 +1344,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -1337,12 +1364,21 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('returns error outcome when saveStepExecution fails on user reject (Branch A)', async () => {
-      const execution = makePendingExecution();
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          relatedCollectionName: 'orders',
+          suggestedFields: ['status', 'amount'],
+          selectedRecordId: [99],
+          userConfirmed: false,
+        },
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const context = makeContext({ runStore, userConfirmed: false });
+      const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();

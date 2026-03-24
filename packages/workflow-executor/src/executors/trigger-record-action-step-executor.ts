@@ -23,26 +23,30 @@ interface ActionTarget extends ActionRef {
 
 export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
-    // Branch A -- Re-entry with user confirmation
-    if (this.context.userConfirmed !== undefined) {
-      return this.handleConfirmation();
+    // Branch A -- Re-entry after pending execution found in RunStore
+    const pending =
+      await this.findPendingExecution<TriggerRecordActionStepExecutionData>('trigger-action');
+    if (pending) {
+      return this.handleConfirmation(pending);
     }
 
     // Branches B & C -- First call
     return this.handleFirstCall();
   }
 
-  private async handleConfirmation(): Promise<StepExecutionResult> {
+  private async handleConfirmation(
+    execution: TriggerRecordActionStepExecutionData,
+  ): Promise<StepExecutionResult> {
     return this.handleConfirmationFlow<TriggerRecordActionStepExecutionData>(
-      'trigger-action',
-      async execution => {
-        const { selectedRecordRef, pendingData } = execution;
+      execution,
+      async exec => {
+        const { selectedRecordRef, pendingData } = exec;
         const target: ActionTarget = {
           selectedRecordRef,
           ...(pendingData as ActionRef),
         };
 
-        return this.resolveAndExecute(target, execution);
+        return this.resolveAndExecute(target, exec);
       },
     );
   }
