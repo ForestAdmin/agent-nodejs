@@ -1,15 +1,17 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-type BaseStepStatus = 'success' | 'error';
+import { StepType } from './step-definition';
+
+export type BaseStepStatus = 'success' | 'error';
 
 /** Condition steps can fall back to human decision when the AI is uncertain. */
 export type ConditionStepStatus = BaseStepStatus | 'manual-decision';
 
-/** AI task steps can pause mid-execution to await user input (e.g. tool confirmation). */
-export type AiTaskStepStatus = BaseStepStatus | 'awaiting-input';
+/** AI task steps can pause mid-execution to await user input (e.g. awaiting-input). */
+export type RecordTaskStepStatus = BaseStepStatus | 'awaiting-input';
 
 /** Union of all step statuses. */
-export type StepStatus = ConditionStepStatus | AiTaskStepStatus;
+export type StepStatus = ConditionStepStatus | RecordTaskStepStatus;
 
 /**
  * StepOutcome is sent to the orchestrator — it must NEVER contain client data.
@@ -30,9 +32,21 @@ export interface ConditionStepOutcome extends BaseStepOutcome {
   selectedOption?: string;
 }
 
-export interface AiTaskStepOutcome extends BaseStepOutcome {
-  type: 'ai-task';
-  status: AiTaskStepStatus;
+export interface RecordTaskStepOutcome extends BaseStepOutcome {
+  type: 'record-task';
+  status: RecordTaskStepStatus;
 }
 
-export type StepOutcome = ConditionStepOutcome | AiTaskStepOutcome;
+export interface McpTaskStepOutcome extends BaseStepOutcome {
+  type: 'mcp-task';
+  status: RecordTaskStepStatus;
+}
+
+export type StepOutcome = ConditionStepOutcome | RecordTaskStepOutcome | McpTaskStepOutcome;
+
+export function stepTypeToOutcomeType(type: StepType): 'condition' | 'record-task' | 'mcp-task' {
+  if (type === StepType.Condition) return 'condition';
+  if (type === StepType.McpTask) return 'mcp-task';
+
+  return 'record-task';
+}

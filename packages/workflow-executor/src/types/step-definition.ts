@@ -6,6 +6,7 @@ export enum StepType {
   UpdateRecord = 'update-record',
   TriggerAction = 'trigger-action',
   LoadRelatedRecord = 'load-related-record',
+  McpTask = 'mcp-task',
 }
 
 interface BaseStepDefinition {
@@ -19,12 +20,18 @@ export interface ConditionStepDefinition extends BaseStepDefinition {
   options: [string, ...string[]];
 }
 
-export interface AiTaskStepDefinition extends BaseStepDefinition {
-  type: Exclude<StepType, StepType.Condition>;
-  recordSourceStepId?: string;
-  automaticCompletion?: boolean;
-  allowedTools?: string[];
-  remoteToolsSourceId?: string;
+export interface RecordTaskStepDefinition extends BaseStepDefinition {
+  type: Exclude<StepType, StepType.Condition | StepType.McpTask>;
+  automaticExecution?: boolean;
 }
 
-export type StepDefinition = ConditionStepDefinition | AiTaskStepDefinition;
+export interface McpTaskStepDefinition extends BaseStepDefinition {
+  type: StepType.McpTask;
+  mcpServerId?: string;
+  automaticExecution?: boolean;
+}
+
+export type StepDefinition =
+  | ConditionStepDefinition
+  | RecordTaskStepDefinition
+  | McpTaskStepDefinition;

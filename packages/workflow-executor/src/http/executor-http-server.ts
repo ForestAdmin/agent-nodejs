@@ -1,3 +1,4 @@
+import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type Runner from '../runner';
 import type { Server } from 'http';
@@ -6,10 +7,13 @@ import Router from '@koa/router';
 import http from 'http';
 import Koa from 'koa';
 
+import { RunNotFoundError } from '../errors';
+
 export interface ExecutorHttpServerOptions {
   port: number;
   runStore: RunStore;
   runner: Runner;
+  logger?: Logger;
 }
 
 export default class ExecutorHttpServer {
@@ -26,8 +30,14 @@ export default class ExecutorHttpServer {
       try {
         await next();
       } catch (err: unknown) {
+        this.options.logger?.error('Unhandled HTTP error', {
+          method: ctx.method,
+          path: ctx.path,
+          error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        });
         ctx.status = 500;
-        ctx.body = { error: err instanceof Error ? err.message : 'Internal server error' };
+        ctx.body = { error: 'Internal server error' };
       }
     });
 
@@ -80,7 +90,18 @@ export default class ExecutorHttpServer {
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
 
-    await this.options.runner.triggerPoll(runId);
+    try {
+      await this.options.runner.triggerPoll(runId);
+    } catch (err) {
+      if (err instanceof RunNotFoundError) {
+        ctx.status = 404;
+        ctx.body = { error: 'Run not found or unavailable' };
+
+        return;
+      }
+
+      throw err;
+    }
 
     ctx.status = 200;
     ctx.body = { triggered: true };
