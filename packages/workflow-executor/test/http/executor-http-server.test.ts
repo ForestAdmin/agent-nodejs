@@ -3,6 +3,7 @@ import type Runner from '../../src/runner';
 
 import request from 'supertest';
 
+import { RunNotFoundError } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
 function createMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
@@ -58,7 +59,7 @@ describe('ExecutorHttpServer', () => {
       const response = await request(server.callback).get('/runs/run-1');
 
       expect(response.status).toBe(500);
-      expect(response.body).toEqual({ error: 'db error' });
+      expect(response.body).toEqual({ error: 'Internal server error' });
     });
   });
 
@@ -79,9 +80,26 @@ describe('ExecutorHttpServer', () => {
       expect(runner.triggerPoll).toHaveBeenCalledWith('run-1');
     });
 
-    it('should propagate errors from runner', async () => {
+    it('returns 404 when triggerPoll rejects with RunNotFoundError', async () => {
       const runner = createMockRunner({
-        triggerPoll: jest.fn().mockRejectedValue(new Error('poll failed')),
+        triggerPoll: jest.fn().mockRejectedValue(new RunNotFoundError('run-1')),
+      });
+
+      const server = new ExecutorHttpServer({
+        port: 0,
+        runStore: createMockRunStore(),
+        runner,
+      });
+
+      const response = await request(server.callback).post('/runs/run-1/trigger');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Run not found or unavailable' });
+    });
+
+    it('returns 500 when triggerPoll rejects with an unexpected error', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new Error('unexpected')),
       });
 
       const server = new ExecutorHttpServer({
@@ -93,7 +111,7 @@ describe('ExecutorHttpServer', () => {
       const response = await request(server.callback).post('/runs/run-1/trigger');
 
       expect(response.status).toBe(500);
-      expect(response.body).toEqual({ error: 'poll failed' });
+      expect(response.body).toEqual({ error: 'Internal server error' });
     });
   });
 

@@ -30,3 +30,9 @@ export function validToolConfigurationOrThrow(
 ) {
   return ToolSourceChecker.check(configs, logger);
 }
+
+export type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+export type { BaseMessage } from '@langchain/core/messages';
+export { HumanMessage, SystemMessage } from '@langchain/core/messages';
+export type { StructuredToolInterface } from '@langchain/core/tools';
+export { DynamicStructuredTool } from '@langchain/core/tools';
