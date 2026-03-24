@@ -1,11 +1,13 @@
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
+import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
 import type { Server } from 'http';
 
 import Router from '@koa/router';
 import http from 'http';
 import Koa from 'koa';
+import koaJwt from 'koa-jwt';
 
 import { RunNotFoundError } from '../errors';
 
@@ -13,6 +15,8 @@ export interface ExecutorHttpServerOptions {
   port: number;
   runStore: RunStore;
   runner: Runner;
+  authSecret: string;
+  workflowPort: WorkflowPort;
   logger?: Logger;
 }
 
@@ -25,11 +29,20 @@ export default class ExecutorHttpServer {
     this.options = options;
     this.app = new Koa();
 
-    // Error middleware — catches all async handler errors and returns structured JSON
+    // Error middleware — catches all errors (including JWT 401) and returns structured JSON
     this.app.use(async (ctx, next) => {
       try {
         await next();
       } catch (err: unknown) {
+        const { status } = err as { status?: number };
+
+        if (status === 401) {
+          ctx.status = 401;
+          ctx.body = { error: 'Unauthorized' };
+
+          return;
+        }
+
         this.options.logger?.error('Unhandled HTTP error', {
           method: ctx.method,
           path: ctx.path,
@@ -41,7 +54,46 @@ export default class ExecutorHttpServer {
       }
     });
 
+    // JWT middleware — validates Bearer token using authSecret
+    // tokenKey: 'rawToken' exposes the raw token string on ctx.state.rawToken for downstream use
+    this.app.use(
+      koaJwt({ secret: options.authSecret, cookie: 'forest_session_token', tokenKey: 'rawToken' }),
+    );
+
     const router = new Router();
+
+    // Authorization middleware — verifies that the authenticated user owns the requested run.
+    // Applied to all /runs/:runId routes so future routes are automatically protected.
+    router.use('/runs/:runId', async (ctx, next) => {
+      // Raw token is always present here: koa-jwt already rejected the request if missing.
+      const userToken = ctx.state.rawToken as string;
+
+      try {
+        const allowed = await this.options.workflowPort.hasRunAccess(ctx.params.runId, userToken);
+
+        if (!allowed) {
+          ctx.status = 403;
+          ctx.body = { error: 'Forbidden' };
+
+          return;
+        }
+      } catch (err) {
+        this.options.logger?.error('Failed to check run access', {
+          runId: ctx.params.runId,
+          method: ctx.method,
+          path: ctx.path,
+          error: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        });
+        ctx.status = 503;
+        ctx.body = { error: 'Service unavailable' };
+
+        return;
+      }
+
+      await next();
+    });
+
     router.get('/runs/:runId', this.handleGetRun.bind(this));
     router.post('/runs/:runId/trigger', this.handleTrigger.bind(this));
 
