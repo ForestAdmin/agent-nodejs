@@ -314,7 +314,11 @@ describe('McpTaskStepExecutor', () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
         stepIndex: 0,
-        pendingData: { name: 'send_notification', input: { message: 'Hello' }, userConfirmed: true },
+        pendingData: {
+          name: 'send_notification',
+          input: { message: 'Hello' },
+          userConfirmed: true,
+        },
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -332,7 +336,11 @@ describe('McpTaskStepExecutor', () => {
           type: 'mcp-task',
           executionParams: { name: 'send_notification', input: { message: 'Hello' } },
           executionResult: { success: true, toolResult: 'email sent' },
-          pendingData: { name: 'send_notification', input: { message: 'Hello' }, userConfirmed: true },
+          pendingData: {
+            name: 'send_notification',
+            input: { message: 'Hello' },
+            userConfirmed: true,
+          },
         }),
       );
     });
@@ -349,7 +357,11 @@ describe('McpTaskStepExecutor', () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
         stepIndex: 0,
-        pendingData: { name: 'send_notification', input: { message: 'Hello' }, userConfirmed: false },
+        pendingData: {
+          name: 'send_notification',
+          input: { message: 'Hello' },
+          userConfirmed: false,
+        },
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -365,7 +377,11 @@ describe('McpTaskStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: { name: 'send_notification', input: { message: 'Hello' }, userConfirmed: false },
+          pendingData: {
+            name: 'send_notification',
+            input: { message: 'Hello' },
+            userConfirmed: false,
+          },
         }),
       );
     });
@@ -519,7 +535,11 @@ describe('McpTaskStepExecutor', () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
         stepIndex: 0,
-        pendingData: { name: 'send_notification', input: { message: 'Hello' }, userConfirmed: true },
+        pendingData: {
+          name: 'send_notification',
+          input: { message: 'Hello' },
+          userConfirmed: true,
+        },
       };
       const logger = { error: jest.fn() };
       const runStore = makeMockRunStore({

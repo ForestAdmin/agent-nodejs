@@ -50,6 +50,7 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpTaskStepDef
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<McpTaskStepExecutionData>('mcp-task');
+
     if (pending) {
       return this.handleConfirmationFlow<McpTaskStepExecutionData>(pending, execution =>
         this.executeToolAndPersist(execution.pendingData as McpToolCall, execution),

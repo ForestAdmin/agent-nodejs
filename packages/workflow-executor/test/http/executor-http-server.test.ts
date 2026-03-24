@@ -354,7 +354,11 @@ describe('ExecutorHttpServer', () => {
 
   describe('PATCH /runs/:runId/steps/:stepIndex/pending-data', () => {
     it('returns 204 and merges userConfirmed:true into pendingData', async () => {
-      const existing = { type: 'update-record' as const, stepIndex: 2, pendingData: { fieldName: 'status', value: 'active' } };
+      const existing = {
+        type: 'update-record' as const,
+        stepIndex: 2,
+        pendingData: { fieldName: 'status', value: 'active' },
+      };
       const runStore = createMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([existing]),
         saveStepExecution: jest.fn().mockResolvedValue(undefined),
@@ -376,7 +380,11 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('returns 204 and merges userConfirmed:false into pendingData', async () => {
-      const existing = { type: 'trigger-action' as const, stepIndex: 0, pendingData: { name: 'send_email', displayName: 'Send Email' } };
+      const existing = {
+        type: 'trigger-action' as const,
+        stepIndex: 0,
+        pendingData: { name: 'send_email', displayName: 'Send Email' },
+      };
       const runStore = createMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([existing]),
         saveStepExecution: jest.fn().mockResolvedValue(undefined),

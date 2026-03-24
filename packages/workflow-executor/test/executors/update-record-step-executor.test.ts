@@ -202,7 +202,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active', userConfirmed: true },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -225,7 +230,12 @@ describe('UpdateRecordStepExecutor', () => {
           type: 'update-record',
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
-          pendingData: expect.objectContaining({ displayName: 'Status', name: 'status', value: 'active', userConfirmed: true }),
+          pendingData: expect.objectContaining({
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            userConfirmed: true,
+          }),
         }),
       );
     });
@@ -237,7 +247,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active', userConfirmed: false },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: false,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -254,7 +269,12 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: expect.objectContaining({ displayName: 'Status', name: 'status', value: 'active', userConfirmed: false }),
+          pendingData: expect.objectContaining({
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            userConfirmed: false,
+          }),
         }),
       );
     });
@@ -567,7 +587,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active', userConfirmed: true },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -614,7 +639,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active', userConfirmed: true },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -728,7 +758,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active', userConfirmed: false },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: false,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({

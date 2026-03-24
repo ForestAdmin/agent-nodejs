@@ -26,6 +26,7 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<UpdateRecordStepExecutionData>('update-record');
+
     if (pending) {
       return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
         const { selectedRecordRef, pendingData } = exec;

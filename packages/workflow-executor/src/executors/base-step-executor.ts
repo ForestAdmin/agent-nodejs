@@ -3,7 +3,7 @@ import type { ExecutionContext, IStepExecutor, StepExecutionResult } from '../ty
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { BaseStepStatus, StepStatus } from '../types/step-outcome';
+import type { StepStatus } from '../types/step-outcome';
 import type { BaseMessage, StructuredToolInterface } from '@forestadmin/ai-proxy';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';

@@ -24,8 +24,10 @@ interface ActionTarget extends ActionRef {
 export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
-    const pending =
-      await this.findPendingExecution<TriggerRecordActionStepExecutionData>('trigger-action');
+    const pending = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
+      'trigger-action',
+    );
+
     if (pending) {
       return this.handleConfirmationFlow<TriggerRecordActionStepExecutionData>(
         pending,
