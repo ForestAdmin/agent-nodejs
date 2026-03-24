@@ -111,6 +111,32 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(200);
     });
+
+    it('should populate ctx.state.user with the decoded JWT payload', async () => {
+      let capturedUser: unknown;
+
+      // Build a thin Koa app with the same JWT config to prove user extraction
+      const Koa = (await import('koa')).default;
+      const koaJwt = (await import('koa-jwt')).default;
+      const app = new Koa();
+      app.use(koaJwt({ secret: AUTH_SECRET, cookie: 'forest_session_token' }));
+      app.use(async ctx => {
+        capturedUser = ctx.state.user;
+        ctx.body = { ok: true };
+      });
+
+      const token = signToken({
+        id: 'user-42',
+        email: 'admin@forest.com',
+        firstName: 'Ada',
+      });
+
+      await request(app.callback()).get('/').set('Authorization', `Bearer ${token}`);
+
+      expect(capturedUser).toEqual(
+        expect.objectContaining({ id: 'user-42', email: 'admin@forest.com', firstName: 'Ada' }),
+      );
+    });
   });
 
   describe('GET /runs/:runId', () => {
