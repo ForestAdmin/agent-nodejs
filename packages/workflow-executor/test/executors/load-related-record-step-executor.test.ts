@@ -52,12 +52,19 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
     primaryKeyFields: ['id'],
     fields: [
       { fieldName: 'email', displayName: 'Email', isRelationship: false },
-      { fieldName: 'order', displayName: 'Order', isRelationship: true, relationType: 'BelongsTo' },
+      {
+        fieldName: 'order',
+        displayName: 'Order',
+        isRelationship: true,
+        relationType: 'BelongsTo',
+        relatedCollectionName: 'orders',
+      },
       {
         fieldName: 'address',
         displayName: 'Address',
         isRelationship: true,
         relationType: 'HasMany',
+        relatedCollectionName: 'addresses',
       },
     ],
     actions: [],
@@ -67,8 +74,6 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
-    init: jest.fn().mockResolvedValue(undefined),
-    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -135,7 +140,6 @@ function makePendingExecution(
     pendingData: {
       displayName: 'Order',
       name: 'order',
-      relatedCollectionName: 'orders',
       selectedRecordId: [99],
       suggestedFields: ['status', 'amount'],
     },
@@ -591,7 +595,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
           pendingData: {
             displayName: 'Order',
             name: 'order',
-            relatedCollectionName: 'orders',
             selectedRecordId: [99],
             suggestedFields: [],
           },
@@ -664,7 +667,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
           pendingData: {
             displayName: 'Order',
             name: 'order',
-            relatedCollectionName: 'orders',
             selectedRecordId: [2], // record at index 1
             suggestedFields: ['status'],
           },
@@ -744,9 +746,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
         pendingData: {
           displayName: 'Order',
           name: 'order',
-          relatedCollectionName: 'orders',
-          selectedRecordId: [99],
           suggestedFields: ['status', 'amount'],
+          selectedRecordId: [99],
           userConfirmed: true,
         },
       });
@@ -771,7 +772,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
           pendingData: expect.objectContaining({
             displayName: 'Order',
             name: 'order',
-            relatedCollectionName: 'orders',
             selectedRecordId: [99],
           }),
         }),
@@ -784,7 +784,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         pendingData: {
           displayName: 'Order',
           name: 'order',
-          relatedCollectionName: 'orders',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [42],
           userConfirmed: true,
@@ -811,6 +810,158 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
+  describe('resolveFromSelection — relatedCollectionName resolution (Branch A)', () => {
+    it('derives relatedCollectionName from schema when confirmed', async () => {
+      const schema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'order',
+            displayName: 'Order',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'orders',
+          },
+        ],
+      });
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          suggestedFields: [],
+          selectedRecordId: [99],
+          userConfirmed: true,
+        },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const workflowPort = makeMockWorkflowPort({ customers: schema });
+      const context = makeContext({ runStore, workflowPort });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ collectionName: 'orders', recordId: [99] }),
+          }),
+        }),
+      );
+    });
+
+    it('returns error when schema has no relatedCollectionName for the relation', async () => {
+      const schema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'order',
+            displayName: 'Order',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            // relatedCollectionName intentionally absent
+          },
+        ],
+      });
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          suggestedFields: [],
+          selectedRecordId: [99],
+          userConfirmed: true,
+        },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const workflowPort = makeMockWorkflowPort({ customers: schema });
+      const context = makeContext({ runStore, workflowPort });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('uses overridden relation name from pendingData to derive relatedCollectionName', async () => {
+      const schema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'order',
+            displayName: 'Order',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'orders',
+          },
+          {
+            fieldName: 'address',
+            displayName: 'Address',
+            isRelationship: true,
+            relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
+          },
+        ],
+      });
+      // User overrode AI's suggestion of 'order' to 'address' via PATCH
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Address',
+          name: 'address',
+          suggestedFields: [],
+          selectedRecordId: [77],
+          userConfirmed: true,
+        },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const workflowPort = makeMockWorkflowPort({ customers: schema });
+      const context = makeContext({ runStore, workflowPort });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ collectionName: 'addresses', recordId: [77] }),
+          }),
+        }),
+      );
+    });
+
+    it('calls getCollectionSchema with selectedRecordRef.collectionName', async () => {
+      const execution = makePendingExecution({
+        selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          suggestedFields: [],
+          selectedRecordId: [99],
+          userConfirmed: true,
+        },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const workflowPort = makeMockWorkflowPort({ customers: makeCollectionSchema() });
+      const context = makeContext({ runStore, workflowPort });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith('customers');
+    });
+  });
+
   describe('confirmation rejected (Branch A)', () => {
     it('skips the load when user rejects', async () => {
       const agentPort = makeMockAgentPort();
@@ -818,9 +969,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
         pendingData: {
           displayName: 'Order',
           name: 'order',
-          relatedCollectionName: 'orders',
-          selectedRecordId: [99],
           suggestedFields: ['status', 'amount'],
+          selectedRecordId: [99],
           userConfirmed: false,
         },
       });
@@ -844,21 +994,25 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('no pending data in confirmation flow (Branch A)', () => {
-    it('falls through to first-call path when no execution record is found', async () => {
+  describe('trigger before PATCH (Branch A)', () => {
+    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
+      const agentPort = makeMockAgentPort();
+      const execution = makePendingExecution(); // pendingData has no userConfirmed
       const runStore = makeMockRunStore({
-        init: jest.fn().mockResolvedValue(undefined),
-        close: jest.fn().mockResolvedValue(undefined),
-        getStepExecutions: jest.fn().mockResolvedValue([]),
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore });
+      const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
+  });
 
+  describe('no pending data in confirmation flow (Branch A)', () => {
     it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
@@ -1001,9 +1155,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
         pendingData: {
           displayName: 'Order',
           name: 'order',
-          relatedCollectionName: 'orders',
-          selectedRecordId: [99],
           suggestedFields: ['status', 'amount'],
+          selectedRecordId: [99],
           userConfirmed: true,
         },
       });
@@ -1247,7 +1400,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
           pendingData: expect.objectContaining({
             displayName: 'Invoice',
             name: 'invoice',
-            relatedCollectionName: 'invoices',
             selectedRecordId: [55],
           }),
           selectedRecordRef: expect.objectContaining({ recordId: [99], collectionName: 'orders' }),
@@ -1366,9 +1518,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
         pendingData: {
           displayName: 'Order',
           name: 'order',
-          relatedCollectionName: 'orders',
-          selectedRecordId: [99],
           suggestedFields: ['status', 'amount'],
+          selectedRecordId: [99],
           userConfirmed: false,
         },
       });
@@ -1452,7 +1603,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         pendingData: {
           displayName: 'Invoice',
           name: 'invoice',
-          relatedCollectionName: 'invoices',
           selectedRecordId: [55],
         },
       };

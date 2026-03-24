@@ -115,7 +115,7 @@ export interface LoadRelatedRecordPendingData extends RelationRef {
   suggestedFields?: string[];
   /**
    * The record id to load. Initially set by the AI. Can be overridden by the frontend
-   * (future iteration — the current PATCH endpoint only accepts userConfirmed).
+   * via PATCH /runs/:runId/steps/:stepIndex/pending-data.
    */
   selectedRecordId: Array<string | number>;
   /** Set by the frontend via PATCH /runs/:runId/steps/:stepIndex/pending-data. */
