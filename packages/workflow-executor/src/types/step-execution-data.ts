@@ -111,8 +111,6 @@ export interface RecordTaskStepExecutionData extends BaseStepExecutionData {
 // -- Load Related Record --
 
 export interface LoadRelatedRecordPendingData extends RelationRef {
-  /** Collection name of the related records — needed to build RecordRef in Branch A. */
-  relatedCollectionName: string;
   /** AI-selected fields suggested for display on the frontend. undefined = not computed (no non-relation fields). */
   suggestedFields?: string[];
   /**
