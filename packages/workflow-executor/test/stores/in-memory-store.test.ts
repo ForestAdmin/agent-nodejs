@@ -44,6 +44,15 @@ describe('InMemoryStore', () => {
     expect(result).toContainEqual(step1);
   });
 
+  it('returns steps ordered by stepIndex even when inserted out of order', async () => {
+    await store.saveStepExecution('run-1', makeStepExecution({ stepIndex: 2 }));
+    await store.saveStepExecution('run-1', makeStepExecution({ stepIndex: 0 }));
+    await store.saveStepExecution('run-1', makeStepExecution({ stepIndex: 1 }));
+
+    const result = await store.getStepExecutions('run-1');
+    expect(result.map(s => s.stepIndex)).toEqual([0, 1, 2]);
+  });
+
   it('overwrites step execution with the same stepIndex (upsert)', async () => {
     const original = makeStepExecution({ stepIndex: 0 });
     const updated = makeStepExecution({

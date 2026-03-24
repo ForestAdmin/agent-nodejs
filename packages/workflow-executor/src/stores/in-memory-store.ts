@@ -9,7 +9,7 @@ export default class InMemoryStore implements RunStore {
 
     if (!runData) return [];
 
-    return [...runData.values()];
+    return [...runData.values()].sort((a, b) => a.stepIndex - b.stepIndex);
   }
 
   async saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void> {

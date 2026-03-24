@@ -89,19 +89,21 @@ export default class DatabaseStore implements RunStore {
   }
 
   async saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void> {
-    const now = new Date();
-    const data = JSON.stringify(stepExecution);
-    const replacements = { runId, stepIndex: stepExecution.stepIndex, data, now };
+    await this.sequelize.transaction(async transaction => {
+      const now = new Date();
+      const data = JSON.stringify(stepExecution);
+      const replacements = { runId, stepIndex: stepExecution.stepIndex, data, now };
 
-    // Delete + insert: dialect-agnostic upsert (avoids dialect-specific ON CONFLICT / ON DUPLICATE)
-    await this.sequelize.query(
-      `DELETE FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex`,
-      { replacements },
-    );
-    await this.sequelize.query(
-      `INSERT INTO ${TABLE_NAME} (run_id, step_index, data, created_at, updated_at) VALUES (:runId, :stepIndex, :data, :now, :now)`,
-      { replacements },
-    );
+      // Delete + insert in transaction: dialect-agnostic upsert (avoids ON CONFLICT / ON DUPLICATE)
+      await this.sequelize.query(
+        `DELETE FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex`,
+        { replacements, transaction },
+      );
+      await this.sequelize.query(
+        `INSERT INTO ${TABLE_NAME} (run_id, step_index, data, created_at, updated_at) VALUES (:runId, :stepIndex, :data, :now, :now)`,
+        { replacements, transaction },
+      );
+    });
   }
 
   async close(): Promise<void> {
