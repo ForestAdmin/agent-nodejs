@@ -856,6 +856,25 @@ describe('error handling', () => {
 });
 
 // ---------------------------------------------------------------------------
+// getRunStepExecutions
+// ---------------------------------------------------------------------------
+
+describe('getRunStepExecutions', () => {
+  it('delegates to runStore.getStepExecutions and returns the result', async () => {
+    const steps = [{ type: 'condition' as const, stepIndex: 0 }];
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue(steps),
+    });
+    runner = new Runner(createRunnerConfig({ runStore }));
+
+    const result = await runner.getRunStepExecutions('run-1');
+
+    expect(result).toEqual(steps);
+    expect(runStore.getStepExecutions).toHaveBeenCalledWith('run-1');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // patchPendingData
 // ---------------------------------------------------------------------------
 
