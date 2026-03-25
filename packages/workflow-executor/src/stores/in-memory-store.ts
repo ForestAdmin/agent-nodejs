@@ -4,6 +4,14 @@ import type { StepExecutionData } from '../types/step-execution-data';
 export default class InMemoryStore implements RunStore {
   private readonly data = new Map<string, Map<number, StepExecutionData>>();
 
+  async init(): Promise<void> {
+    // No-op: in-memory store requires no initialization
+  }
+
+  async close(): Promise<void> {
+    // No-op: nothing to clean up
+  }
+
   async getStepExecutions(runId: string): Promise<StepExecutionData[]> {
     const runData = this.data.get(runId);
 

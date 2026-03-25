@@ -75,7 +75,12 @@ function createRunnerConfig(
   return {
     agentPort: {} as AgentPort,
     workflowPort: createMockWorkflowPort(),
-    runStore: {} as RunStore,
+    runStore: {
+      init: jest.fn().mockResolvedValue(undefined),
+      close: jest.fn().mockResolvedValue(undefined),
+      getStepExecutions: jest.fn().mockResolvedValue([]),
+      saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    } as unknown as RunStore,
     pollingIntervalMs: POLLING_INTERVAL_MS,
     aiClient: createMockAiClient() as unknown as AiClient,
     logger: createMockLogger(),

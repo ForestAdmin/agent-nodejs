@@ -20,7 +20,7 @@ describe('DatabaseStore (SQLite)', () => {
   beforeEach(async () => {
     sequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false });
     store = new DatabaseStore({ sequelize });
-    await store.migrate();
+    await store.init();
   });
 
   afterEach(async () => {
@@ -104,8 +104,8 @@ describe('DatabaseStore (SQLite)', () => {
     expect(result[0]).toEqual(step);
   });
 
-  it('runs migrations idempotently', async () => {
-    // Running migrate a second time should not fail
-    await expect(store.migrate()).resolves.toBeUndefined();
+  it('runs init idempotently', async () => {
+    // Running init a second time should not fail
+    await expect(store.init()).resolves.toBeUndefined();
   });
 });

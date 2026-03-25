@@ -18,7 +18,7 @@ export default class DatabaseStore implements RunStore {
     this.sequelize = options.sequelize;
   }
 
-  async migrate(): Promise<void> {
+  async init(): Promise<void> {
     const umzug = new Umzug({
       migrations: [
         {
