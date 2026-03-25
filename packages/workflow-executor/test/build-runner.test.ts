@@ -152,25 +152,29 @@ describe('buildDatabaseExecutor', () => {
     );
   });
 
-  it('creates Sequelize with uri, dialect, and logging disabled by default', () => {
+  it('creates Sequelize with uri and passes remaining options through', () => {
     buildDatabaseExecutor(DB_OPTIONS);
 
     expect(MockedSequelize).toHaveBeenCalledWith('postgres://localhost/mydb', {
       dialect: 'postgres',
-      logging: false,
     });
   });
 
-  it('enables Sequelize logging when database.logging is true', () => {
+  it('passes extra Sequelize options (logging, pool, ssl, etc.)', () => {
     buildDatabaseExecutor({
       ...BASE_OPTIONS,
-      database: { uri: 'postgres://localhost/mydb', dialect: 'postgres', logging: true },
+      database: {
+        uri: 'postgres://localhost/mydb',
+        dialect: 'postgres',
+        logging: false,
+        pool: { max: 10, min: 2 },
+      },
     });
 
     expect(MockedSequelize).toHaveBeenCalledWith('postgres://localhost/mydb', {
       dialect: 'postgres',
-      // eslint-disable-next-line no-console
-      logging: console.log,
+      logging: false,
+      pool: { max: 10, min: 2 },
     });
   });
 

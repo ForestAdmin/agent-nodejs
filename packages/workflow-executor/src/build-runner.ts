@@ -1,6 +1,6 @@
 import type { Logger } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
-import type { Dialect } from 'sequelize';
+import type { Options as SequelizeOptions } from 'sequelize';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import { AiClient } from '@forestadmin/ai-proxy';
@@ -32,11 +32,7 @@ export interface ExecutorOptions {
 }
 
 export interface DatabaseExecutorOptions extends ExecutorOptions {
-  database: {
-    uri: string;
-    dialect: Dialect;
-    logging?: boolean;
-  };
+  database: SequelizeOptions & { uri: string };
 }
 
 function buildCommonDependencies(options: ExecutorOptions) {
@@ -74,13 +70,8 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
 }
 
 export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
-  const { uri, dialect, logging } = options.database;
-
-  const sequelize = new Sequelize(uri, {
-    dialect,
-    // eslint-disable-next-line no-console
-    logging: logging ? console.log : false,
-  });
+  const { uri, ...sequelizeOptions } = options.database;
+  const sequelize = new Sequelize(uri, sequelizeOptions);
 
   return new Runner({
     ...buildCommonDependencies(options),
