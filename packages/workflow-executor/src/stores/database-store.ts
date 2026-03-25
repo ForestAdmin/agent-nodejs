@@ -1,3 +1,4 @@
+import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { QueryInterface, Sequelize } from 'sequelize';
@@ -18,7 +19,7 @@ export default class DatabaseStore implements RunStore {
     this.sequelize = options.sequelize;
   }
 
-  async init(): Promise<void> {
+  async init(logger?: Logger): Promise<void> {
     const umzug = new Umzug({
       migrations: [
         {
@@ -74,7 +75,14 @@ export default class DatabaseStore implements RunStore {
       logger: undefined,
     });
 
-    await umzug.up();
+    try {
+      await umzug.up();
+    } catch (error) {
+      logger?.error('Database migration failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }
 
   async getStepExecutions(runId: string): Promise<StepExecutionData[]> {
@@ -106,7 +114,13 @@ export default class DatabaseStore implements RunStore {
     });
   }
 
-  async close(): Promise<void> {
-    await this.sequelize.close();
+  async close(logger?: Logger): Promise<void> {
+    try {
+      await this.sequelize.close();
+    } catch (error) {
+      logger?.error('Failed to close database connection', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 }

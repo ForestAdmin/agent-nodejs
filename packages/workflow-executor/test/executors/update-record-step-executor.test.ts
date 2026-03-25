@@ -62,8 +62,6 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
     init: jest.fn().mockResolvedValue(undefined),
     close: jest.fn().mockResolvedValue(undefined),
-    init: jest.fn().mockResolvedValue(undefined),
-    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -269,8 +267,6 @@ describe('UpdateRecordStepExecutor', () => {
   describe('no pending update in phase 2 (Branch A)', () => {
     it('returns error outcome when no pending update is found', async () => {
       const runStore = makeMockRunStore({
-        init: jest.fn().mockResolvedValue(undefined),
-        close: jest.fn().mockResolvedValue(undefined),
         init: jest.fn().mockResolvedValue(undefined),
         close: jest.fn().mockResolvedValue(undefined),
         getStepExecutions: jest.fn().mockResolvedValue([]),

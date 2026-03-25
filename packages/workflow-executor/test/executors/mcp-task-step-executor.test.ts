@@ -42,8 +42,6 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
     init: jest.fn().mockResolvedValue(undefined),
     close: jest.fn().mockResolvedValue(undefined),
-    init: jest.fn().mockResolvedValue(undefined),
-    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -541,8 +539,6 @@ describe('McpTaskStepExecutor', () => {
   describe('no pending data in confirmation flow (Branch A)', () => {
     it('returns error when no execution record is found', async () => {
       const runStore = makeMockRunStore({
-        init: jest.fn().mockResolvedValue(undefined),
-        close: jest.fn().mockResolvedValue(undefined),
         init: jest.fn().mockResolvedValue(undefined),
         close: jest.fn().mockResolvedValue(undefined),
         getStepExecutions: jest.fn().mockResolvedValue([]),
