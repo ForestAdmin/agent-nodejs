@@ -1,20 +1,13 @@
 import type { RunStore } from '../ports/run-store';
+import type { Options } from 'sequelize';
 
 import { Sequelize } from 'sequelize';
 
 import DatabaseStore from './database-store';
 import InMemoryStore from './in-memory-store';
 
-export interface DatabaseConfig {
-  dialect: string;
-  uri: string;
-}
-
-export async function buildDatabaseRunStore(config: DatabaseConfig): Promise<RunStore> {
-  const sequelize = new Sequelize(config.uri, {
-    dialect: config.dialect as never,
-    logging: false,
-  });
+export async function buildDatabaseRunStore(options: Options): Promise<RunStore> {
+  const sequelize = new Sequelize({ logging: false, ...options });
 
   const store = new DatabaseStore({ sequelize });
 

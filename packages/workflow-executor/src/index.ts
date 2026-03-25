@@ -106,4 +106,3 @@ export { default as InMemoryStore } from './stores/in-memory-store';
 export { default as DatabaseStore } from './stores/database-store';
 export type { DatabaseStoreOptions } from './stores/database-store';
 export { buildDatabaseRunStore, buildInMemoryRunStore } from './stores/build-run-store';
-export type { DatabaseConfig } from './stores/build-run-store';
