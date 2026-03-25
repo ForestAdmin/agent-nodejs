@@ -1,7 +1,7 @@
 # Workflow Executor — Contract Types
 
 > Types exchanged between the **orchestrator (server)**, the **executor (agent-nodejs)**, and the **frontend**.
-> Last updated: 2026-03-24
+> Last updated: 2026-03-25
 
 ---
 
@@ -19,7 +19,6 @@ interface PendingStepExecution {
   baseRecordRef:  RecordRef;
   stepDefinition: StepDefinition;
   previousSteps:  Step[];
-  userConfirmed?: boolean; // true = user confirmed a pending action on this step
 }
 ```
 
@@ -128,85 +127,95 @@ interface McpTaskStepOutcome {
 
 After executing a step, the executor posts the outcome back to the server. The body is one of the `StepOutcome` shapes above.
 
-> ⚠️ **NEVER contains client data** (field values, AI reasoning, etc.) — those stay in the `RunStore` on the client side.
+> **NEVER contains client data** (field values, AI reasoning, etc.) — those stay in the `RunStore` on the client side.
 
 ---
 
 ## 3. Pending Data
 
-Steps that require user input pause with `status: "awaiting-input"`. The frontend writes `pendingData` to unblock them via a dedicated endpoint on the executor HTTP server.
+Steps that require user input pause with `status: "awaiting-input"`. The executor writes its AI-selected data to `pendingData` in the RunStore. The frontend can then override fields and confirm via the pending-data endpoint.
 
-> **TODO** — The pending-data write endpoint is not yet implemented. Route, method, and per-step-type body shapes are TBD (PRD-240).
+**`PATCH /runs/:runId/steps/:stepIndex/pending-data`**
 
-Once written, the frontend calls `POST /runs/:runId/trigger` and the executor resumes with `userConfirmed: true`.
+The frontend writes user overrides + confirmation to the executor HTTP server. Request bodies are validated per step type using strict Zod schemas (unknown fields are rejected).
+
+Once written, the frontend calls `POST /runs/:runId/trigger`. On the next execution, the executor reads `pendingData` from the RunStore and checks `userConfirmed`:
+- `undefined` → re-emit `awaiting-input` (safe no-op)
+- `true` → execute the confirmed action
+- `false` → skip the step (mark as success)
 
 ### update-record — user picks a field + value to write
 
-> **TODO** — Pending-data write endpoint TBD (PRD-240).
+The executor writes the AI's field selection to `pendingData`. The frontend can override `value` and confirm.
 
+Stored in RunStore:
 ```typescript
 interface UpdateRecordPendingData {
-  name:        string; // technical field name
-  displayName: string; // label shown in the UI
-  value:       string; // value chosen by the user
+  name:            string;  // technical field name (set by executor)
+  displayName:     string;  // label shown in the UI (set by executor)
+  value:           string;  // AI-proposed value; overridable by frontend
+  userConfirmed?:  boolean; // set by frontend via PATCH
+}
+```
+
+PATCH request body:
+```typescript
+{
+  userConfirmed: boolean;
+  value?:        string;  // optional override of AI-proposed value
 }
 ```
 
 ### trigger-action — user confirmation only
 
-No payload required from the frontend. The executor selects the action and writes `pendingData` itself (action name + displayName) to the RunStore. The frontend just confirms:
+The executor selects the action and writes `pendingData` (action name + displayName) to the RunStore. The frontend only confirms or rejects.
 
-```
-POST /runs/:runId/trigger
+PATCH request body:
+```typescript
+{
+  userConfirmed: boolean;
+}
 ```
 
 ### load-related-record — user picks the relation and/or the record
 
-The frontend can override **both** the relation (field) and the selected record.
+The executor writes the AI's relation selection to `pendingData`. The frontend can override the relation, the selected record, or both.
 
-> **Current status** — The frontend cannot yet override the AI selection. The executor HTTP server does not yet expose the pending-data write endpoint. Until it is implemented, the executor writes the AI's pick directly into `selectedRecordId`.
-
+Stored in RunStore:
 ```typescript
-// Written by the executor; overwritable by the frontend via the pending-data endpoint (TBD)
 interface LoadRelatedRecordPendingData {
-  name:                  string;               // technical relation name
-  displayName:           string;               // label shown in the UI
-  relatedCollectionName: string;               // collection of the related record
-  suggestedFields?:      string[];             // fields suggested for display
-  selectedRecordId:      Array<string|number>; // AI's pick; overwritten by the frontend via the pending-data endpoint
+  name:             string;               // technical relation name
+  displayName:      string;               // label shown in the UI
+  suggestedFields?: string[];             // fields suggested for display
+  selectedRecordId: Array<string|number>; // AI's pick; overridable by frontend
+  userConfirmed?:   boolean;              // set by frontend via PATCH
 }
 ```
 
-The executor initially writes the AI's pick into `selectedRecordId`. The pending-data endpoint overwrites it (and optionally `name`, `displayName`, `relatedCollectionName`) when the user changes the selection.
+> `relatedCollectionName` is **not** stored in `pendingData` — the executor re-derives it from the `FieldSchema` at execution time using the (possibly overridden) relation `name`.
 
-#### Future endpoint — pending-data write (not yet implemented)
-
-> **TODO** — Route and method TBD (PRD-240).
-
-Request body:
-
+PATCH request body:
 ```typescript
 {
-  selectedRecordId?:      Array<string | number>; // record chosen by the user
-  name?:                  string;                 // relation changed
-  displayName?:           string;                 // relation changed
-  relatedCollectionName?: string;                 // required if name is provided
+  userConfirmed:    boolean;
+  name?:            string;                // override relation
+  displayName?:     string;                // override relation label
+  selectedRecordId?: Array<string|number>; // override selected record (min 1 element)
 }
 ```
-
-Response: `204 No Content`.
-
-The frontend calls this endpoint **before** `POST /runs/:runId/trigger`. On the next poll, `userConfirmed: true` and the executor reads `selectedRecordId` from the RunStore.
 
 ### mcp-task — user confirmation only
 
-No payload required from the frontend. The executor selects the tool and writes `pendingData` itself (tool name + input) to the RunStore. The frontend just confirms:
+The executor selects the MCP tool and writes `pendingData` (tool name + input) to the RunStore. The frontend only confirms or rejects.
 
-```
-POST /runs/:runId/trigger
+PATCH request body:
+```typescript
+{
+  userConfirmed: boolean;
+}
 ```
 
-The executor resumes with `userConfirmed: true` and executes the pre-selected tool.
+Response for all types: `204 No Content`.
 
 ---
 
@@ -222,11 +231,19 @@ Orchestrator ──► GET pending?runId=X ──► Executor
                             │                              │
                    status: awaiting-input          POST /complete
                             │                         (StepOutcome)
-                 Frontend writes pendingData
-                 to executor HTTP server       TODO: route TBD
+                            │
+              Executor writes pendingData
+              to RunStore (AI selection)
+                            │
+               Frontend reads pendingData
+              via GET /runs/:runId
+                            │
+              Frontend overrides + confirms
+              via PATCH /runs/:runId/steps/:stepIndex/pending-data
+              (sets userConfirmed: true/false)
                             │
                   POST /runs/:runId/trigger
-                  (next poll: userConfirmed = true)
                             │
                       Executor resumes
+              (reads pendingData.userConfirmed from RunStore)
 ```
