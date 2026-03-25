@@ -364,10 +364,12 @@ describe('ExecutorHttpServer', () => {
         saveStepExecution: jest.fn().mockResolvedValue(undefined),
       });
 
-      const server = new ExecutorHttpServer({ port: 0, runStore, runner: createMockRunner() });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
 
       const response = await request(server.callback)
         .patch('/runs/run-1/steps/2/pending-data')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userConfirmed: true });
 
       expect(response.status).toBe(204);
@@ -390,10 +392,12 @@ describe('ExecutorHttpServer', () => {
         saveStepExecution: jest.fn().mockResolvedValue(undefined),
       });
 
-      const server = new ExecutorHttpServer({ port: 0, runStore, runner: createMockRunner() });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
 
       const response = await request(server.callback)
         .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userConfirmed: false });
 
       expect(response.status).toBe(204);
@@ -410,10 +414,12 @@ describe('ExecutorHttpServer', () => {
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
 
-      const server = new ExecutorHttpServer({ port: 0, runStore, runner: createMockRunner() });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
 
       const response = await request(server.callback)
         .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userConfirmed: true });
 
       expect(response.status).toBe(404);
@@ -426,10 +432,12 @@ describe('ExecutorHttpServer', () => {
         getStepExecutions: jest.fn().mockResolvedValue([existing]),
       });
 
-      const server = new ExecutorHttpServer({ port: 0, runStore, runner: createMockRunner() });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
 
       const response = await request(server.callback)
         .patch('/runs/run-1/steps/1/pending-data')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userConfirmed: true });
 
       expect(response.status).toBe(404);
@@ -437,14 +445,12 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('returns 400 when stepIndex is not a valid integer', async () => {
-      const server = new ExecutorHttpServer({
-        port: 0,
-        runStore: createMockRunStore(),
-        runner: createMockRunner(),
-      });
+      const server = createServer();
+      const token = signToken({ id: 'user-1' });
 
       const response = await request(server.callback)
         .patch('/runs/run-1/steps/abc/pending-data')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userConfirmed: true });
 
       expect(response.status).toBe(400);
@@ -452,14 +458,21 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('returns 400 when userConfirmed is not a boolean', async () => {
-      const server = new ExecutorHttpServer({
-        port: 0,
-        runStore: createMockRunStore(),
-        runner: createMockRunner(),
+      const existing = {
+        type: 'update-record' as const,
+        stepIndex: 0,
+        pendingData: { fieldName: 'status', value: 'active' },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
       });
+
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
 
       const response = await request(server.callback)
         .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userConfirmed: 'yes' });
 
       expect(response.status).toBe(400);
