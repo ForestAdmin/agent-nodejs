@@ -8,6 +8,7 @@ import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
   RunNotFoundError,
+  StepAlreadyExecutedError,
 } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
@@ -378,6 +379,22 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(204);
       expect(runner.patchPendingData).toHaveBeenCalledWith('run-1', 2, { userConfirmed: true });
+    });
+
+    it('returns 409 when patchPendingData throws StepAlreadyExecutedError', async () => {
+      const runner = createMockRunner({
+        patchPendingData: jest.fn().mockRejectedValue(new StepAlreadyExecutedError('run-1', 0)),
+      });
+      const server = createServer({ runner });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true });
+
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ error: 'Step has already been executed' });
     });
 
     it('returns 404 when patchPendingData throws PendingDataNotFoundError', async () => {

@@ -12,6 +12,7 @@ import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
   RunNotFoundError,
+  StepAlreadyExecutedError,
   causeMessage,
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
@@ -116,6 +117,10 @@ export default class Runner {
     const stepExecutions = await this.config.runStore.getStepExecutions(runId);
     const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
     const schema = execution ? patchBodySchemas[execution.type] : undefined;
+
+    if (execution && 'executionResult' in execution && execution.executionResult !== undefined) {
+      throw new StepAlreadyExecutedError(runId, stepIndex);
+    }
 
     // pendingData is typed as T | undefined; null is not expected (RunStore never persists null)
     // but `== null` guards against both for safety.

@@ -216,6 +216,13 @@ export class RunNotFoundError extends Error {
   }
 }
 
+export class StepAlreadyExecutedError extends Error {
+  constructor(runId: string, stepIndex: number) {
+    super(`Step ${stepIndex} in run "${runId}" has already been executed`);
+    this.name = 'StepAlreadyExecutedError';
+  }
+}
+
 export class PendingDataNotFoundError extends Error {
   constructor(runId: string, stepIndex: number) {
     super(`Step ${stepIndex} in run "${runId}" not found or has no pending data`);

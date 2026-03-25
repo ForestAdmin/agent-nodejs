@@ -9,7 +9,12 @@ import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
-import { InvalidPendingDataError, PendingDataNotFoundError, RunNotFoundError } from '../errors';
+import {
+  InvalidPendingDataError,
+  PendingDataNotFoundError,
+  RunNotFoundError,
+  StepAlreadyExecutedError,
+} from '../errors';
 
 export interface ExecutorHttpServerOptions {
   port: number;
@@ -176,6 +181,13 @@ export default class ExecutorHttpServer {
     try {
       await this.options.runner.patchPendingData(runId, stepIndex, ctx.request.body);
     } catch (err) {
+      if (err instanceof StepAlreadyExecutedError) {
+        ctx.status = 409;
+        ctx.body = { error: 'Step has already been executed' };
+
+        return;
+      }
+
       if (err instanceof PendingDataNotFoundError) {
         ctx.status = 404;
         ctx.body = { error: 'Step execution not found or has no pending data' };

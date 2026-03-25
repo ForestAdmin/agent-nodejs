@@ -12,6 +12,7 @@ import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
   RunNotFoundError,
+  StepAlreadyExecutedError,
 } from '../src/errors';
 import BaseStepExecutor from '../src/executors/base-step-executor';
 import ConditionStepExecutor from '../src/executors/condition-step-executor';
@@ -881,6 +882,42 @@ describe('getRunStepExecutions', () => {
 // ---------------------------------------------------------------------------
 
 describe('patchPendingData', () => {
+  it('throws StepAlreadyExecutedError when step has executionResult', async () => {
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue([
+        {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { fieldName: 'status', value: 'active' },
+          executionResult: { updatedValues: { status: 'active' } },
+        },
+      ]),
+    });
+    runner = new Runner(createRunnerConfig({ runStore }));
+
+    await expect(runner.patchPendingData('run-1', 0, { userConfirmed: true })).rejects.toThrow(
+      StepAlreadyExecutedError,
+    );
+  });
+
+  it('throws StepAlreadyExecutedError when step was skipped', async () => {
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue([
+        {
+          type: 'trigger-action',
+          stepIndex: 0,
+          pendingData: { name: 'send_email', displayName: 'Send Email' },
+          executionResult: { skipped: true },
+        },
+      ]),
+    });
+    runner = new Runner(createRunnerConfig({ runStore }));
+
+    await expect(runner.patchPendingData('run-1', 0, { userConfirmed: true })).rejects.toThrow(
+      StepAlreadyExecutedError,
+    );
+  });
+
   it('throws PendingDataNotFoundError when step is not found', async () => {
     const runStore = createMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
     runner = new Runner(createRunnerConfig({ runStore }));
