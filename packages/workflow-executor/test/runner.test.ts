@@ -75,7 +75,12 @@ function createRunnerConfig(
   return {
     agentPort: {} as AgentPort,
     workflowPort: createMockWorkflowPort(),
-    runStore: {} as RunStore,
+    runStore: {
+      init: jest.fn().mockResolvedValue(undefined),
+      close: jest.fn().mockResolvedValue(undefined),
+      getStepExecutions: jest.fn().mockResolvedValue([]),
+      saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    } as unknown as RunStore,
     pollingIntervalMs: POLLING_INTERVAL_MS,
     aiClient: createMockAiClient() as unknown as AiClient,
     logger: createMockLogger(),
@@ -189,6 +194,15 @@ describe('start', () => {
     expect(MockedExecutorHttpServer).toHaveBeenCalledTimes(1);
   });
 
+  it('should call runStore.init() on start', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
+
+    await runner.start();
+
+    expect(config.runStore.init).toHaveBeenCalledTimes(1);
+  });
+
   it('should throw ConfigurationError when envSecret is invalid', async () => {
     runner = new Runner(createRunnerConfig({ envSecret: 'bad' }));
 
@@ -212,6 +226,16 @@ describe('stop', () => {
     await runner.stop();
 
     expect(MockedExecutorHttpServer.prototype.stop).toHaveBeenCalled();
+  });
+
+  it('should call runStore.close() on stop', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
+
+    await runner.start();
+    await runner.stop();
+
+    expect(config.runStore.close).toHaveBeenCalledTimes(1);
   });
 
   it('should handle stop when no HTTP server is running', async () => {

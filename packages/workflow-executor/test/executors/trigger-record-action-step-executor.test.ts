@@ -55,6 +55,8 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
+    init: jest.fn().mockResolvedValue(undefined),
+    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -230,10 +232,11 @@ describe('TriggerRecordActionStepExecutor', () => {
             name: 'send-welcome-email',
           },
           executionResult: { success: true, actionResult: { message: 'Email sent' } },
-          pendingData: expect.objectContaining({
+          pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
-          }),
+            userConfirmed: true,
+          },
         }),
       );
     });
@@ -266,39 +269,50 @@ describe('TriggerRecordActionStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: expect.objectContaining({
+          pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
-          }),
+            userConfirmed: false,
+          },
         }),
       );
     });
   });
 
-  describe('trigger before PATCH (Branch A)', () => {
-    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
-      const agentPort = makeMockAgentPort();
-      const execution: TriggerRecordActionStepExecutionData = {
-        type: 'trigger-action',
-        stepIndex: 0,
-        pendingData: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
-        selectedRecordRef: makeRecordRef(),
-      };
+  describe('no pending action in confirmation flow (Branch A)', () => {
+    it('falls through to first-call path when no pending action is found', async () => {
       const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        init: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+        getStepExecutions: jest.fn().mockResolvedValue([]),
       });
-      const context = makeContext({ agentPort, runStore });
+      const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(agentPort.executeAction).not.toHaveBeenCalled();
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
-  });
 
-  describe('no pending action in confirmation flow (Branch A)', () => {
+    it('falls through to first-call path when execution exists but stepIndex does not match', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'trigger-action',
+            stepIndex: 5,
+            pendingData: { displayName: 'Send Welcome Email' },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({ runStore });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+    });
+
     it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
