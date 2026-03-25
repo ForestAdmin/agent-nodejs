@@ -1,4 +1,4 @@
-import type { StepExecutionData } from '../types/step-execution-data';
+import type { StepExecutionData } from './types/step-execution-data';
 
 import { z } from 'zod';
 

@@ -215,3 +215,26 @@ export class RunNotFoundError extends Error {
     if (cause !== undefined) this.cause = cause;
   }
 }
+
+export class PendingDataNotFoundError extends Error {
+  constructor(runId: string, stepIndex: number) {
+    super(`Step ${stepIndex} in run "${runId}" not found or has no pending data`);
+    this.name = 'PendingDataNotFoundError';
+  }
+}
+
+/** Minimal mirror of ZodIssue — avoids importing Zod types into errors.ts. */
+export interface ValidationIssue {
+  path: (string | number)[];
+  message: string;
+  code: string;
+}
+
+export class InvalidPendingDataError extends WorkflowExecutorError {
+  readonly issues: ValidationIssue[];
+
+  constructor(issues: ValidationIssue[]) {
+    super('Invalid pending data', 'The request body is invalid.');
+    this.issues = issues;
+  }
+}

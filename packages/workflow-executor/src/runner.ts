@@ -4,12 +4,19 @@ import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution';
+import type { StepExecutionData } from './types/step-execution-data';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
-import { RunNotFoundError, causeMessage } from './errors';
+import {
+  InvalidPendingDataError,
+  PendingDataNotFoundError,
+  RunNotFoundError,
+  causeMessage,
+} from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import ExecutorHttpServer from './http/executor-http-server';
+import patchBodySchemas from './pending-data-validators';
 import validateSecrets from './validate-secrets';
 
 export interface RunnerConfig {
@@ -64,7 +71,6 @@ export default class Runner {
       if (this.config.httpPort !== undefined && !this.httpServer) {
         const server = new ExecutorHttpServer({
           port: this.config.httpPort,
-          runStore: this.config.runStore,
           runner: this,
           authSecret: this.config.authSecret,
           workflowPort: this.config.workflowPort,
@@ -100,6 +106,41 @@ export default class Runner {
     ]);
 
     // TODO: graceful drain of in-flight steps (out of scope PRD-223)
+  }
+
+  async getRunStepExecutions(runId: string): Promise<StepExecutionData[]> {
+    return this.config.runStore.getStepExecutions(runId);
+  }
+
+  async patchPendingData(runId: string, stepIndex: number, body: unknown): Promise<void> {
+    const stepExecutions = await this.config.runStore.getStepExecutions(runId);
+    const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
+    const schema = execution ? patchBodySchemas[execution.type] : undefined;
+
+    // pendingData is typed as T | undefined; null is not expected (RunStore never persists null)
+    // but `== null` guards against both for safety.
+    if (!execution || !schema || !('pendingData' in execution) || execution.pendingData == null) {
+      throw new PendingDataNotFoundError(runId, stepIndex);
+    }
+
+    const parsed = schema.safeParse(body);
+
+    if (!parsed.success) {
+      throw new InvalidPendingDataError(
+        parsed.error.issues.map(({ path, message, code }) => ({
+          path: path as (string | number)[],
+          message,
+          code,
+        })),
+      );
+    }
+
+    // Cast is safe: the type guard above ensures `execution` is the correct union branch,
+    // and patchBodySchemas[execution.type] only accepts keys valid for that branch.
+    await this.config.runStore.saveStepExecution(runId, {
+      ...execution,
+      pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
+    } as StepExecutionData);
   }
 
   async triggerPoll(runId: string): Promise<void> {

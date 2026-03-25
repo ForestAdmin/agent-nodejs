@@ -1,8 +1,6 @@
 import type { Logger } from '../ports/logger-port';
-import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
-import type { StepExecutionData } from '../types/step-execution-data';
 import type { Server } from 'http';
 
 import bodyParser from '@koa/bodyparser';
@@ -11,12 +9,10 @@ import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
-import { RunNotFoundError } from '../errors';
-import patchBodySchemas from './pending-data-validators';
+import { InvalidPendingDataError, PendingDataNotFoundError, RunNotFoundError } from '../errors';
 
 export interface ExecutorHttpServerOptions {
   port: number;
-  runStore: RunStore;
   runner: Runner;
   authSecret: string;
   workflowPort: WorkflowPort;
@@ -142,9 +138,7 @@ export default class ExecutorHttpServer {
   }
 
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
-    const { runId } = ctx.params;
-    const steps = await this.options.runStore.getStepExecutions(runId);
-
+    const steps = await this.options.runner.getRunStepExecutions(ctx.params.runId);
     ctx.body = { steps };
   }
 
@@ -179,35 +173,25 @@ export default class ExecutorHttpServer {
       return;
     }
 
-    const stepExecutions = await this.options.runStore.getStepExecutions(runId);
-    const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
-    const schema = execution ? patchBodySchemas[execution.type] : undefined;
+    try {
+      await this.options.runner.patchPendingData(runId, stepIndex, ctx.request.body);
+    } catch (err) {
+      if (err instanceof PendingDataNotFoundError) {
+        ctx.status = 404;
+        ctx.body = { error: 'Step execution not found or has no pending data' };
 
-    if (
-      !execution ||
-      !schema ||
-      !('pendingData' in execution) ||
-      execution.pendingData === undefined
-    ) {
-      ctx.status = 404;
-      ctx.body = { error: 'Step execution not found or has no pending data' };
+        return;
+      }
 
-      return;
+      if (err instanceof InvalidPendingDataError) {
+        ctx.status = 400;
+        ctx.body = { error: 'Invalid request body', details: err.issues };
+
+        return;
+      }
+
+      throw err;
     }
-
-    const parsed = schema.safeParse(ctx.request.body);
-
-    if (!parsed.success) {
-      ctx.status = 400;
-      ctx.body = { error: 'Invalid request body', details: parsed.error.issues };
-
-      return;
-    }
-
-    await this.options.runStore.saveStepExecution(runId, {
-      ...execution,
-      pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
-    } as StepExecutionData);
 
     ctx.status = 204;
   }
