@@ -40,16 +40,7 @@ export default class Runner {
   private readonly inFlightSteps = new Set<string>();
   private isRunning = false;
   private readonly logger: Logger;
-
-  private static once<T>(fn: () => Promise<T>): () => Promise<T> {
-    let cached: Promise<T> | undefined;
-
-    return () => {
-      cached ??= fn();
-
-      return cached;
-    };
-  }
+  private cachedTools: RemoteTool[] | null = null;
 
   private static stepKey(step: PendingStepExecution): string {
     return `${step.runId}:${step.stepId}`;
@@ -147,14 +138,14 @@ export default class Runner {
 
   async triggerPoll(runId: string): Promise<void> {
     this.config.schemaCache.clear();
+    this.cachedTools = null;
     const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
 
     if (!step) throw new RunNotFoundError(runId);
 
     if (this.inFlightSteps.has(Runner.stepKey(step))) return;
 
-    const loadTools = Runner.once(() => this.fetchRemoteTools());
-    await this.executeStep(step, loadTools);
+    await this.executeStep(step);
   }
 
   private schedulePoll(): void {
@@ -165,10 +156,10 @@ export default class Runner {
   private async runPollCycle(): Promise<void> {
     try {
       this.config.schemaCache.clear();
+      this.cachedTools = null;
       const steps = await this.config.workflowPort.getPendingStepExecutions();
       const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
-      const loadTools = Runner.once(() => this.fetchRemoteTools());
-      await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools)));
+      await Promise.allSettled(pending.map(s => this.executeStep(s)));
     } catch (error) {
       this.logger.error('Poll cycle failed', {
         error: error instanceof Error ? error.message : String(error),
@@ -191,17 +182,26 @@ export default class Runner {
     return this.config.aiClient.loadRemoteTools(mergedConfig);
   }
 
-  private async executeStep(
-    step: PendingStepExecution,
-    loadTools: () => Promise<RemoteTool[]>,
-  ): Promise<void> {
+  private async loadTools(): Promise<RemoteTool[]> {
+    if (this.cachedTools) return this.cachedTools;
+
+    this.cachedTools = await this.fetchRemoteTools();
+
+    return this.cachedTools;
+  }
+
+  private async executeStep(step: PendingStepExecution): Promise<void> {
     const key = Runner.stepKey(step);
     this.inFlightSteps.add(key);
 
     let result: StepExecutionResult;
 
     try {
-      const executor = await StepExecutorFactory.create(step, this.contextConfig, loadTools);
+      const executor = await StepExecutorFactory.create(
+        step,
+        this.contextConfig,
+        () => this.loadTools(),
+      );
       result = await executor.execute();
     } catch (error) {
       // This block should never execute: the factory and executor contracts guarantee no rejection.
