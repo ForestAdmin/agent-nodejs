@@ -1,18 +1,15 @@
 import type McpServerRemoteTool from './mcp-server-remote-tool';
 import type { Logger } from '@forestadmin/datasource-toolkit';
-import type { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 import getZendeskTools, { type ZendeskConfig } from './integrations/zendesk/tools';
 
-export type McpConfiguration = {
-  configs: MultiServerMCPClient['config']['mcpServers'];
-} & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
-
 export type CustomConfig = ZendeskConfig;
+export type ForestIntegrationName = 'Zendesk';
 
 export interface ForestIntegrationConfig {
-  integrationName: string;
+  integrationName: ForestIntegrationName;
   config: CustomConfig;
+  isForestConnector: true;
 }
 
 export default class IntegrationClient {
@@ -29,7 +26,7 @@ export default class IntegrationClient {
   loadTools(): McpServerRemoteTool[] {
     this.configs.forEach(({ integrationName, config }) => {
       switch (integrationName) {
-        case 'zendesk':
+        case 'Zendesk':
           this.tools.push(...getZendeskTools(config as ZendeskConfig));
           break;
         default:

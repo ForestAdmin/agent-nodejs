@@ -2,6 +2,7 @@ import type { DispatchBody, InvokeRemoteToolArgs } from '../src';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIModelNotSupportedError, Router } from '../src';
+import IntegrationClient from '../src/integration-client';
 import McpClient from '../src/mcp-client';
 import ProviderDispatcher from '../src/provider-dispatcher';
 
@@ -39,6 +40,18 @@ jest.mock('../src/mcp-client', () => {
 
 const MockedMcpClient = McpClient as jest.MockedClass<typeof McpClient>;
 
+const loadToolsMock = jest.fn().mockReturnValue([]);
+jest.mock('../src/integration-client', () => {
+  return {
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
+      loadTools: loadToolsMock,
+    })),
+  };
+});
+
+const MockedIntegrationClient = IntegrationClient as jest.MockedClass<typeof IntegrationClient>;
+
 describe('route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -60,6 +73,7 @@ describe('route', () => {
       await router.route({
         route: 'ai-query',
         body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        mcpConfigs: { configs: {} },
       });
 
       expect(dispatchMock).toHaveBeenCalledWith({
@@ -90,6 +104,7 @@ describe('route', () => {
         route: 'ai-query',
         query: { 'ai-name': 'gpt4mini' },
         body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        mcpConfigs: { configs: {} },
       });
 
       expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4MiniConfig, expect.anything());
@@ -115,6 +130,7 @@ describe('route', () => {
       await router.route({
         route: 'ai-query',
         body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        mcpConfigs: { configs: {} },
       });
 
       expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4Config, expect.anything());
@@ -137,6 +153,7 @@ describe('route', () => {
         route: 'ai-query',
         query: { 'ai-name': 'non-existent' },
         body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        mcpConfigs: { configs: {} },
       });
 
       expect(mockLogger).toHaveBeenCalledWith(
@@ -155,6 +172,7 @@ describe('route', () => {
         route: 'invoke-remote-tool',
         query: { 'tool-name': 'tool-name' },
         body: { inputs: [] },
+        mcpConfigs: { configs: {} },
       });
 
       expect(invokeToolMock).toHaveBeenCalledWith('tool-name', []);
@@ -168,6 +186,7 @@ describe('route', () => {
           route: 'invoke-remote-tool',
           query: {},
           body: { inputs: [] },
+          mcpConfigs: { configs: {} },
         } as any),
       ).rejects.toThrow('query.tool-name: Missing required query parameter: tool-name');
     });
@@ -180,6 +199,7 @@ describe('route', () => {
           route: 'invoke-remote-tool',
           query: { 'tool-name': 'tool-name' },
           body: {} as InvokeRemoteToolArgs['body'],
+          mcpConfigs: { configs: {} },
         }),
       ).rejects.toThrow('body.inputs: Missing required body parameter: inputs');
     });
@@ -192,6 +212,7 @@ describe('route', () => {
           route: 'invoke-remote-tool',
           query: {},
           body: {},
+          mcpConfigs: { configs: {} },
         } as any),
       ).rejects.toThrow(/tool-name.*;.*inputs|inputs.*;.*tool-name/);
     });
@@ -201,7 +222,7 @@ describe('route', () => {
     it('returns the remote tools definitions', async () => {
       const router = new Router({});
 
-      const result = await router.route({ route: 'remote-tools' });
+      const result = await router.route({ route: 'remote-tools', mcpConfigs: { configs: {} } });
 
       expect(result).toEqual(toolDefinitionsForFrontend);
     });
@@ -211,7 +232,9 @@ describe('route', () => {
     it('throws a validation error with helpful message', async () => {
       const router = new Router({});
 
-      await expect(router.route({ route: 'unknown' } as any)).rejects.toThrow(
+      await expect(
+        router.route({ route: 'unknown', mcpConfigs: { configs: {} } } as any),
+      ).rejects.toThrow(
         "Invalid route. Expected: 'ai-query', 'invoke-remote-tool', 'remote-tools'",
       );
     });
@@ -264,11 +287,12 @@ describe('route', () => {
       expect(mcpClientInstance.closeConnections).toHaveBeenCalledTimes(1);
     });
 
-    it('does not call closeConnections when no mcpConfigs provided', async () => {
+    it('does not call closeConnections when no mcp configs provided', async () => {
       const router = new Router({});
 
       await router.route({
         route: 'remote-tools',
+        mcpConfigs: { configs: {} },
       });
 
       expect(MockedMcpClient).not.toHaveBeenCalled();
@@ -382,6 +406,72 @@ describe('route', () => {
         { configs: { server1: { command: 'test', args: [] } } },
         customLogger,
       );
+    });
+  });
+
+  describe('config splitting between MCP and integration configs', () => {
+    const zendeskIntegration = {
+      isForestConnector: true,
+      integrationName: 'zendesk',
+      config: { subdomain: 'test', apiToken: 'token', email: 'a@b.c' },
+    };
+
+    it('passes only non-forest configs to McpClient', async () => {
+      const router = new Router({});
+
+      await router.route({
+        route: 'remote-tools',
+        mcpConfigs: {
+          configs: {
+            server1: { command: 'test', args: [] },
+            zendesk: zendeskIntegration,
+          } as any,
+        },
+      });
+
+      expect(MockedMcpClient).toHaveBeenCalledWith(
+        { configs: { server1: { command: 'test', args: [] } } },
+        undefined,
+      );
+    });
+
+    it('passes forest configs to IntegrationClient', async () => {
+      const router = new Router({});
+
+      await router.route({
+        route: 'remote-tools',
+        mcpConfigs: {
+          configs: { zendesk: zendeskIntegration } as any,
+        },
+      });
+
+      expect(MockedIntegrationClient).toHaveBeenCalledWith([zendeskIntegration], undefined);
+    });
+
+    it('does not create IntegrationClient when no forest configs', async () => {
+      const router = new Router({});
+
+      await router.route({
+        route: 'remote-tools',
+        mcpConfigs: {
+          configs: { server1: { command: 'test', args: [] } },
+        },
+      });
+
+      expect(MockedIntegrationClient).not.toHaveBeenCalled();
+    });
+
+    it('does not create McpClient when only forest configs', async () => {
+      const router = new Router({});
+
+      await router.route({
+        route: 'remote-tools',
+        mcpConfigs: {
+          configs: { zendesk: zendeskIntegration } as any,
+        },
+      });
+
+      expect(MockedMcpClient).not.toHaveBeenCalled();
     });
   });
 

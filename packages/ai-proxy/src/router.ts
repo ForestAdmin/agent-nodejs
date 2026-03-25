@@ -63,7 +63,6 @@ export class Router {
   async route(
     args: RouteArgs & {
       mcpConfigs?: McpConfiguration;
-      integrationConfigs?: ForestIntegrationConfig[];
     },
   ) {
     // Validate input with Zod schema
@@ -77,13 +76,24 @@ export class Router {
     let mcpClient: McpClient | undefined;
     let integrationClient: IntegrationClient | undefined;
 
+    const mcpConfigs: McpConfiguration = { configs: {} };
+    const integrationConfigs: ForestIntegrationConfig[] = [];
+
+    Object.entries(args.mcpConfigs.configs).forEach(([name, config]) => {
+      if (config.isForestConnector) {
+        integrationConfigs.push(config as ForestIntegrationConfig);
+      } else {
+        mcpConfigs.configs[name] = config;
+      }
+    });
+
     try {
-      if (args.mcpConfigs) {
-        mcpClient = new McpClient(args.mcpConfigs, this.logger);
+      if (mcpConfigs && Object.keys(mcpConfigs.configs).length > 0) {
+        mcpClient = new McpClient(mcpConfigs, this.logger);
       }
 
-      if (args.integrationConfigs) {
-        integrationClient = new IntegrationClient(args.integrationConfigs, this.logger);
+      if (integrationConfigs.length > 0) {
+        integrationClient = new IntegrationClient(integrationConfigs, this.logger);
       }
 
       const remoteTools = new RemoteTools(this.localToolsApiKeys ?? {}, [

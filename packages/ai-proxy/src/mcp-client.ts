@@ -1,3 +1,4 @@
+import type { ForestIntegrationConfig } from './integration-client';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
@@ -5,10 +6,12 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { McpConnectionError } from './errors';
 import McpServerRemoteTool from './mcp-server-remote-tool';
 
+export type McpServers = MultiServerMCPClient['config']['mcpServers'];
+
 export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string];
 
 export type McpConfiguration = {
-  configs: MultiServerMCPClient['config']['mcpServers'];
+  configs: McpServers | Record<string, ForestIntegrationConfig>;
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
 
 export default class McpClient {

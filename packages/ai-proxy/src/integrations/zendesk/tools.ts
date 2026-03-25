@@ -6,6 +6,7 @@ import createGetTicketTool from './tools/get-ticket';
 import createGetTicketCommentsTool from './tools/get-ticket-comments';
 import createGetTicketsTool from './tools/get-tickets';
 import createUpdateTicketTool from './tools/update-ticket';
+import { getZendeskConfig } from './utils';
 import ServerRemoteTool from '../../server-remote-tool';
 
 export interface ZendeskConfig {
@@ -15,12 +16,7 @@ export interface ZendeskConfig {
 }
 
 export default function getZendeskTools(config: ZendeskConfig): RemoteTool[] {
-  const baseUrl = `https://${config.subdomain}.zendesk.com/api/v2`;
-  const auth = Buffer.from(`${config.email}/token:${config.apiToken}`).toString('base64');
-  const headers = {
-    Authorization: `Basic ${auth}`,
-    'Content-Type': 'application/json',
-  };
+  const { baseUrl, headers } = getZendeskConfig(config);
 
   return [
     createGetTicketsTool(headers, baseUrl),

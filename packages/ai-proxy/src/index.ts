@@ -1,3 +1,4 @@
+import type { ForestIntegrationConfig } from './integration-client';
 import type { McpConfiguration } from './mcp-client';
 
 import McpConfigChecker from './mcp-config-checker';
@@ -5,7 +6,7 @@ import McpConfigChecker from './mcp-config-checker';
 export { createAiProvider } from './create-ai-provider';
 export { default as ProviderDispatcher } from './provider-dispatcher';
 
-export { ForestIntegrationConfig, CustomConfig } from './integration-client';
+export { ForestIntegrationConfig, CustomConfig, ForestIntegrationName } from './integration-client';
 
 export * from './provider-dispatcher';
 export * from './remote-tools';
@@ -14,6 +15,8 @@ export * from './mcp-client';
 export * from './oauth-token-injector';
 export * from './errors';
 
-export function validMcpConfigurationOrThrow(mcpConfig: McpConfiguration) {
+export function validMcpConfigurationOrThrow(
+  mcpConfig: McpConfiguration | ForestIntegrationConfig,
+) {
   return McpConfigChecker.check(mcpConfig);
 }
