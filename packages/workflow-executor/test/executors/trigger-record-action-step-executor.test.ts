@@ -205,6 +205,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
         },
         selectedRecordRef: makeRecordRef(),
       };
@@ -234,6 +235,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
+            userConfirmed: true,
           },
         }),
       );
@@ -249,6 +251,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: false,
         },
         selectedRecordRef: makeRecordRef(),
       };
@@ -269,6 +272,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
+            userConfirmed: false,
           },
         }),
       );
@@ -276,7 +280,7 @@ describe('TriggerRecordActionStepExecutor', () => {
   });
 
   describe('no pending action in confirmation flow (Branch A)', () => {
-    it('returns error outcome when no pending action is found', async () => {
+    it('falls through to first-call path when no pending action is found', async () => {
       const runStore = makeMockRunStore({
         init: jest.fn().mockResolvedValue(undefined),
         close: jest.fn().mockResolvedValue(undefined),
@@ -285,19 +289,12 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'trigger-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
     });
 
-    it('returns error outcome when execution exists but stepIndex does not match', async () => {
+    it('falls through to first-call path when execution exists but stepIndex does not match', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -311,16 +308,9 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'trigger-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
     });
 
     it('returns error outcome when execution exists but pendingData is absent', async () => {
@@ -445,6 +435,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
         },
         selectedRecordRef: makeRecordRef(),
       };
@@ -495,6 +486,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
         },
         selectedRecordRef: makeRecordRef(),
       };
@@ -777,6 +769,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: false,
         },
         selectedRecordRef: makeRecordRef(),
       };
@@ -825,6 +818,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
         },
         selectedRecordRef: makeRecordRef(),
       };

@@ -204,7 +204,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -227,7 +232,12 @@ describe('UpdateRecordStepExecutor', () => {
           type: 'update-record',
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
-          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: {
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            userConfirmed: true,
+          },
         }),
       );
     });
@@ -239,7 +249,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: false,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -256,14 +271,19 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: {
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            userConfirmed: false,
+          },
         }),
       );
     });
   });
 
   describe('no pending update in phase 2 (Branch A)', () => {
-    it('returns error outcome when no pending update is found', async () => {
+    it('falls through to first-call path when no pending update is found', async () => {
       const runStore = makeMockRunStore({
         init: jest.fn().mockResolvedValue(undefined),
         close: jest.fn().mockResolvedValue(undefined),
@@ -272,19 +292,12 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'update-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
     });
 
-    it('returns error outcome when execution exists but stepIndex does not match', async () => {
+    it('falls through to first-call path when execution exists but stepIndex does not match', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -298,16 +311,9 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'update-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
     });
 
     it('returns error outcome when execution exists but pendingData is absent', async () => {
@@ -593,7 +599,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -640,7 +651,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -754,7 +770,12 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: false,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({

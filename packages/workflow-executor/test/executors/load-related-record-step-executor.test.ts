@@ -740,7 +740,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('confirmation accepted (Branch A)', () => {
     it('uses selectedRecordId from pendingData, no getRelatedData call', async () => {
       const agentPort = makeMockAgentPort();
-      const execution = makePendingExecution(); // selectedRecordId: [99]
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          relatedCollectionName: 'orders',
+          selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
+          userConfirmed: true,
+        },
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
@@ -778,6 +787,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           relatedCollectionName: 'orders',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [42],
+          userConfirmed: true,
         },
       });
       const runStore = makeMockRunStore({
@@ -804,7 +814,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('confirmation rejected (Branch A)', () => {
     it('skips the load when user rejects', async () => {
       const agentPort = makeMockAgentPort();
-      const execution = makePendingExecution();
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          relatedCollectionName: 'orders',
+          selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
+          userConfirmed: false,
+        },
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
@@ -826,7 +845,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('no pending data in confirmation flow (Branch A)', () => {
-    it('returns error outcome when no execution record is found', async () => {
+    it('falls through to first-call path when no execution record is found', async () => {
       const runStore = makeMockRunStore({
         init: jest.fn().mockResolvedValue(undefined),
         close: jest.fn().mockResolvedValue(undefined),
@@ -835,16 +854,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'load-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
     });
 
     it('returns error outcome when execution exists but pendingData is absent', async () => {
@@ -985,7 +997,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('returns error outcome when saveStepExecution fails after load (Branch A confirmed)', async () => {
-      const execution = makePendingExecution();
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          relatedCollectionName: 'orders',
+          selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
+          userConfirmed: true,
+        },
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
@@ -1341,7 +1362,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('returns error outcome when saveStepExecution fails on user reject (Branch A)', async () => {
-      const execution = makePendingExecution();
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          relatedCollectionName: 'orders',
+          selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
+          userConfirmed: false,
+        },
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
