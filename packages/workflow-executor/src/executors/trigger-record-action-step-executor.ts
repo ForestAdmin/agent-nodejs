@@ -84,11 +84,14 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    const actionResult = await this.agentPort.executeAction({
-      collection: selectedRecordRef.collectionName,
-      action: name,
-      id: selectedRecordRef.recordId,
-    });
+    const actionResult = await this.agentPort.executeAction(
+      {
+        collection: selectedRecordRef.collectionName,
+        action: name,
+        id: selectedRecordRef.recordId,
+      },
+      this.agentCallContext,
+    );
 
     try {
       await this.context.runStore.saveStepExecution(this.context.runId, {

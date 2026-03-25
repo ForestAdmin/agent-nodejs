@@ -12,9 +12,6 @@ jest.mock('../src/adapters/forest-server-workflow-port');
 jest.mock('@forestadmin/ai-proxy', () => ({
   AiClient: jest.fn(),
 }));
-jest.mock('@forestadmin/agent-client', () => ({
-  createRemoteAgentClient: jest.fn().mockReturnValue({ fake: 'client' }),
-}));
 jest.mock('sequelize', () => ({
   Sequelize: jest.fn(),
 }));
@@ -68,29 +65,23 @@ describe('buildInMemoryExecutor', () => {
     });
   });
 
-  it('creates remote agent client lazily when createAgentPort is called', () => {
+  it('creates AgentClientAgentPort with agentUrl and authSecret as agentPort singleton', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
-    const { createRemoteAgentClient } = require('@forestadmin/agent-client');
+    const AgentClientAgentPort = require('../src/adapters/agent-client-agent-port').default;
 
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    // createRemoteAgentClient is not called at build time; it's deferred to createAgentPort
-    expect(createRemoteAgentClient).not.toHaveBeenCalled();
-
-    const { createAgentPort } = MockedRunner.mock.calls[0][0];
-    createAgentPort({ userToken: 'test-token', collectionSchemas: {} });
-
-    expect(createRemoteAgentClient).toHaveBeenCalledWith({
-      url: 'http://localhost:3310',
-      token: 'test-token',
+    expect(AgentClientAgentPort).toHaveBeenCalledWith({
+      agentUrl: 'http://localhost:3310',
+      authSecret: 'test-secret',
     });
   });
 
-  it('passes a createAgentPort factory function to Runner', () => {
+  it('passes an agentPort singleton to Runner', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
     expect(MockedRunner).toHaveBeenCalledWith(
-      expect.objectContaining({ createAgentPort: expect.any(Function) }),
+      expect.objectContaining({ agentPort: expect.any(Object) }),
     );
   });
 
@@ -207,7 +198,7 @@ describe('buildDatabaseExecutor', () => {
       forestServerUrl: 'https://api.forestadmin.com',
     });
     expect(MockedRunner).toHaveBeenCalledWith(
-      expect.objectContaining({ createAgentPort: expect.any(Function) }),
+      expect.objectContaining({ agentPort: expect.any(Object) }),
     );
   });
 });

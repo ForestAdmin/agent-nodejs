@@ -89,7 +89,7 @@ function createRunnerConfig(
   }> = {},
 ) {
   return {
-    createAgentPort: jest.fn().mockReturnValue({} as AgentPort),
+    agentPort: {} as AgentPort,
     workflowPort: createMockWorkflowPort(),
     runStore: {
       init: jest.fn().mockResolvedValue(undefined),

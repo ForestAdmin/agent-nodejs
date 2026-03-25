@@ -116,6 +116,17 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
     schemaCache: new Map(),
     previousSteps: [],
     logger: { error: jest.fn() },
@@ -145,11 +156,10 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        values: { status: 'active' },
-      });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -222,11 +232,10 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        values: { status: 'active' },
-      });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -731,11 +740,10 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.updateRecord).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        values: { status: 'active' },
-      });
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
     });
   });
 

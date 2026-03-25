@@ -1,4 +1,4 @@
-import type { AgentPort } from '../ports/agent-port';
+import type { AgentCallContext, AgentPort } from '../ports/agent-port';
 import type { ExecutionContext, IStepExecutor, StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
@@ -32,6 +32,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
     this.agentPort = new SafeAgentPort(context.agentPort);
+  }
+
+  protected get agentCallContext(): AgentCallContext {
+    return { user: this.context.user, schemaCache: this.context.schemaCache };
   }
 
   async execute(): Promise<StepExecutionResult> {

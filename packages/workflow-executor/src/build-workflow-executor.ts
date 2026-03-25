@@ -2,7 +2,6 @@ import type { Logger } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Options as SequelizeOptions } from 'sequelize';
 
-import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import { AiClient } from '@forestadmin/ai-proxy';
 import { Sequelize } from 'sequelize';
 
@@ -46,12 +45,13 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiConfigurations: options.aiConfigurations,
   });
 
+  const agentPort = new AgentClientAgentPort({
+    agentUrl: options.agentUrl,
+    authSecret: options.authSecret,
+  });
+
   return {
-    createAgentPort: ({ userToken, collectionSchemas }) =>
-      new AgentClientAgentPort({
-        client: createRemoteAgentClient({ url: options.agentUrl, token: userToken }),
-        collectionSchemas,
-      }),
+    agentPort,
     workflowPort,
     aiClient,
     pollingIntervalMs: options.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,

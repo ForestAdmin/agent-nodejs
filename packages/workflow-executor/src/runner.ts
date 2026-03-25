@@ -3,12 +3,10 @@ import type { AgentPort } from './ports/agent-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
-import type { PendingStepExecution, StepExecutionResult, StepUser } from './types/execution';
+import type { PendingStepExecution, StepExecutionResult } from './types/execution';
 import type { CollectionSchema } from './types/record';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
-
-import jsonwebtoken from 'jsonwebtoken';
 
 import ConsoleLogger from './adapters/console-logger';
 import {
@@ -22,13 +20,8 @@ import ExecutorHttpServer from './http/executor-http-server';
 import patchBodySchemas from './pending-data-validators';
 import validateSecrets from './validate-secrets';
 
-export interface CreateAgentPortParams {
-  userToken: string;
-  collectionSchemas: Record<string, CollectionSchema>;
-}
-
 export interface RunnerConfig {
-  createAgentPort: (params: CreateAgentPortParams) => AgentPort;
+  agentPort: AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
   pollingIntervalMs: number;
@@ -168,6 +161,9 @@ export default class Runner {
     this.pollingTimer = setTimeout(() => this.runPollCycle(), this.config.pollingIntervalMs);
   }
 
+  // Schema cache is shared across steps in a cycle. This is safe because
+  // getCollectionSchema uses envSecret (not user tokens) — schemas are
+  // permission-independent metadata.
   private async runPollCycle(): Promise<void> {
     try {
       const schemaCache = new Map<string, CollectionSchema>();
@@ -208,8 +204,7 @@ export default class Runner {
     let result: StepExecutionResult;
 
     try {
-      const userToken = this.forgeUserToken(step.user);
-      const contextConfig = this.buildContextConfig(schemaCache, userToken);
+      const contextConfig = this.buildContextConfig(schemaCache);
       const executor = await StepExecutorFactory.create(step, contextConfig, loadTools);
       result = await executor.execute();
     } catch (error) {
@@ -240,20 +235,10 @@ export default class Runner {
     }
   }
 
-  private forgeUserToken(user: StepUser): string {
-    return jsonwebtoken.sign({ ...user }, this.config.authSecret, { expiresIn: '1h' });
-  }
-
-  private buildContextConfig(
-    schemaCache: Map<string, CollectionSchema>,
-    userToken: string,
-  ): StepContextConfig {
+  private buildContextConfig(schemaCache: Map<string, CollectionSchema>): StepContextConfig {
     return {
       aiClient: this.config.aiClient,
-      agentPort: this.config.createAgentPort({
-        userToken,
-        collectionSchemas: Object.fromEntries(schemaCache),
-      }),
+      agentPort: this.config.agentPort,
       workflowPort: this.config.workflowPort,
       runStore: this.config.runStore,
       schemaCache,

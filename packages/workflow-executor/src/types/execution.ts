@@ -54,6 +54,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly agentPort: AgentPort;
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
+  readonly user: StepUser;
   readonly schemaCache: Map<string, CollectionSchema>;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;

@@ -1,7 +1,22 @@
-import type { AgentPort } from '../../src/ports/agent-port';
+import type { AgentCallContext, AgentPort } from '../../src/ports/agent-port';
 
 import { AgentPortError, StepStateError, WorkflowExecutorError } from '../../src/errors';
 import SafeAgentPort from '../../src/executors/safe-agent-port';
+
+const dummyContext: AgentCallContext = {
+  user: {
+    id: 1,
+    email: 'test@example.com',
+    firstName: 'Test',
+    lastName: 'User',
+    team: 'admin',
+    renderingId: 1,
+    role: 'admin',
+    permissionLevel: 'admin',
+    tags: {},
+  },
+  schemaCache: new Map(),
+};
 
 function makeMockPort(overrides: Partial<AgentPort> = {}): AgentPort {
   return {
@@ -24,7 +39,7 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ getRecord: jest.fn().mockResolvedValue(expected) });
       const safe = new SafeAgentPort(port);
 
-      const result = await safe.getRecord({ collection: 'customers', id: [1] });
+      const result = await safe.getRecord({ collection: 'customers', id: [1] }, dummyContext);
 
       expect(result).toBe(expected);
     });
@@ -34,11 +49,14 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ updateRecord: jest.fn().mockResolvedValue(expected) });
       const safe = new SafeAgentPort(port);
 
-      const result = await safe.updateRecord({
-        collection: 'customers',
-        id: [1],
-        values: { status: 'active' },
-      });
+      const result = await safe.updateRecord(
+        {
+          collection: 'customers',
+          id: [1],
+          values: { status: 'active' },
+        },
+        dummyContext,
+      );
 
       expect(result).toBe(expected);
     });
@@ -48,12 +66,15 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ getRelatedData: jest.fn().mockResolvedValue(expected) });
       const safe = new SafeAgentPort(port);
 
-      const result = await safe.getRelatedData({
-        collection: 'customers',
-        id: [1],
-        relation: 'orders',
-        limit: 10,
-      });
+      const result = await safe.getRelatedData(
+        {
+          collection: 'customers',
+          id: [1],
+          relation: 'orders',
+          limit: 10,
+        },
+        dummyContext,
+      );
 
       expect(result).toBe(expected);
     });
@@ -63,7 +84,10 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ executeAction: jest.fn().mockResolvedValue(expected) });
       const safe = new SafeAgentPort(port);
 
-      const result = await safe.executeAction({ collection: 'customers', action: 'send-email' });
+      const result = await safe.executeAction(
+        { collection: 'customers', action: 'send-email' },
+        dummyContext,
+      );
 
       expect(result).toBe(expected);
     });
@@ -76,9 +100,9 @@ describe('SafeAgentPort', () => {
       });
       const safe = new SafeAgentPort(port);
 
-      await expect(safe.getRecord({ collection: 'customers', id: [1] })).rejects.toThrow(
-        AgentPortError,
-      );
+      await expect(
+        safe.getRecord({ collection: 'customers', id: [1] }, dummyContext),
+      ).rejects.toThrow(AgentPortError);
     });
 
     it('includes cause message in AgentPortError.message for getRecord', async () => {
@@ -87,9 +111,9 @@ describe('SafeAgentPort', () => {
       });
       const safe = new SafeAgentPort(port);
 
-      await expect(safe.getRecord({ collection: 'customers', id: [1] })).rejects.toThrow(
-        'Agent port "getRecord" failed: DB connection lost',
-      );
+      await expect(
+        safe.getRecord({ collection: 'customers', id: [1] }, dummyContext),
+      ).rejects.toThrow('Agent port "getRecord" failed: DB connection lost');
     });
 
     it('wraps updateRecord infra error with correct operation name', async () => {
@@ -99,7 +123,7 @@ describe('SafeAgentPort', () => {
       const safe = new SafeAgentPort(port);
 
       await expect(
-        safe.updateRecord({ collection: 'customers', id: [1], values: {} }),
+        safe.updateRecord({ collection: 'customers', id: [1], values: {} }, dummyContext),
       ).rejects.toThrow('Agent port "updateRecord" failed: Timeout');
     });
 
@@ -110,7 +134,10 @@ describe('SafeAgentPort', () => {
       const safe = new SafeAgentPort(port);
 
       await expect(
-        safe.getRelatedData({ collection: 'customers', id: [1], relation: 'orders', limit: 10 }),
+        safe.getRelatedData(
+          { collection: 'customers', id: [1], relation: 'orders', limit: 10 },
+          dummyContext,
+        ),
       ).rejects.toThrow('Agent port "getRelatedData" failed: Network error');
     });
 
@@ -121,7 +148,7 @@ describe('SafeAgentPort', () => {
       const safe = new SafeAgentPort(port);
 
       await expect(
-        safe.executeAction({ collection: 'customers', action: 'send-email' }),
+        safe.executeAction({ collection: 'customers', action: 'send-email' }, dummyContext),
       ).rejects.toThrow('Agent port "executeAction" failed: Action failed');
     });
 
@@ -133,7 +160,7 @@ describe('SafeAgentPort', () => {
       let thrown: unknown;
 
       try {
-        await safe.getRecord({ collection: 'customers', id: [1] });
+        await safe.getRecord({ collection: 'customers', id: [1] }, dummyContext);
       } catch (e) {
         thrown = e;
       }
@@ -149,7 +176,9 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ getRecord: jest.fn().mockRejectedValue(domainError) });
       const safe = new SafeAgentPort(port);
 
-      await expect(safe.getRecord({ collection: 'customers', id: [1] })).rejects.toBe(domainError);
+      await expect(safe.getRecord({ collection: 'customers', id: [1] }, dummyContext)).rejects.toBe(
+        domainError,
+      );
     });
 
     it('rethrows WorkflowExecutorError subclass without wrapping in AgentPortError', async () => {
@@ -160,7 +189,7 @@ describe('SafeAgentPort', () => {
       let thrown: unknown;
 
       try {
-        await safe.executeAction({ collection: 'customers', action: 'send-email' });
+        await safe.executeAction({ collection: 'customers', action: 'send-email' }, dummyContext);
       } catch (e) {
         thrown = e;
       }

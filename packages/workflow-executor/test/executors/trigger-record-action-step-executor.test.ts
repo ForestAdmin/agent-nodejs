@@ -46,8 +46,12 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
       { fieldName: 'status', displayName: 'Status', isRelationship: false },
     ],
     actions: [
-      { name: 'send-welcome-email', displayName: 'Send Welcome Email' },
-      { name: 'archive', displayName: 'Archive Customer' },
+      {
+        name: 'send-welcome-email',
+        displayName: 'Send Welcome Email',
+        endpoint: '/forest/actions/send-welcome-email',
+      },
+      { name: 'archive', displayName: 'Archive Customer', endpoint: '/forest/actions/archive' },
     ],
     ...overrides,
   };
@@ -110,6 +114,17 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
     schemaCache: new Map(),
     previousSteps: [],
     logger: { error: jest.fn() },
@@ -138,11 +153,10 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith({
-        collection: 'customers',
-        action: 'send-welcome-email',
-        id: [42],
-      });
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        { collection: 'customers', action: 'send-welcome-email', id: [42] },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -219,11 +233,10 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith({
-        collection: 'customers',
-        action: 'send-welcome-email',
-        id: [42],
-      });
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        { collection: 'customers', action: 'send-welcome-email', id: [42] },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -368,7 +381,9 @@ describe('TriggerRecordActionStepExecutor', () => {
         reasoning: 'hallucinated',
       });
       const schema = makeCollectionSchema({
-        actions: [{ name: 'archive', displayName: 'Archive Customer' }],
+        actions: [
+          { name: 'archive', displayName: 'Archive Customer', endpoint: '/forest/actions/archive' },
+        ],
       });
       const runStore = makeMockRunStore();
       const workflowPort = makeMockWorkflowPort({ customers: schema });
@@ -548,11 +563,10 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith({
-        collection: 'customers',
-        action: 'archive',
-        id: [42],
-      });
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        { collection: 'customers', action: 'archive', id: [42] },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
     });
 
     it('resolves action when AI returns technical name instead of displayName', async () => {
@@ -563,7 +577,9 @@ describe('TriggerRecordActionStepExecutor', () => {
         reasoning: 'fallback to technical name',
       });
       const schema = makeCollectionSchema({
-        actions: [{ name: 'archive', displayName: 'Archive Customer' }],
+        actions: [
+          { name: 'archive', displayName: 'Archive Customer', endpoint: '/forest/actions/archive' },
+        ],
       });
       const workflowPort = makeMockWorkflowPort({ customers: schema });
       const context = makeContext({
@@ -577,11 +593,10 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith({
-        collection: 'customers',
-        action: 'archive',
-        id: [42],
-      });
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        { collection: 'customers', action: 'archive', id: [42] },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
     });
   });
 
@@ -597,7 +612,13 @@ describe('TriggerRecordActionStepExecutor', () => {
       const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
-        actions: [{ name: 'cancel-order', displayName: 'Cancel Order' }],
+        actions: [
+          {
+            name: 'cancel-order',
+            displayName: 'Cancel Order',
+            endpoint: '/forest/actions/cancel-order',
+          },
+        ],
       });
 
       // First call: select-record, second call: select-action

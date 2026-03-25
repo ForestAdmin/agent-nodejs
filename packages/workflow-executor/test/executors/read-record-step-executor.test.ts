@@ -115,6 +115,17 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
     schemaCache: new Map(),
     previousSteps: [],
     logger: { error: jest.fn() },
@@ -209,11 +220,10 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        fields: ['name', 'email'],
-      });
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['name', 'email'] },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
     });
 
     it('passes only resolved field names when some fields are unresolved', async () => {
@@ -225,11 +235,10 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        fields: ['email'],
-      });
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['email'] },
+        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+      );
     });
 
     it('returns error when no fields can be resolved', async () => {

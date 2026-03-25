@@ -1,12 +1,17 @@
 import type {
+  AgentCallContext,
   AgentPort,
   ExecuteActionQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
-import type { CollectionSchema } from '../types/record';
-import type { RemoteAgentClient, SelectOptions } from '@forestadmin/agent-client';
+import type { StepUser } from '../types/execution';
+import type { CollectionSchema, RecordData } from '../types/record';
+import type { SelectOptions } from '@forestadmin/agent-client';
+
+import { createRemoteAgentClient } from '@forestadmin/agent-client';
+import jsonwebtoken from 'jsonwebtoken';
 
 import { RecordNotFoundError } from '../errors';
 
@@ -41,20 +46,21 @@ function extractRecordId(
 }
 
 export default class AgentClientAgentPort implements AgentPort {
-  private readonly client: RemoteAgentClient;
-  private readonly collectionSchemas: Record<string, CollectionSchema>;
+  private readonly agentUrl: string;
+  private readonly authSecret: string;
 
-  constructor(params: {
-    client: RemoteAgentClient;
-    collectionSchemas: Record<string, CollectionSchema>;
-  }) {
-    this.client = params.client;
-    this.collectionSchemas = params.collectionSchemas;
+  constructor(params: { agentUrl: string; authSecret: string }) {
+    this.agentUrl = params.agentUrl;
+    this.authSecret = params.authSecret;
   }
 
-  async getRecord({ collection, id, fields }: GetRecordQuery) {
-    const schema = this.resolveSchema(collection);
-    const records = await this.client.collection(collection).list<Record<string, unknown>>({
+  async getRecord(
+    { collection, id, fields }: GetRecordQuery,
+    { user, schemaCache }: AgentCallContext,
+  ): Promise<RecordData> {
+    const client = this.createClient(user, schemaCache);
+    const schema = AgentClientAgentPort.resolveSchema(schemaCache, collection);
+    const records = await client.collection(collection).list<Record<string, unknown>>({
       filters: buildPkFilter(schema.primaryKeyFields, id),
       pagination: { size: 1, number: 1 },
       ...(fields?.length && { fields }),
@@ -67,18 +73,26 @@ export default class AgentClientAgentPort implements AgentPort {
     return { collectionName: collection, recordId: id, values: records[0] };
   }
 
-  async updateRecord({ collection, id, values }: UpdateRecordQuery) {
-    const updatedRecord = await this.client
+  async updateRecord(
+    { collection, id, values }: UpdateRecordQuery,
+    { user, schemaCache }: AgentCallContext,
+  ): Promise<RecordData> {
+    const client = this.createClient(user, schemaCache);
+    const updatedRecord = await client
       .collection(collection)
       .update<Record<string, unknown>>(encodePk(id), values);
 
     return { collectionName: collection, recordId: id, values: updatedRecord };
   }
 
-  async getRelatedData({ collection, id, relation, limit, fields }: GetRelatedDataQuery) {
-    const relatedSchema = this.resolveSchema(relation);
+  async getRelatedData(
+    { collection, id, relation, limit, fields }: GetRelatedDataQuery,
+    { user, schemaCache }: AgentCallContext,
+  ): Promise<RecordData[]> {
+    const client = this.createClient(user, schemaCache);
+    const relatedSchema = AgentClientAgentPort.resolveSchema(schemaCache, relation);
 
-    const records = await this.client
+    const records = await client
       .collection(collection)
       .relation(relation, encodePk(id))
       .list<Record<string, unknown>>({
@@ -93,26 +107,56 @@ export default class AgentClientAgentPort implements AgentPort {
     }));
   }
 
-  async executeAction({ collection, action, id }: ExecuteActionQuery): Promise<unknown> {
+  async executeAction(
+    { collection, action, id }: ExecuteActionQuery,
+    { user, schemaCache }: AgentCallContext,
+  ): Promise<unknown> {
+    const client = this.createClient(user, schemaCache);
     const encodedId = id?.length ? [encodePk(id)] : [];
-    const act = await this.client.collection(collection).action(action, { recordIds: encodedId });
+    const act = await client.collection(collection).action(action, { recordIds: encodedId });
 
     return act.execute();
   }
 
-  private resolveSchema(collectionName: string): CollectionSchema {
-    const schema = this.collectionSchemas[collectionName];
+  private createClient(user: StepUser, schemaCache: Map<string, CollectionSchema>) {
+    const token = jsonwebtoken.sign({ ...user }, this.authSecret, { expiresIn: '1h' });
 
-    if (!schema) {
-      return {
+    return createRemoteAgentClient({
+      url: this.agentUrl,
+      token,
+      actionEndpoints: AgentClientAgentPort.buildActionEndpoints(schemaCache),
+    });
+  }
+
+  private static buildActionEndpoints(schemaCache: Map<string, CollectionSchema>) {
+    const endpoints: Record<string, Record<string, { name: string; endpoint: string }>> = {};
+
+    for (const [collectionName, schema] of schemaCache) {
+      endpoints[collectionName] = {};
+
+      for (const action of schema.actions) {
+        endpoints[collectionName][action.name] = {
+          name: action.name,
+          endpoint: action.endpoint,
+        };
+      }
+    }
+
+    return endpoints;
+  }
+
+  private static resolveSchema(
+    schemaCache: Map<string, CollectionSchema>,
+    collectionName: string,
+  ): CollectionSchema {
+    return (
+      schemaCache.get(collectionName) ?? {
         collectionName,
         collectionDisplayName: collectionName,
         primaryKeyFields: ['id'],
         fields: [],
         actions: [],
-      };
-    }
-
-    return schema;
+      }
+    );
   }
 }

@@ -1,6 +1,7 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { RecordData } from '../types/record';
+import type { StepUser } from '../types/execution';
+import type { CollectionSchema, RecordData } from '../types/record';
 
 export type Id = string | number;
 
@@ -19,9 +20,14 @@ export type GetRelatedDataQuery = {
 
 export type ExecuteActionQuery = { collection: string; action: string; id?: Id[] };
 
+export interface AgentCallContext {
+  user: StepUser;
+  schemaCache: Map<string, CollectionSchema>;
+}
+
 export interface AgentPort {
-  getRecord(query: GetRecordQuery): Promise<RecordData>;
-  updateRecord(query: UpdateRecordQuery): Promise<RecordData>;
-  getRelatedData(query: GetRelatedDataQuery): Promise<RecordData[]>;
-  executeAction(query: ExecuteActionQuery): Promise<unknown>;
+  getRecord(query: GetRecordQuery, context: AgentCallContext): Promise<RecordData>;
+  updateRecord(query: UpdateRecordQuery, context: AgentCallContext): Promise<RecordData>;
+  getRelatedData(query: GetRelatedDataQuery, context: AgentCallContext): Promise<RecordData[]>;
+  executeAction(query: ExecuteActionQuery, context: AgentCallContext): Promise<unknown>;
 }
