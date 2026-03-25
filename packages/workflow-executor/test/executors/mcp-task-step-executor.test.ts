@@ -321,7 +321,7 @@ describe('McpTaskStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new McpTaskStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -356,7 +356,7 @@ describe('McpTaskStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore, userConfirmed: false });
+      const context = makeContext({ runStore });
       const executor = new McpTaskStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -440,7 +440,7 @@ describe('McpTaskStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new McpTaskStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -501,7 +501,7 @@ describe('McpTaskStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const context = makeContext({ runStore, userConfirmed: true, logger });
+      const context = makeContext({ runStore, logger });
       const executor = new McpTaskStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -543,7 +543,7 @@ describe('McpTaskStepExecutor', () => {
         close: jest.fn().mockResolvedValue(undefined),
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new McpTaskStepExecutor(context, []);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -562,7 +562,7 @@ describe('McpTaskStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new McpTaskStepExecutor(context, []);
 
       await expect(executor.execute()).resolves.toMatchObject({

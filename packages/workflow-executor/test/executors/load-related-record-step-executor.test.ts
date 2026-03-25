@@ -744,7 +744,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ agentPort, runStore, userConfirmed: true });
+      const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -783,7 +783,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ agentPort, runStore, userConfirmed: true });
+      const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -808,7 +808,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ agentPort, runStore, userConfirmed: false });
+      const context = makeContext({ agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -832,7 +832,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         close: jest.fn().mockResolvedValue(undefined),
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -857,7 +857,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           },
         ]),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -990,7 +990,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const context = makeContext({ runId: 'run-1', stepIndex: 0, runStore, userConfirmed: true });
+      const context = makeContext({ runId: 'run-1', stepIndex: 0, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -1321,7 +1321,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
-      const context = makeContext({ runStore, userConfirmed: true });
+      const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -1346,7 +1346,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const context = makeContext({ runStore, userConfirmed: false });
+      const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();

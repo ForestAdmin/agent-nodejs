@@ -210,8 +210,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -246,8 +245,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = false;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -271,8 +269,7 @@ describe('UpdateRecordStepExecutor', () => {
         close: jest.fn().mockResolvedValue(undefined),
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -298,8 +295,7 @@ describe('UpdateRecordStepExecutor', () => {
           },
         ]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -324,8 +320,7 @@ describe('UpdateRecordStepExecutor', () => {
           },
         ]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -604,8 +599,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -652,8 +646,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -750,8 +743,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -769,8 +761,7 @@ describe('UpdateRecordStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const userConfirmed = false;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
