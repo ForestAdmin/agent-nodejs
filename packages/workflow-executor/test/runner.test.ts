@@ -69,6 +69,8 @@ const VALID_AUTH_SECRET = 'test-auth-secret';
 
 function createMockRunStore(overrides: Partial<RunStore> = {}): jest.Mocked<RunStore> {
   return {
+    init: jest.fn().mockResolvedValue(undefined),
+    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
