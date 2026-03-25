@@ -918,6 +918,24 @@ describe('patchPendingData', () => {
     );
   });
 
+  it('does not throw StepAlreadyExecutedError when executionResult is undefined', async () => {
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue([
+        {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { fieldName: 'status', value: 'active' },
+          executionResult: undefined,
+        },
+      ]),
+    });
+    runner = new Runner(createRunnerConfig({ runStore }));
+
+    await runner.patchPendingData('run-1', 0, { userConfirmed: true });
+
+    expect(runStore.saveStepExecution).toHaveBeenCalled();
+  });
+
   it('throws PendingDataNotFoundError when step is not found', async () => {
     const runStore = createMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
     runner = new Runner(createRunnerConfig({ runStore }));

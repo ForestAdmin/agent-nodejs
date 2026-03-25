@@ -118,14 +118,17 @@ export default class Runner {
     const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
     const schema = execution ? patchBodySchemas[execution.type] : undefined;
 
-    if (execution && 'executionResult' in execution && execution.executionResult !== undefined) {
-      throw new StepAlreadyExecutedError(runId, stepIndex);
-    }
-
     // pendingData is typed as T | undefined; null is not expected (RunStore never persists null)
     // but `== null` guards against both for safety.
     if (!execution || !schema || !('pendingData' in execution) || execution.pendingData == null) {
       throw new PendingDataNotFoundError(runId, stepIndex);
+    }
+
+    // Guard: reject PATCH on steps that already have a final result.
+    // Placed after the schema/pendingData check so it only fires for step types
+    // that actually support the confirmation flow (those in patchBodySchemas).
+    if ('executionResult' in execution && execution.executionResult !== undefined) {
+      throw new StepAlreadyExecutedError(runId, stepIndex);
     }
 
     const parsed = schema.safeParse(body);
@@ -140,8 +143,9 @@ export default class Runner {
       );
     }
 
-    // Cast is safe: the type guard above ensures `execution` is the correct union branch,
-    // and patchBodySchemas[execution.type] only accepts keys valid for that branch.
+    // NOTE: TOCTOU race — the step could be executed between read and save.
+    // Acceptable for now; RunStore.saveStepExecution should ideally use
+    // optimistic locking or a conditional write in a future iteration.
     await this.config.runStore.saveStepExecution(runId, {
       ...execution,
       pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
