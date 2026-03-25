@@ -4,6 +4,7 @@ import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
 import type { Server } from 'http';
 
+import bodyParser from '@koa/bodyparser';
 import Router from '@koa/router';
 import http from 'http';
 import Koa from 'koa';
@@ -54,6 +55,8 @@ export default class ExecutorHttpServer {
       }
     });
 
+    this.app.use(bodyParser());
+
     // JWT middleware — validates Bearer token using authSecret
     // tokenKey: 'rawToken' exposes the raw token string on ctx.state.rawToken for downstream use
     this.app.use(
@@ -96,6 +99,10 @@ export default class ExecutorHttpServer {
 
     router.get('/runs/:runId', this.handleGetRun.bind(this));
     router.post('/runs/:runId/trigger', this.handleTrigger.bind(this));
+    router.patch(
+      '/runs/:runId/steps/:stepIndex/pending-data',
+      this.handlePatchPendingData.bind(this),
+    );
 
     this.app.use(router.routes());
     this.app.use(router.allowedMethods());
@@ -157,5 +164,44 @@ export default class ExecutorHttpServer {
 
     ctx.status = 200;
     ctx.body = { triggered: true };
+  }
+
+  private async handlePatchPendingData(ctx: Koa.Context): Promise<void> {
+    const { runId, stepIndex: stepIndexStr } = ctx.params;
+    const stepIndex = parseInt(stepIndexStr, 10);
+
+    if (Number.isNaN(stepIndex)) {
+      ctx.status = 400;
+      ctx.body = { error: 'Invalid stepIndex' };
+
+      return;
+    }
+
+    const body = ctx.request.body as Record<string, unknown>;
+    const { userConfirmed } = body;
+
+    if (typeof userConfirmed !== 'boolean') {
+      ctx.status = 400;
+      ctx.body = { error: 'userConfirmed must be a boolean' };
+
+      return;
+    }
+
+    const stepExecutions = await this.options.runStore.getStepExecutions(runId);
+    const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
+
+    if (!execution || !('pendingData' in execution) || execution.pendingData === undefined) {
+      ctx.status = 404;
+      ctx.body = { error: 'Step execution not found or has no pending data' };
+
+      return;
+    }
+
+    await this.options.runStore.saveStepExecution(runId, {
+      ...execution,
+      pendingData: { ...(execution.pendingData as object), userConfirmed },
+    } as Parameters<RunStore['saveStepExecution']>[1]);
+
+    ctx.status = 204;
   }
 }

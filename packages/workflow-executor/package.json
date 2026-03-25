@@ -26,6 +26,7 @@
     "@forestadmin/agent-client": "1.4.13",
     "@forestadmin/ai-proxy": "1.6.1",
     "@forestadmin/forestadmin-client": "1.37.17",
+    "@koa/bodyparser": "^6.1.0",
     "@koa/router": "^13.1.0",
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",

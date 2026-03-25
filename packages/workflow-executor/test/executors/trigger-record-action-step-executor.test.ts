@@ -203,14 +203,14 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
         },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -230,10 +230,10 @@ describe('TriggerRecordActionStepExecutor', () => {
             name: 'send-welcome-email',
           },
           executionResult: { success: true, actionResult: { message: 'Email sent' } },
-          pendingData: {
+          pendingData: expect.objectContaining({
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
-          },
+          }),
         }),
       );
     });
@@ -248,14 +248,14 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: false,
         },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = false;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -266,63 +266,39 @@ describe('TriggerRecordActionStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: {
+          pendingData: expect.objectContaining({
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
-          },
+          }),
         }),
       );
     });
   });
 
+  describe('trigger before PATCH (Branch A)', () => {
+    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
+      const agentPort = makeMockAgentPort();
+      const execution: TriggerRecordActionStepExecutionData = {
+        type: 'trigger-action',
+        stepIndex: 0,
+        pendingData: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ agentPort, runStore });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
   describe('no pending action in confirmation flow (Branch A)', () => {
-    it('returns error outcome when no pending action is found', async () => {
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([]),
-      });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
-      const executor = new TriggerRecordActionStepExecutor(context);
-
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'trigger-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-
-    it('returns error outcome when execution exists but stepIndex does not match', async () => {
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([
-          {
-            type: 'trigger-action',
-            stepIndex: 5,
-            pendingData: { displayName: 'Send Welcome Email' },
-            selectedRecordRef: makeRecordRef(),
-          },
-        ]),
-      });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
-      const executor = new TriggerRecordActionStepExecutor(context);
-
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'trigger-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-
     it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
@@ -333,8 +309,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           },
         ]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -446,14 +421,14 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
         },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -497,14 +472,14 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
         },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -766,8 +741,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -781,6 +755,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: false,
         },
         selectedRecordRef: makeRecordRef(),
       };
@@ -788,8 +763,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const userConfirmed = false;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -830,6 +804,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
         },
         selectedRecordRef: makeRecordRef(),
       };
@@ -837,8 +812,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();

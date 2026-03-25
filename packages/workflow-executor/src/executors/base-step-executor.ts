@@ -3,7 +3,7 @@ import type { ExecutionContext, IStepExecutor, StepExecutionResult } from '../ty
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { BaseStepStatus } from '../types/step-outcome';
+import type { StepStatus } from '../types/step-outcome';
 import type { BaseMessage, StructuredToolInterface } from '@forestadmin/ai-proxy';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -83,35 +83,46 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   /** Builds a StepExecutionResult with the step-type-specific outcome shape. */
   protected abstract buildOutcomeResult(outcome: {
-    status: BaseStepStatus;
+    status: StepStatus;
     error?: string;
   }): StepExecutionResult;
 
   /**
+   * Finds a step execution in the RunStore matching the given type and the current stepIndex.
+   * Returns undefined if no matching execution exists (first call → Branch B/C).
+   */
+  protected async findPendingExecution<TExec extends WithPendingData>(
+    type: string,
+  ): Promise<TExec | undefined> {
+    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
+
+    return stepExecutions.find(
+      (e): e is TExec => (e as TExec).type === type && e.stepIndex === this.context.stepIndex,
+    );
+  }
+
+  /**
    * Shared confirmation flow for executors that require user approval before acting.
-   * Handles the find → guard → skipped → delegate pattern.
+   * Receives a pre-loaded execution (from findPendingExecution) and checks pendingData.userConfirmed:
+   * - undefined → PATCH not yet called → re-emit awaiting-input (safe no-op)
+   * - false → save execution as skipped and return success outcome
+   * - true → execute via resolveAndExecute
    */
   protected async handleConfirmationFlow<TExec extends WithPendingData>(
-    typeDiscriminator: string,
+    execution: TExec,
     resolveAndExecute: (execution: TExec) => Promise<StepExecutionResult>,
   ): Promise<StepExecutionResult> {
-    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const execution = stepExecutions.find(
-      (e): e is TExec =>
-        (e as TExec).type === typeDiscriminator && e.stepIndex === this.context.stepIndex,
-    );
-
-    if (!execution) {
-      throw new StepStateError(
-        `No execution record found for step at index ${this.context.stepIndex}`,
-      );
-    }
-
     if (!execution.pendingData) {
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    if (!this.context.userConfirmed) {
+    const { userConfirmed } = execution.pendingData as { userConfirmed?: boolean };
+
+    if (userConfirmed === undefined) {
+      return this.buildOutcomeResult({ status: 'awaiting-input' });
+    }
+
+    if (!userConfirmed) {
       await this.context.runStore.saveStepExecution(this.context.runId, {
         ...execution,
         executionResult: { skipped: true },

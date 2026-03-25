@@ -48,9 +48,11 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpTaskStepDef
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
-    if (this.context.userConfirmed !== undefined) {
-      // Branch A -- Re-entry with user confirmation
-      return this.handleConfirmationFlow<McpTaskStepExecutionData>('mcp-task', execution =>
+    // Branch A -- Re-entry after pending execution found in RunStore
+    const pending = await this.findPendingExecution<McpTaskStepExecutionData>('mcp-task');
+
+    if (pending) {
+      return this.handleConfirmationFlow<McpTaskStepExecutionData>(pending, execution =>
         this.executeToolAndPersist(execution.pendingData as McpToolCall, execution),
       );
     }
@@ -120,15 +122,10 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpTaskStepDef
     }
 
     // 2. AI formatting — non-blocking; errors are logged but do not fail the step
-    try {
-      const formattedResponse = await this.formatToolResult(target, toolResult);
+    let formattedResponse: string | null = null;
 
-      if (formattedResponse) {
-        await this.context.runStore.saveStepExecution(this.context.runId, {
-          ...baseData,
-          executionResult: { ...baseExecutionResult, formattedResponse },
-        });
-      }
+    try {
+      formattedResponse = await this.formatToolResult(target, toolResult);
     } catch (cause) {
       this.context.logger.error('Failed to format MCP tool result, using generic fallback', {
         runId: this.context.runId,
@@ -136,6 +133,25 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpTaskStepDef
         toolName: target.name,
         cause: cause instanceof Error ? cause.message : String(cause),
       });
+    }
+
+    if (formattedResponse) {
+      try {
+        await this.context.runStore.saveStepExecution(this.context.runId, {
+          ...baseData,
+          executionResult: { ...baseExecutionResult, formattedResponse },
+        });
+      } catch (cause) {
+        this.context.logger.error(
+          'MCP tool result formatted but enriched state could not be persisted',
+          {
+            runId: this.context.runId,
+            stepIndex: this.context.stepIndex,
+            toolName: target.name,
+            cause: cause instanceof Error ? cause.message : String(cause),
+          },
+        );
+      }
     }
 
     return this.buildOutcomeResult({ status: 'success' });
