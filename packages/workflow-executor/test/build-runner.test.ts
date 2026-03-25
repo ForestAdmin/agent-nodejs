@@ -1,6 +1,6 @@
 import AgentClientAgentPort from '../src/adapters/agent-client-agent-port';
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
-import { buildRunnerInDatabase, buildRunnerInMemory } from '../src/build-runner';
+import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-runner';
 import Runner from '../src/runner';
 import DatabaseStore from '../src/stores/database-store';
 import InMemoryStore from '../src/stores/in-memory-store';
@@ -16,7 +16,6 @@ jest.mock('@forestadmin/ai-proxy', () => ({
 jest.mock('@forestadmin/agent-client', () => ({
   createRemoteAgentClient: jest.fn().mockReturnValue({}),
 }));
-
 jest.mock('sequelize', () => ({
   Sequelize: jest.fn(),
 }));
@@ -36,15 +35,16 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('buildRunnerInMemory', () => {
-  it('returns a Runner instance', () => {
-    const runner = buildRunnerInMemory(BASE_OPTIONS);
+describe('buildInMemoryExecutor', () => {
+  it('returns an object with start and stop methods', () => {
+    const executor = buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(runner).toBeInstanceOf(Runner);
+    expect(executor.start).toBeDefined();
+    expect(executor.stop).toBeDefined();
   });
 
   it('creates an InMemoryStore as runStore', () => {
-    buildRunnerInMemory(BASE_OPTIONS);
+    buildInMemoryExecutor(BASE_OPTIONS);
 
     expect(InMemoryStore).toHaveBeenCalledTimes(1);
     expect(MockedRunner).toHaveBeenCalledWith(
@@ -53,7 +53,7 @@ describe('buildRunnerInMemory', () => {
   });
 
   it('creates ForestServerWorkflowPort with default forestServerUrl', () => {
-    buildRunnerInMemory(BASE_OPTIONS);
+    buildInMemoryExecutor(BASE_OPTIONS);
 
     expect(ForestServerWorkflowPort).toHaveBeenCalledWith({
       envSecret: BASE_OPTIONS.envSecret,
@@ -62,7 +62,7 @@ describe('buildRunnerInMemory', () => {
   });
 
   it('creates ForestServerWorkflowPort with custom forestServerUrl', () => {
-    buildRunnerInMemory({ ...BASE_OPTIONS, forestServerUrl: 'https://custom.example.com' });
+    buildInMemoryExecutor({ ...BASE_OPTIONS, forestServerUrl: 'https://custom.example.com' });
 
     expect(ForestServerWorkflowPort).toHaveBeenCalledWith({
       envSecret: BASE_OPTIONS.envSecret,
@@ -71,7 +71,7 @@ describe('buildRunnerInMemory', () => {
   });
 
   it('creates AgentClientAgentPort with empty collectionSchemas', () => {
-    buildRunnerInMemory(BASE_OPTIONS);
+    buildInMemoryExecutor(BASE_OPTIONS);
 
     expect(AgentClientAgentPort).toHaveBeenCalledWith({
       client: expect.anything(),
@@ -80,19 +80,19 @@ describe('buildRunnerInMemory', () => {
   });
 
   it('passes pollingIntervalMs with default value of 5000', () => {
-    buildRunnerInMemory(BASE_OPTIONS);
+    buildInMemoryExecutor(BASE_OPTIONS);
 
     expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ pollingIntervalMs: 5000 }));
   });
 
   it('passes custom pollingIntervalMs', () => {
-    buildRunnerInMemory({ ...BASE_OPTIONS, pollingIntervalMs: 1000 });
+    buildInMemoryExecutor({ ...BASE_OPTIONS, pollingIntervalMs: 1000 });
 
     expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ pollingIntervalMs: 1000 }));
   });
 
   it('passes secrets to Runner config', () => {
-    buildRunnerInMemory(BASE_OPTIONS);
+    buildInMemoryExecutor(BASE_OPTIONS);
 
     expect(MockedRunner).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -103,26 +103,27 @@ describe('buildRunnerInMemory', () => {
   });
 
   it('passes optional httpPort', () => {
-    buildRunnerInMemory({ ...BASE_OPTIONS, httpPort: 3000 });
+    buildInMemoryExecutor({ ...BASE_OPTIONS, httpPort: 3000 });
 
     expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ httpPort: 3000 }));
   });
 });
 
-describe('buildRunnerInDatabase', () => {
+describe('buildDatabaseExecutor', () => {
   const DB_OPTIONS = {
     ...BASE_OPTIONS,
     database: { uri: 'postgres://localhost/mydb', dialect: 'postgres' },
   };
 
-  it('returns a Runner instance', () => {
-    const runner = buildRunnerInDatabase(DB_OPTIONS);
+  it('returns an object with start and stop methods', () => {
+    const executor = buildDatabaseExecutor(DB_OPTIONS);
 
-    expect(runner).toBeInstanceOf(Runner);
+    expect(executor.start).toBeDefined();
+    expect(executor.stop).toBeDefined();
   });
 
   it('creates a DatabaseStore as runStore', () => {
-    buildRunnerInDatabase(DB_OPTIONS);
+    buildDatabaseExecutor(DB_OPTIONS);
 
     expect(DatabaseStore).toHaveBeenCalledTimes(1);
     expect(MockedRunner).toHaveBeenCalledWith(
@@ -134,7 +135,7 @@ describe('buildRunnerInDatabase', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const { Sequelize } = require('sequelize');
 
-    buildRunnerInDatabase(DB_OPTIONS);
+    buildDatabaseExecutor(DB_OPTIONS);
 
     expect(Sequelize).toHaveBeenCalledWith('postgres://localhost/mydb', {
       dialect: 'postgres',
@@ -146,7 +147,7 @@ describe('buildRunnerInDatabase', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const { Sequelize } = require('sequelize');
 
-    buildRunnerInDatabase({
+    buildDatabaseExecutor({
       ...BASE_OPTIONS,
       database: { uri: 'postgres://localhost/mydb', dialect: 'postgres', logging: true },
     });
@@ -158,8 +159,8 @@ describe('buildRunnerInDatabase', () => {
     });
   });
 
-  it('shares the same common dependencies as buildRunnerInMemory', () => {
-    buildRunnerInDatabase(DB_OPTIONS);
+  it('shares the same common dependencies as buildInMemoryExecutor', () => {
+    buildDatabaseExecutor(DB_OPTIONS);
 
     expect(ForestServerWorkflowPort).toHaveBeenCalledWith({
       envSecret: BASE_OPTIONS.envSecret,

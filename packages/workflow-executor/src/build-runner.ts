@@ -14,7 +14,12 @@ import InMemoryStore from './stores/in-memory-store';
 const DEFAULT_FOREST_SERVER_URL = 'https://api.forestadmin.com';
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
 
-export interface BaseRunnerOptions {
+export interface WorkflowExecutor {
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
+
+export interface ExecutorOptions {
   envSecret: string;
   authSecret: string;
   agentUrl: string;
@@ -25,7 +30,7 @@ export interface BaseRunnerOptions {
   logger?: Logger;
 }
 
-export interface DatabaseRunnerOptions extends BaseRunnerOptions {
+export interface DatabaseExecutorOptions extends ExecutorOptions {
   database: {
     uri: string;
     dialect: string;
@@ -33,7 +38,7 @@ export interface DatabaseRunnerOptions extends BaseRunnerOptions {
   };
 }
 
-function buildCommonDependencies(options: BaseRunnerOptions) {
+function buildCommonDependencies(options: ExecutorOptions) {
   const forestServerUrl = options.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL;
 
   const workflowPort = new ForestServerWorkflowPort({
@@ -60,14 +65,14 @@ function buildCommonDependencies(options: BaseRunnerOptions) {
   };
 }
 
-export function buildRunnerInMemory(options: BaseRunnerOptions): Runner {
+export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecutor {
   return new Runner({
     ...buildCommonDependencies(options),
     runStore: new InMemoryStore(),
   });
 }
 
-export function buildRunnerInDatabase(options: DatabaseRunnerOptions): Runner {
+export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
   const { uri, dialect, logging } = options.database;
 
   const sequelize = new Sequelize(uri, {
