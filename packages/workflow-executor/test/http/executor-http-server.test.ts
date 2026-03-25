@@ -20,6 +20,7 @@ function signToken(payload: object, secret = AUTH_SECRET, options?: jsonwebtoken
 
 function createMockRunner(overrides: Partial<Runner> = {}): Runner {
   return {
+    state: 'running',
     start: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn().mockResolvedValue(undefined),
     triggerPoll: jest.fn().mockResolvedValue(undefined),
@@ -153,6 +154,52 @@ describe('ExecutorHttpServer', () => {
       expect(capturedUser).toEqual(
         expect.objectContaining({ id: 'user-42', email: 'admin@forest.com', firstName: 'Ada' }),
       );
+    });
+  });
+
+  describe('GET /health', () => {
+    it('returns 200 with state when runner is running', async () => {
+      const server = createServer({ runner: createMockRunner({ state: 'running' } as never) });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ state: 'running' });
+    });
+
+    it('returns 200 with state when runner is draining', async () => {
+      const server = createServer({ runner: createMockRunner({ state: 'draining' } as never) });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ state: 'draining' });
+    });
+
+    it('returns 503 when runner is stopped', async () => {
+      const server = createServer({ runner: createMockRunner({ state: 'stopped' } as never) });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.status).toBe(503);
+      expect(response.body).toEqual({ state: 'stopped' });
+    });
+
+    it('returns 503 when runner is idle', async () => {
+      const server = createServer({ runner: createMockRunner({ state: 'idle' } as never) });
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.status).toBe(503);
+      expect(response.body).toEqual({ state: 'idle' });
+    });
+
+    it('does not require JWT authentication', async () => {
+      const server = createServer();
+
+      const response = await request(server.callback).get('/health');
+
+      expect(response.status).toBe(200);
     });
   });
 
