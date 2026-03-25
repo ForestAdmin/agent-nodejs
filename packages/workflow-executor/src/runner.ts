@@ -24,6 +24,7 @@ export interface RunnerConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
+  schemaCache: Map<string, CollectionSchema>;
   pollingIntervalMs: number;
   aiClient: AiClient;
   envSecret: string;
@@ -145,7 +146,6 @@ export default class Runner {
   }
 
   async triggerPoll(runId: string): Promise<void> {
-    const schemaCache = new Map<string, CollectionSchema>();
     const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
 
     if (!step) throw new RunNotFoundError(runId);
@@ -153,7 +153,7 @@ export default class Runner {
     if (this.inFlightSteps.has(Runner.stepKey(step))) return;
 
     const loadTools = Runner.once(() => this.fetchRemoteTools());
-    await this.executeStep(step, loadTools, schemaCache);
+    await this.executeStep(step, loadTools);
   }
 
   private schedulePoll(): void {
@@ -161,16 +161,12 @@ export default class Runner {
     this.pollingTimer = setTimeout(() => this.runPollCycle(), this.config.pollingIntervalMs);
   }
 
-  // Schema cache is shared across steps in a cycle. This is safe because
-  // getCollectionSchema uses envSecret (not user tokens) — schemas are
-  // permission-independent metadata.
   private async runPollCycle(): Promise<void> {
     try {
-      const schemaCache = new Map<string, CollectionSchema>();
       const steps = await this.config.workflowPort.getPendingStepExecutions();
       const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
       const loadTools = Runner.once(() => this.fetchRemoteTools());
-      await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools, schemaCache)));
+      await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools)));
     } catch (error) {
       this.logger.error('Poll cycle failed', {
         error: error instanceof Error ? error.message : String(error),
@@ -196,7 +192,6 @@ export default class Runner {
   private async executeStep(
     step: PendingStepExecution,
     loadTools: () => Promise<RemoteTool[]>,
-    schemaCache: Map<string, CollectionSchema>,
   ): Promise<void> {
     const key = Runner.stepKey(step);
     this.inFlightSteps.add(key);
@@ -204,8 +199,7 @@ export default class Runner {
     let result: StepExecutionResult;
 
     try {
-      const contextConfig = this.buildContextConfig(schemaCache);
-      const executor = await StepExecutorFactory.create(step, contextConfig, loadTools);
+      const executor = await StepExecutorFactory.create(step, this.contextConfig, loadTools);
       result = await executor.execute();
     } catch (error) {
       // This block should never execute: the factory and executor contracts guarantee no rejection.
@@ -235,13 +229,13 @@ export default class Runner {
     }
   }
 
-  private buildContextConfig(schemaCache: Map<string, CollectionSchema>): StepContextConfig {
+  private get contextConfig(): StepContextConfig {
     return {
       aiClient: this.config.aiClient,
       agentPort: this.config.agentPort,
       workflowPort: this.config.workflowPort,
       runStore: this.config.runStore,
-      schemaCache,
+      schemaCache: this.config.schemaCache,
       logger: this.logger,
     };
   }

@@ -158,7 +158,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -234,7 +234,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -742,7 +742,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], values: { status: 'active' } },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
     });
   });

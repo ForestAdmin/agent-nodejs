@@ -95,7 +95,7 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
         id: selectedRecordRef.recordId,
         values: { [name]: value },
       },
-      this.agentCallContext,
+      this.context.user,
     );
 
     try {

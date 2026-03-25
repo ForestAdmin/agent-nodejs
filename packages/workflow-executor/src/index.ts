@@ -52,7 +52,6 @@ export type {
 } from './types/execution';
 
 export type {
-  AgentCallContext,
   AgentPort,
   ExecuteActionQuery,
   GetRecordQuery,

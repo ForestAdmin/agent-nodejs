@@ -74,6 +74,7 @@ describe('buildInMemoryExecutor', () => {
     expect(AgentClientAgentPort).toHaveBeenCalledWith({
       agentUrl: 'http://localhost:3310',
       authSecret: 'test-secret',
+      schemaCache: expect.any(Map),
     });
   });
 

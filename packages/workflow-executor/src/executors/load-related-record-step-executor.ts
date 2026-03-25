@@ -178,7 +178,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
         relation: name,
         limit,
       },
-      this.agentCallContext,
+      this.context.user,
     );
 
     if (relatedData.length === 0) {
@@ -233,7 +233,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
         relation: name,
         limit,
       },
-      this.agentCallContext,
+      this.context.user,
     );
 
     if (relatedData.length === 0) {

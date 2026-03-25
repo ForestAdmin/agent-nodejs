@@ -90,7 +90,7 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
         action: name,
         id: selectedRecordRef.recordId,
       },
-      this.agentCallContext,
+      this.context.user,
     );
 
     try {

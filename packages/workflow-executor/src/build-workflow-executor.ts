@@ -45,13 +45,17 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiConfigurations: options.aiConfigurations,
   });
 
+  const schemaCache = new Map();
+
   const agentPort = new AgentClientAgentPort({
     agentUrl: options.agentUrl,
     authSecret: options.authSecret,
+    schemaCache,
   });
 
   return {
     agentPort,
+    schemaCache,
     workflowPort,
     aiClient,
     pollingIntervalMs: options.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,

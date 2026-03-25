@@ -222,7 +222,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], fields: ['name', 'email'] },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
     });
 
@@ -237,7 +237,7 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(agentPort.getRecord).toHaveBeenCalledWith(
         { collection: 'customers', id: [42], fields: ['email'] },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
     });
 

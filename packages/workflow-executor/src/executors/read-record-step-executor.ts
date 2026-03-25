@@ -39,7 +39,7 @@ export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<Recor
         id: selectedRecordRef.recordId,
         fields: resolvedFieldNames,
       },
-      this.agentCallContext,
+      this.context.user,
     );
     const fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
 

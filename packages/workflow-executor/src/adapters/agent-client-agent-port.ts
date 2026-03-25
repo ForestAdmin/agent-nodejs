@@ -1,5 +1,4 @@
 import type {
-  AgentCallContext,
   AgentPort,
   ExecuteActionQuery,
   GetRecordQuery,
@@ -45,21 +44,28 @@ function extractRecordId(
   return primaryKeyFields.map(field => record[field] as string | number);
 }
 
+const TOKEN_EXPIRY_SECONDS = 3600;
+const TOKEN_REFRESH_MARGIN_MS = 60_000;
+
 export default class AgentClientAgentPort implements AgentPort {
   private readonly agentUrl: string;
   private readonly authSecret: string;
+  private readonly schemaCache: ReadonlyMap<string, CollectionSchema>;
+  private readonly tokenCache = new Map<number, { token: string; expiresAt: number }>();
 
-  constructor(params: { agentUrl: string; authSecret: string }) {
+  constructor(params: {
+    agentUrl: string;
+    authSecret: string;
+    schemaCache: ReadonlyMap<string, CollectionSchema>;
+  }) {
     this.agentUrl = params.agentUrl;
     this.authSecret = params.authSecret;
+    this.schemaCache = params.schemaCache;
   }
 
-  async getRecord(
-    { collection, id, fields }: GetRecordQuery,
-    { user, schemaCache }: AgentCallContext,
-  ): Promise<RecordData> {
-    const client = this.createClient(user, schemaCache);
-    const schema = AgentClientAgentPort.resolveSchema(schemaCache, collection);
+  async getRecord({ collection, id, fields }: GetRecordQuery, user: StepUser): Promise<RecordData> {
+    const client = this.createClient(user);
+    const schema = this.resolveSchema(collection);
     const records = await client.collection(collection).list<Record<string, unknown>>({
       filters: buildPkFilter(schema.primaryKeyFields, id),
       pagination: { size: 1, number: 1 },
@@ -75,9 +81,9 @@ export default class AgentClientAgentPort implements AgentPort {
 
   async updateRecord(
     { collection, id, values }: UpdateRecordQuery,
-    { user, schemaCache }: AgentCallContext,
+    user: StepUser,
   ): Promise<RecordData> {
-    const client = this.createClient(user, schemaCache);
+    const client = this.createClient(user);
     const updatedRecord = await client
       .collection(collection)
       .update<Record<string, unknown>>(encodePk(id), values);
@@ -87,10 +93,10 @@ export default class AgentClientAgentPort implements AgentPort {
 
   async getRelatedData(
     { collection, id, relation, limit, fields }: GetRelatedDataQuery,
-    { user, schemaCache }: AgentCallContext,
+    user: StepUser,
   ): Promise<RecordData[]> {
-    const client = this.createClient(user, schemaCache);
-    const relatedSchema = AgentClientAgentPort.resolveSchema(schemaCache, relation);
+    const client = this.createClient(user);
+    const relatedSchema = this.resolveSchema(relation);
 
     const records = await client
       .collection(collection)
@@ -109,29 +115,48 @@ export default class AgentClientAgentPort implements AgentPort {
 
   async executeAction(
     { collection, action, id }: ExecuteActionQuery,
-    { user, schemaCache }: AgentCallContext,
+    user: StepUser,
   ): Promise<unknown> {
-    const client = this.createClient(user, schemaCache);
+    const client = this.createClient(user);
     const encodedId = id?.length ? [encodePk(id)] : [];
     const act = await client.collection(collection).action(action, { recordIds: encodedId });
 
     return act.execute();
   }
 
-  private createClient(user: StepUser, schemaCache: Map<string, CollectionSchema>) {
-    const token = jsonwebtoken.sign({ ...user }, this.authSecret, { expiresIn: '1h' });
+  private createClient(user: StepUser) {
+    const token = this.getOrForgeToken(user);
 
     return createRemoteAgentClient({
       url: this.agentUrl,
       token,
-      actionEndpoints: AgentClientAgentPort.buildActionEndpoints(schemaCache),
+      actionEndpoints: this.buildActionEndpoints(),
     });
   }
 
-  private static buildActionEndpoints(schemaCache: Map<string, CollectionSchema>) {
+  private getOrForgeToken(user: StepUser): string {
+    const cached = this.tokenCache.get(user.id);
+
+    if (cached && cached.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS) {
+      return cached.token;
+    }
+
+    const token = jsonwebtoken.sign({ ...user }, this.authSecret, {
+      expiresIn: TOKEN_EXPIRY_SECONDS,
+    });
+
+    this.tokenCache.set(user.id, {
+      token,
+      expiresAt: Date.now() + TOKEN_EXPIRY_SECONDS * 1000,
+    });
+
+    return token;
+  }
+
+  private buildActionEndpoints() {
     const endpoints: Record<string, Record<string, { name: string; endpoint: string }>> = {};
 
-    for (const [collectionName, schema] of schemaCache) {
+    for (const [collectionName, schema] of this.schemaCache) {
       endpoints[collectionName] = {};
 
       for (const action of schema.actions) {
@@ -145,12 +170,9 @@ export default class AgentClientAgentPort implements AgentPort {
     return endpoints;
   }
 
-  private static resolveSchema(
-    schemaCache: Map<string, CollectionSchema>,
-    collectionName: string,
-  ): CollectionSchema {
+  private resolveSchema(collectionName: string): CollectionSchema {
     return (
-      schemaCache.get(collectionName) ?? {
+      this.schemaCache.get(collectionName) ?? {
         collectionName,
         collectionDisplayName: collectionName,
         primaryKeyFields: ['id'],

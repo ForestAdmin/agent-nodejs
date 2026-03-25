@@ -4,6 +4,7 @@ import type { Logger } from '../src/ports/logger-port';
 import type { RunStore } from '../src/ports/run-store';
 import type { WorkflowPort } from '../src/ports/workflow-port';
 import type { PendingStepExecution } from '../src/types/execution';
+import type { CollectionSchema } from '../src/types/record';
 import type { StepDefinition } from '../src/types/step-definition';
 import type { AiClient, BaseChatModel } from '@forestadmin/ai-proxy';
 
@@ -86,6 +87,7 @@ function createRunnerConfig(
     httpPort: number;
     envSecret: string;
     authSecret: string;
+    schemaCache: Map<string, CollectionSchema>;
   }> = {},
 ) {
   return {
@@ -100,6 +102,7 @@ function createRunnerConfig(
     pollingIntervalMs: POLLING_INTERVAL_MS,
     aiClient: createMockAiClient() as unknown as AiClient,
     logger: createMockLogger(),
+    schemaCache: new Map(),
     envSecret: VALID_ENV_SECRET,
     authSecret: VALID_AUTH_SECRET,
     ...overrides,

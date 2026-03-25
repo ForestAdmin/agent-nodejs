@@ -155,7 +155,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         { collection: 'customers', action: 'send-welcome-email', id: [42] },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -235,7 +235,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         { collection: 'customers', action: 'send-welcome-email', id: [42] },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -565,7 +565,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         { collection: 'customers', action: 'archive', id: [42] },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
     });
 
@@ -595,7 +595,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         { collection: 'customers', action: 'archive', id: [42] },
-        expect.objectContaining({ user: expect.any(Object), schemaCache: expect.any(Map) }),
+        expect.objectContaining({ id: 1 }),
       );
     });
   });
