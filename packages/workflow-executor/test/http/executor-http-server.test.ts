@@ -267,6 +267,22 @@ describe('ExecutorHttpServer', () => {
 
       expect(runner.triggerPoll).not.toHaveBeenCalled();
     });
+
+    it('returns 403 when hasRunAccess returns false on PATCH /runs/:runId/steps/:stepIndex/pending-data', async () => {
+      const workflowPort = createMockWorkflowPort({
+        hasRunAccess: jest.fn().mockResolvedValue(false),
+      });
+      const server = createServer({ workflowPort });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true });
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({ error: 'Forbidden' });
+    });
   });
 
   describe('GET /runs/:runId', () => {
@@ -365,7 +381,6 @@ describe('ExecutorHttpServer', () => {
         getStepExecutions: jest.fn().mockResolvedValue([existing]),
         saveStepExecution: jest.fn().mockResolvedValue(undefined),
       });
-
       const server = createServer({ runStore });
       const token = signToken({ id: 'user-1' });
 
@@ -393,7 +408,6 @@ describe('ExecutorHttpServer', () => {
         getStepExecutions: jest.fn().mockResolvedValue([existing]),
         saveStepExecution: jest.fn().mockResolvedValue(undefined),
       });
-
       const server = createServer({ runStore });
       const token = signToken({ id: 'user-1' });
 
@@ -415,7 +429,6 @@ describe('ExecutorHttpServer', () => {
       const runStore = createMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
-
       const server = createServer({ runStore });
       const token = signToken({ id: 'user-1' });
 
@@ -428,12 +441,11 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ error: 'Step execution not found or has no pending data' });
     });
 
-    it('returns 404 when step execution has no pendingData', async () => {
+    it('returns 404 when step type does not support pending-data confirmation', async () => {
       const existing = { type: 'condition' as const, stepIndex: 1 };
       const runStore = createMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([existing]),
       });
-
       const server = createServer({ runStore });
       const token = signToken({ id: 'user-1' });
 
@@ -459,16 +471,36 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ error: 'Invalid stepIndex' });
     });
 
-    it('returns 400 when userConfirmed is not a boolean', async () => {
+    it('returns 400 when body contains unknown fields', async () => {
       const existing = {
         type: 'update-record' as const,
         stepIndex: 0,
-        pendingData: { fieldName: 'status', value: 'active' },
+        pendingData: { name: 'status', displayName: 'Status', value: 'active' },
       };
       const runStore = createMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([existing]),
       });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
 
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, extra: 'injection' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Invalid request body' }));
+    });
+
+    it('returns 400 when userConfirmed is not a boolean', async () => {
+      const existing = {
+        type: 'update-record' as const,
+        stepIndex: 0,
+        pendingData: { name: 'status', displayName: 'Status', value: 'active' },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+      });
       const server = createServer({ runStore });
       const token = signToken({ id: 'user-1' });
 
@@ -478,7 +510,266 @@ describe('ExecutorHttpServer', () => {
         .send({ userConfirmed: 'yes' });
 
       expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'userConfirmed must be a boolean' });
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Invalid request body' }));
+    });
+
+    it('update-record: accepts value override', async () => {
+      const existing = {
+        type: 'update-record' as const,
+        stepIndex: 0,
+        pendingData: { fieldName: 'status', value: 'old_value' },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+        saveStepExecution: jest.fn().mockResolvedValue(undefined),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, value: 'new_value' });
+
+      expect(response.status).toBe(204);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({ value: 'new_value', userConfirmed: true }),
+        }),
+      );
+    });
+
+    it('update-record: rejects unknown field', async () => {
+      const existing = {
+        type: 'update-record' as const,
+        stepIndex: 0,
+        pendingData: { fieldName: 'status', value: 'active' },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, name: 'hack' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Invalid request body' }));
+    });
+
+    it('load-related-record: accepts selectedRecordId override', async () => {
+      const existing = {
+        type: 'load-related-record' as const,
+        stepIndex: 1,
+        pendingData: {
+          name: 'order',
+          displayName: 'Order',
+          selectedRecordId: [99],
+          suggestedFields: [],
+        },
+        selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+        saveStepExecution: jest.fn().mockResolvedValue(undefined),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/1/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, selectedRecordId: ['42'] });
+
+      expect(response.status).toBe(204);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({ selectedRecordId: ['42'], userConfirmed: true }),
+        }),
+      );
+    });
+
+    it('load-related-record: accepts relation override (name + displayName)', async () => {
+      const existing = {
+        type: 'load-related-record' as const,
+        stepIndex: 1,
+        pendingData: {
+          name: 'order',
+          displayName: 'Order',
+          selectedRecordId: [99],
+          suggestedFields: [],
+        },
+        selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+        saveStepExecution: jest.fn().mockResolvedValue(undefined),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/1/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, name: 'orders', displayName: 'Orders' });
+
+      expect(response.status).toBe(204);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({ name: 'orders', displayName: 'Orders' }),
+        }),
+      );
+    });
+
+    it('load-related-record: rejects empty selectedRecordId', async () => {
+      const existing = {
+        type: 'load-related-record' as const,
+        stepIndex: 1,
+        pendingData: {
+          name: 'order',
+          displayName: 'Order',
+          selectedRecordId: [99],
+          suggestedFields: [],
+        },
+        selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/1/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, selectedRecordId: [] });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Invalid request body' }));
+    });
+
+    it('load-related-record: rejects relatedCollectionName (internal field)', async () => {
+      const existing = {
+        type: 'load-related-record' as const,
+        stepIndex: 1,
+        pendingData: {
+          name: 'order',
+          displayName: 'Order',
+          selectedRecordId: [99],
+          suggestedFields: [],
+        },
+        selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/1/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, relatedCollectionName: 'Order' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Invalid request body' }));
+    });
+
+    it('trigger-action: rejects extra field', async () => {
+      const existing = {
+        type: 'trigger-action' as const,
+        stepIndex: 0,
+        pendingData: { name: 'send_email', displayName: 'Send Email' },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, name: 'other_action' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Invalid request body' }));
+    });
+
+    it('mcp-task: accepts only userConfirmed and returns 204', async () => {
+      const existing = {
+        type: 'mcp-task' as const,
+        stepIndex: 0,
+        pendingData: { name: 'send_report', input: {} },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+        saveStepExecution: jest.fn().mockResolvedValue(undefined),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true });
+
+      expect(response.status).toBe(204);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({ userConfirmed: true }),
+        }),
+      );
+    });
+
+    it('mcp-task: rejects extra field', async () => {
+      const existing = {
+        type: 'mcp-task' as const,
+        stepIndex: 0,
+        pendingData: { name: 'send_report', input: {} },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true, name: 'override' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(expect.objectContaining({ error: 'Invalid request body' }));
+    });
+
+    it('returns 500 when saveStepExecution rejects', async () => {
+      const existing = {
+        type: 'update-record' as const,
+        stepIndex: 0,
+        pendingData: { fieldName: 'status', value: 'active' },
+      };
+      const runStore = createMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([existing]),
+        saveStepExecution: jest.fn().mockRejectedValue(new Error('disk full')),
+      });
+      const server = createServer({ runStore });
+      const token = signToken({ id: 'user-1' });
+
+      const response = await request(server.callback)
+        .patch('/runs/run-1/steps/0/pending-data')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userConfirmed: true });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
     });
   });
 
