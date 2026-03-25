@@ -110,6 +110,7 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
+    schemaCache: new Map(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,

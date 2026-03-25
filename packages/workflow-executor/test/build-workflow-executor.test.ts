@@ -1,4 +1,3 @@
-import AgentClientAgentPort from '../src/adapters/agent-client-agent-port';
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
 import Runner from '../src/runner';
@@ -69,22 +68,30 @@ describe('buildInMemoryExecutor', () => {
     });
   });
 
-  it('creates remote agent client with the provided agentUrl', () => {
+  it('creates remote agent client lazily when createAgentPort is called', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const { createRemoteAgentClient } = require('@forestadmin/agent-client');
 
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(createRemoteAgentClient).toHaveBeenCalledWith({ url: 'http://localhost:3310' });
+    // createRemoteAgentClient is not called at build time; it's deferred to createAgentPort
+    expect(createRemoteAgentClient).not.toHaveBeenCalled();
+
+    const { createAgentPort } = MockedRunner.mock.calls[0][0];
+    createAgentPort({ userToken: 'test-token', collectionSchemas: {} });
+
+    expect(createRemoteAgentClient).toHaveBeenCalledWith({
+      url: 'http://localhost:3310',
+      token: 'test-token',
+    });
   });
 
-  it('passes remote agent client to AgentClientAgentPort', () => {
+  it('passes a createAgentPort factory function to Runner', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(AgentClientAgentPort).toHaveBeenCalledWith({
-      client: { fake: 'client' },
-      collectionSchemas: {},
-    });
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ createAgentPort: expect.any(Function) }),
+    );
   });
 
   it('creates AiClient with the provided aiConfigurations', () => {
@@ -199,9 +206,8 @@ describe('buildDatabaseExecutor', () => {
       envSecret: BASE_OPTIONS.envSecret,
       forestServerUrl: 'https://api.forestadmin.com',
     });
-    expect(AgentClientAgentPort).toHaveBeenCalledWith({
-      client: { fake: 'client' },
-      collectionSchemas: {},
-    });
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ createAgentPort: expect.any(Function) }),
+    );
   });
 });

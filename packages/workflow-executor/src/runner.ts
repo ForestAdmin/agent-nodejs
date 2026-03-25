@@ -3,9 +3,12 @@ import type { AgentPort } from './ports/agent-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
-import type { PendingStepExecution, StepExecutionResult } from './types/execution';
+import type { PendingStepExecution, StepExecutionResult, StepUser } from './types/execution';
+import type { CollectionSchema } from './types/record';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
+
+import jsonwebtoken from 'jsonwebtoken';
 
 import ConsoleLogger from './adapters/console-logger';
 import {
@@ -19,8 +22,13 @@ import ExecutorHttpServer from './http/executor-http-server';
 import patchBodySchemas from './pending-data-validators';
 import validateSecrets from './validate-secrets';
 
+export interface CreateAgentPortParams {
+  userToken: string;
+  collectionSchemas: Record<string, CollectionSchema>;
+}
+
 export interface RunnerConfig {
-  agentPort: AgentPort;
+  createAgentPort: (params: CreateAgentPortParams) => AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
   pollingIntervalMs: number;
@@ -144,6 +152,7 @@ export default class Runner {
   }
 
   async triggerPoll(runId: string): Promise<void> {
+    const schemaCache = new Map<string, CollectionSchema>();
     const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
 
     if (!step) throw new RunNotFoundError(runId);
@@ -151,7 +160,7 @@ export default class Runner {
     if (this.inFlightSteps.has(Runner.stepKey(step))) return;
 
     const loadTools = Runner.once(() => this.fetchRemoteTools());
-    await this.executeStep(step, loadTools);
+    await this.executeStep(step, loadTools, schemaCache);
   }
 
   private schedulePoll(): void {
@@ -161,10 +170,11 @@ export default class Runner {
 
   private async runPollCycle(): Promise<void> {
     try {
+      const schemaCache = new Map<string, CollectionSchema>();
       const steps = await this.config.workflowPort.getPendingStepExecutions();
       const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
       const loadTools = Runner.once(() => this.fetchRemoteTools());
-      await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools)));
+      await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools, schemaCache)));
     } catch (error) {
       this.logger.error('Poll cycle failed', {
         error: error instanceof Error ? error.message : String(error),
@@ -190,6 +200,7 @@ export default class Runner {
   private async executeStep(
     step: PendingStepExecution,
     loadTools: () => Promise<RemoteTool[]>,
+    schemaCache: Map<string, CollectionSchema>,
   ): Promise<void> {
     const key = Runner.stepKey(step);
     this.inFlightSteps.add(key);
@@ -197,7 +208,9 @@ export default class Runner {
     let result: StepExecutionResult;
 
     try {
-      const executor = await StepExecutorFactory.create(step, this.contextConfig, loadTools);
+      const userToken = this.forgeUserToken(step.user);
+      const contextConfig = this.buildContextConfig(schemaCache, userToken);
+      const executor = await StepExecutorFactory.create(step, contextConfig, loadTools);
       result = await executor.execute();
     } catch (error) {
       // This block should never execute: the factory and executor contracts guarantee no rejection.
@@ -227,12 +240,23 @@ export default class Runner {
     }
   }
 
-  private get contextConfig(): StepContextConfig {
+  private forgeUserToken(user: StepUser): string {
+    return jsonwebtoken.sign({ ...user }, this.config.authSecret, { expiresIn: '1h' });
+  }
+
+  private buildContextConfig(
+    schemaCache: Map<string, CollectionSchema>,
+    userToken: string,
+  ): StepContextConfig {
     return {
       aiClient: this.config.aiClient,
-      agentPort: this.config.agentPort,
+      agentPort: this.config.createAgentPort({
+        userToken,
+        collectionSchemas: Object.fromEntries(schemaCache),
+      }),
       workflowPort: this.config.workflowPort,
       runStore: this.config.runStore,
+      schemaCache,
       logger: this.logger,
     };
   }

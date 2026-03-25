@@ -8,6 +8,7 @@ import type {
   PendingStepExecution,
   StepExecutionResult,
 } from '../types/execution';
+import type { CollectionSchema } from '../types/record';
 import type {
   ConditionStepDefinition,
   McpTaskStepDefinition,
@@ -30,6 +31,7 @@ export interface StepContextConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
+  schemaCache: Map<string, CollectionSchema>;
   logger: Logger;
 }
 
@@ -103,6 +105,7 @@ export default class StepExecutorFactory {
       agentPort: cfg.agentPort,
       workflowPort: cfg.workflowPort,
       runStore: cfg.runStore,
+      schemaCache: cfg.schemaCache,
       logger: cfg.logger,
     };
   }

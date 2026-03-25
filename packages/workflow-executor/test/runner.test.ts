@@ -89,7 +89,7 @@ function createRunnerConfig(
   }> = {},
 ) {
   return {
-    agentPort: {} as AgentPort,
+    createAgentPort: jest.fn().mockReturnValue({} as AgentPort),
     workflowPort: createMockWorkflowPort(),
     runStore: {
       init: jest.fn().mockResolvedValue(undefined),
@@ -130,6 +130,17 @@ function makePendingStep(
     baseRecordRef: { collectionName: 'customers', recordId: ['1'], stepIndex: 0 },
     stepDefinition: makeStepDefinition(stepType),
     previousSteps: [],
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
     ...rest,
   };
 }
@@ -562,6 +573,7 @@ describe('StepExecutorFactory.create — factory', () => {
     agentPort: {} as AgentPort,
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
+    schemaCache: new Map(),
     logger: { error: jest.fn() },
   });
 

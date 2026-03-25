@@ -42,15 +42,16 @@ function buildCommonDependencies(options: ExecutorOptions) {
     forestServerUrl,
   });
 
-  const client = createRemoteAgentClient({ url: options.agentUrl });
-  const agentPort = new AgentClientAgentPort({ client, collectionSchemas: {} });
-
   const aiClient = new AiClient({
     aiConfigurations: options.aiConfigurations,
   });
 
   return {
-    agentPort,
+    createAgentPort: ({ userToken, collectionSchemas }) =>
+      new AgentClientAgentPort({
+        client: createRemoteAgentClient({ url: options.agentUrl, token: userToken }),
+        collectionSchemas,
+      }),
     workflowPort,
     aiClient,
     pollingIntervalMs: options.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,

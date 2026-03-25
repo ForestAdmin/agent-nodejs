@@ -55,6 +55,7 @@ function makeContext(
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
+    schemaCache: new Map(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,

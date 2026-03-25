@@ -108,6 +108,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
+    schemaCache: new Map(),
     previousSteps: [],
     logger: makeMockLogger(),
     ...overrides,

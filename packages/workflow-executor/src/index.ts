@@ -44,6 +44,7 @@ export type {
 } from './types/record';
 
 export type {
+  StepUser,
   Step,
   PendingStepExecution,
   StepExecutionResult,
