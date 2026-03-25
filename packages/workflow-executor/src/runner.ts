@@ -146,6 +146,7 @@ export default class Runner {
   }
 
   async triggerPoll(runId: string): Promise<void> {
+    this.config.schemaCache.clear();
     const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
 
     if (!step) throw new RunNotFoundError(runId);
@@ -163,6 +164,7 @@ export default class Runner {
 
   private async runPollCycle(): Promise<void> {
     try {
+      this.config.schemaCache.clear();
       const steps = await this.config.workflowPort.getPendingStepExecutions();
       const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
       const loadTools = Runner.once(() => this.fetchRemoteTools());
