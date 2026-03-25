@@ -59,6 +59,8 @@ export default class Runner {
     this.isRunning = true;
 
     try {
+      await this.config.runStore.init(this.logger);
+
       if (this.config.httpPort !== undefined && !this.httpServer) {
         const server = new ExecutorHttpServer({
           port: this.config.httpPort,
@@ -92,7 +94,10 @@ export default class Runner {
       this.httpServer = null;
     }
 
-    await this.config.aiClient.closeConnections();
+    await Promise.allSettled([
+      this.config.aiClient.closeConnections(),
+      this.config.runStore.close(this.logger),
+    ]);
 
     // TODO: graceful drain of in-flight steps (out of scope PRD-223)
   }

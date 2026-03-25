@@ -18,6 +18,8 @@ function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionSt
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
+    init: jest.fn().mockResolvedValue(undefined),
+    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,

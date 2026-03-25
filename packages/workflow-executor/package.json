@@ -31,12 +31,16 @@
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",
     "koa-jwt": "^4.0.4",
+    "sequelize": "^6.37.8",
+    "umzug": "^3.8.2",
     "zod": "4.3.6"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@types/koa": "^2.13.5",
     "@types/koa__router": "^12.0.4",
+    "@types/sequelize": "^6.12.0",
+    "sqlite3": "^6.0.1",
     "supertest": "^7.1.3"
   }
 }

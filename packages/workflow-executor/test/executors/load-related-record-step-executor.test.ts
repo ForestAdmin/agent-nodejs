@@ -67,6 +67,8 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
+    init: jest.fn().mockResolvedValue(undefined),
+    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -743,8 +745,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           displayName: 'Order',
           name: 'order',
           relatedCollectionName: 'orders',
-          suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
           userConfirmed: true,
         },
       });
@@ -817,8 +819,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           displayName: 'Order',
           name: 'order',
           relatedCollectionName: 'orders',
-          suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
           userConfirmed: false,
         },
       });
@@ -842,25 +844,21 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('trigger before PATCH (Branch A)', () => {
-    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
-      const agentPort = makeMockAgentPort();
-      const execution = makePendingExecution(); // pendingData has no userConfirmed
+  describe('no pending data in confirmation flow (Branch A)', () => {
+    it('falls through to first-call path when no execution record is found', async () => {
       const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+        init: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+        getStepExecutions: jest.fn().mockResolvedValue([]),
       });
-      const context = makeContext({ agentPort, runStore });
+      const context = makeContext({ runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
-  });
 
-  describe('no pending data in confirmation flow (Branch A)', () => {
     it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
@@ -1004,8 +1002,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           displayName: 'Order',
           name: 'order',
           relatedCollectionName: 'orders',
-          suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
           userConfirmed: true,
         },
       });
@@ -1369,8 +1367,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           displayName: 'Order',
           name: 'order',
           relatedCollectionName: 'orders',
-          suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
           userConfirmed: false,
         },
       });

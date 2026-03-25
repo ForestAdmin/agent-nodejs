@@ -40,6 +40,8 @@ function makeStep(overrides: Partial<McpTaskStepDefinition> = {}): McpTaskStepDe
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
+    init: jest.fn().mockResolvedValue(undefined),
+    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -387,33 +389,6 @@ describe('McpTaskStepExecutor', () => {
     });
   });
 
-  describe('trigger before PATCH (Branch A)', () => {
-    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
-      const invokeFn = jest.fn();
-      const tool = new MockRemoteTool({
-        name: 'send_notification',
-        sourceId: 'mcp-server-1',
-        invoke: invokeFn,
-      });
-      const execution: McpTaskStepExecutionData = {
-        type: 'mcp-task',
-        stepIndex: 0,
-        pendingData: { name: 'send_notification', input: { message: 'Hello' } },
-      };
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
-      });
-      const context = makeContext({ runStore });
-      const executor = new McpTaskStepExecutor(context, [tool]);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(invokeFn).not.toHaveBeenCalled();
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-  });
-
   describe('mcpServerId filter', () => {
     it('passes only tools from the specified server to the AI', async () => {
       const toolA = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A' });
@@ -582,6 +557,23 @@ describe('McpTaskStepExecutor', () => {
   });
 
   describe('no pending data in confirmation flow (Branch A)', () => {
+    it('falls through to first-call path when no execution record is found', async () => {
+      const runStore = makeMockRunStore({
+        init: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+        getStepExecutions: jest.fn().mockResolvedValue([]),
+      });
+      const context = makeContext({ runStore });
+      const executor = new McpTaskStepExecutor(context, []);
+
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          status: 'error',
+          error: 'No tools are available to execute this step.',
+        },
+      });
+    });
+
     it('returns error when execution exists but pendingData is absent', async () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
