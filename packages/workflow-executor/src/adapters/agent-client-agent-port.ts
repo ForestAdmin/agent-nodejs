@@ -44,14 +44,10 @@ function extractRecordId(
   return primaryKeyFields.map(field => record[field] as string | number);
 }
 
-const TOKEN_EXPIRY_SECONDS = 3600;
-const TOKEN_REFRESH_MARGIN_MS = 60_000;
-
 export default class AgentClientAgentPort implements AgentPort {
   private readonly agentUrl: string;
   private readonly authSecret: string;
   private readonly schemaCache: ReadonlyMap<string, CollectionSchema>;
-  private readonly tokenCache = new Map<number, { token: string; expiresAt: number }>();
 
   constructor(params: {
     agentUrl: string;
@@ -125,32 +121,13 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   private createClient(user: StepUser) {
-    const token = this.getOrForgeToken(user);
+    const token = jsonwebtoken.sign({ ...user }, this.authSecret, { expiresIn: '1h' });
 
     return createRemoteAgentClient({
       url: this.agentUrl,
       token,
       actionEndpoints: this.buildActionEndpoints(),
     });
-  }
-
-  private getOrForgeToken(user: StepUser): string {
-    const cached = this.tokenCache.get(user.id);
-
-    if (cached && cached.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS) {
-      return cached.token;
-    }
-
-    const token = jsonwebtoken.sign({ ...user }, this.authSecret, {
-      expiresIn: TOKEN_EXPIRY_SECONDS,
-    });
-
-    this.tokenCache.set(user.id, {
-      token,
-      expiresAt: Date.now() + TOKEN_EXPIRY_SECONDS * 1000,
-    });
-
-    return token;
   }
 
   private buildActionEndpoints() {
