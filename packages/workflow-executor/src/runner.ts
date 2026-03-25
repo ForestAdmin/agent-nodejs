@@ -124,9 +124,6 @@ export default class Runner {
       throw new PendingDataNotFoundError(runId, stepIndex);
     }
 
-    // Guard: reject PATCH on steps that already have a final result.
-    // Placed after the schema/pendingData check so it only fires for step types
-    // that actually support the confirmation flow (those in patchBodySchemas).
     if ('executionResult' in execution && execution.executionResult !== undefined) {
       throw new StepAlreadyExecutedError(runId, stepIndex);
     }
@@ -143,9 +140,6 @@ export default class Runner {
       );
     }
 
-    // NOTE: TOCTOU race — the step could be executed between read and save.
-    // Acceptable for now; RunStore.saveStepExecution should ideally use
-    // optimistic locking or a conditional write in a future iteration.
     await this.config.runStore.saveStepExecution(runId, {
       ...execution,
       pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
