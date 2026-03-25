@@ -1,6 +1,6 @@
 import AgentClientAgentPort from '../src/adapters/agent-client-agent-port';
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
-import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-runner';
+import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
 import Runner from '../src/runner';
 import DatabaseStore from '../src/stores/database-store';
 import InMemoryStore from '../src/stores/in-memory-store';

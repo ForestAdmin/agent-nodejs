@@ -106,5 +106,5 @@ export { default as InMemoryStore } from './stores/in-memory-store';
 export { default as DatabaseStore } from './stores/database-store';
 export type { DatabaseStoreOptions } from './stores/database-store';
 export { buildDatabaseRunStore, buildInMemoryRunStore } from './stores/build-run-store';
-export { buildInMemoryExecutor, buildDatabaseExecutor } from './build-runner';
-export type { WorkflowExecutor, ExecutorOptions, DatabaseExecutorOptions } from './build-runner';
+export { buildInMemoryExecutor, buildDatabaseExecutor } from './build-workflow-executor';
+export type { WorkflowExecutor, ExecutorOptions, DatabaseExecutorOptions } from './build-workflow-executor';
