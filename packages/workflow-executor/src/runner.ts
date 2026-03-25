@@ -21,6 +21,8 @@ import ExecutorHttpServer from './http/executor-http-server';
 import patchBodySchemas from './pending-data-validators';
 import validateSecrets from './validate-secrets';
 
+export type RunnerState = 'idle' | 'running' | 'draining' | 'stopped';
+
 export interface RunnerConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
@@ -32,15 +34,19 @@ export interface RunnerConfig {
   authSecret: string;
   logger?: Logger;
   httpPort?: number;
+  stopTimeoutMs?: number;
 }
+
+const DEFAULT_STOP_TIMEOUT_MS = 30_000;
 
 export default class Runner {
   private readonly config: RunnerConfig;
   private httpServer: ExecutorHttpServer | null = null;
   private pollingTimer: NodeJS.Timeout | null = null;
-  private readonly inFlightSteps = new Set<string>();
+  private readonly inFlightSteps = new Map<string, Promise<void>>();
   private isRunning = false;
   private readonly logger: Logger;
+  private _state: RunnerState = 'idle';
 
   private static stepKey(step: PendingStepExecution): string {
     return `${step.runId}:${step.stepId}`;
@@ -51,12 +57,17 @@ export default class Runner {
     this.logger = config.logger ?? new ConsoleLogger();
   }
 
+  get state(): RunnerState {
+    return this._state;
+  }
+
   async start(): Promise<void> {
     if (this.isRunning) return;
 
     validateSecrets({ envSecret: this.config.envSecret, authSecret: this.config.authSecret });
 
     this.isRunning = true;
+    this._state = 'running';
 
     try {
       await this.config.runStore.init(this.logger);
@@ -74,6 +85,7 @@ export default class Runner {
       }
     } catch (error) {
       this.isRunning = false;
+      this._state = 'idle';
       throw error;
     }
 
@@ -81,6 +93,7 @@ export default class Runner {
   }
 
   async stop(): Promise<void> {
+    this._state = 'draining';
     this.isRunning = false;
 
     if (this.pollingTimer !== null) {
@@ -88,6 +101,32 @@ export default class Runner {
       this.pollingTimer = null;
     }
 
+    // Drain in-flight steps
+    if (this.inFlightSteps.size > 0) {
+      this.logger.info?.('Draining in-flight steps', {
+        count: this.inFlightSteps.size,
+        steps: [...this.inFlightSteps.keys()],
+      });
+
+      const timeout = this.config.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS;
+      const drainResult = await Promise.race([
+        Promise.allSettled(this.inFlightSteps.values()).then(() => 'drained' as const),
+        new Promise<'timeout'>(resolve => {
+          setTimeout(() => resolve('timeout'), timeout);
+        }),
+      ]);
+
+      if (drainResult === 'timeout') {
+        this.logger.error('Drain timeout — steps still in flight', {
+          remainingSteps: [...this.inFlightSteps.keys()],
+          timeoutMs: timeout,
+        });
+      } else {
+        this.logger.info?.('All in-flight steps drained', {});
+      }
+    }
+
+    // Close resources after drain
     if (this.httpServer) {
       await this.httpServer.stop();
       this.httpServer = null;
@@ -98,7 +137,7 @@ export default class Runner {
       this.config.runStore.close(this.logger),
     ]);
 
-    // TODO: graceful drain of in-flight steps (out of scope PRD-223)
+    this._state = 'stopped';
   }
 
   async getRunStepExecutions(runId: string): Promise<StepExecutionData[]> {
@@ -189,10 +228,18 @@ export default class Runner {
     return this.config.aiClient.loadRemoteTools(mergedConfig);
   }
 
-  private async executeStep(step: PendingStepExecution): Promise<void> {
+  private executeStep(step: PendingStepExecution): Promise<void> {
     const key = Runner.stepKey(step);
-    this.inFlightSteps.add(key);
+    const promise = this.doExecuteStep(step, key);
+    this.inFlightSteps.set(key, promise);
 
+    return promise;
+  }
+
+  private async doExecuteStep(
+    step: PendingStepExecution,
+    key: string,
+  ): Promise<void> {
     let result: StepExecutionResult;
 
     try {

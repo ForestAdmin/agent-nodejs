@@ -62,8 +62,8 @@ function createMockAiClient() {
   };
 }
 
-function createMockLogger(): jest.Mocked<Logger> {
-  return { error: jest.fn() };
+function createMockLogger(): jest.Mocked<Required<Logger>> {
+  return { error: jest.fn(), info: jest.fn() };
 }
 
 const VALID_ENV_SECRET = 'a'.repeat(64);
@@ -89,6 +89,7 @@ function createRunnerConfig(
     envSecret: string;
     authSecret: string;
     schemaCache: SchemaCache;
+    stopTimeoutMs: number;
   }> = {},
 ) {
   return {
@@ -178,7 +179,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (runner) {
+  if (runner && runner.state !== 'stopped') {
     await runner.stop();
     (runner as Runner | undefined) = undefined;
   }
@@ -282,6 +283,188 @@ describe('stop', () => {
     await runner.start();
 
     expect(MockedExecutorHttpServer).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Graceful shutdown
+// ---------------------------------------------------------------------------
+
+describe('graceful shutdown', () => {
+  it('state transitions: idle → running → draining → stopped', async () => {
+    runner = new Runner(createRunnerConfig());
+
+    expect(runner.state).toBe('idle');
+
+    await runner.start();
+    expect(runner.state).toBe('running');
+
+    const stopPromise = runner.stop();
+    expect(runner.state).toBe('draining');
+
+    await stopPromise;
+    expect(runner.state).toBe('stopped');
+  });
+
+  it('state resets to idle on start failure', async () => {
+    const config = createRunnerConfig();
+    (config.runStore.init as jest.Mock).mockRejectedValueOnce(new Error('init failed'));
+    runner = new Runner(config);
+
+    await expect(runner.start()).rejects.toThrow('init failed');
+    expect(runner.state).toBe('idle');
+  });
+
+  it('stop() waits for in-flight steps before resolving', async () => {
+    let resolveStep!: () => void;
+    const stepPromise = new Promise<void>(resolve => {
+      resolveStep = resolve;
+    });
+
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce([
+      makePendingStep({ runId: 'run-1', stepId: 'step-1' }),
+    ]);
+
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+      execute: () =>
+        stepPromise.then(() => ({
+          stepOutcome: { type: 'condition', stepId: 'step-1', stepIndex: 0, status: 'success' },
+        })),
+    } as never);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+
+    let stopResolved = false;
+    const stopPromise = runner.stop().then(() => {
+      stopResolved = true;
+    });
+
+    // stop() should not resolve while step is in flight
+    await flushPromises();
+    expect(stopResolved).toBe(false);
+
+    // Resolve the step
+    resolveStep();
+    await stopPromise;
+    expect(stopResolved).toBe(true);
+  });
+
+  it('stop() resolves after timeout when step is stuck', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const logger = createMockLogger();
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce([
+      makePendingStep({ runId: 'run-1', stepId: 'stuck-step' }),
+    ]);
+
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+      execute: () => new Promise(() => {}), // never resolves
+    } as never);
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger, stopTimeoutMs: 50 }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+
+    jest.useRealTimers();
+    await runner.stop();
+    jest.useFakeTimers();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'Drain timeout — steps still in flight',
+      expect.objectContaining({
+        remainingSteps: ['run-1:stuck-step'],
+        timeoutMs: 50,
+      }),
+    );
+    expect(runner.state).toBe('stopped');
+  });
+
+  it('stop() resolves immediately when no steps are in flight', async () => {
+    const logger = createMockLogger();
+    runner = new Runner(createRunnerConfig({ logger }));
+    await runner.start();
+    await runner.stop();
+
+    expect(logger.info).not.toHaveBeenCalledWith('Draining in-flight steps', expect.anything());
+    expect(runner.state).toBe('stopped');
+  });
+
+  it('HTTP server is closed after drain completes', async () => {
+    let resolveStep!: () => void;
+    const stepPromise = new Promise<void>(resolve => {
+      resolveStep = resolve;
+    });
+
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce([
+      makePendingStep({ runId: 'run-1', stepId: 'step-1' }),
+    ]);
+
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+      execute: () =>
+        stepPromise.then(() => ({
+          stepOutcome: { type: 'condition', stepId: 'step-1', stepIndex: 0, status: 'success' },
+        })),
+    } as never);
+
+    runner = new Runner(createRunnerConfig({ workflowPort, httpPort: 3100 }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+
+    const stopPromise = runner.stop();
+    await flushPromises();
+
+    // HTTP server should NOT have been stopped yet (drain in progress)
+    expect(MockedExecutorHttpServer.prototype.stop).not.toHaveBeenCalled();
+
+    resolveStep();
+    await stopPromise;
+
+    // Now HTTP server should be stopped
+    expect(MockedExecutorHttpServer.prototype.stop).toHaveBeenCalled();
+  });
+
+  it('logs drain info when steps are in flight', async () => {
+    let resolveStep!: () => void;
+    const stepPromise = new Promise<void>(resolve => {
+      resolveStep = resolve;
+    });
+
+    const workflowPort = createMockWorkflowPort();
+    const logger = createMockLogger();
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce([
+      makePendingStep({ runId: 'run-1', stepId: 'step-1' }),
+    ]);
+
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+      execute: () =>
+        stepPromise.then(() => ({
+          stepOutcome: { type: 'condition', stepId: 'step-1', stepIndex: 0, status: 'success' },
+        })),
+    } as never);
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+
+    resolveStep();
+    await runner.stop();
+
+    expect(logger.info).toHaveBeenCalledWith('Draining in-flight steps', {
+      count: 1,
+      steps: ['run-1:step-1'],
+    });
+    expect(logger.info).toHaveBeenCalledWith('All in-flight steps drained', {});
   });
 });
 
