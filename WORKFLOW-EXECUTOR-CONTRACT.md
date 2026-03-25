@@ -137,10 +137,10 @@ Steps that require user input pause with `status: "awaiting-input"`. The executo
 
 **`PATCH /runs/:runId/steps/:stepIndex/pending-data`**
 
-The frontend writes user overrides + confirmation to the executor HTTP server. Request bodies are validated per step type using strict Zod schemas (unknown fields are rejected).
+The frontend writes user overrides + confirmation to the executor HTTP server. Request bodies are validated per step type with strict Zod schemas — unknown fields are rejected with `400`.
 
 Once written, the frontend calls `POST /runs/:runId/trigger`. On the next execution, the executor reads `pendingData` from the RunStore and checks `userConfirmed`:
-- `undefined` → re-emit `awaiting-input` (safe no-op)
+- `undefined` → returns `awaiting-input` again (the step is not yet actionable)
 - `true` → execute the confirmed action
 - `false` → skip the step (mark as success)
 
@@ -166,11 +166,11 @@ PATCH request body:
 }
 ```
 
-### trigger-action — user confirmation only
+### trigger-action & mcp-task — user confirmation only
 
-The executor selects the action and writes `pendingData` (action name + displayName) to the RunStore. The frontend only confirms or rejects.
+The executor selects the action (or MCP tool) and writes `pendingData` to the RunStore. The frontend cannot override any executor-selected data — it only confirms or rejects.
 
-PATCH request body:
+PATCH request body (same for both types):
 ```typescript
 {
   userConfirmed: boolean;
@@ -186,7 +186,7 @@ Stored in RunStore:
 interface LoadRelatedRecordPendingData {
   name:             string;               // technical relation name
   displayName:      string;               // label shown in the UI
-  suggestedFields?: string[];             // fields suggested for display
+  suggestedFields?: string[];             // fields suggested for display (set by executor)
   selectedRecordId: Array<string|number>; // AI's pick; overridable by frontend
   userConfirmed?:   boolean;              // set by frontend via PATCH
 }
@@ -204,18 +204,13 @@ PATCH request body:
 }
 ```
 
-### mcp-task — user confirmation only
+### Responses
 
-The executor selects the MCP tool and writes `pendingData` (tool name + input) to the RunStore. The frontend only confirms or rejects.
-
-PATCH request body:
-```typescript
-{
-  userConfirmed: boolean;
-}
-```
-
-Response for all types: `204 No Content`.
+| Status | Meaning |
+|---|---|
+| `204 No Content` | Pending data updated successfully |
+| `400` | Invalid body — type mismatch, unknown fields, or empty `selectedRecordId` |
+| `404` | Step not found, no `pendingData`, or step type does not support confirmation |
 
 ---
 
@@ -239,11 +234,11 @@ Orchestrator ──► GET pending?runId=X ──► Executor
               via GET /runs/:runId
                             │
               Frontend overrides + confirms
-              via PATCH /runs/:runId/steps/:stepIndex/pending-data
-              (sets userConfirmed: true/false)
+              PATCH /runs/:runId/steps/:stepIndex/pending-data
+              { userConfirmed: true/false }  →  204
                             │
                   POST /runs/:runId/trigger
                             │
                       Executor resumes
-              (reads pendingData.userConfirmed from RunStore)
+              (reads userConfirmed from pendingData)
 ```
