@@ -21,7 +21,6 @@ export interface PendingStepExecution {
   readonly baseRecordRef: RecordRef;
   readonly stepDefinition: StepDefinition;
   readonly previousSteps: ReadonlyArray<Step>;
-  readonly userConfirmed?: boolean;
 }
 
 export interface StepExecutionResult {
@@ -43,6 +42,5 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
-  readonly userConfirmed?: boolean;
   readonly logger: Logger;
 }

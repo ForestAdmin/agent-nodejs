@@ -202,14 +202,18 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -226,7 +230,12 @@ describe('UpdateRecordStepExecutor', () => {
           type: 'update-record',
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
-          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: expect.objectContaining({
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            userConfirmed: true,
+          }),
         }),
       );
     });
@@ -238,14 +247,18 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: false,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = false;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -256,60 +269,41 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: expect.objectContaining({
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            userConfirmed: false,
+          }),
         }),
       );
     });
   });
 
+  describe('trigger before PATCH (Branch A)', () => {
+    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
+      const agentPort = makeMockAgentPort();
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ agentPort, runStore });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
   describe('no pending update in phase 2 (Branch A)', () => {
-    it('returns error outcome when no pending update is found', async () => {
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([]),
-      });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
-      const executor = new UpdateRecordStepExecutor(context);
-
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'update-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-
-    it('returns error outcome when execution exists but stepIndex does not match', async () => {
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([
-          {
-            type: 'update-record',
-            stepIndex: 5,
-            pendingData: { displayName: 'Status', name: 'status', value: 'active' },
-            selectedRecordRef: makeRecordRef(),
-          },
-        ]),
-      });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
-      const executor = new UpdateRecordStepExecutor(context);
-
-      await expect(executor.execute()).resolves.toMatchObject({
-        stepOutcome: {
-          type: 'record-task',
-          stepId: 'update-1',
-          stepIndex: 0,
-          status: 'error',
-          error: 'An unexpected error occurred while processing this step.',
-        },
-      });
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-
     it('returns error outcome when execution exists but pendingData is absent', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
@@ -320,8 +314,7 @@ describe('UpdateRecordStepExecutor', () => {
           },
         ]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       await expect(executor.execute()).resolves.toMatchObject({
@@ -594,14 +587,18 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -642,14 +639,18 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: true,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const userConfirmed = true;
-      const context = makeContext({ agentPort, runStore, userConfirmed });
+      const context = makeContext({ agentPort, runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -746,8 +747,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockRejectedValue(new Error('DB timeout')),
       });
-      const userConfirmed = true;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -758,15 +758,19 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          userConfirmed: false,
+        },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const userConfirmed = false;
-      const context = makeContext({ runStore, userConfirmed });
+      const context = makeContext({ runStore });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();

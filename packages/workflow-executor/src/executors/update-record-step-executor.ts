@@ -24,28 +24,23 @@ interface UpdateTarget extends FieldRef {
 
 export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
-    // Branch A -- Re-entry with user confirmation
-    if (this.context.userConfirmed !== undefined) {
-      return this.handleConfirmation();
-    }
+    // Branch A -- Re-entry after pending execution found in RunStore
+    const pending = await this.findPendingExecution<UpdateRecordStepExecutionData>('update-record');
 
-    // Branches B & C -- First call
-    return this.handleFirstCall();
-  }
-
-  private async handleConfirmation(): Promise<StepExecutionResult> {
-    return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(
-      'update-record',
-      async execution => {
-        const { selectedRecordRef, pendingData } = execution;
+    if (pending) {
+      return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
+        const { selectedRecordRef, pendingData } = exec;
         const target: UpdateTarget = {
           selectedRecordRef,
           ...(pendingData as FieldRef & { value: string }),
         };
 
-        return this.resolveAndUpdate(target, execution);
-      },
-    );
+        return this.resolveAndUpdate(target, exec);
+      });
+    }
+
+    // Branches B & C -- First call
+    return this.handleFirstCall();
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {

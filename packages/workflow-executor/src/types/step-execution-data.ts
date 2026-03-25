@@ -50,7 +50,7 @@ export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   /** User confirmed → values returned by updateRecord. User rejected → skipped. */
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
   /** AI-selected field and value awaiting user confirmation. Used in the confirmation flow only. */
-  pendingData?: FieldRef & { value: string };
+  pendingData?: FieldRef & { value: string; userConfirmed?: boolean };
   selectedRecordRef: RecordRef;
 }
 
@@ -74,7 +74,7 @@ export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionD
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
   /** AI-selected action awaiting user confirmation. Used in the confirmation flow only. */
-  pendingData?: ActionRef;
+  pendingData?: ActionRef & { userConfirmed?: boolean };
   selectedRecordRef: RecordRef;
 }
 
@@ -96,7 +96,7 @@ export interface McpTaskStepExecutionData extends BaseStepExecutionData {
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
     | { skipped: true };
-  pendingData?: McpToolCall;
+  pendingData?: McpToolCall & { userConfirmed?: boolean };
 }
 
 // -- Generic AI Task (fallback for untyped steps) --
@@ -116,10 +116,12 @@ export interface LoadRelatedRecordPendingData extends RelationRef {
   /** AI-selected fields suggested for display on the frontend. undefined = not computed (no non-relation fields). */
   suggestedFields?: string[];
   /**
-   * The record id to load. Initially set by the AI; overwritten by the frontend via
-   * PATCH /runs/:runId/steps/:stepIndex/pending-data (not yet implemented).
+   * The record id to load. Initially set by the AI. Can be overridden by the frontend
+   * (future iteration — the current PATCH endpoint only accepts userConfirmed).
    */
   selectedRecordId: Array<string | number>;
+  /** Set by the frontend via PATCH /runs/:runId/steps/:stepIndex/pending-data. */
+  userConfirmed?: boolean;
 }
 
 export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
