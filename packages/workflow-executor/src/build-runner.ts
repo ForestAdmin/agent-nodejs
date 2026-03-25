@@ -31,9 +31,8 @@ export interface ExecutorOptions {
   logger?: Logger;
 }
 
-export interface DatabaseExecutorOptions extends ExecutorOptions {
-  database: SequelizeOptions & { uri: string };
-}
+export type DatabaseExecutorOptions = ExecutorOptions &
+  ({ database: SequelizeOptions & { uri: string } } | { database: SequelizeOptions });
 
 function buildCommonDependencies(options: ExecutorOptions) {
   const forestServerUrl = options.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL;
@@ -70,8 +69,8 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
 }
 
 export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
-  const { uri, ...sequelizeOptions } = options.database;
-  const sequelize = new Sequelize(uri, sequelizeOptions);
+  const { uri, ...sequelizeOptions } = options.database as SequelizeOptions & { uri?: string };
+  const sequelize = uri ? new Sequelize(uri, sequelizeOptions) : new Sequelize(sequelizeOptions);
 
   return new Runner({
     ...buildCommonDependencies(options),

@@ -178,6 +178,20 @@ describe('buildDatabaseExecutor', () => {
     });
   });
 
+  it('creates Sequelize with options only when no uri is provided', () => {
+    buildDatabaseExecutor({
+      ...BASE_OPTIONS,
+      database: { dialect: 'postgres', host: 'db.example.com', port: 5432, database: 'mydb' },
+    });
+
+    expect(MockedSequelize).toHaveBeenCalledWith({
+      dialect: 'postgres',
+      host: 'db.example.com',
+      port: 5432,
+      database: 'mydb',
+    });
+  });
+
   it('shares the same common dependencies as buildInMemoryExecutor', () => {
     buildDatabaseExecutor(DB_OPTIONS);
 
