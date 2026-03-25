@@ -194,6 +194,15 @@ describe('start', () => {
     expect(MockedExecutorHttpServer).toHaveBeenCalledTimes(1);
   });
 
+  it('should call runStore.init() on start', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
+
+    await runner.start();
+
+    expect(config.runStore.init).toHaveBeenCalledTimes(1);
+  });
+
   it('should throw ConfigurationError when envSecret is invalid', async () => {
     runner = new Runner(createRunnerConfig({ envSecret: 'bad' }));
 
@@ -217,6 +226,16 @@ describe('stop', () => {
     await runner.stop();
 
     expect(MockedExecutorHttpServer.prototype.stop).toHaveBeenCalled();
+  });
+
+  it('should call runStore.close() on stop', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
+
+    await runner.start();
+    await runner.stop();
+
+    expect(config.runStore.close).toHaveBeenCalledTimes(1);
   });
 
   it('should handle stop when no HTTP server is running', async () => {
