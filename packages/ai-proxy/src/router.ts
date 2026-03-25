@@ -79,7 +79,7 @@ export class Router {
     const mcpConfigs: McpConfiguration = { configs: {} };
     const integrationConfigs: ForestIntegrationConfig[] = [];
 
-    Object.entries(args.mcpConfigs.configs).forEach(([name, config]) => {
+    Object.entries(args.mcpConfigs?.configs ?? {}).forEach(([name, config]) => {
       if (config.isForestConnector) {
         integrationConfigs.push(config as ForestIntegrationConfig);
       } else {

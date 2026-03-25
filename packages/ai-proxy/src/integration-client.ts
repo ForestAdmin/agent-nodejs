@@ -24,6 +24,7 @@ export default class IntegrationClient {
   }
 
   loadTools(): McpServerRemoteTool[] {
+    this.tools.length = 0;
     this.configs.forEach(({ integrationName, config }) => {
       switch (integrationName) {
         case 'Zendesk':
