@@ -1,5 +1,6 @@
 import type { Logger } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
+import type { Dialect } from 'sequelize';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import { AiClient } from '@forestadmin/ai-proxy';
@@ -33,7 +34,7 @@ export interface ExecutorOptions {
 export interface DatabaseExecutorOptions extends ExecutorOptions {
   database: {
     uri: string;
-    dialect: string;
+    dialect: Dialect;
     logging?: boolean;
   };
 }
@@ -76,7 +77,7 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
   const { uri, dialect, logging } = options.database;
 
   const sequelize = new Sequelize(uri, {
-    dialect: dialect as never,
+    dialect,
     // eslint-disable-next-line no-console
     logging: logging ? console.log : false,
   });

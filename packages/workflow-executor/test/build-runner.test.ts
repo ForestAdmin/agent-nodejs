@@ -14,7 +14,7 @@ jest.mock('@forestadmin/ai-proxy', () => ({
   AiClient: jest.fn(),
 }));
 jest.mock('@forestadmin/agent-client', () => ({
-  createRemoteAgentClient: jest.fn().mockReturnValue({}),
+  createRemoteAgentClient: jest.fn().mockReturnValue({ fake: 'client' }),
 }));
 jest.mock('sequelize', () => ({
   Sequelize: jest.fn(),
@@ -36,11 +36,10 @@ beforeEach(() => {
 });
 
 describe('buildInMemoryExecutor', () => {
-  it('returns an object with start and stop methods', () => {
+  it('returns a WorkflowExecutor backed by a Runner', () => {
     const executor = buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(executor.start).toBeDefined();
-    expect(executor.stop).toBeDefined();
+    expect(executor).toBeInstanceOf(Runner);
   });
 
   it('creates an InMemoryStore as runStore', () => {
@@ -70,12 +69,32 @@ describe('buildInMemoryExecutor', () => {
     });
   });
 
-  it('creates AgentClientAgentPort with empty collectionSchemas', () => {
+  it('creates remote agent client with the provided agentUrl', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const { createRemoteAgentClient } = require('@forestadmin/agent-client');
+
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(createRemoteAgentClient).toHaveBeenCalledWith({ url: 'http://localhost:3310' });
+  });
+
+  it('passes remote agent client to AgentClientAgentPort', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
     expect(AgentClientAgentPort).toHaveBeenCalledWith({
-      client: expect.anything(),
+      client: { fake: 'client' },
       collectionSchemas: {},
+    });
+  });
+
+  it('creates AiClient with the provided aiConfigurations', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const { AiClient } = require('@forestadmin/ai-proxy');
+
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(AiClient).toHaveBeenCalledWith({
+      aiConfigurations: BASE_OPTIONS.aiConfigurations,
     });
   });
 
@@ -110,16 +129,18 @@ describe('buildInMemoryExecutor', () => {
 });
 
 describe('buildDatabaseExecutor', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+  const { Sequelize: MockedSequelize } = require('sequelize');
+
   const DB_OPTIONS = {
     ...BASE_OPTIONS,
-    database: { uri: 'postgres://localhost/mydb', dialect: 'postgres' },
+    database: { uri: 'postgres://localhost/mydb', dialect: 'postgres' as const },
   };
 
-  it('returns an object with start and stop methods', () => {
+  it('returns a WorkflowExecutor backed by a Runner', () => {
     const executor = buildDatabaseExecutor(DB_OPTIONS);
 
-    expect(executor.start).toBeDefined();
-    expect(executor.stop).toBeDefined();
+    expect(executor).toBeInstanceOf(Runner);
   });
 
   it('creates a DatabaseStore as runStore', () => {
@@ -132,27 +153,21 @@ describe('buildDatabaseExecutor', () => {
   });
 
   it('creates Sequelize with uri, dialect, and logging disabled by default', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
-    const { Sequelize } = require('sequelize');
-
     buildDatabaseExecutor(DB_OPTIONS);
 
-    expect(Sequelize).toHaveBeenCalledWith('postgres://localhost/mydb', {
+    expect(MockedSequelize).toHaveBeenCalledWith('postgres://localhost/mydb', {
       dialect: 'postgres',
       logging: false,
     });
   });
 
   it('enables Sequelize logging when database.logging is true', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
-    const { Sequelize } = require('sequelize');
-
     buildDatabaseExecutor({
       ...BASE_OPTIONS,
       database: { uri: 'postgres://localhost/mydb', dialect: 'postgres', logging: true },
     });
 
-    expect(Sequelize).toHaveBeenCalledWith('postgres://localhost/mydb', {
+    expect(MockedSequelize).toHaveBeenCalledWith('postgres://localhost/mydb', {
       dialect: 'postgres',
       // eslint-disable-next-line no-console
       logging: console.log,
@@ -167,7 +182,7 @@ describe('buildDatabaseExecutor', () => {
       forestServerUrl: 'https://api.forestadmin.com',
     });
     expect(AgentClientAgentPort).toHaveBeenCalledWith({
-      client: expect.anything(),
+      client: { fake: 'client' },
       collectionSchemas: {},
     });
   });
