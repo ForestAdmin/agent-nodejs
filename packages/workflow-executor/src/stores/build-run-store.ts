@@ -17,7 +17,13 @@ export async function buildDatabaseRunStore(config: DatabaseConfig): Promise<Run
   });
 
   const store = new DatabaseStore({ sequelize });
-  await store.init();
+
+  try {
+    await store.init();
+  } catch (error) {
+    await sequelize.close();
+    throw error;
+  }
 
   return store;
 }

@@ -94,8 +94,10 @@ export default class Runner {
       this.httpServer = null;
     }
 
-    await this.config.aiClient.closeConnections();
-    await this.config.runStore.close();
+    await Promise.allSettled([
+      this.config.aiClient.closeConnections(),
+      this.config.runStore.close(),
+    ]);
 
     // TODO: graceful drain of in-flight steps (out of scope PRD-223)
   }
