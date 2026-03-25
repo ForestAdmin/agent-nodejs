@@ -101,13 +101,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
       50,
     );
 
-    const relatedCollectionName = relatedData[0].collectionName;
     const selectedRecordId = relatedData[bestIndex].recordId;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
-      pendingData: { displayName, name, relatedCollectionName, suggestedFields, selectedRecordId },
+      pendingData: { displayName, name, suggestedFields, selectedRecordId },
       selectedRecordRef,
     });
 
@@ -126,6 +125,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
 
   /**
    * Branch A: builds RecordRef from pendingData.selectedRecordId.
+   * Re-derives relatedCollectionName from FieldSchema using the (possibly updated) relation name,
+   * so a user-overridden relation name is handled correctly.
    * No additional getRelatedData call.
    */
   private async resolveFromSelection(
@@ -137,7 +138,19 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const { name, displayName, relatedCollectionName, selectedRecordId } = pendingData;
+    const { name, displayName, selectedRecordId } = pendingData;
+
+    // Re-derive relatedCollectionName from schema using the (possibly updated) relation name.
+    // `name` is always a fieldName (set from field.fieldName in buildTarget) — search directly.
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const field = schema.fields.find(f => f.fieldName === name);
+    const relatedCollectionName = field?.relatedCollectionName;
+
+    if (!relatedCollectionName) {
+      throw new StepStateError(
+        `Step at index ${this.context.stepIndex} could not resolve relatedCollectionName for relation "${name}"`,
+      );
+    }
 
     const record: RecordRef = {
       collectionName: relatedCollectionName,

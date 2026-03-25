@@ -40,7 +40,6 @@ describe('StepExecutionFormatters', () => {
           pendingData: {
             displayName: 'Address',
             name: 'address',
-            relatedCollectionName: 'addresses',
             selectedRecordId: [1],
           },
         };

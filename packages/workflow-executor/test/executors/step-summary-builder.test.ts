@@ -252,7 +252,6 @@ describe('StepSummaryBuilder', () => {
         pendingData: {
           displayName: 'Address',
           name: 'address',
-          relatedCollectionName: 'addresses',
           selectedRecordId: [1],
         },
       };

@@ -2,6 +2,7 @@ import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
+import type { StepExecutionData } from '../types/step-execution-data';
 import type { Server } from 'http';
 
 import bodyParser from '@koa/bodyparser';
@@ -11,6 +12,7 @@ import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
 import { RunNotFoundError } from '../errors';
+import patchBodySchemas from './pending-data-validators';
 
 export interface ExecutorHttpServerOptions {
   port: number;
@@ -177,30 +179,35 @@ export default class ExecutorHttpServer {
       return;
     }
 
-    const body = ctx.request.body as Record<string, unknown>;
-    const { userConfirmed } = body;
-
-    if (typeof userConfirmed !== 'boolean') {
-      ctx.status = 400;
-      ctx.body = { error: 'userConfirmed must be a boolean' };
-
-      return;
-    }
-
     const stepExecutions = await this.options.runStore.getStepExecutions(runId);
     const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
+    const schema = execution ? patchBodySchemas[execution.type] : undefined;
 
-    if (!execution || !('pendingData' in execution) || execution.pendingData === undefined) {
+    if (
+      !execution ||
+      !schema ||
+      !('pendingData' in execution) ||
+      execution.pendingData === undefined
+    ) {
       ctx.status = 404;
       ctx.body = { error: 'Step execution not found or has no pending data' };
 
       return;
     }
 
+    const parsed = schema.safeParse(ctx.request.body);
+
+    if (!parsed.success) {
+      ctx.status = 400;
+      ctx.body = { error: 'Invalid request body', details: parsed.error.issues };
+
+      return;
+    }
+
     await this.options.runStore.saveStepExecution(runId, {
       ...execution,
-      pendingData: { ...(execution.pendingData as object), userConfirmed },
-    } as Parameters<RunStore['saveStepExecution']>[1]);
+      pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
+    } as StepExecutionData);
 
     ctx.status = 204;
   }

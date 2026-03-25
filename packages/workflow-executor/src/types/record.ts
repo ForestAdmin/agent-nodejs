@@ -8,6 +8,8 @@ export interface FieldSchema {
   isRelationship: boolean;
   /** Cardinality of the relation. Absent for non-relationship fields. */
   relationType?: 'BelongsTo' | 'HasMany' | 'HasOne';
+  /** Target collection name; only meaningful for relationship fields. */
+  relatedCollectionName?: string;
 }
 
 export interface ActionSchema {
