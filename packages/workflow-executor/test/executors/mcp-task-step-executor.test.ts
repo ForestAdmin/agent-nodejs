@@ -40,6 +40,10 @@ function makeStep(overrides: Partial<McpTaskStepDefinition> = {}): McpTaskStepDe
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
+    init: jest.fn().mockResolvedValue(undefined),
+    close: jest.fn().mockResolvedValue(undefined),
+    init: jest.fn().mockResolvedValue(undefined),
+    close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -314,16 +318,12 @@ describe('McpTaskStepExecutor', () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
         stepIndex: 0,
-        pendingData: {
-          name: 'send_notification',
-          input: { message: 'Hello' },
-          userConfirmed: true,
-        },
+        pendingData: { name: 'send_notification', input: { message: 'Hello' } },
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore });
+      const context = makeContext({ runStore, userConfirmed: true });
       const executor = new McpTaskStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -336,11 +336,7 @@ describe('McpTaskStepExecutor', () => {
           type: 'mcp-task',
           executionParams: { name: 'send_notification', input: { message: 'Hello' } },
           executionResult: { success: true, toolResult: 'email sent' },
-          pendingData: {
-            name: 'send_notification',
-            input: { message: 'Hello' },
-            userConfirmed: true,
-          },
+          pendingData: { name: 'send_notification', input: { message: 'Hello' } },
         }),
       );
     });
@@ -357,16 +353,12 @@ describe('McpTaskStepExecutor', () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
         stepIndex: 0,
-        pendingData: {
-          name: 'send_notification',
-          input: { message: 'Hello' },
-          userConfirmed: false,
-        },
+        pendingData: { name: 'send_notification', input: { message: 'Hello' } },
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore });
+      const context = makeContext({ runStore, userConfirmed: false });
       const executor = new McpTaskStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -377,40 +369,9 @@ describe('McpTaskStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: {
-            name: 'send_notification',
-            input: { message: 'Hello' },
-            userConfirmed: false,
-          },
+          pendingData: { name: 'send_notification', input: { message: 'Hello' } },
         }),
       );
-    });
-  });
-
-  describe('trigger before PATCH (Branch A)', () => {
-    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
-      const invokeFn = jest.fn();
-      const tool = new MockRemoteTool({
-        name: 'send_notification',
-        sourceId: 'mcp-server-1',
-        invoke: invokeFn,
-      });
-      const execution: McpTaskStepExecutionData = {
-        type: 'mcp-task',
-        stepIndex: 0,
-        pendingData: { name: 'send_notification', input: { message: 'Hello' } },
-      };
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
-      });
-      const context = makeContext({ runStore });
-      const executor = new McpTaskStepExecutor(context, [tool]);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(invokeFn).not.toHaveBeenCalled();
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -475,13 +436,13 @@ describe('McpTaskStepExecutor', () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
         stepIndex: 0,
-        pendingData: { name: 'deleted_tool', input: {}, userConfirmed: true },
+        pendingData: { name: 'deleted_tool', input: {} },
       };
       const tool = new MockRemoteTool({ name: 'other_tool', sourceId: 'mcp-server-1' });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore });
+      const context = makeContext({ runStore, userConfirmed: true });
       const executor = new McpTaskStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -535,18 +496,14 @@ describe('McpTaskStepExecutor', () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
         stepIndex: 0,
-        pendingData: {
-          name: 'send_notification',
-          input: { message: 'Hello' },
-          userConfirmed: true,
-        },
+        pendingData: { name: 'send_notification', input: { message: 'Hello' } },
       };
       const logger = { error: jest.fn() };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
-      const context = makeContext({ runStore, logger });
+      const context = makeContext({ runStore, userConfirmed: true, logger });
       const executor = new McpTaskStepExecutor(context, [tool]);
 
       const result = await executor.execute();
@@ -582,6 +539,25 @@ describe('McpTaskStepExecutor', () => {
   });
 
   describe('no pending data in confirmation flow (Branch A)', () => {
+    it('returns error when no execution record is found', async () => {
+      const runStore = makeMockRunStore({
+        init: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+        init: jest.fn().mockResolvedValue(undefined),
+        close: jest.fn().mockResolvedValue(undefined),
+        getStepExecutions: jest.fn().mockResolvedValue([]),
+      });
+      const context = makeContext({ runStore, userConfirmed: true });
+      const executor = new McpTaskStepExecutor(context, []);
+
+      await expect(executor.execute()).resolves.toMatchObject({
+        stepOutcome: {
+          status: 'error',
+          error: 'An unexpected error occurred while processing this step.',
+        },
+      });
+    });
+
     it('returns error when execution exists but pendingData is absent', async () => {
       const execution: McpTaskStepExecutionData = {
         type: 'mcp-task',
@@ -590,7 +566,7 @@ describe('McpTaskStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ runStore });
+      const context = makeContext({ runStore, userConfirmed: true });
       const executor = new McpTaskStepExecutor(context, []);
 
       await expect(executor.execute()).resolves.toMatchObject({
