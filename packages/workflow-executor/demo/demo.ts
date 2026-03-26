@@ -136,6 +136,8 @@ class FakeWorkflowPort implements WorkflowPort {
     }
   }
 
+  getCurrentStepIndex(runId: string): number { return this.state[runId]?.idx ?? 0; }
+
   getPendingStepExecutions(): Promise<PendingStepExecution[]> { return Promise.resolve([]); }
   getCollectionSchema(n: string): Promise<CollectionSchema> { return Promise.resolve(n === 'orders' ? ORDERS_SCHEMA : CUSTOMERS_SCHEMA); }
   getMcpServerConfigs(): Promise<[]> { return Promise.resolve([]); }
@@ -146,17 +148,24 @@ class FakeWorkflowPort implements WorkflowPort {
 // Mock AI (multi-run aware)
 // ---------------------------------------------------------------------------
 
-function createDemoAiClient(): AiClient & { reset(): void } {
-  // Queue of AI responses — consumed in order as calls come in.
-  // Each triggerPoll executes one step which makes one AI call.
-  // We push responses when a run is triggered.
-  const queue: Array<{ name: string; args: Record<string, unknown> }> = [];
-  const runCallIdx: Record<string, number> = {};
+function createDemoAiClient(wfPort: FakeWorkflowPort): AiClient & { reset(): void } {
+  // Track which run is currently being executed so invoke() returns the right response
+  let activeRunId: string | null = null;
 
   const model = {
     bindTools: () => model,
     invoke: () => {
-      const resp = queue.shift() || { name: 'unknown', args: {} };
+      // Find the right AI response based on which run is active and its current step
+      let resp = { name: 'unknown', args: {} as Record<string, unknown> };
+
+      if (activeRunId) {
+        const wf = ALL_WORKFLOWS[activeRunId];
+        const idx = wfPort.getCurrentStepIndex(activeRunId);
+
+        if (wf && idx < wf.length) {
+          resp = wf[idx].aiResponses[0];
+        }
+      }
 
       return new Promise(resolve => {
         setTimeout(() => resolve({ tool_calls: [{ name: resp.name, args: resp.args }] }), 250);
@@ -168,17 +177,9 @@ function createDemoAiClient(): AiClient & { reset(): void } {
     getModel: () => model,
     loadRemoteTools: () => Promise.resolve([] as RemoteTool[]),
     closeConnections: () => Promise.resolve(),
-    reset() { queue.length = 0; Object.keys(runCallIdx).forEach(k => delete runCallIdx[k]); },
-    // Custom: enqueue the next AI response for a run before triggering
-    enqueueForRun(runId: string) {
-      const wf = ALL_WORKFLOWS[runId];
-      const idx = runCallIdx[runId] || 0;
-      if (wf && idx < wf.length) {
-        wf[idx].aiResponses.forEach(r => queue.push(r));
-        runCallIdx[runId] = idx + 1;
-      }
-    },
-  } as unknown as AiClient & { reset(): void; enqueueForRun(runId: string): void };
+    reset() { activeRunId = null; },
+    setActiveRun(runId: string) { activeRunId = runId; },
+  } as unknown as AiClient & { reset(): void; setActiveRun(runId: string): void };
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +221,7 @@ async function main() {
   const workflowPort = new FakeWorkflowPort();
   const runStore = new InMemoryStore();
   const schemaCache = new SchemaCache();
-  const aiClient = createDemoAiClient();
+  const aiClient = createDemoAiClient(workflowPort);
 
   const runner = new Runner({
     agentPort: agentPort as any,
@@ -250,10 +251,10 @@ async function main() {
       res.end(JSON.stringify({ reset: true }));
       return;
     }
-    // Enqueue AI responses before forwarding trigger to executor
+    // Set active run so AI mock returns the right response
     const triggerMatch = req.method === 'POST' && req.url?.match(/^\/runs\/(run-\d+)\/trigger$/);
     if (triggerMatch) {
-      (aiClient as any).enqueueForRun(triggerMatch[1]);
+      (aiClient as any).setActiveRun(triggerMatch[1]);
     }
     executorApp(req, res);
   });
