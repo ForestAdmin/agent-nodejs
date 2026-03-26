@@ -15,7 +15,7 @@
       --bg: #080B11;
       --surface: #0F1319;
       --card: #151B25;
-      --card-glow: #1A2233;
+      --card-inner: #1A2233;
       --text: #E8ECF2;
       --dim: #7E8A9C;
       --muted: #3A4555;
@@ -27,198 +27,129 @@
       --border: rgba(255,255,255,0.04);
     }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    body::after {
-      content: '';
-      position: fixed;
-      top: -50%;
-      left: -20%;
-      width: 80vw;
-      height: 80vw;
-      background: radial-gradient(circle, rgba(44,155,66,0.03) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
+    body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
-    /* ── Topbar ── */
     .topbar {
-      position: sticky; top:0; z-index:30;
-      background: rgba(8,11,17,0.88);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 28px;
-      display: flex; align-items: center; gap: 12px;
+      position:sticky;top:0;z-index:30;
+      background:rgba(8,11,17,0.88);backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);
+      padding:12px 28px;display:flex;align-items:center;gap:12px;
     }
-    .topbar .logo {
-      width:28px; height:28px; background:var(--forest);
-      border-radius:7px; display:grid; place-items:center;
-      font-weight:700; font-size:13px; color:#fff;
-    }
-    .topbar h1 { font-size:14px; font-weight:600; }
+    .topbar .logo { width:28px;height:28px;background:var(--forest);border-radius:7px;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff; }
+    .topbar h1 { font-size:14px;font-weight:600; }
     .topbar h1 b { color:var(--forest-light); }
     .topbar .sep { flex:1; }
     .topbar .dot { width:6px;height:6px;border-radius:50%; }
-    .topbar .dot.ok { background:var(--forest); box-shadow:0 0 6px var(--forest-glow); }
+    .topbar .dot.ok { background:var(--forest);box-shadow:0 0 6px var(--forest-glow); }
     .topbar .dot.err { background:var(--red); }
     .topbar .dot.idle { background:var(--muted); }
 
-    /* ── Main ── */
-    .main { max-width:780px; margin:0 auto; padding:36px 20px 140px; position:relative; z-index:1; }
+    .main { max-width:700px;margin:0 auto;padding:36px 20px 140px;position:relative;z-index:1; }
 
-    /* ── Header ── */
-    .header { display:flex; align-items:center; gap:18px; margin-bottom:28px; }
-    .header .icon {
-      width:52px;height:52px;border-radius:16px;
-      background:linear-gradient(135deg, var(--forest), #1B7A30);
-      display:grid;place-items:center;font-size:24px;
-      box-shadow: 0 6px 28px var(--forest-glow);
-    }
-    .header .meta h2 { font-size:22px; font-weight:700; letter-spacing:-0.4px; }
-    .header .meta p { font-size:13px; color:var(--dim); margin-top:2px; }
-    .header .actions { margin-left:auto; display:flex; gap:8px; }
+    .header { display:flex;align-items:center;gap:18px;margin-bottom:28px; }
+    .header .icon { width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--forest),#1B7A30);display:grid;place-items:center;font-size:24px;box-shadow:0 6px 28px var(--forest-glow); }
+    .header .meta h2 { font-size:22px;font-weight:700;letter-spacing:-0.4px; }
+    .header .meta p { font-size:13px;color:var(--dim);margin-top:2px; }
+    .header .actions { margin-left:auto;display:flex;gap:8px; }
 
-    /* ── Buttons ── */
-    .btn {
-      display:inline-flex;align-items:center;gap:6px;
-      padding:9px 18px;border:none;border-radius:8px;
-      font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
-      cursor:pointer;transition:all .12s;
-    }
+    .btn { display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .12s; }
     .btn:active { transform:scale(.97); }
-    .btn-go { background:var(--forest); color:#fff; }
-    .btn-go:hover { background:var(--forest-light); box-shadow:0 4px 16px var(--forest-glow); }
-    .btn-go:disabled { opacity:.35; cursor:not-allowed; }
-    .btn-ghost { background:rgba(255,255,255,.04); color:var(--dim); border:1px solid var(--border); }
-    .btn-ghost:hover { background:rgba(255,255,255,.08); color:var(--text); }
-    .btn-yes { background:rgba(44,155,66,.1); color:var(--forest-light); border:1px solid rgba(44,155,66,.2); }
-    .btn-yes:hover { background:rgba(44,155,66,.18); }
-    .btn-no { background:rgba(240,96,80,.08); color:var(--red); border:1px solid rgba(240,96,80,.15); }
-    .btn-no:hover { background:rgba(240,96,80,.16); }
+    .btn-go { background:var(--forest);color:#fff; }
+    .btn-go:hover { background:var(--forest-light);box-shadow:0 4px 16px var(--forest-glow); }
+    .btn-go:disabled { opacity:.35;cursor:not-allowed; }
+    .btn-ghost { background:rgba(255,255,255,.04);color:var(--dim);border:1px solid var(--border); }
+    .btn-ghost:hover { background:rgba(255,255,255,.08);color:var(--text); }
+    .btn-yes { background:var(--forest);color:#fff;padding:10px 24px;border-radius:10px;font-size:14px; }
+    .btn-yes:hover { background:var(--forest-light);box-shadow:0 4px 16px var(--forest-glow); }
+    .btn-no { background:rgba(255,255,255,.04);color:var(--dim);border:1px solid var(--border);padding:10px 24px;border-radius:10px;font-size:14px; }
+    .btn-no:hover { background:rgba(255,255,255,.08);color:var(--text); }
 
-    /* ── Progress ── */
-    .progress { display:flex; align-items:center; gap:10px; margin-bottom:32px; }
-    .ptrack { flex:1; height:3px; background:rgba(255,255,255,.04); border-radius:2px; overflow:hidden; }
-    .pfill { height:100%; background:linear-gradient(90deg,var(--forest),var(--forest-light)); border-radius:2px; transition:width .8s cubic-bezier(.4,0,.2,1); }
-    .plabel { font-size:12px; color:var(--muted); font-weight:500; font-family:'DM Mono',monospace; min-width:32px; text-align:right; }
+    .progress { display:flex;align-items:center;gap:10px;margin-bottom:32px; }
+    .ptrack { flex:1;height:3px;background:rgba(255,255,255,.04);border-radius:2px;overflow:hidden; }
+    .pfill { height:100%;background:linear-gradient(90deg,var(--forest),var(--forest-light));border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1); }
+    .plabel { font-size:12px;color:var(--muted);font-weight:500;font-family:'DM Mono',monospace; }
 
-    /* ── Pipeline ── */
-    .pipeline { display:flex; flex-direction:column; }
-
-    .wire { width:2px; height:24px; margin-left:23px; background:var(--border); transition:background .6s; }
-    .wire.lit { background:linear-gradient(to bottom,var(--forest),var(--forest) 60%,var(--border)); }
+    .pipeline { display:flex;flex-direction:column; }
+    .wire { width:2px;height:20px;margin-left:23px;background:var(--border);transition:background .6s; }
     .wire.done { background:var(--forest); }
 
-    /* ── Card ── */
-    .card-wrap { display:flex; gap:14px; align-items:flex-start; }
+    .card-wrap { display:flex;gap:14px;align-items:flex-start; }
+    .node { width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:19px;border:2.5px solid var(--muted);transition:all .4s;position:relative; }
+    .card-wrap.done .node { border-color:var(--forest);background:var(--forest); }
+    .card-wrap.done .node::after { content:'✓';position:absolute;inset:-2.5px;display:grid;place-items:center;font-size:9px;color:#fff;font-weight:700; }
+    .card-wrap.running .node { border-color:var(--blue);animation:nPulse 1.6s infinite; }
+    .card-wrap.waiting .node { border-color:var(--amber);background:var(--amber); }
+    .card-wrap.skip .node { border-color:var(--muted);background:var(--muted); }
+    @keyframes nPulse { 0%,100%{box-shadow:0 0 0 0 rgba(91,163,245,.35)} 50%{box-shadow:0 0 0 7px rgba(91,163,245,0)} }
 
-    .node {
-      width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:19px;
-      border:2.5px solid var(--muted);
-      transition:all .4s;
-      position:relative;
-    }
-    .card-wrap.done .node { border-color:var(--forest); background:var(--forest); }
-    .card-wrap.done .node::after {
-      content:'✓'; position:absolute; inset:-2.5px; display:grid; place-items:center;
-      font-size:9px; color:#fff; font-weight:700;
-    }
-    .card-wrap.running .node { border-color:var(--blue); animation:nPulse 1.6s infinite; }
-    .card-wrap.waiting .node { border-color:var(--amber); background:var(--amber); }
-    .card-wrap.err .node { border-color:var(--red); background:var(--red); }
-    .card-wrap.skip .node { border-color:var(--muted); background:var(--muted); }
+    .card { flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;opacity:.25;transform:translateY(6px);transition:opacity .5s,transform .5s,border-color .4s,box-shadow .4s; }
+    .card-wrap.done .card,.card-wrap.running .card,.card-wrap.waiting .card,.card-wrap.skip .card,.card-wrap.next .card { opacity:1;transform:translateY(0); }
+    .card-wrap.running .card { border-color:rgba(91,163,245,.15);box-shadow:0 0 30px var(--blue-glow); }
+    .card-wrap.waiting .card { border-color:rgba(245,183,49,.15);box-shadow:0 0 30px var(--amber-glow); }
 
-    @keyframes nPulse {
-      0%,100%{box-shadow:0 0 0 0 rgba(91,163,245,.35)}
-      50%{box-shadow:0 0 0 7px rgba(91,163,245,0)}
-    }
+    .card-top { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
+    .badge { font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.04);color:var(--dim);text-transform:uppercase;letter-spacing:.5px; }
+    .card-title { font-size:14px;font-weight:600; }
+    .tag { margin-left:auto;font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:.3px;text-transform:uppercase; }
+    .tag.success { background:rgba(44,155,66,.1);color:var(--forest-light); }
+    .tag.wait { background:var(--amber-glow);color:var(--amber); }
+    .tag.run { background:var(--blue-glow);color:var(--blue); }
+    .tag.skip { background:rgba(255,255,255,.04);color:var(--muted); }
 
-    .card {
-      flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;
-      padding:16px 20px;
-      opacity:.25;transform:translateY(6px);
-      transition:opacity .5s,transform .5s,border-color .4s,box-shadow .4s;
-    }
-    .card-wrap.done .card,
-    .card-wrap.running .card,
-    .card-wrap.waiting .card,
-    .card-wrap.err .card,
-    .card-wrap.skip .card,
-    .card-wrap.next .card {
-      opacity:1;transform:translateY(0);
-    }
-    .card-wrap.running .card { border-color:rgba(91,163,245,.15); box-shadow:0 0 30px var(--blue-glow); }
-    .card-wrap.waiting .card { border-color:rgba(245,183,49,.15); box-shadow:0 0 30px var(--amber-glow); }
+    .step-visual { margin-top:10px;animation:fadeUp .4s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
-    .card-top { display:flex; align-items:center; gap:10px; }
-    .badge {
-      font-family:'DM Mono',monospace;font-size:10px;font-weight:500;
-      padding:3px 8px;border-radius:4px;
-      background:rgba(255,255,255,.04);color:var(--dim);
-      text-transform:uppercase;letter-spacing:.5px;
-    }
-    .card-title { font-size:14px; font-weight:600; }
-    .tag {
-      margin-left:auto;font-size:10px;font-weight:600;padding:3px 10px;
-      border-radius:20px;letter-spacing:.3px;text-transform:uppercase;
-    }
-    .tag.success { background:rgba(44,155,66,.1); color:var(--forest-light); }
-    .tag.error { background:rgba(240,96,80,.1); color:var(--red); }
-    .tag.wait { background:var(--amber-glow); color:var(--amber); }
-    .tag.run { background:var(--blue-glow); color:var(--blue); }
-    .tag.skip { background:rgba(255,255,255,.04); color:var(--muted); }
+    .profile { display:flex;align-items:center;gap:14px;background:var(--card-inner);border-radius:10px;padding:14px 16px; }
+    .avatar { width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:grid;place-items:center;font-size:16px;font-weight:700;color:#fff; }
+    .profile-info { flex:1; }
+    .profile-info .name { font-size:14px;font-weight:600; }
+    .profile-info .email { font-size:12px;color:var(--dim);margin-top:1px; }
+    .profile-info .company { font-size:11px;color:var(--muted);margin-top:2px; }
+    .profile-fields { display:flex;gap:8px;margin-top:10px;flex-wrap:wrap; }
+    .field-tag { font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(99,102,241,.1);color:#818CF8; }
 
-    .card-prompt { font-size:13px; color:var(--dim); margin-top:6px; line-height:1.5; }
+    .condition-card { background:var(--card-inner);border-radius:10px;padding:14px 16px; }
+    .condition-q { font-size:13px;color:var(--dim);margin-bottom:8px; }
+    .condition-a { display:flex;align-items:center;gap:8px; }
+    .condition-badge { padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600; }
+    .condition-badge.yes { background:rgba(44,155,66,.12);color:var(--forest-light); }
+    .condition-badge.no { background:rgba(240,96,80,.1);color:var(--red); }
+    .condition-reason { font-size:11px;color:var(--muted);font-style:italic; }
 
-    .card-data {
-      font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);
-      background:rgba(0,0,0,.25);border-radius:8px;padding:10px 12px;margin-top:10px;
-      line-height:1.6;max-height:120px;overflow-y:auto;
-      animation:dataIn .4s ease;
-    }
-    @keyframes dataIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+    .update-card { background:var(--card-inner);border-radius:10px;padding:14px 16px; }
+    .update-row { display:flex;align-items:center;gap:10px; }
+    .update-field { font-size:12px;color:var(--dim);min-width:60px; }
+    .update-old { font-size:13px;color:var(--muted);text-decoration:line-through; }
+    .update-arrow { color:var(--forest-light);font-size:14px; }
+    .update-new { font-size:13px;font-weight:600;color:var(--forest-light); }
 
-    .card-actions { display:flex; gap:8px; margin-top:12px; animation:dataIn .3s ease; }
+    .action-card { background:var(--card-inner);border-radius:10px;padding:16px;display:flex;align-items:center;gap:14px; }
+    .action-icon { width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,.1);display:grid;place-items:center;font-size:20px; }
+    .action-info .action-name { font-size:14px;font-weight:600; }
+    .action-info .action-desc { font-size:12px;color:var(--dim);margin-top:2px; }
+    .action-check { margin-left:auto;font-size:18px;color:var(--forest-light); }
 
-    /* ── Completion ── */
-    .done-banner {
-      text-align:center;padding:28px;margin-top:20px;
-      background:linear-gradient(135deg,rgba(44,155,66,.06),rgba(44,155,66,.01));
-      border:1px solid rgba(44,155,66,.1);border-radius:14px;
-      animation:bannerIn .6s ease;
-    }
-    .done-banner .big { font-size:40px; margin-bottom:8px; }
-    .done-banner h3 { font-size:17px; color:var(--forest-light); font-weight:700; }
-    .done-banner p { font-size:13px; color:var(--dim); margin-top:4px; }
+    .order-card { background:var(--card-inner);border-radius:10px;padding:14px 16px; }
+    .order-header { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
+    .order-ref { font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--blue); }
+    .order-status { font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(44,155,66,.1);color:var(--forest-light);font-weight:600;text-transform:uppercase; }
+    .order-details { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+    .order-detail { font-size:12px;color:var(--dim); }
+    .order-detail span { display:block;font-size:14px;color:var(--text);font-weight:500;margin-top:2px; }
+
+    .step-actions { display:flex;gap:10px;margin-top:14px;justify-content:flex-end; }
+
+    .done-banner { text-align:center;padding:28px;margin-top:20px;background:linear-gradient(135deg,rgba(44,155,66,.06),rgba(44,155,66,.01));border:1px solid rgba(44,155,66,.1);border-radius:14px;animation:bannerIn .6s ease; }
+    .done-banner .big { font-size:40px;margin-bottom:8px; }
+    .done-banner h3 { font-size:17px;color:var(--forest-light);font-weight:700; }
+    .done-banner p { font-size:13px;color:var(--dim);margin-top:4px; }
     @keyframes bannerIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
 
-    /* ── Confetti ── */
-    .confetti {
-      position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;
-    }
-    .confetti span {
-      position:absolute;width:6px;height:6px;border-radius:1px;
-      animation:fall 2.5s ease-out forwards;
-      opacity:0;
-    }
-    @keyframes fall {
-      0% { transform:translateY(-20px) rotate(0deg); opacity:1; }
-      100% { transform:translateY(100vh) rotate(720deg); opacity:0; }
-    }
+    .confetti { position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50; }
+    .confetti span { position:absolute;width:6px;height:6px;border-radius:1px;animation:fall 2.5s ease-out forwards;opacity:0; }
+    @keyframes fall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
 
-    /* ── Footer ── */
-    .footer {
-      position:fixed;bottom:0;left:0;right:0;z-index:30;
-      background:var(--surface);border-top:1px solid var(--border);
-      padding:5px 20px;
-      font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);
-      display:flex;align-items:center;gap:8px;
-    }
+    .footer { position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);padding:5px 20px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px; }
   </style>
 </head>
 <body>
@@ -260,33 +191,28 @@
 const BASE = 'http://localhost:3100';
 const RUN = 'demo-1';
 const TOKEN = '__DEMO_TOKEN__';
-let poll = null;
-let lastJson = '';
-let autoTriggerTimer = null;
+let poll = null, lastJson = '', autoTimer = null;
 
 const STEPS = [
-  { type:'read-record',         icon:'📖', title:'Read Customer Info',     prompt:'Read the customer name, email, and company' },
-  { type:'condition',           icon:'🔀', title:'Check CGV Acceptance',   prompt:'Has the customer accepted the terms and conditions?' },
-  { type:'update-record',       icon:'✏️', title:'Activate Customer',      prompt:'Set customer status to active' },
-  { type:'trigger-action',      icon:'📧', title:'Send Welcome Email',     prompt:'Send the welcome email to the customer' },
-  { type:'load-related-record', icon:'🔗', title:'Load First Order',       prompt:'Load the customer\'s first order' },
+  { type:'read-record', icon:'📖', title:'Read Customer Info' },
+  { type:'condition', icon:'🔀', title:'Check CGV Acceptance' },
+  { type:'update-record', icon:'✏️', title:'Activate Customer' },
+  { type:'trigger-action', icon:'📧', title:'Send Welcome Email' },
+  { type:'load-related-record', icon:'🔗', title:'Load First Order' },
 ];
 
-function log(m) { document.getElementById('log').textContent = new Date().toLocaleTimeString() + ' — ' + m; }
-
-function hdrs() { return { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }; }
+function log(m) { document.getElementById('log').textContent = new Date().toLocaleTimeString()+' — '+m; }
+function hdrs() { return { Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json' }; }
 
 async function triggerNext(pd) {
-  const body = pd ? { pendingData: pd } : undefined;
-  log('POST /trigger' + (pd ? ' + pendingData' : ''));
+  const body = pd ? { pendingData:pd } : undefined;
+  log('Triggering...');
   document.getElementById('goBtn').disabled = true;
   try {
-    const r = await fetch(BASE+'/runs/'+RUN+'/trigger', { method:'POST', headers:hdrs(), body:body?JSON.stringify(body):undefined });
-    const d = await r.json().catch(()=>({}));
-    log('← ' + r.status);
-    if (!poll) { poll = setInterval(fetchSteps, 800); }
-    setTimeout(fetchSteps, 150);
-  } catch(e) { log('✕ ' + e.message); }
+    await fetch(BASE+'/runs/'+RUN+'/trigger', { method:'POST', headers:hdrs(), body:body?JSON.stringify(body):undefined });
+    if (!poll) poll = setInterval(fetchSteps,800);
+    setTimeout(fetchSteps,150);
+  } catch(e) { log('✕ '+e.message); }
   document.getElementById('goBtn').disabled = false;
 }
 
@@ -298,147 +224,138 @@ async function fetchSteps() {
     const j = JSON.stringify(d.steps);
     if (j === lastJson) return;
     lastJson = j;
-    render(d.steps || []);
+    render(d.steps||[]);
   } catch { document.getElementById('dot').className = 'dot err'; }
 }
 
 function render(steps) {
   const map = {};
   steps.forEach(s => { map[s.stepIndex] = s; });
-
-  let done = 0;
-  let hasWait = false;
-  let allDone = true;
-
-  STEPS.forEach((_, i) => {
-    const s = map[i];
-    if (s?.executionResult) done++;
-    else allDone = false;
-    if (s?.pendingData && s.pendingData.userConfirmed === undefined) hasWait = true;
+  let done=0, hasWait=false, allDone=true;
+  STEPS.forEach((_,i) => {
+    const s=map[i];
+    if (s?.executionResult) done++; else allDone=false;
+    if (s?.pendingData && s.pendingData.userConfirmed===undefined) hasWait=true;
   });
-
-  const pct = Math.round(done / STEPS.length * 100);
-  document.getElementById('pf').style.width = pct + '%';
-  document.getElementById('pl').textContent = done + ' / ' + STEPS.length;
-
+  document.getElementById('pf').style.width = Math.round(done/STEPS.length*100)+'%';
+  document.getElementById('pl').textContent = done+' / '+STEPS.length;
   const btn = document.getElementById('goBtn');
-  if (done === 0 && !steps.length) { btn.textContent = '▶ Start'; btn.disabled = false; }
-  else if (allDone) { btn.textContent = '✓ Done'; btn.disabled = true; }
-  else if (hasWait) { btn.textContent = '⏳ Waiting'; btn.disabled = true; }
-  else { btn.textContent = '▶ Next step'; btn.disabled = false; }
+  if (done===0 && !steps.length) { btn.textContent='▶ Start'; btn.disabled=false; }
+  else if (allDone) { btn.textContent='✓ Done'; btn.disabled=true; }
+  else if (hasWait) { btn.textContent='⏳ Waiting'; btn.disabled=true; }
+  else { btn.textContent='▶ Next step'; btn.disabled=false; }
 
-  let h = '';
-  STEPS.forEach((def, i) => {
-    const s = map[i];
-    const st = state(s, i, done, steps.length > 0);
-
-    if (i > 0) h += '<div class="wire ' + (i <= done ? 'done' : (i === done + 1 ? 'lit' : '')) + '"></div>';
-
-    h += '<div class="card-wrap ' + st.cls + '">';
-    h += '  <div class="node"></div>';
-    h += '  <div class="card">';
-    h += '    <div class="card-top">';
-    h += '      <span class="badge">' + def.icon + ' ' + def.type + '</span>';
-    h += '      <span class="card-title">' + def.title + '</span>';
-    if (st.tag) h += '      <span class="tag ' + st.tagCls + '">' + st.tag + '</span>';
-    h += '    </div>';
-    h += '    <div class="card-prompt">' + def.prompt + '</div>';
-
-    if (s?.pendingData) h += '<div class="card-data">' + hl(s.pendingData) + '</div>';
-    if (s?.executionResult) h += '<div class="card-data">' + hl(s.executionResult) + '</div>';
-
-    if (st.actions) {
-      h += '<div class="card-actions">';
-      h += '  <button class="btn btn-yes" onclick="triggerNext({userConfirmed:true})">✓ Confirm</button>';
-      h += '  <button class="btn btn-no" onclick="triggerNext({userConfirmed:false})">✕ Skip</button>';
-      h += '</div>';
-    }
-
-    h += '  </div>';
-    h += '</div>';
+  let h='';
+  STEPS.forEach((def,i) => {
+    const s=map[i], st=getState(s,i,done,steps.length>0);
+    if (i>0) h+='<div class="wire '+(i<=done?'done':'')+'"></div>';
+    h+='<div class="card-wrap '+st.cls+'">';
+    h+='<div class="node"></div><div class="card">';
+    h+='<div class="card-top"><span class="badge">'+def.icon+' '+def.type+'</span>';
+    h+='<span class="card-title">'+def.title+'</span>';
+    if (st.tag) h+='<span class="tag '+st.tagCls+'">'+st.tag+'</span>';
+    h+='</div>';
+    h+=renderVisual(def.type, s, st);
+    h+='</div></div>';
   });
-
-  if (allDone && done === STEPS.length) {
-    h += '<div class="done-banner"><div class="big">🎉</div><h3>Workflow completed!</h3><p>Customer Jane Doe has been onboarded successfully.</p></div>';
+  if (allDone && done===STEPS.length) {
+    h+='<div class="done-banner"><div class="big">🎉</div><h3>Customer onboarded!</h3><p>Jane Doe is now active with order ORD-2024-1001.</p></div>';
     confetti();
   }
-
   document.getElementById('pipe').innerHTML = h;
-
-  // Auto-trigger next step if current step just completed and next doesn't need confirmation
-  if (!allDone && !hasWait && steps.length > 0) {
-    clearTimeout(autoTriggerTimer);
-    autoTriggerTimer = setTimeout(() => {
-      const nextIdx = done;
-      if (nextIdx < STEPS.length) {
-        const nextType = STEPS[nextIdx].type;
-        // Auto-trigger only if the step is not already in the data
-        if (!map[nextIdx]) {
-          triggerNext();
-        }
-      }
-    }, 600);
+  if (!allDone && !hasWait && steps.length>0) {
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => { if (!map[done]) triggerNext(); }, 600);
   }
 }
 
-function state(s, i, done, started) {
-  if (!s) {
-    if (!started) return { cls:'', tag:null };
-    if (i === done) return { cls:'next', tag:'next', tagCls:'run' };
-    return { cls:'', tag:null };
+function renderVisual(type, step, st) {
+  if (!step && st.cls!=='next') return '';
+  switch(type) {
+    case 'read-record': return vRead(step);
+    case 'condition': return vCondition(step);
+    case 'update-record': return vUpdate(step, st);
+    case 'trigger-action': return vAction(step, st);
+    case 'load-related-record': return vRelated(step, st);
+    default: return '';
   }
-  if (s.executionResult?.skipped) return { cls:'skip', tag:'skipped', tagCls:'skip' };
-  if (s.executionResult) return { cls:'done', tag:'success', tagCls:'success' };
-  if (s.pendingData?.userConfirmed !== undefined) return { cls:'running', tag:'executing...', tagCls:'run' };
-  if (s.pendingData) return { cls:'waiting', tag:'awaiting input', tagCls:'wait', actions:true };
-  return { cls:'running', tag:'running...', tagCls:'run' };
 }
 
-function hl(o) {
-  return JSON.stringify(o,null,2)
-    .replace(/(".*?"):/g,'<span style="color:#7DD3FC">$1</span>:')
-    .replace(/: (".*?")/g,': <span style="color:#86EFAC">$1</span>')
-    .replace(/: (\d+\.?\d*)/g,': <span style="color:#FDE68A">$1</span>')
-    .replace(/: (true|false)/g,': <span style="color:#C4B5FD">$1</span>');
+function vRead(s) {
+  if (!s?.executionResult) return '<div class="step-visual"><div class="profile" style="opacity:.4"><div class="avatar">?</div><div class="profile-info"><div class="name">Reading customer data...</div></div></div></div>';
+  const f = s.executionResult.fields||[];
+  const name = f.find(x=>x.name==='name')?.value||'Unknown';
+  const email = f.find(x=>x.name==='email')?.value||'';
+  const company = f.find(x=>x.displayName==='Company')?.value||'';
+  const ini = name.split(' ').map(n=>n[0]).join('').toUpperCase();
+  return '<div class="step-visual"><div class="profile"><div class="avatar">'+ini+'</div><div class="profile-info"><div class="name">'+name+'</div><div class="email">'+email+'</div>'+(company?'<div class="company">'+company+'</div>':'')+'</div></div><div class="profile-fields">'+f.map(x=>'<span class="field-tag">'+x.displayName+': '+x.value+'</span>').join('')+'</div></div>';
+}
+
+function vCondition(s) {
+  if (!s?.executionResult) return '';
+  const a = s.executionResult.answer;
+  const yes = a&&a.toLowerCase().includes('yes');
+  return '<div class="step-visual"><div class="condition-card"><div class="condition-q">Has the customer accepted the terms and conditions?</div><div class="condition-a"><span class="condition-badge '+(yes?'yes':'no')+'">'+(a||'No answer')+'</span><span class="condition-reason">AI verified the CGV acceptance field</span></div></div></div>';
+}
+
+function vUpdate(s, st) {
+  if (!s?.pendingData && !s?.executionResult) return '';
+  const fn=s.pendingData?.displayName||s.pendingData?.name||'Status';
+  const nv=s.pendingData?.value||'active';
+  const ok=!!s.executionResult, skip=s.executionResult?.skipped;
+  let h='<div class="step-visual"><div class="update-card"><div class="update-row"><span class="update-field">'+fn+'</span><span class="update-old">pending</span><span class="update-arrow">→</span><span class="update-new">'+nv+'</span>'+(ok&&!skip?'<span style="margin-left:auto;color:var(--forest-light)">✓ Updated</span>':'')+(skip?'<span style="margin-left:auto;color:var(--muted)">Skipped</span>':'')+'</div></div>';
+  if (st.actions) h+='<div class="step-actions"><button class="btn btn-no" onclick="triggerNext({userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="triggerNext({userConfirmed:true})">✓ Approve update</button></div>';
+  return h+'</div>';
+}
+
+function vAction(s, st) {
+  if (!s?.pendingData && !s?.executionResult) return '';
+  const n=s.pendingData?.displayName||s.pendingData?.name||'Action';
+  const ok=!!s.executionResult, skip=s.executionResult?.skipped;
+  let h='<div class="step-visual"><div class="action-card"><div class="action-icon">📧</div><div class="action-info"><div class="action-name">'+n+'</div><div class="action-desc">Send onboarding email to jane.doe@acme.com</div></div>'+(ok&&!skip?'<div class="action-check">✓</div>':'')+(skip?'<div class="action-check" style="color:var(--muted)">—</div>':'')+'</div>';
+  if (st.actions) h+='<div class="step-actions"><button class="btn btn-no" onclick="triggerNext({userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="triggerNext({userConfirmed:true})">✓ Send email</button></div>';
+  return h+'</div>';
+}
+
+function vRelated(s, st) {
+  if (!s?.pendingData && !s?.executionResult) return '';
+  if (s.executionResult && !s.executionResult.skipped) {
+    return '<div class="step-visual"><div class="order-card"><div class="order-header"><span class="order-ref">ORD-2024-1001</span><span class="order-status">confirmed</span></div><div class="order-details"><div class="order-detail">Total<span>€2,499.99</span></div><div class="order-detail">Status<span>Confirmed</span></div></div></div></div>';
+  }
+  const skip=s.executionResult?.skipped;
+  let h='<div class="step-visual"><div class="action-card"><div class="action-icon">🔗</div><div class="action-info"><div class="action-name">'+(s.pendingData?.displayName||'Orders')+'</div><div class="action-desc">Load the customer\'s first order</div></div>'+(skip?'<div class="action-check" style="color:var(--muted)">—</div>':'')+'</div>';
+  if (st.actions) h+='<div class="step-actions"><button class="btn btn-no" onclick="triggerNext({userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="triggerNext({userConfirmed:true})">✓ Load order</button></div>';
+  return h+'</div>';
+}
+
+function getState(s,i,done,started) {
+  if (!s) { return !started?{cls:'',tag:null}:i===done?{cls:'next',tag:'next',tagCls:'run'}:{cls:'',tag:null}; }
+  if (s.executionResult?.skipped) return {cls:'skip done',tag:'skipped',tagCls:'skip'};
+  if (s.executionResult) return {cls:'done',tag:'success',tagCls:'success'};
+  if (s.pendingData?.userConfirmed!==undefined) return {cls:'running',tag:'executing...',tagCls:'run'};
+  if (s.pendingData) return {cls:'waiting',tag:'awaiting input',tagCls:'wait',actions:true};
+  return {cls:'running',tag:'running...',tagCls:'run'};
 }
 
 function confetti() {
-  const c = document.createElement('div');
-  c.className = 'confetti';
-  const colors = ['#2C9B42','#3BD458','#F5B731','#5BA3F5','#fff'];
-  for (let i=0;i<60;i++) {
-    const s = document.createElement('span');
-    s.style.left = Math.random()*100+'%';
-    s.style.background = colors[Math.floor(Math.random()*colors.length)];
-    s.style.animationDelay = Math.random()*1.5+'s';
-    s.style.animationDuration = (2+Math.random()*2)+'s';
-    s.style.width = (4+Math.random()*4)+'px';
-    s.style.height = (4+Math.random()*4)+'px';
-    s.style.transform = 'rotate('+Math.random()*360+'deg)';
-    c.appendChild(s);
-  }
-  document.body.appendChild(c);
-  setTimeout(()=>c.remove(), 5000);
+  const c=document.createElement('div');c.className='confetti';
+  const colors=['#2C9B42','#3BD458','#F5B731','#5BA3F5','#fff'];
+  for(let i=0;i<60;i++){const s=document.createElement('span');s.style.left=Math.random()*100+'%';s.style.background=colors[Math.floor(Math.random()*colors.length)];s.style.animationDelay=Math.random()*1.5+'s';s.style.animationDuration=(2+Math.random()*2)+'s';s.style.width=(4+Math.random()*4)+'px';s.style.height=(4+Math.random()*4)+'px';c.appendChild(s);}
+  document.body.appendChild(c);setTimeout(()=>c.remove(),5000);
 }
 
 async function resetWorkflow() {
-  log('Resetting workflow...');
-  try {
-    await fetch(BASE + '/reset', { method: 'POST' });
-    lastJson = '';
-    clearTimeout(autoTriggerTimer);
-    document.getElementById('pipe').innerHTML = '';
-    document.getElementById('pf').style.width = '0%';
-    document.getElementById('pl').textContent = '0 / 5';
-    const btn = document.getElementById('goBtn');
-    btn.textContent = '▶ Start';
-    btn.disabled = false;
-    render([]);
-    log('Workflow reset — ready to start again');
-  } catch (e) {
-    log('✕ Reset failed: ' + e.message);
-  }
+  log('Resetting...');
+  try { await fetch(BASE+'/reset',{method:'POST'}); } catch {}
+  lastJson='';clearTimeout(autoTimer);
+  document.getElementById('pipe').innerHTML='';
+  document.getElementById('pf').style.width='0%';
+  document.getElementById('pl').textContent='0 / 5';
+  const b=document.getElementById('goBtn');b.textContent='▶ Start';b.disabled=false;
+  render([]);log('Ready — click Start');
 }
+
+render([]);
 </script>
 </body>
 </html>
