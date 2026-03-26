@@ -287,6 +287,20 @@ describe('ExecutorHttpServer', () => {
       });
     });
 
+    it('returns 400 when token has no numeric id', async () => {
+      const runner = createMockRunner();
+      const server = createServer({ runner });
+      const token = signToken({ email: 'no-id@example.com' });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Missing or invalid user id in token' });
+      expect(runner.triggerPoll).not.toHaveBeenCalled();
+    });
+
     it('passes pendingData from request body to runner.triggerPoll', async () => {
       const runner = createMockRunner();
       const server = createServer({ runner });
