@@ -63,7 +63,7 @@ function createMockAiClient() {
 }
 
 function createMockLogger(): jest.Mocked<Logger> {
-  return { error: jest.fn() };
+  return { info: jest.fn(), error: jest.fn() };
 }
 
 const VALID_ENV_SECRET = 'a'.repeat(64);
@@ -578,7 +578,7 @@ describe('StepExecutorFactory.create — factory', () => {
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
     schemaCache: new SchemaCache(),
-    logger: { error: jest.fn() },
+    logger: { info: jest.fn(), error: jest.fn() },
   });
 
   it('dispatches Condition steps to ConditionStepExecutor', async () => {
@@ -644,7 +644,7 @@ describe('StepExecutorFactory.create — factory', () => {
     const rootCause = new Error('root cause');
     const error = new Error('wrapper');
     (error as Error & { cause: Error }).cause = rootCause;
-    const logger = { error: jest.fn() };
+    const logger = { info: jest.fn(), error: jest.fn() };
     const contextConfig: StepContextConfig = {
       ...makeContextConfig(),
       aiClient: {
@@ -666,7 +666,7 @@ describe('StepExecutorFactory.create — factory', () => {
   it('logs cause as undefined when construction error cause is not an Error instance', async () => {
     const error = new Error('wrapper');
     (error as Error & { cause: string }).cause = 'plain string';
-    const logger = { error: jest.fn() };
+    const logger = { info: jest.fn(), error: jest.fn() };
     const contextConfig: StepContextConfig = {
       ...makeContextConfig(),
       aiClient: {
