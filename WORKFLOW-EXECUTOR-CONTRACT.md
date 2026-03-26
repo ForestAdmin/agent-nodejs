@@ -97,7 +97,7 @@ interface ConditionStepOutcome {
   type:            "condition";
   stepId:          string;
   stepIndex:       number;
-  status:          "success" | "error" | "manual-decision";
+  status:          "success" | "error";
   selectedOption?: string; // present when status = "success"
   error?:          string; // present when status = "error"
 }

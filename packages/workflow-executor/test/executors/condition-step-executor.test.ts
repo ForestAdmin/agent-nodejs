@@ -224,7 +224,7 @@ describe('ConditionStepExecutor', () => {
   });
 
   describe('no-match fallback', () => {
-    it('returns manual-decision when AI selects null', async () => {
+    it('returns error when AI selects null', async () => {
       const mockModel = makeMockModel({
         option: null,
         reasoning: 'None apply',
@@ -239,8 +239,10 @@ describe('ConditionStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('manual-decision');
-      expect(result.stepOutcome.error).toBeUndefined();
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide. Try rephrasing the step's prompt.",
+      );
       expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBeUndefined();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'condition',
