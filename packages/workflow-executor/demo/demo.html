@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow Executor — Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2C9B42;
+      --primary-glow: rgba(44, 155, 66, 0.15);
+      --primary-dim: #1E6B2E;
+      --bg-deep: #0D0D1A;
+      --bg-base: #1A1A2E;
+      --bg-card: #16213E;
+      --bg-card-hover: #1B2847;
+      --bg-input: #0F1629;
+      --text: #E8ECF1;
+      --text-dim: #8892A4;
+      --text-muted: #4A5568;
+      --success: #2C9B42;
+      --error: #E53E3E;
+      --amber: #D69E2E;
+      --blue: #3B82F6;
+      --border: rgba(255,255,255,0.06);
+      --border-active: rgba(44, 155, 66, 0.3);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Subtle background grain */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: #fff;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header h1 span {
+      color: var(--primary);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-left: auto;
+      transition: background 0.3s;
+    }
+    .status-dot.connected { background: var(--success); box-shadow: 0 0 8px var(--primary-glow); }
+    .status-dot.disconnected { background: var(--error); box-shadow: 0 0 8px rgba(229,62,62,0.3); }
+    .status-dot.idle { background: var(--text-muted); }
+
+    /* Config bar */
+    .config-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+
+    .config-bar input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .config-bar input:focus {
+      border-color: var(--border-active);
+    }
+    .config-bar input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #33B04B; transform: translateY(-1px); box-shadow: 0 4px 12px var(--primary-glow); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-confirm {
+      background: rgba(44, 155, 66, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(44, 155, 66, 0.25);
+    }
+    .btn-confirm:hover { background: rgba(44, 155, 66, 0.2); }
+
+    .btn-reject {
+      background: rgba(229, 62, 62, 0.1);
+      color: var(--error);
+      border: 1px solid rgba(229, 62, 62, 0.2);
+    }
+    .btn-reject:hover { background: rgba(229, 62, 62, 0.18); }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 28px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--primary-dim), var(--border) 80%, transparent);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+    .empty-state .icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+
+    /* Step card */
+    .step-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      animation: slideIn 0.35s ease-out;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .step-card:hover {
+      border-color: rgba(255,255,255,0.1);
+      box-shadow: var(--shadow);
+    }
+
+    .step-card::before {
+      content: '';
+      position: absolute;
+      left: -25px;
+      top: 22px;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 2px solid var(--bg-deep);
+      z-index: 1;
+    }
+
+    .step-card.success::before { background: var(--success); }
+    .step-card.error::before { background: var(--error); }
+    .step-card.awaiting-input::before { background: var(--amber); }
+    .step-card.loading::before { background: var(--blue); animation: pulse 1.5s infinite; }
+    .step-card.pending::before { background: var(--text-muted); }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .step-index {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      min-width: 18px;
+    }
+
+    .step-type {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text-dim);
+      letter-spacing: 0.3px;
+    }
+
+    .step-status {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .step-status.success { background: rgba(44,155,66,0.12); color: var(--success); }
+    .step-status.error { background: rgba(229,62,62,0.12); color: var(--error); }
+    .step-status.awaiting-input { background: rgba(214,158,46,0.12); color: var(--amber); }
+    .step-status.loading { background: rgba(59,130,246,0.12); color: var(--blue); }
+
+    .step-data {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.6;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .step-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
+    }
+
+    /* Log bar */
+    .log-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-base);
+      border-top: 1px solid var(--border);
+      padding: 8px 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .log-bar .log-msg {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">W</div>
+      <h1>Workflow <span>Executor</span></h1>
+      <div class="status-dot idle" id="statusDot" title="Connection status"></div>
+    </div>
+
+    <div class="config-bar">
+      <input type="text" id="tokenInput" placeholder="Bearer token (leave empty to auto-generate)" />
+      <button class="btn btn-primary" id="triggerBtn" onclick="triggerWorkflow()">
+        ▶ Trigger
+      </button>
+    </div>
+
+    <div class="timeline" id="timeline">
+      <div class="empty-state">
+        <div class="icon">⎔</div>
+        <p>No steps yet. Click <strong>Trigger</strong> to start the workflow.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="log-bar">
+    <span style="color:var(--primary);">●</span>
+    <span class="log-msg" id="logMsg">Ready</span>
+  </div>
+
+  <script>
+    const BASE_URL = 'http://localhost:3100';
+    const RUN_ID = 'demo-1';
+    let polling = null;
+    let lastStepsJson = '';
+
+    function log(msg) {
+      document.getElementById('logMsg').textContent = `${new Date().toLocaleTimeString()} — ${msg}`;
+    }
+
+    function getToken() {
+      return document.getElementById('tokenInput').value.trim() || 'demo-token';
+    }
+
+    function headers() {
+      return {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json',
+      };
+    }
+
+    async function triggerWorkflow(pendingData) {
+      const body = pendingData ? { pendingData } : undefined;
+      log(`POST /runs/${RUN_ID}/trigger` + (pendingData ? ` — ${JSON.stringify(pendingData)}` : ''));
+
+      try {
+        const res = await fetch(`${BASE_URL}/runs/${RUN_ID}/trigger`, {
+          method: 'POST',
+          headers: headers(),
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const data = await res.json();
+        log(`← ${res.status} ${JSON.stringify(data)}`);
+        // Fetch immediately after trigger
+        fetchSteps();
+      } catch (err) {
+        log(`✕ Trigger failed: ${err.message}`);
+      }
+    }
+
+    function confirm(stepIndex) {
+      triggerWorkflow({ userConfirmed: true });
+    }
+
+    function reject(stepIndex) {
+      triggerWorkflow({ userConfirmed: false });
+    }
+
+    async function fetchSteps() {
+      try {
+        const res = await fetch(`${BASE_URL}/runs/${RUN_ID}`, { headers: headers() });
+        const data = await res.json();
+
+        document.getElementById('statusDot').className = 'status-dot connected';
+
+        const json = JSON.stringify(data.steps);
+        if (json === lastStepsJson) return;
+        lastStepsJson = json;
+
+        renderSteps(data.steps || []);
+      } catch (err) {
+        document.getElementById('statusDot').className = 'status-dot disconnected';
+      }
+    }
+
+    function renderSteps(steps) {
+      const timeline = document.getElementById('timeline');
+
+      if (steps.length === 0) {
+        timeline.innerHTML = `<div class="empty-state"><div class="icon">⎔</div><p>No steps yet. Click <strong>Trigger</strong> to start.</p></div>`;
+        return;
+      }
+
+      timeline.innerHTML = steps.map((step, i) => {
+        const status = inferStatus(step);
+        const statusClass = status.replace(/\s/g, '-');
+
+        let dataHtml = '';
+        if (step.pendingData) {
+          dataHtml = `<div class="step-data">${syntaxHighlight(step.pendingData)}</div>`;
+        }
+        if (step.executionResult) {
+          dataHtml += `<div class="step-data">${syntaxHighlight(step.executionResult)}</div>`;
+        }
+
+        let actionsHtml = '';
+        if (status === 'awaiting-input' && step.pendingData && step.pendingData.userConfirmed === undefined) {
+          actionsHtml = `
+            <div class="step-actions">
+              <button class="btn btn-confirm" onclick="confirm(${step.stepIndex})">✓ Confirm</button>
+              <button class="btn btn-reject" onclick="reject(${step.stepIndex})">✕ Reject</button>
+            </div>`;
+        }
+
+        return `
+          <div class="step-card ${statusClass}" style="animation-delay: ${i * 0.05}s">
+            <div class="step-header">
+              <span class="step-index">#${step.stepIndex}</span>
+              <span class="step-type">${step.type}</span>
+              <span class="step-status ${statusClass}">${status}</span>
+            </div>
+            ${dataHtml}
+            ${actionsHtml}
+          </div>`;
+      }).join('');
+    }
+
+    function inferStatus(step) {
+      if (step.executionResult) return 'success';
+      if (step.pendingData && step.pendingData.userConfirmed !== undefined) return 'loading';
+      if (step.pendingData) return 'awaiting-input';
+      return 'pending';
+    }
+
+    function syntaxHighlight(obj) {
+      const json = JSON.stringify(obj, null, 2);
+      return json
+        .replace(/(".*?"):/g, '<span style="color:#7DD3FC">$1</span>:')
+        .replace(/: (".*?")/g, ': <span style="color:#86EFAC">$1</span>')
+        .replace(/: (\d+)/g, ': <span style="color:#FDE68A">$1</span>')
+        .replace(/: (true|false)/g, ': <span style="color:#C4B5FD">$1</span>')
+        .replace(/: (null)/g, ': <span style="color:#6B7280">$1</span>');
+    }
+
+    // Start polling
+    polling = setInterval(fetchSteps, 1000);
+    fetchSteps();
+  </script>
+</body>
+</html>
