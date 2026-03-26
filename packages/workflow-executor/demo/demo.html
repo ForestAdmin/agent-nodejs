@@ -3,251 +3,305 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Workflow Executor — Demo</title>
+  <title>Workflow Executor — Live Demo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #2C9B42;
-      --primary-glow: rgba(44, 155, 66, 0.15);
-      --primary-dim: #1E6B2E;
-      --bg-deep: #0D0D1A;
-      --bg-base: #1A1A2E;
-      --bg-card: #16213E;
-      --bg-card-hover: #1B2847;
-      --bg-input: #0F1629;
-      --text: #E8ECF1;
-      --text-dim: #8892A4;
-      --text-muted: #4A5568;
-      --success: #2C9B42;
-      --error: #E53E3E;
-      --amber: #D69E2E;
-      --blue: #3B82F6;
-      --border: rgba(255,255,255,0.06);
-      --border-active: rgba(44, 155, 66, 0.3);
-      --radius: 12px;
-      --radius-sm: 8px;
-      --shadow: 0 4px 24px rgba(0,0,0,0.3);
+      --forest: #2C9B42;
+      --forest-light: #38C951;
+      --forest-dim: #1E6B2E;
+      --forest-glow: rgba(44, 155, 66, 0.2);
+      --bg: #0B0E14;
+      --bg-surface: #131820;
+      --bg-card: #1A2030;
+      --bg-card-active: #1E2940;
+      --bg-input: #0E1218;
+      --text: #E4E8EF;
+      --text-secondary: #8A95A8;
+      --text-muted: #454F60;
+      --amber: #F0B429;
+      --amber-glow: rgba(240, 180, 41, 0.15);
+      --red: #EF4444;
+      --red-glow: rgba(239, 68, 68, 0.12);
+      --blue: #60A5FA;
+      --blue-glow: rgba(96, 165, 250, 0.15);
+      --border: rgba(255,255,255,0.05);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background: var(--bg-deep);
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      overflow-x: hidden;
     }
 
-    /* Subtle background grain */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* Header */
-    .header {
+    /* ── Top bar ────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 14, 20, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 32px;
       display: flex;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 32px;
+      gap: 16px;
     }
 
-    .logo {
-      width: 36px;
-      height: 36px;
-      background: var(--primary);
-      border-radius: 10px;
+    .topbar .logo {
+      width: 32px;
+      height: 32px;
+      background: var(--forest);
+      border-radius: 8px;
       display: grid;
       place-items: center;
       font-weight: 700;
-      font-size: 16px;
-      color: #fff;
-      box-shadow: 0 0 20px var(--primary-glow);
+      font-size: 14px;
+      color: white;
+      flex-shrink: 0;
     }
 
-    .header h1 {
+    .topbar h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+    .topbar h1 span { color: var(--forest-light); }
+
+    .topbar .spacer { flex: 1; }
+
+    .topbar input {
+      width: 280px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 12px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      outline: none;
+    }
+    .topbar input:focus { border-color: var(--forest-dim); }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.ok { background: var(--forest); box-shadow: 0 0 6px var(--forest-glow); }
+    .dot.err { background: var(--red); }
+    .dot.idle { background: var(--text-muted); }
+
+    /* ── Main layout ────────────────────────── */
+    .main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 24px 120px;
+    }
+
+    /* ── Workflow header ────────────────────── */
+    .wf-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .wf-header .wf-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--forest), var(--forest-dim));
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      box-shadow: 0 4px 20px var(--forest-glow);
+    }
+
+    .wf-header .wf-meta h2 {
       font-size: 20px;
       font-weight: 700;
       letter-spacing: -0.3px;
     }
-
-    .header h1 span {
-      color: var(--primary);
+    .wf-header .wf-meta p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
     }
 
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+    .wf-header .wf-actions {
       margin-left: auto;
-      transition: background 0.3s;
-    }
-    .status-dot.connected { background: var(--success); box-shadow: 0 0 8px var(--primary-glow); }
-    .status-dot.disconnected { background: var(--error); box-shadow: 0 0 8px rgba(229,62,62,0.3); }
-    .status-dot.idle { background: var(--text-muted); }
-
-    /* Config bar */
-    .config-bar {
       display: flex;
       gap: 10px;
-      margin-bottom: 36px;
     }
 
-    .config-bar input {
-      flex: 1;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .config-bar input:focus {
-      border-color: var(--border-active);
-    }
-    .config-bar input::placeholder {
-      color: var(--text-muted);
-    }
-
+    /* ── Buttons ────────────────────────────── */
     .btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 10px 18px;
+      padding: 9px 16px;
       border: none;
-      border-radius: var(--radius-sm);
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s ease;
-      white-space: nowrap;
+      transition: all 0.12s ease;
     }
+    .btn:active { transform: scale(0.97); }
 
     .btn-primary {
-      background: var(--primary);
-      color: #fff;
+      background: var(--forest);
+      color: white;
     }
-    .btn-primary:hover { background: #33B04B; transform: translateY(-1px); box-shadow: 0 4px 12px var(--primary-glow); }
-    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:hover { background: var(--forest-light); box-shadow: 0 2px 12px var(--forest-glow); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); color: var(--text); }
 
     .btn-confirm {
-      background: rgba(44, 155, 66, 0.12);
-      color: var(--success);
-      border: 1px solid rgba(44, 155, 66, 0.25);
+      background: rgba(44,155,66,0.1);
+      color: var(--forest-light);
+      border: 1px solid rgba(44,155,66,0.2);
     }
-    .btn-confirm:hover { background: rgba(44, 155, 66, 0.2); }
+    .btn-confirm:hover { background: rgba(44,155,66,0.18); }
 
     .btn-reject {
-      background: rgba(229, 62, 62, 0.1);
-      color: var(--error);
-      border: 1px solid rgba(229, 62, 62, 0.2);
+      background: var(--red-glow);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.18);
     }
-    .btn-reject:hover { background: rgba(229, 62, 62, 0.18); }
+    .btn-reject:hover { background: rgba(239,68,68,0.2); }
 
-    /* Timeline */
-    .timeline {
+    /* ── Workflow pipeline ──────────────────── */
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
       position: relative;
-      padding-left: 28px;
     }
 
-    .timeline::before {
-      content: '';
+    /* connector line between cards */
+    .connector {
+      width: 2px;
+      height: 28px;
+      margin-left: 31px;
+      background: var(--border);
+      transition: background 0.5s;
+    }
+    .connector.done {
+      background: linear-gradient(to bottom, var(--forest), var(--forest-dim));
+    }
+
+    /* ── Step card ──────────────────────────── */
+    .step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      opacity: 0.35;
+      transition: opacity 0.5s, transform 0.4s;
+      transform: translateY(4px);
+    }
+    .step.active, .step.done, .step.error-state {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .step-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 3px solid var(--text-muted);
+      flex-shrink: 0;
+      margin-top: 18px;
+      transition: all 0.4s;
+      position: relative;
+    }
+    .step.done .step-dot {
+      border-color: var(--forest);
+      background: var(--forest);
+    }
+    .step.done .step-dot::after {
+      content: '✓';
       position: absolute;
-      left: 5px;
-      top: 0;
-      bottom: 0;
-      width: 1px;
-      background: linear-gradient(to bottom, var(--primary-dim), var(--border) 80%, transparent);
+      inset: -3px;
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      color: white;
+      font-weight: 700;
+    }
+    .step.active .step-dot {
+      border-color: var(--blue);
+      animation: dotPulse 1.8s infinite;
+    }
+    .step.awaiting .step-dot {
+      border-color: var(--amber);
+      background: var(--amber);
+    }
+    .step.error-state .step-dot {
+      border-color: var(--red);
+      background: var(--red);
+    }
+    .step.skipped .step-dot {
+      border-color: var(--text-muted);
+      background: var(--text-muted);
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-dim);
-      font-size: 14px;
-    }
-    .empty-state .icon {
-      font-size: 32px;
-      margin-bottom: 12px;
-      opacity: 0.4;
+    @keyframes dotPulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--blue-glow); }
+      50% { box-shadow: 0 0 0 8px rgba(96,165,250,0); }
     }
 
-    /* Step card */
     .step-card {
-      position: relative;
+      flex: 1;
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      margin-bottom: 16px;
-      animation: slideIn 0.35s ease-out;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      border-radius: 12px;
+      padding: 16px 20px;
+      transition: border-color 0.3s, box-shadow 0.3s;
     }
-    .step-card:hover {
-      border-color: rgba(255,255,255,0.1);
-      box-shadow: var(--shadow);
+    .step.active .step-card {
+      border-color: rgba(96,165,250,0.2);
+      box-shadow: 0 0 24px var(--blue-glow);
     }
-
-    .step-card::before {
-      content: '';
-      position: absolute;
-      left: -25px;
-      top: 22px;
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      border: 2px solid var(--bg-deep);
-      z-index: 1;
+    .step.awaiting .step-card {
+      border-color: rgba(240,180,41,0.2);
+      box-shadow: 0 0 24px var(--amber-glow);
     }
 
-    .step-card.success::before { background: var(--success); }
-    .step-card.error::before { background: var(--error); }
-    .step-card.awaiting-input::before { background: var(--amber); }
-    .step-card.loading::before { background: var(--blue); animation: pulse 1.5s infinite; }
-    .step-card.pending::before { background: var(--text-muted); }
-
-    .step-header {
+    .step-card-header {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 10px;
     }
 
-    .step-index {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--text-muted);
-      min-width: 18px;
-    }
-
-    .step-type {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+    .step-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
       font-weight: 500;
       padding: 3px 8px;
       border-radius: 4px;
       background: rgba(255,255,255,0.05);
-      color: var(--text-dim);
-      letter-spacing: 0.3px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .step-title {
+      font-size: 14px;
+      font-weight: 600;
     }
 
     .step-status {
@@ -256,225 +310,346 @@
       font-weight: 600;
       padding: 3px 10px;
       border-radius: 20px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
-    .step-status.success { background: rgba(44,155,66,0.12); color: var(--success); }
-    .step-status.error { background: rgba(229,62,62,0.12); color: var(--error); }
-    .step-status.awaiting-input { background: rgba(214,158,46,0.12); color: var(--amber); }
-    .step-status.loading { background: rgba(59,130,246,0.12); color: var(--blue); }
+    .step-status.success { background: rgba(44,155,66,0.1); color: var(--forest-light); }
+    .step-status.error { background: var(--red-glow); color: var(--red); }
+    .step-status.awaiting-input { background: var(--amber-glow); color: var(--amber); }
+    .step-status.loading { background: var(--blue-glow); color: var(--blue); }
+    .step-status.skipped { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+    .step-prompt {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
 
     .step-data {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'DM Mono', monospace;
       font-size: 11px;
-      color: var(--text-dim);
+      color: var(--text-secondary);
       background: var(--bg-input);
-      border-radius: var(--radius-sm);
+      border-radius: 8px;
       padding: 10px 12px;
-      margin-top: 10px;
-      white-space: pre-wrap;
-      word-break: break-all;
+      margin-top: 12px;
       line-height: 1.6;
-      max-height: 160px;
+      max-height: 140px;
       overflow-y: auto;
     }
 
     .step-actions {
       display: flex;
       gap: 8px;
-      margin-top: 12px;
+      margin-top: 14px;
     }
 
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
-      50% { box-shadow: 0 0 0 6px rgba(59,130,246,0); }
-    }
-
-    /* Log bar */
-    .log-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--bg-base);
-      border-top: 1px solid var(--border);
-      padding: 8px 24px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--text-muted);
-      z-index: 10;
+    /* ── Progress bar ──────────────────────── */
+    .progress-bar {
+      margin-bottom: 32px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
-    .log-bar .log-msg {
+    .progress-track {
       flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--forest), var(--forest-light));
+      border-radius: 2px;
+      transition: width 0.6s ease;
+    }
+    .progress-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* ── Footer log ─────────────────────────── */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      padding: 6px 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    /* ── Empty state ─────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 80px 20px;
+    }
+    .empty .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+    .empty p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* ── Completion banner ───────────────────── */
+    .completion {
+      background: linear-gradient(135deg, rgba(44,155,66,0.08), rgba(44,155,66,0.02));
+      border: 1px solid rgba(44,155,66,0.15);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin-top: 24px;
+      animation: fadeIn 0.5s ease;
+    }
+    .completion .icon { font-size: 36px; margin-bottom: 8px; }
+    .completion h3 { font-size: 16px; color: var(--forest-light); }
+    .completion p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="logo">W</div>
-      <h1>Workflow <span>Executor</span></h1>
-      <div class="status-dot idle" id="statusDot" title="Connection status"></div>
-    </div>
 
-    <div class="config-bar">
-      <input type="text" id="tokenInput" placeholder="Bearer token (leave empty to auto-generate)" />
-      <button class="btn btn-primary" id="triggerBtn" onclick="triggerWorkflow()">
-        ▶ Trigger
-      </button>
-    </div>
-
-    <div class="timeline" id="timeline">
-      <div class="empty-state">
-        <div class="icon">⎔</div>
-        <p>No steps yet. Click <strong>Trigger</strong> to start the workflow.</p>
-      </div>
-    </div>
+  <div class="topbar">
+    <div class="logo">F</div>
+    <h1>Workflow <span>Executor</span></h1>
+    <div class="spacer"></div>
+    <input type="text" id="tokenInput" placeholder="Bearer token" />
+    <div class="dot idle" id="dot"></div>
   </div>
 
-  <div class="log-bar">
-    <span style="color:var(--primary);">●</span>
-    <span class="log-msg" id="logMsg">Ready</span>
+  <div class="main">
+    <div class="wf-header">
+      <div class="wf-icon">⚡</div>
+      <div class="wf-meta">
+        <h2>Customer Onboarding</h2>
+        <p>Run <code style="color:var(--forest-light)">demo-1</code> — 3 steps</p>
+      </div>
+      <div class="wf-actions">
+        <button class="btn btn-ghost" onclick="resetWorkflow()">↻ Reset</button>
+        <button class="btn btn-primary" id="triggerBtn" onclick="triggerNext()">▶ Start workflow</button>
+      </div>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-label" id="progressLabel">0/3</div>
+    </div>
+
+    <div id="pipelineContainer"></div>
+  </div>
+
+  <div class="footer">
+    <span style="color:var(--forest)">●</span>
+    <span id="logMsg">Ready — click Start to begin</span>
   </div>
 
   <script>
-    const BASE_URL = 'http://localhost:3100';
-    const RUN_ID = 'demo-1';
+    const BASE = 'http://localhost:3100';
+    const RUN = 'demo-1';
     let polling = null;
-    let lastStepsJson = '';
+    let lastJson = '';
+    let isRunning = false;
+
+    const STEP_META = {
+      'read-record':    { icon: '📖', label: 'Read Record',    prompt: 'Read the customer email and name' },
+      'update-record':  { icon: '✏️', label: 'Update Record',  prompt: 'Update the customer status to active' },
+      'trigger-action': { icon: '📧', label: 'Trigger Action', prompt: 'Send the welcome email' },
+      'condition':      { icon: '🔀', label: 'Condition',      prompt: '' },
+      'load-related-record': { icon: '🔗', label: 'Load Related', prompt: '' },
+      'mcp-task':       { icon: '🤖', label: 'MCP Task',       prompt: '' },
+    };
+
+    // Pre-define the 3 expected steps for the visual pipeline
+    const EXPECTED_STEPS = [
+      { type: 'read-record', stepIndex: 0 },
+      { type: 'update-record', stepIndex: 1 },
+      { type: 'trigger-action', stepIndex: 2 },
+    ];
 
     function log(msg) {
       document.getElementById('logMsg').textContent = `${new Date().toLocaleTimeString()} — ${msg}`;
     }
 
-    function getToken() {
-      return document.getElementById('tokenInput').value.trim() || 'demo-token';
+    function token() {
+      return document.getElementById('tokenInput').value.trim() || 'demo';
     }
 
-    function headers() {
-      return {
-        'Authorization': `Bearer ${getToken()}`,
-        'Content-Type': 'application/json',
-      };
+    function hdrs() {
+      return { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' };
     }
 
-    async function triggerWorkflow(pendingData) {
+    async function triggerNext(pendingData) {
       const body = pendingData ? { pendingData } : undefined;
-      log(`POST /runs/${RUN_ID}/trigger` + (pendingData ? ` — ${JSON.stringify(pendingData)}` : ''));
+      log(`POST /runs/${RUN}/trigger` + (pendingData ? ` + pendingData` : ''));
+      document.getElementById('triggerBtn').disabled = true;
 
       try {
-        const res = await fetch(`${BASE_URL}/runs/${RUN_ID}/trigger`, {
-          method: 'POST',
-          headers: headers(),
+        const r = await fetch(`${BASE}/runs/${RUN}/trigger`, {
+          method: 'POST', headers: hdrs(),
           body: body ? JSON.stringify(body) : undefined,
         });
-        const data = await res.json();
-        log(`← ${res.status} ${JSON.stringify(data)}`);
-        // Fetch immediately after trigger
-        fetchSteps();
-      } catch (err) {
-        log(`✕ Trigger failed: ${err.message}`);
+        const d = await r.json().catch(() => ({}));
+        log(`← ${r.status} ${JSON.stringify(d)}`);
+        if (!isRunning) { isRunning = true; startPolling(); }
+        setTimeout(fetchSteps, 200);
+      } catch (e) {
+        log(`✕ ${e.message}`);
       }
+
+      document.getElementById('triggerBtn').disabled = false;
     }
 
-    function confirm(stepIndex) {
-      triggerWorkflow({ userConfirmed: true });
-    }
-
-    function reject(stepIndex) {
-      triggerWorkflow({ userConfirmed: false });
+    function startPolling() {
+      if (polling) return;
+      polling = setInterval(fetchSteps, 1000);
     }
 
     async function fetchSteps() {
       try {
-        const res = await fetch(`${BASE_URL}/runs/${RUN_ID}`, { headers: headers() });
-        const data = await res.json();
+        const r = await fetch(`${BASE}/runs/${RUN}`, { headers: hdrs() });
+        const d = await r.json();
+        document.getElementById('dot').className = 'dot ok';
 
-        document.getElementById('statusDot').className = 'status-dot connected';
-
-        const json = JSON.stringify(data.steps);
-        if (json === lastStepsJson) return;
-        lastStepsJson = json;
-
-        renderSteps(data.steps || []);
-      } catch (err) {
-        document.getElementById('statusDot').className = 'status-dot disconnected';
+        const json = JSON.stringify(d.steps);
+        if (json === lastJson) return;
+        lastJson = json;
+        render(d.steps || []);
+      } catch {
+        document.getElementById('dot').className = 'dot err';
       }
     }
 
-    function renderSteps(steps) {
-      const timeline = document.getElementById('timeline');
+    function render(steps) {
+      const container = document.getElementById('pipelineContainer');
+      const stepsMap = {};
+      steps.forEach(s => { stepsMap[s.stepIndex] = s; });
 
-      if (steps.length === 0) {
-        timeline.innerHTML = `<div class="empty-state"><div class="icon">⎔</div><p>No steps yet. Click <strong>Trigger</strong> to start.</p></div>`;
-        return;
+      // Count completed
+      let completed = 0;
+      let hasAwaiting = false;
+      EXPECTED_STEPS.forEach(es => {
+        const s = stepsMap[es.stepIndex];
+        if (s?.executionResult) completed++;
+        if (s?.pendingData && s.pendingData.userConfirmed === undefined) hasAwaiting = true;
+      });
+
+      const pct = Math.round((completed / EXPECTED_STEPS.length) * 100);
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressLabel').textContent = `${completed}/${EXPECTED_STEPS.length}`;
+
+      // Update trigger button text
+      const btn = document.getElementById('triggerBtn');
+      if (completed === 0 && !steps.length) {
+        btn.textContent = '▶ Start workflow';
+      } else if (completed < EXPECTED_STEPS.length) {
+        btn.textContent = '▶ Trigger next';
+      } else {
+        btn.textContent = '✓ Complete';
+        btn.disabled = true;
       }
 
-      timeline.innerHTML = steps.map((step, i) => {
-        const status = inferStatus(step);
-        const statusClass = status.replace(/\s/g, '-');
+      let html = '';
+      EXPECTED_STEPS.forEach((es, i) => {
+        const s = stepsMap[es.stepIndex];
+        const meta = STEP_META[es.type] || { icon: '?', label: es.type, prompt: '' };
+        const state = getState(s, i, completed);
 
-        let dataHtml = '';
-        if (step.pendingData) {
-          dataHtml = `<div class="step-data">${syntaxHighlight(step.pendingData)}</div>`;
-        }
-        if (step.executionResult) {
-          dataHtml += `<div class="step-data">${syntaxHighlight(step.executionResult)}</div>`;
+        if (i > 0) {
+          html += `<div class="connector ${i <= completed ? 'done' : ''}"></div>`;
         }
 
-        let actionsHtml = '';
-        if (status === 'awaiting-input' && step.pendingData && step.pendingData.userConfirmed === undefined) {
-          actionsHtml = `
-            <div class="step-actions">
-              <button class="btn btn-confirm" onclick="confirm(${step.stepIndex})">✓ Confirm</button>
-              <button class="btn btn-reject" onclick="reject(${step.stepIndex})">✕ Reject</button>
-            </div>`;
+        html += `<div class="step ${state.cls}">`;
+        html += `  <div class="step-dot"></div>`;
+        html += `  <div class="step-card">`;
+        html += `    <div class="step-card-header">`;
+        html += `      <span class="step-badge">${meta.icon} ${meta.label}</span>`;
+        html += `      <span class="step-title">Step ${es.stepIndex}</span>`;
+        if (state.status) {
+          html += `    <span class="step-status ${state.statusCls}">${state.status}</span>`;
+        }
+        html += `    </div>`;
+        html += `    <div class="step-prompt">${meta.prompt}</div>`;
+
+        if (s?.pendingData) {
+          html += `<div class="step-data">${highlight(s.pendingData)}</div>`;
+        }
+        if (s?.executionResult) {
+          html += `<div class="step-data">${highlight(s.executionResult)}</div>`;
         }
 
-        return `
-          <div class="step-card ${statusClass}" style="animation-delay: ${i * 0.05}s">
-            <div class="step-header">
-              <span class="step-index">#${step.stepIndex}</span>
-              <span class="step-type">${step.type}</span>
-              <span class="step-status ${statusClass}">${status}</span>
-            </div>
-            ${dataHtml}
-            ${actionsHtml}
-          </div>`;
-      }).join('');
+        if (state.showActions) {
+          html += `<div class="step-actions">`;
+          html += `  <button class="btn btn-confirm" onclick="triggerNext({userConfirmed:true})">✓ Confirm</button>`;
+          html += `  <button class="btn btn-reject" onclick="triggerNext({userConfirmed:false})">✕ Reject</button>`;
+          html += `</div>`;
+        }
+
+        html += `  </div>`;
+        html += `</div>`;
+      });
+
+      if (completed === EXPECTED_STEPS.length) {
+        html += `<div class="completion"><div class="icon">🎉</div><h3>Workflow completed!</h3><p>All 3 steps executed successfully.</p></div>`;
+      }
+
+      container.innerHTML = html;
     }
 
-    function inferStatus(step) {
-      if (step.executionResult) return 'success';
-      if (step.pendingData && step.pendingData.userConfirmed !== undefined) return 'loading';
-      if (step.pendingData) return 'awaiting-input';
-      return 'pending';
+    function getState(step, index, completed) {
+      if (!step) {
+        if (index === completed) return { cls: 'active', status: 'pending', statusCls: 'loading' };
+        return { cls: '', status: null, statusCls: '' };
+      }
+
+      if (step.executionResult?.skipped) {
+        return { cls: 'skipped done', status: 'skipped', statusCls: 'skipped' };
+      }
+      if (step.executionResult) {
+        return { cls: 'done', status: 'success', statusCls: 'success' };
+      }
+      if (step.pendingData?.userConfirmed !== undefined) {
+        return { cls: 'active', status: 'loading...', statusCls: 'loading' };
+      }
+      if (step.pendingData) {
+        return { cls: 'awaiting', status: 'awaiting input', statusCls: 'awaiting-input', showActions: true };
+      }
+
+      return { cls: 'active', status: 'running', statusCls: 'loading' };
     }
 
-    function syntaxHighlight(obj) {
-      const json = JSON.stringify(obj, null, 2);
-      return json
+    function highlight(obj) {
+      return JSON.stringify(obj, null, 2)
         .replace(/(".*?"):/g, '<span style="color:#7DD3FC">$1</span>:')
         .replace(/: (".*?")/g, ': <span style="color:#86EFAC">$1</span>')
         .replace(/: (\d+)/g, ': <span style="color:#FDE68A">$1</span>')
-        .replace(/: (true|false)/g, ': <span style="color:#C4B5FD">$1</span>')
-        .replace(/: (null)/g, ': <span style="color:#6B7280">$1</span>');
+        .replace(/: (true|false)/g, ': <span style="color:#C4B5FD">$1</span>');
     }
 
-    // Start polling
-    polling = setInterval(fetchSteps, 1000);
-    fetchSteps();
+    function resetWorkflow() {
+      // Just reload — the server will need to be restarted too
+      location.reload();
+    }
+
+    // Initial render
+    render([]);
   </script>
 </body>
 </html>

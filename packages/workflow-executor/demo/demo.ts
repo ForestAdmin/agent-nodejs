@@ -25,6 +25,7 @@ import jsonwebtoken from 'jsonwebtoken';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
 import InMemoryStore from '../src/stores/in-memory-store';
+import { StepType } from '../src/types/step-definition';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -80,7 +81,7 @@ const WORKFLOW_STEPS: Array<{
       stepId: 'step-read',
       stepIndex: 0,
       baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
-      stepDefinition: { type: 'read-record', prompt: 'Read the customer email and name' },
+      stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer email and name' },
       user: DEMO_USER,
     },
     aiResponse: {
@@ -95,7 +96,7 @@ const WORKFLOW_STEPS: Array<{
       stepIndex: 1,
       baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
       stepDefinition: {
-        type: 'update-record',
+        type: StepType.UpdateRecord,
         prompt: 'Update the customer status to active',
       },
       user: DEMO_USER,
@@ -112,7 +113,7 @@ const WORKFLOW_STEPS: Array<{
       stepIndex: 2,
       baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
       stepDefinition: {
-        type: 'trigger-action',
+        type: StepType.TriggerAction,
         prompt: 'Send the welcome email',
       },
       user: DEMO_USER,
@@ -171,7 +172,7 @@ class FakeWorkflowPort implements WorkflowPort {
     return Promise.resolve(CUSTOMER_SCHEMA);
   }
 
-  getMcpServerConfigs(): Promise<never[]> {
+  getMcpServerConfigs(): Promise<[]> {
     return Promise.resolve([]);
   }
 
