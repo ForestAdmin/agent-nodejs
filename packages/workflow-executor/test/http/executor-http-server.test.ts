@@ -45,7 +45,7 @@ function createServer(
   overrides: {
     runner?: Runner;
     workflowPort?: WorkflowPort;
-    logger?: { error: jest.Mock };
+    logger?: { info: jest.Mock; error: jest.Mock };
   } = {},
 ) {
   return new ExecutorHttpServer({
