@@ -1,7 +1,7 @@
 # Workflow Executor — Contract Types
 
 > Types exchanged between the **orchestrator (server)**, the **executor (agent-nodejs)**, and the **frontend**.
-> Last updated: 2026-03-25
+> Last updated: 2026-03-26
 
 ---
 
@@ -12,6 +12,18 @@
 The executor polls for the current pending step of a run. The server must return **one object** (not an array), or `null` if the run is not found.
 
 ```typescript
+interface StepUser {
+  id:              number;
+  email:           string;
+  firstName:       string;
+  lastName:        string;
+  team:            string;
+  renderingId:     number;
+  role:            string;
+  permissionLevel: string;
+  tags:            Record<string, string>;
+}
+
 interface PendingStepExecution {
   runId:          string;
   stepId:         string;
@@ -19,10 +31,39 @@ interface PendingStepExecution {
   baseRecordRef:  RecordRef;
   stepDefinition: StepDefinition;
   previousSteps:  Step[];
+  user:           StepUser;  // identity of the user who initiated the step
 }
 ```
 
 > **`null` response** → executor throws `RunNotFoundError` → HTTP 404 returned to caller.
+
+### CollectionSchema
+
+Schema of a collection, returned by the orchestrator via `GET /liana/v1/collections/:collectionName`. Used by the executor to resolve primary keys and action endpoints.
+
+```typescript
+interface CollectionSchema {
+  collectionName:        string;
+  collectionDisplayName: string;
+  primaryKeyFields:      string[];
+  fields:                FieldSchema[];
+  actions:               ActionSchema[];
+}
+
+interface FieldSchema {
+  fieldName:              string;
+  displayName:            string;
+  isRelationship:         boolean;
+  relationType?:          "BelongsTo" | "HasMany" | "HasOne";
+  relatedCollectionName?: string;
+}
+
+interface ActionSchema {
+  name:        string;
+  displayName: string;
+  endpoint:    string;  // route path used by the agent to execute the action
+}
+```
 
 ### RecordRef
 
