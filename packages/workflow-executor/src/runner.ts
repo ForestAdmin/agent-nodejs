@@ -40,7 +40,6 @@ export default class Runner {
   private readonly inFlightSteps = new Set<string>();
   private isRunning = false;
   private readonly logger: Logger;
-  private cachedTools: RemoteTool[] | null = null;
 
   private static stepKey(step: PendingStepExecution): string {
     return `${step.runId}:${step.stepId}`;
@@ -137,8 +136,6 @@ export default class Runner {
   }
 
   async triggerPoll(runId: string): Promise<void> {
-    this.config.schemaCache.clear();
-    this.cachedTools = null;
     const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
 
     if (!step) throw new RunNotFoundError(runId);
@@ -155,8 +152,6 @@ export default class Runner {
 
   private async runPollCycle(): Promise<void> {
     try {
-      this.config.schemaCache.clear();
-      this.cachedTools = null;
       const steps = await this.config.workflowPort.getPendingStepExecutions();
       const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
       await Promise.allSettled(pending.map(s => this.executeStep(s)));
@@ -182,14 +177,6 @@ export default class Runner {
     return this.config.aiClient.loadRemoteTools(mergedConfig);
   }
 
-  private async loadTools(): Promise<RemoteTool[]> {
-    if (this.cachedTools) return this.cachedTools;
-
-    this.cachedTools = await this.fetchRemoteTools();
-
-    return this.cachedTools;
-  }
-
   private async executeStep(step: PendingStepExecution): Promise<void> {
     const key = Runner.stepKey(step);
     this.inFlightSteps.add(key);
@@ -197,10 +184,8 @@ export default class Runner {
     let result: StepExecutionResult;
 
     try {
-      const executor = await StepExecutorFactory.create(
-        step,
-        this.contextConfig,
-        () => this.loadTools(),
+      const executor = await StepExecutorFactory.create(step, this.contextConfig, () =>
+        this.fetchRemoteTools(),
       );
       result = await executor.execute();
     } catch (error) {

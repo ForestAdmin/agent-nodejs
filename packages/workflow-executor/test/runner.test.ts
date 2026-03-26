@@ -358,18 +358,6 @@ describe('polling loop', () => {
 
     expect(workflowPort.getPendingStepExecutions).toHaveBeenCalledTimes(1);
   });
-
-  it('clears schemaCache at the start of each poll cycle', async () => {
-    const workflowPort = createMockWorkflowPort();
-    const schemaCache = new Map([['customers', {} as CollectionSchema]]);
-    runner = new Runner(createRunnerConfig({ workflowPort, schemaCache }));
-    await runner.start();
-
-    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
-    await flushPromises();
-
-    expect(schemaCache.size).toBe(0);
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -531,18 +519,6 @@ describe('triggerPoll', () => {
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
     await expect(runner.triggerPoll('run-1')).rejects.toThrow('Network error');
-  });
-
-  it('clears schemaCache at the start of each trigger', async () => {
-    const workflowPort = createMockWorkflowPort();
-    const step = makePendingStep({ runId: 'run-1', stepId: 'step-a' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
-    const schemaCache = new Map([['customers', {} as CollectionSchema]]);
-
-    runner = new Runner(createRunnerConfig({ workflowPort, schemaCache }));
-    await runner.triggerPoll('run-1');
-
-    expect(schemaCache.size).toBe(0);
   });
 });
 
