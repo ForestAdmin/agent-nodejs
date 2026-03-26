@@ -172,7 +172,7 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ error: 'Forbidden' });
     });
 
-    it('calls hasRunAccess with the correct runId and userToken', async () => {
+    it('calls hasRunAccess with the correct runId and decoded user', async () => {
       const workflowPort = createMockWorkflowPort();
       const server = createServer({ workflowPort });
       const token = signToken({ id: 1 });
@@ -182,10 +182,13 @@ describe('ExecutorHttpServer', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
-      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith('run-42', token);
+      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith(
+        'run-42',
+        expect.objectContaining({ id: 1 }),
+      );
     });
 
-    it('calls hasRunAccess with token from cookie', async () => {
+    it('calls hasRunAccess with decoded user from cookie token', async () => {
       const workflowPort = createMockWorkflowPort();
       const server = createServer({ workflowPort });
       const token = signToken({ id: 1 });
@@ -195,7 +198,10 @@ describe('ExecutorHttpServer', () => {
         .set('Cookie', `forest_session_token=${token}`);
 
       expect(response.status).toBe(200);
-      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith('run-cookie', token);
+      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith(
+        'run-cookie',
+        expect.objectContaining({ id: 1 }),
+      );
     });
 
     it('returns 503 when hasRunAccess throws', async () => {

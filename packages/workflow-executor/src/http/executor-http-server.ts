@@ -1,6 +1,7 @@
 import type { Logger } from '../ports/logger-port';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
+import type { StepUser } from '../types/execution';
 import type { Server } from 'http';
 
 import bodyParser from '@koa/bodyparser';
@@ -116,10 +117,10 @@ export default class ExecutorHttpServer {
   }
 
   private async hasRunAccessMiddleware(ctx: Koa.Context, next: Koa.Next): Promise<void> {
-    const userToken = ctx.state.rawToken as string;
+    const user = ctx.state.user as StepUser;
 
     try {
-      const allowed = await this.options.workflowPort.hasRunAccess(ctx.params.runId, userToken);
+      const allowed = await this.options.workflowPort.hasRunAccess(ctx.params.runId, user);
 
       if (!allowed) {
         ctx.status = 403;
