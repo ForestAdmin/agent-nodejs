@@ -14,8 +14,9 @@ describe('IntegrationClient', () => {
     it('should load zendesk tools when integration is zendesk', () => {
       const client = new IntegrationClient([
         {
-          integrationName: 'zendesk',
+          integrationName: 'Zendesk',
           config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
+          isForestConnector: true,
         },
       ]);
 
@@ -27,7 +28,8 @@ describe('IntegrationClient', () => {
     it('should log warning for unsupported integration', () => {
       const logger = jest.fn();
       const client = new IntegrationClient(
-        [{ integrationName: 'unknown', config: {} as any }],
+        // @ts-expect-error Testing unsupported integration
+        [{ integrationName: 'unknown', config: {} as any, isForestConnector: true }],
         logger,
       );
 
@@ -45,12 +47,14 @@ describe('IntegrationClient', () => {
     it('should load tools from multiple configs', () => {
       const client = new IntegrationClient([
         {
-          integrationName: 'zendesk',
+          integrationName: 'Zendesk',
           config: { subdomain: 'a', email: 'a@b.com', apiToken: 'tok' },
+          isForestConnector: true,
         },
         {
-          integrationName: 'zendesk',
+          integrationName: 'Zendesk',
           config: { subdomain: 'b', email: 'c@d.com', apiToken: 'tok2' },
+          isForestConnector: true,
         },
       ]);
 
