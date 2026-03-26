@@ -9,7 +9,12 @@ import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
-import { InvalidPendingDataError, PendingDataNotFoundError, RunNotFoundError } from '../errors';
+import {
+  InvalidPendingDataError,
+  PendingDataNotFoundError,
+  RunNotFoundError,
+  UserMismatchError,
+} from '../errors';
 
 export interface ExecutorHttpServerOptions {
   port: number;
@@ -63,44 +68,14 @@ export default class ExecutorHttpServer {
 
     const router = new Router();
 
-    // Authorization middleware — verifies that the authenticated user owns the requested run.
-    // Applied to all /runs/:runId routes so future routes are automatically protected.
-    router.use('/runs/:runId', async (ctx, next) => {
-      // Raw token is always present here: koa-jwt already rejected the request if missing.
-      const userToken = ctx.state.rawToken as string;
-
-      try {
-        const allowed = await this.options.workflowPort.hasRunAccess(ctx.params.runId, userToken);
-
-        if (!allowed) {
-          ctx.status = 403;
-          ctx.body = { error: 'Forbidden' };
-
-          return;
-        }
-      } catch (err) {
-        this.options.logger?.error('Failed to check run access', {
-          runId: ctx.params.runId,
-          method: ctx.method,
-          path: ctx.path,
-          error: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined,
-        });
-        ctx.status = 503;
-        ctx.body = { error: 'Service unavailable' };
-
-        return;
-      }
-
-      await next();
-    });
-
-    router.get('/runs/:runId', this.handleGetRun.bind(this));
-    router.post('/runs/:runId/trigger', this.handleTrigger.bind(this));
-    router.patch(
-      '/runs/:runId/steps/:stepIndex/pending-data',
-      this.handlePatchPendingData.bind(this),
+    // hasRunAccess authorization — only on GET (read-only route).
+    // Trigger handles its own authz by comparing bearer user with step.user.
+    router.get(
+      '/runs/:runId',
+      this.hasRunAccessMiddleware.bind(this),
+      this.handleGetRun.bind(this),
     );
+    router.post('/runs/:runId/trigger', this.handleTrigger.bind(this));
 
     this.app.use(router.routes());
     this.app.use(router.allowedMethods());
@@ -137,6 +112,35 @@ export default class ExecutorHttpServer {
     return this.app.callback();
   }
 
+  private async hasRunAccessMiddleware(ctx: Koa.Context, next: Koa.Next): Promise<void> {
+    const userToken = ctx.state.rawToken as string;
+
+    try {
+      const allowed = await this.options.workflowPort.hasRunAccess(ctx.params.runId, userToken);
+
+      if (!allowed) {
+        ctx.status = 403;
+        ctx.body = { error: 'Forbidden' };
+
+        return;
+      }
+    } catch (err) {
+      this.options.logger?.error('Failed to check run access', {
+        runId: ctx.params.runId,
+        method: ctx.method,
+        path: ctx.path,
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+      ctx.status = 503;
+      ctx.body = { error: 'Service unavailable' };
+
+      return;
+    }
+
+    await next();
+  }
+
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
     const steps = await this.options.runner.getRunStepExecutions(ctx.params.runId);
     ctx.body = { steps };
@@ -144,9 +148,14 @@ export default class ExecutorHttpServer {
 
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
+    const bearerUserId = (ctx.state.user as { id?: number })?.id;
+    const pendingData = (ctx.request.body as { pendingData?: unknown })?.pendingData;
 
     try {
-      await this.options.runner.triggerPoll(runId);
+      await this.options.runner.triggerPoll(runId, {
+        pendingData,
+        bearerUserId,
+      });
     } catch (err) {
       if (err instanceof RunNotFoundError) {
         ctx.status = 404;
@@ -155,27 +164,13 @@ export default class ExecutorHttpServer {
         return;
       }
 
-      throw err;
-    }
+      if (err instanceof UserMismatchError) {
+        ctx.status = 403;
+        ctx.body = { error: 'Forbidden' };
 
-    ctx.status = 200;
-    ctx.body = { triggered: true };
-  }
+        return;
+      }
 
-  private async handlePatchPendingData(ctx: Koa.Context): Promise<void> {
-    const { runId, stepIndex: stepIndexStr } = ctx.params;
-    const stepIndex = parseInt(stepIndexStr, 10);
-
-    if (Number.isNaN(stepIndex)) {
-      ctx.status = 400;
-      ctx.body = { error: 'Invalid stepIndex' };
-
-      return;
-    }
-
-    try {
-      await this.options.runner.patchPendingData(runId, stepIndex, ctx.request.body);
-    } catch (err) {
       if (err instanceof PendingDataNotFoundError) {
         ctx.status = 404;
         ctx.body = { error: 'Step execution not found or has no pending data' };
@@ -193,6 +188,7 @@ export default class ExecutorHttpServer {
       throw err;
     }
 
-    ctx.status = 204;
+    ctx.status = 200;
+    ctx.body = { triggered: true };
   }
 }

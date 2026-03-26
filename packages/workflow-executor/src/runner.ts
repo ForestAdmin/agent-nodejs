@@ -13,6 +13,7 @@ import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
   RunNotFoundError,
+  UserMismatchError,
   causeMessage,
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
@@ -104,7 +105,7 @@ export default class Runner {
     return this.config.runStore.getStepExecutions(runId);
   }
 
-  async patchPendingData(runId: string, stepIndex: number, body: unknown): Promise<void> {
+  private async patchPendingData(runId: string, stepIndex: number, body: unknown): Promise<void> {
     const stepExecutions = await this.config.runStore.getStepExecutions(runId);
     const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
     const schema = execution ? patchBodySchemas[execution.type] : undefined;
@@ -135,10 +136,21 @@ export default class Runner {
     } as StepExecutionData);
   }
 
-  async triggerPoll(runId: string): Promise<void> {
+  async triggerPoll(
+    runId: string,
+    options?: { pendingData?: unknown; bearerUserId?: number },
+  ): Promise<void> {
     const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
 
     if (!step) throw new RunNotFoundError(runId);
+
+    if (options?.bearerUserId !== undefined && step.user.id !== options.bearerUserId) {
+      throw new UserMismatchError(runId);
+    }
+
+    if (options?.pendingData) {
+      await this.patchPendingData(runId, step.stepIndex, options.pendingData);
+    }
 
     if (this.inFlightSteps.has(Runner.stepKey(step))) return;
 
