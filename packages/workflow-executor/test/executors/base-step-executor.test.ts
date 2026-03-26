@@ -17,6 +17,7 @@ import {
   StepPersistenceError,
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
@@ -119,7 +120,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new Map(),
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: makeMockLogger(),
     ...overrides,

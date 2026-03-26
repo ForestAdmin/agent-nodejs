@@ -5,6 +5,7 @@ import type {
   GetRelatedDataQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
+import type SchemaCache from '../schema-cache';
 import type { StepUser } from '../types/execution';
 import type { CollectionSchema, RecordData } from '../types/record';
 import type { SelectOptions } from '@forestadmin/agent-client';
@@ -47,13 +48,9 @@ function extractRecordId(
 export default class AgentClientAgentPort implements AgentPort {
   private readonly agentUrl: string;
   private readonly authSecret: string;
-  private readonly schemaCache: ReadonlyMap<string, CollectionSchema>;
+  private readonly schemaCache: SchemaCache;
 
-  constructor(params: {
-    agentUrl: string;
-    authSecret: string;
-    schemaCache: ReadonlyMap<string, CollectionSchema>;
-  }) {
+  constructor(params: { agentUrl: string; authSecret: string; schemaCache: SchemaCache }) {
     this.agentUrl = params.agentUrl;
     this.authSecret = params.authSecret;
     this.schemaCache = params.schemaCache;

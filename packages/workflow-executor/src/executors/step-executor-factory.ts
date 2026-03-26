@@ -2,13 +2,13 @@ import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
+import type SchemaCache from '../schema-cache';
 import type {
   ExecutionContext,
   IStepExecutor,
   PendingStepExecution,
   StepExecutionResult,
 } from '../types/execution';
-import type { CollectionSchema } from '../types/record';
 import type {
   ConditionStepDefinition,
   McpTaskStepDefinition,
@@ -31,7 +31,7 @@ export interface StepContextConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
-  schemaCache: Map<string, CollectionSchema>;
+  schemaCache: SchemaCache;
   logger: Logger;
 }
 

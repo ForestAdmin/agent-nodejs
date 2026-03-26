@@ -8,6 +8,7 @@ import type { UpdateRecordStepExecutionData } from '../../src/types/step-executi
 
 import { StepStateError } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
@@ -127,7 +128,7 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new Map(),
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,

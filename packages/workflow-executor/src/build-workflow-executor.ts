@@ -8,6 +8,7 @@ import { Sequelize } from 'sequelize';
 import AgentClientAgentPort from './adapters/agent-client-agent-port';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import Runner from './runner';
+import SchemaCache from './schema-cache';
 import DatabaseStore from './stores/database-store';
 import InMemoryStore from './stores/in-memory-store';
 
@@ -45,7 +46,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiConfigurations: options.aiConfigurations,
   });
 
-  const schemaCache = new Map();
+  const schemaCache = new SchemaCache();
 
   const agentPort = new AgentClientAgentPort({
     agentUrl: options.agentUrl,

@@ -4,7 +4,6 @@ import type { Logger } from '../src/ports/logger-port';
 import type { RunStore } from '../src/ports/run-store';
 import type { WorkflowPort } from '../src/ports/workflow-port';
 import type { PendingStepExecution } from '../src/types/execution';
-import type { CollectionSchema } from '../src/types/record';
 import type { StepDefinition } from '../src/types/step-definition';
 import type { AiClient, BaseChatModel } from '@forestadmin/ai-proxy';
 
@@ -24,6 +23,7 @@ import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-act
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
 import ExecutorHttpServer from '../src/http/executor-http-server';
 import Runner from '../src/runner';
+import SchemaCache from '../src/schema-cache';
 import { StepType } from '../src/types/step-definition';
 
 jest.mock('../src/http/executor-http-server');
@@ -87,7 +87,7 @@ function createRunnerConfig(
     httpPort: number;
     envSecret: string;
     authSecret: string;
-    schemaCache: Map<string, CollectionSchema>;
+    schemaCache: SchemaCache;
   }> = {},
 ) {
   return {
@@ -102,7 +102,7 @@ function createRunnerConfig(
     pollingIntervalMs: POLLING_INTERVAL_MS,
     aiClient: createMockAiClient() as unknown as AiClient,
     logger: createMockLogger(),
-    schemaCache: new Map(),
+    schemaCache: new SchemaCache(),
     envSecret: VALID_ENV_SECRET,
     authSecret: VALID_AUTH_SECRET,
     ...overrides,
@@ -576,7 +576,7 @@ describe('StepExecutorFactory.create — factory', () => {
     agentPort: {} as AgentPort,
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
-    schemaCache: new Map(),
+    schemaCache: new SchemaCache(),
     logger: { error: jest.fn() },
   });
 

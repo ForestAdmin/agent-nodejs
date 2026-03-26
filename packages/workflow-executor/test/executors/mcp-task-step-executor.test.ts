@@ -8,6 +8,7 @@ import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { StepStateError } from '../../src/errors';
 import McpTaskStepExecutor from '../../src/executors/mcp-task-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 // ---------------------------------------------------------------------------
@@ -104,7 +105,7 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new Map(),
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,

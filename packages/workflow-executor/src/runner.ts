@@ -3,8 +3,8 @@ import type { AgentPort } from './ports/agent-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
+import type SchemaCache from './schema-cache';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution';
-import type { CollectionSchema } from './types/record';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
@@ -24,7 +24,7 @@ export interface RunnerConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
-  schemaCache: Map<string, CollectionSchema>;
+  schemaCache: SchemaCache;
   pollingIntervalMs: number;
   aiClient: AiClient;
   envSecret: string;

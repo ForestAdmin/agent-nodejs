@@ -7,6 +7,7 @@ import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 
 import { NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
@@ -126,7 +127,7 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new Map(),
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,

@@ -1,6 +1,7 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { CollectionSchema, RecordRef } from './record';
+import type { RecordRef } from './record';
+import type SchemaCache from '../schema-cache';
 import type { StepDefinition } from './step-definition';
 import type { StepOutcome } from './step-outcome';
 import type { AgentPort } from '../ports/agent-port';
@@ -55,7 +56,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
   readonly user: StepUser;
-  readonly schemaCache: Map<string, CollectionSchema>;
+  readonly schemaCache: SchemaCache;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;
 }

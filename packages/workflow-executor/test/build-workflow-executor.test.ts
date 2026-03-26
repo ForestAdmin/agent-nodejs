@@ -1,6 +1,7 @@
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
 import Runner from '../src/runner';
+import SchemaCache from '../src/schema-cache';
 import DatabaseStore from '../src/stores/database-store';
 import InMemoryStore from '../src/stores/in-memory-store';
 
@@ -74,7 +75,7 @@ describe('buildInMemoryExecutor', () => {
     expect(AgentClientAgentPort).toHaveBeenCalledWith({
       agentUrl: 'http://localhost:3310',
       authSecret: 'test-secret',
-      schemaCache: expect.any(Map),
+      schemaCache: expect.any(SchemaCache),
     });
   });
 

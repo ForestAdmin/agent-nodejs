@@ -1,10 +1,10 @@
 import type { StepUser } from '../../src/types/execution';
-import type { CollectionSchema } from '../../src/types/record';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
 import { RecordNotFoundError } from '../../src/errors';
+import SchemaCache from '../../src/schema-cache';
 
 jest.mock('@forestadmin/agent-client', () => ({
   createRemoteAgentClient: jest.fn(),
@@ -45,50 +45,40 @@ describe('AgentClientAgentPort', () => {
     ({ mockCollection, mockRelation, mockAction } = mocks);
     mockedCreateRemoteAgentClient.mockReturnValue(mocks.client as any);
 
-    const schemaCache = new Map<string, CollectionSchema>([
-      [
-        'users',
-        {
-          collectionName: 'users',
-          collectionDisplayName: 'Users',
-          primaryKeyFields: ['id'],
-          fields: [
-            { fieldName: 'id', displayName: 'id', isRelationship: false },
-            { fieldName: 'name', displayName: 'name', isRelationship: false },
-          ],
-          actions: [
-            { name: 'sendEmail', displayName: 'Send Email', endpoint: '/forest/actions/sendEmail' },
-            { name: 'archive', displayName: 'Archive', endpoint: '/forest/actions/archive' },
-          ],
-        },
+    const schemaCache = new SchemaCache();
+    schemaCache.set('users', {
+      collectionName: 'users',
+      collectionDisplayName: 'Users',
+      primaryKeyFields: ['id'],
+      fields: [
+        { fieldName: 'id', displayName: 'id', isRelationship: false },
+        { fieldName: 'name', displayName: 'name', isRelationship: false },
       ],
-      [
-        'orders',
-        {
-          collectionName: 'orders',
-          collectionDisplayName: 'Orders',
-          primaryKeyFields: ['tenantId', 'orderId'],
-          fields: [
-            { fieldName: 'tenantId', displayName: 'Tenant', isRelationship: false },
-            { fieldName: 'orderId', displayName: 'Order', isRelationship: false },
-          ],
-          actions: [],
-        },
+      actions: [
+        { name: 'sendEmail', displayName: 'Send Email', endpoint: '/forest/actions/sendEmail' },
+        { name: 'archive', displayName: 'Archive', endpoint: '/forest/actions/archive' },
       ],
-      [
-        'posts',
-        {
-          collectionName: 'posts',
-          collectionDisplayName: 'Posts',
-          primaryKeyFields: ['id'],
-          fields: [
-            { fieldName: 'id', displayName: 'id', isRelationship: false },
-            { fieldName: 'title', displayName: 'title', isRelationship: false },
-          ],
-          actions: [],
-        },
+    });
+    schemaCache.set('orders', {
+      collectionName: 'orders',
+      collectionDisplayName: 'Orders',
+      primaryKeyFields: ['tenantId', 'orderId'],
+      fields: [
+        { fieldName: 'tenantId', displayName: 'Tenant', isRelationship: false },
+        { fieldName: 'orderId', displayName: 'Order', isRelationship: false },
       ],
-    ]);
+      actions: [],
+    });
+    schemaCache.set('posts', {
+      collectionName: 'posts',
+      collectionDisplayName: 'Posts',
+      primaryKeyFields: ['id'],
+      fields: [
+        { fieldName: 'id', displayName: 'id', isRelationship: false },
+        { fieldName: 'title', displayName: 'title', isRelationship: false },
+      ],
+      actions: [],
+    });
 
     user = {
       id: 1,

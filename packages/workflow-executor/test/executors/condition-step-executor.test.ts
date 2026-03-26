@@ -5,6 +5,7 @@ import type { ConditionStepDefinition } from '../../src/types/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/step-outcome';
 
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
@@ -66,7 +67,7 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new Map(),
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,
