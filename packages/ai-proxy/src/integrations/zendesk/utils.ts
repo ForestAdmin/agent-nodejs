@@ -22,7 +22,7 @@ export async function validateZendeskConfig(config: ZendeskConfig) {
 
   if (!response.ok) {
     throw new McpConnectionError(
-      `Failed to validate Zendesk config: ${json.title || json.error.title}`,
+      `Failed to validate Zendesk config: ${json.title || json.error?.title || 'Unknown error'}`,
     );
   }
 }
