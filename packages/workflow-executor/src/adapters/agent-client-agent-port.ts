@@ -118,7 +118,11 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   private createClient(user: StepUser) {
-    const token = jsonwebtoken.sign({ ...user }, this.authSecret, { expiresIn: '1h' });
+    const token = jsonwebtoken.sign(
+      { ...user, scope: 'step-execution' },
+      this.authSecret,
+      { expiresIn: '5m' },
+    );
 
     return createRemoteAgentClient({
       url: this.agentUrl,
