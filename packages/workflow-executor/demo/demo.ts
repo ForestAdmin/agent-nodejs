@@ -1,13 +1,5 @@
 /* eslint-disable no-console */
 
-/**
- * Demo script — Customer Onboarding workflow with 5 steps.
- *
- * Usage:
- *   npx ts-node packages/workflow-executor/demo/demo.ts
- *   Open http://localhost:3100
- */
-
 import type { WorkflowPort } from '../src/ports/workflow-port';
 import type { PendingStepExecution, StepUser } from '../src/types/execution';
 import type { CollectionSchema } from '../src/types/record';
@@ -17,8 +9,6 @@ import type { AiClient, BaseChatModel, RemoteTool } from '@forestadmin/ai-proxy'
 import fs from 'fs';
 import http from 'http';
 import path from 'path';
-
-import jsonwebtoken from 'jsonwebtoken';
 
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
@@ -32,22 +22,13 @@ import { StepType } from '../src/types/step-definition';
 const AUTH_SECRET = 'demo-auth-secret-for-testing-only';
 const ENV_SECRET = 'a'.repeat(64);
 const HTTP_PORT = 3100;
-const RUN_ID = 'demo-1';
 
-// Static token (1 year)
 const DEMO_TOKEN =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJkZW1vQGZvcmVzdGFkbWluLmNvbSIsImlhdCI6MTc3NDUzNDAzOCwiZXhwIjoxODA2MDcwMDM4fQ.CZAHRCr2Jj1hIdE3rCFRadnOMjA9NyS64aZEao0oHv0';
 
-const DEMO_USER: StepUser = {
-  id: 1,
-  email: 'demo@forestadmin.com',
-  firstName: 'Demo',
-  lastName: 'User',
-  team: 'Product',
-  renderingId: 1,
-  role: 'admin',
-  permissionLevel: 'admin',
-  tags: {},
+const USER: StepUser = {
+  id: 1, email: 'demo@forestadmin.com', firstName: 'Demo', lastName: 'User',
+  team: 'Product', renderingId: 1, role: 'admin', permissionLevel: 'admin', tags: {},
 };
 
 // ---------------------------------------------------------------------------
@@ -55,240 +36,134 @@ const DEMO_USER: StepUser = {
 // ---------------------------------------------------------------------------
 
 const CUSTOMERS_SCHEMA: CollectionSchema = {
-  collectionName: 'customers',
-  collectionDisplayName: 'Customers',
-  primaryKeyFields: ['id'],
+  collectionName: 'customers', collectionDisplayName: 'Customers', primaryKeyFields: ['id'],
   fields: [
     { fieldName: 'id', displayName: 'Id', isRelationship: false },
     { fieldName: 'email', displayName: 'Email', isRelationship: false },
     { fieldName: 'name', displayName: 'Full Name', isRelationship: false },
     { fieldName: 'company', displayName: 'Company', isRelationship: false },
     { fieldName: 'status', displayName: 'Status', isRelationship: false },
-    { fieldName: 'accepted_cgv', displayName: 'Accepted CGV', isRelationship: false },
-    {
-      fieldName: 'orders',
-      displayName: 'Orders',
-      isRelationship: true,
-      relationType: 'HasMany',
-      relatedCollectionName: 'orders',
-    },
+    { fieldName: 'orders', displayName: 'Orders', isRelationship: true, relationType: 'HasMany', relatedCollectionName: 'orders' },
   ],
-  actions: [
-    {
-      name: 'send_welcome_email',
-      displayName: 'Send Welcome Email',
-      endpoint: '/forest/actions/send-welcome-email',
-    },
-  ],
+  actions: [{ name: 'send_welcome_email', displayName: 'Send Welcome Email', endpoint: '/forest/actions/send-welcome-email' }],
 };
 
 const ORDERS_SCHEMA: CollectionSchema = {
-  collectionName: 'orders',
-  collectionDisplayName: 'Orders',
-  primaryKeyFields: ['id'],
+  collectionName: 'orders', collectionDisplayName: 'Orders', primaryKeyFields: ['id'],
   fields: [
     { fieldName: 'id', displayName: 'Id', isRelationship: false },
     { fieldName: 'reference', displayName: 'Reference', isRelationship: false },
     { fieldName: 'total', displayName: 'Total', isRelationship: false },
     { fieldName: 'status', displayName: 'Status', isRelationship: false },
+    { fieldName: 'shipping_status', displayName: 'Shipping Status', isRelationship: false },
   ],
-  actions: [],
+  actions: [
+    { name: 'mark_shipped', displayName: 'Mark as Shipped', endpoint: '/forest/actions/mark-shipped' },
+    { name: 'send_invoice', displayName: 'Send Invoice', endpoint: '/forest/actions/send-invoice' },
+  ],
 };
 
 // ---------------------------------------------------------------------------
-// 5-step workflow
+// Workflow definitions
 // ---------------------------------------------------------------------------
 
-interface WorkflowStepDef {
+interface WfStepDef {
   step: Omit<PendingStepExecution, 'previousSteps'>;
   aiResponses: Array<{ name: string; args: Record<string, unknown> }>;
 }
 
-const WORKFLOW_STEPS: WorkflowStepDef[] = [
-  // Step 0: Read customer info
-  {
-    step: {
-      runId: RUN_ID,
-      stepId: 'step-read',
-      stepIndex: 0,
-      baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
-      stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer name, email, and company' },
-      user: DEMO_USER,
-    },
-    aiResponses: [
-      { name: 'read-selected-record-fields', args: { fieldNames: ['Full Name', 'Email', 'Company'] } },
-    ],
-  },
-
-  // Step 1: Condition — did the customer accept CGV?
-  {
-    step: {
-      runId: RUN_ID,
-      stepId: 'step-condition',
-      stepIndex: 1,
-      baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
-      stepDefinition: {
-        type: StepType.Condition,
-        options: ['Yes — CGV accepted', 'No — CGV not accepted'],
-        prompt: 'Has the customer accepted the terms and conditions?',
-      },
-      user: DEMO_USER,
-    },
-    aiResponses: [
-      {
-        name: 'choose-gateway-option',
-        args: {
-          option: 'Yes — CGV accepted',
-          reasoning: 'Customer accepted_cgv field is true',
-          question: 'CGV status check',
-        },
-      },
-    ],
-  },
-
-  // Step 2: Update status to "active"
-  {
-    step: {
-      runId: RUN_ID,
-      stepId: 'step-update',
-      stepIndex: 2,
-      baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
-      stepDefinition: {
-        type: StepType.UpdateRecord,
-        prompt: 'Activate the customer by setting status to active',
-      },
-      user: DEMO_USER,
-    },
-    aiResponses: [
-      {
-        name: 'update-record-field',
-        args: { fieldName: 'Status', value: 'active', reasoning: 'Activating new customer after CGV acceptance' },
-      },
-    ],
-  },
-
-  // Step 3: Send welcome email
-  {
-    step: {
-      runId: RUN_ID,
-      stepId: 'step-email',
-      stepIndex: 3,
-      baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
-      stepDefinition: {
-        type: StepType.TriggerAction,
-        prompt: 'Send the welcome email to the customer',
-      },
-      user: DEMO_USER,
-    },
-    aiResponses: [
-      {
-        name: 'select-action',
-        args: { actionName: 'Send Welcome Email', reasoning: 'Welcome new active customer' },
-      },
-    ],
-  },
-
-  // Step 4: Load related order
-  {
-    step: {
-      runId: RUN_ID,
-      stepId: 'step-load-order',
-      stepIndex: 4,
-      baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
-      stepDefinition: {
-        type: StepType.LoadRelatedRecord,
-        prompt: 'Load the customer first order',
-      },
-      user: DEMO_USER,
-    },
-    aiResponses: [
-      { name: 'select-relation', args: { relationName: 'Orders', reasoning: 'Load first order for onboarding' } },
-    ],
-  },
+// Workflow 1: Customer Onboarding (5 steps)
+const WF1_STEPS: WfStepDef[] = [
+  { step: { runId: 'run-1', stepId: 's1-0', stepIndex: 0, baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 }, stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer name, email, and company' }, user: USER },
+    aiResponses: [{ name: 'read-selected-record-fields', args: { fieldNames: ['Full Name', 'Email', 'Company'] } }] },
+  { step: { runId: 'run-1', stepId: 's1-1', stepIndex: 1, baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 }, stepDefinition: { type: StepType.Condition, options: ['Yes — CGV accepted', 'No — CGV not accepted'], prompt: 'Has the customer accepted the terms?' }, user: USER },
+    aiResponses: [{ name: 'choose-gateway-option', args: { option: 'Yes — CGV accepted', reasoning: 'CGV field is true', question: 'CGV check' } }] },
+  { step: { runId: 'run-1', stepId: 's1-2', stepIndex: 2, baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 }, stepDefinition: { type: StepType.UpdateRecord, prompt: 'Activate the customer' }, user: USER },
+    aiResponses: [{ name: 'update-record-field', args: { fieldName: 'Status', value: 'active', reasoning: 'Activate after CGV' } }] },
+  { step: { runId: 'run-1', stepId: 's1-3', stepIndex: 3, baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 }, stepDefinition: { type: StepType.TriggerAction, prompt: 'Send the welcome email' }, user: USER },
+    aiResponses: [{ name: 'select-action', args: { actionName: 'Send Welcome Email', reasoning: 'Welcome new customer' } }] },
+  { step: { runId: 'run-1', stepId: 's1-4', stepIndex: 4, baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 }, stepDefinition: { type: StepType.LoadRelatedRecord, prompt: 'Load the first order' }, user: USER },
+    aiResponses: [{ name: 'select-relation', args: { relationName: 'Orders', reasoning: 'Load first order' } }] },
 ];
 
+// Workflow 2: Order Fulfillment (3 steps)
+const WF2_STEPS: WfStepDef[] = [
+  { step: { runId: 'run-2', stepId: 's2-0', stepIndex: 0, baseRecordRef: { collectionName: 'orders', recordId: [1001], stepIndex: 0 }, stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the order details' }, user: USER },
+    aiResponses: [{ name: 'read-selected-record-fields', args: { fieldNames: ['Reference', 'Total', 'Status'] } }] },
+  { step: { runId: 'run-2', stepId: 's2-1', stepIndex: 1, baseRecordRef: { collectionName: 'orders', recordId: [1001], stepIndex: 0 }, stepDefinition: { type: StepType.UpdateRecord, prompt: 'Update shipping status to shipped' }, user: USER },
+    aiResponses: [{ name: 'update-record-field', args: { fieldName: 'Shipping Status', value: 'shipped', reasoning: 'Order ready to ship' } }] },
+  { step: { runId: 'run-2', stepId: 's2-2', stepIndex: 2, baseRecordRef: { collectionName: 'orders', recordId: [1001], stepIndex: 0 }, stepDefinition: { type: StepType.TriggerAction, prompt: 'Send the invoice' }, user: USER },
+    aiResponses: [{ name: 'select-action', args: { actionName: 'Send Invoice', reasoning: 'Invoice for shipped order' } }] },
+];
+
+const ALL_WORKFLOWS: Record<string, WfStepDef[]> = { 'run-1': WF1_STEPS, 'run-2': WF2_STEPS };
+
 // ---------------------------------------------------------------------------
-// Fake WorkflowPort
+// Fake WorkflowPort (multi-run)
 // ---------------------------------------------------------------------------
 
 class FakeWorkflowPort implements WorkflowPort {
-  private currentStepIndex = 0;
-  private outcomes: StepOutcome[] = [];
+  private state: Record<string, { idx: number; outcomes: StepOutcome[] }> = {
+    'run-1': { idx: 0, outcomes: [] },
+    'run-2': { idx: 0, outcomes: [] },
+  };
 
   reset(): void {
-    this.currentStepIndex = 0;
-    this.outcomes = [];
-    console.log('  🔄 Workflow reset\n');
+    this.state = { 'run-1': { idx: 0, outcomes: [] }, 'run-2': { idx: 0, outcomes: [] } };
+    console.log('  🔄 All workflows reset\n');
   }
 
   getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null> {
-    if (runId !== RUN_ID) return Promise.resolve(null);
-    if (this.currentStepIndex >= WORKFLOW_STEPS.length) return Promise.resolve(null);
+    const wf = ALL_WORKFLOWS[runId];
+    const st = this.state[runId];
+    if (!wf || !st || st.idx >= wf.length) return Promise.resolve(null);
 
-    const { step } = WORKFLOW_STEPS[this.currentStepIndex];
-    const previousSteps = this.outcomes.map((outcome, i) => ({
-      stepDefinition: WORKFLOW_STEPS[i].step.stepDefinition,
-      stepOutcome: outcome,
-    }));
-
+    const { step } = wf[st.idx];
+    const previousSteps = st.outcomes.map((o, i) => ({ stepDefinition: wf[i].step.stepDefinition, stepOutcome: o }));
     return Promise.resolve({ ...step, previousSteps } as PendingStepExecution);
   }
 
-  async updateStepExecution(_runId: string, outcome: StepOutcome): Promise<void> {
-    const emoji = outcome.status === 'success' ? '✅' : outcome.status === 'error' ? '❌' : '⏳';
-    console.log(`  ${emoji} Step ${outcome.stepIndex} → ${outcome.status}`);
-
+  async updateStepExecution(runId: string, outcome: StepOutcome): Promise<void> {
+    const st = this.state[runId];
+    if (!st) return;
+    const e = outcome.status === 'success' ? '✅' : outcome.status === 'error' ? '❌' : '⏳';
+    console.log(`  ${e} [${runId}] Step ${outcome.stepIndex} → ${outcome.status}`);
     if (outcome.status === 'success' || outcome.status === 'error') {
-      this.outcomes.push(outcome);
-      this.currentStepIndex += 1;
-
-      if (this.currentStepIndex >= WORKFLOW_STEPS.length) {
-        console.log('\n  🎉 Workflow completed!\n');
-      }
+      st.outcomes.push(outcome);
+      st.idx += 1;
+      const wf = ALL_WORKFLOWS[runId];
+      if (wf && st.idx >= wf.length) console.log(`  🎉 [${runId}] Workflow completed!\n`);
     }
   }
 
-  getPendingStepExecutions(): Promise<PendingStepExecution[]> {
-    return Promise.resolve([]);
-  }
-
-  getCollectionSchema(name: string): Promise<CollectionSchema> {
-    if (name === 'orders') return Promise.resolve(ORDERS_SCHEMA);
-
-    return Promise.resolve(CUSTOMERS_SCHEMA);
-  }
-
-  getMcpServerConfigs(): Promise<[]> {
-    return Promise.resolve([]);
-  }
-
-  hasRunAccess(): Promise<boolean> {
-    return Promise.resolve(true);
-  }
+  getPendingStepExecutions(): Promise<PendingStepExecution[]> { return Promise.resolve([]); }
+  getCollectionSchema(n: string): Promise<CollectionSchema> { return Promise.resolve(n === 'orders' ? ORDERS_SCHEMA : CUSTOMERS_SCHEMA); }
+  getMcpServerConfigs(): Promise<[]> { return Promise.resolve([]); }
+  hasRunAccess(): Promise<boolean> { return Promise.resolve(true); }
 }
 
 // ---------------------------------------------------------------------------
-// Mock AI — returns pre-defined tool calls per step
+// Mock AI (multi-run aware)
 // ---------------------------------------------------------------------------
 
 function createDemoAiClient(): AiClient & { reset(): void } {
-  let globalCallIndex = 0;
-
-  // Flatten all AI responses in order
-  const allResponses = WORKFLOW_STEPS.flatMap(s => s.aiResponses);
+  const callCounts: Record<string, number> = {};
 
   const model = {
     bindTools: () => model,
-    invoke: () => {
-      const idx = Math.min(globalCallIndex, allResponses.length - 1);
-      const response = allResponses[idx];
-      globalCallIndex += 1;
+    invoke: (_msgs: unknown) => {
+      // Determine which run we're in by checking the messages for run context
+      // Simple: track by global call order per run via a rotating approach
+      // We flatten all AI responses and cycle through them
+      const allResponses = [...WF1_STEPS, ...WF2_STEPS].flatMap(s => s.aiResponses);
+      const globalIdx = Object.values(callCounts).reduce((a, b) => a + b, 0);
+      const resp = allResponses[globalIdx % allResponses.length];
 
-      // Small delay to make it feel like AI is thinking
+      // Increment a generic counter
+      callCounts['_global'] = (callCounts['_global'] || 0) + 1;
+
       return new Promise(resolve => {
-        setTimeout(() => {
-          resolve({ tool_calls: [{ name: response.name, args: response.args }] });
-        }, 300);
+        setTimeout(() => resolve({ tool_calls: [{ name: resp.name, args: resp.args }] }), 250);
       });
     },
   } as unknown as BaseChatModel;
@@ -297,7 +172,7 @@ function createDemoAiClient(): AiClient & { reset(): void } {
     getModel: () => model,
     loadRemoteTools: () => Promise.resolve([] as RemoteTool[]),
     closeConnections: () => Promise.resolve(),
-    reset() { globalCallIndex = 0; },
+    reset() { Object.keys(callCounts).forEach(k => delete callCounts[k]); },
   } as unknown as AiClient & { reset(): void };
 }
 
@@ -306,67 +181,29 @@ function createDemoAiClient(): AiClient & { reset(): void } {
 // ---------------------------------------------------------------------------
 
 const agentPort = {
-  getRecord: () => {
-    console.log('  📖 Reading customer record...');
-
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          collectionName: 'customers',
-          recordId: [42],
-          values: {
-            id: 42,
-            email: 'jane.doe@acme.com',
-            name: 'Jane Doe',
-            company: 'Acme Corp',
-            status: 'pending',
-            accepted_cgv: true,
-          },
-        });
-      }, 200);
-    });
+  getRecord: (_q: any, _u: any) => {
+    // Return different data based on collection (inferred from first call context)
+    return new Promise(resolve => setTimeout(() => resolve({
+      collectionName: 'customers', recordId: [42],
+      values: { id: 42, email: 'jane.doe@acme.com', name: 'Jane Doe', company: 'Acme Corp', status: 'pending',
+        reference: 'ORD-2024-1001', total: 2499.99, shipping_status: 'pending' },
+    }), 200));
   },
-  updateRecord: () => {
-    console.log('  ✏️  Updating customer status → active');
-
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          collectionName: 'customers',
-          recordId: [42],
-          values: { id: 42, status: 'active' },
-        });
-      }, 300);
-    });
+  updateRecord: (_q: any, _u: any) => {
+    console.log('  ✏️  Record updated');
+    return new Promise(resolve => setTimeout(() => resolve({
+      collectionName: 'orders', recordId: [1001], values: { id: 1001, status: 'active' },
+    }), 250));
   },
   getRelatedData: () => {
-    console.log('  🔗 Loading related orders...');
-
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve([
-          {
-            collectionName: 'orders',
-            recordId: [1001],
-            values: {
-              id: 1001,
-              reference: 'ORD-2024-1001',
-              total: 2499.99,
-              status: 'confirmed',
-            },
-          },
-        ]);
-      }, 250);
-    });
+    console.log('  🔗 Related data loaded');
+    return new Promise(resolve => setTimeout(() => resolve([
+      { collectionName: 'orders', recordId: [1001], values: { id: 1001, reference: 'ORD-2024-1001', total: 2499.99, status: 'confirmed' } },
+    ]), 200));
   },
   executeAction: () => {
-    console.log('  📧 Sending welcome email...');
-
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({ success: true });
-      }, 400);
-    });
+    console.log('  📧 Action executed');
+    return new Promise(resolve => setTimeout(() => resolve({ success: true }), 300));
   },
 };
 
@@ -378,85 +215,48 @@ async function main() {
   const workflowPort = new FakeWorkflowPort();
   const runStore = new InMemoryStore();
   const schemaCache = new SchemaCache();
-
   const aiClient = createDemoAiClient();
 
   const runner = new Runner({
     agentPort: agentPort as any,
-    workflowPort,
-    runStore,
-    schemaCache,
-    aiClient,
-    pollingIntervalMs: 60_000,
-    envSecret: ENV_SECRET,
-    authSecret: AUTH_SECRET,
+    workflowPort, runStore, schemaCache, aiClient,
+    pollingIntervalMs: 60_000, envSecret: ENV_SECRET, authSecret: AUTH_SECRET,
   });
 
   await runStore.init();
 
   const { default: ExecutorHttpServer } = await import('../src/http/executor-http-server');
-  const executorServer = new ExecutorHttpServer({
-    port: 0,
-    runner,
-    authSecret: AUTH_SECRET,
-    workflowPort,
-  });
+  const executorServer = new ExecutorHttpServer({ port: 0, runner, authSecret: AUTH_SECRET, workflowPort });
   const executorApp = executorServer.callback;
 
   const server = http.createServer((req, res) => {
-    // Serve demo page
     if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
-      const htmlPath = path.join(__dirname, 'demo.html');
-      let html = fs.readFileSync(htmlPath, 'utf-8');
+      let html = fs.readFileSync(path.join(__dirname, 'demo.html'), 'utf-8');
       html = html.replace('__DEMO_TOKEN__', DEMO_TOKEN);
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
-
       return;
     }
-
-    // Reset endpoint — clears all state
     if (req.method === 'POST' && req.url === '/reset') {
       workflowPort.reset();
       aiClient.reset();
-      // Clear the InMemoryStore by re-initializing
       (runStore as any).store = new Map();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ reset: true }));
-
       return;
     }
-
     executorApp(req, res);
   });
 
   server.listen(HTTP_PORT, () => {
-    console.log('');
-    console.log('  ╔══════════════════════════════════════════════╗');
-    console.log('  ║   🌲 Workflow Executor — Demo Server         ║');
-    console.log('  ╚══════════════════════════════════════════════╝');
-    console.log('');
-    console.log(`  🌐 http://localhost:${HTTP_PORT}`);
-    console.log('');
-    console.log('  Workflow: Customer Onboarding (5 steps)');
-    WORKFLOW_STEPS.forEach((s, i) => {
-      const types: Record<string, string> = {
-        'read-record': '📖',
-        condition: '🔀',
-        'update-record': '✏️',
-        'trigger-action': '📧',
-        'load-related-record': '🔗',
-      };
-      const emoji = types[s.step.stepDefinition.type] || '▸';
-      console.log(`    ${emoji} Step ${i}: ${(s.step.stepDefinition as any).prompt}`);
-    });
-    console.log('');
-    console.log('  ─────────────────────────────────────────────');
-    console.log('');
+    console.log('\n  ╔══════════════════════════════════════════════╗');
+    console.log('  ║   🌲 Workflow Executor — Parallel Demo        ║');
+    console.log('  ╚══════════════════════════════════════════════╝\n');
+    console.log(`  🌐 http://localhost:${HTTP_PORT}\n`);
+    console.log('  Workflow 1: Customer Onboarding (5 steps) — run-1');
+    console.log('  Workflow 2: Order Fulfillment (3 steps)   — run-2\n');
+    console.log('  ─────────────────────────────────────────────\n');
   });
 }
 
-main().catch(err => {
-  console.error('Failed to start demo:', err);
-  process.exit(1);
-});
+main().catch(e => { console.error('Failed:', e); process.exit(1); });

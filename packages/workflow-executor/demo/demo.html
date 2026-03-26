@@ -3,38 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Onboarding — Workflow Executor</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>Parallel Workflows — Executor Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --forest: #2C9B42;
-      --forest-light: #3BD458;
-      --forest-glow: rgba(44,155,66,0.25);
-      --bg: #080B11;
-      --surface: #0F1319;
-      --card: #151B25;
-      --card-inner: #1A2233;
-      --text: #E8ECF2;
-      --dim: #7E8A9C;
-      --muted: #3A4555;
-      --amber: #F5B731;
-      --amber-glow: rgba(245,183,49,0.12);
-      --red: #F06050;
-      --blue: #5BA3F5;
-      --blue-glow: rgba(91,163,245,0.12);
-      --border: rgba(255,255,255,0.04);
-    }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    :root { --forest:#2C9B42;--forest-light:#3BD458;--forest-glow:rgba(44,155,66,.25);--bg:#080B11;--surface:#0F1319;--card:#151B25;--card-inner:#1A2233;--text:#E8ECF2;--dim:#7E8A9C;--muted:#3A4555;--amber:#F5B731;--amber-glow:rgba(245,183,49,.12);--red:#F06050;--blue:#5BA3F5;--blue-glow:rgba(91,163,245,.12);--border:rgba(255,255,255,.04); }
+    * { margin:0;padding:0;box-sizing:border-box; }
+    body { font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh; }
 
-    .topbar {
-      position:sticky;top:0;z-index:30;
-      background:rgba(8,11,17,0.88);backdrop-filter:blur(20px);
-      border-bottom:1px solid var(--border);
-      padding:12px 28px;display:flex;align-items:center;gap:12px;
-    }
+    .topbar { position:sticky;top:0;z-index:30;background:rgba(8,11,17,.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:12px; }
     .topbar .logo { width:28px;height:28px;background:var(--forest);border-radius:7px;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff; }
     .topbar h1 { font-size:14px;font-weight:600; }
     .topbar h1 b { color:var(--forest-light); }
@@ -44,318 +20,290 @@
     .topbar .dot.err { background:var(--red); }
     .topbar .dot.idle { background:var(--muted); }
 
-    .main { max-width:700px;margin:0 auto;padding:36px 20px 140px;position:relative;z-index:1; }
+    .columns { display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1200px;margin:0 auto;padding:28px 20px 120px; }
 
-    .header { display:flex;align-items:center;gap:18px;margin-bottom:28px; }
-    .header .icon { width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--forest),#1B7A30);display:grid;place-items:center;font-size:24px;box-shadow:0 6px 28px var(--forest-glow); }
-    .header .meta h2 { font-size:22px;font-weight:700;letter-spacing:-0.4px; }
-    .header .meta p { font-size:13px;color:var(--dim);margin-top:2px; }
-    .header .actions { margin-left:auto;display:flex;gap:8px; }
+    .wf-col { background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px; }
 
-    .btn { display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .12s; }
+    .wf-header { display:flex;align-items:center;gap:14px;margin-bottom:20px; }
+    .wf-icon { width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px;box-shadow:0 4px 16px rgba(0,0,0,.3); }
+    .wf-icon.green { background:linear-gradient(135deg,var(--forest),#1B7A30); }
+    .wf-icon.blue { background:linear-gradient(135deg,#3B82F6,#2563EB); }
+    .wf-meta h3 { font-size:16px;font-weight:700; }
+    .wf-meta p { font-size:12px;color:var(--dim);margin-top:1px; }
+    .wf-actions { margin-left:auto;display:flex;gap:6px; }
+
+    .btn { display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:none;border-radius:7px;font-family:'DM Sans';font-size:12px;font-weight:600;cursor:pointer;transition:all .12s; }
     .btn:active { transform:scale(.97); }
     .btn-go { background:var(--forest);color:#fff; }
-    .btn-go:hover { background:var(--forest-light);box-shadow:0 4px 16px var(--forest-glow); }
+    .btn-go:hover { background:var(--forest-light); }
     .btn-go:disabled { opacity:.35;cursor:not-allowed; }
-    .btn-ghost { background:rgba(255,255,255,.04);color:var(--dim);border:1px solid var(--border); }
-    .btn-ghost:hover { background:rgba(255,255,255,.08);color:var(--text); }
-    .btn-yes { background:var(--forest);color:#fff;padding:10px 24px;border-radius:10px;font-size:14px; }
-    .btn-yes:hover { background:var(--forest-light);box-shadow:0 4px 16px var(--forest-glow); }
-    .btn-no { background:rgba(255,255,255,.04);color:var(--dim);border:1px solid var(--border);padding:10px 24px;border-radius:10px;font-size:14px; }
-    .btn-no:hover { background:rgba(255,255,255,.08);color:var(--text); }
+    .btn-ghost { background:rgba(255,255,255,.04);color:var(--dim);border:1px solid var(--border);font-size:11px;padding:5px 10px; }
+    .btn-yes { background:var(--forest);color:#fff;padding:8px 16px;border-radius:8px; }
+    .btn-yes:hover { background:var(--forest-light); }
+    .btn-no { background:rgba(255,255,255,.04);color:var(--dim);border:1px solid var(--border);padding:8px 16px;border-radius:8px; }
 
-    .progress { display:flex;align-items:center;gap:10px;margin-bottom:32px; }
+    .progress { display:flex;align-items:center;gap:8px;margin-bottom:16px; }
     .ptrack { flex:1;height:3px;background:rgba(255,255,255,.04);border-radius:2px;overflow:hidden; }
     .pfill { height:100%;background:linear-gradient(90deg,var(--forest),var(--forest-light));border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1); }
-    .plabel { font-size:12px;color:var(--muted);font-weight:500;font-family:'DM Mono',monospace; }
+    .plabel { font-size:11px;color:var(--muted);font-family:'DM Mono'; }
 
     .pipeline { display:flex;flex-direction:column; }
-    .wire { width:2px;height:20px;margin-left:23px;background:var(--border);transition:background .6s; }
+    .wire { width:2px;height:16px;margin-left:19px;background:var(--border);transition:background .6s; }
     .wire.done { background:var(--forest); }
 
-    .card-wrap { display:flex;gap:14px;align-items:flex-start; }
-    .node { width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:19px;border:2.5px solid var(--muted);transition:all .4s;position:relative; }
+    .card-wrap { display:flex;gap:12px;align-items:flex-start; }
+    .node { width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:16px;border:2px solid var(--muted);transition:all .4s;position:relative; }
     .card-wrap.done .node { border-color:var(--forest);background:var(--forest); }
-    .card-wrap.done .node::after { content:'✓';position:absolute;inset:-2.5px;display:grid;place-items:center;font-size:9px;color:#fff;font-weight:700; }
-    .card-wrap.running .node { border-color:var(--blue);animation:nPulse 1.6s infinite; }
+    .card-wrap.done .node::after { content:'✓';position:absolute;inset:-2px;display:grid;place-items:center;font-size:8px;color:#fff;font-weight:700; }
+    .card-wrap.running .node { border-color:var(--blue);animation:nP 1.6s infinite; }
     .card-wrap.waiting .node { border-color:var(--amber);background:var(--amber); }
     .card-wrap.skip .node { border-color:var(--muted);background:var(--muted); }
-    @keyframes nPulse { 0%,100%{box-shadow:0 0 0 0 rgba(91,163,245,.35)} 50%{box-shadow:0 0 0 7px rgba(91,163,245,0)} }
+    @keyframes nP { 0%,100%{box-shadow:0 0 0 0 rgba(91,163,245,.35)} 50%{box-shadow:0 0 0 6px rgba(91,163,245,0)} }
 
-    .card { flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;opacity:.25;transform:translateY(6px);transition:opacity .5s,transform .5s,border-color .4s,box-shadow .4s; }
+    .card { flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;opacity:.25;transform:translateY(4px);transition:all .4s; }
     .card-wrap.done .card,.card-wrap.running .card,.card-wrap.waiting .card,.card-wrap.skip .card,.card-wrap.next .card { opacity:1;transform:translateY(0); }
-    .card-wrap.running .card { border-color:rgba(91,163,245,.15);box-shadow:0 0 30px var(--blue-glow); }
-    .card-wrap.waiting .card { border-color:rgba(245,183,49,.15);box-shadow:0 0 30px var(--amber-glow); }
+    .card-wrap.running .card { border-color:rgba(91,163,245,.12);box-shadow:0 0 20px var(--blue-glow); }
+    .card-wrap.waiting .card { border-color:rgba(245,183,49,.12);box-shadow:0 0 20px var(--amber-glow); }
 
-    .card-top { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
-    .badge { font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.04);color:var(--dim);text-transform:uppercase;letter-spacing:.5px; }
-    .card-title { font-size:14px;font-weight:600; }
-    .tag { margin-left:auto;font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:.3px;text-transform:uppercase; }
+    .card-top { display:flex;align-items:center;gap:8px;margin-bottom:6px; }
+    .badge { font-family:'DM Mono';font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.04);color:var(--dim);text-transform:uppercase;letter-spacing:.5px; }
+    .card-title { font-size:13px;font-weight:600; }
+    .tag { margin-left:auto;font-size:9px;font-weight:600;padding:2px 8px;border-radius:16px;letter-spacing:.3px;text-transform:uppercase; }
     .tag.success { background:rgba(44,155,66,.1);color:var(--forest-light); }
     .tag.wait { background:var(--amber-glow);color:var(--amber); }
     .tag.run { background:var(--blue-glow);color:var(--blue); }
     .tag.skip { background:rgba(255,255,255,.04);color:var(--muted); }
 
-    .step-visual { margin-top:10px;animation:fadeUp .4s ease; }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .sv { margin-top:8px;animation:fu .3s ease; }
+    @keyframes fu { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
 
-    .profile { display:flex;align-items:center;gap:14px;background:var(--card-inner);border-radius:10px;padding:14px 16px; }
-    .avatar { width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:grid;place-items:center;font-size:16px;font-weight:700;color:#fff; }
-    .profile-info { flex:1; }
-    .profile-info .name { font-size:14px;font-weight:600; }
-    .profile-info .email { font-size:12px;color:var(--dim);margin-top:1px; }
-    .profile-info .company { font-size:11px;color:var(--muted);margin-top:2px; }
-    .profile-fields { display:flex;gap:8px;margin-top:10px;flex-wrap:wrap; }
-    .field-tag { font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(99,102,241,.1);color:#818CF8; }
+    .profile { display:flex;align-items:center;gap:10px;background:var(--card-inner);border-radius:8px;padding:10px 12px; }
+    .avatar { width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff; }
+    .avatar.purple { background:linear-gradient(135deg,#6366F1,#8B5CF6); }
+    .avatar.blue { background:linear-gradient(135deg,#3B82F6,#2563EB); }
+    .pinfo .pname { font-size:13px;font-weight:600; }
+    .pinfo .pemail { font-size:11px;color:var(--dim); }
+    .pfields { display:flex;gap:6px;margin-top:6px;flex-wrap:wrap; }
+    .ftag { font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(99,102,241,.1);color:#818CF8; }
 
-    .condition-card { background:var(--card-inner);border-radius:10px;padding:14px 16px; }
-    .condition-q { font-size:13px;color:var(--dim);margin-bottom:8px; }
-    .condition-a { display:flex;align-items:center;gap:8px; }
-    .condition-badge { padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600; }
-    .condition-badge.yes { background:rgba(44,155,66,.12);color:var(--forest-light); }
-    .condition-badge.no { background:rgba(240,96,80,.1);color:var(--red); }
-    .condition-reason { font-size:11px;color:var(--muted);font-style:italic; }
+    .cond-card { background:var(--card-inner);border-radius:8px;padding:10px 12px; }
+    .cond-q { font-size:12px;color:var(--dim);margin-bottom:6px; }
+    .cond-badge { display:inline-block;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600; }
+    .cond-badge.yes { background:rgba(44,155,66,.12);color:var(--forest-light); }
 
-    .update-card { background:var(--card-inner);border-radius:10px;padding:14px 16px; }
-    .update-row { display:flex;align-items:center;gap:10px; }
-    .update-field { font-size:12px;color:var(--dim);min-width:60px; }
-    .update-old { font-size:13px;color:var(--muted);text-decoration:line-through; }
-    .update-arrow { color:var(--forest-light);font-size:14px; }
-    .update-new { font-size:13px;font-weight:600;color:var(--forest-light); }
+    .upd-card { background:var(--card-inner);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px; }
+    .upd-field { font-size:11px;color:var(--dim); }
+    .upd-old { font-size:12px;color:var(--muted);text-decoration:line-through; }
+    .upd-arr { color:var(--forest-light);font-size:12px; }
+    .upd-new { font-size:12px;font-weight:600;color:var(--forest-light); }
+    .upd-ok { margin-left:auto;color:var(--forest-light);font-size:13px; }
 
-    .action-card { background:var(--card-inner);border-radius:10px;padding:16px;display:flex;align-items:center;gap:14px; }
-    .action-icon { width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,.1);display:grid;place-items:center;font-size:20px; }
-    .action-info .action-name { font-size:14px;font-weight:600; }
-    .action-info .action-desc { font-size:12px;color:var(--dim);margin-top:2px; }
-    .action-check { margin-left:auto;font-size:18px;color:var(--forest-light); }
+    .act-card { background:var(--card-inner);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px; }
+    .act-icon { width:32px;height:32px;border-radius:8px;background:rgba(59,130,246,.1);display:grid;place-items:center;font-size:16px; }
+    .act-name { font-size:13px;font-weight:600; }
+    .act-desc { font-size:11px;color:var(--dim);margin-top:1px; }
+    .act-ok { margin-left:auto;color:var(--forest-light);font-size:14px; }
 
-    .order-card { background:var(--card-inner);border-radius:10px;padding:14px 16px; }
-    .order-header { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
-    .order-ref { font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--blue); }
-    .order-status { font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(44,155,66,.1);color:var(--forest-light);font-weight:600;text-transform:uppercase; }
-    .order-details { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
-    .order-detail { font-size:12px;color:var(--dim); }
-    .order-detail span { display:block;font-size:14px;color:var(--text);font-weight:500;margin-top:2px; }
+    .ord-card { background:var(--card-inner);border-radius:8px;padding:10px 12px; }
+    .ord-head { display:flex;align-items:center;gap:8px;margin-bottom:8px; }
+    .ord-ref { font-family:'DM Mono';font-size:12px;color:var(--blue); }
+    .ord-st { font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(44,155,66,.1);color:var(--forest-light);font-weight:600;text-transform:uppercase; }
+    .ord-grid { display:grid;grid-template-columns:1fr 1fr;gap:6px; }
+    .ord-d { font-size:11px;color:var(--dim); }
+    .ord-d span { display:block;font-size:13px;color:var(--text);font-weight:500;margin-top:1px; }
 
-    .step-actions { display:flex;gap:10px;margin-top:14px;justify-content:flex-end; }
+    .step-actions { display:flex;gap:8px;margin-top:10px;justify-content:flex-end; }
 
-    .done-banner { text-align:center;padding:28px;margin-top:20px;background:linear-gradient(135deg,rgba(44,155,66,.06),rgba(44,155,66,.01));border:1px solid rgba(44,155,66,.1);border-radius:14px;animation:bannerIn .6s ease; }
-    .done-banner .big { font-size:40px;margin-bottom:8px; }
-    .done-banner h3 { font-size:17px;color:var(--forest-light);font-weight:700; }
-    .done-banner p { font-size:13px;color:var(--dim);margin-top:4px; }
-    @keyframes bannerIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+    .done-banner { text-align:center;padding:20px;margin-top:16px;background:linear-gradient(135deg,rgba(44,155,66,.06),rgba(44,155,66,.01));border:1px solid rgba(44,155,66,.1);border-radius:10px;animation:bi .5s ease; }
+    .done-banner .big { font-size:28px;margin-bottom:4px; }
+    .done-banner h4 { font-size:14px;color:var(--forest-light); }
+    .done-banner p { font-size:12px;color:var(--dim);margin-top:2px; }
+    @keyframes bi { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
 
     .confetti { position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50; }
-    .confetti span { position:absolute;width:6px;height:6px;border-radius:1px;animation:fall 2.5s ease-out forwards;opacity:0; }
-    @keyframes fall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+    .confetti span { position:absolute;width:5px;height:5px;border-radius:1px;animation:fall 2.5s ease-out forwards;opacity:0; }
+    @keyframes fall { 0%{transform:translateY(-20px) rotate(0);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
 
-    .footer { position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);padding:5px 20px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px; }
+    .footer { position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);padding:5px 20px;font-family:'DM Mono';font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px; }
+
+    @media (max-width:800px) { .columns { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="logo">F</div>
-  <h1>Workflow <b>Executor</b></h1>
+  <h1>Workflow <b>Executor</b> — Parallel Demo</h1>
   <div class="sep"></div>
+  <button class="btn btn-ghost" onclick="resetAll()">↻ Reset all</button>
   <div class="dot idle" id="dot"></div>
 </div>
 
-<div class="main">
-  <div class="header">
-    <div class="icon">⚡</div>
-    <div class="meta">
-      <h2>Customer Onboarding</h2>
-      <p>Jane Doe — jane.doe@acme.com</p>
-    </div>
-    <div class="actions">
-      <button class="btn btn-ghost" onclick="resetWorkflow()">↻ Reset</button>
-      <button class="btn btn-go" id="goBtn" onclick="triggerNext()">▶ Start</button>
-    </div>
-  </div>
-
-  <div class="progress">
-    <div class="ptrack"><div class="pfill" id="pf" style="width:0%"></div></div>
-    <div class="plabel" id="pl">0 / 5</div>
-  </div>
-
-  <div class="pipeline" id="pipe"></div>
+<div class="columns">
+  <div class="wf-col" id="col-run-1"></div>
+  <div class="wf-col" id="col-run-2"></div>
 </div>
 
-<div class="footer">
-  <span style="color:var(--forest)">●</span>
-  <span id="log">Ready</span>
-</div>
+<div class="footer"><span style="color:var(--forest)">●</span><span id="log">Ready — start both workflows</span></div>
 
 <script>
-const BASE = 'http://localhost:3100';
-const RUN = 'demo-1';
-const TOKEN = '__DEMO_TOKEN__';
-let poll = null, lastJson = '', autoTimer = null;
+const BASE='http://localhost:3100', TOKEN='__DEMO_TOKEN__';
+const hdrs=()=>({Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'});
+let polls={}, lastJsons={}, autoTimers={};
 
-const STEPS = [
-  { type:'read-record', icon:'📖', title:'Read Customer Info' },
-  { type:'condition', icon:'🔀', title:'Check CGV Acceptance' },
-  { type:'update-record', icon:'✏️', title:'Activate Customer' },
-  { type:'trigger-action', icon:'📧', title:'Send Welcome Email' },
-  { type:'load-related-record', icon:'🔗', title:'Load First Order' },
-];
+const RUNS = {
+  'run-1': {
+    title:'Customer Onboarding', subtitle:'Jane Doe — jane.doe@acme.com', iconEmoji:'⚡', iconClass:'green',
+    steps:[
+      {type:'read-record',icon:'📖',title:'Read Customer Info'},
+      {type:'condition',icon:'🔀',title:'Check CGV Acceptance'},
+      {type:'update-record',icon:'✏️',title:'Activate Customer'},
+      {type:'trigger-action',icon:'📧',title:'Send Welcome Email'},
+      {type:'load-related-record',icon:'🔗',title:'Load First Order'},
+    ],
+  },
+  'run-2': {
+    title:'Order Fulfillment', subtitle:'ORD-2024-1001 — €2,499.99', iconEmoji:'📦', iconClass:'blue',
+    steps:[
+      {type:'read-record',icon:'📖',title:'Read Order Details'},
+      {type:'update-record',icon:'✏️',title:'Update Shipping Status'},
+      {type:'trigger-action',icon:'📧',title:'Send Invoice'},
+    ],
+  },
+};
 
-function log(m) { document.getElementById('log').textContent = new Date().toLocaleTimeString()+' — '+m; }
-function hdrs() { return { Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json' }; }
+function log(m){document.getElementById('log').textContent=new Date().toLocaleTimeString()+' — '+m;}
 
-async function triggerNext(pd) {
-  const body = pd ? { pendingData:pd } : undefined;
-  log('Triggering...');
-  document.getElementById('goBtn').disabled = true;
-  try {
-    await fetch(BASE+'/runs/'+RUN+'/trigger', { method:'POST', headers:hdrs(), body:body?JSON.stringify(body):undefined });
-    if (!poll) poll = setInterval(fetchSteps,800);
-    setTimeout(fetchSteps,150);
-  } catch(e) { log('✕ '+e.message); }
-  document.getElementById('goBtn').disabled = false;
+async function trigger(runId,pd){
+  const body=pd?{pendingData:pd}:undefined;
+  log(`[${runId}] Triggering...`);
+  try{
+    await fetch(`${BASE}/runs/${runId}/trigger`,{method:'POST',headers:hdrs(),body:body?JSON.stringify(body):undefined});
+    if(!polls[runId])polls[runId]=setInterval(()=>fetchRun(runId),800);
+    setTimeout(()=>fetchRun(runId),150);
+  }catch(e){log('✕ '+e.message);}
 }
 
-async function fetchSteps() {
-  try {
-    const r = await fetch(BASE+'/runs/'+RUN, { headers:hdrs() });
-    const d = await r.json();
-    document.getElementById('dot').className = 'dot ok';
-    const j = JSON.stringify(d.steps);
-    if (j === lastJson) return;
-    lastJson = j;
-    render(d.steps||[]);
-  } catch { document.getElementById('dot').className = 'dot err'; }
+async function fetchRun(runId){
+  try{
+    const r=await fetch(`${BASE}/runs/${runId}`,{headers:hdrs()});
+    const d=await r.json();
+    document.getElementById('dot').className='dot ok';
+    const j=JSON.stringify(d.steps);
+    if(j===lastJsons[runId])return;
+    lastJsons[runId]=j;
+    renderRun(runId,d.steps||[]);
+  }catch{document.getElementById('dot').className='dot err';}
 }
 
-function render(steps) {
-  const map = {};
-  steps.forEach(s => { map[s.stepIndex] = s; });
-  let done=0, hasWait=false, allDone=true;
-  STEPS.forEach((_,i) => {
-    const s=map[i];
-    if (s?.executionResult) done++; else allDone=false;
-    if (s?.pendingData && s.pendingData.userConfirmed===undefined) hasWait=true;
+function renderRun(runId, steps){
+  const cfg=RUNS[runId], map={};
+  steps.forEach(s=>{map[s.stepIndex]=s;});
+  let done=0,hasWait=false,allDone=true;
+  cfg.steps.forEach((_,i)=>{const s=map[i];if(s?.executionResult)done++;else allDone=false;if(s?.pendingData&&s.pendingData.userConfirmed===undefined)hasWait=true;});
+
+  let h=`<div class="wf-header"><div class="wf-icon ${cfg.iconClass}">${cfg.iconEmoji}</div><div class="wf-meta"><h3>${cfg.title}</h3><p>${cfg.subtitle}</p></div><div class="wf-actions"><button class="btn btn-go" id="btn-${runId}" onclick="trigger('${runId}')">${allDone?'✓ Done':hasWait?'⏳':'▶ '+(done===0&&!steps.length?'Start':'Next')}</button></div></div>`;
+  h+=`<div class="progress"><div class="ptrack"><div class="pfill" style="width:${Math.round(done/cfg.steps.length*100)}%"></div></div><div class="plabel">${done}/${cfg.steps.length}</div></div>`;
+  h+='<div class="pipeline">';
+
+  cfg.steps.forEach((def,i)=>{
+    const s=map[i],st=getState(s,i,done,steps.length>0);
+    if(i>0)h+=`<div class="wire ${i<=done?'done':''}"></div>`;
+    h+=`<div class="card-wrap ${st.cls}"><div class="node"></div><div class="card"><div class="card-top"><span class="badge">${def.icon} ${def.type}</span><span class="card-title">${def.title}</span>${st.tag?`<span class="tag ${st.tagCls}">${st.tag}</span>`:''}</div>${renderVis(def.type,s,st,runId)}</div></div>`;
   });
-  document.getElementById('pf').style.width = Math.round(done/STEPS.length*100)+'%';
-  document.getElementById('pl').textContent = done+' / '+STEPS.length;
-  const btn = document.getElementById('goBtn');
-  if (done===0 && !steps.length) { btn.textContent='▶ Start'; btn.disabled=false; }
-  else if (allDone) { btn.textContent='✓ Done'; btn.disabled=true; }
-  else if (hasWait) { btn.textContent='⏳ Waiting'; btn.disabled=true; }
-  else { btn.textContent='▶ Next step'; btn.disabled=false; }
 
-  let h='';
-  STEPS.forEach((def,i) => {
-    const s=map[i], st=getState(s,i,done,steps.length>0);
-    if (i>0) h+='<div class="wire '+(i<=done?'done':'')+'"></div>';
-    h+='<div class="card-wrap '+st.cls+'">';
-    h+='<div class="node"></div><div class="card">';
-    h+='<div class="card-top"><span class="badge">'+def.icon+' '+def.type+'</span>';
-    h+='<span class="card-title">'+def.title+'</span>';
-    if (st.tag) h+='<span class="tag '+st.tagCls+'">'+st.tag+'</span>';
-    h+='</div>';
-    h+=renderVisual(def.type, s, st);
-    h+='</div></div>';
-  });
-  if (allDone && done===STEPS.length) {
-    h+='<div class="done-banner"><div class="big">🎉</div><h3>Customer onboarded!</h3><p>Jane Doe is now active with order ORD-2024-1001.</p></div>';
-    confetti();
+  h+='</div>';
+  if(allDone&&done===cfg.steps.length){
+    h+=`<div class="done-banner"><div class="big">🎉</div><h4>${cfg.title} completed!</h4></div>`;
+    if(!document.querySelector('.confetti'))confetti();
   }
-  document.getElementById('pipe').innerHTML = h;
-  if (!allDone && !hasWait && steps.length>0) {
-    clearTimeout(autoTimer);
-    autoTimer = setTimeout(() => { if (!map[done]) triggerNext(); }, 600);
+  document.getElementById('col-'+runId).innerHTML=h;
+
+  if(allDone){const b=document.getElementById('btn-'+runId);if(b)b.disabled=true;}
+  if(hasWait){const b=document.getElementById('btn-'+runId);if(b)b.disabled=true;}
+
+  if(!allDone&&!hasWait&&steps.length>0){
+    clearTimeout(autoTimers[runId]);
+    autoTimers[runId]=setTimeout(()=>{if(!map[done])trigger(runId);},600);
   }
 }
 
-function renderVisual(type, step, st) {
-  if (!step && st.cls!=='next') return '';
-  switch(type) {
-    case 'read-record': return vRead(step);
-    case 'condition': return vCondition(step);
-    case 'update-record': return vUpdate(step, st);
-    case 'trigger-action': return vAction(step, st);
-    case 'load-related-record': return vRelated(step, st);
-    default: return '';
+function renderVis(type,s,st,runId){
+  if(!s&&st.cls!=='next')return '';
+  if(type==='read-record')return vRead(s,runId);
+  if(type==='condition')return vCond(s);
+  if(type==='update-record')return vUpd(s,st,runId);
+  if(type==='trigger-action')return vAct(s,st,runId);
+  if(type==='load-related-record')return vRel(s,st,runId);
+  return '';
+}
+
+function vRead(s,runId){
+  if(!s?.executionResult)return '<div class="sv"><div class="profile" style="opacity:.4"><div class="avatar purple">?</div><div class="pinfo"><div class="pname">Reading...</div></div></div></div>';
+  const f=s.executionResult.fields||[];
+  if(runId==='run-2'){
+    return `<div class="sv"><div class="ord-card"><div class="ord-head"><span class="ord-ref">${f.find(x=>x.displayName==='Reference')?.value||'ORD-???'}</span><span class="ord-st">${f.find(x=>x.displayName==='Status')?.value||'?'}</span></div><div class="ord-grid"><div class="ord-d">Total<span>€${f.find(x=>x.displayName==='Total')?.value||'?'}</span></div><div class="ord-d">Status<span>${f.find(x=>x.displayName==='Status')?.value||'?'}</span></div></div></div></div>`;
   }
+  const name=f.find(x=>x.name==='name')?.value||'Unknown';
+  const email=f.find(x=>x.name==='email')?.value||'';
+  const company=f.find(x=>x.displayName==='Company')?.value||'';
+  const ini=name.split(' ').map(n=>n[0]).join('').toUpperCase();
+  return `<div class="sv"><div class="profile"><div class="avatar purple">${ini}</div><div class="pinfo"><div class="pname">${name}</div><div class="pemail">${email}</div></div></div><div class="pfields">${f.map(x=>'<span class="ftag">'+x.displayName+': '+x.value+'</span>').join('')}</div></div>`;
 }
 
-function vRead(s) {
-  if (!s?.executionResult) return '<div class="step-visual"><div class="profile" style="opacity:.4"><div class="avatar">?</div><div class="profile-info"><div class="name">Reading customer data...</div></div></div></div>';
-  const f = s.executionResult.fields||[];
-  const name = f.find(x=>x.name==='name')?.value||'Unknown';
-  const email = f.find(x=>x.name==='email')?.value||'';
-  const company = f.find(x=>x.displayName==='Company')?.value||'';
-  const ini = name.split(' ').map(n=>n[0]).join('').toUpperCase();
-  return '<div class="step-visual"><div class="profile"><div class="avatar">'+ini+'</div><div class="profile-info"><div class="name">'+name+'</div><div class="email">'+email+'</div>'+(company?'<div class="company">'+company+'</div>':'')+'</div></div><div class="profile-fields">'+f.map(x=>'<span class="field-tag">'+x.displayName+': '+x.value+'</span>').join('')+'</div></div>';
+function vCond(s){
+  if(!s?.executionResult)return '';
+  return `<div class="sv"><div class="cond-card"><div class="cond-q">Has the customer accepted the terms?</div><span class="cond-badge yes">${s.executionResult.answer}</span></div></div>`;
 }
 
-function vCondition(s) {
-  if (!s?.executionResult) return '';
-  const a = s.executionResult.answer;
-  const yes = a&&a.toLowerCase().includes('yes');
-  return '<div class="step-visual"><div class="condition-card"><div class="condition-q">Has the customer accepted the terms and conditions?</div><div class="condition-a"><span class="condition-badge '+(yes?'yes':'no')+'">'+(a||'No answer')+'</span><span class="condition-reason">AI verified the CGV acceptance field</span></div></div></div>';
-}
-
-function vUpdate(s, st) {
-  if (!s?.pendingData && !s?.executionResult) return '';
-  const fn=s.pendingData?.displayName||s.pendingData?.name||'Status';
-  const nv=s.pendingData?.value||'active';
-  const ok=!!s.executionResult, skip=s.executionResult?.skipped;
-  let h='<div class="step-visual"><div class="update-card"><div class="update-row"><span class="update-field">'+fn+'</span><span class="update-old">pending</span><span class="update-arrow">→</span><span class="update-new">'+nv+'</span>'+(ok&&!skip?'<span style="margin-left:auto;color:var(--forest-light)">✓ Updated</span>':'')+(skip?'<span style="margin-left:auto;color:var(--muted)">Skipped</span>':'')+'</div></div>';
-  if (st.actions) h+='<div class="step-actions"><button class="btn btn-no" onclick="triggerNext({userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="triggerNext({userConfirmed:true})">✓ Approve update</button></div>';
+function vUpd(s,st,runId){
+  if(!s?.pendingData&&!s?.executionResult)return '';
+  const fn=s.pendingData?.displayName||s.pendingData?.name||'Field';
+  const nv=s.pendingData?.value||'new';
+  const ok=!!s.executionResult,skip=s.executionResult?.skipped;
+  let h=`<div class="sv"><div class="upd-card"><span class="upd-field">${fn}</span><span class="upd-old">pending</span><span class="upd-arr">→</span><span class="upd-new">${nv}</span>${ok&&!skip?'<span class="upd-ok">✓</span>':''}${skip?'<span class="upd-ok" style="color:var(--muted)">—</span>':''}</div>`;
+  if(st.actions)h+=`<div class="step-actions"><button class="btn btn-no" onclick="trigger('${runId}',{userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="trigger('${runId}',{userConfirmed:true})">✓ Approve</button></div>`;
   return h+'</div>';
 }
 
-function vAction(s, st) {
-  if (!s?.pendingData && !s?.executionResult) return '';
+function vAct(s,st,runId){
+  if(!s?.pendingData&&!s?.executionResult)return '';
   const n=s.pendingData?.displayName||s.pendingData?.name||'Action';
-  const ok=!!s.executionResult, skip=s.executionResult?.skipped;
-  let h='<div class="step-visual"><div class="action-card"><div class="action-icon">📧</div><div class="action-info"><div class="action-name">'+n+'</div><div class="action-desc">Send onboarding email to jane.doe@acme.com</div></div>'+(ok&&!skip?'<div class="action-check">✓</div>':'')+(skip?'<div class="action-check" style="color:var(--muted)">—</div>':'')+'</div>';
-  if (st.actions) h+='<div class="step-actions"><button class="btn btn-no" onclick="triggerNext({userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="triggerNext({userConfirmed:true})">✓ Send email</button></div>';
+  const ok=!!s.executionResult,skip=s.executionResult?.skipped;
+  let h=`<div class="sv"><div class="act-card"><div class="act-icon">${runId==='run-2'?'📄':'📧'}</div><div><div class="act-name">${n}</div><div class="act-desc">${runId==='run-2'?'Send invoice for order':'Send onboarding email'}</div></div>${ok&&!skip?'<div class="act-ok">✓</div>':''}${skip?'<div class="act-ok" style="color:var(--muted)">—</div>':''}</div>`;
+  if(st.actions)h+=`<div class="step-actions"><button class="btn btn-no" onclick="trigger('${runId}',{userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="trigger('${runId}',{userConfirmed:true})">✓ Execute</button></div>`;
   return h+'</div>';
 }
 
-function vRelated(s, st) {
-  if (!s?.pendingData && !s?.executionResult) return '';
-  if (s.executionResult && !s.executionResult.skipped) {
-    return '<div class="step-visual"><div class="order-card"><div class="order-header"><span class="order-ref">ORD-2024-1001</span><span class="order-status">confirmed</span></div><div class="order-details"><div class="order-detail">Total<span>€2,499.99</span></div><div class="order-detail">Status<span>Confirmed</span></div></div></div></div>';
-  }
-  const skip=s.executionResult?.skipped;
-  let h='<div class="step-visual"><div class="action-card"><div class="action-icon">🔗</div><div class="action-info"><div class="action-name">'+(s.pendingData?.displayName||'Orders')+'</div><div class="action-desc">Load the customer\'s first order</div></div>'+(skip?'<div class="action-check" style="color:var(--muted)">—</div>':'')+'</div>';
-  if (st.actions) h+='<div class="step-actions"><button class="btn btn-no" onclick="triggerNext({userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="triggerNext({userConfirmed:true})">✓ Load order</button></div>';
+function vRel(s,st,runId){
+  if(!s?.pendingData&&!s?.executionResult)return '';
+  if(s.executionResult&&!s.executionResult.skipped)return `<div class="sv"><div class="ord-card"><div class="ord-head"><span class="ord-ref">ORD-2024-1001</span><span class="ord-st">confirmed</span></div><div class="ord-grid"><div class="ord-d">Total<span>€2,499.99</span></div><div class="ord-d">Status<span>Confirmed</span></div></div></div></div>`;
+  let h=`<div class="sv"><div class="act-card"><div class="act-icon">🔗</div><div><div class="act-name">${s.pendingData?.displayName||'Orders'}</div><div class="act-desc">Load related record</div></div></div>`;
+  if(st.actions)h+=`<div class="step-actions"><button class="btn btn-no" onclick="trigger('${runId}',{userConfirmed:false})">Skip</button><button class="btn btn-yes" onclick="trigger('${runId}',{userConfirmed:true})">✓ Load</button></div>`;
   return h+'</div>';
 }
 
-function getState(s,i,done,started) {
-  if (!s) { return !started?{cls:'',tag:null}:i===done?{cls:'next',tag:'next',tagCls:'run'}:{cls:'',tag:null}; }
-  if (s.executionResult?.skipped) return {cls:'skip done',tag:'skipped',tagCls:'skip'};
-  if (s.executionResult) return {cls:'done',tag:'success',tagCls:'success'};
-  if (s.pendingData?.userConfirmed!==undefined) return {cls:'running',tag:'executing...',tagCls:'run'};
-  if (s.pendingData) return {cls:'waiting',tag:'awaiting input',tagCls:'wait',actions:true};
-  return {cls:'running',tag:'running...',tagCls:'run'};
+function getState(s,i,done,started){
+  if(!s)return !started?{cls:'',tag:null}:i===done?{cls:'next',tag:'next',tagCls:'run'}:{cls:'',tag:null};
+  if(s.executionResult?.skipped)return {cls:'skip done',tag:'skip',tagCls:'skip'};
+  if(s.executionResult)return {cls:'done',tag:'done',tagCls:'success'};
+  if(s.pendingData?.userConfirmed!==undefined)return {cls:'running',tag:'exec...',tagCls:'run'};
+  if(s.pendingData)return {cls:'waiting',tag:'input',tagCls:'wait',actions:true};
+  return {cls:'running',tag:'running',tagCls:'run'};
 }
 
-function confetti() {
-  const c=document.createElement('div');c.className='confetti';
-  const colors=['#2C9B42','#3BD458','#F5B731','#5BA3F5','#fff'];
-  for(let i=0;i<60;i++){const s=document.createElement('span');s.style.left=Math.random()*100+'%';s.style.background=colors[Math.floor(Math.random()*colors.length)];s.style.animationDelay=Math.random()*1.5+'s';s.style.animationDuration=(2+Math.random()*2)+'s';s.style.width=(4+Math.random()*4)+'px';s.style.height=(4+Math.random()*4)+'px';c.appendChild(s);}
-  document.body.appendChild(c);setTimeout(()=>c.remove(),5000);
-}
+function confetti(){const c=document.createElement('div');c.className='confetti';const colors=['#2C9B42','#3BD458','#F5B731','#5BA3F5','#fff'];for(let i=0;i<50;i++){const s=document.createElement('span');s.style.left=Math.random()*100+'%';s.style.background=colors[Math.floor(Math.random()*colors.length)];s.style.animationDelay=Math.random()*1.5+'s';s.style.animationDuration=(2+Math.random()*2)+'s';c.appendChild(s);}document.body.appendChild(c);setTimeout(()=>c.remove(),5000);}
 
-async function resetWorkflow() {
+async function resetAll(){
   log('Resetting...');
-  try { await fetch(BASE+'/reset',{method:'POST'}); } catch {}
-  lastJson='';clearTimeout(autoTimer);
-  document.getElementById('pipe').innerHTML='';
-  document.getElementById('pf').style.width='0%';
-  document.getElementById('pl').textContent='0 / 5';
-  const b=document.getElementById('goBtn');b.textContent='▶ Start';b.disabled=false;
-  render([]);log('Ready — click Start');
+  try{await fetch(BASE+'/reset',{method:'POST'});}catch{}
+  lastJsons={};Object.values(autoTimers).forEach(clearTimeout);autoTimers={};
+  Object.keys(RUNS).forEach(id=>{renderRun(id,[]);});
+  log('Ready — start both workflows');
 }
 
-render([]);
+// Initial render
+Object.keys(RUNS).forEach(id=>renderRun(id,[]));
 </script>
 </body>
 </html>
