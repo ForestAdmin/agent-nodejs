@@ -215,6 +215,12 @@ class FakeWorkflowPort implements WorkflowPort {
   private currentStepIndex = 0;
   private outcomes: StepOutcome[] = [];
 
+  reset(): void {
+    this.currentStepIndex = 0;
+    this.outcomes = [];
+    console.log('  🔄 Workflow reset\n');
+  }
+
   getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null> {
     if (runId !== RUN_ID) return Promise.resolve(null);
     if (this.currentStepIndex >= WORKFLOW_STEPS.length) return Promise.resolve(null);
@@ -265,7 +271,7 @@ class FakeWorkflowPort implements WorkflowPort {
 // Mock AI — returns pre-defined tool calls per step
 // ---------------------------------------------------------------------------
 
-function createDemoAiClient(): AiClient {
+function createDemoAiClient(): AiClient & { reset(): void } {
   let globalCallIndex = 0;
 
   // Flatten all AI responses in order
@@ -291,7 +297,8 @@ function createDemoAiClient(): AiClient {
     getModel: () => model,
     loadRemoteTools: () => Promise.resolve([] as RemoteTool[]),
     closeConnections: () => Promise.resolve(),
-  } as unknown as AiClient;
+    reset() { globalCallIndex = 0; },
+  } as unknown as AiClient & { reset(): void };
 }
 
 // ---------------------------------------------------------------------------
@@ -372,12 +379,14 @@ async function main() {
   const runStore = new InMemoryStore();
   const schemaCache = new SchemaCache();
 
+  const aiClient = createDemoAiClient();
+
   const runner = new Runner({
     agentPort: agentPort as any,
     workflowPort,
     runStore,
     schemaCache,
-    aiClient: createDemoAiClient(),
+    aiClient,
     pollingIntervalMs: 60_000,
     envSecret: ENV_SECRET,
     authSecret: AUTH_SECRET,
@@ -395,12 +404,25 @@ async function main() {
   const executorApp = executorServer.callback;
 
   const server = http.createServer((req, res) => {
+    // Serve demo page
     if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
       const htmlPath = path.join(__dirname, 'demo.html');
       let html = fs.readFileSync(htmlPath, 'utf-8');
       html = html.replace('__DEMO_TOKEN__', DEMO_TOKEN);
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
+
+      return;
+    }
+
+    // Reset endpoint — clears all state
+    if (req.method === 'POST' && req.url === '/reset') {
+      workflowPort.reset();
+      aiClient.reset();
+      // Clear the InMemoryStore by re-initializing
+      (runStore as any).store = new Map();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ reset: true }));
 
       return;
     }

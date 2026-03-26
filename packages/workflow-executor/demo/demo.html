@@ -238,7 +238,7 @@
       <p>Jane Doe — jane.doe@acme.com</p>
     </div>
     <div class="actions">
-      <button class="btn btn-ghost" onclick="location.reload()">↻ Reset</button>
+      <button class="btn btn-ghost" onclick="resetWorkflow()">↻ Reset</button>
       <button class="btn btn-go" id="goBtn" onclick="triggerNext()">▶ Start</button>
     </div>
   </div>
@@ -419,6 +419,25 @@ function confetti() {
   }
   document.body.appendChild(c);
   setTimeout(()=>c.remove(), 5000);
+}
+
+async function resetWorkflow() {
+  log('Resetting workflow...');
+  try {
+    await fetch(BASE + '/reset', { method: 'POST' });
+    lastJson = '';
+    clearTimeout(autoTriggerTimer);
+    document.getElementById('pipe').innerHTML = '';
+    document.getElementById('pf').style.width = '0%';
+    document.getElementById('pl').textContent = '0 / 5';
+    const btn = document.getElementById('goBtn');
+    btn.textContent = '▶ Start';
+    btn.disabled = false;
+    render([]);
+    log('Workflow reset — ready to start again');
+  } catch (e) {
+    log('✕ Reset failed: ' + e.message);
+  }
 }
 </script>
 </body>
