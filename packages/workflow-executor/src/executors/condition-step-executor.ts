@@ -1,6 +1,6 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { ConditionStepDefinition } from '../types/step-definition';
-import type { ConditionStepStatus } from '../types/step-outcome';
+import type { BaseStepStatus } from '../types/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -38,7 +38,7 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 
 export default class ConditionStepExecutor extends BaseStepExecutor<ConditionStepDefinition> {
   protected buildOutcomeResult(outcome: {
-    status: ConditionStepStatus;
+    status: BaseStepStatus;
     error?: string;
     selectedOption?: string;
   }): StepExecutionResult {
@@ -97,7 +97,10 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     }
 
     if (!selectedOption) {
-      return this.buildOutcomeResult({ status: 'manual-decision' });
+      return this.buildOutcomeResult({
+        status: 'error',
+        error: "The AI couldn't decide. Try rephrasing the step's prompt.",
+      });
     }
 
     return this.buildOutcomeResult({ status: 'success', selectedOption });

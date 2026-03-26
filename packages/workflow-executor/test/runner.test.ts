@@ -12,6 +12,7 @@ import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
   RunNotFoundError,
+  UserMismatchError,
 } from '../src/errors';
 import BaseStepExecutor from '../src/executors/base-step-executor';
 import ConditionStepExecutor from '../src/executors/condition-step-executor';
@@ -23,6 +24,7 @@ import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-act
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
 import ExecutorHttpServer from '../src/http/executor-http-server';
 import Runner from '../src/runner';
+import SchemaCache from '../src/schema-cache';
 import { StepType } from '../src/types/step-definition';
 
 jest.mock('../src/http/executor-http-server');
@@ -86,6 +88,7 @@ function createRunnerConfig(
     httpPort: number;
     envSecret: string;
     authSecret: string;
+    schemaCache: SchemaCache;
   }> = {},
 ) {
   return {
@@ -100,6 +103,7 @@ function createRunnerConfig(
     pollingIntervalMs: POLLING_INTERVAL_MS,
     aiClient: createMockAiClient() as unknown as AiClient,
     logger: createMockLogger(),
+    schemaCache: new SchemaCache(),
     envSecret: VALID_ENV_SECRET,
     authSecret: VALID_AUTH_SECRET,
     ...overrides,
@@ -130,6 +134,17 @@ function makePendingStep(
     baseRecordRef: { collectionName: 'customers', recordId: ['1'], stepIndex: 0 },
     stepDefinition: makeStepDefinition(stepType),
     previousSteps: [],
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
     ...rest,
   };
 }
@@ -562,6 +577,7 @@ describe('StepExecutorFactory.create — factory', () => {
     agentPort: {} as AgentPort,
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
+    schemaCache: new SchemaCache(),
     logger: { error: jest.fn() },
   });
 
@@ -877,42 +893,116 @@ describe('getRunStepExecutions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// patchPendingData
+// triggerPoll with options (bearerUserId, pendingData)
 // ---------------------------------------------------------------------------
 
-describe('patchPendingData', () => {
-  it('throws PendingDataNotFoundError when step is not found', async () => {
-    const runStore = createMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
-    runner = new Runner(createRunnerConfig({ runStore }));
+describe('triggerPoll with options', () => {
+  it('succeeds when bearerUserId matches step.user.id', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1' }); // user.id = 1
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
-    await expect(runner.patchPendingData('run-1', 0, { userConfirmed: true })).rejects.toThrow(
-      PendingDataNotFoundError,
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await expect(runner.triggerPoll('run-1', { bearerUserId: 1 })).resolves.toBeUndefined();
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws UserMismatchError when bearerUserId does not match step.user.id', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1' }); // user.id = 1
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(runner.triggerPoll('run-1', { bearerUserId: 999 })).rejects.toThrow(
+      UserMismatchError,
     );
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  it('skips user check when bearerUserId is undefined', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1' });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await expect(runner.triggerPoll('run-1', {})).resolves.toBeUndefined();
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('patches pending data then executes when pendingData is provided', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue([
+        {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { fieldName: 'status', value: 'old' },
+        },
+      ]),
+    });
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
+
+    await runner.triggerPoll('run-1', { pendingData: { userConfirmed: true, value: 'new' } });
+
+    expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({
+        pendingData: { fieldName: 'status', value: 'new', userConfirmed: true },
+      }),
+    );
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws PendingDataNotFoundError when step is not found', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    const runStore = createMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
+
+    await expect(
+      runner.triggerPoll('run-1', { pendingData: { userConfirmed: true } }),
+    ).rejects.toThrow(PendingDataNotFoundError);
   });
 
   it('throws PendingDataNotFoundError when step has no pendingData', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     const runStore = createMockRunStore({
       getStepExecutions: jest.fn().mockResolvedValue([{ type: 'update-record', stepIndex: 0 }]),
     });
-    runner = new Runner(createRunnerConfig({ runStore }));
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
 
-    await expect(runner.patchPendingData('run-1', 0, { userConfirmed: true })).rejects.toThrow(
-      PendingDataNotFoundError,
-    );
+    await expect(
+      runner.triggerPoll('run-1', { pendingData: { userConfirmed: true } }),
+    ).rejects.toThrow(PendingDataNotFoundError);
   });
 
   it('throws PendingDataNotFoundError when step type has no schema (e.g. condition)', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     const runStore = createMockRunStore({
       getStepExecutions: jest.fn().mockResolvedValue([{ type: 'condition', stepIndex: 0 }]),
     });
-    runner = new Runner(createRunnerConfig({ runStore }));
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
 
-    await expect(runner.patchPendingData('run-1', 0, { userConfirmed: true })).rejects.toThrow(
-      PendingDataNotFoundError,
-    );
+    await expect(
+      runner.triggerPoll('run-1', { pendingData: { userConfirmed: true } }),
+    ).rejects.toThrow(PendingDataNotFoundError);
   });
 
   it('throws InvalidPendingDataError with mapped issues when body fails Zod validation', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     const runStore = createMockRunStore({
       getStepExecutions: jest.fn().mockResolvedValue([
         {
@@ -922,12 +1012,14 @@ describe('patchPendingData', () => {
         },
       ]),
     });
-    runner = new Runner(createRunnerConfig({ runStore }));
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
 
-    const error = await runner.patchPendingData('run-1', 0, { userConfirmed: 'yes' }).catch(e => e);
+    const error = await runner
+      .triggerPoll('run-1', { pendingData: { userConfirmed: 'yes' } })
+      .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(InvalidPendingDataError);
-    expect(error.issues).toEqual(
+    expect((error as InvalidPendingDataError).issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ path: ['userConfirmed'], code: expect.any(String) }),
       ]),
@@ -935,6 +1027,9 @@ describe('patchPendingData', () => {
   });
 
   it('throws InvalidPendingDataError when body contains unknown fields', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     const runStore = createMockRunStore({
       getStepExecutions: jest
         .fn()
@@ -942,14 +1037,19 @@ describe('patchPendingData', () => {
           { type: 'trigger-action', stepIndex: 0, pendingData: { name: 'send_email' } },
         ]),
     });
-    runner = new Runner(createRunnerConfig({ runStore }));
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
 
     await expect(
-      runner.patchPendingData('run-1', 0, { userConfirmed: true, extra: 'field' }),
+      runner.triggerPoll('run-1', {
+        pendingData: { userConfirmed: true, extra: 'field' },
+      }),
     ).rejects.toThrow(InvalidPendingDataError);
   });
 
   it('update-record: merges value override into pendingData and calls saveStepExecution', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     const existing = {
       type: 'update-record' as const,
       stepIndex: 0,
@@ -958,9 +1058,11 @@ describe('patchPendingData', () => {
     const runStore = createMockRunStore({
       getStepExecutions: jest.fn().mockResolvedValue([existing]),
     });
-    runner = new Runner(createRunnerConfig({ runStore }));
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
 
-    await runner.patchPendingData('run-1', 0, { userConfirmed: true, value: 'new_value' });
+    await runner.triggerPoll('run-1', {
+      pendingData: { userConfirmed: true, value: 'new_value' },
+    });
 
     expect(runStore.saveStepExecution).toHaveBeenCalledWith(
       'run-1',
@@ -973,6 +1075,9 @@ describe('patchPendingData', () => {
   });
 
   it('load-related-record: merges selectedRecordId override correctly', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 1 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     const existing = {
       type: 'load-related-record' as const,
       stepIndex: 1,
@@ -987,9 +1092,11 @@ describe('patchPendingData', () => {
     const runStore = createMockRunStore({
       getStepExecutions: jest.fn().mockResolvedValue([existing]),
     });
-    runner = new Runner(createRunnerConfig({ runStore }));
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
 
-    await runner.patchPendingData('run-1', 1, { userConfirmed: true, selectedRecordId: ['42'] });
+    await runner.triggerPoll('run-1', {
+      pendingData: { userConfirmed: true, selectedRecordId: ['42'] },
+    });
 
     expect(runStore.saveStepExecution).toHaveBeenCalledWith(
       'run-1',
@@ -1000,6 +1107,9 @@ describe('patchPendingData', () => {
   });
 
   it('trigger-action: merges userConfirmed:true only, rejects extra field', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     const existing = {
       type: 'trigger-action' as const,
       stepIndex: 0,
@@ -1008,9 +1118,9 @@ describe('patchPendingData', () => {
     const runStore = createMockRunStore({
       getStepExecutions: jest.fn().mockResolvedValue([existing]),
     });
-    runner = new Runner(createRunnerConfig({ runStore }));
+    runner = new Runner(createRunnerConfig({ workflowPort, runStore }));
 
-    await runner.patchPendingData('run-1', 0, { userConfirmed: true });
+    await runner.triggerPoll('run-1', { pendingData: { userConfirmed: true } });
 
     expect(runStore.saveStepExecution).toHaveBeenCalledWith(
       'run-1',
@@ -1020,7 +1130,9 @@ describe('patchPendingData', () => {
     );
 
     await expect(
-      runner.patchPendingData('run-1', 0, { userConfirmed: true, name: 'override' }),
+      runner.triggerPoll('run-1', {
+        pendingData: { userConfirmed: true, name: 'override' },
+      }),
     ).rejects.toThrow(InvalidPendingDataError);
   });
 });

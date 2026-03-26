@@ -216,6 +216,13 @@ export class RunNotFoundError extends Error {
   }
 }
 
+export class UserMismatchError extends Error {
+  constructor(runId: string) {
+    super(`User not authorized for run "${runId}"`);
+    this.name = 'UserMismatchError';
+  }
+}
+
 export class PendingDataNotFoundError extends Error {
   constructor(runId: string, stepIndex: number) {
     super(`Step ${stepIndex} in run "${runId}" not found or has no pending data`);

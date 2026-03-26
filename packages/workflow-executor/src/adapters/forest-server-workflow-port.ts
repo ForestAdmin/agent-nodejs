@@ -1,5 +1,5 @@
 import type { McpConfiguration, WorkflowPort } from '../ports/workflow-port';
-import type { PendingStepExecution } from '../types/execution';
+import type { PendingStepExecution, StepUser } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
 import type { StepOutcome } from '../types/step-outcome';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
@@ -62,10 +62,8 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async hasRunAccess(_runId: string, _userToken: string): Promise<boolean> {
+  async hasRunAccess(_runId: string, _user: StepUser): Promise<boolean> {
     // TODO: implement once GET /liana/v1/workflow-runs/:runId/access is available.
-    // When live: call ServerUtils.query with extra header 'forest-user-token': userToken
-    // to let the orchestrator verify ownership.
     return true;
   }
 }

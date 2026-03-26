@@ -5,6 +5,7 @@ import type { ConditionStepDefinition } from '../../src/types/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/step-outcome';
 
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
@@ -55,6 +56,18 @@ function makeContext(
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,
@@ -211,7 +224,7 @@ describe('ConditionStepExecutor', () => {
   });
 
   describe('no-match fallback', () => {
-    it('returns manual-decision when AI selects null', async () => {
+    it('returns error when AI selects null', async () => {
       const mockModel = makeMockModel({
         option: null,
         reasoning: 'None apply',
@@ -226,8 +239,10 @@ describe('ConditionStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('manual-decision');
-      expect(result.stepOutcome.error).toBeUndefined();
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "The AI couldn't decide. Try rephrasing the step's prompt.",
+      );
       expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBeUndefined();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'condition',

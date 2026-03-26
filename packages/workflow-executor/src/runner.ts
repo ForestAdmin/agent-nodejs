@@ -3,6 +3,7 @@ import type { AgentPort } from './ports/agent-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
+import type SchemaCache from './schema-cache';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
@@ -12,6 +13,7 @@ import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
   RunNotFoundError,
+  UserMismatchError,
   causeMessage,
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
@@ -23,6 +25,7 @@ export interface RunnerConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
+  schemaCache: SchemaCache;
   pollingIntervalMs: number;
   aiClient: AiClient;
   envSecret: string;
@@ -38,16 +41,6 @@ export default class Runner {
   private readonly inFlightSteps = new Set<string>();
   private isRunning = false;
   private readonly logger: Logger;
-
-  private static once<T>(fn: () => Promise<T>): () => Promise<T> {
-    let cached: Promise<T> | undefined;
-
-    return () => {
-      cached ??= fn();
-
-      return cached;
-    };
-  }
 
   private static stepKey(step: PendingStepExecution): string {
     return `${step.runId}:${step.stepId}`;
@@ -112,7 +105,7 @@ export default class Runner {
     return this.config.runStore.getStepExecutions(runId);
   }
 
-  async patchPendingData(runId: string, stepIndex: number, body: unknown): Promise<void> {
+  private async patchPendingData(runId: string, stepIndex: number, body: unknown): Promise<void> {
     const stepExecutions = await this.config.runStore.getStepExecutions(runId);
     const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
     const schema = execution ? patchBodySchemas[execution.type] : undefined;
@@ -143,15 +136,25 @@ export default class Runner {
     } as StepExecutionData);
   }
 
-  async triggerPoll(runId: string): Promise<void> {
+  async triggerPoll(
+    runId: string,
+    options?: { pendingData?: unknown; bearerUserId?: number },
+  ): Promise<void> {
     const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
 
     if (!step) throw new RunNotFoundError(runId);
 
+    if (options?.bearerUserId !== undefined && step.user.id !== options.bearerUserId) {
+      throw new UserMismatchError(runId);
+    }
+
+    if (options?.pendingData !== undefined) {
+      await this.patchPendingData(runId, step.stepIndex, options.pendingData);
+    }
+
     if (this.inFlightSteps.has(Runner.stepKey(step))) return;
 
-    const loadTools = Runner.once(() => this.fetchRemoteTools());
-    await this.executeStep(step, loadTools);
+    await this.executeStep(step);
   }
 
   private schedulePoll(): void {
@@ -163,8 +166,7 @@ export default class Runner {
     try {
       const steps = await this.config.workflowPort.getPendingStepExecutions();
       const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
-      const loadTools = Runner.once(() => this.fetchRemoteTools());
-      await Promise.allSettled(pending.map(s => this.executeStep(s, loadTools)));
+      await Promise.allSettled(pending.map(s => this.executeStep(s)));
     } catch (error) {
       this.logger.error('Poll cycle failed', {
         error: error instanceof Error ? error.message : String(error),
@@ -187,17 +189,16 @@ export default class Runner {
     return this.config.aiClient.loadRemoteTools(mergedConfig);
   }
 
-  private async executeStep(
-    step: PendingStepExecution,
-    loadTools: () => Promise<RemoteTool[]>,
-  ): Promise<void> {
+  private async executeStep(step: PendingStepExecution): Promise<void> {
     const key = Runner.stepKey(step);
     this.inFlightSteps.add(key);
 
     let result: StepExecutionResult;
 
     try {
-      const executor = await StepExecutorFactory.create(step, this.contextConfig, loadTools);
+      const executor = await StepExecutorFactory.create(step, this.contextConfig, () =>
+        this.fetchRemoteTools(),
+      );
       result = await executor.execute();
     } catch (error) {
       // This block should never execute: the factory and executor contracts guarantee no rejection.
@@ -233,6 +234,7 @@ export default class Runner {
       agentPort: this.config.agentPort,
       workflowPort: this.config.workflowPort,
       runStore: this.config.runStore,
+      schemaCache: this.config.schemaCache,
       logger: this.logger,
     };
   }

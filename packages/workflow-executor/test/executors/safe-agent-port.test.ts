@@ -1,7 +1,20 @@
 import type { AgentPort } from '../../src/ports/agent-port';
+import type { StepUser } from '../../src/types/execution';
 
 import { AgentPortError, StepStateError, WorkflowExecutorError } from '../../src/errors';
 import SafeAgentPort from '../../src/executors/safe-agent-port';
+
+const dummyUser: StepUser = {
+  id: 1,
+  email: 'test@example.com',
+  firstName: 'Test',
+  lastName: 'User',
+  team: 'admin',
+  renderingId: 1,
+  role: 'admin',
+  permissionLevel: 'admin',
+  tags: {},
+};
 
 function makeMockPort(overrides: Partial<AgentPort> = {}): AgentPort {
   return {
@@ -24,7 +37,7 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ getRecord: jest.fn().mockResolvedValue(expected) });
       const safe = new SafeAgentPort(port);
 
-      const result = await safe.getRecord({ collection: 'customers', id: [1] });
+      const result = await safe.getRecord({ collection: 'customers', id: [1] }, dummyUser);
 
       expect(result).toBe(expected);
     });
@@ -34,11 +47,14 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ updateRecord: jest.fn().mockResolvedValue(expected) });
       const safe = new SafeAgentPort(port);
 
-      const result = await safe.updateRecord({
-        collection: 'customers',
-        id: [1],
-        values: { status: 'active' },
-      });
+      const result = await safe.updateRecord(
+        {
+          collection: 'customers',
+          id: [1],
+          values: { status: 'active' },
+        },
+        dummyUser,
+      );
 
       expect(result).toBe(expected);
     });
@@ -48,12 +64,15 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ getRelatedData: jest.fn().mockResolvedValue(expected) });
       const safe = new SafeAgentPort(port);
 
-      const result = await safe.getRelatedData({
-        collection: 'customers',
-        id: [1],
-        relation: 'orders',
-        limit: 10,
-      });
+      const result = await safe.getRelatedData(
+        {
+          collection: 'customers',
+          id: [1],
+          relation: 'orders',
+          limit: 10,
+        },
+        dummyUser,
+      );
 
       expect(result).toBe(expected);
     });
@@ -63,7 +82,10 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ executeAction: jest.fn().mockResolvedValue(expected) });
       const safe = new SafeAgentPort(port);
 
-      const result = await safe.executeAction({ collection: 'customers', action: 'send-email' });
+      const result = await safe.executeAction(
+        { collection: 'customers', action: 'send-email' },
+        dummyUser,
+      );
 
       expect(result).toBe(expected);
     });
@@ -76,7 +98,7 @@ describe('SafeAgentPort', () => {
       });
       const safe = new SafeAgentPort(port);
 
-      await expect(safe.getRecord({ collection: 'customers', id: [1] })).rejects.toThrow(
+      await expect(safe.getRecord({ collection: 'customers', id: [1] }, dummyUser)).rejects.toThrow(
         AgentPortError,
       );
     });
@@ -87,7 +109,7 @@ describe('SafeAgentPort', () => {
       });
       const safe = new SafeAgentPort(port);
 
-      await expect(safe.getRecord({ collection: 'customers', id: [1] })).rejects.toThrow(
+      await expect(safe.getRecord({ collection: 'customers', id: [1] }, dummyUser)).rejects.toThrow(
         'Agent port "getRecord" failed: DB connection lost',
       );
     });
@@ -99,7 +121,7 @@ describe('SafeAgentPort', () => {
       const safe = new SafeAgentPort(port);
 
       await expect(
-        safe.updateRecord({ collection: 'customers', id: [1], values: {} }),
+        safe.updateRecord({ collection: 'customers', id: [1], values: {} }, dummyUser),
       ).rejects.toThrow('Agent port "updateRecord" failed: Timeout');
     });
 
@@ -110,7 +132,10 @@ describe('SafeAgentPort', () => {
       const safe = new SafeAgentPort(port);
 
       await expect(
-        safe.getRelatedData({ collection: 'customers', id: [1], relation: 'orders', limit: 10 }),
+        safe.getRelatedData(
+          { collection: 'customers', id: [1], relation: 'orders', limit: 10 },
+          dummyUser,
+        ),
       ).rejects.toThrow('Agent port "getRelatedData" failed: Network error');
     });
 
@@ -121,7 +146,7 @@ describe('SafeAgentPort', () => {
       const safe = new SafeAgentPort(port);
 
       await expect(
-        safe.executeAction({ collection: 'customers', action: 'send-email' }),
+        safe.executeAction({ collection: 'customers', action: 'send-email' }, dummyUser),
       ).rejects.toThrow('Agent port "executeAction" failed: Action failed');
     });
 
@@ -133,7 +158,7 @@ describe('SafeAgentPort', () => {
       let thrown: unknown;
 
       try {
-        await safe.getRecord({ collection: 'customers', id: [1] });
+        await safe.getRecord({ collection: 'customers', id: [1] }, dummyUser);
       } catch (e) {
         thrown = e;
       }
@@ -149,7 +174,9 @@ describe('SafeAgentPort', () => {
       const port = makeMockPort({ getRecord: jest.fn().mockRejectedValue(domainError) });
       const safe = new SafeAgentPort(port);
 
-      await expect(safe.getRecord({ collection: 'customers', id: [1] })).rejects.toBe(domainError);
+      await expect(safe.getRecord({ collection: 'customers', id: [1] }, dummyUser)).rejects.toBe(
+        domainError,
+      );
     });
 
     it('rethrows WorkflowExecutorError subclass without wrapping in AgentPortError', async () => {
@@ -160,7 +187,7 @@ describe('SafeAgentPort', () => {
       let thrown: unknown;
 
       try {
-        await safe.executeAction({ collection: 'customers', action: 'send-email' });
+        await safe.executeAction({ collection: 'customers', action: 'send-email' }, dummyUser);
       } catch (e) {
         thrown = e;
       }

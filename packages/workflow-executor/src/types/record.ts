@@ -15,6 +15,7 @@ export interface FieldSchema {
 export interface ActionSchema {
   name: string;
   displayName: string;
+  endpoint: string;
 }
 
 export interface CollectionSchema {

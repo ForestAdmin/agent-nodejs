@@ -125,7 +125,17 @@ describe('ForestServerWorkflowPort', () => {
 
   describe('hasRunAccess', () => {
     it('always returns true (stub until orchestrator endpoint is available)', async () => {
-      const result = await port.hasRunAccess('run-42', 'some-token');
+      const result = await port.hasRunAccess('run-42', {
+        id: 1,
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        team: 'admin',
+        renderingId: 1,
+        role: 'admin',
+        permissionLevel: 'admin',
+        tags: {},
+      });
 
       expect(result).toBe(true);
       expect(mockQuery).not.toHaveBeenCalled();

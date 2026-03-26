@@ -8,6 +8,7 @@ import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { StepStateError } from '../../src/errors';
 import McpTaskStepExecutor from '../../src/executors/mcp-task-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 // ---------------------------------------------------------------------------
@@ -93,6 +94,18 @@ function makeContext(
     } as unknown as ExecutionContext['agentPort'],
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,

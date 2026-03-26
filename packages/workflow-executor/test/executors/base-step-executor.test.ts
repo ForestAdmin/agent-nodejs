@@ -17,6 +17,7 @@ import {
   StepPersistenceError,
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
@@ -108,6 +109,18 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: makeMockLogger(),
     ...overrides,

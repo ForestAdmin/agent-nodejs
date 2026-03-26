@@ -29,8 +29,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   protected readonly agentPort: AgentPort;
 
-  protected readonly schemaCache = new Map<string, CollectionSchema>();
-
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
     this.agentPort = new SafeAgentPort(context.agentPort);
@@ -260,13 +258,13 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return records[selectedIndex];
   }
 
-  /** Fetches a collection schema from WorkflowPort, with caching. */
+  /** Fetches a collection schema from WorkflowPort, with TTL-based caching. */
   protected async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    const cached = this.schemaCache.get(collectionName);
+    const cached = this.context.schemaCache.get(collectionName);
     if (cached) return cached;
 
     const schema = await this.context.workflowPort.getCollectionSchema(collectionName);
-    this.schemaCache.set(collectionName, schema);
+    this.context.schemaCache.set(collectionName, schema);
 
     return schema;
   }

@@ -8,6 +8,7 @@ import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
   RunNotFoundError,
+  UserMismatchError,
 } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
@@ -23,7 +24,6 @@ function createMockRunner(overrides: Partial<Runner> = {}): Runner {
     stop: jest.fn().mockResolvedValue(undefined),
     triggerPoll: jest.fn().mockResolvedValue(undefined),
     getRunStepExecutions: jest.fn().mockResolvedValue([]),
-    patchPendingData: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as Runner;
 }
@@ -69,7 +69,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should return 401 when token is signed with wrong secret', async () => {
       const server = createServer();
-      const token = signToken({ id: 'user-1' }, 'wrong-secret');
+      const token = signToken({ id: 1 }, 'wrong-secret');
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -81,7 +81,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should return 401 when token is expired', async () => {
       const server = createServer();
-      const token = signToken({ id: 'user-1' }, AUTH_SECRET, { expiresIn: '0s' });
+      const token = signToken({ id: 1 }, AUTH_SECRET, { expiresIn: '0s' });
 
       // Small delay to ensure token is expired
       await new Promise(resolve => {
@@ -109,7 +109,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should accept valid token in Authorization header', async () => {
       const server = createServer();
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -120,7 +120,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should accept valid token in forest_session_token cookie', async () => {
       const server = createServer();
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -162,7 +162,7 @@ describe('ExecutorHttpServer', () => {
         hasRunAccess: jest.fn().mockResolvedValue(false),
       });
       const server = createServer({ workflowPort });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -172,45 +172,36 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ error: 'Forbidden' });
     });
 
-    it('returns 403 when hasRunAccess returns false on POST /runs/:runId/trigger', async () => {
-      const workflowPort = createMockWorkflowPort({
-        hasRunAccess: jest.fn().mockResolvedValue(false),
-      });
-      const server = createServer({ workflowPort });
-      const token = signToken({ id: 'user-1' });
-
-      const response = await request(server.callback)
-        .post('/runs/run-1/trigger')
-        .set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toBe(403);
-      expect(response.body).toEqual({ error: 'Forbidden' });
-    });
-
-    it('calls hasRunAccess with the correct runId and userToken', async () => {
+    it('calls hasRunAccess with the correct runId and decoded user', async () => {
       const workflowPort = createMockWorkflowPort();
       const server = createServer({ workflowPort });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-42')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
-      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith('run-42', token);
+      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith(
+        'run-42',
+        expect.objectContaining({ id: 1 }),
+      );
     });
 
-    it('calls hasRunAccess with token from cookie', async () => {
+    it('calls hasRunAccess with decoded user from cookie token', async () => {
       const workflowPort = createMockWorkflowPort();
       const server = createServer({ workflowPort });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-cookie')
         .set('Cookie', `forest_session_token=${token}`);
 
       expect(response.status).toBe(200);
-      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith('run-cookie', token);
+      expect(workflowPort.hasRunAccess).toHaveBeenCalledWith(
+        'run-cookie',
+        expect.objectContaining({ id: 1 }),
+      );
     });
 
     it('returns 503 when hasRunAccess throws', async () => {
@@ -219,7 +210,7 @@ describe('ExecutorHttpServer', () => {
         hasRunAccess: jest.fn().mockRejectedValue(new Error('orchestrator down')),
       });
       const server = createServer({ workflowPort, logger });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -239,42 +230,11 @@ describe('ExecutorHttpServer', () => {
         hasRunAccess: jest.fn().mockResolvedValue(false),
       });
       const server = createServer({ runner, workflowPort });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       await request(server.callback).get('/runs/run-1').set('Authorization', `Bearer ${token}`);
 
       expect(runner.getRunStepExecutions).not.toHaveBeenCalled();
-    });
-
-    it('does not call triggerPoll when hasRunAccess returns false', async () => {
-      const runner = createMockRunner();
-      const workflowPort = createMockWorkflowPort({
-        hasRunAccess: jest.fn().mockResolvedValue(false),
-      });
-      const server = createServer({ runner, workflowPort });
-      const token = signToken({ id: 'user-1' });
-
-      await request(server.callback)
-        .post('/runs/run-1/trigger')
-        .set('Authorization', `Bearer ${token}`);
-
-      expect(runner.triggerPoll).not.toHaveBeenCalled();
-    });
-
-    it('returns 403 when hasRunAccess returns false on PATCH /runs/:runId/steps/:stepIndex/pending-data', async () => {
-      const workflowPort = createMockWorkflowPort({
-        hasRunAccess: jest.fn().mockResolvedValue(false),
-      });
-      const server = createServer({ workflowPort });
-      const token = signToken({ id: 'user-1' });
-
-      const response = await request(server.callback)
-        .patch('/runs/run-1/steps/0/pending-data')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ userConfirmed: true });
-
-      expect(response.status).toBe(403);
-      expect(response.body).toEqual({ error: 'Forbidden' });
     });
   });
 
@@ -287,7 +247,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -304,7 +264,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -316,10 +276,10 @@ describe('ExecutorHttpServer', () => {
   });
 
   describe('POST /runs/:runId/trigger', () => {
-    it('should call runner.triggerPoll with the runId', async () => {
+    it('should call runner.triggerPoll with runId and options', async () => {
       const runner = createMockRunner();
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
@@ -327,7 +287,41 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ triggered: true });
-      expect(runner.triggerPoll).toHaveBeenCalledWith('run-1');
+      expect(runner.triggerPoll).toHaveBeenCalledWith('run-1', {
+        pendingData: undefined,
+        bearerUserId: 1,
+      });
+    });
+
+    it('returns 400 when token has no numeric id', async () => {
+      const runner = createMockRunner();
+      const server = createServer({ runner });
+      const token = signToken({ email: 'no-id@example.com' });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Missing or invalid user id in token' });
+      expect(runner.triggerPoll).not.toHaveBeenCalled();
+    });
+
+    it('passes pendingData from request body to runner.triggerPoll', async () => {
+      const runner = createMockRunner();
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ pendingData: { userConfirmed: true } });
+
+      expect(response.status).toBe(200);
+      expect(runner.triggerPoll).toHaveBeenCalledWith('run-1', {
+        pendingData: { userConfirmed: true },
+        bearerUserId: 1,
+      });
     });
 
     it('returns 404 when triggerPoll rejects with RunNotFoundError', async () => {
@@ -336,7 +330,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
@@ -346,101 +340,68 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ error: 'Run not found or unavailable' });
     });
 
+    it('returns 403 when triggerPoll rejects with UserMismatchError', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new UserMismatchError('run-1')),
+      });
+
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({ error: 'Forbidden' });
+    });
+
+    it('returns 404 when triggerPoll rejects with PendingDataNotFoundError', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new PendingDataNotFoundError('run-1', 0)),
+      });
+
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Step execution not found or has no pending data' });
+    });
+
+    it('returns 400 when triggerPoll rejects with InvalidPendingDataError', async () => {
+      const issues = [
+        { path: ['userConfirmed'], message: 'Expected boolean', code: 'invalid_type' },
+      ];
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new InvalidPendingDataError(issues)),
+      });
+
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid request body', details: issues });
+    });
+
     it('returns 500 when triggerPoll rejects with an unexpected error', async () => {
       const runner = createMockRunner({
         triggerPoll: jest.fn().mockRejectedValue(new Error('unexpected')),
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
         .set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toBe(500);
-      expect(response.body).toEqual({ error: 'Internal server error' });
-    });
-  });
-
-  describe('PATCH /runs/:runId/steps/:stepIndex/pending-data', () => {
-    it('returns 204 when patchPendingData succeeds', async () => {
-      const runner = createMockRunner({
-        patchPendingData: jest.fn().mockResolvedValue(undefined),
-      });
-      const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
-
-      const response = await request(server.callback)
-        .patch('/runs/run-1/steps/2/pending-data')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ userConfirmed: true });
-
-      expect(response.status).toBe(204);
-      expect(runner.patchPendingData).toHaveBeenCalledWith('run-1', 2, { userConfirmed: true });
-    });
-
-    it('returns 404 when patchPendingData throws PendingDataNotFoundError', async () => {
-      const runner = createMockRunner({
-        patchPendingData: jest.fn().mockRejectedValue(new PendingDataNotFoundError('run-1', 0)),
-      });
-      const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
-
-      const response = await request(server.callback)
-        .patch('/runs/run-1/steps/0/pending-data')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ userConfirmed: true });
-
-      expect(response.status).toBe(404);
-      expect(response.body).toEqual({ error: 'Step execution not found or has no pending data' });
-    });
-
-    it('returns 400 with details when patchPendingData throws InvalidPendingDataError', async () => {
-      const issues = [
-        { path: ['userConfirmed'], message: 'Expected boolean', code: 'invalid_type' },
-      ];
-      const runner = createMockRunner({
-        patchPendingData: jest.fn().mockRejectedValue(new InvalidPendingDataError(issues)),
-      });
-      const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
-
-      const response = await request(server.callback)
-        .patch('/runs/run-1/steps/0/pending-data')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ userConfirmed: 'yes' });
-
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Invalid request body', details: issues });
-    });
-
-    it('returns 400 when stepIndex is not a valid integer', async () => {
-      const runner = createMockRunner();
-      const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
-
-      const response = await request(server.callback)
-        .patch('/runs/run-1/steps/abc/pending-data')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ userConfirmed: true });
-
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Invalid stepIndex' });
-      expect(runner.patchPendingData).not.toHaveBeenCalled();
-    });
-
-    it('returns 500 when patchPendingData throws an unexpected error', async () => {
-      const runner = createMockRunner({
-        patchPendingData: jest.fn().mockRejectedValue(new Error('disk full')),
-      });
-      const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
-
-      const response = await request(server.callback)
-        .patch('/runs/run-1/steps/0/pending-data')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ userConfirmed: true });
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
