@@ -147,20 +147,16 @@ class FakeWorkflowPort implements WorkflowPort {
 // ---------------------------------------------------------------------------
 
 function createDemoAiClient(): AiClient & { reset(): void } {
-  const callCounts: Record<string, number> = {};
+  // Queue of AI responses — consumed in order as calls come in.
+  // Each triggerPoll executes one step which makes one AI call.
+  // We push responses when a run is triggered.
+  const queue: Array<{ name: string; args: Record<string, unknown> }> = [];
+  const runCallIdx: Record<string, number> = {};
 
   const model = {
     bindTools: () => model,
-    invoke: (_msgs: unknown) => {
-      // Determine which run we're in by checking the messages for run context
-      // Simple: track by global call order per run via a rotating approach
-      // We flatten all AI responses and cycle through them
-      const allResponses = [...WF1_STEPS, ...WF2_STEPS].flatMap(s => s.aiResponses);
-      const globalIdx = Object.values(callCounts).reduce((a, b) => a + b, 0);
-      const resp = allResponses[globalIdx % allResponses.length];
-
-      // Increment a generic counter
-      callCounts['_global'] = (callCounts['_global'] || 0) + 1;
+    invoke: () => {
+      const resp = queue.shift() || { name: 'unknown', args: {} };
 
       return new Promise(resolve => {
         setTimeout(() => resolve({ tool_calls: [{ name: resp.name, args: resp.args }] }), 250);
@@ -172,8 +168,17 @@ function createDemoAiClient(): AiClient & { reset(): void } {
     getModel: () => model,
     loadRemoteTools: () => Promise.resolve([] as RemoteTool[]),
     closeConnections: () => Promise.resolve(),
-    reset() { Object.keys(callCounts).forEach(k => delete callCounts[k]); },
-  } as unknown as AiClient & { reset(): void };
+    reset() { queue.length = 0; Object.keys(runCallIdx).forEach(k => delete runCallIdx[k]); },
+    // Custom: enqueue the next AI response for a run before triggering
+    enqueueForRun(runId: string) {
+      const wf = ALL_WORKFLOWS[runId];
+      const idx = runCallIdx[runId] || 0;
+      if (wf && idx < wf.length) {
+        wf[idx].aiResponses.forEach(r => queue.push(r));
+        runCallIdx[runId] = idx + 1;
+      }
+    },
+  } as unknown as AiClient & { reset(): void; enqueueForRun(runId: string): void };
 }
 
 // ---------------------------------------------------------------------------
@@ -239,11 +244,16 @@ async function main() {
     }
     if (req.method === 'POST' && req.url === '/reset') {
       workflowPort.reset();
-      aiClient.reset();
+      (aiClient as any).reset();
       (runStore as any).store = new Map();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ reset: true }));
       return;
+    }
+    // Enqueue AI responses before forwarding trigger to executor
+    const triggerMatch = req.method === 'POST' && req.url?.match(/^\/runs\/(run-\d+)\/trigger$/);
+    if (triggerMatch) {
+      (aiClient as any).enqueueForRun(triggerMatch[1]);
     }
     executorApp(req, res);
   });
