@@ -69,7 +69,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should return 401 when token is signed with wrong secret', async () => {
       const server = createServer();
-      const token = signToken({ id: 'user-1' }, 'wrong-secret');
+      const token = signToken({ id: 1 }, 'wrong-secret');
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -81,7 +81,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should return 401 when token is expired', async () => {
       const server = createServer();
-      const token = signToken({ id: 'user-1' }, AUTH_SECRET, { expiresIn: '0s' });
+      const token = signToken({ id: 1 }, AUTH_SECRET, { expiresIn: '0s' });
 
       // Small delay to ensure token is expired
       await new Promise(resolve => {
@@ -109,7 +109,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should accept valid token in Authorization header', async () => {
       const server = createServer();
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -120,7 +120,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should accept valid token in forest_session_token cookie', async () => {
       const server = createServer();
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -162,7 +162,7 @@ describe('ExecutorHttpServer', () => {
         hasRunAccess: jest.fn().mockResolvedValue(false),
       });
       const server = createServer({ workflowPort });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -175,7 +175,7 @@ describe('ExecutorHttpServer', () => {
     it('calls hasRunAccess with the correct runId and userToken', async () => {
       const workflowPort = createMockWorkflowPort();
       const server = createServer({ workflowPort });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-42')
@@ -188,7 +188,7 @@ describe('ExecutorHttpServer', () => {
     it('calls hasRunAccess with token from cookie', async () => {
       const workflowPort = createMockWorkflowPort();
       const server = createServer({ workflowPort });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-cookie')
@@ -204,7 +204,7 @@ describe('ExecutorHttpServer', () => {
         hasRunAccess: jest.fn().mockRejectedValue(new Error('orchestrator down')),
       });
       const server = createServer({ workflowPort, logger });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -224,7 +224,7 @@ describe('ExecutorHttpServer', () => {
         hasRunAccess: jest.fn().mockResolvedValue(false),
       });
       const server = createServer({ runner, workflowPort });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       await request(server.callback).get('/runs/run-1').set('Authorization', `Bearer ${token}`);
 
@@ -241,7 +241,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -258,7 +258,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -273,7 +273,7 @@ describe('ExecutorHttpServer', () => {
     it('should call runner.triggerPoll with runId and options', async () => {
       const runner = createMockRunner();
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
@@ -283,14 +283,14 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ triggered: true });
       expect(runner.triggerPoll).toHaveBeenCalledWith('run-1', {
         pendingData: undefined,
-        bearerUserId: 'user-1',
+        bearerUserId: 1,
       });
     });
 
     it('passes pendingData from request body to runner.triggerPoll', async () => {
       const runner = createMockRunner();
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
@@ -300,7 +300,7 @@ describe('ExecutorHttpServer', () => {
       expect(response.status).toBe(200);
       expect(runner.triggerPoll).toHaveBeenCalledWith('run-1', {
         pendingData: { userConfirmed: true },
-        bearerUserId: 'user-1',
+        bearerUserId: 1,
       });
     });
 
@@ -310,7 +310,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
@@ -326,7 +326,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
@@ -342,7 +342,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
@@ -361,7 +361,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')
@@ -377,7 +377,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 'user-1' });
+      const token = signToken({ id: 1 });
 
       const response = await request(server.callback)
         .post('/runs/run-1/trigger')

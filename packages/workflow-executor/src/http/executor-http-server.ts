@@ -9,6 +9,7 @@ import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
+import ConsoleLogger from '../adapters/console-logger';
 import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
@@ -27,10 +28,12 @@ export interface ExecutorHttpServerOptions {
 export default class ExecutorHttpServer {
   private readonly app: Koa;
   private readonly options: ExecutorHttpServerOptions;
+  private readonly logger: Logger;
   private server: Server | null = null;
 
   constructor(options: ExecutorHttpServerOptions) {
     this.options = options;
+    this.logger = options.logger ?? new ConsoleLogger();
     this.app = new Koa();
 
     // Error middleware — catches all errors (including JWT 401) and returns structured JSON
@@ -47,7 +50,7 @@ export default class ExecutorHttpServer {
           return;
         }
 
-        this.options.logger?.error('Unhandled HTTP error', {
+        this.logger.error('Unhandled HTTP error', {
           method: ctx.method,
           path: ctx.path,
           error: err instanceof Error ? err.message : String(err),
@@ -125,7 +128,7 @@ export default class ExecutorHttpServer {
         return;
       }
     } catch (err) {
-      this.options.logger?.error('Failed to check run access', {
+      this.logger.error('Failed to check run access', {
         runId: ctx.params.runId,
         method: ctx.method,
         path: ctx.path,
@@ -148,7 +151,16 @@ export default class ExecutorHttpServer {
 
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
-    const bearerUserId = (ctx.state.user as { id?: number })?.id;
+    const rawId = (ctx.state.user as { id?: unknown })?.id;
+    const bearerUserId = typeof rawId === 'number' ? rawId : Number(rawId);
+
+    if (!Number.isFinite(bearerUserId)) {
+      ctx.status = 400;
+      ctx.body = { error: 'Missing or invalid user id in token' };
+
+      return;
+    }
+
     const pendingData = (ctx.request.body as { pendingData?: unknown })?.pendingData;
 
     try {
@@ -165,6 +177,7 @@ export default class ExecutorHttpServer {
       }
 
       if (err instanceof UserMismatchError) {
+        this.logger.error('User mismatch on trigger', { runId, bearerUserId });
         ctx.status = 403;
         ctx.body = { error: 'Forbidden' };
 

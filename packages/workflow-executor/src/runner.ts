@@ -148,7 +148,7 @@ export default class Runner {
       throw new UserMismatchError(runId);
     }
 
-    if (options?.pendingData) {
+    if (options?.pendingData !== undefined) {
       await this.patchPendingData(runId, step.stepIndex, options.pendingData);
     }
 
