@@ -3,653 +3,423 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Workflow Executor — Live Demo</title>
+  <title>Customer Onboarding — Workflow Executor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
       --forest: #2C9B42;
-      --forest-light: #38C951;
-      --forest-dim: #1E6B2E;
-      --forest-glow: rgba(44, 155, 66, 0.2);
-      --bg: #0B0E14;
-      --bg-surface: #131820;
-      --bg-card: #1A2030;
-      --bg-card-active: #1E2940;
-      --bg-input: #0E1218;
-      --text: #E4E8EF;
-      --text-secondary: #8A95A8;
-      --text-muted: #454F60;
-      --amber: #F0B429;
-      --amber-glow: rgba(240, 180, 41, 0.15);
-      --red: #EF4444;
-      --red-glow: rgba(239, 68, 68, 0.12);
-      --blue: #60A5FA;
-      --blue-glow: rgba(96, 165, 250, 0.15);
-      --border: rgba(255,255,255,0.05);
+      --forest-light: #3BD458;
+      --forest-glow: rgba(44,155,66,0.25);
+      --bg: #080B11;
+      --surface: #0F1319;
+      --card: #151B25;
+      --card-glow: #1A2233;
+      --text: #E8ECF2;
+      --dim: #7E8A9C;
+      --muted: #3A4555;
+      --amber: #F5B731;
+      --amber-glow: rgba(245,183,49,0.12);
+      --red: #F06050;
+      --blue: #5BA3F5;
+      --blue-glow: rgba(91,163,245,0.12);
+      --border: rgba(255,255,255,0.04);
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'DM Sans', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      overflow-x: hidden;
     }
-
-    /* ── Top bar ────────────────────────────── */
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      background: rgba(11, 14, 20, 0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 32px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .topbar .logo {
-      width: 32px;
-      height: 32px;
-      background: var(--forest);
-      border-radius: 8px;
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      font-size: 14px;
-      color: white;
-      flex-shrink: 0;
-    }
-
-    .topbar h1 {
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: -0.2px;
-    }
-    .topbar h1 span { color: var(--forest-light); }
-
-    .topbar .spacer { flex: 1; }
-
-    .topbar input {
-      width: 280px;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 7px 12px;
-      color: var(--text);
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      outline: none;
-    }
-    .topbar input:focus { border-color: var(--forest-dim); }
-
-    .dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .dot.ok { background: var(--forest); box-shadow: 0 0 6px var(--forest-glow); }
-    .dot.err { background: var(--red); }
-    .dot.idle { background: var(--text-muted); }
-
-    /* ── Main layout ────────────────────────── */
-    .main {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 40px 24px 120px;
-    }
-
-    /* ── Workflow header ────────────────────── */
-    .wf-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 40px;
-    }
-
-    .wf-header .wf-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--forest), var(--forest-dim));
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      font-size: 22px;
-      box-shadow: 0 4px 20px var(--forest-glow);
-    }
-
-    .wf-header .wf-meta h2 {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-    }
-    .wf-header .wf-meta p {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    .wf-header .wf-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 10px;
-    }
-
-    /* ── Buttons ────────────────────────────── */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 9px 16px;
-      border: none;
-      border-radius: 8px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.12s ease;
-    }
-    .btn:active { transform: scale(0.97); }
-
-    .btn-primary {
-      background: var(--forest);
-      color: white;
-    }
-    .btn-primary:hover { background: var(--forest-light); box-shadow: 0 2px 12px var(--forest-glow); }
-    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .btn-ghost {
-      background: rgba(255,255,255,0.04);
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-    }
-    .btn-ghost:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-
-    .btn-confirm {
-      background: rgba(44,155,66,0.1);
-      color: var(--forest-light);
-      border: 1px solid rgba(44,155,66,0.2);
-    }
-    .btn-confirm:hover { background: rgba(44,155,66,0.18); }
-
-    .btn-reject {
-      background: var(--red-glow);
-      color: var(--red);
-      border: 1px solid rgba(239,68,68,0.18);
-    }
-    .btn-reject:hover { background: rgba(239,68,68,0.2); }
-
-    /* ── Workflow pipeline ──────────────────── */
-    .pipeline {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      position: relative;
-    }
-
-    /* connector line between cards */
-    .connector {
-      width: 2px;
-      height: 28px;
-      margin-left: 31px;
-      background: var(--border);
-      transition: background 0.5s;
-    }
-    .connector.done {
-      background: linear-gradient(to bottom, var(--forest), var(--forest-dim));
-    }
-
-    /* ── Step card ──────────────────────────── */
-    .step {
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      opacity: 0.35;
-      transition: opacity 0.5s, transform 0.4s;
-      transform: translateY(4px);
-    }
-    .step.active, .step.done, .step.error-state {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .step-dot {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      border: 3px solid var(--text-muted);
-      flex-shrink: 0;
-      margin-top: 18px;
-      transition: all 0.4s;
-      position: relative;
-    }
-    .step.done .step-dot {
-      border-color: var(--forest);
-      background: var(--forest);
-    }
-    .step.done .step-dot::after {
-      content: '✓';
-      position: absolute;
-      inset: -3px;
-      display: grid;
-      place-items: center;
-      font-size: 10px;
-      color: white;
-      font-weight: 700;
-    }
-    .step.active .step-dot {
-      border-color: var(--blue);
-      animation: dotPulse 1.8s infinite;
-    }
-    .step.awaiting .step-dot {
-      border-color: var(--amber);
-      background: var(--amber);
-    }
-    .step.error-state .step-dot {
-      border-color: var(--red);
-      background: var(--red);
-    }
-    .step.skipped .step-dot {
-      border-color: var(--text-muted);
-      background: var(--text-muted);
-    }
-
-    @keyframes dotPulse {
-      0%, 100% { box-shadow: 0 0 0 0 var(--blue-glow); }
-      50% { box-shadow: 0 0 0 8px rgba(96,165,250,0); }
-    }
-
-    .step-card {
-      flex: 1;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 20px;
-      transition: border-color 0.3s, box-shadow 0.3s;
-    }
-    .step.active .step-card {
-      border-color: rgba(96,165,250,0.2);
-      box-shadow: 0 0 24px var(--blue-glow);
-    }
-    .step.awaiting .step-card {
-      border-color: rgba(240,180,41,0.2);
-      box-shadow: 0 0 24px var(--amber-glow);
-    }
-
-    .step-card-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .step-badge {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      font-weight: 500;
-      padding: 3px 8px;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.05);
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .step-title {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .step-status {
-      margin-left: auto;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 20px;
-      letter-spacing: 0.3px;
-    }
-    .step-status.success { background: rgba(44,155,66,0.1); color: var(--forest-light); }
-    .step-status.error { background: var(--red-glow); color: var(--red); }
-    .step-status.awaiting-input { background: var(--amber-glow); color: var(--amber); }
-    .step-status.loading { background: var(--blue-glow); color: var(--blue); }
-    .step-status.skipped { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-
-    .step-prompt {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-top: 8px;
-      line-height: 1.5;
-    }
-
-    .step-data {
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--text-secondary);
-      background: var(--bg-input);
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-top: 12px;
-      line-height: 1.6;
-      max-height: 140px;
-      overflow-y: auto;
-    }
-
-    .step-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    /* ── Progress bar ──────────────────────── */
-    .progress-bar {
-      margin-bottom: 32px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .progress-track {
-      flex: 1;
-      height: 4px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--forest), var(--forest-light));
-      border-radius: 2px;
-      transition: width 0.6s ease;
-    }
-    .progress-label {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 500;
-      min-width: 40px;
-      text-align: right;
-    }
-
-    /* ── Footer log ─────────────────────────── */
-    .footer {
+    body::after {
+      content: '';
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-      padding: 6px 24px;
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      z-index: 20;
+      top: -50%;
+      left: -20%;
+      width: 80vw;
+      height: 80vw;
+      background: radial-gradient(circle, rgba(44,155,66,0.03) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
     }
 
-    /* ── Empty state ─────────────────────────── */
-    .empty {
-      text-align: center;
-      padding: 80px 20px;
+    /* ── Topbar ── */
+    .topbar {
+      position: sticky; top:0; z-index:30;
+      background: rgba(8,11,17,0.88);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px;
+      display: flex; align-items: center; gap: 12px;
     }
-    .empty .icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      opacity: 0.3;
+    .topbar .logo {
+      width:28px; height:28px; background:var(--forest);
+      border-radius:7px; display:grid; place-items:center;
+      font-weight:700; font-size:13px; color:#fff;
     }
-    .empty p {
-      color: var(--text-muted);
-      font-size: 14px;
+    .topbar h1 { font-size:14px; font-weight:600; }
+    .topbar h1 b { color:var(--forest-light); }
+    .topbar .sep { flex:1; }
+    .topbar .dot { width:6px;height:6px;border-radius:50%; }
+    .topbar .dot.ok { background:var(--forest); box-shadow:0 0 6px var(--forest-glow); }
+    .topbar .dot.err { background:var(--red); }
+    .topbar .dot.idle { background:var(--muted); }
+
+    /* ── Main ── */
+    .main { max-width:780px; margin:0 auto; padding:36px 20px 140px; position:relative; z-index:1; }
+
+    /* ── Header ── */
+    .header { display:flex; align-items:center; gap:18px; margin-bottom:28px; }
+    .header .icon {
+      width:52px;height:52px;border-radius:16px;
+      background:linear-gradient(135deg, var(--forest), #1B7A30);
+      display:grid;place-items:center;font-size:24px;
+      box-shadow: 0 6px 28px var(--forest-glow);
+    }
+    .header .meta h2 { font-size:22px; font-weight:700; letter-spacing:-0.4px; }
+    .header .meta p { font-size:13px; color:var(--dim); margin-top:2px; }
+    .header .actions { margin-left:auto; display:flex; gap:8px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display:inline-flex;align-items:center;gap:6px;
+      padding:9px 18px;border:none;border-radius:8px;
+      font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all .12s;
+    }
+    .btn:active { transform:scale(.97); }
+    .btn-go { background:var(--forest); color:#fff; }
+    .btn-go:hover { background:var(--forest-light); box-shadow:0 4px 16px var(--forest-glow); }
+    .btn-go:disabled { opacity:.35; cursor:not-allowed; }
+    .btn-ghost { background:rgba(255,255,255,.04); color:var(--dim); border:1px solid var(--border); }
+    .btn-ghost:hover { background:rgba(255,255,255,.08); color:var(--text); }
+    .btn-yes { background:rgba(44,155,66,.1); color:var(--forest-light); border:1px solid rgba(44,155,66,.2); }
+    .btn-yes:hover { background:rgba(44,155,66,.18); }
+    .btn-no { background:rgba(240,96,80,.08); color:var(--red); border:1px solid rgba(240,96,80,.15); }
+    .btn-no:hover { background:rgba(240,96,80,.16); }
+
+    /* ── Progress ── */
+    .progress { display:flex; align-items:center; gap:10px; margin-bottom:32px; }
+    .ptrack { flex:1; height:3px; background:rgba(255,255,255,.04); border-radius:2px; overflow:hidden; }
+    .pfill { height:100%; background:linear-gradient(90deg,var(--forest),var(--forest-light)); border-radius:2px; transition:width .8s cubic-bezier(.4,0,.2,1); }
+    .plabel { font-size:12px; color:var(--muted); font-weight:500; font-family:'DM Mono',monospace; min-width:32px; text-align:right; }
+
+    /* ── Pipeline ── */
+    .pipeline { display:flex; flex-direction:column; }
+
+    .wire { width:2px; height:24px; margin-left:23px; background:var(--border); transition:background .6s; }
+    .wire.lit { background:linear-gradient(to bottom,var(--forest),var(--forest) 60%,var(--border)); }
+    .wire.done { background:var(--forest); }
+
+    /* ── Card ── */
+    .card-wrap { display:flex; gap:14px; align-items:flex-start; }
+
+    .node {
+      width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:19px;
+      border:2.5px solid var(--muted);
+      transition:all .4s;
+      position:relative;
+    }
+    .card-wrap.done .node { border-color:var(--forest); background:var(--forest); }
+    .card-wrap.done .node::after {
+      content:'✓'; position:absolute; inset:-2.5px; display:grid; place-items:center;
+      font-size:9px; color:#fff; font-weight:700;
+    }
+    .card-wrap.running .node { border-color:var(--blue); animation:nPulse 1.6s infinite; }
+    .card-wrap.waiting .node { border-color:var(--amber); background:var(--amber); }
+    .card-wrap.err .node { border-color:var(--red); background:var(--red); }
+    .card-wrap.skip .node { border-color:var(--muted); background:var(--muted); }
+
+    @keyframes nPulse {
+      0%,100%{box-shadow:0 0 0 0 rgba(91,163,245,.35)}
+      50%{box-shadow:0 0 0 7px rgba(91,163,245,0)}
     }
 
-    /* ── Completion banner ───────────────────── */
-    .completion {
-      background: linear-gradient(135deg, rgba(44,155,66,0.08), rgba(44,155,66,0.02));
-      border: 1px solid rgba(44,155,66,0.15);
-      border-radius: 12px;
-      padding: 24px;
-      text-align: center;
-      margin-top: 24px;
-      animation: fadeIn 0.5s ease;
+    .card {
+      flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;
+      padding:16px 20px;
+      opacity:.25;transform:translateY(6px);
+      transition:opacity .5s,transform .5s,border-color .4s,box-shadow .4s;
     }
-    .completion .icon { font-size: 36px; margin-bottom: 8px; }
-    .completion h3 { font-size: 16px; color: var(--forest-light); }
-    .completion p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+    .card-wrap.done .card,
+    .card-wrap.running .card,
+    .card-wrap.waiting .card,
+    .card-wrap.err .card,
+    .card-wrap.skip .card,
+    .card-wrap.next .card {
+      opacity:1;transform:translateY(0);
+    }
+    .card-wrap.running .card { border-color:rgba(91,163,245,.15); box-shadow:0 0 30px var(--blue-glow); }
+    .card-wrap.waiting .card { border-color:rgba(245,183,49,.15); box-shadow:0 0 30px var(--amber-glow); }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    .card-top { display:flex; align-items:center; gap:10px; }
+    .badge {
+      font-family:'DM Mono',monospace;font-size:10px;font-weight:500;
+      padding:3px 8px;border-radius:4px;
+      background:rgba(255,255,255,.04);color:var(--dim);
+      text-transform:uppercase;letter-spacing:.5px;
+    }
+    .card-title { font-size:14px; font-weight:600; }
+    .tag {
+      margin-left:auto;font-size:10px;font-weight:600;padding:3px 10px;
+      border-radius:20px;letter-spacing:.3px;text-transform:uppercase;
+    }
+    .tag.success { background:rgba(44,155,66,.1); color:var(--forest-light); }
+    .tag.error { background:rgba(240,96,80,.1); color:var(--red); }
+    .tag.wait { background:var(--amber-glow); color:var(--amber); }
+    .tag.run { background:var(--blue-glow); color:var(--blue); }
+    .tag.skip { background:rgba(255,255,255,.04); color:var(--muted); }
+
+    .card-prompt { font-size:13px; color:var(--dim); margin-top:6px; line-height:1.5; }
+
+    .card-data {
+      font-family:'DM Mono',monospace;font-size:11px;color:var(--dim);
+      background:rgba(0,0,0,.25);border-radius:8px;padding:10px 12px;margin-top:10px;
+      line-height:1.6;max-height:120px;overflow-y:auto;
+      animation:dataIn .4s ease;
+    }
+    @keyframes dataIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+    .card-actions { display:flex; gap:8px; margin-top:12px; animation:dataIn .3s ease; }
+
+    /* ── Completion ── */
+    .done-banner {
+      text-align:center;padding:28px;margin-top:20px;
+      background:linear-gradient(135deg,rgba(44,155,66,.06),rgba(44,155,66,.01));
+      border:1px solid rgba(44,155,66,.1);border-radius:14px;
+      animation:bannerIn .6s ease;
+    }
+    .done-banner .big { font-size:40px; margin-bottom:8px; }
+    .done-banner h3 { font-size:17px; color:var(--forest-light); font-weight:700; }
+    .done-banner p { font-size:13px; color:var(--dim); margin-top:4px; }
+    @keyframes bannerIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+
+    /* ── Confetti ── */
+    .confetti {
+      position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;
+    }
+    .confetti span {
+      position:absolute;width:6px;height:6px;border-radius:1px;
+      animation:fall 2.5s ease-out forwards;
+      opacity:0;
+    }
+    @keyframes fall {
+      0% { transform:translateY(-20px) rotate(0deg); opacity:1; }
+      100% { transform:translateY(100vh) rotate(720deg); opacity:0; }
+    }
+
+    /* ── Footer ── */
+    .footer {
+      position:fixed;bottom:0;left:0;right:0;z-index:30;
+      background:var(--surface);border-top:1px solid var(--border);
+      padding:5px 20px;
+      font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);
+      display:flex;align-items:center;gap:8px;
     }
   </style>
 </head>
 <body>
 
-  <div class="topbar">
-    <div class="logo">F</div>
-    <h1>Workflow <span>Executor</span></h1>
-    <div class="spacer"></div>
-    <input type="text" id="tokenInput" placeholder="Bearer token" />
-    <div class="dot idle" id="dot"></div>
-  </div>
+<div class="topbar">
+  <div class="logo">F</div>
+  <h1>Workflow <b>Executor</b></h1>
+  <div class="sep"></div>
+  <div class="dot idle" id="dot"></div>
+</div>
 
-  <div class="main">
-    <div class="wf-header">
-      <div class="wf-icon">⚡</div>
-      <div class="wf-meta">
-        <h2>Customer Onboarding</h2>
-        <p>Run <code style="color:var(--forest-light)">demo-1</code> — 3 steps</p>
-      </div>
-      <div class="wf-actions">
-        <button class="btn btn-ghost" onclick="resetWorkflow()">↻ Reset</button>
-        <button class="btn btn-primary" id="triggerBtn" onclick="triggerNext()">▶ Start workflow</button>
-      </div>
+<div class="main">
+  <div class="header">
+    <div class="icon">⚡</div>
+    <div class="meta">
+      <h2>Customer Onboarding</h2>
+      <p>Jane Doe — jane.doe@acme.com</p>
     </div>
-
-    <div class="progress-bar">
-      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-      <div class="progress-label" id="progressLabel">0/3</div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="location.reload()">↻ Reset</button>
+      <button class="btn btn-go" id="goBtn" onclick="triggerNext()">▶ Start</button>
     </div>
-
-    <div id="pipelineContainer"></div>
   </div>
 
-  <div class="footer">
-    <span style="color:var(--forest)">●</span>
-    <span id="logMsg">Ready — click Start to begin</span>
+  <div class="progress">
+    <div class="ptrack"><div class="pfill" id="pf" style="width:0%"></div></div>
+    <div class="plabel" id="pl">0 / 5</div>
   </div>
 
-  <script>
-    const BASE = 'http://localhost:3100';
-    const RUN = 'demo-1';
-    let polling = null;
-    let lastJson = '';
-    let isRunning = false;
+  <div class="pipeline" id="pipe"></div>
+</div>
 
-    const STEP_META = {
-      'read-record':    { icon: '📖', label: 'Read Record',    prompt: 'Read the customer email and name' },
-      'update-record':  { icon: '✏️', label: 'Update Record',  prompt: 'Update the customer status to active' },
-      'trigger-action': { icon: '📧', label: 'Trigger Action', prompt: 'Send the welcome email' },
-      'condition':      { icon: '🔀', label: 'Condition',      prompt: '' },
-      'load-related-record': { icon: '🔗', label: 'Load Related', prompt: '' },
-      'mcp-task':       { icon: '🤖', label: 'MCP Task',       prompt: '' },
-    };
+<div class="footer">
+  <span style="color:var(--forest)">●</span>
+  <span id="log">Ready</span>
+</div>
 
-    // Pre-define the 3 expected steps for the visual pipeline
-    const EXPECTED_STEPS = [
-      { type: 'read-record', stepIndex: 0 },
-      { type: 'update-record', stepIndex: 1 },
-      { type: 'trigger-action', stepIndex: 2 },
-    ];
+<script>
+const BASE = 'http://localhost:3100';
+const RUN = 'demo-1';
+const TOKEN = '__DEMO_TOKEN__';
+let poll = null;
+let lastJson = '';
+let autoTriggerTimer = null;
 
-    function log(msg) {
-      document.getElementById('logMsg').textContent = `${new Date().toLocaleTimeString()} — ${msg}`;
+const STEPS = [
+  { type:'read-record',         icon:'📖', title:'Read Customer Info',     prompt:'Read the customer name, email, and company' },
+  { type:'condition',           icon:'🔀', title:'Check CGV Acceptance',   prompt:'Has the customer accepted the terms and conditions?' },
+  { type:'update-record',       icon:'✏️', title:'Activate Customer',      prompt:'Set customer status to active' },
+  { type:'trigger-action',      icon:'📧', title:'Send Welcome Email',     prompt:'Send the welcome email to the customer' },
+  { type:'load-related-record', icon:'🔗', title:'Load First Order',       prompt:'Load the customer\'s first order' },
+];
+
+function log(m) { document.getElementById('log').textContent = new Date().toLocaleTimeString() + ' — ' + m; }
+
+function hdrs() { return { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }; }
+
+async function triggerNext(pd) {
+  const body = pd ? { pendingData: pd } : undefined;
+  log('POST /trigger' + (pd ? ' + pendingData' : ''));
+  document.getElementById('goBtn').disabled = true;
+  try {
+    const r = await fetch(BASE+'/runs/'+RUN+'/trigger', { method:'POST', headers:hdrs(), body:body?JSON.stringify(body):undefined });
+    const d = await r.json().catch(()=>({}));
+    log('← ' + r.status);
+    if (!poll) { poll = setInterval(fetchSteps, 800); }
+    setTimeout(fetchSteps, 150);
+  } catch(e) { log('✕ ' + e.message); }
+  document.getElementById('goBtn').disabled = false;
+}
+
+async function fetchSteps() {
+  try {
+    const r = await fetch(BASE+'/runs/'+RUN, { headers:hdrs() });
+    const d = await r.json();
+    document.getElementById('dot').className = 'dot ok';
+    const j = JSON.stringify(d.steps);
+    if (j === lastJson) return;
+    lastJson = j;
+    render(d.steps || []);
+  } catch { document.getElementById('dot').className = 'dot err'; }
+}
+
+function render(steps) {
+  const map = {};
+  steps.forEach(s => { map[s.stepIndex] = s; });
+
+  let done = 0;
+  let hasWait = false;
+  let allDone = true;
+
+  STEPS.forEach((_, i) => {
+    const s = map[i];
+    if (s?.executionResult) done++;
+    else allDone = false;
+    if (s?.pendingData && s.pendingData.userConfirmed === undefined) hasWait = true;
+  });
+
+  const pct = Math.round(done / STEPS.length * 100);
+  document.getElementById('pf').style.width = pct + '%';
+  document.getElementById('pl').textContent = done + ' / ' + STEPS.length;
+
+  const btn = document.getElementById('goBtn');
+  if (done === 0 && !steps.length) { btn.textContent = '▶ Start'; btn.disabled = false; }
+  else if (allDone) { btn.textContent = '✓ Done'; btn.disabled = true; }
+  else if (hasWait) { btn.textContent = '⏳ Waiting'; btn.disabled = true; }
+  else { btn.textContent = '▶ Next step'; btn.disabled = false; }
+
+  let h = '';
+  STEPS.forEach((def, i) => {
+    const s = map[i];
+    const st = state(s, i, done, steps.length > 0);
+
+    if (i > 0) h += '<div class="wire ' + (i <= done ? 'done' : (i === done + 1 ? 'lit' : '')) + '"></div>';
+
+    h += '<div class="card-wrap ' + st.cls + '">';
+    h += '  <div class="node"></div>';
+    h += '  <div class="card">';
+    h += '    <div class="card-top">';
+    h += '      <span class="badge">' + def.icon + ' ' + def.type + '</span>';
+    h += '      <span class="card-title">' + def.title + '</span>';
+    if (st.tag) h += '      <span class="tag ' + st.tagCls + '">' + st.tag + '</span>';
+    h += '    </div>';
+    h += '    <div class="card-prompt">' + def.prompt + '</div>';
+
+    if (s?.pendingData) h += '<div class="card-data">' + hl(s.pendingData) + '</div>';
+    if (s?.executionResult) h += '<div class="card-data">' + hl(s.executionResult) + '</div>';
+
+    if (st.actions) {
+      h += '<div class="card-actions">';
+      h += '  <button class="btn btn-yes" onclick="triggerNext({userConfirmed:true})">✓ Confirm</button>';
+      h += '  <button class="btn btn-no" onclick="triggerNext({userConfirmed:false})">✕ Skip</button>';
+      h += '</div>';
     }
 
-    function token() {
-      return document.getElementById('tokenInput').value.trim() || 'demo';
-    }
+    h += '  </div>';
+    h += '</div>';
+  });
 
-    function hdrs() {
-      return { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' };
-    }
+  if (allDone && done === STEPS.length) {
+    h += '<div class="done-banner"><div class="big">🎉</div><h3>Workflow completed!</h3><p>Customer Jane Doe has been onboarded successfully.</p></div>';
+    confetti();
+  }
 
-    async function triggerNext(pendingData) {
-      const body = pendingData ? { pendingData } : undefined;
-      log(`POST /runs/${RUN}/trigger` + (pendingData ? ` + pendingData` : ''));
-      document.getElementById('triggerBtn').disabled = true;
+  document.getElementById('pipe').innerHTML = h;
 
-      try {
-        const r = await fetch(`${BASE}/runs/${RUN}/trigger`, {
-          method: 'POST', headers: hdrs(),
-          body: body ? JSON.stringify(body) : undefined,
-        });
-        const d = await r.json().catch(() => ({}));
-        log(`← ${r.status} ${JSON.stringify(d)}`);
-        if (!isRunning) { isRunning = true; startPolling(); }
-        setTimeout(fetchSteps, 200);
-      } catch (e) {
-        log(`✕ ${e.message}`);
-      }
-
-      document.getElementById('triggerBtn').disabled = false;
-    }
-
-    function startPolling() {
-      if (polling) return;
-      polling = setInterval(fetchSteps, 1000);
-    }
-
-    async function fetchSteps() {
-      try {
-        const r = await fetch(`${BASE}/runs/${RUN}`, { headers: hdrs() });
-        const d = await r.json();
-        document.getElementById('dot').className = 'dot ok';
-
-        const json = JSON.stringify(d.steps);
-        if (json === lastJson) return;
-        lastJson = json;
-        render(d.steps || []);
-      } catch {
-        document.getElementById('dot').className = 'dot err';
-      }
-    }
-
-    function render(steps) {
-      const container = document.getElementById('pipelineContainer');
-      const stepsMap = {};
-      steps.forEach(s => { stepsMap[s.stepIndex] = s; });
-
-      // Count completed
-      let completed = 0;
-      let hasAwaiting = false;
-      EXPECTED_STEPS.forEach(es => {
-        const s = stepsMap[es.stepIndex];
-        if (s?.executionResult) completed++;
-        if (s?.pendingData && s.pendingData.userConfirmed === undefined) hasAwaiting = true;
-      });
-
-      const pct = Math.round((completed / EXPECTED_STEPS.length) * 100);
-      document.getElementById('progressFill').style.width = pct + '%';
-      document.getElementById('progressLabel').textContent = `${completed}/${EXPECTED_STEPS.length}`;
-
-      // Update trigger button text
-      const btn = document.getElementById('triggerBtn');
-      if (completed === 0 && !steps.length) {
-        btn.textContent = '▶ Start workflow';
-      } else if (completed < EXPECTED_STEPS.length) {
-        btn.textContent = '▶ Trigger next';
-      } else {
-        btn.textContent = '✓ Complete';
-        btn.disabled = true;
-      }
-
-      let html = '';
-      EXPECTED_STEPS.forEach((es, i) => {
-        const s = stepsMap[es.stepIndex];
-        const meta = STEP_META[es.type] || { icon: '?', label: es.type, prompt: '' };
-        const state = getState(s, i, completed);
-
-        if (i > 0) {
-          html += `<div class="connector ${i <= completed ? 'done' : ''}"></div>`;
+  // Auto-trigger next step if current step just completed and next doesn't need confirmation
+  if (!allDone && !hasWait && steps.length > 0) {
+    clearTimeout(autoTriggerTimer);
+    autoTriggerTimer = setTimeout(() => {
+      const nextIdx = done;
+      if (nextIdx < STEPS.length) {
+        const nextType = STEPS[nextIdx].type;
+        // Auto-trigger only if the step is not already in the data
+        if (!map[nextIdx]) {
+          triggerNext();
         }
-
-        html += `<div class="step ${state.cls}">`;
-        html += `  <div class="step-dot"></div>`;
-        html += `  <div class="step-card">`;
-        html += `    <div class="step-card-header">`;
-        html += `      <span class="step-badge">${meta.icon} ${meta.label}</span>`;
-        html += `      <span class="step-title">Step ${es.stepIndex}</span>`;
-        if (state.status) {
-          html += `    <span class="step-status ${state.statusCls}">${state.status}</span>`;
-        }
-        html += `    </div>`;
-        html += `    <div class="step-prompt">${meta.prompt}</div>`;
-
-        if (s?.pendingData) {
-          html += `<div class="step-data">${highlight(s.pendingData)}</div>`;
-        }
-        if (s?.executionResult) {
-          html += `<div class="step-data">${highlight(s.executionResult)}</div>`;
-        }
-
-        if (state.showActions) {
-          html += `<div class="step-actions">`;
-          html += `  <button class="btn btn-confirm" onclick="triggerNext({userConfirmed:true})">✓ Confirm</button>`;
-          html += `  <button class="btn btn-reject" onclick="triggerNext({userConfirmed:false})">✕ Reject</button>`;
-          html += `</div>`;
-        }
-
-        html += `  </div>`;
-        html += `</div>`;
-      });
-
-      if (completed === EXPECTED_STEPS.length) {
-        html += `<div class="completion"><div class="icon">🎉</div><h3>Workflow completed!</h3><p>All 3 steps executed successfully.</p></div>`;
       }
+    }, 600);
+  }
+}
 
-      container.innerHTML = html;
-    }
+function state(s, i, done, started) {
+  if (!s) {
+    if (!started) return { cls:'', tag:null };
+    if (i === done) return { cls:'next', tag:'next', tagCls:'run' };
+    return { cls:'', tag:null };
+  }
+  if (s.executionResult?.skipped) return { cls:'skip', tag:'skipped', tagCls:'skip' };
+  if (s.executionResult) return { cls:'done', tag:'success', tagCls:'success' };
+  if (s.pendingData?.userConfirmed !== undefined) return { cls:'running', tag:'executing...', tagCls:'run' };
+  if (s.pendingData) return { cls:'waiting', tag:'awaiting input', tagCls:'wait', actions:true };
+  return { cls:'running', tag:'running...', tagCls:'run' };
+}
 
-    function getState(step, index, completed) {
-      if (!step) {
-        if (index === completed) return { cls: 'active', status: 'pending', statusCls: 'loading' };
-        return { cls: '', status: null, statusCls: '' };
-      }
+function hl(o) {
+  return JSON.stringify(o,null,2)
+    .replace(/(".*?"):/g,'<span style="color:#7DD3FC">$1</span>:')
+    .replace(/: (".*?")/g,': <span style="color:#86EFAC">$1</span>')
+    .replace(/: (\d+\.?\d*)/g,': <span style="color:#FDE68A">$1</span>')
+    .replace(/: (true|false)/g,': <span style="color:#C4B5FD">$1</span>');
+}
 
-      if (step.executionResult?.skipped) {
-        return { cls: 'skipped done', status: 'skipped', statusCls: 'skipped' };
-      }
-      if (step.executionResult) {
-        return { cls: 'done', status: 'success', statusCls: 'success' };
-      }
-      if (step.pendingData?.userConfirmed !== undefined) {
-        return { cls: 'active', status: 'loading...', statusCls: 'loading' };
-      }
-      if (step.pendingData) {
-        return { cls: 'awaiting', status: 'awaiting input', statusCls: 'awaiting-input', showActions: true };
-      }
-
-      return { cls: 'active', status: 'running', statusCls: 'loading' };
-    }
-
-    function highlight(obj) {
-      return JSON.stringify(obj, null, 2)
-        .replace(/(".*?"):/g, '<span style="color:#7DD3FC">$1</span>:')
-        .replace(/: (".*?")/g, ': <span style="color:#86EFAC">$1</span>')
-        .replace(/: (\d+)/g, ': <span style="color:#FDE68A">$1</span>')
-        .replace(/: (true|false)/g, ': <span style="color:#C4B5FD">$1</span>');
-    }
-
-    function resetWorkflow() {
-      // Just reload — the server will need to be restarted too
-      location.reload();
-    }
-
-    // Initial render
-    render([]);
-  </script>
+function confetti() {
+  const c = document.createElement('div');
+  c.className = 'confetti';
+  const colors = ['#2C9B42','#3BD458','#F5B731','#5BA3F5','#fff'];
+  for (let i=0;i<60;i++) {
+    const s = document.createElement('span');
+    s.style.left = Math.random()*100+'%';
+    s.style.background = colors[Math.floor(Math.random()*colors.length)];
+    s.style.animationDelay = Math.random()*1.5+'s';
+    s.style.animationDuration = (2+Math.random()*2)+'s';
+    s.style.width = (4+Math.random()*4)+'px';
+    s.style.height = (4+Math.random()*4)+'px';
+    s.style.transform = 'rotate('+Math.random()*360+'deg)';
+    c.appendChild(s);
+  }
+  document.body.appendChild(c);
+  setTimeout(()=>c.remove(), 5000);
+}
+</script>
 </body>
 </html>
