@@ -5,9 +5,11 @@ const DEFAULT_TTL_MS = 10 * 60 * 1000; // 10 minutes
 export default class SchemaCache {
   private readonly store = new Map<string, { schema: CollectionSchema; fetchedAt: number }>();
   private readonly ttlMs: number;
+  private readonly now: () => number;
 
-  constructor(ttlMs: number = DEFAULT_TTL_MS) {
+  constructor(ttlMs: number = DEFAULT_TTL_MS, now: () => number = Date.now) {
     this.ttlMs = ttlMs;
+    this.now = now;
   }
 
   get(collectionName: string): CollectionSchema | undefined {
@@ -15,7 +17,7 @@ export default class SchemaCache {
 
     if (!entry) return undefined;
 
-    if (Date.now() - entry.fetchedAt > this.ttlMs) {
+    if (this.now() - entry.fetchedAt > this.ttlMs) {
       this.store.delete(collectionName);
 
       return undefined;
@@ -25,16 +27,18 @@ export default class SchemaCache {
   }
 
   set(collectionName: string, schema: CollectionSchema): void {
-    this.store.set(collectionName, { schema, fetchedAt: Date.now() });
+    this.store.set(collectionName, { schema, fetchedAt: this.now() });
   }
 
-  /** Iterates over non-expired entries. */
+  /** Iterates over non-expired entries, removing stale ones. */
   *[Symbol.iterator](): IterableIterator<[string, CollectionSchema]> {
-    const now = Date.now();
+    const now = this.now();
 
     for (const [key, entry] of this.store) {
       if (now - entry.fetchedAt <= this.ttlMs) {
         yield [key, entry.schema];
+      } else {
+        this.store.delete(key);
       }
     }
   }
