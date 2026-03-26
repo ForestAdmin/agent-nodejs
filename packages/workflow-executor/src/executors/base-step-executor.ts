@@ -35,8 +35,27 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   async execute(): Promise<StepExecutionResult> {
+    const { runId, stepId, stepIndex, stepDefinition, baseRecordRef } = this.context;
+
+    this.context.logger.info('Step execution started', {
+      runId,
+      stepId,
+      stepIndex,
+      stepType: stepDefinition.type,
+      collection: baseRecordRef.collectionName,
+    });
+
     try {
-      return await this.doExecute();
+      const result = await this.doExecute();
+
+      this.context.logger.info('Step execution completed', {
+        runId,
+        stepId,
+        stepIndex,
+        status: result.stepOutcome.status,
+      });
+
+      return result;
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         if (error.cause !== undefined) {

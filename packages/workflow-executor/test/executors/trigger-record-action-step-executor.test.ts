@@ -128,7 +128,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { error: jest.fn() },
+    logger: { info: jest.fn(), error: jest.fn() },
     ...overrides,
   };
 }
@@ -518,7 +518,7 @@ describe('TriggerRecordActionStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.executeAction throws an infra error', async () => {
-      const logger = { error: jest.fn() };
+      const logger = { info: jest.fn(), error: jest.fn() };
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
       const mockModel = makeMockModel({

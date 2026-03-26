@@ -69,7 +69,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { error: jest.fn() },
+    logger: { info: jest.fn(), error: jest.fn() },
     ...overrides,
   };
 }

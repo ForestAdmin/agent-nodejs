@@ -87,7 +87,7 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 }
 
 function makeMockLogger(): Logger {
-  return { error: jest.fn() };
+  return { info: jest.fn(), error: jest.fn() };
 }
 
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
