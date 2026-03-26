@@ -7,6 +7,7 @@ import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-execution-data';
 
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
@@ -126,6 +127,18 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,
@@ -167,12 +180,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        relation: 'order',
-        limit: 1,
-      });
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], relation: 'order', limit: 1 },
+        expect.objectContaining({ id: 1 }),
+      );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -274,12 +285,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(bindTools.mock.calls[2][0][0].name).toBe('select-record-by-content');
 
       // Fetches 50 candidates (HasMany)
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        relation: 'address',
-        limit: 50,
-      });
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], relation: 'address', limit: 50 },
+        expect.objectContaining({ id: 1 }),
+      );
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -553,12 +562,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       // HasOne uses the same fetchFirstCandidate path as BelongsTo — limit: 1
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        relation: 'profile',
-        limit: 1,
-      });
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], relation: 'profile', limit: 1 },
+        expect.objectContaining({ id: 1 }),
+      );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -581,12 +588,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        relation: 'order',
-        limit: 50,
-      });
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], relation: 'order', limit: 50 },
+        expect.objectContaining({ id: 1 }),
+      );
       // Single record → only select-relation AI call
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -1564,12 +1569,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        relation: 'order',
-        limit: 1,
-      });
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], relation: 'order', limit: 1 },
+        expect.objectContaining({ id: 1 }),
+      );
     });
   });
 

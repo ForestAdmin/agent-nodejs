@@ -2,6 +2,7 @@ import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
+import type SchemaCache from '../schema-cache';
 import type {
   ExecutionContext,
   IStepExecutor,
@@ -30,6 +31,7 @@ export interface StepContextConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
+  schemaCache: SchemaCache;
   logger: Logger;
 }
 
@@ -103,6 +105,7 @@ export default class StepExecutorFactory {
       agentPort: cfg.agentPort,
       workflowPort: cfg.workflowPort,
       runStore: cfg.runStore,
+      schemaCache: cfg.schemaCache,
       logger: cfg.logger,
     };
   }

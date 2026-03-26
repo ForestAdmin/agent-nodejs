@@ -171,12 +171,15 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
   ): Promise<{ relatedData: RecordData[]; bestIndex: number; suggestedFields: string[] }> {
     const { selectedRecordRef, name } = target;
 
-    const relatedData = await this.agentPort.getRelatedData({
-      collection: selectedRecordRef.collectionName,
-      id: selectedRecordRef.recordId,
-      relation: name,
-      limit,
-    });
+    const relatedData = await this.agentPort.getRelatedData(
+      {
+        collection: selectedRecordRef.collectionName,
+        id: selectedRecordRef.recordId,
+        relation: name,
+        limit,
+      },
+      this.context.user,
+    );
 
     if (relatedData.length === 0) {
       throw new RelatedRecordNotFoundError(selectedRecordRef.collectionName, name);
@@ -223,12 +226,15 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
     limit: number,
   ): Promise<RecordRef[]> {
     const { selectedRecordRef, name } = target;
-    const relatedData = await this.agentPort.getRelatedData({
-      collection: selectedRecordRef.collectionName,
-      id: selectedRecordRef.recordId,
-      relation: name,
-      limit,
-    });
+    const relatedData = await this.agentPort.getRelatedData(
+      {
+        collection: selectedRecordRef.collectionName,
+        id: selectedRecordRef.recordId,
+        relation: name,
+        limit,
+      },
+      this.context.user,
+    );
 
     if (relatedData.length === 0) {
       throw new RelatedRecordNotFoundError(selectedRecordRef.collectionName, name);

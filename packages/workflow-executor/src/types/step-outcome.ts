@@ -4,14 +4,11 @@ import { StepType } from './step-definition';
 
 export type BaseStepStatus = 'success' | 'error';
 
-/** Condition steps can fall back to human decision when the AI is uncertain. */
-export type ConditionStepStatus = BaseStepStatus | 'manual-decision';
-
 /** AI task steps can pause mid-execution to await user input (e.g. awaiting-input). */
 export type RecordTaskStepStatus = BaseStepStatus | 'awaiting-input';
 
 /** Union of all step statuses. */
-export type StepStatus = ConditionStepStatus | RecordTaskStepStatus;
+export type StepStatus = BaseStepStatus | RecordTaskStepStatus;
 
 /**
  * StepOutcome is sent to the orchestrator — it must NEVER contain client data.
@@ -27,7 +24,7 @@ interface BaseStepOutcome {
 
 export interface ConditionStepOutcome extends BaseStepOutcome {
   type: 'condition';
-  status: ConditionStepStatus;
+  status: BaseStepStatus;
   /** Present when status is 'success'. */
   selectedOption?: string;
 }

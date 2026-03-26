@@ -7,6 +7,7 @@ import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
 
 import { NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
+import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
@@ -115,6 +116,18 @@ function makeContext(
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    },
+    schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: { error: jest.fn() },
     ...overrides,
@@ -208,11 +221,10 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        fields: ['name', 'email'],
-      });
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['name', 'email'] },
+        expect.objectContaining({ id: 1 }),
+      );
     });
 
     it('passes only resolved field names when some fields are unresolved', async () => {
@@ -224,11 +236,10 @@ describe('ReadRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(agentPort.getRecord).toHaveBeenCalledWith({
-        collection: 'customers',
-        id: [42],
-        fields: ['email'],
-      });
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['email'] },
+        expect.objectContaining({ id: 1 }),
+      );
     });
 
     it('returns error when no fields can be resolved', async () => {
