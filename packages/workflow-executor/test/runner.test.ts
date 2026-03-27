@@ -22,14 +22,9 @@ import ReadRecordStepExecutor from '../src/executors/read-record-step-executor';
 import StepExecutorFactory from '../src/executors/step-executor-factory';
 import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
-import ExecutorHttpServer from '../src/http/executor-http-server';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
 import { StepType } from '../src/types/step-definition';
-
-jest.mock('../src/http/executor-http-server');
-
-const MockedExecutorHttpServer = ExecutorHttpServer as jest.MockedClass<typeof ExecutorHttpServer>;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -85,7 +80,6 @@ function createRunnerConfig(
     runStore: RunStore;
     aiClient: AiClient;
     logger: Logger;
-    httpPort: number;
     envSecret: string;
     authSecret: string;
     schemaCache: SchemaCache;
@@ -169,9 +163,6 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.clearAllTimers();
 
-  MockedExecutorHttpServer.prototype.start = jest.fn().mockResolvedValue(undefined);
-  MockedExecutorHttpServer.prototype.stop = jest.fn().mockResolvedValue(undefined);
-
   executeSpy = jest.spyOn(BaseStepExecutor.prototype, 'execute').mockResolvedValue({
     stepOutcome: { type: 'record-task', stepId: 'step-1', stepIndex: 0, status: 'success' },
   });
@@ -188,47 +179,24 @@ afterEach(async () => {
 });
 
 // ---------------------------------------------------------------------------
-// HTTP server (existing tests, kept passing)
+// start
 // ---------------------------------------------------------------------------
 
 describe('start', () => {
-  it('should start the HTTP server when httpPort is configured', async () => {
-    const config = createRunnerConfig({ httpPort: 3100 });
-    runner = new Runner(config);
-
-    await runner.start();
-
-    expect(MockedExecutorHttpServer).toHaveBeenCalledWith({
-      port: 3100,
-      runner,
-      authSecret: VALID_AUTH_SECRET,
-      workflowPort: config.workflowPort,
-      logger: config.logger,
-    });
-    expect(MockedExecutorHttpServer.prototype.start).toHaveBeenCalled();
-  });
-
-  it('should not start the HTTP server when httpPort is not configured', async () => {
-    runner = new Runner(createRunnerConfig());
-
-    await runner.start();
-
-    expect(MockedExecutorHttpServer).not.toHaveBeenCalled();
-  });
-
-  it('should not create a second HTTP server if already started', async () => {
-    runner = new Runner(createRunnerConfig({ httpPort: 3100 }));
-
-    await runner.start();
-    await runner.start();
-
-    expect(MockedExecutorHttpServer).toHaveBeenCalledTimes(1);
-  });
-
   it('should call runStore.init() on start', async () => {
     const config = createRunnerConfig();
     runner = new Runner(config);
 
+    await runner.start();
+
+    expect(config.runStore.init).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not call runStore.init() twice if already started', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
+
+    await runner.start();
     await runner.start();
 
     expect(config.runStore.init).toHaveBeenCalledTimes(1);
@@ -250,15 +218,6 @@ describe('start', () => {
 });
 
 describe('stop', () => {
-  it('should stop the HTTP server when running', async () => {
-    runner = new Runner(createRunnerConfig({ httpPort: 3100 }));
-
-    await runner.start();
-    await runner.stop();
-
-    expect(MockedExecutorHttpServer.prototype.stop).toHaveBeenCalled();
-  });
-
   it('should call runStore.close() on stop', async () => {
     const config = createRunnerConfig();
     runner = new Runner(config);
@@ -269,20 +228,22 @@ describe('stop', () => {
     expect(config.runStore.close).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle stop when no HTTP server is running', async () => {
+  it('should no-op when called on an idle runner', async () => {
     runner = new Runner(createRunnerConfig());
 
     await expect(runner.stop()).resolves.toBeUndefined();
+    expect(runner.state).toBe('idle');
   });
 
-  it('should allow restarting after stop', async () => {
-    runner = new Runner(createRunnerConfig({ httpPort: 3100 }));
+  it('should no-op when called twice on a running runner', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
 
     await runner.start();
     await runner.stop();
-    await runner.start();
+    await runner.stop();
 
-    expect(MockedExecutorHttpServer).toHaveBeenCalledTimes(2);
+    expect(config.runStore.close).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -395,43 +356,6 @@ describe('graceful shutdown', () => {
     expect(runner.state).toBe('stopped');
   });
 
-  it('HTTP server is closed after drain completes', async () => {
-    let resolveStep!: () => void;
-    const stepPromise = new Promise<void>(resolve => {
-      resolveStep = resolve;
-    });
-
-    const workflowPort = createMockWorkflowPort();
-    workflowPort.getPendingStepExecutions.mockResolvedValueOnce([
-      makePendingStep({ runId: 'run-1', stepId: 'step-1' }),
-    ]);
-
-    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
-      execute: () =>
-        stepPromise.then(() => ({
-          stepOutcome: { type: 'condition', stepId: 'step-1', stepIndex: 0, status: 'success' },
-        })),
-    } as never);
-
-    runner = new Runner(createRunnerConfig({ workflowPort, httpPort: 3100 }));
-    await runner.start();
-
-    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
-    await flushPromises();
-
-    const stopPromise = runner.stop();
-    await flushPromises();
-
-    // HTTP server should NOT have been stopped yet (drain in progress)
-    expect(MockedExecutorHttpServer.prototype.stop).not.toHaveBeenCalled();
-
-    resolveStep();
-    await stopPromise;
-
-    // Now HTTP server should be stopped
-    expect(MockedExecutorHttpServer.prototype.stop).toHaveBeenCalled();
-  });
-
   it('logs drain info when steps are in flight', async () => {
     let resolveStep!: () => void;
     const stepPromise = new Promise<void>(resolve => {
@@ -465,37 +389,6 @@ describe('graceful shutdown', () => {
       steps: ['run-1:step-1'],
     });
     expect(logger.info).toHaveBeenCalledWith('All in-flight steps drained', {});
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Signal handlers (SIGTERM / SIGINT)
-// ---------------------------------------------------------------------------
-
-describe('signal handlers', () => {
-  it('registers SIGTERM and SIGINT handlers on start', async () => {
-    const onSpy = jest.spyOn(process, 'on');
-    runner = new Runner(createRunnerConfig());
-
-    await runner.start();
-
-    expect(onSpy).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
-    expect(onSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
-
-    onSpy.mockRestore();
-  });
-
-  it('removes signal handlers on stop', async () => {
-    const removeSpy = jest.spyOn(process, 'removeListener');
-    runner = new Runner(createRunnerConfig());
-
-    await runner.start();
-    await runner.stop();
-
-    expect(removeSpy).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
-    expect(removeSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
-
-    removeSpy.mockRestore();
   });
 });
 

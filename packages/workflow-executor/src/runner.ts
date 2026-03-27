@@ -17,7 +17,6 @@ import {
   causeMessage,
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
-import ExecutorHttpServer from './http/executor-http-server';
 import patchBodySchemas from './pending-data-validators';
 import validateSecrets from './validate-secrets';
 
@@ -33,7 +32,6 @@ export interface RunnerConfig {
   envSecret: string;
   authSecret: string;
   logger?: Logger;
-  httpPort?: number;
   stopTimeoutMs?: number;
 }
 
@@ -41,27 +39,11 @@ const DEFAULT_STOP_TIMEOUT_MS = 30_000;
 
 export default class Runner {
   private readonly config: RunnerConfig;
-  private httpServer: ExecutorHttpServer | null = null;
   private pollingTimer: NodeJS.Timeout | null = null;
   private readonly inFlightSteps = new Map<string, Promise<void>>();
   private isRunning = false;
-  private readonly logger: Logger;
+  readonly logger: Logger;
   private _state: RunnerState = 'idle';
-
-  private readonly shutdownHandler = async () => {
-    this.logger.info?.('Received shutdown signal, stopping gracefully...', {});
-
-    try {
-      await this.stop();
-    } catch (error) {
-      this.logger.error('Graceful shutdown failed', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      process.exit(1);
-    }
-
-    process.exit(0);
-  };
 
   private static stepKey(step: PendingStepExecution): string {
     return `${step.runId}:${step.stepId}`;
@@ -86,33 +68,18 @@ export default class Runner {
 
     try {
       await this.config.runStore.init(this.logger);
-
-      if (this.config.httpPort !== undefined && !this.httpServer) {
-        const server = new ExecutorHttpServer({
-          port: this.config.httpPort,
-          runner: this,
-          authSecret: this.config.authSecret,
-          workflowPort: this.config.workflowPort,
-          logger: this.logger,
-        });
-        await server.start();
-        this.httpServer = server;
-      }
     } catch (error) {
       this.isRunning = false;
       this._state = 'idle';
       throw error;
     }
 
-    process.on('SIGTERM', this.shutdownHandler);
-    process.on('SIGINT', this.shutdownHandler);
-
     this.schedulePoll();
   }
 
   async stop(): Promise<void> {
-    process.removeListener('SIGTERM', this.shutdownHandler);
-    process.removeListener('SIGINT', this.shutdownHandler);
+    if (this._state === 'idle' || this._state === 'stopped' || this._state === 'draining') return;
+
     this._state = 'draining';
     this.isRunning = false;
 
@@ -123,16 +90,21 @@ export default class Runner {
 
     // Drain in-flight steps
     if (this.inFlightSteps.size > 0) {
-      this.logger.info?.('Draining in-flight steps', {
+      this.logger.info('Draining in-flight steps', {
         count: this.inFlightSteps.size,
         steps: [...this.inFlightSteps.keys()],
       });
 
       const timeout = this.config.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS;
+      let drainTimer: NodeJS.Timeout;
       const drainResult = await Promise.race([
-        Promise.allSettled(this.inFlightSteps.values()).then(() => 'drained' as const),
+        Promise.allSettled(this.inFlightSteps.values()).then(() => {
+          clearTimeout(drainTimer);
+
+          return 'drained' as const;
+        }),
         new Promise<'timeout'>(resolve => {
-          setTimeout(() => resolve('timeout'), timeout);
+          drainTimer = setTimeout(() => resolve('timeout'), timeout);
         }),
       ]);
 
@@ -142,20 +114,23 @@ export default class Runner {
           timeoutMs: timeout,
         });
       } else {
-        this.logger.info?.('All in-flight steps drained', {});
+        this.logger.info('All in-flight steps drained', {});
       }
     }
 
-    // Close resources after drain
-    if (this.httpServer) {
-      await this.httpServer.stop();
-      this.httpServer = null;
-    }
-
-    await Promise.allSettled([
+    // Close resources — log failures instead of silently swallowing
+    const results = await Promise.allSettled([
       this.config.aiClient.closeConnections(),
       this.config.runStore.close(this.logger),
     ]);
+
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        this.logger.error('Resource cleanup failed during shutdown', {
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        });
+      }
+    }
 
     this._state = 'stopped';
   }

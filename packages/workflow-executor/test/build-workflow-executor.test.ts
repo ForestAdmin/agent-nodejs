@@ -33,10 +33,12 @@ beforeEach(() => {
 });
 
 describe('buildInMemoryExecutor', () => {
-  it('returns a WorkflowExecutor backed by a Runner', () => {
+  it('returns a WorkflowExecutor with start, stop, and state', () => {
     const executor = buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(executor).toBeInstanceOf(Runner);
+    expect(executor).toHaveProperty('start');
+    expect(executor).toHaveProperty('stop');
+    expect(executor).toHaveProperty('state');
   });
 
   it('creates an InMemoryStore as runStore', () => {
@@ -121,10 +123,10 @@ describe('buildInMemoryExecutor', () => {
     );
   });
 
-  it('passes optional httpPort', () => {
+  it('does not pass httpPort to Runner (HTTP is composed externally)', () => {
     buildInMemoryExecutor({ ...BASE_OPTIONS, httpPort: 3000 });
 
-    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ httpPort: 3000 }));
+    expect(MockedRunner).toHaveBeenCalledWith(expect.not.objectContaining({ httpPort: 3000 }));
   });
 });
 
@@ -137,10 +139,12 @@ describe('buildDatabaseExecutor', () => {
     database: { uri: 'postgres://localhost/mydb', dialect: 'postgres' as const },
   };
 
-  it('returns a WorkflowExecutor backed by a Runner', () => {
+  it('returns a WorkflowExecutor with start, stop, and state', () => {
     const executor = buildDatabaseExecutor(DB_OPTIONS);
 
-    expect(executor).toBeInstanceOf(Runner);
+    expect(executor).toHaveProperty('start');
+    expect(executor).toHaveProperty('stop');
+    expect(executor).toHaveProperty('state');
   });
 
   it('creates a DatabaseStore as runStore', () => {
