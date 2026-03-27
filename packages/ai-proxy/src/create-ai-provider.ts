@@ -2,22 +2,17 @@ import type { AiConfiguration } from './provider';
 import type { RouterRouteArgs } from './schemas/route';
 import type { ToolProvider } from './tool-provider';
 import type { ToolSourceConfig } from './tool-provider-factory';
-import type { AiProviderDefinition } from '@forestadmin/agent-toolkit';
+import type { AiProviderDefinition, AiRouter } from '@forestadmin/agent-toolkit';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { extractMcpOauthTokensFromHeaders, injectOauthTokens } from './oauth-token-injector';
 import { Router } from './router';
 import { createToolProviders } from './tool-provider-factory';
 
-interface AiRouterRouteArgs {
-  route: string;
-  body?: unknown;
-  query?: Record<string, string | string[] | undefined>;
-  mcpServerConfigs?: unknown;
-  headers?: Record<string, string | string[] | undefined>;
-}
-
-function resolveToolProviders(args: AiRouterRouteArgs, logger?: Logger): ToolProvider[] {
+function resolveToolProviders(
+  args: Parameters<AiRouter['route']>[0],
+  logger?: Logger,
+): ToolProvider[] {
   const mcpServerConfigs = args.mcpServerConfigs as
     | { configs: Record<string, ToolSourceConfig> }
     | undefined;
