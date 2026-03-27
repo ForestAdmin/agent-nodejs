@@ -24,6 +24,3 @@ export function validToolConfigurationOrThrow(
 ) {
   return ToolSourceChecker.check(configs, logger);
 }
-
-/** @deprecated Use validToolConfigurationOrThrow instead */
-export const validMcpConfigurationOrThrow = validToolConfigurationOrThrow;

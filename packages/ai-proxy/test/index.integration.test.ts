@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/extensions
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-import { validMcpConfigurationOrThrow } from '../src';
+import { validToolConfigurationOrThrow } from '../src';
 import runMcpServer from '../src/examples/simple-mcp-server';
 
 describe('Simple MCP Server', () => {
@@ -19,9 +19,9 @@ describe('Simple MCP Server', () => {
     server.close();
   });
 
-  describe('validMcpConfigurationOrThrow', () => {
+  describe('validToolConfigurationOrThrow', () => {
     it('should return true when the config is right', async () => {
-      const result = await validMcpConfigurationOrThrow({
+      const result = await validToolConfigurationOrThrow({
         simpleServer: {
           url: 'http://localhost:3123/mcp',
           type: 'http',
@@ -36,7 +36,7 @@ describe('Simple MCP Server', () => {
 
     it('should throw an error when the config is wrong', async () => {
       await expect(
-        validMcpConfigurationOrThrow({
+        validToolConfigurationOrThrow({
           simpleServer: { url: 'http://localhost:3123/wrong', type: 'http' },
         }),
       ).rejects.toThrow('Failed to connect to streamable HTTP');
