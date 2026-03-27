@@ -1,7 +1,7 @@
 import type { ToolSourceConfig } from './tool-provider-factory';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import McpConfigChecker from './mcp-config-checker';
+import ToolSourceChecker from './tool-source-checker';
 
 export { createAiProvider } from './create-ai-provider';
 export { default as ProviderDispatcher } from './provider-dispatcher';
@@ -22,7 +22,7 @@ export function validToolConfigurationOrThrow(
   configs: Record<string, ToolSourceConfig>,
   logger?: Logger,
 ) {
-  return McpConfigChecker.check(configs, logger);
+  return ToolSourceChecker.check(configs, logger);
 }
 
 /** @deprecated Use validToolConfigurationOrThrow instead */

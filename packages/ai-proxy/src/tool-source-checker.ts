@@ -3,7 +3,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { createToolProviders } from './tool-provider-factory';
 
-export default class McpConfigChecker {
+export default class ToolSourceChecker {
   static async check(configs: Record<string, ToolSourceConfig>, logger?: Logger): Promise<true> {
     const providers = createToolProviders(configs, logger);
 

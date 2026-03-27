@@ -1,9 +1,9 @@
-import McpConfigChecker from '../src/mcp-config-checker';
+import ToolSourceChecker from '../src/tool-source-checker';
 import { createToolProviders } from '../src/tool-provider-factory';
 
 jest.mock('../src/tool-provider-factory');
 
-describe('McpConfigChecker', () => {
+describe('ToolSourceChecker', () => {
   beforeEach(() => jest.clearAllMocks());
 
   describe('check', () => {
@@ -20,7 +20,7 @@ describe('McpConfigChecker', () => {
       };
       jest.mocked(createToolProviders).mockReturnValue([mockProvider1, mockProvider2]);
 
-      const result = await McpConfigChecker.check({
+      const result = await ToolSourceChecker.check({
         server1: { command: 'test', args: [] },
       });
 
@@ -37,7 +37,7 @@ describe('McpConfigChecker', () => {
       };
       jest.mocked(createToolProviders).mockReturnValue([mockProvider]);
 
-      await McpConfigChecker.check({ server1: { command: 'test', args: [] } });
+      await ToolSourceChecker.check({ server1: { command: 'test', args: [] } });
 
       expect(mockProvider.dispose).toHaveBeenCalled();
     });
@@ -51,7 +51,7 @@ describe('McpConfigChecker', () => {
       jest.mocked(createToolProviders).mockReturnValue([mockProvider]);
 
       await expect(
-        McpConfigChecker.check({ server1: { command: 'test', args: [] } }),
+        ToolSourceChecker.check({ server1: { command: 'test', args: [] } }),
       ).rejects.toThrow('Connection failed');
 
       expect(mockProvider.dispose).toHaveBeenCalled();
@@ -61,7 +61,7 @@ describe('McpConfigChecker', () => {
       jest.mocked(createToolProviders).mockReturnValue([]);
       const logger = jest.fn();
 
-      await McpConfigChecker.check({ server1: { command: 'test', args: [] } }, logger);
+      await ToolSourceChecker.check({ server1: { command: 'test', args: [] } }, logger);
 
       expect(createToolProviders).toHaveBeenCalledWith(
         { server1: { command: 'test', args: [] } },
