@@ -3,6 +3,7 @@ import type { ToolProvider } from '../src/tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIModelNotSupportedError, Router } from '../src';
+import BraveToolProvider from '../src/integrations/brave/brave-tool-provider';
 import ProviderDispatcher from '../src/provider-dispatcher';
 
 const invokeToolMock = jest.fn();
@@ -14,6 +15,17 @@ jest.mock('../src/remote-tools', () => {
       tools: [],
       toolDefinitionsForFrontend,
       invokeTool: invokeToolMock,
+    })),
+  };
+});
+
+jest.mock('../src/integrations/brave/brave-tool-provider', () => {
+  return {
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
+      loadTools: jest.fn().mockResolvedValue([]),
+      checkConnection: jest.fn().mockResolvedValue(true),
+      dispose: jest.fn().mockResolvedValue(undefined),
     })),
   };
 });
@@ -283,6 +295,24 @@ describe('route', () => {
           toolProviders: [provider],
         } as any),
       ).rejects.toThrow(dispatchError);
+    });
+  });
+
+  describe('Local tool providers', () => {
+    it('creates a BraveToolProvider when API key is provided', () => {
+      // eslint-disable-next-line no-new
+      new Router({
+        localToolsApiKeys: { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'test-key' },
+      });
+
+      expect(BraveToolProvider).toHaveBeenCalledWith({ apiKey: 'test-key' });
+    });
+
+    it('does not create BraveToolProvider when no API key', () => {
+      // eslint-disable-next-line no-new
+      new Router({});
+
+      expect(BraveToolProvider).not.toHaveBeenCalled();
     });
   });
 
