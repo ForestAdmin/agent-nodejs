@@ -469,6 +469,37 @@ describe('graceful shutdown', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Signal handlers (SIGTERM / SIGINT)
+// ---------------------------------------------------------------------------
+
+describe('signal handlers', () => {
+  it('registers SIGTERM and SIGINT handlers on start', async () => {
+    const onSpy = jest.spyOn(process, 'on');
+    runner = new Runner(createRunnerConfig());
+
+    await runner.start();
+
+    expect(onSpy).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+    expect(onSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
+
+    onSpy.mockRestore();
+  });
+
+  it('removes signal handlers on stop', async () => {
+    const removeSpy = jest.spyOn(process, 'removeListener');
+    runner = new Runner(createRunnerConfig());
+
+    await runner.start();
+    await runner.stop();
+
+    expect(removeSpy).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+    expect(removeSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
+
+    removeSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Polling loop
 // ---------------------------------------------------------------------------
 

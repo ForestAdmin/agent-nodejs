@@ -48,6 +48,21 @@ export default class Runner {
   private readonly logger: Logger;
   private _state: RunnerState = 'idle';
 
+  private readonly shutdownHandler = async () => {
+    this.logger.info?.('Received shutdown signal, stopping gracefully...', {});
+
+    try {
+      await this.stop();
+    } catch (error) {
+      this.logger.error('Graceful shutdown failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      process.exit(1);
+    }
+
+    process.exit(0);
+  };
+
   private static stepKey(step: PendingStepExecution): string {
     return `${step.runId}:${step.stepId}`;
   }
@@ -89,10 +104,15 @@ export default class Runner {
       throw error;
     }
 
+    process.on('SIGTERM', this.shutdownHandler);
+    process.on('SIGINT', this.shutdownHandler);
+
     this.schedulePoll();
   }
 
   async stop(): Promise<void> {
+    process.removeListener('SIGTERM', this.shutdownHandler);
+    process.removeListener('SIGINT', this.shutdownHandler);
     this._state = 'draining';
     this.isRunning = false;
 
@@ -236,10 +256,7 @@ export default class Runner {
     return promise;
   }
 
-  private async doExecuteStep(
-    step: PendingStepExecution,
-    key: string,
-  ): Promise<void> {
+  private async doExecuteStep(step: PendingStepExecution, key: string): Promise<void> {
     let result: StepExecutionResult;
 
     try {
