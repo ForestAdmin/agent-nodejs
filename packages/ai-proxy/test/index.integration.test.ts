@@ -22,13 +22,11 @@ describe('Simple MCP Server', () => {
   describe('validMcpConfigurationOrThrow', () => {
     it('should return true when the config is right', async () => {
       const result = await validMcpConfigurationOrThrow({
-        configs: {
-          simpleServer: {
-            url: 'http://localhost:3123/mcp',
-            type: 'http',
-            headers: {
-              Authorization: `Bearer your-secure-token-here`,
-            },
+        simpleServer: {
+          url: 'http://localhost:3123/mcp',
+          type: 'http',
+          headers: {
+            Authorization: `Bearer your-secure-token-here`,
           },
         },
       });
@@ -39,9 +37,7 @@ describe('Simple MCP Server', () => {
     it('should throw an error when the config is wrong', async () => {
       await expect(
         validMcpConfigurationOrThrow({
-          configs: {
-            simpleServer: { url: 'http://localhost:3123/wrong', type: 'http' },
-          },
+          simpleServer: { url: 'http://localhost:3123/wrong', type: 'http' },
         }),
       ).rejects.toThrow('Failed to connect to streamable HTTP');
     });

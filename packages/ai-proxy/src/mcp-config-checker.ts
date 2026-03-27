@@ -1,26 +1,18 @@
-import type { ForestIntegrationConfig } from './integration-client';
-import type { McpConfiguration } from './mcp-client';
+import type { ToolSourceConfig } from './tool-provider-factory';
+import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import { validateZendeskConfig } from './integrations/zendesk/utils';
-import McpClient from './mcp-client';
+import { createToolProviders } from './tool-provider-factory';
 
 export default class McpConfigChecker {
-  static isForestIntegrationConfig(
-    config: McpConfiguration | ForestIntegrationConfig,
-  ): config is ForestIntegrationConfig {
-    return 'integrationName' in config;
-  }
+  static async check(configs: Record<string, ToolSourceConfig>, logger?: Logger): Promise<true> {
+    const providers = createToolProviders(configs, logger);
 
-  static check(mcpConfig: McpConfiguration | ForestIntegrationConfig) {
-    if (McpConfigChecker.isForestIntegrationConfig(mcpConfig)) {
-      switch (mcpConfig.integrationName) {
-        case 'Zendesk':
-          return validateZendeskConfig(mcpConfig.config);
-        default:
-          throw new Error(`Unsupported integration: ${mcpConfig.integrationName}`);
-      }
+    try {
+      await Promise.all(providers.map(p => p.checkConnection()));
+
+      return true;
+    } finally {
+      await Promise.allSettled(providers.map(p => p.dispose()));
     }
-
-    return new McpClient(mcpConfig).testConnections();
   }
 }

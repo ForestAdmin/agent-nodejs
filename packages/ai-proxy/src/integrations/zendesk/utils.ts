@@ -18,11 +18,16 @@ export async function validateZendeskConfig(config: ZendeskConfig) {
 
   const response = await fetch(`${baseUrl}/users/me`, { headers });
 
-  const json = await response.json();
-
   if (!response.ok) {
-    throw new McpConnectionError(
-      `Failed to validate Zendesk config: ${json.title || json.error?.title || 'Unknown error'}`,
-    );
+    let errorMessage = response.statusText || 'Unknown error';
+
+    try {
+      const json = await response.json();
+      errorMessage = json.title || json.error?.title || errorMessage;
+    } catch {
+      // Response body is not JSON (e.g. HTML from gateway timeout)
+    }
+
+    throw new McpConnectionError(`Failed to validate Zendesk config: ${errorMessage}`);
   }
 }

@@ -1,13 +1,11 @@
-import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration } from './provider';
 import type { RemoteToolsApiKeys } from './remote-tools';
 import type { RouteArgs } from './schemas/route';
+import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
 import { AIBadRequestError, AIModelNotSupportedError } from './errors';
-import IntegrationClient, { type ForestIntegrationConfig } from './integration-client';
-import McpClient from './mcp-client';
 import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
@@ -60,11 +58,7 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(
-    args: RouteArgs & {
-      mcpConfigs?: McpConfiguration;
-    },
-  ) {
+  async route(args: RouteArgs & { toolProviders?: ToolProvider[] }) {
     // Validate input with Zod schema
     const result = routeArgsSchema.safeParse(args);
 
@@ -73,33 +67,11 @@ export class Router {
     }
 
     const validatedArgs = result.data;
-    let mcpClient: McpClient | undefined;
-    let integrationClient: IntegrationClient | undefined;
-
-    const mcpConfigs: McpConfiguration = { configs: {} };
-    const integrationConfigs: ForestIntegrationConfig[] = [];
-
-    Object.entries(args.mcpConfigs?.configs ?? {}).forEach(([name, config]) => {
-      if (config.isForestConnector) {
-        integrationConfigs.push(config as ForestIntegrationConfig);
-      } else {
-        mcpConfigs.configs[name] = config;
-      }
-    });
+    const providers = args.toolProviders ?? [];
 
     try {
-      if (mcpConfigs && Object.keys(mcpConfigs.configs).length > 0) {
-        mcpClient = new McpClient(mcpConfigs, this.logger);
-      }
-
-      if (integrationConfigs.length > 0) {
-        integrationClient = new IntegrationClient(integrationConfigs, this.logger);
-      }
-
-      const remoteTools = new RemoteTools(this.localToolsApiKeys ?? {}, [
-        ...((await mcpClient?.loadTools()) ?? []),
-        ...(integrationClient?.loadTools() ?? []),
-      ]);
+      const allTools = (await Promise.all(providers.map(p => p.loadTools()))).flat();
+      const remoteTools = new RemoteTools(this.localToolsApiKeys ?? {}, allTools);
 
       switch (validatedArgs.route) {
         case 'ai-query': {
@@ -121,26 +93,13 @@ export class Router {
 
         /* istanbul ignore next */
         default: {
-          // Exhaustive type check - this code never runs at runtime because Zod validation
-          // catches unknown routes earlier. However, it provides compile-time safety:
-          // if a new route is added to routeArgsSchema, TypeScript will error here with
-          // "Type 'NewRouteArgs' is not assignable to type 'never'", forcing the developer
-          // to add a corresponding case handler.
           const exhaustiveCheck: never = validatedArgs;
 
           return exhaustiveCheck;
         }
       }
     } finally {
-      if (mcpClient) {
-        try {
-          await mcpClient.closeConnections();
-        } catch (cleanupError) {
-          const error =
-            cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
-          this.logger?.('Error', 'Error during MCP connection cleanup', error);
-        }
-      }
+      await Promise.allSettled(providers.map(p => p.dispose()));
     }
   }
 
