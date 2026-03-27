@@ -108,4 +108,34 @@ describe('DatabaseStore (SQLite)', () => {
     // Running init a second time should not fail
     await expect(store.init()).resolves.toBeUndefined();
   });
+
+  it('logs and rethrows when migration fails', async () => {
+    const badSequelize = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false });
+    const badStore = new DatabaseStore({ sequelize: badSequelize });
+
+    // Break the query interface so createTable fails
+    jest
+      .spyOn(badSequelize.getQueryInterface(), 'createTable')
+      .mockRejectedValueOnce(new Error('disk full'));
+
+    const logger = { error: jest.fn() };
+    await expect(badStore.init(logger)).rejects.toThrow('disk full');
+    expect(logger.error).toHaveBeenCalledWith(
+      'Database migration failed',
+      expect.objectContaining({ error: 'disk full' }),
+    );
+
+    await badSequelize.close();
+  });
+
+  it('close() catches and logs errors instead of throwing', async () => {
+    const logger = { error: jest.fn() };
+    jest.spyOn(sequelize, 'close').mockRejectedValueOnce(new Error('close failed'));
+
+    await expect(store.close(logger)).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalledWith(
+      'Failed to close database connection',
+      expect.objectContaining({ error: 'close failed' }),
+    );
+  });
 });

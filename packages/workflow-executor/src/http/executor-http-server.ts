@@ -62,6 +62,19 @@ export default class ExecutorHttpServer {
       }
     });
 
+    // Health endpoint — before JWT so it's publicly accessible (infra probes don't send tokens)
+    this.app.use(async (ctx, next) => {
+      if (ctx.method === 'GET' && ctx.path === '/health') {
+        const { state } = this.options.runner;
+        ctx.status = state === 'running' || state === 'draining' ? 200 : 503;
+        ctx.body = { state };
+
+        return;
+      }
+
+      await next();
+    });
+
     this.app.use(bodyParser());
 
     // JWT middleware — validates Bearer token using authSecret

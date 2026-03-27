@@ -43,7 +43,7 @@ Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor  ──
 ```
 src/
 ├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError, NoWritableFieldsError, NoActionsError, StepPersistenceError, NoRelationshipFieldsError, RelatedRecordNotFoundError
-├── runner.ts               # Runner class — main entry point (start/stop/triggerPoll, HTTP server wiring)
+├── runner.ts               # Runner class — main entry point (start/stop/triggerPoll, HTTP server wiring, graceful drain)
 ├── types/                  # Core type definitions (@draft)
 │   ├── step-definition.ts  # StepType enum + step definition interfaces
 │   ├── step-outcome.ts     # Step outcome tracking types (StepOutcome, sent to orchestrator)
@@ -54,6 +54,10 @@ src/
 │   ├── agent-port.ts       # Interface to the Forest Admin agent (datasource)
 │   ├── workflow-port.ts    # Interface to the orchestrator
 │   └── run-store.ts        # Interface for persisting run state (scoped to a run)
+├── stores/                 # RunStore implementations
+│   ├── in-memory-store.ts  # InMemoryStore — Map-based, for tests
+│   ├── database-store.ts   # DatabaseStore — Sequelize + umzug migrations
+│   └── build-run-store.ts  # Factory functions: buildDatabaseRunStore, buildInMemoryRunStore
 ├── adapters/               # Port implementations
 │   ├── agent-client-agent-port.ts      # AgentPort via @forestadmin/agent-client
 │   └── forest-server-workflow-port.ts  # WorkflowPort via HTTP (forestadmin-client ServerUtils)
@@ -83,6 +87,7 @@ src/
 - **displayName in AI tools** — All `DynamicStructuredTool` schemas and system message prompts must use `displayName`, never `fieldName`. `displayName` is a Forest Admin frontend feature that replaces the technical field/relation/action name with a product-oriented label configured by the Forest Admin admin. End users write their workflow prompts using these display names, not the underlying technical names. After an AI tool call returns display names, map them back to `fieldName`/`name` before using them in datasource operations (e.g. filtering record values, calling `getRecord`).
 - **No recovery/retry** — Once the executor returns a step result to the orchestrator, the step is considered executed. There is no mechanism to re-dispatch a step, so executors must NOT include recovery checks (e.g. checking the RunStore for cached results before executing). Each step executes exactly once.
 - **Fetched steps must be executed** — Any step retrieved from the orchestrator via `getPendingStepExecutions()` must be executed. Silently discarding a fetched step (e.g. filtering it out by `runId` after fetching) violates the executor contract: the orchestrator assumes execution is guaranteed once the step is dispatched. The only valid filter before executing is deduplication via `inFlightSteps` (to avoid running the same step twice concurrently).
+- **Graceful shutdown** — `stop()` drains in-flight steps before closing resources. The `state` getter exposes the lifecycle: `idle → running → draining → stopped`. `stopTimeoutMs` (default 30s) prevents `stop()` from hanging forever if a step is stuck. The HTTP server stays up during drain so the frontend can still query run status. Signal handling (`SIGTERM`/`SIGINT`) is the consumer's responsibility — the Runner is a library class.
 
 ## Commands
 
