@@ -23,6 +23,7 @@ const BASE_OPTIONS = {
   envSecret: 'a'.repeat(64),
   authSecret: 'test-secret',
   agentUrl: 'http://localhost:3310',
+  httpPort: 3100,
   aiConfigurations: [
     { name: 'default', provider: 'openai' as const, model: 'gpt-4o', apiKey: 'sk-test' },
   ],

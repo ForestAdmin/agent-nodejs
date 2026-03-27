@@ -42,7 +42,7 @@ export default class Runner {
   private pollingTimer: NodeJS.Timeout | null = null;
   private readonly inFlightSteps = new Map<string, Promise<void>>();
   private isRunning = false;
-  readonly logger: Logger;
+  private readonly logger: Logger;
   private _state: RunnerState = 'idle';
 
   private static stepKey(step: PendingStepExecution): string {
@@ -59,6 +59,10 @@ export default class Runner {
   }
 
   async start(): Promise<void> {
+    if (this._state === 'stopped') {
+      throw new Error('Runner has been stopped and cannot be restarted');
+    }
+
     if (this.isRunning) return;
 
     validateSecrets({ envSecret: this.config.envSecret, authSecret: this.config.authSecret });
@@ -88,51 +92,53 @@ export default class Runner {
       this.pollingTimer = null;
     }
 
-    // Drain in-flight steps
-    if (this.inFlightSteps.size > 0) {
-      this.logger.info('Draining in-flight steps', {
-        count: this.inFlightSteps.size,
-        steps: [...this.inFlightSteps.keys()],
-      });
+    try {
+      // Drain in-flight steps
+      if (this.inFlightSteps.size > 0) {
+        this.logger.info?.('Draining in-flight steps', {
+          count: this.inFlightSteps.size,
+          steps: [...this.inFlightSteps.keys()],
+        });
 
-      const timeout = this.config.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS;
-      let drainTimer: NodeJS.Timeout;
-      const drainResult = await Promise.race([
-        Promise.allSettled(this.inFlightSteps.values()).then(() => {
-          clearTimeout(drainTimer);
+        const timeout = this.config.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS;
+        let drainTimer: NodeJS.Timeout | undefined;
+        const drainResult = await Promise.race([
+          Promise.allSettled(this.inFlightSteps.values()).then(() => {
+            if (drainTimer) clearTimeout(drainTimer);
 
-          return 'drained' as const;
-        }),
-        new Promise<'timeout'>(resolve => {
-          drainTimer = setTimeout(() => resolve('timeout'), timeout);
-        }),
+            return 'drained' as const;
+          }),
+          new Promise<'timeout'>(resolve => {
+            drainTimer = setTimeout(() => resolve('timeout'), timeout);
+          }),
+        ]);
+
+        if (drainResult === 'timeout') {
+          this.logger.error('Drain timeout — steps still in flight', {
+            remainingSteps: [...this.inFlightSteps.keys()],
+            timeoutMs: timeout,
+          });
+        } else {
+          this.logger.info?.('All in-flight steps drained', {});
+        }
+      }
+
+      // Close resources — log failures instead of silently swallowing
+      const results = await Promise.allSettled([
+        this.config.aiClient.closeConnections(),
+        this.config.runStore.close(this.logger),
       ]);
 
-      if (drainResult === 'timeout') {
-        this.logger.error('Drain timeout — steps still in flight', {
-          remainingSteps: [...this.inFlightSteps.keys()],
-          timeoutMs: timeout,
-        });
-      } else {
-        this.logger.info('All in-flight steps drained', {});
+      for (const result of results) {
+        if (result.status === 'rejected') {
+          this.logger.error('Resource cleanup failed during shutdown', {
+            error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+          });
+        }
       }
+    } finally {
+      this._state = 'stopped';
     }
-
-    // Close resources — log failures instead of silently swallowing
-    const results = await Promise.allSettled([
-      this.config.aiClient.closeConnections(),
-      this.config.runStore.close(this.logger),
-    ]);
-
-    for (const result of results) {
-      if (result.status === 'rejected') {
-        this.logger.error('Resource cleanup failed during shutdown', {
-          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
-        });
-      }
-    }
-
-    this._state = 'stopped';
   }
 
   async getRunStepExecutions(runId: string): Promise<StepExecutionData[]> {
@@ -144,8 +150,6 @@ export default class Runner {
     const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
     const schema = execution ? patchBodySchemas[execution.type] : undefined;
 
-    // pendingData is typed as T | undefined; null is not expected (RunStore never persists null)
-    // but `== null` guards against both for safety.
     if (!execution || !schema || !('pendingData' in execution) || execution.pendingData == null) {
       throw new PendingDataNotFoundError(runId, stepIndex);
     }
@@ -162,8 +166,6 @@ export default class Runner {
       );
     }
 
-    // Cast is safe: the type guard above ensures `execution` is the correct union branch,
-    // and patchBodySchemas[execution.type] only accepts keys valid for that branch.
     await this.config.runStore.saveStepExecution(runId, {
       ...execution,
       pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
@@ -240,15 +242,13 @@ export default class Runner {
       );
       result = await executor.execute();
     } catch (error) {
-      // This block should never execute: the factory and executor contracts guarantee no rejection.
-      // It guards against future regressions.
       this.logger.error('FATAL: executor contract violated — step outcome not reported', {
         runId: step.runId,
         stepId: step.stepId,
         error: error instanceof Error ? error.message : String(error),
       });
 
-      return; // Cannot report an outcome: the orchestrator will timeout on this step
+      return;
     } finally {
       this.inFlightSteps.delete(key);
     }

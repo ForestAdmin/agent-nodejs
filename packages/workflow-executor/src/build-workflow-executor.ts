@@ -17,6 +17,7 @@ import InMemoryStore from './stores/in-memory-store';
 
 const DEFAULT_FOREST_SERVER_URL = 'https://api.forestadmin.com';
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
+const FORCE_EXIT_DELAY_MS = 5000;
 
 export interface WorkflowExecutor {
   start(): Promise<void>;
@@ -28,10 +29,10 @@ export interface ExecutorOptions {
   envSecret: string;
   authSecret: string;
   agentUrl: string;
+  httpPort: number;
   forestServerUrl?: string;
   aiConfigurations: AiConfiguration[];
   pollingIntervalMs?: number;
-  httpPort?: number;
   logger?: Logger;
   stopTimeoutMs?: number;
 }
@@ -75,43 +76,43 @@ function buildCommonDependencies(options: ExecutorOptions) {
 
 function createWorkflowExecutor(
   runner: Runner,
-  server: ExecutorHttpServer | null,
+  server: ExecutorHttpServer,
   logger: Logger,
 ): WorkflowExecutor {
-  let stopping = false;
+  let shutdownPromise: Promise<void> | null = null;
 
   const shutdown = async () => {
-    if (stopping) return;
-    stopping = true;
-
-    if (server) {
-      try {
-        await server.stop();
-      } catch (err) {
-        logger.error('HTTP server close failed during shutdown', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
+    try {
+      await server.stop();
+    } catch (err) {
+      logger.error('HTTP server close failed during shutdown', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
 
     await runner.stop();
   };
 
   const onSignal = async () => {
-    logger.info('Received shutdown signal, stopping gracefully...', {});
+    logger.info?.('Received shutdown signal, stopping gracefully...', {});
 
     try {
-      await shutdown();
+      if (!shutdownPromise) shutdownPromise = shutdown();
+      await shutdownPromise;
+      process.exitCode = 0;
     } catch (error) {
       logger.error('Graceful shutdown failed', {
         error: error instanceof Error ? error.message : String(error),
       });
       process.exitCode = 1;
-
-      return;
     }
 
-    process.exitCode = 0;
+    // Safety net: force exit if the event loop doesn't drain
+    // eslint-disable-next-line no-console
+    setTimeout(() => {
+      logger.error('Process did not exit after shutdown — forcing exit', {});
+      process.exit(process.exitCode ?? 1);
+    }, FORCE_EXIT_DELAY_MS).unref();
   };
 
   return {
@@ -121,10 +122,7 @@ function createWorkflowExecutor(
 
     async start() {
       await runner.start();
-
-      if (server) {
-        await server.start();
-      }
+      await server.start();
 
       process.on('SIGTERM', onSignal);
       process.on('SIGINT', onSignal);
@@ -133,7 +131,9 @@ function createWorkflowExecutor(
     async stop() {
       process.removeListener('SIGTERM', onSignal);
       process.removeListener('SIGINT', onSignal);
-      await shutdown();
+
+      if (!shutdownPromise) shutdownPromise = shutdown();
+      await shutdownPromise;
     },
   };
 }
@@ -146,15 +146,13 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     runStore: new InMemoryStore(),
   });
 
-  const server = options.httpPort
-    ? new ExecutorHttpServer({
-        port: options.httpPort,
-        runner,
-        authSecret: options.authSecret,
-        workflowPort: deps.workflowPort,
-        logger: deps.logger,
-      })
-    : null;
+  const server = new ExecutorHttpServer({
+    port: options.httpPort,
+    runner,
+    authSecret: options.authSecret,
+    workflowPort: deps.workflowPort,
+    logger: deps.logger,
+  });
 
   return createWorkflowExecutor(runner, server, deps.logger);
 }
@@ -169,15 +167,13 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     runStore: new DatabaseStore({ sequelize }),
   });
 
-  const server = options.httpPort
-    ? new ExecutorHttpServer({
-        port: options.httpPort,
-        runner,
-        authSecret: options.authSecret,
-        workflowPort: deps.workflowPort,
-        logger: deps.logger,
-      })
-    : null;
+  const server = new ExecutorHttpServer({
+    port: options.httpPort,
+    runner,
+    authSecret: options.authSecret,
+    workflowPort: deps.workflowPort,
+    logger: deps.logger,
+  });
 
   return createWorkflowExecutor(runner, server, deps.logger);
 }
