@@ -267,6 +267,29 @@ describe('graceful shutdown', () => {
     expect(runner.state).toBe('stopped');
   });
 
+  it('throws when start() is called after stop()', async () => {
+    runner = new Runner(createRunnerConfig());
+    await runner.start();
+    await runner.stop();
+
+    await expect(runner.start()).rejects.toThrow('Runner has been stopped and cannot be restarted');
+  });
+
+  it('logs resource cleanup failure during stop', async () => {
+    const logger = createMockLogger();
+    const aiClient = createMockAiClient();
+    aiClient.closeConnections.mockRejectedValueOnce(new Error('connection leak'));
+
+    runner = new Runner(createRunnerConfig({ logger, aiClient: aiClient as unknown as AiClient }));
+    await runner.start();
+    await runner.stop();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'Resource cleanup failed during shutdown',
+      expect.objectContaining({ error: 'connection leak' }),
+    );
+  });
+
   it('state resets to idle on start failure', async () => {
     const config = createRunnerConfig();
     (config.runStore.init as jest.Mock).mockRejectedValueOnce(new Error('init failed'));
