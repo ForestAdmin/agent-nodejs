@@ -59,7 +59,7 @@ export default class Runner {
   }
 
   async start(): Promise<void> {
-    if (this._state === 'stopped') {
+    if (this._state === 'stopped' || this._state === 'draining') {
       throw new Error('Runner has been stopped and cannot be restarted');
     }
 
