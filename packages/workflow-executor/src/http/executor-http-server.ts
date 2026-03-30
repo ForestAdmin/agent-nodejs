@@ -2,13 +2,17 @@ import type { Logger } from '../ports/logger-port';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
 import type { StepUser } from '../types/execution';
+import type { EventEmitter } from 'events';
 import type { Server } from 'http';
 
 import bodyParser from '@koa/bodyparser';
 import Router from '@koa/router';
+import fs from 'fs';
 import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
+import path from 'path';
+import { PassThrough } from 'stream';
 
 import ConsoleLogger from '../adapters/console-logger';
 import {
@@ -24,9 +28,15 @@ export interface ExecutorHttpServerOptions {
   authSecret: string;
   workflowPort: WorkflowPort;
   logger?: Logger;
+  events?: EventEmitter;
 }
 
 export default class ExecutorHttpServer {
+  private static debugDashboardHtml = fs.readFileSync(
+    path.join(__dirname, 'debug-dashboard.html'),
+    'utf-8',
+  );
+
   private readonly app: Koa;
   private readonly options: ExecutorHttpServerOptions;
   private readonly logger: Logger;
@@ -68,6 +78,71 @@ export default class ExecutorHttpServer {
         const { state } = this.options.runner;
         ctx.status = state === 'running' || state === 'draining' ? 200 : 503;
         ctx.body = { state };
+
+        return;
+      }
+
+      await next();
+    });
+
+    // SSE debug events endpoint — before JWT (public)
+    this.app.use(async (ctx, next) => {
+      if (ctx.method === 'GET' && ctx.path === '/debug/events') {
+        ctx.set('Content-Type', 'text/event-stream');
+        ctx.set('Cache-Control', 'no-cache');
+        ctx.set('Connection', 'keep-alive');
+
+        const stream = new PassThrough();
+        ctx.body = stream;
+
+        // Flush headers immediately so clients receive the response
+        stream.write(':ok\n\n');
+
+        const { events } = this.options;
+
+        if (!events) {
+          stream.end();
+
+          return;
+        }
+
+        const eventNames = [
+          'poll:start',
+          'poll:end',
+          'step:start',
+          'step:end',
+          'step:error',
+          'drain:start',
+          'drain:end',
+        ];
+
+        const handlers = eventNames.map(name => {
+          const handler = (data: unknown) =>
+            stream.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
+          events.on(name, handler);
+
+          return { name, handler };
+        });
+
+        const heartbeat = setInterval(() => stream.write(':keepalive\n\n'), 20_000);
+
+        ctx.req.on('close', () => {
+          clearInterval(heartbeat);
+          handlers.forEach(({ name, handler }) => events.removeListener(name, handler));
+          stream.end();
+        });
+
+        return;
+      }
+
+      await next();
+    });
+
+    // Debug dashboard — before JWT (public)
+    this.app.use(async (ctx, next) => {
+      if (ctx.method === 'GET' && ctx.path === '/debug') {
+        ctx.set('Content-Type', 'text/html');
+        ctx.body = ExecutorHttpServer.debugDashboardHtml;
 
         return;
       }

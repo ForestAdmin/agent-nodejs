@@ -13,10 +13,12 @@
   },
   "files": [
     "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "dist/**/*.html"
   ],
   "scripts": {
-    "build": "tsc",
+    "build:dashboard": "cd dashboard && npm install && npm run build && mv ../src/http/index.html ../src/http/debug-dashboard.html",
+    "build": "yarn build:dashboard && tsc && cp src/http/debug-dashboard.html dist/http/debug-dashboard.html",
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",

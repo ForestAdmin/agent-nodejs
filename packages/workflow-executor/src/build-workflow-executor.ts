@@ -4,6 +4,7 @@ import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Options as SequelizeOptions } from 'sequelize';
 
 import { AiClient } from '@forestadmin/ai-proxy';
+import { EventEmitter } from 'events';
 import { Sequelize } from 'sequelize';
 
 import AgentClientAgentPort from './adapters/agent-client-agent-port';
@@ -78,6 +79,7 @@ function createWorkflowExecutor(
   runner: Runner,
   server: ExecutorHttpServer,
   logger: Logger,
+  httpPort: number,
 ): WorkflowExecutor {
   let shutdownPromise: Promise<void> | null = null;
 
@@ -124,6 +126,10 @@ function createWorkflowExecutor(
       await runner.start();
       await server.start();
 
+      logger.info('Debug dashboard available at', {
+        url: `http://localhost:${httpPort}/debug`,
+      });
+
       process.on('SIGTERM', onSignal);
       process.on('SIGINT', onSignal);
     },
@@ -140,10 +146,12 @@ function createWorkflowExecutor(
 
 export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecutor {
   const deps = buildCommonDependencies(options);
+  const events = new EventEmitter();
 
   const runner = new Runner({
     ...deps,
     runStore: new InMemoryStore(),
+    events,
   });
 
   const server = new ExecutorHttpServer({
@@ -152,19 +160,22 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
+    events,
   });
 
-  return createWorkflowExecutor(runner, server, deps.logger);
+  return createWorkflowExecutor(runner, server, deps.logger, options.httpPort);
 }
 
 export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
   const deps = buildCommonDependencies(options);
+  const events = new EventEmitter();
   const { uri, ...sequelizeOptions } = options.database as SequelizeOptions & { uri?: string };
   const sequelize = uri ? new Sequelize(uri, sequelizeOptions) : new Sequelize(sequelizeOptions);
 
   const runner = new Runner({
     ...deps,
     runStore: new DatabaseStore({ sequelize }),
+    events,
   });
 
   const server = new ExecutorHttpServer({
@@ -173,7 +184,8 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
+    events,
   });
 
-  return createWorkflowExecutor(runner, server, deps.logger);
+  return createWorkflowExecutor(runner, server, deps.logger, options.httpPort);
 }
