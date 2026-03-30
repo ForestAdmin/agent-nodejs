@@ -243,7 +243,7 @@ describe('route', () => {
 
       await router.route({
         route: 'remote-tools',
-        mcpServerConfigs: dummyMcpServerConfigs,
+        toolConfigs: dummyMcpServerConfigs,
       });
 
       expect(provider1.loadTools).toHaveBeenCalledTimes(1);
@@ -257,7 +257,7 @@ describe('route', () => {
 
       await router.route({
         route: 'remote-tools',
-        mcpServerConfigs: dummyMcpServerConfigs,
+        toolConfigs: dummyMcpServerConfigs,
       });
 
       expect(provider.dispose).toHaveBeenCalledTimes(1);
@@ -273,7 +273,7 @@ describe('route', () => {
         router.route({
           route: 'ai-query',
           body: { messages: [] },
-          mcpServerConfigs: dummyMcpServerConfigs,
+          toolConfigs: dummyMcpServerConfigs,
         }),
       ).rejects.toThrow();
 
@@ -302,7 +302,7 @@ describe('route', () => {
         router.route({
           route: 'ai-query',
           body: { messages: [] },
-          mcpServerConfigs: dummyMcpServerConfigs,
+          toolConfigs: dummyMcpServerConfigs,
         }),
       ).rejects.toThrow(dispatchError);
     });

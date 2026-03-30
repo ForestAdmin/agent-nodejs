@@ -1,4 +1,4 @@
-import type { ToolSourceConfig } from './tool-provider-factory';
+import type { ToolConfig } from './tool-provider-factory';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import ToolSourceChecker from './tool-source-checker';
@@ -19,7 +19,7 @@ export * from './tool-provider';
 export * from './tool-provider-factory';
 
 export function validToolConfigurationOrThrow(
-  configs: Record<string, ToolSourceConfig>,
+  configs: Record<string, ToolConfig>,
   logger?: Logger,
 ) {
   return ToolSourceChecker.check(configs, logger);

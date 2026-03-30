@@ -25,7 +25,7 @@ export default class AiProxyRoute extends BaseRoute {
   }
 
   private async handleAiProxy(context: Context): Promise<void> {
-    const mcpServerConfigs =
+    const toolConfigs =
       await this.options.forestAdminClient.mcpServerConfigService.getConfiguration();
 
     context.response.body = await this.aiRouter.route({
@@ -33,7 +33,7 @@ export default class AiProxyRoute extends BaseRoute {
       body: context.request.body,
       query: context.query,
       headers: context.request.headers,
-      mcpServerConfigs,
+      toolConfigs,
     });
     context.response.status = HttpCode.Ok;
   }

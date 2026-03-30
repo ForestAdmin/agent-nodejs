@@ -1,4 +1,4 @@
-import type { ToolSourceConfig } from '../tool-provider-factory';
+import type { ToolConfig } from '../tool-provider-factory';
 
 import { z } from 'zod';
 
@@ -86,7 +86,7 @@ export type RemoteToolsArgs = z.infer<typeof remoteToolsSchema>;
 // Derived types for consumers
 export type DispatchBody = AiQueryArgs['body'];
 export type RouterRouteArgs = RouteArgs & {
-  mcpServerConfigs?: Record<string, ToolSourceConfig>;
+  toolConfigs?: Record<string, ToolConfig>;
 };
 
 // Backward compatibility types

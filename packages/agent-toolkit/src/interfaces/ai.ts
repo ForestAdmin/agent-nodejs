@@ -24,7 +24,7 @@ export interface AiRouter {
     route: string;
     body?: unknown;
     query?: Record<string, string | string[] | undefined>;
-    mcpServerConfigs?: unknown;
+    toolConfigs?: unknown;
     headers?: Record<string, string | string[] | undefined>;
   }): Promise<unknown>;
 }

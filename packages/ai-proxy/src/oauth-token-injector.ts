@@ -1,5 +1,5 @@
 import type { McpServerConfig } from './mcp-client';
-import type { ToolSourceConfig } from './tool-provider-factory';
+import type { ToolConfig } from './tool-provider-factory';
 
 import { AIBadRequestError } from './errors';
 
@@ -65,9 +65,9 @@ export function injectOauthTokens({
   configs,
   tokensByMcpServerName,
 }: {
-  configs: Record<string, ToolSourceConfig> | undefined;
+  configs: Record<string, ToolConfig> | undefined;
   tokensByMcpServerName: Record<string, string> | undefined;
-}): Record<string, ToolSourceConfig> | undefined {
+}): Record<string, ToolConfig> | undefined {
   if (!configs) return undefined;
   if (!tokensByMcpServerName) return configs;
 

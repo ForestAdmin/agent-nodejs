@@ -1,5 +1,5 @@
 import type { AiConfiguration } from './provider';
-import type { RouteArgs } from './schemas/route';
+import type { RouteArgs, RouterRouteArgs } from './schemas/route';
 import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
@@ -10,7 +10,7 @@ import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
 import isModelSupportingTools from './supported-models';
-import { type ToolSourceConfig, createToolProviders } from './tool-provider-factory';
+import { createToolProviders } from './tool-provider-factory';
 
 export type {
   AiQueryArgs,
@@ -20,6 +20,7 @@ export type {
   Query,
   RemoteToolsArgs,
   RouteArgs,
+  RouterRouteArgs,
 } from './schemas/route';
 
 // Keep these for backward compatibility
@@ -70,7 +71,7 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(args: RouteArgs & { mcpServerConfigs?: Record<string, ToolSourceConfig> }) {
+  async route(args: RouterRouteArgs) {
     // Validate input with Zod schema
     const result = routeArgsSchema.safeParse(args);
 
@@ -78,7 +79,7 @@ export class Router {
       throw new AIBadRequestError(Router.formatZodError(result.error));
     }
 
-    const remoteToolProviders = createToolProviders(args.mcpServerConfigs ?? {}, this.logger);
+    const remoteToolProviders = createToolProviders(args.toolConfigs ?? {}, this.logger);
     const validatedArgs = result.data;
     const providers = [...this.localToolProviders, ...remoteToolProviders];
 
