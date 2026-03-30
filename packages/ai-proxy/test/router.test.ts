@@ -1,10 +1,10 @@
 import type { DispatchBody, InvokeRemoteToolArgs } from '../src';
 import type { ToolProvider } from '../src/tool-provider';
-import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIModelNotSupportedError, Router } from '../src';
 import BraveToolProvider from '../src/integrations/brave/brave-tool-provider';
 import ProviderDispatcher from '../src/provider-dispatcher';
+import { createToolProviders } from '../src/tool-provider-factory';
 
 const invokeToolMock = jest.fn();
 const toolDefinitionsForFrontend = [{ name: 'tool-name', description: 'tool-description' }];
@@ -18,6 +18,8 @@ jest.mock('../src/remote-tools', () => {
     })),
   };
 });
+
+jest.mock('../src/tool-provider-factory');
 
 jest.mock('../src/integrations/brave/brave-tool-provider', () => {
   return {
@@ -54,6 +56,7 @@ function createMockToolProvider(overrides?: Partial<ToolProvider>): ToolProvider
 describe('route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(createToolProviders).mockReturnValue([]);
   });
 
   describe('when the route is /ai-query', () => {
@@ -230,14 +233,17 @@ describe('route', () => {
   });
 
   describe('ToolProvider lifecycle', () => {
+    const dummyMcpServerConfigs = { server: { url: 'http://localhost', type: 'http' as const } };
+
     it('calls loadTools on all provided tool providers', async () => {
       const provider1 = createMockToolProvider();
       const provider2 = createMockToolProvider();
+      jest.mocked(createToolProviders).mockReturnValue([provider1, provider2]);
       const router = new Router({});
 
       await router.route({
         route: 'remote-tools',
-        toolProviders: [provider1, provider2],
+        mcpServerConfigs: dummyMcpServerConfigs,
       });
 
       expect(provider1.loadTools).toHaveBeenCalledTimes(1);
@@ -246,11 +252,12 @@ describe('route', () => {
 
     it('disposes all providers after successful route handling', async () => {
       const provider = createMockToolProvider();
+      jest.mocked(createToolProviders).mockReturnValue([provider]);
       const router = new Router({});
 
       await router.route({
         route: 'remote-tools',
-        toolProviders: [provider],
+        mcpServerConfigs: dummyMcpServerConfigs,
       });
 
       expect(provider.dispose).toHaveBeenCalledTimes(1);
@@ -258,6 +265,7 @@ describe('route', () => {
 
     it('disposes all providers even when an error occurs', async () => {
       const provider = createMockToolProvider();
+      jest.mocked(createToolProviders).mockReturnValue([provider]);
       const router = new Router({});
       dispatchMock.mockRejectedValue(new Error('AI dispatch error'));
 
@@ -265,14 +273,15 @@ describe('route', () => {
         router.route({
           route: 'ai-query',
           body: { messages: [] },
-          toolProviders: [provider],
-        } as any),
+          mcpServerConfigs: dummyMcpServerConfigs,
+        }),
       ).rejects.toThrow();
 
       expect(provider.dispose).toHaveBeenCalledTimes(1);
     });
 
     it('works with no tool providers', async () => {
+      jest.mocked(createToolProviders).mockReturnValue([]);
       const router = new Router({});
 
       const result = await router.route({ route: 'remote-tools' });
@@ -285,6 +294,7 @@ describe('route', () => {
       const provider = createMockToolProvider({
         dispose: jest.fn().mockRejectedValue(new Error('Dispose failed')),
       });
+      jest.mocked(createToolProviders).mockReturnValue([provider]);
       const router = new Router({});
       dispatchMock.mockRejectedValue(dispatchError);
 
@@ -292,8 +302,8 @@ describe('route', () => {
         router.route({
           route: 'ai-query',
           body: { messages: [] },
-          toolProviders: [provider],
-        } as any),
+          mcpServerConfigs: dummyMcpServerConfigs,
+        }),
       ).rejects.toThrow(dispatchError);
     });
   });

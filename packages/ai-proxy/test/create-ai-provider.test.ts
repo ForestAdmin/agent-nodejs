@@ -2,10 +2,8 @@ import type { AiConfiguration } from '../src/provider';
 
 import { createAiProvider } from '../src/create-ai-provider';
 import { Router } from '../src/router';
-import { createToolProviders } from '../src/tool-provider-factory';
 
 jest.mock('../src/router');
-jest.mock('../src/tool-provider-factory');
 
 const routeMock = jest.fn();
 jest.mocked(Router).mockImplementation(() => ({ route: routeMock } as any));
@@ -13,7 +11,6 @@ jest.mocked(Router).mockImplementation(() => ({ route: routeMock } as any));
 describe('createAiProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(createToolProviders).mockReturnValue([]);
   });
 
   const config: AiConfiguration = {
@@ -57,30 +54,26 @@ describe('createAiProvider', () => {
           route: 'ai-query',
           body: { messages: [] },
           query: { 'ai-name': 'my-ai' },
-          toolProviders: [],
+          mcpServerConfigs: undefined,
         }),
       );
       expect(result).toEqual({ result: 'ok' });
     });
 
-    test('should create tool providers from mcpServerConfigs', async () => {
-      const mockProviders = [{ loadTools: jest.fn(), checkConnection: jest.fn(), dispose: jest.fn() }];
-      jest.mocked(createToolProviders).mockReturnValue(mockProviders);
+    test('should pass mcpServerConfigs to router', async () => {
       routeMock.mockResolvedValue({});
       const provider = createAiProvider(config);
       const aiRouter = provider.init(jest.fn());
 
       await aiRouter.route({
         route: 'remote-tools',
-        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
+        mcpServerConfigs: { server1: { command: 'test', args: [] } },
       });
 
-      expect(createToolProviders).toHaveBeenCalledWith(
-        { server1: { command: 'test', args: [] } },
-        expect.any(Function),
-      );
       expect(routeMock).toHaveBeenCalledWith(
-        expect.objectContaining({ toolProviders: mockProviders }),
+        expect.objectContaining({
+          mcpServerConfigs: { server1: { command: 'test', args: [] } },
+        }),
       );
     });
 
@@ -92,21 +85,20 @@ describe('createAiProvider', () => {
 
       await aiRouter.route({
         route: 'remote-tools',
-        mcpServerConfigs: {
-          configs: { server1: { type: 'http', url: 'https://server1.com' } },
-        },
+        mcpServerConfigs: { server1: { type: 'http', url: 'https://server1.com' } },
         headers: { 'x-mcp-oauth-tokens': oauthTokens },
       });
 
-      expect(createToolProviders).toHaveBeenCalledWith(
-        {
-          server1: {
-            type: 'http',
-            url: 'https://server1.com',
-            headers: { Authorization: 'Bearer token123' },
+      expect(routeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mcpServerConfigs: {
+            server1: {
+              type: 'http',
+              url: 'https://server1.com',
+              headers: { Authorization: 'Bearer token123' },
+            },
           },
-        },
-        expect.any(Function),
+        }),
       );
     });
 
@@ -117,9 +109,7 @@ describe('createAiProvider', () => {
       expect(() =>
         aiRouter.route({
           route: 'remote-tools',
-          mcpServerConfigs: {
-            configs: { server1: { type: 'http', url: 'https://server1.com' } },
-          },
+          mcpServerConfigs: { server1: { type: 'http', url: 'https://server1.com' } },
           headers: { 'x-mcp-oauth-tokens': '{ invalid json }' },
         }),
       ).toThrow('Invalid JSON in x-mcp-oauth-tokens header');
@@ -133,7 +123,7 @@ describe('createAiProvider', () => {
       await aiRouter.route({ route: 'remote-tools' });
 
       expect(routeMock).toHaveBeenCalledWith(
-        expect.objectContaining({ toolProviders: [] }),
+        expect.objectContaining({ mcpServerConfigs: undefined }),
       );
     });
   });

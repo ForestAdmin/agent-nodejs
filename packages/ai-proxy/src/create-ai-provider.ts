@@ -1,35 +1,22 @@
 import type { AiConfiguration } from './provider';
 import type { RouterRouteArgs } from './schemas/route';
-import type { ToolProvider } from './tool-provider';
 import type { ToolSourceConfig } from './tool-provider-factory';
 import type { AiProviderDefinition, AiRouter } from '@forestadmin/agent-toolkit';
-import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { extractMcpOauthTokensFromHeaders, injectOauthTokens } from './oauth-token-injector';
 import { Router } from './router';
-import { createToolProviders } from './tool-provider-factory';
 
-function resolveToolProviders(
+function resolveMcpConfigs(
   args: Parameters<AiRouter['route']>[0],
-  logger?: Logger,
-): ToolProvider[] {
-  const mcpServerConfigs = args.mcpServerConfigs as
-    | { configs: Record<string, ToolSourceConfig> }
-    | undefined;
-
-  if (!mcpServerConfigs) return [];
-
-  const { configs } = mcpServerConfigs;
-
+): Record<string, ToolSourceConfig> | undefined {
   const tokensByMcpServerName = args.headers
     ? extractMcpOauthTokensFromHeaders(args.headers)
     : undefined;
 
-  const configsWithTokens = injectOauthTokens({ configs, tokensByMcpServerName });
-
-  if (!configsWithTokens) return [];
-
-  return createToolProviders(configsWithTokens, logger);
+  return injectOauthTokens({
+    configs: args.mcpServerConfigs as Record<string, ToolSourceConfig> | undefined,
+    tokensByMcpServerName,
+  });
 }
 
 // eslint-disable-next-line import/prefer-default-export
@@ -47,7 +34,7 @@ export function createAiProvider(config: AiConfiguration): AiProviderDefinition 
             route: args.route,
             body: args.body,
             query: args.query,
-            toolProviders: resolveToolProviders(args, logger),
+            mcpServerConfigs: resolveMcpConfigs(args),
           } as RouterRouteArgs),
       };
     },

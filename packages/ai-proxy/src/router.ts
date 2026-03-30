@@ -10,6 +10,7 @@ import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
 import isModelSupportingTools from './supported-models';
+import { type ToolSourceConfig, createToolProviders } from './tool-provider-factory';
 
 export type {
   AiQueryArgs,
@@ -69,16 +70,17 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(args: RouteArgs & { toolProviders?: ToolProvider[] }) {
+  async route(args: RouteArgs & { mcpServerConfigs?: Record<string, ToolSourceConfig> }) {
     // Validate input with Zod schema
     const result = routeArgsSchema.safeParse(args);
+    const remoteToolProviders = createToolProviders(args.mcpServerConfigs ?? {}, this.logger);
 
     if (!result.success) {
       throw new AIBadRequestError(Router.formatZodError(result.error));
     }
 
     const validatedArgs = result.data;
-    const providers = [...this.localToolProviders, ...(args.toolProviders ?? [])];
+    const providers = [...this.localToolProviders, ...remoteToolProviders];
 
     try {
       const allTools = (await Promise.all(providers.map(p => p.loadTools()))).flat();

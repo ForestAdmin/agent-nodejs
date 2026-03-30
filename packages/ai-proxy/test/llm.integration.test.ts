@@ -21,7 +21,6 @@ import { z } from 'zod';
 import { Router } from '../src';
 import runMcpServer from '../src/examples/simple-mcp-server';
 import isModelSupportingTools from '../src/supported-models';
-import { createToolProviders } from '../src/tool-provider-factory';
 
 const { OPENAI_API_KEY, ANTHROPIC_API_KEY } = process.env;
 const describeWithOpenAI = OPENAI_API_KEY ? describe : describe.skip;
@@ -644,7 +643,7 @@ describeWithOpenAI('Router integration tests', () => {
       it('should return MCP tools in the list', async () => {
         const response = (await router.route({
           route: 'remote-tools',
-          toolProviders: createToolProviders(mcpConfig.configs),
+          mcpServerConfigs: mcpConfig.configs,
         })) as Array<{ name: string; sourceType: string; sourceId: string }>;
 
         const toolNames = response.map(t => t.name);
@@ -690,7 +689,7 @@ describeWithOpenAI('Router integration tests', () => {
 
         const response = (await routerWithLogger.route({
           route: 'remote-tools',
-          toolProviders: createToolProviders(mixedConfig.configs),
+          mcpServerConfigs: mixedConfig.configs,
         })) as Array<{ name: string; sourceId: string }>;
 
         const toolNames = response.map(t => t.name);
@@ -727,7 +726,7 @@ describeWithOpenAI('Router integration tests', () => {
 
         const response = (await routerWithLogger.route({
           route: 'remote-tools',
-          toolProviders: createToolProviders(badAuthConfig.configs),
+          mcpServerConfigs: badAuthConfig.configs,
         })) as Array<{ name: string }>;
 
         expect(response).toEqual([]);
@@ -754,7 +753,7 @@ describeWithOpenAI('Router integration tests', () => {
           body: {
             messages: [{ role: 'user', content: 'Say "hello"' }],
           },
-          toolProviders: createToolProviders(brokenMcpConfig.configs),
+          mcpServerConfigs: brokenMcpConfig.configs,
         })) as ChatCompletionResponse;
 
         expect(response.choices[0].message.content).toBeDefined();
@@ -769,7 +768,7 @@ describeWithOpenAI('Router integration tests', () => {
           body: {
             inputs: { a: 5, b: 3 } as any,
           },
-          toolProviders: createToolProviders(mcpConfig.configs),
+          mcpServerConfigs: mcpConfig.configs,
         });
 
         expect(response).toBe('8');
@@ -782,7 +781,7 @@ describeWithOpenAI('Router integration tests', () => {
           body: {
             inputs: { a: 6, b: 7 } as any,
           },
-          toolProviders: createToolProviders(mcpConfig.configs),
+          mcpServerConfigs: mcpConfig.configs,
         });
 
         expect(response).toBe('42');
@@ -820,7 +819,7 @@ describeWithOpenAI('Router integration tests', () => {
             ],
             tool_choice: 'required',
           },
-          toolProviders: createToolProviders(mcpConfig.configs),
+          mcpServerConfigs: mcpConfig.configs,
         })) as ChatCompletionResponse;
 
         expect(response.choices[0].finish_reason).toBe('tool_calls');
@@ -848,7 +847,7 @@ describeWithOpenAI('Router integration tests', () => {
             ],
             tool_choice: 'required',
           },
-          toolProviders: createToolProviders(mcpConfig.configs),
+          mcpServerConfigs: mcpConfig.configs,
         })) as ChatCompletionResponse;
 
         expect(response.choices[0].finish_reason).toBe('tool_calls');
