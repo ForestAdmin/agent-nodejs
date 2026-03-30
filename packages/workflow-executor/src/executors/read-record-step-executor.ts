@@ -29,7 +29,8 @@ export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<ReadR
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const selectedDisplayNames = preRecordedArgs?.fieldDisplayNames ?? (await this.selectFields(schema, step.prompt));
+    const selectedDisplayNames =
+      preRecordedArgs?.fieldDisplayNames ?? (await this.selectFields(schema, step.prompt));
     const resolvedFieldNames = selectedDisplayNames
       .map(name => this.findField(schema, name)?.fieldName)
       .filter((name): name is string => name !== undefined);

@@ -59,15 +59,21 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Upd
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const hasField = preRecordedArgs?.fieldDisplayName !== undefined;
-    const hasValue = preRecordedArgs?.value !== undefined;
 
-    if (hasField !== hasValue) {
-      throw new InvalidPreRecordedArgsError('fieldDisplayName and value must both be provided or both omitted');
+    if (preRecordedArgs?.fieldDisplayName !== undefined && preRecordedArgs?.value === undefined) {
+      throw new InvalidPreRecordedArgsError(
+        'fieldDisplayName and value must both be provided or both omitted',
+      );
     }
 
-    const args = hasField
-      ? { fieldName: preRecordedArgs!.fieldDisplayName!, value: preRecordedArgs!.value! }
+    if (preRecordedArgs?.value !== undefined && preRecordedArgs?.fieldDisplayName === undefined) {
+      throw new InvalidPreRecordedArgsError(
+        'fieldDisplayName and value must both be provided or both omitted',
+      );
+    }
+
+    const args = preRecordedArgs?.fieldDisplayName
+      ? { fieldName: preRecordedArgs.fieldDisplayName, value: preRecordedArgs.value as string }
       : await this.selectFieldAndValue(schema, step.prompt);
     const name = this.resolveFieldName(schema, args.fieldName);
     const target: UpdateTarget = {

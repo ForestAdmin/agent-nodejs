@@ -10,7 +10,9 @@ import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-reco
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<LoadRelatedRecordStepDefinition> = {}): LoadRelatedRecordStepDefinition {
+function makeStep(
+  overrides: Partial<LoadRelatedRecordStepDefinition> = {},
+): LoadRelatedRecordStepDefinition {
   return {
     type: StepType.LoadRelatedRecord,
     prompt: 'Load the related order for this customer',
@@ -1707,8 +1709,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
     it('skips AI record selection when selectedRecordIndex is pre-recorded with HasMany', async () => {
       const relatedData = [
-        makeRelatedRecordData({ collectionName: 'addresses', recordId: [101], values: { city: 'Paris' } }),
-        makeRelatedRecordData({ collectionName: 'addresses', recordId: [102], values: { city: 'Lyon' } }),
+        makeRelatedRecordData({
+          collectionName: 'addresses',
+          recordId: [101],
+          values: { city: 'Paris' },
+        }),
+        makeRelatedRecordData({
+          collectionName: 'addresses',
+          recordId: [102],
+          values: { city: 'Lyon' },
+        }),
       ];
 
       const { model, bindTools } = makeMockModel();
@@ -1740,8 +1750,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
     it('returns error when selectedRecordIndex is out of range', async () => {
       const relatedData = [
-        makeRelatedRecordData({ collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } }),
-        makeRelatedRecordData({ collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } }),
+        makeRelatedRecordData({
+          collectionName: 'addresses',
+          recordId: [1],
+          values: { city: 'Paris' },
+        }),
+        makeRelatedRecordData({
+          collectionName: 'addresses',
+          recordId: [2],
+          values: { city: 'Lyon' },
+        }),
       ];
       const { model } = makeMockModel();
       const context = makeContext({

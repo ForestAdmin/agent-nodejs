@@ -200,9 +200,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
     const { preRecordedArgs } = this.context.stepDefinition;
 
     if (preRecordedArgs?.selectedRecordIndex !== undefined) {
-      if (preRecordedArgs.selectedRecordIndex < 0 || preRecordedArgs.selectedRecordIndex >= relatedData.length) {
+      if (
+        preRecordedArgs.selectedRecordIndex < 0 ||
+        preRecordedArgs.selectedRecordIndex >= relatedData.length
+      ) {
         throw new InvalidPreRecordedArgsError(
-          `Record index ${preRecordedArgs.selectedRecordIndex} is out of range (0-${relatedData.length - 1})`,
+          `Record index ${preRecordedArgs.selectedRecordIndex} is out of range (0-${
+            relatedData.length - 1
+          })`,
         );
       }
 

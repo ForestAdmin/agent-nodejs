@@ -11,7 +11,9 @@ import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<TriggerActionStepDefinition> = {}): TriggerActionStepDefinition {
+function makeStep(
+  overrides: Partial<TriggerActionStepDefinition> = {},
+): TriggerActionStepDefinition {
   return {
     type: StepType.TriggerAction,
     prompt: 'Send a welcome email to the customer',

@@ -74,7 +74,4 @@ export type RecordStepDefinition =
   | TriggerActionStepDefinition
   | LoadRelatedRecordStepDefinition;
 
-export type StepDefinition =
-  | ConditionStepDefinition
-  | RecordStepDefinition
-  | McpStepDefinition;
+export type StepDefinition = ConditionStepDefinition | RecordStepDefinition | McpStepDefinition;

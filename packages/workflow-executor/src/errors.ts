@@ -248,9 +248,6 @@ export class InvalidPendingDataError extends WorkflowExecutorError {
 
 export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
   constructor(detail: string) {
-    super(
-      `Invalid pre-recorded args: ${detail}`,
-      'The pre-configured step parameters are invalid',
-    );
+    super(`Invalid pre-recorded args: ${detail}`, 'The pre-configured step parameters are invalid');
   }
 }

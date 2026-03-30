@@ -25,10 +25,7 @@ Important rules:
 export default class McpTaskStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
 
-  constructor(
-    context: ExecutionContext<McpStepDefinition>,
-    remoteTools: readonly RemoteTool[],
-  ) {
+  constructor(context: ExecutionContext<McpStepDefinition>, remoteTools: readonly RemoteTool[]) {
     super(context);
     this.remoteTools = remoteTools;
   }

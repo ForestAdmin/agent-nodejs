@@ -957,5 +957,33 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
     });
+
+    it('returns error when fieldDisplayName is provided without value', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { fieldDisplayName: 'Status' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('returns error when value is provided without fieldDisplayName', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { value: 'active' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
   });
 });
