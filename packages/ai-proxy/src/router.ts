@@ -73,12 +73,12 @@ export class Router {
   async route(args: RouteArgs & { mcpServerConfigs?: Record<string, ToolSourceConfig> }) {
     // Validate input with Zod schema
     const result = routeArgsSchema.safeParse(args);
-    const remoteToolProviders = createToolProviders(args.mcpServerConfigs ?? {}, this.logger);
 
     if (!result.success) {
       throw new AIBadRequestError(Router.formatZodError(result.error));
     }
 
+    const remoteToolProviders = createToolProviders(args.mcpServerConfigs ?? {}, this.logger);
     const validatedArgs = result.data;
     const providers = [...this.localToolProviders, ...remoteToolProviders];
 
