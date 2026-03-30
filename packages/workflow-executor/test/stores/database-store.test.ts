@@ -118,7 +118,7 @@ describe('DatabaseStore (SQLite)', () => {
       .spyOn(badSequelize.getQueryInterface(), 'createTable')
       .mockRejectedValueOnce(new Error('disk full'));
 
-    const logger = { error: jest.fn() };
+    const logger = { info: jest.fn(), error: jest.fn() };
     await expect(badStore.init(logger)).rejects.toThrow('disk full');
     expect(logger.error).toHaveBeenCalledWith(
       'Database migration failed',
@@ -129,7 +129,7 @@ describe('DatabaseStore (SQLite)', () => {
   });
 
   it('close() catches and logs errors instead of throwing', async () => {
-    const logger = { error: jest.fn() };
+    const logger = { info: jest.fn(), error: jest.fn() };
     jest.spyOn(sequelize, 'close').mockRejectedValueOnce(new Error('close failed'));
 
     await expect(store.close(logger)).resolves.toBeUndefined();

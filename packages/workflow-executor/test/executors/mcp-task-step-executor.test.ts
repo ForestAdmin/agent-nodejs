@@ -107,7 +107,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { error: jest.fn() },
+    logger: { info: jest.fn(), error: jest.fn() },
     ...overrides,
   };
 }
@@ -218,7 +218,7 @@ describe('McpTaskStepExecutor', () => {
           tool_calls: [{ name: 'send_notification', args: { message: 'Hi' }, id: 'call_1' }],
         })
         .mockResolvedValueOnce({ tool_calls: [] });
-      const logger = { error: jest.fn() };
+      const logger = { info: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
@@ -299,7 +299,7 @@ describe('McpTaskStepExecutor', () => {
 
     it('returns error when saveStepExecution fails (Branch C)', async () => {
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { error: jest.fn() };
+      const logger = { info: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('DB unavailable')),
       });
@@ -491,7 +491,7 @@ describe('McpTaskStepExecutor', () => {
         invoke: invokeFn,
       });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { error: jest.fn() };
+      const logger = { info: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
@@ -529,7 +529,7 @@ describe('McpTaskStepExecutor', () => {
           userConfirmed: true,
         },
       };
-      const logger = { error: jest.fn() };
+      const logger = { info: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
@@ -638,7 +638,7 @@ describe('McpTaskStepExecutor', () => {
         invoke: invokeFn,
       });
       const { model } = makeMockModel('send_notification', {});
-      const logger = { error: jest.fn() };
+      const logger = { info: jest.fn(), error: jest.fn() };
       const context = makeContext({
         model,
         stepDefinition: makeStep({ automaticExecution: true }),
