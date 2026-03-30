@@ -10,7 +10,7 @@ import type {
   IpWhitelistRulesResponse,
 } from '../types';
 import type { HttpOptions } from '../utils/http-options';
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
+import type { ToolConfig } from '@forestadmin/ai-proxy';
 
 import JSONAPISerializer from 'json-api-serializer';
 
@@ -37,8 +37,8 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     return ServerUtils.query<ModelCustomization[]>(options, 'get', '/liana/model-customizations');
   }
 
-  async getMcpServerConfigs(options: HttpOptions): Promise<McpConfiguration> {
-    return ServerUtils.query<McpConfiguration>(
+  async getMcpServerConfigs(options: HttpOptions): Promise<Record<string, ToolConfig>> {
+    return ServerUtils.query<Record<string, ToolConfig>>(
       options,
       'get',
       '/liana/mcp-server-configs-with-details',

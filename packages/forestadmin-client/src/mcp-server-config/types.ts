@@ -1,5 +1,5 @@
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
+import type { ToolConfig } from '@forestadmin/ai-proxy';
 
 export interface McpServerConfigService {
-  getConfiguration(): Promise<McpConfiguration>;
+  getConfiguration(): Promise<Record<string, ToolConfig>>;
 }
