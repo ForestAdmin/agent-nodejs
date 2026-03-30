@@ -3,6 +3,7 @@ import createCreateTicketCommentTool from '../../../../src/integrations/zendesk/
 const mockResponse = { ticket: { id: 5 } };
 
 global.fetch = jest.fn().mockResolvedValue({
+  ok: true,
   json: () => Promise.resolve(mockResponse),
 }) as jest.Mock;
 
@@ -11,6 +12,21 @@ describe('createCreateTicketCommentTool', () => {
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('should throw on HTTP error', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      json: async () => ({ error: 'Insufficient permissions' }),
+    });
+
+    const tool = createCreateTicketCommentTool(headers, baseUrl);
+
+    await expect(tool.invoke({ ticket_id: 5, comment: 'Test' })).rejects.toThrow(
+      'Zendesk create ticket comment failed (403): Insufficient permissions',
+    );
+  });
 
   it('should add a public comment by default', async () => {
     const tool = createCreateTicketCommentTool(headers, baseUrl);

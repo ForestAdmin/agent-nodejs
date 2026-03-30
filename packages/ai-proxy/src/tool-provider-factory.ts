@@ -6,7 +6,7 @@ import McpClient, { type McpConfiguration, type McpServerConfig } from './mcp-cl
 
 export type ToolConfig = McpServerConfig | ForestIntegrationConfig;
 
-function isForestIntegrationConfig(config: ToolConfig): config is ForestIntegrationConfig {
+export function isForestIntegrationConfig(config: ToolConfig): config is ForestIntegrationConfig {
   return 'isForestConnector' in config && config.isForestConnector === true;
 }
 

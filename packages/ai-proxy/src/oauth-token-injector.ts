@@ -1,7 +1,7 @@
 import type { McpServerConfig } from './mcp-client';
-import type { ToolConfig } from './tool-provider-factory';
 
 import { AIBadRequestError } from './errors';
+import { type ToolConfig, isForestIntegrationConfig } from './tool-provider-factory';
 
 export const MCP_OAUTH_TOKENS_HEADER = 'x-mcp-oauth-tokens';
 
@@ -73,7 +73,7 @@ export function injectOauthTokens({
 
   return Object.fromEntries(
     Object.entries(configs).map(([name, config]) => {
-      if ('isForestConnector' in config) return [name, config];
+      if (isForestIntegrationConfig(config)) return [name, config];
 
       return [
         name,

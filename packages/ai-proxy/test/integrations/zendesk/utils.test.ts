@@ -1,5 +1,9 @@
 import { McpConnectionError } from '../../../src/errors';
-import { getZendeskConfig, validateZendeskConfig } from '../../../src/integrations/zendesk/utils';
+import {
+  assertResponseOk,
+  getZendeskConfig,
+  validateZendeskConfig,
+} from '../../../src/integrations/zendesk/utils';
 
 describe('zendesk/utils', () => {
   describe('getZendeskConfig', () => {
@@ -16,6 +20,54 @@ describe('zendesk/utils', () => {
           'Content-Type': 'application/json',
         },
       });
+    });
+  });
+
+  describe('assertResponseOk', () => {
+    it('should not throw when response is ok', async () => {
+      const response = { ok: true } as Response;
+      await expect(assertResponseOk(response, 'test')).resolves.toBeUndefined();
+    });
+
+    it('should throw with error field from JSON body', async () => {
+      const response = {
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: async () => ({ error: 'Invalid credentials' }),
+      } as unknown as Response;
+
+      await expect(assertResponseOk(response, 'get ticket')).rejects.toThrow(
+        'Zendesk get ticket failed (401): Invalid credentials',
+      );
+    });
+
+    it('should throw with title from JSON body', async () => {
+      const response = {
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        json: async () => ({ title: 'RecordNotFound' }),
+      } as unknown as Response;
+
+      await expect(assertResponseOk(response, 'get ticket')).rejects.toThrow(
+        'Zendesk get ticket failed (404): RecordNotFound',
+      );
+    });
+
+    it('should fall back to statusText when JSON parsing fails', async () => {
+      const response = {
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        json: async () => {
+          throw new Error('not json');
+        },
+      } as unknown as Response;
+
+      await expect(assertResponseOk(response, 'create ticket')).rejects.toThrow(
+        'Zendesk create ticket failed (502): Bad Gateway',
+      );
     });
   });
 
@@ -48,6 +100,20 @@ describe('zendesk/utils', () => {
       await expect(validateZendeskConfig(config)).rejects.toThrow(McpConnectionError);
       await expect(validateZendeskConfig(config)).rejects.toThrow(
         'Failed to validate Zendesk config: Unauthorized',
+      );
+    });
+
+    it('should fall back to statusText when response body is not JSON', async () => {
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        statusText: 'Bad Gateway',
+        json: async () => {
+          throw new Error('not json');
+        },
+      } as unknown as Response);
+
+      await expect(validateZendeskConfig(config)).rejects.toThrow(
+        'Failed to validate Zendesk config: Bad Gateway',
       );
     });
 

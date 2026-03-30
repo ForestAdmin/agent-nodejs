@@ -3,6 +3,7 @@ import createGetTicketTool from '../../../../src/integrations/zendesk/tools/get-
 const mockResponse = { ticket: { id: 42, subject: 'Help' } };
 
 global.fetch = jest.fn().mockResolvedValue({
+  ok: true,
   json: () => Promise.resolve(mockResponse),
 }) as jest.Mock;
 
@@ -11,6 +12,21 @@ describe('createGetTicketTool', () => {
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('should throw on HTTP error', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: async () => ({ error: 'RecordNotFound' }),
+    });
+
+    const tool = createGetTicketTool(headers, baseUrl);
+
+    await expect(tool.invoke({ ticket_id: 999 })).rejects.toThrow(
+      'Zendesk get ticket failed (404): RecordNotFound',
+    );
+  });
 
   it('should fetch the ticket by id', async () => {
     const tool = createGetTicketTool(headers, baseUrl);

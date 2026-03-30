@@ -13,6 +13,21 @@ export function getZendeskConfig(config: ZendeskConfig) {
   return { baseUrl, headers };
 }
 
+export async function assertResponseOk(response: Response, action: string) {
+  if (!response.ok) {
+    let errorMessage = response.statusText || 'Unknown error';
+
+    try {
+      const json = await response.json();
+      errorMessage = json.error || json.title || json.description || errorMessage;
+    } catch {
+      // Response body is not JSON
+    }
+
+    throw new Error(`Zendesk ${action} failed (${response.status}): ${errorMessage}`);
+  }
+}
+
 export async function validateZendeskConfig(config: ZendeskConfig) {
   const { baseUrl, headers } = getZendeskConfig(config);
 

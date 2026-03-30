@@ -1,6 +1,8 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import { assertResponseOk } from '../utils';
+
 export default function createGetTicketTool(
   headers: Record<string, string>,
   baseUrl: string,
@@ -15,6 +17,8 @@ export default function createGetTicketTool(
       const response = await fetch(`${baseUrl}/tickets/${ticket_id}.json`, {
         headers,
       });
+
+      await assertResponseOk(response, 'get ticket');
 
       return JSON.stringify(await response.json());
     },

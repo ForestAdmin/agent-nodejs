@@ -3,6 +3,7 @@ import createUpdateTicketTool from '../../../../src/integrations/zendesk/tools/u
 const mockResponse = { ticket: { id: 7, status: 'solved' } };
 
 global.fetch = jest.fn().mockResolvedValue({
+  ok: true,
   json: () => Promise.resolve(mockResponse),
 }) as jest.Mock;
 
@@ -11,6 +12,21 @@ describe('createUpdateTicketTool', () => {
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('should throw on HTTP error', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: async () => ({ error: 'RecordNotFound' }),
+    });
+
+    const tool = createUpdateTicketTool(headers, baseUrl);
+
+    await expect(tool.invoke({ ticket_id: 999, status: 'solved' })).rejects.toThrow(
+      'Zendesk update ticket failed (404): RecordNotFound',
+    );
+  });
 
   it('should update a ticket with a single field', async () => {
     const tool = createUpdateTicketTool(headers, baseUrl);

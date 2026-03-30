@@ -3,6 +3,7 @@ import createGetTicketsTool from '../../../../src/integrations/zendesk/tools/get
 const mockResponse = { tickets: [{ id: 1 }, { id: 2 }] };
 
 global.fetch = jest.fn().mockResolvedValue({
+  ok: true,
   json: () => Promise.resolve(mockResponse),
 }) as jest.Mock;
 
@@ -11,6 +12,21 @@ describe('createGetTicketsTool', () => {
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('should throw on HTTP error', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: async () => ({ error: 'Invalid credentials' }),
+    });
+
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await expect(tool.invoke({})).rejects.toThrow(
+      'Zendesk get tickets failed (401): Invalid credentials',
+    );
+  });
 
   it('should fetch tickets with default params', async () => {
     const tool = createGetTicketsTool(headers, baseUrl);

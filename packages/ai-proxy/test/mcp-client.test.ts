@@ -414,5 +414,30 @@ describe('McpClient', () => {
         zendesk: configs.zendesk,
       });
     });
+
+    it('should inject token when isForestConnector is false', () => {
+      const configs = {
+        server1: {
+          type: 'http' as const,
+          url: 'https://server1.com',
+          isForestConnector: false,
+        },
+      };
+      const tokens = { server1: 'Bearer token1' };
+
+      const result = injectOauthTokens({
+        configs: configs as any,
+        tokensByMcpServerName: tokens,
+      });
+
+      expect(result).toEqual({
+        server1: {
+          type: 'http',
+          url: 'https://server1.com',
+          isForestConnector: false,
+          headers: { Authorization: 'Bearer token1' },
+        },
+      });
+    });
   });
 });

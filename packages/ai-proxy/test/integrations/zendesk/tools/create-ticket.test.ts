@@ -3,6 +3,7 @@ import createCreateTicketTool from '../../../../src/integrations/zendesk/tools/c
 const mockResponse = { ticket: { id: 99, subject: 'New ticket' } };
 
 global.fetch = jest.fn().mockResolvedValue({
+  ok: true,
   json: () => Promise.resolve(mockResponse),
 }) as jest.Mock;
 
@@ -11,6 +12,21 @@ describe('createCreateTicketTool', () => {
   const baseUrl = 'https://test.zendesk.com/api/v2';
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('should throw on HTTP error', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      json: async () => ({ error: 'Validation failed' }),
+    });
+
+    const tool = createCreateTicketTool(headers, baseUrl);
+
+    await expect(tool.invoke({ subject: 'Bug', description: 'It broke' })).rejects.toThrow(
+      'Zendesk create ticket failed (422): Validation failed',
+    );
+  });
 
   it('should create a ticket with required fields', async () => {
     const tool = createCreateTicketTool(headers, baseUrl);

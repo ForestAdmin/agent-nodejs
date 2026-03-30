@@ -1,6 +1,8 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+import { assertResponseOk } from '../utils';
+
 export default function createCreateTicketCommentTool(
   headers: Record<string, string>,
   baseUrl: string,
@@ -34,6 +36,8 @@ export default function createCreateTicketCommentTool(
         headers,
         body: JSON.stringify(updateData),
       });
+
+      await assertResponseOk(response, 'create ticket comment');
 
       return JSON.stringify(await response.json());
     },
