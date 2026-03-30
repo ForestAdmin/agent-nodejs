@@ -6,6 +6,9 @@ api-reference
 node_modules
 lerna-debug.log
 
+# Generated debug dashboard (rebuilt from dashboard/ source)
+packages/workflow-executor/src/http/debug-dashboard.html
+
 # IDE
 .idea
 
