@@ -1,28 +1,19 @@
 import { useCallback, useState } from 'react';
 
-import type { EventCategory, Filters, PairStatus, StatusFilters } from '../types';
+import type { EventCategory, Filters, PairStatus, StatusFilters, ViewMode } from '../types';
 
 const STORAGE_KEY = 'wf-debug-filters';
 const STATUS_STORAGE_KEY = 'wf-debug-status-filters';
+const VIEW_MODE_KEY = 'wf-debug-view-mode';
 
-function loadFilters(): Filters {
+function load<T>(key: string, fallback: T): T {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(key);
     if (stored) return JSON.parse(stored);
   } catch {
     /* ignore */
   }
-  return { poll: true, step: true, drain: true };
-}
-
-function loadStatusFilters(): StatusFilters {
-  try {
-    const stored = localStorage.getItem(STATUS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {
-    /* ignore */
-  }
-  return { running: true, success: true, error: true, 'awaiting-input': true };
+  return fallback;
 }
 
 function save(key: string, value: unknown) {
@@ -34,8 +25,21 @@ function save(key: string, value: unknown) {
 }
 
 export default function useFilters() {
-  const [filters, setFilters] = useState<Filters>(loadFilters);
-  const [statusFilters, setStatusFilters] = useState<StatusFilters>(loadStatusFilters);
+  const [filters, setFilters] = useState<Filters>(() =>
+    load(STORAGE_KEY, { poll: true, step: true, drain: true }),
+  );
+  const [statusFilters, setStatusFilters] = useState<StatusFilters>(() =>
+    load(STATUS_STORAGE_KEY, {
+      running: true,
+      success: true,
+      error: true,
+      'awaiting-input': true,
+    }),
+  );
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    load(VIEW_MODE_KEY, 'timeline' as ViewMode),
+  );
+  const [searchQuery, setSearchQuery] = useState('');
 
   const toggle = useCallback((category: EventCategory) => {
     setFilters(prev => {
@@ -53,5 +57,19 @@ export default function useFilters() {
     });
   }, []);
 
-  return { filters, toggle, statusFilters, toggleStatus };
+  const setMode = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    save(VIEW_MODE_KEY, mode);
+  }, []);
+
+  return {
+    filters,
+    toggle,
+    statusFilters,
+    toggleStatus,
+    viewMode,
+    setMode,
+    searchQuery,
+    setSearchQuery,
+  };
 }

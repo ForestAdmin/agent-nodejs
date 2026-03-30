@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import './App.css';
 import EventStream from './components/EventStream';
@@ -9,12 +9,26 @@ import useFilters from './hooks/use-filters';
 
 export default function App() {
   const { pairs, counters, status, clearEvents } = useEventStream();
-  const { filters, toggle, statusFilters, toggleStatus } = useFilters();
+  const {
+    filters,
+    toggle,
+    statusFilters,
+    toggleStatus,
+    viewMode,
+    setMode,
+    searchQuery,
+    setSearchQuery,
+  } = useFilters();
   const [now, setNow] = useState(Date.now());
+  const [resultCount, setResultCount] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  const handleResultCount = useCallback((count: number) => {
+    setResultCount(count);
   }, []);
 
   return (
@@ -25,8 +39,21 @@ export default function App() {
         onToggle={toggle}
         statusFilters={statusFilters}
         onToggleStatus={toggleStatus}
+        viewMode={viewMode}
+        onSetMode={setMode}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        resultCount={resultCount}
       />
-      <EventStream pairs={pairs} filters={filters} statusFilters={statusFilters} now={now} />
+      <EventStream
+        pairs={pairs}
+        filters={filters}
+        statusFilters={statusFilters}
+        viewMode={viewMode}
+        searchQuery={searchQuery}
+        now={now}
+        onResultCount={handleResultCount}
+      />
     </>
   );
 }

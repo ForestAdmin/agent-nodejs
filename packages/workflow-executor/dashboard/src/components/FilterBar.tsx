@@ -1,6 +1,6 @@
 import { Tooltip } from 'react-tooltip';
 
-import type { EventCategory, Filters, PairStatus, StatusFilters } from '../types';
+import type { EventCategory, Filters, PairStatus, StatusFilters, ViewMode } from '../types';
 
 const CATEGORY_TOOLTIPS: Record<EventCategory, string> = {
   poll: 'Periodic fetch of pending steps from the orchestrator',
@@ -23,6 +23,11 @@ interface FilterBarProps {
   onToggle: (category: EventCategory) => void;
   statusFilters: StatusFilters;
   onToggleStatus: (status: PairStatus) => void;
+  viewMode: ViewMode;
+  onSetMode: (mode: ViewMode) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  resultCount: number;
 }
 
 export default function FilterBar({
@@ -30,21 +35,45 @@ export default function FilterBar({
   onToggle,
   statusFilters,
   onToggleStatus,
+  viewMode,
+  onSetMode,
+  searchQuery,
+  onSearchChange,
+  resultCount,
 }: FilterBarProps) {
   return (
     <div className="filters">
-      {CATEGORIES.map(cat => (
+      <div className="view-mode-toggle">
         <button
-          key={cat}
-          className={`filter-btn ${filters[cat] ? 'active' : ''}`}
-          data-category={cat}
-          data-tooltip-id="filter-tooltip"
-          data-tooltip-content={CATEGORY_TOOLTIPS[cat]}
-          onClick={() => onToggle(cat)}
+          className={`view-mode-btn ${viewMode === 'timeline' ? 'active' : ''}`}
+          onClick={() => onSetMode('timeline')}
         >
-          {cat}
+          timeline
         </button>
-      ))}
+        <button
+          className={`view-mode-btn ${viewMode === 'grouped' ? 'active' : ''}`}
+          onClick={() => onSetMode('grouped')}
+        >
+          by run
+        </button>
+      </div>
+      <span className="filter-divider" />
+      {CATEGORIES.map(cat => {
+        const disabled = viewMode === 'grouped' && cat !== 'step';
+        return (
+          <button
+            key={cat}
+            className={`filter-btn ${filters[cat] && !disabled ? 'active' : ''} ${disabled ? 'filter-btn-disabled' : ''}`}
+            data-category={cat}
+            data-tooltip-id="filter-tooltip"
+            data-tooltip-content={disabled ? 'Not available in grouped view' : CATEGORY_TOOLTIPS[cat]}
+            disabled={disabled}
+            onClick={() => onToggle(cat)}
+          >
+            {cat}
+          </button>
+        );
+      })}
       <span className="filter-divider" />
       {STATUSES.map(status => (
         <button
@@ -56,10 +85,31 @@ export default function FilterBar({
           {STATUS_LABELS[status]}
         </button>
       ))}
+      <span className="filter-divider" />
+      <div className="search-container">
+        <input
+          className="search-input"
+          type="text"
+          placeholder="filter by runId..."
+          value={searchQuery}
+          onChange={e => onSearchChange(e.target.value)}
+        />
+        {searchQuery && (
+          <>
+            <span className="search-count">
+              {resultCount} {viewMode === 'grouped' ? 'runs' : 'events'}
+            </span>
+            <button className="search-clear" onClick={() => onSearchChange('')}>
+              ×
+            </button>
+          </>
+        )}
+      </div>
       <Tooltip
         id="filter-tooltip"
         place="bottom"
         delayShow={200}
+        border="1px solid var(--border)"
         style={{
           backgroundColor: 'var(--bg-elevated)',
           color: 'var(--text-secondary)',
@@ -67,7 +117,6 @@ export default function FilterBar({
           fontFamily: 'var(--font-sans)',
           padding: '5px 10px',
           borderRadius: '4px',
-          border: '1px solid var(--border)',
           zIndex: 300,
         }}
       />

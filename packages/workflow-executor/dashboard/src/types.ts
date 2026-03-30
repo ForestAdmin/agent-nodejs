@@ -30,3 +30,14 @@ export interface Counters {
 export type StatusFilters = Record<PairStatus, boolean>;
 
 export type Filters = Record<EventCategory, boolean>;
+
+export type ViewMode = 'timeline' | 'grouped';
+
+export interface RunGroup {
+  runId: string;
+  pairs: EventPair[];
+  firstTime: Date;
+  totalDurationMs: number;
+  overallStatus: PairStatus;
+  statuses: { running: number; success: number; error: number; awaiting: number };
+}
