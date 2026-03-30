@@ -6,7 +6,7 @@ export type {
   TriggerActionStepDefinition,
   LoadRelatedRecordStepDefinition,
   RecordStepDefinition,
-  McpTaskStepDefinition,
+  McpStepDefinition,
   StepDefinition,
 } from './types/step-definition';
 

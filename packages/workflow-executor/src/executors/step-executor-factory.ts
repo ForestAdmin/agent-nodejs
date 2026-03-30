@@ -12,7 +12,7 @@ import type {
 import type {
   ConditionStepDefinition,
   LoadRelatedRecordStepDefinition,
-  McpTaskStepDefinition,
+  McpStepDefinition,
   ReadRecordStepDefinition,
   TriggerActionStepDefinition,
   UpdateRecordStepDefinition,
@@ -66,7 +66,7 @@ export default class StepExecutorFactory {
           );
         case StepType.McpTask:
           return new McpTaskStepExecutor(
-            context as ExecutionContext<McpTaskStepDefinition>,
+            context as ExecutionContext<McpStepDefinition>,
             await loadTools(),
           );
         default:

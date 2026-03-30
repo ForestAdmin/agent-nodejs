@@ -1,5 +1,5 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
-import type { McpTaskStepDefinition } from '../types/step-definition';
+import type { McpStepDefinition } from '../types/step-definition';
 import type { McpTaskStepExecutionData, McpToolCall } from '../types/step-execution-data';
 import type { RecordTaskStepStatus } from '../types/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
@@ -22,11 +22,11 @@ Important rules:
 - Select only the tool directly relevant to the request.
 - Final answer is definitive, you won't receive any other input from the user.`;
 
-export default class McpTaskStepExecutor extends BaseStepExecutor<McpTaskStepDefinition> {
+export default class McpTaskStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
 
   constructor(
-    context: ExecutionContext<McpTaskStepDefinition>,
+    context: ExecutionContext<McpStepDefinition>,
     remoteTools: readonly RemoteTool[],
   ) {
     super(context);

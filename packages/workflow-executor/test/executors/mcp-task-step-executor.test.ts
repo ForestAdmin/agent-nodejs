@@ -1,7 +1,7 @@
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
-import type { McpTaskStepDefinition } from '../../src/types/step-definition';
+import type { McpStepDefinition } from '../../src/types/step-definition';
 import type { McpTaskStepExecutionData } from '../../src/types/step-execution-data';
 
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
@@ -31,7 +31,7 @@ class MockRemoteTool extends RemoteTool {
   }
 }
 
-function makeStep(overrides: Partial<McpTaskStepDefinition> = {}): McpTaskStepDefinition {
+function makeStep(overrides: Partial<McpStepDefinition> = {}): McpStepDefinition {
   return {
     type: StepType.McpTask,
     prompt: 'Send a notification to the user',
@@ -77,8 +77,8 @@ function makeMockModel(toolName: string, toolArgs: Record<string, unknown>) {
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<McpTaskStepDefinition>> = {},
-): ExecutionContext<McpTaskStepDefinition> {
+  overrides: Partial<ExecutionContext<McpStepDefinition>> = {},
+): ExecutionContext<McpStepDefinition> {
   return {
     runId: 'run-1',
     stepId: 'mcp-1',

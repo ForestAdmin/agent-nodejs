@@ -62,7 +62,7 @@ export interface LoadRelatedRecordStepDefinition extends BaseRecordStepDefinitio
   };
 }
 
-export interface McpTaskStepDefinition extends BaseStepDefinition {
+export interface McpStepDefinition extends BaseStepDefinition {
   type: StepType.McpTask;
   mcpServerId?: string;
   automaticExecution?: boolean;
@@ -77,4 +77,4 @@ export type RecordStepDefinition =
 export type StepDefinition =
   | ConditionStepDefinition
   | RecordStepDefinition
-  | McpTaskStepDefinition;
+  | McpStepDefinition;
