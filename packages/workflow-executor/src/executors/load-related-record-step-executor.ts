@@ -201,6 +201,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
 
     if (preRecordedArgs?.selectedRecordIndex !== undefined) {
       if (
+        !Number.isInteger(preRecordedArgs.selectedRecordIndex) ||
         preRecordedArgs.selectedRecordIndex < 0 ||
         preRecordedArgs.selectedRecordIndex >= relatedData.length
       ) {

@@ -72,7 +72,7 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Upd
       );
     }
 
-    const args = preRecordedArgs?.fieldDisplayName
+    const args = preRecordedArgs?.fieldDisplayName !== undefined
       ? { fieldName: preRecordedArgs.fieldDisplayName, value: preRecordedArgs.value as string }
       : await this.selectFieldAndValue(schema, step.prompt);
     const name = this.resolveFieldName(schema, args.fieldName);
