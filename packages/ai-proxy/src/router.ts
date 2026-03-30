@@ -113,7 +113,7 @@ export class Router {
         }
       }
     } finally {
-      await Promise.allSettled(providers.map(p => p.dispose()));
+      await Promise.allSettled(remoteToolProviders.map(p => p.dispose()));
     }
   }
 

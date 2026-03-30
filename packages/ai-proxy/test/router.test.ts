@@ -324,6 +324,18 @@ describe('route', () => {
 
       expect(BraveToolProvider).not.toHaveBeenCalled();
     });
+
+    it('does not dispose local tool providers after a request', async () => {
+      const router = new Router({
+        localToolsApiKeys: { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'test-key' },
+      });
+
+      const braveInstance = jest.mocked(BraveToolProvider).mock.results[0].value;
+
+      await router.route({ route: 'remote-tools' });
+
+      expect(braveInstance.dispose).not.toHaveBeenCalled();
+    });
   });
 
   describe('Model validation', () => {
