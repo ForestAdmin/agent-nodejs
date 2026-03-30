@@ -3,14 +3,14 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/record';
-import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
+import type { LoadRelatedRecordStepDefinition } from '../../src/types/step-definition';
 import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-execution-data';
 
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
+function makeStep(overrides: Partial<LoadRelatedRecordStepDefinition> = {}): LoadRelatedRecordStepDefinition {
   return {
     type: StepType.LoadRelatedRecord,
     prompt: 'Load the related order for this customer',
@@ -115,8 +115,8 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'selec
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<RecordTaskStepDefinition>> = {},
-): ExecutionContext<RecordTaskStepDefinition> {
+  overrides: Partial<ExecutionContext<LoadRelatedRecordStepDefinition>> = {},
+): ExecutionContext<LoadRelatedRecordStepDefinition> {
   return {
     runId: 'run-1',
     stepId: 'load-1',
@@ -1682,6 +1682,94 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(selectRecordTool.schema.shape.recordIdentifier.options).not.toContain(
         expect.stringContaining('stepIndex: 3'),
       );
+    });
+  });
+
+  describe('pre-recorded args', () => {
+    it('skips AI relation selection when relationName is pre-recorded', async () => {
+      const { model, bindTools } = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { relationDisplayName: 'Order' },
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(bindTools).not.toHaveBeenCalled();
+    });
+
+    it('skips AI record selection when selectedRecordIndex is pre-recorded with HasMany', async () => {
+      const relatedData = [
+        makeRelatedRecordData({ collectionName: 'addresses', recordId: [101], values: { city: 'Paris' } }),
+        makeRelatedRecordData({ collectionName: 'addresses', recordId: [102], values: { city: 'Lyon' } }),
+      ];
+
+      const { model, bindTools } = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        agentPort: makeMockAgentPort(relatedData),
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 1 },
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(bindTools).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ recordId: [102] }),
+          }),
+        }),
+      );
+    });
+
+    it('returns error when selectedRecordIndex is out of range', async () => {
+      const relatedData = [
+        makeRelatedRecordData({ collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } }),
+        makeRelatedRecordData({ collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } }),
+      ];
+      const { model } = makeMockModel();
+      const context = makeContext({
+        model,
+        agentPort: makeMockAgentPort(relatedData),
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 99 },
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('falls back to AI when no preRecordedArgs', async () => {
+      const { model, bindTools } = makeMockModel({ relationName: 'Orders', reasoning: 'r' });
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(bindTools).toHaveBeenCalled();
     });
   });
 });

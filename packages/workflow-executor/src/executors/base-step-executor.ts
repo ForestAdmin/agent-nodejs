@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import {
   InvalidAIResponseError,
+  InvalidPreRecordedArgsError,
   MalformedToolCallError,
   MissingToolCallError,
   NoRecordsError,
@@ -256,6 +257,29 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     }
 
     return records[selectedIndex];
+  }
+
+  /**
+   * Resolves a record ref: uses pre-recorded stepIndex if provided, otherwise delegates to AI.
+   */
+  protected async resolveRecordRef(
+    records: RecordRef[],
+    prompt: string | undefined,
+    preRecordedStepIndex?: number,
+  ): Promise<RecordRef> {
+    if (preRecordedStepIndex !== undefined) {
+      const match = records.find(r => r.stepIndex === preRecordedStepIndex);
+
+      if (!match) {
+        throw new InvalidPreRecordedArgsError(
+          `No record found at step index ${preRecordedStepIndex}`,
+        );
+      }
+
+      return match;
+    }
+
+    return this.selectRecordRef(records, prompt);
   }
 
   /** Fetches a collection schema from WorkflowPort, with TTL-based caching. */

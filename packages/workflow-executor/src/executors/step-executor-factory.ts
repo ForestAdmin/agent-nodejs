@@ -11,8 +11,11 @@ import type {
 } from '../types/execution';
 import type {
   ConditionStepDefinition,
+  LoadRelatedRecordStepDefinition,
   McpTaskStepDefinition,
-  RecordTaskStepDefinition,
+  ReadRecordStepDefinition,
+  TriggerActionStepDefinition,
+  UpdateRecordStepDefinition,
 } from '../types/step-definition';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
@@ -48,18 +51,18 @@ export default class StepExecutorFactory {
         case StepType.Condition:
           return new ConditionStepExecutor(context as ExecutionContext<ConditionStepDefinition>);
         case StepType.ReadRecord:
-          return new ReadRecordStepExecutor(context as ExecutionContext<RecordTaskStepDefinition>);
+          return new ReadRecordStepExecutor(context as ExecutionContext<ReadRecordStepDefinition>);
         case StepType.UpdateRecord:
           return new UpdateRecordStepExecutor(
-            context as ExecutionContext<RecordTaskStepDefinition>,
+            context as ExecutionContext<UpdateRecordStepDefinition>,
           );
         case StepType.TriggerAction:
           return new TriggerRecordActionStepExecutor(
-            context as ExecutionContext<RecordTaskStepDefinition>,
+            context as ExecutionContext<TriggerActionStepDefinition>,
           );
         case StepType.LoadRelatedRecord:
           return new LoadRelatedRecordStepExecutor(
-            context as ExecutionContext<RecordTaskStepDefinition>,
+            context as ExecutionContext<LoadRelatedRecordStepDefinition>,
           );
         case StepType.McpTask:
           return new McpTaskStepExecutor(

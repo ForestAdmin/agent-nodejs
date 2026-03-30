@@ -1,6 +1,6 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
-import type { RecordTaskStepDefinition } from '../types/step-definition';
+import type { TriggerActionStepDefinition } from '../types/step-definition';
 import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -21,7 +21,7 @@ interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
 }
 
-export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
+export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecutor<TriggerActionStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
@@ -49,11 +49,18 @@ export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecu
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
+    const { preRecordedArgs } = step;
     const records = await this.getAvailableRecordRefs();
 
-    const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+    const selectedRecordRef = await this.resolveRecordRef(
+      records,
+      step.prompt,
+      preRecordedArgs?.selectedRecordStepIndex,
+    );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const args = await this.selectAction(schema, step.prompt);
+    const args = preRecordedArgs?.actionDisplayName
+      ? { actionName: preRecordedArgs.actionDisplayName }
+      : await this.selectAction(schema, step.prompt);
     const name = this.resolveActionName(schema, args.actionName);
     const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
 

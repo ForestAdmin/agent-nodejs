@@ -1,6 +1,6 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordData, RecordRef } from '../types/record';
-import type { RecordTaskStepDefinition } from '../types/step-definition';
+import type { LoadRelatedRecordStepDefinition } from '../types/step-definition';
 import type { LoadRelatedRecordStepExecutionData, RelationRef } from '../types/step-execution-data';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import {
   InvalidAIResponseError,
+  InvalidPreRecordedArgsError,
   NoRelationshipFieldsError,
   RelatedRecordNotFoundError,
   RelationNotFoundError,
@@ -35,7 +36,7 @@ interface RelationTarget extends RelationRef {
   relationType?: 'BelongsTo' | 'HasMany' | 'HasOne';
 }
 
-export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
+export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecutor<LoadRelatedRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<LoadRelatedRecordStepExecutionData>(
@@ -54,10 +55,17 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
+    const { preRecordedArgs } = step;
     const records = await this.getAvailableRecordRefs();
-    const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+    const selectedRecordRef = await this.resolveRecordRef(
+      records,
+      step.prompt,
+      preRecordedArgs?.selectedRecordStepIndex,
+    );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const args = await this.selectRelation(schema, step.prompt);
+    const args = preRecordedArgs?.relationDisplayName
+      ? { relationName: preRecordedArgs.relationDisplayName }
+      : await this.selectRelation(schema, step.prompt);
     const target = this.buildTarget(schema, args.relationName, selectedRecordRef);
 
     // Branch B -- automaticExecution
@@ -187,6 +195,18 @@ export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecuto
 
     if (relatedData.length === 1) {
       return { relatedData, bestIndex: 0, suggestedFields: [] };
+    }
+
+    const { preRecordedArgs } = this.context.stepDefinition;
+
+    if (preRecordedArgs?.selectedRecordIndex !== undefined) {
+      if (preRecordedArgs.selectedRecordIndex < 0 || preRecordedArgs.selectedRecordIndex >= relatedData.length) {
+        throw new InvalidPreRecordedArgsError(
+          `Record index ${preRecordedArgs.selectedRecordIndex} is out of range (0-${relatedData.length - 1})`,
+        );
+      }
+
+      return { relatedData, bestIndex: preRecordedArgs.selectedRecordIndex, suggestedFields: [] };
     }
 
     const relatedSchema = await this.getCollectionSchema(relatedData[0].collectionName);

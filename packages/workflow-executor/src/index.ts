@@ -1,7 +1,11 @@
 export { StepType } from './types/step-definition';
 export type {
   ConditionStepDefinition,
-  RecordTaskStepDefinition,
+  ReadRecordStepDefinition,
+  UpdateRecordStepDefinition,
+  TriggerActionStepDefinition,
+  LoadRelatedRecordStepDefinition,
+  RecordStepDefinition,
   McpTaskStepDefinition,
   StepDefinition,
 } from './types/step-definition';
@@ -88,6 +92,7 @@ export {
   McpToolInvocationError,
   AgentPortError,
   ConfigurationError,
+  InvalidPreRecordedArgsError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';

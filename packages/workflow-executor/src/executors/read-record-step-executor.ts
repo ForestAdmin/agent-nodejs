@@ -1,6 +1,6 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
-import type { RecordTaskStepDefinition } from '../types/step-definition';
+import type { ReadRecordStepDefinition } from '../types/step-definition';
 import type { FieldReadResult } from '../types/step-execution-data';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -17,14 +17,19 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
+export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<ReadRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
+    const { preRecordedArgs } = step;
     const records = await this.getAvailableRecordRefs();
 
-    const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+    const selectedRecordRef = await this.resolveRecordRef(
+      records,
+      step.prompt,
+      preRecordedArgs?.selectedRecordStepIndex,
+    );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const selectedDisplayNames = await this.selectFields(schema, step.prompt);
+    const selectedDisplayNames = preRecordedArgs?.fieldDisplayNames ?? (await this.selectFields(schema, step.prompt));
     const resolvedFieldNames = selectedDisplayNames
       .map(name => this.findField(schema, name)?.fieldName)
       .filter((name): name is string => name !== undefined);
