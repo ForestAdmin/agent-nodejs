@@ -53,7 +53,7 @@
     "@nestjs/platform-express": "^10.4.16",
     "@nestjs/platform-fastify": "^10.4.16",
     "@shopify/jest-koa-mocks": "^3.1.0",
-    "sequelize": "^6.37.5",
+    "sequelize": "^6.37.8",
     "sqlite3": "^5.1.7",
     "@types/json-api-serializer": "^2.6.3",
     "@types/jsonwebtoken": "^9.0.1",
