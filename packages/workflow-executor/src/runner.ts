@@ -7,6 +7,7 @@ import type SchemaCache from './schema-cache';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
+import type { EventEmitter } from 'events';
 
 import ConsoleLogger from './adapters/console-logger';
 import {
@@ -33,6 +34,7 @@ export interface RunnerConfig {
   authSecret: string;
   logger?: Logger;
   stopTimeoutMs?: number;
+  events?: EventEmitter;
 }
 
 const DEFAULT_STOP_TIMEOUT_MS = 30_000;
@@ -56,6 +58,10 @@ export default class Runner {
 
   get state(): RunnerState {
     return this._state;
+  }
+
+  get events(): EventEmitter | undefined {
+    return this.config.events;
   }
 
   async start(): Promise<void> {
@@ -100,6 +106,8 @@ export default class Runner {
           steps: [...this.inFlightSteps.keys()],
         });
 
+        this.config.events?.emit('drain:start', { inFlightCount: this.inFlightSteps.size });
+
         const timeout = this.config.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS;
         let drainTimer: NodeJS.Timeout | undefined;
         const drainResult = await Promise.race([
@@ -112,6 +120,8 @@ export default class Runner {
             drainTimer = setTimeout(() => resolve('timeout'), timeout);
           }),
         ]);
+
+        this.config.events?.emit('drain:end', { result: drainResult });
 
         if (drainResult === 'timeout') {
           this.logger.error('Drain timeout — steps still in flight', {
@@ -200,9 +210,11 @@ export default class Runner {
 
   private async runPollCycle(): Promise<void> {
     try {
+      this.config.events?.emit('poll:start', {});
       const steps = await this.config.workflowPort.getPendingStepExecutions();
       const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
       await Promise.allSettled(pending.map(s => this.executeStep(s)));
+      this.config.events?.emit('poll:end', { stepsFound: pending.length });
     } catch (error) {
       this.logger.error('Poll cycle failed', {
         error: error instanceof Error ? error.message : String(error),
@@ -235,6 +247,14 @@ export default class Runner {
 
   private async doExecuteStep(step: PendingStepExecution, key: string): Promise<void> {
     let result: StepExecutionResult;
+    const startTime = Date.now();
+
+    this.config.events?.emit('step:start', {
+      runId: step.runId,
+      stepId: step.stepId,
+      stepIndex: step.stepIndex,
+      stepType: step.stepDefinition.type,
+    });
 
     try {
       const executor = await StepExecutorFactory.create(step, this.contextConfig, () =>
@@ -248,10 +268,23 @@ export default class Runner {
         error: error instanceof Error ? error.message : String(error),
       });
 
+      this.config.events?.emit('step:error', {
+        runId: step.runId,
+        stepId: step.stepId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
       return;
     } finally {
       this.inFlightSteps.delete(key);
     }
+
+    this.config.events?.emit('step:end', {
+      runId: step.runId,
+      stepId: step.stepId,
+      status: result.stepOutcome.status,
+      durationMs: Date.now() - startTime,
+    });
 
     try {
       await this.config.workflowPort.updateStepExecution(step.runId, result.stepOutcome);

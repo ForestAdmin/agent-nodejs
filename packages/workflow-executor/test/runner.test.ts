@@ -7,6 +7,8 @@ import type { PendingStepExecution } from '../src/types/execution';
 import type { StepDefinition } from '../src/types/step-definition';
 import type { AiClient, BaseChatModel } from '@forestadmin/ai-proxy';
 
+import { EventEmitter } from 'events';
+
 import {
   ConfigurationError,
   InvalidPendingDataError,
@@ -1264,5 +1266,175 @@ describe('triggerPoll with options', () => {
         pendingData: { userConfirmed: true, name: 'override' },
       }),
     ).rejects.toThrow(InvalidPendingDataError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Debug events (EventEmitter)
+// ---------------------------------------------------------------------------
+
+describe('debug events', () => {
+  it('exposes events getter', () => {
+    const events = new EventEmitter();
+    const sut = new Runner(createRunnerConfig({ events } as never));
+
+    expect(sut.events).toBe(events);
+  });
+
+  it('returns undefined when no events emitter is configured', () => {
+    const sut = new Runner(createRunnerConfig());
+
+    expect(sut.events).toBeUndefined();
+  });
+
+  it('emits poll:start and poll:end during a poll cycle', async () => {
+    jest.useFakeTimers();
+
+    const events = new EventEmitter();
+    const emitted: Array<{ event: string; data: unknown }> = [];
+    events.on('poll:start', data => emitted.push({ event: 'poll:start', data }));
+    events.on('poll:end', data => emitted.push({ event: 'poll:end', data }));
+
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getPendingStepExecutions.mockResolvedValue([]);
+
+    const sut = new Runner(createRunnerConfig({ workflowPort, events } as never));
+    await sut.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS + 100);
+    await flushPromises();
+
+    sut.stop();
+    jest.useRealTimers();
+
+    expect(emitted).toEqual([
+      { event: 'poll:start', data: {} },
+      { event: 'poll:end', data: { stepsFound: 0 } },
+    ]);
+  });
+
+  it('emits step:start and step:end during step execution', async () => {
+    const events = new EventEmitter();
+    const emitted: Array<{ event: string; data: unknown }> = [];
+    events.on('step:start', data => emitted.push({ event: 'step:start', data }));
+    events.on('step:end', data => emitted.push({ event: 'step:end', data }));
+
+    const workflowPort = createMockWorkflowPort();
+    const step: PendingStepExecution = {
+      runId: 'run-ev',
+      stepId: 'step-ev',
+      stepIndex: 0,
+      stepDefinition: makeStepDefinition(StepType.Condition),
+      baseRecordRef: { collectionName: 'c', recordId: ['1'], stepIndex: 0 },
+      previousSteps: [],
+      user: {
+        id: 1,
+        email: 'a@b.com',
+        firstName: 'A',
+        lastName: 'B',
+        team: 't',
+        renderingId: 1,
+        role: 'r',
+        permissionLevel: 'admin',
+        tags: {},
+      },
+    };
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+
+    const mockExecutor = {
+      execute: jest.fn().mockResolvedValue({
+        stepOutcome: { stepId: 'step-ev', stepIndex: 0, status: 'success', selectedOption: 'opt1' },
+      }),
+    };
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValue(mockExecutor as never);
+
+    const sut = new Runner(createRunnerConfig({ workflowPort, events } as never));
+    await sut.start();
+    await sut.triggerPoll('run-ev');
+
+    expect(emitted[0]).toEqual({
+      event: 'step:start',
+      data: { runId: 'run-ev', stepId: 'step-ev', stepIndex: 0, stepType: 'condition' },
+    });
+    expect(emitted[1]).toEqual({
+      event: 'step:end',
+      data: expect.objectContaining({
+        runId: 'run-ev',
+        stepId: 'step-ev',
+        status: 'success',
+        durationMs: expect.any(Number),
+      }),
+    });
+
+    await sut.stop();
+  });
+
+  it('emits drain:start and drain:end when stopping with in-flight steps', async () => {
+    jest.useFakeTimers();
+
+    const events = new EventEmitter();
+    const emitted: Array<{ event: string; data: unknown }> = [];
+    events.on('drain:start', data => emitted.push({ event: 'drain:start', data }));
+    events.on('drain:end', data => emitted.push({ event: 'drain:end', data }));
+
+    const workflowPort = createMockWorkflowPort();
+    let resolveStep!: () => void;
+    const stepPromise = new Promise<void>(r => {
+      resolveStep = r;
+    });
+
+    const step: PendingStepExecution = {
+      runId: 'run-drain',
+      stepId: 'step-drain',
+      stepIndex: 0,
+      stepDefinition: makeStepDefinition(StepType.Condition),
+      baseRecordRef: { collectionName: 'c', recordId: ['1'], stepIndex: 0 },
+      previousSteps: [],
+      user: {
+        id: 1,
+        email: 'a@b.com',
+        firstName: 'A',
+        lastName: 'B',
+        team: 't',
+        renderingId: 1,
+        role: 'r',
+        permissionLevel: 'admin',
+        tags: {},
+      },
+    };
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+
+    const mockExecutor = {
+      execute: jest.fn().mockImplementation(async () => {
+        await stepPromise;
+
+        return {
+          stepOutcome: {
+            stepId: 'step-drain',
+            stepIndex: 0,
+            status: 'success',
+            selectedOption: 'opt1',
+          },
+        };
+      }),
+    };
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValue(mockExecutor as never);
+
+    const sut = new Runner(createRunnerConfig({ workflowPort, events } as never));
+    await sut.start();
+
+    sut.triggerPoll('run-drain');
+    await flushPromises();
+
+    const stopPromise = sut.stop();
+
+    resolveStep();
+    jest.useRealTimers();
+    await stopPromise;
+
+    expect(emitted).toEqual([
+      { event: 'drain:start', data: { inFlightCount: 1 } },
+      { event: 'drain:end', data: { result: 'drained' } },
+    ]);
   });
 });

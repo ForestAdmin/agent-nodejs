@@ -1,6 +1,9 @@
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type Runner from '../../src/runner';
+import type { IncomingMessage } from 'http';
 
+import { EventEmitter } from 'events';
+import http from 'http';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
@@ -46,6 +49,7 @@ function createServer(
     runner?: Runner;
     workflowPort?: WorkflowPort;
     logger?: { info: jest.Mock; error: jest.Mock };
+    events?: EventEmitter;
   } = {},
 ) {
   return new ExecutorHttpServer({
@@ -54,6 +58,7 @@ function createServer(
     authSecret: AUTH_SECRET,
     workflowPort: overrides.workflowPort ?? createMockWorkflowPort(),
     logger: overrides.logger,
+    events: overrides.events,
   });
 }
 
@@ -452,6 +457,81 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+  });
+
+  describe('GET /debug', () => {
+    it('serves the debug dashboard HTML without authentication', async () => {
+      const server = createServer();
+
+      const response = await request(server.callback).get('/debug');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toMatch(/text\/html/);
+      expect(response.text).toContain('Workflow Executor');
+    });
+  });
+
+  describe('GET /debug/events (SSE)', () => {
+    it('ends the stream immediately when no events emitter is provided', async () => {
+      const server = createServer(); // no events
+
+      const response = await request(server.callback).get('/debug/events');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toBe('text/event-stream');
+      expect(response.text).toBe(':ok\n\n');
+    });
+
+    it('returns SSE headers and forwards events when emitter is provided', async () => {
+      const events = new EventEmitter();
+      const logger = { info: jest.fn(), error: jest.fn() };
+      const server = createServer({ events, logger });
+
+      const httpServer = http.createServer(server.callback);
+
+      await new Promise<void>(resolve => {
+        httpServer.listen(0, resolve);
+      });
+      const { port } = httpServer.address() as { port: number };
+
+      const chunks: string[] = [];
+
+      const clientReq = http.get(`http://localhost:${port}/debug/events`);
+      clientReq.on('error', () => {});
+
+      const res = await new Promise<IncomingMessage>(resolve => {
+        clientReq.on('response', resolve);
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toBe('text/event-stream');
+      expect(res.headers['cache-control']).toBe('no-cache');
+
+      res.on('data', (chunk: Buffer) => chunks.push(chunk.toString()));
+
+      await new Promise(r => {
+        setTimeout(r, 50);
+      });
+
+      events.emit('step:start', {
+        runId: 'r1',
+        stepId: 's1',
+        stepIndex: 0,
+        stepType: 'condition',
+      });
+
+      await new Promise(r => {
+        setTimeout(r, 50);
+      });
+
+      const combined = chunks.join('');
+      expect(combined).toContain('event: step:start');
+      expect(combined).toContain('"runId":"r1"');
+
+      clientReq.destroy();
+      httpServer.closeAllConnections();
+      httpServer.close();
     });
   });
 
