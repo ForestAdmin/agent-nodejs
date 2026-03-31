@@ -2,6 +2,7 @@ import type RemoteTool from './remote-tool';
 import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
+import { AIBadRequestError } from './errors';
 import getZendeskTools, { type ZendeskConfig } from './integrations/zendesk/tools';
 import { validateZendeskConfig } from './integrations/zendesk/utils';
 
@@ -54,7 +55,7 @@ export default class ForestIntegrationClient implements ToolProvider {
           case 'Zendesk':
             return validateZendeskConfig(config as ZendeskConfig);
           default:
-            throw new Error(`Unsupported integration: ${integrationName}`);
+            throw new AIBadRequestError(`Unsupported integration: ${integrationName}`);
         }
       }),
     );
