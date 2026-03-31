@@ -3,14 +3,14 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
-import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
+import type { ReadRecordStepDefinition } from '../../src/types/step-definition';
 
 import { NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
+function makeStep(overrides: Partial<ReadRecordStepDefinition> = {}): ReadRecordStepDefinition {
   return {
     type: StepType.ReadRecord,
     prompt: 'Read the customer email',
@@ -104,8 +104,8 @@ function makeMockModel(
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<RecordTaskStepDefinition>> = {},
-): ExecutionContext<RecordTaskStepDefinition> {
+  overrides: Partial<ExecutionContext<ReadRecordStepDefinition>> = {},
+): ExecutionContext<ReadRecordStepDefinition> {
   return {
     runId: 'run-1',
     stepId: 'read-1',
@@ -872,6 +872,125 @@ describe('ReadRecordStepExecutor', () => {
           stepIndex: 0,
         },
       });
+    });
+  });
+
+  describe('pre-recorded args', () => {
+    it('skips AI calls when fieldNames are pre-recorded', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepDefinition: makeStep({
+          preRecordedArgs: { fieldDisplayNames: ['Email'] },
+        }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: {
+            fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
+          },
+        }),
+      );
+    });
+
+    it('skips record selection AI when selectedRecordStepIndex is pre-recorded', async () => {
+      const relatedRef = makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 1 });
+      const mockModel = makeMockModel({ fieldNames: ['Email'] });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: { record: relatedRef },
+          },
+        ]),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepDefinition: makeStep({
+          preRecordedArgs: { selectedRecordStepIndex: 1 },
+        }),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: makeCollectionSchema({
+            collectionName: 'orders',
+            collectionDisplayName: 'Orders',
+          }),
+        }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Only 1 AI call (selectFields), not 2 (no selectRecordRef)
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips all AI calls when both selectedRecordStepIndex and fieldNames are pre-recorded', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepDefinition: makeStep({
+          preRecordedArgs: { selectedRecordStepIndex: 0, fieldDisplayNames: ['Email'] },
+        }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
+    it('returns error when pre-recorded stepIndex does not match any record', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          preRecordedArgs: { selectedRecordStepIndex: 99 },
+        }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('returns error when all pre-recorded fieldNames are invalid', async () => {
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({
+          preRecordedArgs: { fieldDisplayNames: ['NonExistentField'] },
+        }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('falls back to AI when no preRecordedArgs', async () => {
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
+      const context = makeContext({ model: mockModel.model });
+      const executor = new ReadRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
     });
   });
 });

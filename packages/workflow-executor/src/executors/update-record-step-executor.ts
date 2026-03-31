@@ -1,12 +1,17 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
-import type { RecordTaskStepDefinition } from '../types/step-definition';
+import type { UpdateRecordStepDefinition } from '../types/step-definition';
 import type { FieldRef, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { FieldNotFoundError, NoWritableFieldsError, StepPersistenceError } from '../errors';
+import {
+  FieldNotFoundError,
+  InvalidPreRecordedArgsError,
+  NoWritableFieldsError,
+  StepPersistenceError,
+} from '../errors';
 import RecordTaskStepExecutor from './record-task-step-executor';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
@@ -22,7 +27,7 @@ interface UpdateTarget extends FieldRef {
   value: string;
 }
 
-export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<RecordTaskStepDefinition> {
+export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<UpdateRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<UpdateRecordStepExecutionData>('update-record');
@@ -45,11 +50,32 @@ export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<Rec
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
+    const { preRecordedArgs } = step;
     const records = await this.getAvailableRecordRefs();
 
-    const selectedRecordRef = await this.selectRecordRef(records, step.prompt);
+    const selectedRecordRef = await this.resolveRecordRef(
+      records,
+      step.prompt,
+      preRecordedArgs?.selectedRecordStepIndex,
+    );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const args = await this.selectFieldAndValue(schema, step.prompt);
+
+    if (preRecordedArgs?.fieldDisplayName !== undefined && preRecordedArgs?.value === undefined) {
+      throw new InvalidPreRecordedArgsError(
+        'fieldDisplayName and value must both be provided or both omitted',
+      );
+    }
+
+    if (preRecordedArgs?.value !== undefined && preRecordedArgs?.fieldDisplayName === undefined) {
+      throw new InvalidPreRecordedArgsError(
+        'fieldDisplayName and value must both be provided or both omitted',
+      );
+    }
+
+    const args =
+      preRecordedArgs?.fieldDisplayName !== undefined
+        ? { fieldName: preRecordedArgs.fieldDisplayName, value: preRecordedArgs.value as string }
+        : await this.selectFieldAndValue(schema, step.prompt);
     const name = this.resolveFieldName(schema, args.fieldName);
     const target: UpdateTarget = {
       selectedRecordRef,

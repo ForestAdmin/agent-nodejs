@@ -1,7 +1,9 @@
 import type { StepExecutionResult } from '../types/execution';
+import type { RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type { RecordTaskStepStatus } from '../types/step-outcome';
 
+import { InvalidPreRecordedArgsError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 export default abstract class RecordTaskStepExecutor<
@@ -19,5 +21,28 @@ export default abstract class RecordTaskStepExecutor<
         ...outcome,
       },
     };
+  }
+
+  /**
+   * Resolves a record ref: uses pre-recorded stepIndex if provided, otherwise delegates to AI.
+   */
+  protected async resolveRecordRef(
+    records: RecordRef[],
+    prompt: string | undefined,
+    preRecordedStepIndex?: number,
+  ): Promise<RecordRef> {
+    if (preRecordedStepIndex !== undefined) {
+      const match = records.find(r => r.stepIndex === preRecordedStepIndex);
+
+      if (!match) {
+        throw new InvalidPreRecordedArgsError(
+          `No record found at step index ${preRecordedStepIndex}`,
+        );
+      }
+
+      return match;
+    }
+
+    return this.selectRecordRef(records, prompt);
   }
 }
