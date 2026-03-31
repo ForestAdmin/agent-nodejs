@@ -3,7 +3,7 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
-import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
+import type { UpdateRecordStepDefinition } from '../../src/types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
 
 import { StepStateError } from '../../src/errors';
@@ -11,7 +11,7 @@ import UpdateRecordStepExecutor from '../../src/executors/update-record-step-exe
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
+function makeStep(overrides: Partial<UpdateRecordStepDefinition> = {}): UpdateRecordStepDefinition {
   return {
     type: StepType.UpdateRecord,
     prompt: 'Set the customer status to active',
@@ -101,8 +101,8 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'updat
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<RecordTaskStepDefinition>> = {},
-): ExecutionContext<RecordTaskStepDefinition> {
+  overrides: Partial<ExecutionContext<UpdateRecordStepDefinition>> = {},
+): ExecutionContext<UpdateRecordStepDefinition> {
   return {
     runId: 'run-1',
     stepId: 'update-1',
@@ -897,6 +897,93 @@ describe('UpdateRecordStepExecutor', () => {
       expect(messages[0].content).toContain('Should we proceed?');
       expect(messages[0].content).toContain('"answer":"Yes"');
       expect(messages[1].content).toContain('updating a field on a record');
+    });
+  });
+
+  describe('pre-recorded args', () => {
+    it('skips AI field selection when fieldName and value are pre-recorded', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { fieldDisplayName: 'Status', value: 'active' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ values: { status: 'active' } }),
+        context.user,
+      );
+    });
+
+    it('still goes through awaiting-input when automaticExecution is false', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepDefinition: makeStep({
+          preRecordedArgs: { fieldDisplayName: 'Status', value: 'active' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
+    it('falls back to AI when preRecordedArgs has no fieldDisplayName', async () => {
+      const mockModel = makeMockModel({ fieldName: 'Status', value: 'active', reasoning: 'r' });
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { selectedRecordStepIndex: 0 },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns error when fieldDisplayName is provided without value', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { fieldDisplayName: 'Status' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('returns error when value is provided without fieldDisplayName', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { value: 'active' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 });

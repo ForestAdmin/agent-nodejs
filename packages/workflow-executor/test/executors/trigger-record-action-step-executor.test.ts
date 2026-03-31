@@ -3,7 +3,7 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
-import type { RecordTaskStepDefinition } from '../../src/types/step-definition';
+import type { TriggerActionStepDefinition } from '../../src/types/step-definition';
 import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-execution-data';
 
 import { StepStateError } from '../../src/errors';
@@ -11,7 +11,9 @@ import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
-function makeStep(overrides: Partial<RecordTaskStepDefinition> = {}): RecordTaskStepDefinition {
+function makeStep(
+  overrides: Partial<TriggerActionStepDefinition> = {},
+): TriggerActionStepDefinition {
   return {
     type: StepType.TriggerAction,
     prompt: 'Send a welcome email to the customer',
@@ -100,8 +102,8 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'selec
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<RecordTaskStepDefinition>> = {},
-): ExecutionContext<RecordTaskStepDefinition> {
+  overrides: Partial<ExecutionContext<TriggerActionStepDefinition>> = {},
+): ExecutionContext<TriggerActionStepDefinition> {
   return {
     runId: 'run-1',
     stepId: 'trigger-1',
@@ -927,6 +929,62 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(messages[0].content).toContain('Should we proceed?');
       expect(messages[0].content).toContain('"answer":"Yes"');
       expect(messages[1].content).toContain('triggering an action');
+    });
+  });
+
+  describe('pre-recorded args', () => {
+    it('skips AI action selection when actionName is pre-recorded', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { actionDisplayName: 'Send Welcome Email' },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(context.agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'send-welcome-email' }),
+        context.user,
+      );
+    });
+
+    it('still goes through awaiting-input when automaticExecution is false', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        stepDefinition: makeStep({
+          preRecordedArgs: { actionDisplayName: 'Send Welcome Email' },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+    });
+
+    it('falls back to AI when no preRecordedArgs', async () => {
+      const mockModel = makeMockModel({ actionName: 'Send Welcome Email', reasoning: 'r' });
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      await executor.execute();
+
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
     });
   });
 });
