@@ -1,3 +1,23 @@
+# @forestadmin/agent [1.76.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.75.2...@forestadmin/agent@1.76.0) (2026-03-31)
+
+
+### Features
+
+* **ai-proxy:** add forest connectors ([#1505](https://github.com/ForestAdmin/agent-nodejs/issues/1505)) ([6181114](https://github.com/ForestAdmin/agent-nodejs/commit/61811144993293381c6d27e12f3d8bedda92e021))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.2.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.69.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.0
+* **@forestadmin/mcp-server:** upgraded to 1.8.11
+* **@forestadmin/datasource-sql:** upgraded to 1.17.10
+
 ## @forestadmin/agent [1.75.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.75.1...@forestadmin/agent@1.75.2) (2026-03-31)
 
 
