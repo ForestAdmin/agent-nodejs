@@ -1,0 +1,6 @@
+**/node_modules
+**/dist
+**/coverage
+**/.git
+**/*.test.ts
+**/test
