@@ -1,6 +1,6 @@
 import type { ZendeskConfig } from './tools';
 
-import { McpConnectionError } from '../../errors';
+import { AIToolUnprocessableError, McpConnectionError } from '../../errors';
 
 export function getZendeskConfig(config: ZendeskConfig) {
   const baseUrl = `https://${config.subdomain}.zendesk.com/api/v2`;
@@ -24,7 +24,9 @@ export async function assertResponseOk(response: Response, action: string) {
       // Response body is not JSON
     }
 
-    throw new Error(`Zendesk ${action} failed (${response.status}): ${errorMessage}`);
+    throw new AIToolUnprocessableError(
+      `Zendesk ${action} failed (${response.status}): ${errorMessage}`,
+    );
   }
 }
 
