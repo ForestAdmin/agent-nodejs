@@ -1,3 +1,18 @@
+## @forestadmin/datasource-sql [1.17.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.8...@forestadmin/datasource-sql@1.17.9) (2026-03-31)
+
+
+### Bug Fixes
+
+* address security vulnerabilities in dependencies ([#1516](https://github.com/ForestAdmin/agent-nodejs/issues/1516)) ([c52b1e1](https://github.com/ForestAdmin/agent-nodejs/commit/c52b1e1022b245ac63628a8c738567c727bbb74a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-sequelize:** upgraded to 1.13.7
+
 ## @forestadmin/datasource-sql [1.17.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sql@1.17.7...@forestadmin/datasource-sql@1.17.8) (2026-03-18)
 
 
