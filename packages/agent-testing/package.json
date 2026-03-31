@@ -47,7 +47,7 @@
     "@forestadmin/datasource-sql": "1.17.8",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/superagent": "^8.1.9",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.8"
   },
   "bugs": {
     "url": "https://github.com/ForestAdmin/agent-nodejs/issues"
