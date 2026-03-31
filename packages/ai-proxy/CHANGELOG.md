@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.0...@forestadmin/ai-proxy@1.7.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* **ai-proxy:** use proper AI error classes instead of generic Error ([#1520](https://github.com/ForestAdmin/agent-nodejs/issues/1520)) ([54ff837](https://github.com/ForestAdmin/agent-nodejs/commit/54ff837783ea506e3c40c5c2c55860f945ecb6fe))
+
 # @forestadmin/ai-proxy [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.6.3...@forestadmin/ai-proxy@1.7.0) (2026-03-31)
 
 
