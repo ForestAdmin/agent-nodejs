@@ -98,6 +98,7 @@ export default class ComputedCollection extends CollectionDecorator {
         isPrimaryKey: false,
         isReadOnly: true,
         isSortable: false,
+        isGroupable: true,
         type: 'Column',
       };
     }
