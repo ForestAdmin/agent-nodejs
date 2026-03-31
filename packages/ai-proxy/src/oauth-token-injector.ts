@@ -1,8 +1,8 @@
 import type { McpServerConfig } from './mcp-client';
+import type { ToolConfig } from './tool-provider-factory';
 
 import { AIBadRequestError } from './errors';
 import { isForestIntegrationConfig } from './forest-integration-client';
-import type { ToolConfig } from './tool-provider-factory';
 
 export const MCP_OAUTH_TOKENS_HEADER = 'x-mcp-oauth-tokens';
 

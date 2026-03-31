@@ -17,7 +17,9 @@ export interface ForestIntegrationConfig {
 export function isForestIntegrationConfig(
   config: ForestIntegrationConfig | Record<string, unknown>,
 ): config is ForestIntegrationConfig {
-  return 'isForestConnector' in config && (config as ForestIntegrationConfig).isForestConnector === true;
+  return (
+    'isForestConnector' in config && (config as ForestIntegrationConfig).isForestConnector === true
+  );
 }
 
 export default class ForestIntegrationClient implements ToolProvider {
