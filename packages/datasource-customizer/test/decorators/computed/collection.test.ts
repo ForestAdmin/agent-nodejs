@@ -155,6 +155,7 @@ describe('ComputedDecorator', () => {
         isReadOnly: true,
         isSortable: false,
         isPrimaryKey: false,
+        isGroupable: true,
         type: 'Column',
       });
     });
