@@ -1,3 +1,20 @@
+## @forestadmin/forest-cloud [1.12.100](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.99...@forestadmin/forest-cloud@1.12.100) (2026-03-31)
+
+
+### Bug Fixes
+
+* address security vulnerabilities in dependencies ([#1516](https://github.com/ForestAdmin/agent-nodejs/issues/1516)) ([c52b1e1](https://github.com/ForestAdmin/agent-nodejs/commit/c52b1e1022b245ac63628a8c738567c727bbb74a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.75.2
+* **@forestadmin/datasource-sequelize:** upgraded to 1.13.7
+* **@forestadmin/datasource-sql:** upgraded to 1.17.9
+
 ## @forestadmin/forest-cloud [1.12.99](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.98...@forestadmin/forest-cloud@1.12.99) (2026-03-31)
 
 
