@@ -113,7 +113,14 @@ export class Router {
         }
       }
     } finally {
-      await Promise.allSettled(remoteToolProviders.map(p => p.dispose()));
+      const results = await Promise.allSettled(remoteToolProviders.map(p => p.dispose()));
+
+      for (const result of results) {
+        if (result.status === 'rejected') {
+          const error = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
+          this.logger?.('Error', 'Error during tool provider cleanup', error);
+        }
+      }
     }
   }
 
