@@ -1037,7 +1037,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await expect(executor.execute()).resolves.toMatchObject({
         stepOutcome: {
-          type: 'record-task',
+          type: 'record',
           stepId: 'load-1',
           stepIndex: 0,
           status: 'error',
@@ -1236,7 +1236,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.type).toBe('record');
       expect(result.stepOutcome.stepId).toBe('load-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
@@ -1258,7 +1258,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.type).toBe('record');
       expect(result.stepOutcome.stepId).toBe('load-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
@@ -1425,7 +1425,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome).toMatchObject({
-        type: 'record-task',
+        type: 'record',
         stepId: 'load-1',
         stepIndex: 0,
         status: 'success',

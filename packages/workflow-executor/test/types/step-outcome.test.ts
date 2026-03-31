@@ -6,27 +6,27 @@ describe('stepTypeToOutcomeType', () => {
     expect(stepTypeToOutcomeType(StepType.Condition)).toBe('condition');
   });
 
-  it('maps McpTask to mcp-task', () => {
-    expect(stepTypeToOutcomeType(StepType.McpTask)).toBe('mcp-task');
+  it('maps McpTask to mcp', () => {
+    expect(stepTypeToOutcomeType(StepType.Mcp)).toBe('mcp');
   });
 
-  it('maps ReadRecord to record-task', () => {
-    expect(stepTypeToOutcomeType(StepType.ReadRecord)).toBe('record-task');
+  it('maps ReadRecord to record', () => {
+    expect(stepTypeToOutcomeType(StepType.ReadRecord)).toBe('record');
   });
 
-  it('maps UpdateRecord to record-task', () => {
-    expect(stepTypeToOutcomeType(StepType.UpdateRecord)).toBe('record-task');
+  it('maps UpdateRecord to record', () => {
+    expect(stepTypeToOutcomeType(StepType.UpdateRecord)).toBe('record');
   });
 
-  it('maps TriggerAction to record-task', () => {
-    expect(stepTypeToOutcomeType(StepType.TriggerAction)).toBe('record-task');
+  it('maps TriggerAction to record', () => {
+    expect(stepTypeToOutcomeType(StepType.TriggerAction)).toBe('record');
   });
 
-  it('maps LoadRelatedRecord to record-task', () => {
-    expect(stepTypeToOutcomeType(StepType.LoadRelatedRecord)).toBe('record-task');
+  it('maps LoadRelatedRecord to record', () => {
+    expect(stepTypeToOutcomeType(StepType.LoadRelatedRecord)).toBe('record');
   });
 
-  it('falls through to record-task for an unknown future step type', () => {
-    expect(stepTypeToOutcomeType('future-step-type' as StepType)).toBe('record-task');
+  it('falls through to record for an unknown future step type', () => {
+    expect(stepTypeToOutcomeType('future-step-type' as StepType)).toBe('record');
   });
 });

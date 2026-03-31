@@ -4,11 +4,11 @@ import { StepType } from './step-definition';
 
 export type BaseStepStatus = 'success' | 'error';
 
-/** AI task steps can pause mid-execution to await user input (e.g. awaiting-input). */
-export type RecordTaskStepStatus = BaseStepStatus | 'awaiting-input';
+/** AI steps can pause mid-execution to await user input (e.g. awaiting-input). */
+export type RecordStepStatus = BaseStepStatus | 'awaiting-input';
 
 /** Union of all step statuses. */
-export type StepStatus = BaseStepStatus | RecordTaskStepStatus;
+export type StepStatus = BaseStepStatus | RecordStepStatus;
 
 /**
  * StepOutcome is sent to the orchestrator — it must NEVER contain client data.
@@ -29,21 +29,21 @@ export interface ConditionStepOutcome extends BaseStepOutcome {
   selectedOption?: string;
 }
 
-export interface RecordTaskStepOutcome extends BaseStepOutcome {
-  type: 'record-task';
-  status: RecordTaskStepStatus;
+export interface RecordStepOutcome extends BaseStepOutcome {
+  type: 'record';
+  status: RecordStepStatus;
 }
 
-export interface McpTaskStepOutcome extends BaseStepOutcome {
-  type: 'mcp-task';
-  status: RecordTaskStepStatus;
+export interface McpStepOutcome extends BaseStepOutcome {
+  type: 'mcp';
+  status: RecordStepStatus;
 }
 
-export type StepOutcome = ConditionStepOutcome | RecordTaskStepOutcome | McpTaskStepOutcome;
+export type StepOutcome = ConditionStepOutcome | RecordStepOutcome | McpStepOutcome;
 
-export function stepTypeToOutcomeType(type: StepType): 'condition' | 'record-task' | 'mcp-task' {
+export function stepTypeToOutcomeType(type: StepType): 'condition' | 'record' | 'mcp' {
   if (type === StepType.Condition) return 'condition';
-  if (type === StepType.McpTask) return 'mcp-task';
+  if (type === StepType.Mcp) return 'mcp';
 
-  return 'record-task';
+  return 'record';
 }

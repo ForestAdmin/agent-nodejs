@@ -40,13 +40,13 @@ describe('StepSummaryBuilder', () => {
     it('renders Output: when executionResult is present but executionParams is absent', () => {
       const step: StepDefinition = { type: StepType.ReadRecord, prompt: 'Do something' };
       const outcome: StepOutcome = {
-        type: 'record-task',
+        type: 'record',
         stepId: 'task-1',
         stepIndex: 0,
         status: 'success',
       };
       const execution: StepExecutionData = {
-        type: 'record-task',
+        type: 'record',
         stepIndex: 0,
         executionResult: { success: true },
       };
@@ -96,10 +96,10 @@ describe('StepSummaryBuilder', () => {
       expect(result).toContain('"error":"AI could not match an option"');
     });
 
-    it('omits History type field and includes status for record-task steps', () => {
+    it('omits History type field and includes status for record steps', () => {
       const step: StepDefinition = { type: StepType.ReadRecord, prompt: 'Run task' };
       const outcome: StepOutcome = {
-        type: 'record-task',
+        type: 'record',
         stepId: 'read-record-1',
         stepIndex: 0,
         status: 'awaiting-input',
@@ -114,12 +114,12 @@ describe('StepSummaryBuilder', () => {
     it('omits Input and Output lines when executionParams and executionResult are both absent', () => {
       const step: StepDefinition = { type: StepType.ReadRecord, prompt: 'Do something' };
       const outcome: StepOutcome = {
-        type: 'record-task',
+        type: 'record',
         stepId: 'read-record-1',
         stepIndex: 0,
         status: 'success',
       };
-      const execution: StepExecutionData = { type: 'record-task', stepIndex: 0 };
+      const execution: StepExecutionData = { type: 'record', stepIndex: 0 };
 
       const result = StepSummaryBuilder.build(step, outcome, execution);
 
@@ -132,7 +132,7 @@ describe('StepSummaryBuilder', () => {
     it('uses Pending when update-record step has pendingData but no executionParams', () => {
       const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status to active' };
       const outcome: StepOutcome = {
-        type: 'record-task',
+        type: 'record',
         stepId: 'update-1',
         stepIndex: 0,
         status: 'awaiting-input',
@@ -158,7 +158,7 @@ describe('StepSummaryBuilder', () => {
         prompt: 'Archive the customer',
       };
       const outcome: StepOutcome = {
-        type: 'record-task',
+        type: 'record',
         stepId: 'trigger-1',
         stepIndex: 0,
         status: 'awaiting-input',
@@ -184,7 +184,7 @@ describe('StepSummaryBuilder', () => {
         prompt: 'Load the address',
       };
       const outcome: StepOutcome = {
-        type: 'record-task',
+        type: 'record',
         stepId: 'load-1',
         stepIndex: 1,
         status: 'success',
@@ -216,7 +216,7 @@ describe('StepSummaryBuilder', () => {
         prompt: 'Load the address',
       };
       const outcome: StepOutcome = {
-        type: 'record-task',
+        type: 'record',
         stepId: 'load-1',
         stepIndex: 1,
         status: 'success',
@@ -240,7 +240,7 @@ describe('StepSummaryBuilder', () => {
         prompt: 'Load the address',
       };
       const outcome: StepOutcome = {
-        type: 'record-task',
+        type: 'record',
         stepId: 'load-1',
         stepIndex: 1,
         status: 'awaiting-input',

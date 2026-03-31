@@ -15,7 +15,7 @@ import {
   StepPersistenceError,
   StepStateError,
 } from '../errors';
-import RecordTaskStepExecutor from './record-task-step-executor';
+import RecordStepExecutor from './record-step-executor';
 
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
 Select the relation to follow.
@@ -36,7 +36,7 @@ interface RelationTarget extends RelationRef {
   relationType?: 'BelongsTo' | 'HasMany' | 'HasOne';
 }
 
-export default class LoadRelatedRecordStepExecutor extends RecordTaskStepExecutor<LoadRelatedRecordStepDefinition> {
+export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<LoadRelatedRecordStepExecutionData>(

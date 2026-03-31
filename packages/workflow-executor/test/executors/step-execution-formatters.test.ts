@@ -64,10 +64,10 @@ describe('StepExecutionFormatters', () => {
       });
     });
 
-    describe('mcp-task', () => {
+    describe('mcp', () => {
       it('returns the Result: line when formattedResponse is present', () => {
         const execution: StepExecutionData = {
-          type: 'mcp-task',
+          type: 'mcp',
           stepIndex: 2,
           executionParams: { name: 'search_records', input: { query: 'foo' } },
           executionResult: {
@@ -82,7 +82,7 @@ describe('StepExecutionFormatters', () => {
 
       it('returns a generic Executed: line when formattedResponse is absent', () => {
         const execution: StepExecutionData = {
-          type: 'mcp-task',
+          type: 'mcp',
           stepIndex: 2,
           executionParams: { name: 'search_records', input: { query: 'foo' } },
           executionResult: { success: true, toolResult: { items: [] } },
@@ -95,7 +95,7 @@ describe('StepExecutionFormatters', () => {
 
       it('returns null when executionResult is absent (pending phase)', () => {
         const execution: StepExecutionData = {
-          type: 'mcp-task',
+          type: 'mcp',
           stepIndex: 2,
           pendingData: { name: 'search_records', input: {} },
         };
@@ -105,7 +105,7 @@ describe('StepExecutionFormatters', () => {
 
       it('returns null for a skipped execution', () => {
         const execution: StepExecutionData = {
-          type: 'mcp-task',
+          type: 'mcp',
           stepIndex: 2,
           executionResult: { skipped: true },
         };
@@ -126,9 +126,9 @@ describe('StepExecutionFormatters', () => {
         expect(StepExecutionFormatters.format(execution)).toBeNull();
       });
 
-      it('returns null for record-task type', () => {
+      it('returns null for record type', () => {
         const execution: StepExecutionData = {
-          type: 'record-task',
+          type: 'record',
           stepIndex: 0,
           executionResult: { success: true },
         };

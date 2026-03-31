@@ -7,7 +7,7 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import { NoReadableFieldsError, NoResolvedFieldsError } from '../errors';
-import RecordTaskStepExecutor from './record-task-step-executor';
+import RecordStepExecutor from './record-step-executor';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
@@ -17,7 +17,7 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-export default class ReadRecordStepExecutor extends RecordTaskStepExecutor<ReadRecordStepDefinition> {
+export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
