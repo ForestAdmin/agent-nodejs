@@ -6,7 +6,7 @@ export enum StepType {
   UpdateRecord = 'update-record',
   TriggerAction = 'trigger-action',
   LoadRelatedRecord = 'load-related-record',
-  McpTask = 'mcp',
+  Mcp = 'mcp',
 }
 
 interface BaseStepDefinition {
@@ -64,7 +64,7 @@ export interface LoadRelatedRecordStepDefinition extends BaseRecordStepDefinitio
 
 
 export interface McpStepDefinition extends BaseStepDefinition {
-  type: StepType.McpTask;
+  type: StepType.Mcp;
   mcpServerId?: string;
   automaticExecution?: boolean;
 }
@@ -74,5 +74,6 @@ export type RecordStepDefinition =
   | UpdateRecordStepDefinition
   | TriggerActionStepDefinition
   | LoadRelatedRecordStepDefinition;
+
 
 export type StepDefinition = ConditionStepDefinition | RecordStepDefinition | McpStepDefinition;

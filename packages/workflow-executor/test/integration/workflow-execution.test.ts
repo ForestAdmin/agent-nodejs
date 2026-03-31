@@ -544,7 +544,7 @@ describe('workflow execution (integration)', () => {
     (aiClient.loadRemoteTools as jest.Mock).mockResolvedValue([fakeRemoteTool]);
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.McpTask, prompt: 'Send a notification' },
+      stepDefinition: { type: StepType.Mcp, prompt: 'Send a notification' },
     });
 
     const workflowPort = createMockWorkflowPort({

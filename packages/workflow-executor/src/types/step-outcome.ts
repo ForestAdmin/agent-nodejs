@@ -43,7 +43,7 @@ export type StepOutcome = ConditionStepOutcome | RecordStepOutcome | McpStepOutc
 
 export function stepTypeToOutcomeType(type: StepType): 'condition' | 'record' | 'mcp' {
   if (type === StepType.Condition) return 'condition';
-  if (type === StepType.McpTask) return 'mcp';
+  if (type === StepType.Mcp) return 'mcp';
 
   return 'record';
 }

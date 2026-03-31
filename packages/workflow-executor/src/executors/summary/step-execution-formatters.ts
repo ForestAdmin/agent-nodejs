@@ -22,13 +22,13 @@ export default class StepExecutionFormatters {
       case 'load-related-record':
         return StepExecutionFormatters.formatLoadRelatedRecord(execution);
       case 'mcp':
-        return StepExecutionFormatters.formatMcpTask(execution as McpStepExecutionData);
+        return StepExecutionFormatters.formatMcp(execution as McpStepExecutionData);
       default:
         return null;
     }
   }
 
-  private static formatMcpTask(execution: McpStepExecutionData): string | null {
+  private static formatMcp(execution: McpStepExecutionData): string | null {
     const { executionResult } = execution;
     if (!executionResult) return null;
     if ('skipped' in executionResult) return null;

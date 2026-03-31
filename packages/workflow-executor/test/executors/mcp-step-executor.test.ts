@@ -33,7 +33,7 @@ class MockRemoteTool extends RemoteTool {
 
 function makeStep(overrides: Partial<McpStepDefinition> = {}): McpStepDefinition {
   return {
-    type: StepType.McpTask,
+    type: StepType.Mcp,
     prompt: 'Send a notification to the user',
     ...overrides,
   };

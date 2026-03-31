@@ -110,11 +110,11 @@ function makeStepDefinition(stepType: StepType): StepDefinition {
     return { type: StepType.Condition, options: ['opt1', 'opt2'] };
   }
 
-  if (stepType === StepType.McpTask) {
-    return { type: StepType.McpTask };
+  if (stepType === StepType.Mcp) {
+    return { type: StepType.Mcp };
   }
 
-  return { type: stepType as Exclude<StepType, StepType.Condition | StepType.McpTask> };
+  return { type: stepType as Exclude<StepType, StepType.Condition | StepType.Mcp> };
 }
 
 function makePendingStep(
@@ -679,7 +679,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     const step = makePendingStep({
       runId: 'run-1',
       stepId: 'step-mcp-1',
-      stepType: StepType.McpTask,
+      stepType: StepType.Mcp,
     });
     workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     // Provide a non-empty config so fetchRemoteTools actually calls loadRemoteTools
@@ -742,7 +742,7 @@ describe('StepExecutorFactory.create — factory', () => {
   });
 
   it('dispatches McpTask steps to McpStepExecutor and calls loadTools', async () => {
-    const step = makePendingStep({ stepType: StepType.McpTask });
+    const step = makePendingStep({ stepType: StepType.Mcp });
     const loadTools = jest.fn().mockResolvedValue([]);
     const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
     expect(executor).toBeInstanceOf(McpStepExecutor);
@@ -761,7 +761,7 @@ describe('StepExecutorFactory.create — factory', () => {
   });
 
   it('returns an executor with an error outcome when loadTools rejects for a McpTask step', async () => {
-    const step = makePendingStep({ stepType: StepType.McpTask });
+    const step = makePendingStep({ stepType: StepType.Mcp });
     const loadTools = jest.fn().mockRejectedValueOnce(new Error('MCP server down'));
     const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
     const { stepOutcome } = await executor.execute();
@@ -864,7 +864,7 @@ describe('error handling', () => {
     const step = makePendingStep({
       runId: 'run-1',
       stepId: 'step-mcp-err',
-      stepType: StepType.McpTask,
+      stepType: StepType.Mcp,
     });
     workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     aiClient.getModel.mockImplementationOnce(() => {

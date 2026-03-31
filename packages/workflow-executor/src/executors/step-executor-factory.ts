@@ -64,7 +64,7 @@ export default class StepExecutorFactory {
           return new LoadRelatedRecordStepExecutor(
             context as ExecutionContext<LoadRelatedRecordStepDefinition>,
           );
-        case StepType.McpTask:
+        case StepType.Mcp:
           return new McpStepExecutor(
             context as ExecutionContext<McpStepDefinition>,
             await loadTools(),

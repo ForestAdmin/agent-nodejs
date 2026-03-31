@@ -7,7 +7,7 @@ describe('stepTypeToOutcomeType', () => {
   });
 
   it('maps McpTask to mcp', () => {
-    expect(stepTypeToOutcomeType(StepType.McpTask)).toBe('mcp');
+    expect(stepTypeToOutcomeType(StepType.Mcp)).toBe('mcp');
   });
 
   it('maps ReadRecord to record', () => {
