@@ -1,4 +1,4 @@
-import IntegrationClient from '../src/integration-client';
+import ForestIntegrationClient from '../src/forest-integration-client';
 import McpClient from '../src/mcp-client';
 import { createToolProviders } from '../src/tool-provider-factory';
 
@@ -10,9 +10,12 @@ jest.mock('../src/mcp-client', () => {
   }));
 });
 
-jest.mock('../src/integration-client', () => {
+jest.mock('../src/forest-integration-client', () => {
+  const actual = jest.requireActual('../src/forest-integration-client');
+
   return {
     __esModule: true,
+    ...actual,
     default: jest.fn().mockImplementation(() => ({
       loadTools: jest.fn(),
       checkConnection: jest.fn(),
@@ -38,7 +41,7 @@ describe('createToolProviders', () => {
     );
   });
 
-  it('should create IntegrationClient for ForestIntegration configs', () => {
+  it('should create ForestIntegrationClient for ForestIntegration configs', () => {
     const zendeskConfig = {
       isForestConnector: true as const,
       integrationName: 'Zendesk' as const,
@@ -48,7 +51,7 @@ describe('createToolProviders', () => {
     const providers = createToolProviders({ zendesk: zendeskConfig });
 
     expect(providers).toHaveLength(1);
-    expect(IntegrationClient).toHaveBeenCalledWith([zendeskConfig], undefined);
+    expect(ForestIntegrationClient).toHaveBeenCalledWith([zendeskConfig], undefined);
   });
 
   it('should split mixed configs into MCP and integration providers', () => {
@@ -68,7 +71,7 @@ describe('createToolProviders', () => {
       { configs: { slack: configs.slack } },
       undefined,
     );
-    expect(IntegrationClient).toHaveBeenCalledWith([configs.zendesk], undefined);
+    expect(ForestIntegrationClient).toHaveBeenCalledWith([configs.zendesk], undefined);
   });
 
   it('should return empty array when no configs', () => {
@@ -91,6 +94,6 @@ describe('createToolProviders', () => {
     createToolProviders(configs as any, logger);
 
     expect(McpClient).toHaveBeenCalledWith(expect.anything(), logger);
-    expect(IntegrationClient).toHaveBeenCalledWith(expect.anything(), logger);
+    expect(ForestIntegrationClient).toHaveBeenCalledWith(expect.anything(), logger);
   });
 });

@@ -1,14 +1,15 @@
 import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import IntegrationClient, { type ForestIntegrationConfig } from './integration-client';
+import ForestIntegrationClient, {
+  type ForestIntegrationConfig,
+  isForestIntegrationConfig,
+} from './forest-integration-client';
 import McpClient, { type McpConfiguration, type McpServerConfig } from './mcp-client';
 
 export type ToolConfig = McpServerConfig | ForestIntegrationConfig;
 
-export function isForestIntegrationConfig(config: ToolConfig): config is ForestIntegrationConfig {
-  return 'isForestConnector' in config && config.isForestConnector === true;
-}
+export { isForestIntegrationConfig };
 
 export function createToolProviders(
   configs: Record<string, ToolConfig>,
@@ -32,7 +33,7 @@ export function createToolProviders(
   }
 
   if (integrationConfigs.length > 0) {
-    providers.push(new IntegrationClient(integrationConfigs, logger));
+    providers.push(new ForestIntegrationClient(integrationConfigs, logger));
   }
 
   return providers;

@@ -6,7 +6,7 @@ import ToolSourceChecker from './tool-source-checker';
 export { createAiProvider } from './create-ai-provider';
 export { default as ProviderDispatcher } from './provider-dispatcher';
 
-export { ForestIntegrationConfig, CustomConfig, ForestIntegrationName } from './integration-client';
+export { ForestIntegrationConfig, CustomConfig, ForestIntegrationName } from './forest-integration-client';
 
 export * from './provider-dispatcher';
 export * from './remote-tools';

@@ -14,7 +14,13 @@ export interface ForestIntegrationConfig {
   isForestConnector: true;
 }
 
-export default class IntegrationClient implements ToolProvider {
+export function isForestIntegrationConfig(
+  config: ForestIntegrationConfig | Record<string, unknown>,
+): config is ForestIntegrationConfig {
+  return 'isForestConnector' in config && (config as ForestIntegrationConfig).isForestConnector === true;
+}
+
+export default class ForestIntegrationClient implements ToolProvider {
   private readonly logger?: Logger;
   private readonly configs: ForestIntegrationConfig[];
 
