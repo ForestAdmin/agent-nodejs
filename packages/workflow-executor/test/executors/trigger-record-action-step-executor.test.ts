@@ -102,13 +102,8 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'selec
 }
 
 function makeContext(
-<<<<<<< HEAD
   overrides: Partial<ExecutionContext<TriggerActionStepDefinition>> = {},
 ): ExecutionContext<TriggerActionStepDefinition> {
-=======
-  overrides: Partial<ExecutionContext<RecordStepDefinition>> = {},
-): ExecutionContext<RecordStepDefinition> {
->>>>>>> f1f21c002 (refactor(workflow-executor): rename McpTask to Mcp and RecordTaskStepDefinition to RecordStepDefinition)
   return {
     runId: 'run-1',
     stepId: 'trigger-1',

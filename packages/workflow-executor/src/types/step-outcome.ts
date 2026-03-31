@@ -4,7 +4,7 @@ import { StepType } from './step-definition';
 
 export type BaseStepStatus = 'success' | 'error';
 
-/** AI task steps can pause mid-execution to await user input (e.g. awaiting-input). */
+/** AI steps can pause mid-execution to await user input (e.g. awaiting-input). */
 export type RecordStepStatus = BaseStepStatus | 'awaiting-input';
 
 /** Union of all step statuses. */
