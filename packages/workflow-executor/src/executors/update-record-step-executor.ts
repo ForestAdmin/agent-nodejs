@@ -12,7 +12,7 @@ import {
   NoWritableFieldsError,
   StepPersistenceError,
 } from '../errors';
-import RecordTaskStepExecutor from './record-task-step-executor';
+import RecordStepExecutor from './record-step-executor';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
 Select the field to update and provide the new value.
@@ -27,7 +27,7 @@ interface UpdateTarget extends FieldRef {
   value: string;
 }
 
-export default class UpdateRecordStepExecutor extends RecordTaskStepExecutor<UpdateRecordStepDefinition> {
+export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<UpdateRecordStepExecutionData>('update-record');

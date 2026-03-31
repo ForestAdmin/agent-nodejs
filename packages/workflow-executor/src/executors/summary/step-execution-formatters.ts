@@ -1,6 +1,6 @@
 import type {
   LoadRelatedRecordStepExecutionData,
-  McpTaskStepExecutionData,
+  McpStepExecutionData,
   StepExecutionData,
 } from '../../types/step-execution-data';
 
@@ -21,14 +21,14 @@ export default class StepExecutionFormatters {
     switch (execution.type) {
       case 'load-related-record':
         return StepExecutionFormatters.formatLoadRelatedRecord(execution);
-      case 'mcp-task':
-        return StepExecutionFormatters.formatMcpTask(execution as McpTaskStepExecutionData);
+      case 'mcp':
+        return StepExecutionFormatters.formatMcpTask(execution as McpStepExecutionData);
       default:
         return null;
     }
   }
 
-  private static formatMcpTask(execution: McpTaskStepExecutionData): string | null {
+  private static formatMcpTask(execution: McpStepExecutionData): string | null {
     const { executionResult } = execution;
     if (!executionResult) return null;
     if ('skipped' in executionResult) return null;

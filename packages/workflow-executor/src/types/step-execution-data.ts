@@ -78,7 +78,7 @@ export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionD
   selectedRecordRef: RecordRef;
 }
 
-// -- Mcp Task --
+// -- Mcp --
 
 /** Reference to an MCP tool by its sanitized name (OpenAI-safe, alphanumeric + underscores/hyphens). */
 export interface McpToolRef {
@@ -90,8 +90,8 @@ export interface McpToolCall extends McpToolRef {
   input: Record<string, unknown>;
 }
 
-export interface McpTaskStepExecutionData extends BaseStepExecutionData {
-  type: 'mcp-task';
+export interface McpStepExecutionData extends BaseStepExecutionData {
+  type: 'mcp';
   executionParams?: McpToolCall;
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
@@ -101,8 +101,8 @@ export interface McpTaskStepExecutionData extends BaseStepExecutionData {
 
 // -- Generic AI Task (fallback for untyped steps) --
 
-export interface RecordTaskStepExecutionData extends BaseStepExecutionData {
-  type: 'record-task';
+export interface RecordStepExecutionData extends BaseStepExecutionData {
+  type: 'record';
   executionParams?: Record<string, unknown>;
   executionResult?: Record<string, unknown>;
   toolConfirmationInterruption?: Record<string, unknown>;
@@ -143,9 +143,9 @@ export type StepExecutionData =
   | ReadRecordStepExecutionData
   | UpdateRecordStepExecutionData
   | TriggerRecordActionStepExecutionData
-  | RecordTaskStepExecutionData
+  | RecordStepExecutionData
   | LoadRelatedRecordStepExecutionData
-  | McpTaskStepExecutionData;
+  | McpStepExecutionData;
 
 /** Alias for StepExecutionData — kept for backwards-compatible consumption at the call sites. */
 export type ExecutedStepExecutionData = StepExecutionData;

@@ -2,12 +2,12 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution';
 import type { McpStepDefinition } from '../../src/types/step-definition';
-import type { McpTaskStepExecutionData } from '../../src/types/step-execution-data';
+import type { McpStepExecutionData } from '../../src/types/step-execution-data';
 
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { StepStateError } from '../../src/errors';
-import McpTaskStepExecutor from '../../src/executors/mcp-task-step-executor';
+import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
 
@@ -116,7 +116,7 @@ function makeContext(
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('McpTaskStepExecutor', () => {
+describe('McpStepExecutor', () => {
   describe('automaticExecution: direct execution (Branch B)', () => {
     it('invokes the tool and returns success', async () => {
       const invokeFn = jest.fn().mockResolvedValue({ result: 'notification sent' });
@@ -134,7 +134,7 @@ describe('McpTaskStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -143,7 +143,7 @@ describe('McpTaskStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          type: 'mcp-task',
+          type: 'mcp',
           stepIndex: 0,
           executionParams: { name: 'send_notification', input: { message: 'Hello' } },
           executionResult: { success: true, toolResult: { result: 'notification sent' } },
@@ -180,7 +180,7 @@ describe('McpTaskStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -226,7 +226,7 @@ describe('McpTaskStepExecutor', () => {
         stepDefinition: makeStep({ automaticExecution: true }),
         logger,
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -259,7 +259,7 @@ describe('McpTaskStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -282,7 +282,7 @@ describe('McpTaskStepExecutor', () => {
       const runStore = makeMockRunStore();
       const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
       const context = makeContext({ model, runStore });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -290,7 +290,7 @@ describe('McpTaskStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          type: 'mcp-task',
+          type: 'mcp',
           stepIndex: 0,
           pendingData: { name: 'send_notification', input: { message: 'Hello' } },
         }),
@@ -305,7 +305,7 @@ describe('McpTaskStepExecutor', () => {
       });
       const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
       const context = makeContext({ model, runStore, logger });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -326,8 +326,8 @@ describe('McpTaskStepExecutor', () => {
         sourceId: 'mcp-server-1',
         invoke: invokeFn,
       });
-      const execution: McpTaskStepExecutionData = {
-        type: 'mcp-task',
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
         stepIndex: 0,
         pendingData: {
           name: 'send_notification',
@@ -339,7 +339,7 @@ describe('McpTaskStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const context = makeContext({ runStore });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -348,7 +348,7 @@ describe('McpTaskStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          type: 'mcp-task',
+          type: 'mcp',
           executionParams: { name: 'send_notification', input: { message: 'Hello' } },
           executionResult: { success: true, toolResult: 'email sent' },
           pendingData: {
@@ -369,8 +369,8 @@ describe('McpTaskStepExecutor', () => {
         sourceId: 'mcp-server-1',
         invoke: invokeFn,
       });
-      const execution: McpTaskStepExecutionData = {
-        type: 'mcp-task',
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
         stepIndex: 0,
         pendingData: {
           name: 'send_notification',
@@ -382,7 +382,7 @@ describe('McpTaskStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const context = makeContext({ runStore });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -420,7 +420,7 @@ describe('McpTaskStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({ mcpServerId: 'server-B', automaticExecution: true }),
       });
-      const executor = new McpTaskStepExecutor(context, [toolA, toolB, toolB2]);
+      const executor = new McpStepExecutor(context, [toolA, toolB, toolB2]);
 
       await executor.execute();
 
@@ -436,7 +436,7 @@ describe('McpTaskStepExecutor', () => {
   describe('NoMcpToolsError', () => {
     it('returns error when remoteTools is empty', async () => {
       const context = makeContext();
-      const executor = new McpTaskStepExecutor(context, []);
+      const executor = new McpStepExecutor(context, []);
 
       const result = await executor.execute();
 
@@ -449,7 +449,7 @@ describe('McpTaskStepExecutor', () => {
       const context = makeContext({
         stepDefinition: makeStep({ mcpServerId: 'server-B' }),
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -460,8 +460,8 @@ describe('McpTaskStepExecutor', () => {
 
   describe('McpToolNotFoundError', () => {
     it('returns error when tool from pendingData no longer exists (Branch A)', async () => {
-      const execution: McpTaskStepExecutionData = {
-        type: 'mcp-task',
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
         stepIndex: 0,
         pendingData: { name: 'deleted_tool', input: {}, userConfirmed: true },
       };
@@ -470,7 +470,7 @@ describe('McpTaskStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const context = makeContext({ runStore });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -501,7 +501,7 @@ describe('McpTaskStepExecutor', () => {
         stepDefinition: makeStep({ automaticExecution: true }),
         logger,
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -520,8 +520,8 @@ describe('McpTaskStepExecutor', () => {
         sourceId: 'mcp-server-1',
         invoke: invokeFn,
       });
-      const execution: McpTaskStepExecutionData = {
-        type: 'mcp-task',
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
         stepIndex: 0,
         pendingData: {
           name: 'send_notification',
@@ -535,7 +535,7 @@ describe('McpTaskStepExecutor', () => {
         saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
       });
       const context = makeContext({ runStore, logger });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -556,12 +556,12 @@ describe('McpTaskStepExecutor', () => {
         model,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
       expect(result.stepOutcome).toMatchObject({
-        type: 'mcp-task',
+        type: 'mcp',
         stepId: 'mcp-1',
         stepIndex: 0,
         status: 'success',
@@ -577,7 +577,7 @@ describe('McpTaskStepExecutor', () => {
         getStepExecutions: jest.fn().mockResolvedValue([]),
       });
       const context = makeContext({ runStore });
-      const executor = new McpTaskStepExecutor(context, []);
+      const executor = new McpStepExecutor(context, []);
 
       await expect(executor.execute()).resolves.toMatchObject({
         stepOutcome: {
@@ -588,15 +588,15 @@ describe('McpTaskStepExecutor', () => {
     });
 
     it('returns error when execution exists but pendingData is absent', async () => {
-      const execution: McpTaskStepExecutionData = {
-        type: 'mcp-task',
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
         stepIndex: 0,
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
       const context = makeContext({ runStore });
-      const executor = new McpTaskStepExecutor(context, []);
+      const executor = new McpStepExecutor(context, []);
 
       await expect(executor.execute()).resolves.toMatchObject({
         stepOutcome: {
@@ -622,7 +622,7 @@ describe('McpTaskStepExecutor', () => {
         runStore: mockRunStore,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -644,7 +644,7 @@ describe('McpTaskStepExecutor', () => {
         stepDefinition: makeStep({ automaticExecution: true }),
         logger,
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -670,7 +670,7 @@ describe('McpTaskStepExecutor', () => {
       } as unknown as ExecutionContext['model'];
       const tool = new MockRemoteTool({ name: 'send_notification' });
       const context = makeContext({ model });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -688,7 +688,7 @@ describe('McpTaskStepExecutor', () => {
       } as unknown as ExecutionContext['model'];
       const tool = new MockRemoteTool({ name: 'send_notification' });
       const context = makeContext({ model });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       const result = await executor.execute();
 
@@ -707,7 +707,7 @@ describe('McpTaskStepExecutor', () => {
         model,
         stepDefinition: makeStep({ prompt: undefined }),
       });
-      const executor = new McpTaskStepExecutor(context, [tool]);
+      const executor = new McpStepExecutor(context, [tool]);
 
       await executor.execute();
 
@@ -749,9 +749,7 @@ describe('McpTaskStepExecutor', () => {
           },
         ],
       });
-      const executor = new McpTaskStepExecutor({ ...context, stepId: 'mcp-2', stepIndex: 1 }, [
-        tool,
-      ]);
+      const executor = new McpStepExecutor({ ...context, stepId: 'mcp-2', stepIndex: 1 }, [tool]);
 
       await executor.execute();
 

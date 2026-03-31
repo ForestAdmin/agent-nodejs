@@ -1,7 +1,7 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { McpStepDefinition } from '../types/step-definition';
-import type { McpTaskStepExecutionData, McpToolCall } from '../types/step-execution-data';
-import type { RecordTaskStepStatus } from '../types/step-outcome';
+import type { McpStepExecutionData, McpToolCall } from '../types/step-execution-data';
+import type { RecordStepStatus } from '../types/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -22,7 +22,7 @@ Important rules:
 - Select only the tool directly relevant to the request.
 - Final answer is definitive, you won't receive any other input from the user.`;
 
-export default class McpTaskStepExecutor extends BaseStepExecutor<McpStepDefinition> {
+export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
 
   constructor(context: ExecutionContext<McpStepDefinition>, remoteTools: readonly RemoteTool[]) {
@@ -31,12 +31,12 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpStepDefinit
   }
 
   protected buildOutcomeResult(outcome: {
-    status: RecordTaskStepStatus;
+    status: RecordStepStatus;
     error?: string;
   }): StepExecutionResult {
     return {
       stepOutcome: {
-        type: 'mcp-task',
+        type: 'mcp',
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
         ...outcome,
@@ -46,10 +46,10 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpStepDefinit
 
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
-    const pending = await this.findPendingExecution<McpTaskStepExecutionData>('mcp-task');
+    const pending = await this.findPendingExecution<McpStepExecutionData>('mcp');
 
     if (pending) {
-      return this.handleConfirmationFlow<McpTaskStepExecutionData>(pending, execution =>
+      return this.handleConfirmationFlow<McpStepExecutionData>(pending, execution =>
         this.executeToolAndPersist(execution.pendingData as McpToolCall, execution),
       );
     }
@@ -67,7 +67,7 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpStepDefinit
     // Branch C -- Awaiting confirmation
     try {
       await this.context.runStore.saveStepExecution(this.context.runId, {
-        type: 'mcp-task',
+        type: 'mcp',
         stepIndex: this.context.stepIndex,
         pendingData: target,
       });
@@ -84,7 +84,7 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpStepDefinit
 
   private async executeToolAndPersist(
     target: McpToolCall,
-    existingExecution?: McpTaskStepExecutionData,
+    existingExecution?: McpStepExecutionData,
   ): Promise<StepExecutionResult> {
     const tools = this.getFilteredTools();
     const tool = tools.find(t => t.base.name === target.name);
@@ -100,9 +100,9 @@ export default class McpTaskStepExecutor extends BaseStepExecutor<McpStepDefinit
 
     // 1. Persist raw result immediately — safe state before any further network calls
     const baseExecutionResult = { success: true as const, toolResult };
-    const baseData: McpTaskStepExecutionData = {
+    const baseData: McpStepExecutionData = {
       ...existingExecution,
-      type: 'mcp-task',
+      type: 'mcp',
       stepIndex: this.context.stepIndex,
       executionParams: { name: target.name, input: target.input },
       executionResult: baseExecutionResult,

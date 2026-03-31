@@ -38,7 +38,7 @@ class TestableExecutor extends BaseStepExecutor {
   }): StepExecutionResult {
     return {
       stepOutcome: {
-        type: 'record-task',
+        type: 'record',
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
         status: outcome.status,

@@ -342,7 +342,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       await expect(executor.execute()).resolves.toMatchObject({
         stepOutcome: {
-          type: 'record-task',
+          type: 'record',
           stepId: 'update-1',
           stepIndex: 0,
           status: 'error',
@@ -540,7 +540,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.type).toBe('record');
       expect(result.stepOutcome.stepId).toBe('update-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
@@ -562,7 +562,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.type).toBe('record');
       expect(result.stepOutcome.stepId).toBe('update-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
@@ -593,7 +593,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.type).toBe('record');
       expect(result.stepOutcome.stepId).toBe('update-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
@@ -626,7 +626,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.type).toBe('record-task');
+      expect(result.stepOutcome.type).toBe('record');
       expect(result.stepOutcome.stepId).toBe('update-1');
       expect(result.stepOutcome.stepIndex).toBe(0);
       expect(result.stepOutcome.status).toBe('error');
@@ -718,7 +718,7 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome).toMatchObject({
-        type: 'record-task',
+        type: 'record',
         stepId: 'update-1',
         stepIndex: 0,
         status: 'success',

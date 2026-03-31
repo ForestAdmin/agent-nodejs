@@ -7,7 +7,7 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import { ActionNotFoundError, NoActionsError, StepPersistenceError } from '../errors';
-import RecordTaskStepExecutor from './record-task-step-executor';
+import RecordStepExecutor from './record-step-executor';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
 Select the action to trigger.
@@ -21,7 +21,7 @@ interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
 }
 
-export default class TriggerRecordActionStepExecutor extends RecordTaskStepExecutor<TriggerActionStepDefinition> {
+export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(

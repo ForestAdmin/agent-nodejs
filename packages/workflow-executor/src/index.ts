@@ -13,8 +13,8 @@ export type {
 export type {
   StepStatus,
   ConditionStepOutcome,
-  RecordTaskStepOutcome,
-  McpTaskStepOutcome,
+  RecordStepOutcome,
+  McpStepOutcome,
   StepOutcome,
 } from './types/step-outcome';
 
@@ -29,12 +29,12 @@ export type {
   ReadRecordStepExecutionData,
   UpdateRecordStepExecutionData,
   TriggerRecordActionStepExecutionData,
-  RecordTaskStepExecutionData,
+  RecordStepExecutionData,
   LoadRelatedRecordPendingData,
   LoadRelatedRecordStepExecutionData,
   McpToolRef,
   McpToolCall,
-  McpTaskStepExecutionData,
+  McpStepExecutionData,
   ExecutedStepExecutionData,
   StepExecutionData,
 } from './types/step-execution-data';
@@ -100,7 +100,7 @@ export { default as ReadRecordStepExecutor } from './executors/read-record-step-
 export { default as UpdateRecordStepExecutor } from './executors/update-record-step-executor';
 export { default as TriggerRecordActionStepExecutor } from './executors/trigger-record-action-step-executor';
 export { default as LoadRelatedRecordStepExecutor } from './executors/load-related-record-step-executor';
-export { default as McpTaskStepExecutor } from './executors/mcp-task-step-executor';
+export { default as McpStepExecutor } from './executors/mcp-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
 export { default as ExecutorHttpServer } from './http/executor-http-server';
