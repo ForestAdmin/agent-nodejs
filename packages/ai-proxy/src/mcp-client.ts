@@ -1,3 +1,4 @@
+import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
@@ -5,17 +6,17 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { McpConnectionError } from './errors';
 import McpServerRemoteTool from './mcp-server-remote-tool';
 
+export type McpServers = MultiServerMCPClient['config']['mcpServers'];
+
 export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string];
 
 export type McpConfiguration = {
-  configs: MultiServerMCPClient['config']['mcpServers'];
+  configs: McpServers;
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
 
-export default class McpClient {
+export default class McpClient implements ToolProvider {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
   private readonly logger?: Logger;
-
-  readonly tools: McpServerRemoteTool[] = [];
 
   constructor(config: McpConfiguration, logger?: Logger) {
     this.logger = logger;
@@ -30,16 +31,17 @@ export default class McpClient {
   }
 
   async loadTools(): Promise<McpServerRemoteTool[]> {
+    const tools: McpServerRemoteTool[] = [];
     const errors: Array<{ server: string; error: Error }> = [];
 
     await Promise.all(
       Object.entries(this.mcpClients).map(async ([name, client]) => {
         try {
-          const tools = (await client.getTools()) ?? [];
-          const extendedTools = tools.map(
+          const loadedTools = (await client.getTools()) ?? [];
+          const extendedTools = loadedTools.map(
             tool => new McpServerRemoteTool({ tool, sourceId: name }),
           );
-          this.tools.push(...extendedTools);
+          tools.push(...extendedTools);
         } catch (error) {
           this.logger?.('Error', `Error loading tools for ${name}`, error as Error);
           errors.push({ server: name, error: error as Error });
@@ -57,10 +59,10 @@ export default class McpClient {
       );
     }
 
-    return this.tools;
+    return tools;
   }
 
-  async testConnections(): Promise<true> {
+  async checkConnection(): Promise<true> {
     try {
       await Promise.all(
         Object.values(this.mcpClients).map(client => client.initializeConnections()),
@@ -71,7 +73,7 @@ export default class McpClient {
       throw new McpConnectionError((error as Error).message);
     } finally {
       try {
-        await this.closeConnections();
+        await this.dispose();
       } catch (cleanupError) {
         // Log but don't throw - we don't want to mask the original connection error
         this.logger?.('Error', 'Error during test connection cleanup', cleanupError as Error);
@@ -79,7 +81,7 @@ export default class McpClient {
     }
   }
 
-  async closeConnections(): Promise<void> {
+  async dispose(): Promise<void> {
     const entries = Object.entries(this.mcpClients);
     const results = await Promise.allSettled(entries.map(([, client]) => client.close()));
 

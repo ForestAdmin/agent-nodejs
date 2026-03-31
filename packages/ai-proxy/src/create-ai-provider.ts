@@ -1,18 +1,20 @@
-import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration } from './provider';
 import type { RouterRouteArgs } from './schemas/route';
+import type { ToolConfig } from './tool-provider-factory';
 import type { AiProviderDefinition, AiRouter } from '@forestadmin/agent-toolkit';
 
 import { extractMcpOauthTokensFromHeaders, injectOauthTokens } from './oauth-token-injector';
 import { Router } from './router';
 
-function resolveMcpConfigs(args: Parameters<AiRouter['route']>[0]): McpConfiguration | undefined {
+function resolveMcpConfigs(
+  args: Parameters<AiRouter['route']>[0],
+): Record<string, ToolConfig> | undefined {
   const tokensByMcpServerName = args.headers
     ? extractMcpOauthTokensFromHeaders(args.headers)
     : undefined;
 
   return injectOauthTokens({
-    mcpConfigs: args.mcpServerConfigs as McpConfiguration | undefined,
+    configs: args.toolConfigs as Record<string, ToolConfig> | undefined,
     tokensByMcpServerName,
   });
 }
@@ -32,7 +34,7 @@ export function createAiProvider(config: AiConfiguration): AiProviderDefinition 
             route: args.route,
             body: args.body,
             query: args.query,
-            mcpConfigs: resolveMcpConfigs(args),
+            toolConfigs: resolveMcpConfigs(args),
           } as RouterRouteArgs),
       };
     },

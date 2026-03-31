@@ -6,105 +6,88 @@ import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import { RemoteTools } from '../src';
 import ServerRemoteTool from '../src/server-remote-tool';
 
+function createMockTool(name = 'tool1', description = 'description1'): ServerRemoteTool {
+  return new ServerRemoteTool({
+    tool: {
+      name,
+      description,
+      responseFormat: 'content',
+      schema: {},
+    } as Tool,
+  });
+}
+
 describe('RemoteTools', () => {
-  const apiKeys = { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'api-key' };
-
-  describe('when AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY is not set', () => {
-    it('should not add the tool', () => {
-      const remoteTools = new RemoteTools({});
-      expect(remoteTools.tools.length).toEqual(0);
-    });
-  });
-
-  describe('when envs is null', () => {
-    it('should init the remote tool instance without error', () => {
-      expect(() => new RemoteTools(null)).not.toThrow();
-    });
-  });
-
-  describe('tools', () => {
-    it('should return the tools', () => {
-      const remoteTools = new RemoteTools(apiKeys);
-      expect(remoteTools.tools.length).toEqual(1);
+  describe('constructor', () => {
+    it('should have no tools when constructed without arguments', () => {
+      const remoteTools = new RemoteTools();
+      expect(remoteTools.tools).toEqual([]);
     });
 
-    describe('when tools are passed in the constructor', () => {
-      it('should return the tools', () => {
-        const tools = [
-          new ServerRemoteTool({
-            tool: {
-              name: 'tool1',
-              description: 'description1',
-              responseFormat: 'content',
-              schema: {},
-            } as Tool,
-          }),
-        ];
-        const remoteTools = new RemoteTools(apiKeys, tools);
-        expect(remoteTools.tools.length).toEqual(2);
-        expect(remoteTools.tools[0].base.name).toEqual('tool1');
-      });
+    it('should store provided tools', () => {
+      const tools = [createMockTool()];
+      const remoteTools = new RemoteTools(tools);
+      expect(remoteTools.tools).toHaveLength(1);
+      expect(remoteTools.tools[0].base.name).toEqual('tool1');
     });
   });
 
   describe('toolDefinitionsForFrontend', () => {
     it('should return the tools with extended definitions', () => {
-      const remoteTools = new RemoteTools(apiKeys);
+      const tool = createMockTool();
+      const remoteTools = new RemoteTools([tool]);
+
       expect(remoteTools.toolDefinitionsForFrontend).toEqual([
         {
-          name: remoteTools.tools[0].sanitizedName,
-          description: remoteTools.tools[0].base.description,
+          name: tool.sanitizedName,
+          description: tool.base.description,
           responseFormat: 'content',
-          schema: toJsonSchema(remoteTools.tools[0].base.schema as JSONSchema),
-          sourceId: remoteTools.tools[0].sourceId,
-          sourceType: remoteTools.tools[0].sourceType,
+          schema: toJsonSchema(tool.base.schema as JSONSchema),
+          sourceId: tool.sourceId,
+          sourceType: tool.sourceType,
         },
       ]);
     });
   });
 
   describe('invokeTool', () => {
-    it('should call invokeTool', async () => {
-      const remoteTools = new RemoteTools(apiKeys);
-      remoteTools.invokeTool = jest.fn().mockResolvedValue('response');
+    it('should invoke the tool and return its response', async () => {
+      const tool = createMockTool();
+      tool.base.invoke = jest.fn().mockResolvedValue('response');
+      const remoteTools = new RemoteTools([tool]);
 
-      const response = await remoteTools.invokeTool('tool-name', []);
+      const response = await remoteTools.invokeTool(tool.sanitizedName, []);
 
       expect(response).toEqual('response');
+      expect(tool.base.invoke).toHaveBeenCalledWith([]);
     });
 
-    describe('when the tool is not found', () => {
-      it('should throw an error', async () => {
-        const remoteTools = new RemoteTools(apiKeys);
+    it('should throw when the tool is not found', async () => {
+      const remoteTools = new RemoteTools();
 
-        await expect(() => remoteTools.invokeTool('not-found', [])).rejects.toThrow(
-          'Tool not-found not found',
-        );
-      });
+      await expect(() => remoteTools.invokeTool('not-found', [])).rejects.toThrow(
+        'Tool not-found not found',
+      );
     });
 
-    describe('when the tool throws an error', () => {
-      it('should throw an error', async () => {
-        const remoteTools = new RemoteTools(apiKeys);
-        remoteTools.tools[0].base.invoke = jest.fn().mockRejectedValue(new Error('error'));
+    it('should wrap tool errors with tool name', async () => {
+      const tool = createMockTool();
+      tool.base.invoke = jest.fn().mockRejectedValue(new Error('error'));
+      const remoteTools = new RemoteTools([tool]);
 
-        await expect(() =>
-          remoteTools.invokeTool(remoteTools.tools[0].base.name, []),
-        ).rejects.toThrow(`Error while calling tool ${remoteTools.tools[0].base.name}: error`);
-      });
+      await expect(() => remoteTools.invokeTool(tool.sanitizedName, [])).rejects.toThrow(
+        `Error while calling tool ${tool.base.name}: error`,
+      );
     });
 
-    describe('when the tool name is sanitized', () => {
-      it('should find the right tool to invoke', async () => {
-        const remoteTools = new RemoteTools(apiKeys);
+    it('should find tool by sanitized name', async () => {
+      const tool = createMockTool('brave search');
+      tool.base.invoke = jest.fn().mockResolvedValue('response');
+      const remoteTools = new RemoteTools([tool]);
 
-        remoteTools.tools[0].base.name = 'brave search';
-        remoteTools.tools[0].base.invoke = jest.fn().mockResolvedValue('response');
+      await remoteTools.invokeTool(tool.sanitizedName, []);
 
-        await remoteTools.invokeTool(remoteTools.tools[0].sanitizedName, []);
-
-        expect(remoteTools.tools[0].base.invoke).toHaveBeenCalledWith([]);
-      });
+      expect(tool.base.invoke).toHaveBeenCalledWith([]);
     });
   });
 });

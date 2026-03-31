@@ -1,4 +1,5 @@
 import type { DispatchBody } from '../src';
+import type { Tool } from '@langchain/core/tools';
 
 import { AIMessage } from '@langchain/core/messages';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
@@ -15,6 +16,7 @@ import {
   ProviderDispatcher,
   RemoteTools,
 } from '../src';
+import ServerRemoteTool from '../src/server-remote-tool';
 
 // Mock raw OpenAI response (returned via __includeRawResponse: true)
 const mockOpenAIResponse = {
@@ -83,8 +85,6 @@ function mockAnthropicResponse(
 }
 
 describe('ProviderDispatcher', () => {
-  const apiKeys = { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'api-key' };
-
   const openaiConfig = {
     name: 'gpt4',
     provider: 'openai' as const,
@@ -105,7 +105,7 @@ describe('ProviderDispatcher', () => {
 
   describe('dispatch', () => {
     it('should throw AINotConfiguredError when no provider is configured', async () => {
-      const dispatcher = new ProviderDispatcher(null, new RemoteTools(apiKeys));
+      const dispatcher = new ProviderDispatcher(null, new RemoteTools());
 
       await expect(dispatcher.dispatch(buildBody())).rejects.toThrow(AINotConfiguredError);
       await expect(dispatcher.dispatch(buildBody())).rejects.toThrow('AI is not configured');
@@ -116,7 +116,7 @@ describe('ProviderDispatcher', () => {
         () =>
           new ProviderDispatcher(
             { provider: 'unknown', name: 'test', model: 'x' } as any,
-            new RemoteTools(apiKeys),
+            new RemoteTools(),
           ),
       ).toThrow(new AIBadRequestError("Unsupported AI provider 'unknown'."));
     });
@@ -126,7 +126,7 @@ describe('ProviderDispatcher', () => {
     let dispatcher: ProviderDispatcher;
 
     beforeEach(() => {
-      dispatcher = new ProviderDispatcher(openaiConfig, new RemoteTools(apiKeys));
+      dispatcher = new ProviderDispatcher(openaiConfig, new RemoteTools());
     });
 
     it('should return the raw OpenAI response', async () => {
@@ -137,7 +137,7 @@ describe('ProviderDispatcher', () => {
 
     it('should not forward user-supplied model or arbitrary properties to the LLM', async () => {
       const customConfig = { ...openaiConfig, name: 'base', model: 'BASE MODEL' };
-      const customDispatcher = new ProviderDispatcher(customConfig, new RemoteTools(apiKeys));
+      const customDispatcher = new ProviderDispatcher(customConfig, new RemoteTools());
 
       await customDispatcher.dispatch(
         buildBody({
@@ -253,7 +253,10 @@ describe('ProviderDispatcher', () => {
 
     describe('remote tools', () => {
       it('should enhance remote tools definition with full schema', async () => {
-        const remoteTools = new RemoteTools(apiKeys);
+        const mockTool = new ServerRemoteTool({
+          tool: { name: 'test_tool', description: 'A test tool', schema: {} } as Tool,
+        });
+        const remoteTools = new RemoteTools([mockTool]);
         const remoteDispatcher = new ProviderDispatcher(openaiConfig, remoteTools);
 
         await remoteDispatcher.dispatch(
@@ -281,7 +284,7 @@ describe('ProviderDispatcher', () => {
       });
 
       it('should not modify non-remote tools', async () => {
-        const remoteDispatcher = new ProviderDispatcher(openaiConfig, new RemoteTools(apiKeys));
+        const remoteDispatcher = new ProviderDispatcher(openaiConfig, new RemoteTools());
 
         await remoteDispatcher.dispatch(
           buildBody({
@@ -335,7 +338,7 @@ describe('ProviderDispatcher', () => {
     let dispatcher: ProviderDispatcher;
 
     beforeEach(() => {
-      dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools(apiKeys));
+      dispatcher = new ProviderDispatcher(anthropicConfig, new RemoteTools());
     });
 
     it('should not forward user-supplied model from body to the LLM', async () => {
@@ -423,7 +426,10 @@ describe('ProviderDispatcher', () => {
 
       it('should enhance remote tools definition with full schema', async () => {
         mockAnthropicResponse();
-        const remoteTools = new RemoteTools(apiKeys);
+        const mockTool = new ServerRemoteTool({
+          tool: { name: 'test_tool', description: 'A test tool', schema: {} } as Tool,
+        });
+        const remoteTools = new RemoteTools([mockTool]);
         const remoteDispatcher = new ProviderDispatcher(anthropicConfig, remoteTools);
 
         await remoteDispatcher.dispatch(
