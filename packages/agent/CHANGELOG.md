@@ -1,3 +1,20 @@
+## @forestadmin/agent [1.75.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.75.1...@forestadmin/agent@1.75.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* address security vulnerabilities in dependencies ([#1516](https://github.com/ForestAdmin/agent-nodejs/issues/1516)) ([c52b1e1](https://github.com/ForestAdmin/agent-nodejs/commit/c52b1e1022b245ac63628a8c738567c727bbb74a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.19
+* **@forestadmin/mcp-server:** upgraded to 1.8.10
+* **@forestadmin/datasource-sql:** upgraded to 1.17.9
+
 ## @forestadmin/agent [1.75.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.75.0...@forestadmin/agent@1.75.1) (2026-03-31)
 
 
