@@ -85,9 +85,7 @@ describe('AiProxyRoute', () => {
       mockRoute.mockResolvedValueOnce({});
 
       const mcpConfigs = {
-        configs: {
-          server1: { type: 'http' as const, url: 'https://server1.com' },
-        },
+        server1: { type: 'http' as const, url: 'https://server1.com' },
       };
       jest
         .spyOn(options.forestAdminClient.mcpServerConfigService, 'getConfiguration')
