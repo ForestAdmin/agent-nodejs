@@ -1,3 +1,10 @@
+## @forestadmin/datasource-sequelize [1.13.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.6...@forestadmin/datasource-sequelize@1.13.7) (2026-03-31)
+
+
+### Bug Fixes
+
+* address security vulnerabilities in dependencies ([#1516](https://github.com/ForestAdmin/agent-nodejs/issues/1516)) ([c52b1e1](https://github.com/ForestAdmin/agent-nodejs/commit/c52b1e1022b245ac63628a8c738567c727bbb74a))
+
 ## @forestadmin/datasource-sequelize [1.13.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-sequelize@1.13.5...@forestadmin/datasource-sequelize@1.13.6) (2026-03-18)
 
 
