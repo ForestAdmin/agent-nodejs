@@ -251,7 +251,7 @@ describe('workflow execution (integration)', () => {
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({
-        type: 'record-task',
+        type: 'record',
         status: 'success',
         stepId: 'step-1',
         stepIndex: 0,
@@ -363,7 +363,7 @@ describe('workflow execution (integration)', () => {
     expect(res1.status).toBe(200);
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'record-task', status: 'awaiting-input' }),
+      expect.objectContaining({ type: 'record', status: 'awaiting-input' }),
     );
 
     // 2nd trigger with userConfirmed: true → success
@@ -383,7 +383,7 @@ describe('workflow execution (integration)', () => {
     );
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'record-task', status: 'success' }),
+      expect.objectContaining({ type: 'record', status: 'success' }),
     );
   });
 
@@ -420,7 +420,7 @@ describe('workflow execution (integration)', () => {
     expect(res1.status).toBe(200);
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'record-task', status: 'awaiting-input' }),
+      expect.objectContaining({ type: 'record', status: 'awaiting-input' }),
     );
 
     // 2nd trigger with userConfirmed: true → success
@@ -440,7 +440,7 @@ describe('workflow execution (integration)', () => {
     );
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'record-task', status: 'success' }),
+      expect.objectContaining({ type: 'record', status: 'success' }),
     );
   });
 
@@ -490,7 +490,7 @@ describe('workflow execution (integration)', () => {
     expect(res1.status).toBe(200);
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'record-task', status: 'awaiting-input' }),
+      expect.objectContaining({ type: 'record', status: 'awaiting-input' }),
     );
 
     // 2nd trigger with userConfirmed: true → success
@@ -502,7 +502,7 @@ describe('workflow execution (integration)', () => {
     expect(res2.status).toBe(200);
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'record-task', status: 'success' }),
+      expect.objectContaining({ type: 'record', status: 'success' }),
     );
 
     const steps = await runStore.getStepExecutions('run-1');
@@ -522,7 +522,7 @@ describe('workflow execution (integration)', () => {
   // 5. MCP task: awaiting-input → confirm → success
   // -------------------------------------------------------------------------
 
-  it('mcp-task: awaiting-input → confirm → success', async () => {
+  it('mcp: awaiting-input → confirm → success', async () => {
     const mcpToolInvoke = jest.fn().mockResolvedValue('OK');
     const fakeRemoteTool = {
       base: {
@@ -544,7 +544,7 @@ describe('workflow execution (integration)', () => {
     (aiClient.loadRemoteTools as jest.Mock).mockResolvedValue([fakeRemoteTool]);
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.McpTask, prompt: 'Send a notification' },
+      stepDefinition: { type: StepType.Mcp, prompt: 'Send a notification' },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -572,7 +572,7 @@ describe('workflow execution (integration)', () => {
     expect(res1.status).toBe(200);
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'mcp-task', status: 'awaiting-input' }),
+      expect.objectContaining({ type: 'mcp', status: 'awaiting-input' }),
     );
 
     // 2nd trigger with userConfirmed: true → tool executed → success
@@ -585,7 +585,7 @@ describe('workflow execution (integration)', () => {
     expect(mcpToolInvoke).toHaveBeenCalledWith({ message: 'Hello' });
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'mcp-task', status: 'success' }),
+      expect.objectContaining({ type: 'mcp', status: 'success' }),
     );
   });
 
@@ -721,7 +721,7 @@ describe('workflow execution (integration)', () => {
     expect(agentPort.updateRecord).not.toHaveBeenCalled();
     expect(workflowPort.updateStepExecution).toHaveBeenLastCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'record-task', status: 'success' }),
+      expect.objectContaining({ type: 'record', status: 'success' }),
     );
 
     const steps = await runStore.getStepExecutions('run-1');
@@ -771,7 +771,7 @@ describe('workflow execution (integration)', () => {
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({
-        type: 'record-task',
+        type: 'record',
         status: 'success',
         stepId: 'step-1',
         stepIndex: 0,

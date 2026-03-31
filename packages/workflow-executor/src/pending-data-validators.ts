@@ -15,7 +15,7 @@ const patchBodySchemas: Partial<Record<StepExecutionData['type'], z.ZodTypeAny>>
 
   'trigger-action': z.object({ userConfirmed: z.boolean() }).strict(),
 
-  'mcp-task': z.object({ userConfirmed: z.boolean() }).strict(),
+  mcp: z.object({ userConfirmed: z.boolean() }).strict(),
 
   'load-related-record': z
     .object({

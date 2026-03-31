@@ -17,7 +17,7 @@ import {
 import BaseStepExecutor from '../src/executors/base-step-executor';
 import ConditionStepExecutor from '../src/executors/condition-step-executor';
 import LoadRelatedRecordStepExecutor from '../src/executors/load-related-record-step-executor';
-import McpTaskStepExecutor from '../src/executors/mcp-task-step-executor';
+import McpStepExecutor from '../src/executors/mcp-step-executor';
 import ReadRecordStepExecutor from '../src/executors/read-record-step-executor';
 import StepExecutorFactory from '../src/executors/step-executor-factory';
 import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-action-step-executor';
@@ -110,11 +110,11 @@ function makeStepDefinition(stepType: StepType): StepDefinition {
     return { type: StepType.Condition, options: ['opt1', 'opt2'] };
   }
 
-  if (stepType === StepType.McpTask) {
-    return { type: StepType.McpTask };
+  if (stepType === StepType.Mcp) {
+    return { type: StepType.Mcp };
   }
 
-  return { type: stepType as Exclude<StepType, StepType.Condition | StepType.McpTask> };
+  return { type: stepType as Exclude<StepType, StepType.Condition | StepType.Mcp> };
 }
 
 function makePendingStep(
@@ -164,7 +164,7 @@ beforeEach(() => {
   jest.clearAllTimers();
 
   executeSpy = jest.spyOn(BaseStepExecutor.prototype, 'execute').mockResolvedValue({
-    stepOutcome: { type: 'record-task', stepId: 'step-1', stepIndex: 0, status: 'success' },
+    stepOutcome: { type: 'record', stepId: 'step-1', stepIndex: 0, status: 'success' },
   });
 });
 
@@ -508,7 +508,7 @@ describe('deduplication', () => {
         unblockRef.fn = () =>
           resolve({
             stepOutcome: {
-              type: 'record-task',
+              type: 'record',
               stepId: 'inflight-step',
               stepIndex: 0,
               status: 'success',
@@ -601,7 +601,7 @@ describe('triggerPoll', () => {
         unblockRef.fn = () =>
           resolve({
             stepOutcome: {
-              type: 'record-task',
+              type: 'record',
               stepId: 'step-inflight',
               stepIndex: 0,
               status: 'success',
@@ -679,7 +679,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     const step = makePendingStep({
       runId: 'run-1',
       stepId: 'step-mcp-1',
-      stepType: StepType.McpTask,
+      stepType: StepType.Mcp,
     });
     workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     // Provide a non-empty config so fetchRemoteTools actually calls loadRemoteTools
@@ -741,11 +741,11 @@ describe('StepExecutorFactory.create — factory', () => {
     expect(executor).toBeInstanceOf(LoadRelatedRecordStepExecutor);
   });
 
-  it('dispatches McpTask steps to McpTaskStepExecutor and calls loadTools', async () => {
-    const step = makePendingStep({ stepType: StepType.McpTask });
+  it('dispatches McpTask steps to McpStepExecutor and calls loadTools', async () => {
+    const step = makePendingStep({ stepType: StepType.Mcp });
     const loadTools = jest.fn().mockResolvedValue([]);
     const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
-    expect(executor).toBeInstanceOf(McpTaskStepExecutor);
+    expect(executor).toBeInstanceOf(McpStepExecutor);
     expect(loadTools).toHaveBeenCalledTimes(1);
   });
 
@@ -761,12 +761,12 @@ describe('StepExecutorFactory.create — factory', () => {
   });
 
   it('returns an executor with an error outcome when loadTools rejects for a McpTask step', async () => {
-    const step = makePendingStep({ stepType: StepType.McpTask });
+    const step = makePendingStep({ stepType: StepType.Mcp });
     const loadTools = jest.fn().mockRejectedValueOnce(new Error('MCP server down'));
     const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
     const { stepOutcome } = await executor.execute();
     expect(stepOutcome.status).toBe('error');
-    expect(stepOutcome.type).toBe('mcp-task');
+    expect(stepOutcome.type).toBe('mcp');
     expect(stepOutcome.error).toBe('An unexpected error occurred.');
   });
 
@@ -850,7 +850,7 @@ describe('error handling', () => {
       }),
     );
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith('run-1', {
-      type: 'record-task',
+      type: 'record',
       stepId: 'step-err',
       stepIndex: 0,
       status: 'error',
@@ -858,13 +858,13 @@ describe('error handling', () => {
     });
   });
 
-  it('reports type mcp-task in fallback error outcome for McpTask steps', async () => {
+  it('reports type mcp in fallback error outcome for McpTask steps', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({
       runId: 'run-1',
       stepId: 'step-mcp-err',
-      stepType: StepType.McpTask,
+      stepType: StepType.Mcp,
     });
     workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
     aiClient.getModel.mockImplementationOnce(() => {
@@ -878,7 +878,7 @@ describe('error handling', () => {
 
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
-      expect.objectContaining({ type: 'mcp-task', status: 'error' }),
+      expect.objectContaining({ type: 'mcp', status: 'error' }),
     );
   });
 

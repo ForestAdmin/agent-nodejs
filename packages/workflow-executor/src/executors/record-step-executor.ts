@@ -1,21 +1,21 @@
 import type { StepExecutionResult } from '../types/execution';
 import type { RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
-import type { RecordTaskStepStatus } from '../types/step-outcome';
+import type { RecordStepStatus } from '../types/step-outcome';
 
 import { InvalidPreRecordedArgsError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
-export default abstract class RecordTaskStepExecutor<
+export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
 > extends BaseStepExecutor<TStep> {
   protected buildOutcomeResult(outcome: {
-    status: RecordTaskStepStatus;
+    status: RecordStepStatus;
     error?: string;
   }): StepExecutionResult {
     return {
       stepOutcome: {
-        type: 'record-task',
+        type: 'record',
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
         ...outcome,
