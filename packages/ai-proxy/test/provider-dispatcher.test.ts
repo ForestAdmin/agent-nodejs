@@ -246,7 +246,7 @@ describe('ProviderDispatcher', () => {
         });
 
         await expect(dispatcher.dispatch(buildBody())).rejects.toThrow(
-          'OpenAI response missing raw response data. This may indicate an API change.',
+          'Error while calling OpenAI: Response missing raw response data. This may indicate an API change.',
         );
       });
     });

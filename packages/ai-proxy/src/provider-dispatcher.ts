@@ -4,7 +4,7 @@ import type { RemoteTools } from './remote-tools';
 import type { DispatchBody } from './schemas/route';
 import type { AIMessage, BaseMessageLike } from '@langchain/core/messages';
 
-import { BusinessError, UnprocessableError } from '@forestadmin/datasource-toolkit';
+import { BusinessError } from '@forestadmin/datasource-toolkit';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
@@ -109,9 +109,9 @@ export default class ProviderDispatcher {
     const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
 
     if (!rawResponse) {
-      throw new UnprocessableError(
-        'OpenAI response missing raw response data. This may indicate an API change.',
-      );
+      throw new AIProviderError('OpenAI', {
+        cause: new Error('Response missing raw response data. This may indicate an API change.'),
+      });
     }
 
     return rawResponse;
