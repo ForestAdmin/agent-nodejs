@@ -38,6 +38,7 @@ const invokeRemoteToolQuerySchema = z.object(
   {
     'ai-name': z.string().optional(),
     'tool-name': z.string({ message: 'Missing required query parameter: tool-name' }),
+    'source-id': z.string().optional(),
   },
   { message: 'Missing required parameter: query' },
 );

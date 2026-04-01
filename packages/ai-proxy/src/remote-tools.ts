@@ -4,7 +4,7 @@ import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/ch
 
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 
-import { AIToolNotFoundError, AIToolUnprocessableError } from './errors';
+import { AIBadRequestError, AIToolNotFoundError, AIToolUnprocessableError } from './errors';
 
 export type Messages = ChatCompletionCreateParamsNonStreaming['messages'];
 
@@ -28,13 +28,28 @@ export class RemoteTools {
     });
   }
 
-  async invokeTool(toolName: string, messages: ChatCompletionCreateParamsNonStreaming['messages']) {
-    const extendedTool = this.tools.find(exTool => exTool.sanitizedName === toolName);
+  async invokeTool(
+    toolName: string,
+    messages: ChatCompletionCreateParamsNonStreaming['messages'],
+    sourceId?: string,
+  ) {
+    const matches = this.tools.filter(
+      exTool => exTool.sanitizedName === toolName && (!sourceId || exTool.sourceId === sourceId),
+    );
 
-    if (!extendedTool) throw new AIToolNotFoundError(`Tool ${toolName} not found`);
+    if (matches.length === 0) throw new AIToolNotFoundError(`Tool ${toolName} not found`);
+
+    if (matches.length > 1) {
+      const sources = matches.map(t => t.sourceId || '<unknown>').join(', ');
+
+      throw new AIBadRequestError(
+        `Multiple tools found with name "${toolName}" (sources: ${sources}). ` +
+          `Provide a source-id to disambiguate.`,
+      );
+    }
 
     try {
-      return (await extendedTool.base.invoke(messages)) as unknown;
+      return (await matches[0].base.invoke(messages)) as unknown;
     } catch (error) {
       throw new AIToolUnprocessableError(
         `Error while calling tool ${toolName}: ${(error as Error).message}`,

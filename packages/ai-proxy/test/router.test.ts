@@ -172,7 +172,19 @@ describe('route', () => {
         body: { inputs: [] },
       });
 
-      expect(invokeToolMock).toHaveBeenCalledWith('tool-name', []);
+      expect(invokeToolMock).toHaveBeenCalledWith('tool-name', [], undefined);
+    });
+
+    it('passes source-id query parameter to invokeTool', async () => {
+      const router = new Router({});
+
+      await router.route({
+        route: 'invoke-remote-tool',
+        query: { 'tool-name': 'tool-name', 'source-id': 'slack' },
+        body: { inputs: [] },
+      });
+
+      expect(invokeToolMock).toHaveBeenCalledWith('tool-name', [], 'slack');
     });
 
     it('throws an error when tool-name query parameter is missing', async () => {
