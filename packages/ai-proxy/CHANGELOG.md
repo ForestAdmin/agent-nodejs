@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.7.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.1...@forestadmin/ai-proxy@1.7.2) (2026-04-01)
+
+
+### Bug Fixes
+
+* **ai-proxy:** throw on duplicate tool names, add source-id disambiguation ([#1523](https://github.com/ForestAdmin/agent-nodejs/issues/1523)) ([7113983](https://github.com/ForestAdmin/agent-nodejs/commit/7113983f72878741640b2ece51c9b2acecadc900))
+
 ## @forestadmin/ai-proxy [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.0...@forestadmin/ai-proxy@1.7.1) (2026-03-31)
 
 
