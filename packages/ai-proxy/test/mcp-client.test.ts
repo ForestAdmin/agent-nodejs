@@ -54,9 +54,9 @@ describe('McpClient', () => {
         const mcpClient = new McpClient(aConfig);
         getToolsMock.mockResolvedValue([tool1, tool2]);
 
-        await mcpClient.loadTools();
+        const tools = await mcpClient.loadTools();
 
-        expect(mcpClient.tools).toEqual([
+        expect(tools).toEqual([
           new McpServerRemoteTool({
             tool: tool1,
             sourceId: 'slack',
@@ -74,9 +74,9 @@ describe('McpClient', () => {
         const mcpClient = new McpClient(aConfig);
         getToolsMock.mockResolvedValue(undefined);
 
-        await mcpClient.loadTools();
+        const tools = await mcpClient.loadTools();
 
-        expect(mcpClient.tools.length).toEqual(0);
+        expect(tools.length).toEqual(0);
       });
     });
 
@@ -102,18 +102,18 @@ describe('McpClient', () => {
           .mockRejectedValueOnce(new Error('Error loading tools'))
           .mockResolvedValueOnce(['tool1', 'tool2']);
 
-        await mcpClient.loadTools();
+        const tools = await mcpClient.loadTools();
 
-        expect(mcpClient.tools.length).toEqual(2);
+        expect(tools.length).toEqual(2);
       });
     });
   });
 
-  describe('closeConnection', () => {
+  describe('dispose', () => {
     it('should close the connection', async () => {
       const mcpClient = new McpClient(aConfig);
 
-      await mcpClient.closeConnections();
+      await mcpClient.dispose();
 
       expect(closeMock).toHaveBeenCalled();
     });
@@ -137,7 +137,7 @@ describe('McpClient', () => {
       });
       closeMock.mockResolvedValue(undefined);
 
-      await mcpClient.closeConnections();
+      await mcpClient.dispose();
 
       expect(closeMock).toHaveBeenCalledTimes(2);
     });
@@ -167,7 +167,7 @@ describe('McpClient', () => {
         .mockRejectedValueOnce(new Error('Slack close failed'))
         .mockResolvedValueOnce(undefined);
 
-      await mcpClient.closeConnections();
+      await mcpClient.dispose();
 
       // Should attempt to close both connections
       expect(closeMock).toHaveBeenCalledTimes(2);
@@ -183,23 +183,23 @@ describe('McpClient', () => {
       );
     });
 
-    it('should not throw when closeConnections fails', async () => {
+    it('should not throw when dispose fails', async () => {
       const loggerMock = jest.fn();
       const mcpClient = new McpClient(aConfig, loggerMock);
       closeMock.mockRejectedValue(new Error('Close failed'));
 
       // Should not throw
-      await mcpClient.closeConnections();
+      await mcpClient.dispose();
 
       expect(loggerMock).toHaveBeenCalled();
     });
   });
 
-  describe('testConnections', () => {
+  describe('checkConnection', () => {
     it('should init the connections & close the connections even if there is no error', async () => {
       const mcpClient = new McpClient(aConfig);
 
-      await mcpClient.testConnections();
+      await mcpClient.checkConnection();
 
       expect(closeMock).toHaveBeenCalled();
       expect(initializeConnectionsMock).toHaveBeenCalled();
@@ -211,7 +211,7 @@ describe('McpClient', () => {
         const errorMessage = 'Connection error';
         initializeConnectionsMock.mockRejectedValue(new Error(errorMessage));
 
-        await expect(mcpClient.testConnections()).rejects.toThrow(
+        await expect(mcpClient.checkConnection()).rejects.toThrow(
           new McpConnectionError(errorMessage),
         );
         expect(closeMock).toHaveBeenCalled();
@@ -225,10 +225,10 @@ describe('McpClient', () => {
         closeMock.mockRejectedValue(new Error('Cleanup failed'));
 
         // Original connection error should be thrown, not the cleanup error
-        await expect(mcpClient.testConnections()).rejects.toThrow(
+        await expect(mcpClient.checkConnection()).rejects.toThrow(
           new McpConnectionError(connectionError),
         );
-        // Cleanup failure should be logged via closeConnections internal logging
+        // Cleanup failure should be logged via dispose internal logging
         expect(loggerMock).toHaveBeenCalledWith(
           'Error',
           expect.stringContaining('Failed to close MCP connection for'),

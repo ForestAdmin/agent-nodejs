@@ -7,7 +7,7 @@ import McpClient from '../src/mcp-client';
 jest.mock('../src/mcp-client', () => {
   return jest.fn().mockImplementation(() => ({
     loadTools: jest.fn().mockResolvedValue([]),
-    closeConnections: jest.fn(),
+    dispose: jest.fn(),
   }));
 });
 
@@ -155,7 +155,7 @@ describe('loadRemoteTools', () => {
       () =>
         ({
           loadTools: jest.fn().mockResolvedValue(fakeTools),
-          closeConnections: jest.fn(),
+          dispose: jest.fn(),
         } as unknown as McpClient),
     );
 
@@ -169,8 +169,8 @@ describe('loadRemoteTools', () => {
   });
 
   it('closes previous client before creating a new one', async () => {
-    const closeConnectionsMock1 = jest.fn();
-    const closeConnectionsMock2 = jest.fn();
+    const disposeMock1 = jest.fn();
+    const disposeMock2 = jest.fn();
 
     jest
       .mocked(McpClient)
@@ -178,14 +178,14 @@ describe('loadRemoteTools', () => {
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue([]),
-            closeConnections: closeConnectionsMock1,
+            dispose: disposeMock1,
           } as unknown as McpClient),
       )
       .mockImplementationOnce(
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue([]),
-            closeConnections: closeConnectionsMock2,
+            dispose: disposeMock2,
           } as unknown as McpClient),
       );
 
@@ -195,7 +195,7 @@ describe('loadRemoteTools', () => {
     await client.loadRemoteTools(mcpConfig);
     await client.loadRemoteTools(mcpConfig);
 
-    expect(closeConnectionsMock1).toHaveBeenCalledTimes(1);
+    expect(disposeMock1).toHaveBeenCalledTimes(1);
     expect(MockedMcpClient).toHaveBeenCalledTimes(2);
   });
 
@@ -205,7 +205,7 @@ describe('loadRemoteTools', () => {
       () =>
         ({
           loadTools: jest.fn().mockResolvedValue([]),
-          closeConnections: jest.fn(),
+          dispose: jest.fn(),
         } as unknown as McpClient),
     );
 
@@ -228,14 +228,14 @@ describe('loadRemoteTools', () => {
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue([]),
-            closeConnections: jest.fn().mockRejectedValue(closeError),
+            dispose: jest.fn().mockRejectedValue(closeError),
           } as unknown as McpClient),
       )
       .mockImplementationOnce(
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue(fakeTools),
-            closeConnections: jest.fn(),
+            dispose: jest.fn(),
           } as unknown as McpClient),
       );
 
@@ -263,14 +263,14 @@ describe('loadRemoteTools', () => {
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue([]),
-            closeConnections: jest.fn().mockRejectedValue('string error'),
+            dispose: jest.fn().mockRejectedValue('string error'),
           } as unknown as McpClient),
       )
       .mockImplementationOnce(
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue([]),
-            closeConnections: jest.fn(),
+            dispose: jest.fn(),
           } as unknown as McpClient),
       );
 
@@ -294,7 +294,7 @@ describe('loadRemoteTools', () => {
       () =>
         ({
           loadTools: jest.fn().mockRejectedValue(loadToolsError),
-          closeConnections: jest.fn(),
+          dispose: jest.fn(),
         } as unknown as McpClient),
     );
 
@@ -303,7 +303,7 @@ describe('loadRemoteTools', () => {
 
     await expect(client.loadRemoteTools(mcpConfig)).rejects.toThrow(loadToolsError);
 
-    // closeConnections should be a no-op since mcpClient was never stored
+    // dispose should be a no-op since mcpClient was never stored
     await expect(client.closeConnections()).resolves.toBeUndefined();
   });
 });
@@ -314,12 +314,12 @@ describe('closeConnections', () => {
   });
 
   it('closes the McpClient', async () => {
-    const closeConnectionsMock = jest.fn();
+    const disposeMock = jest.fn();
     jest.mocked(McpClient).mockImplementation(
       () =>
         ({
           loadTools: jest.fn().mockResolvedValue([]),
-          closeConnections: closeConnectionsMock,
+          dispose: disposeMock,
         } as unknown as McpClient),
     );
 
@@ -328,7 +328,7 @@ describe('closeConnections', () => {
 
     await client.closeConnections();
 
-    expect(closeConnectionsMock).toHaveBeenCalledTimes(1);
+    expect(disposeMock).toHaveBeenCalledTimes(1);
   });
 
   it('is a no-op when no McpClient exists', async () => {
@@ -337,14 +337,14 @@ describe('closeConnections', () => {
     await expect(client.closeConnections()).resolves.toBeUndefined();
   });
 
-  it('logs error and clears reference when closeConnections throws', async () => {
+  it('logs error and clears reference when dispose throws', async () => {
     const mockLogger = jest.fn();
     const closeError = new Error('close failed');
     jest.mocked(McpClient).mockImplementation(
       () =>
         ({
           loadTools: jest.fn().mockResolvedValue([]),
-          closeConnections: jest.fn().mockRejectedValue(closeError),
+          dispose: jest.fn().mockRejectedValue(closeError),
         } as unknown as McpClient),
     );
 
@@ -370,7 +370,7 @@ describe('closeConnections', () => {
       () =>
         ({
           loadTools: jest.fn().mockResolvedValue([]),
-          closeConnections: jest.fn().mockRejectedValue('string error'),
+          dispose: jest.fn().mockRejectedValue('string error'),
         } as unknown as McpClient),
     );
 
@@ -387,12 +387,12 @@ describe('closeConnections', () => {
   });
 
   it('is safe to call twice', async () => {
-    const closeConnectionsMock = jest.fn();
+    const disposeMock = jest.fn();
     jest.mocked(McpClient).mockImplementation(
       () =>
         ({
           loadTools: jest.fn().mockResolvedValue([]),
-          closeConnections: closeConnectionsMock,
+          dispose: disposeMock,
         } as unknown as McpClient),
     );
 
@@ -402,6 +402,6 @@ describe('closeConnections', () => {
     await client.closeConnections();
     await client.closeConnections();
 
-    expect(closeConnectionsMock).toHaveBeenCalledTimes(1);
+    expect(disposeMock).toHaveBeenCalledTimes(1);
   });
 });

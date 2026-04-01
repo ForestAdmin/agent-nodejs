@@ -12,7 +12,7 @@ function resolveMcpConfigs(args: Parameters<AiRouter['route']>[0]): McpConfigura
     : undefined;
 
   return injectOauthTokens({
-    mcpConfigs: args.mcpServerConfigs as McpConfiguration | undefined,
+    mcpConfigs: args.toolConfigs as McpConfiguration | undefined,
     tokensByMcpServerName,
   });
 }
