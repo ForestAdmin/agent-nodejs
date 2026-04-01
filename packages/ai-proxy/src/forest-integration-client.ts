@@ -3,11 +3,13 @@ import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { AIBadRequestError } from './errors';
+import getKolarTools, { type KolarConfig } from './integrations/kolar/tools';
+import { validateKolarConfig } from './integrations/kolar/utils';
 import getZendeskTools, { type ZendeskConfig } from './integrations/zendesk/tools';
 import { validateZendeskConfig } from './integrations/zendesk/utils';
 
-export type CustomConfig = ZendeskConfig;
-export type ForestIntegrationName = 'Zendesk';
+export type CustomConfig = ZendeskConfig | KolarConfig;
+export type ForestIntegrationName = 'Zendesk' | 'Kolar';
 
 export interface ForestIntegrationConfig {
   integrationName: ForestIntegrationName;
@@ -40,6 +42,9 @@ export default class ForestIntegrationClient implements ToolProvider {
         case 'Zendesk':
           tools.push(...getZendeskTools(config as ZendeskConfig));
           break;
+        case 'Kolar':
+          tools.push(...getKolarTools(config as KolarConfig));
+          break;
         default:
           this.logger?.('Warn', `Unsupported integration: ${integrationName}`);
       }
@@ -54,6 +59,8 @@ export default class ForestIntegrationClient implements ToolProvider {
         switch (integrationName) {
           case 'Zendesk':
             return validateZendeskConfig(config as ZendeskConfig);
+          case 'Kolar':
+            return validateKolarConfig(config as KolarConfig);
           default:
             throw new AIBadRequestError(`Unsupported integration: ${integrationName}`);
         }
