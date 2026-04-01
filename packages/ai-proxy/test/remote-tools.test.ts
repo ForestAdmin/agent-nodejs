@@ -6,8 +6,13 @@ import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import { RemoteTools } from '../src';
 import ServerRemoteTool from '../src/server-remote-tool';
 
-function createMockTool(name = 'tool1', description = 'description1'): ServerRemoteTool {
+function createMockTool(
+  name = 'tool1',
+  description = 'description1',
+  sourceId?: string,
+): ServerRemoteTool {
   return new ServerRemoteTool({
+    sourceId,
     tool: {
       name,
       description,
@@ -88,6 +93,42 @@ describe('RemoteTools', () => {
       await remoteTools.invokeTool(tool.sanitizedName, []);
 
       expect(tool.base.invoke).toHaveBeenCalledWith([]);
+    });
+
+    describe('when multiple tools have the same name', () => {
+      it('should throw when no sourceId is provided', async () => {
+        const tool1 = createMockTool('send_message', 'desc', 'slack');
+        const tool2 = createMockTool('send_message', 'desc', 'linear');
+        const remoteTools = new RemoteTools([tool1, tool2]);
+
+        await expect(() => remoteTools.invokeTool('send_message', [])).rejects.toThrow(
+          'Multiple tools found with name "send_message" (sources: slack, linear). Provide a source-id to disambiguate.',
+        );
+      });
+
+      it('should throw not-found when sourceId does not match any tool', async () => {
+        const tool1 = createMockTool('send_message', 'desc', 'slack');
+        const tool2 = createMockTool('send_message', 'desc', 'linear');
+        const remoteTools = new RemoteTools([tool1, tool2]);
+
+        await expect(() => remoteTools.invokeTool('send_message', [], 'teams')).rejects.toThrow(
+          'Tool send_message not found',
+        );
+      });
+
+      it('should invoke the correct tool when sourceId is provided', async () => {
+        const tool1 = createMockTool('send_message', 'desc', 'slack');
+        tool1.base.invoke = jest.fn().mockResolvedValue('slack response');
+        const tool2 = createMockTool('send_message', 'desc', 'linear');
+        tool2.base.invoke = jest.fn().mockResolvedValue('linear response');
+        const remoteTools = new RemoteTools([tool1, tool2]);
+
+        const response = await remoteTools.invokeTool('send_message', [], 'linear');
+
+        expect(response).toEqual('linear response');
+        expect(tool1.base.invoke).not.toHaveBeenCalled();
+        expect(tool2.base.invoke).toHaveBeenCalledWith([]);
+      });
     });
   });
 });

@@ -100,6 +100,7 @@ export class Router {
           return await remoteTools.invokeTool(
             validatedArgs.query['tool-name'],
             validatedArgs.body.inputs,
+            validatedArgs.query['source-id'],
           );
 
         case 'remote-tools':
