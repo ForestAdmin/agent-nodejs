@@ -110,7 +110,7 @@ export class Router {
     } finally {
       if (mcpClient) {
         try {
-          await mcpClient.closeConnections();
+          await mcpClient.dispose();
         } catch (cleanupError) {
           const error =
             cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));

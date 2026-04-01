@@ -58,14 +58,14 @@ describe('createAiProvider', () => {
       expect(result).toEqual({ result: 'ok' });
     });
 
-    test('should pass mcpServerConfigs as mcpConfigs to Router when no headers', async () => {
+    test('should pass toolConfigs as mcpConfigs to Router when no headers', async () => {
       routeMock.mockResolvedValue({});
       const provider = createAiProvider(config);
       const aiRouter = provider.init(jest.fn());
 
       await aiRouter.route({
         route: 'remote-tools',
-        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
+        toolConfigs: { configs: { server1: { command: 'test', args: [] } } },
       });
 
       expect(routeMock).toHaveBeenCalledWith({
@@ -84,7 +84,7 @@ describe('createAiProvider', () => {
 
       await aiRouter.route({
         route: 'remote-tools',
-        mcpServerConfigs: {
+        toolConfigs: {
           configs: { server1: { type: 'http', url: 'https://server1.com' } },
         },
         headers: { 'x-mcp-oauth-tokens': oauthTokens },
@@ -113,7 +113,7 @@ describe('createAiProvider', () => {
       expect(() =>
         aiRouter.route({
           route: 'remote-tools',
-          mcpServerConfigs: {
+          toolConfigs: {
             configs: { server1: { type: 'http', url: 'https://server1.com' } },
           },
           headers: { 'x-mcp-oauth-tokens': '{ invalid json }' },
@@ -128,7 +128,7 @@ describe('createAiProvider', () => {
 
       await aiRouter.route({
         route: 'remote-tools',
-        mcpServerConfigs: { configs: { server1: { command: 'test', args: [] } } },
+        toolConfigs: { configs: { server1: { command: 'test', args: [] } } },
         headers: { 'content-type': 'application/json' },
       });
 
@@ -140,7 +140,7 @@ describe('createAiProvider', () => {
       });
     });
 
-    test('should pass mcpConfigs as undefined when no mcpServerConfigs provided', async () => {
+    test('should pass mcpConfigs as undefined when no toolConfigs provided', async () => {
       routeMock.mockResolvedValue({});
       const provider = createAiProvider(config);
       const aiRouter = provider.init(jest.fn());

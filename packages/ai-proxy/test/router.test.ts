@@ -33,7 +33,7 @@ const ProviderDispatcherMock = ProviderDispatcher as jest.MockedClass<typeof Pro
 jest.mock('../src/mcp-client', () => {
   return jest.fn().mockImplementation(() => ({
     loadTools: jest.fn().mockResolvedValue([]),
-    closeConnections: jest.fn(),
+    dispose: jest.fn(),
   }));
 });
 
@@ -241,7 +241,7 @@ describe('route', () => {
 
       expect(MockedMcpClient).toHaveBeenCalledTimes(1);
       const mcpClientInstance = MockedMcpClient.mock.results[0].value as jest.Mocked<McpClient>;
-      expect(mcpClientInstance.closeConnections).toHaveBeenCalledTimes(1);
+      expect(mcpClientInstance.dispose).toHaveBeenCalledTimes(1);
     });
 
     it('closes the MCP connection even when an error occurs', async () => {
@@ -261,10 +261,10 @@ describe('route', () => {
 
       expect(MockedMcpClient).toHaveBeenCalledTimes(1);
       const mcpClientInstance = MockedMcpClient.mock.results[0].value as jest.Mocked<McpClient>;
-      expect(mcpClientInstance.closeConnections).toHaveBeenCalledTimes(1);
+      expect(mcpClientInstance.dispose).toHaveBeenCalledTimes(1);
     });
 
-    it('does not call closeConnections when no mcpConfigs provided', async () => {
+    it('does not call dispose when no mcpConfigs provided', async () => {
       const router = new Router({});
 
       await router.route({
@@ -274,7 +274,7 @@ describe('route', () => {
       expect(MockedMcpClient).not.toHaveBeenCalled();
     });
 
-    it('does not throw when closeConnections fails during successful route', async () => {
+    it('does not throw when dispose fails during successful route', async () => {
       const mockLogger = jest.fn();
       const router = new Router({
         logger: mockLogger,
@@ -285,7 +285,7 @@ describe('route', () => {
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue([]),
-            closeConnections: jest.fn().mockRejectedValue(closeError),
+            dispose: jest.fn().mockRejectedValue(closeError),
           } as unknown as McpClient),
       );
 
@@ -315,7 +315,7 @@ describe('route', () => {
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue([]),
-            closeConnections: jest.fn().mockRejectedValue(closeError),
+            dispose: jest.fn().mockRejectedValue(closeError),
           } as unknown as McpClient),
       );
       dispatchMock.mockRejectedValue(dispatchError);
@@ -350,7 +350,7 @@ describe('route', () => {
         () =>
           ({
             loadTools: jest.fn().mockResolvedValue([]),
-            closeConnections: jest.fn().mockRejectedValue(closeError),
+            dispose: jest.fn().mockRejectedValue(closeError),
           } as unknown as McpClient),
       );
 
