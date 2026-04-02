@@ -89,7 +89,10 @@ export default class AgentClientAgentPort implements AgentPort {
     user: StepUser,
   ): Promise<RecordData[]> {
     const client = this.createClient(user);
-    const relatedSchema = this.resolveSchema(relation);
+    const parentSchema = this.resolveSchema(collection);
+    const relationField = parentSchema.fields.find(f => f.fieldName === relation);
+    const relatedCollectionName = relationField?.relatedCollectionName ?? relation;
+    const relatedSchema = this.resolveSchema(relatedCollectionName);
 
     const records = await client
       .collection(collection)
