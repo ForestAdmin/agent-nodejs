@@ -1,4 +1,4 @@
-import type { McpConfiguration } from '../mcp-client';
+import type { ToolConfig } from '../tool-provider-factory';
 
 import { z } from 'zod';
 
@@ -38,6 +38,7 @@ const invokeRemoteToolQuerySchema = z.object(
   {
     'ai-name': z.string().optional(),
     'tool-name': z.string({ message: 'Missing required query parameter: tool-name' }),
+    'source-id': z.string().optional(),
   },
   { message: 'Missing required parameter: query' },
 );
@@ -85,7 +86,9 @@ export type RemoteToolsArgs = z.infer<typeof remoteToolsSchema>;
 
 // Derived types for consumers
 export type DispatchBody = AiQueryArgs['body'];
-export type RouterRouteArgs = RouteArgs & { mcpConfigs?: McpConfiguration };
+export type RouterRouteArgs = RouteArgs & {
+  toolConfigs?: Record<string, ToolConfig>;
+};
 
 // Backward compatibility types
 export type InvokeRemoteToolBody = InvokeRemoteToolArgs['body'];

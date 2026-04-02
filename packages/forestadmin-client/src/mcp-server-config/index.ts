@@ -1,6 +1,6 @@
 import type { McpServerConfigService } from './types';
 import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
+import type { ToolConfig } from '@forestadmin/ai-proxy';
 
 export default class McpServerConfigFromApiService implements McpServerConfigService {
   constructor(
@@ -8,7 +8,7 @@ export default class McpServerConfigFromApiService implements McpServerConfigSer
     private readonly options: ForestAdminClientOptionsWithDefaults,
   ) {}
 
-  async getConfiguration(): Promise<McpConfiguration> {
+  async getConfiguration(): Promise<Record<string, ToolConfig>> {
     return this.forestadminServerInterface.getMcpServerConfigs(this.options);
   }
 }

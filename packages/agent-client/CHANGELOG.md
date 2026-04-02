@@ -1,3 +1,55 @@
+## @forestadmin/agent-client [1.4.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.17...@forestadmin/agent-client@1.4.18) (2026-04-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.2
+
+## @forestadmin/agent-client [1.4.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.16...@forestadmin/agent-client@1.4.17) (2026-03-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.1
+
+## @forestadmin/agent-client [1.4.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.15...@forestadmin/agent-client@1.4.16) (2026-03-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.0
+
+## @forestadmin/agent-client [1.4.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.14...@forestadmin/agent-client@1.4.15) (2026-03-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.19
+
+## @forestadmin/agent-client [1.4.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.13...@forestadmin/agent-client@1.4.14) (2026-03-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.18
+
 ## @forestadmin/agent-client [1.4.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.12...@forestadmin/agent-client@1.4.13) (2026-03-04)
 
 

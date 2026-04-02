@@ -1,3 +1,10 @@
+# @forestadmin/agent-toolkit [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-toolkit@1.1.0...@forestadmin/agent-toolkit@1.2.0) (2026-03-31)
+
+
+### Features
+
+* **ai-proxy:** add forest connectors ([#1505](https://github.com/ForestAdmin/agent-nodejs/issues/1505)) ([6181114](https://github.com/ForestAdmin/agent-nodejs/commit/61811144993293381c6d27e12f3d8bedda92e021))
+
 # @forestadmin/agent-toolkit [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-toolkit@1.0.1...@forestadmin/agent-toolkit@1.1.0) (2026-02-25)
 
 

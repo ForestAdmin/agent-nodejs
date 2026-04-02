@@ -1,3 +1,50 @@
+## @forestadmin/ai-proxy [1.7.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.1...@forestadmin/ai-proxy@1.7.2) (2026-04-01)
+
+
+### Bug Fixes
+
+* **ai-proxy:** throw on duplicate tool names, add source-id disambiguation ([#1523](https://github.com/ForestAdmin/agent-nodejs/issues/1523)) ([7113983](https://github.com/ForestAdmin/agent-nodejs/commit/7113983f72878741640b2ece51c9b2acecadc900))
+
+## @forestadmin/ai-proxy [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.0...@forestadmin/ai-proxy@1.7.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* **ai-proxy:** use proper AI error classes instead of generic Error ([#1520](https://github.com/ForestAdmin/agent-nodejs/issues/1520)) ([54ff837](https://github.com/ForestAdmin/agent-nodejs/commit/54ff837783ea506e3c40c5c2c55860f945ecb6fe))
+
+# @forestadmin/ai-proxy [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.6.3...@forestadmin/ai-proxy@1.7.0) (2026-03-31)
+
+
+### Features
+
+* **ai-proxy:** add forest connectors ([#1505](https://github.com/ForestAdmin/agent-nodejs/issues/1505)) ([6181114](https://github.com/ForestAdmin/agent-nodejs/commit/61811144993293381c6d27e12f3d8bedda92e021))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.2.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.1
+
+## @forestadmin/ai-proxy [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.6.2...@forestadmin/ai-proxy@1.6.3) (2026-03-31)
+
+
+### Bug Fixes
+
+* address security vulnerabilities in dependencies ([#1516](https://github.com/ForestAdmin/agent-nodejs/issues/1516)) ([c52b1e1](https://github.com/ForestAdmin/agent-nodejs/commit/c52b1e1022b245ac63628a8c738567c727bbb74a))
+
+## @forestadmin/ai-proxy [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.6.1...@forestadmin/ai-proxy@1.6.2) (2026-03-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.0
+
 ## @forestadmin/ai-proxy [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.6.0...@forestadmin/ai-proxy@1.6.1) (2026-03-04)
 
 

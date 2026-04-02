@@ -1,3 +1,35 @@
+## @forestadmin/datasource-customizer [1.69.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.69.1...@forestadmin/datasource-customizer@1.69.2) (2026-03-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.1
+
+## @forestadmin/datasource-customizer [1.69.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.69.0...@forestadmin/datasource-customizer@1.69.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* **capabilities:** fix aggregation validation on computed field ([#1519](https://github.com/ForestAdmin/agent-nodejs/issues/1519)) ([79056f7](https://github.com/ForestAdmin/agent-nodejs/commit/79056f74996e795e1add5b5577cbbda70a8039f0))
+
+# @forestadmin/datasource-customizer [1.69.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.68.2...@forestadmin/datasource-customizer@1.69.0) (2026-03-18)
+
+
+### Features
+
+* **api chart:** allow customizing api chart with query or body parameters ([#1491](https://github.com/ForestAdmin/agent-nodejs/issues/1491)) ([a7237f2](https://github.com/ForestAdmin/agent-nodejs/commit/a7237f2d6907c3b983f7cad6b268899b6e9ae3ca))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.0
+
 ## @forestadmin/datasource-customizer [1.68.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.68.1...@forestadmin/datasource-customizer@1.68.2) (2026-02-25)
 
 

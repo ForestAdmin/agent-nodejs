@@ -4,8 +4,8 @@ import type { Caller, Chart, DataSource, DataSourceSchema } from '@forestadmin/d
 import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import ChartCollectionDecorator from './collection';
+import DataSourceChartContext from './datasource-chart-context';
 import ResultBuilder from './result-builder';
-import AgentCustomizationContext from '../../context/agent-context';
 
 export default class ChartDataSourceDecorator extends DataSourceDecorator<ChartCollectionDecorator> {
   private charts: Record<string, DataSourceChartDefinition> = {};
@@ -32,13 +32,20 @@ export default class ChartDataSourceDecorator extends DataSourceDecorator<ChartC
     this.charts[name] = definition;
   }
 
-  override async renderChart(caller: Caller, name: string): Promise<Chart> {
+  override async renderChart(
+    caller: Caller,
+    name: string,
+    parameters?: Record<string, string>,
+  ): Promise<Chart> {
     const chartDefinition = this.charts[name];
 
     if (chartDefinition) {
-      return chartDefinition(new AgentCustomizationContext(this, caller), new ResultBuilder());
+      return chartDefinition(
+        new DataSourceChartContext(this, caller, parameters),
+        new ResultBuilder(),
+      );
     }
 
-    return super.renderChart(caller, name);
+    return super.renderChart(caller, name, parameters);
   }
 }

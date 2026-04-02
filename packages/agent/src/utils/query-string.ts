@@ -177,6 +177,21 @@ export default class QueryStringParser {
     };
   }
 
+  static parseChartParameters(context: Context): Record<string, string> {
+    const query = context.request.query as Record<string, unknown>;
+    const body = (context.request.body ?? {}) as Record<string, unknown>;
+
+    const result: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries({ ...query, ...body })) {
+      if (value !== undefined && value !== null && typeof value !== 'object') {
+        result[key] = String(value);
+      }
+    }
+
+    return result;
+  }
+
   static parsePagination(context: Context): Page {
     const { query, body } = context.request as any;
     const queryItemsPerPage = (

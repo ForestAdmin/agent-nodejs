@@ -249,6 +249,24 @@ describe('SortEmulationDecoratorCollection', () => {
       expect(col.aggregate).toHaveBeenCalled();
     });
 
+    test('should pass when isGroupable is not set (default behavior)', async () => {
+      const { col, decorated } = buildWithCapabilities(
+        { supportGroups: true, supportedDateOperations: new Set() },
+        {
+          id: factories.columnSchema.uuidPrimaryKey().build(),
+          title: factories.columnSchema.build({ isGroupable: undefined }),
+        },
+      );
+
+      await decorated.aggregate(
+        factories.caller.build(),
+        factories.filter.build(),
+        new Aggregation({ operation: 'Count', groups: [{ field: 'title' }] }),
+      );
+
+      expect(col.aggregate).toHaveBeenCalled();
+    });
+
     test('should throw when date operation is not supported', async () => {
       const { col, decorated } = buildWithCapabilities({
         supportGroups: true,
@@ -305,7 +323,7 @@ describe('SortEmulationDecoratorCollection', () => {
     });
 
     describe('with nested field groups', () => {
-      function buildWithRelation(authorFieldIsGroupable: boolean) {
+      function buildWithRelation(authorFieldIsGroupable: boolean | undefined) {
         const authorCollection = factories.collection.build({
           name: 'author',
           schema: factories.collectionSchema.build({
@@ -362,6 +380,18 @@ describe('SortEmulationDecoratorCollection', () => {
         await expect(fn).rejects.toThrow(ValidationError);
         await expect(fn).rejects.toThrow("'author:name' is not groupable");
         expect(col.aggregate).not.toHaveBeenCalled();
+      });
+
+      test('should pass when nested field isGroupable is not set (default behavior)', async () => {
+        const { col, decorated } = buildWithRelation(undefined);
+
+        await decorated.aggregate(
+          factories.caller.build(),
+          factories.filter.build(),
+          new Aggregation({ operation: 'Count', groups: [{ field: 'author:name' }] }),
+        );
+
+        expect(col.aggregate).toHaveBeenCalled();
       });
     });
   });

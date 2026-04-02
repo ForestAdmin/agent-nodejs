@@ -1,3 +1,91 @@
+## @forestadmin/agent [1.76.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.76.1...@forestadmin/agent@1.76.2) (2026-04-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.2
+* **@forestadmin/mcp-server:** upgraded to 1.8.13
+
+## @forestadmin/agent [1.76.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.76.0...@forestadmin/agent@1.76.1) (2026-03-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.1
+* **@forestadmin/mcp-server:** upgraded to 1.8.12
+
+# @forestadmin/agent [1.76.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.75.2...@forestadmin/agent@1.76.0) (2026-03-31)
+
+
+### Features
+
+* **ai-proxy:** add forest connectors ([#1505](https://github.com/ForestAdmin/agent-nodejs/issues/1505)) ([6181114](https://github.com/ForestAdmin/agent-nodejs/commit/61811144993293381c6d27e12f3d8bedda92e021))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-toolkit:** upgraded to 1.2.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.69.2
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.0
+* **@forestadmin/mcp-server:** upgraded to 1.8.11
+* **@forestadmin/datasource-sql:** upgraded to 1.17.10
+
+## @forestadmin/agent [1.75.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.75.1...@forestadmin/agent@1.75.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* address security vulnerabilities in dependencies ([#1516](https://github.com/ForestAdmin/agent-nodejs/issues/1516)) ([c52b1e1](https://github.com/ForestAdmin/agent-nodejs/commit/c52b1e1022b245ac63628a8c738567c727bbb74a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.19
+* **@forestadmin/mcp-server:** upgraded to 1.8.10
+* **@forestadmin/datasource-sql:** upgraded to 1.17.9
+
+## @forestadmin/agent [1.75.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.75.0...@forestadmin/agent@1.75.1) (2026-03-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.69.1
+
+# @forestadmin/agent [1.75.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.74.1...@forestadmin/agent@1.75.0) (2026-03-18)
+
+
+### Features
+
+* **api chart:** allow customizing api chart with query or body parameters ([#1491](https://github.com/ForestAdmin/agent-nodejs/issues/1491)) ([a7237f2](https://github.com/ForestAdmin/agent-nodejs/commit/a7237f2d6907c3b983f7cad6b268899b6e9ae3ca))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-customizer:** upgraded to 1.69.0
+* **@forestadmin/datasource-toolkit:** upgraded to 1.53.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.18
+* **@forestadmin/mcp-server:** upgraded to 1.8.9
+* **@forestadmin/datasource-sql:** upgraded to 1.17.8
+
 ## @forestadmin/agent [1.74.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.74.0...@forestadmin/agent@1.74.1) (2026-03-04)
 
 

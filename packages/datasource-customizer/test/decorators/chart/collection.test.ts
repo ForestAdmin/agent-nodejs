@@ -55,7 +55,7 @@ describe('ChartCollectionDecorator', () => {
       const caller = factories.caller.build();
       const result = await decoratedBook.renderChart(caller, 'childChart', [123]);
 
-      expect(books.renderChart).toHaveBeenCalledWith(caller, 'childChart', [123]);
+      expect(books.renderChart).toHaveBeenCalledWith(caller, 'childChart', [123], undefined);
       expect(result).toStrictEqual({ countCurrent: 1 });
     });
 
