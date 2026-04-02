@@ -36,7 +36,9 @@ export class AiClient {
     return model;
   }
 
-  async loadRemoteTools(mcpConfig: McpConfiguration): Promise<Awaited<ReturnType<McpClient['loadTools']>>> {
+  async loadRemoteTools(
+    mcpConfig: McpConfiguration,
+  ): Promise<Awaited<ReturnType<McpClient['loadTools']>>> {
     await this.disposeMcpClient('Error closing previous MCP connection');
 
     const newClient = new McpClient(mcpConfig, this.logger);
