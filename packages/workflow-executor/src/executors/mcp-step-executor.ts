@@ -58,7 +58,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const tools = this.getFilteredTools();
     const { toolName, args } = await this.selectTool(tools);
     const selectedTool = tools.find(t => t.base.name === toolName);
-    const target: McpToolCall = { name: toolName, sourceId: selectedTool!.sourceId, input: args };
+    if (!selectedTool) throw new McpToolNotFoundError(toolName);
+    const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
 
     if (this.context.stepDefinition.automaticExecution) {
       // Branch B -- direct execution
