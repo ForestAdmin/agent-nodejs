@@ -469,4 +469,127 @@ describe('ExecutorHttpServer', () => {
       await expect(server.stop()).resolves.toBeUndefined();
     });
   });
+
+  describe('POST /workflow/complete-step', () => {
+    const token = signToken({ id: 1 });
+
+    it('returns 401 without auth token', async () => {
+      const server = createServer();
+
+      const res = await request(server.callback).post('/workflow/complete-step').send({
+        runId: 'run-1',
+        stepIndex: 0,
+      });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 400 when runId is missing', async () => {
+      const server = createServer();
+
+      const res = await request(server.callback)
+        .post('/workflow/complete-step')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ stepIndex: 0 });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Missing or invalid runId');
+    });
+
+    it('calls triggerPoll with userConfirmed: true', async () => {
+      const runner = createMockRunner();
+      const server = createServer({ runner });
+
+      const res = await request(server.callback)
+        .post('/workflow/complete-step')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ runId: 'run-1', stepIndex: 0 });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ completed: true });
+      expect(runner.triggerPoll).toHaveBeenCalledWith('run-1', {
+        pendingData: { userConfirmed: true },
+        bearerUserId: 1,
+      });
+    });
+
+    it('passes selectedOption in pendingData when provided', async () => {
+      const runner = createMockRunner();
+      const server = createServer({ runner });
+
+      const res = await request(server.callback)
+        .post('/workflow/complete-step')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          runId: 'run-1',
+          stepIndex: 0,
+          userInput: { selectedOption: 'optionA' },
+        });
+
+      expect(res.status).toBe(200);
+      expect(runner.triggerPoll).toHaveBeenCalledWith('run-1', {
+        pendingData: { userConfirmed: true, selectedOption: 'optionA' },
+        bearerUserId: 1,
+      });
+    });
+
+    it('returns 404 when run not found', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new RunNotFoundError('run-1')),
+      });
+      const server = createServer({ runner });
+
+      const res = await request(server.callback)
+        .post('/workflow/complete-step')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ runId: 'run-1', stepIndex: 0 });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 403 when user does not match', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new UserMismatchError('run-1')),
+      });
+      const server = createServer({ runner });
+
+      const res = await request(server.callback)
+        .post('/workflow/complete-step')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ runId: 'run-1', stepIndex: 0 });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('returns 404 when step has no pending data', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new PendingDataNotFoundError('run-1', 0)),
+      });
+      const server = createServer({ runner });
+
+      const res = await request(server.callback)
+        .post('/workflow/complete-step')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ runId: 'run-1', stepIndex: 0 });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 400 when pending data validation fails', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(
+          new InvalidPendingDataError([{ path: ['value'], message: 'Required', code: 'invalid' }]),
+        ),
+      });
+      const server = createServer({ runner });
+
+      const res = await request(server.callback)
+        .post('/workflow/complete-step')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ runId: 'run-1', stepIndex: 0 });
+
+      expect(res.status).toBe(400);
+      expect(res.body.details).toHaveLength(1);
+    });
+  });
 });

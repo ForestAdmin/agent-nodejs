@@ -93,6 +93,7 @@ export default class ExecutorHttpServer {
       this.handleGetRun.bind(this),
     );
     router.post('/runs/:runId/trigger', this.handleTrigger.bind(this));
+    router.post('/workflow/complete-step', this.handleCompleteStep.bind(this));
 
     this.app.use(router.routes());
     this.app.use(router.allowedMethods());
@@ -161,6 +162,75 @@ export default class ExecutorHttpServer {
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
     const steps = await this.options.runner.getRunStepExecutions(ctx.params.runId);
     ctx.body = { steps };
+  }
+
+  private async handleCompleteStep(ctx: Koa.Context): Promise<void> {
+    const body = ctx.request.body as {
+      runId?: string;
+      stepIndex?: number;
+      userInput?: { selectedOption?: string };
+    };
+
+    const { runId, userInput } = body;
+
+    if (!runId || typeof runId !== 'string') {
+      ctx.status = 400;
+      ctx.body = { error: 'Missing or invalid runId' };
+
+      return;
+    }
+
+    const rawId = (ctx.state.user as { id?: unknown })?.id;
+    const bearerUserId = typeof rawId === 'number' ? rawId : Number(rawId);
+
+    if (!Number.isFinite(bearerUserId)) {
+      ctx.status = 400;
+      ctx.body = { error: 'Missing or invalid user id in token' };
+
+      return;
+    }
+
+    const pendingData: Record<string, unknown> = { userConfirmed: true };
+    if (userInput?.selectedOption !== undefined) {
+      pendingData.selectedOption = userInput.selectedOption;
+    }
+
+    try {
+      await this.options.runner.triggerPoll(runId, { pendingData, bearerUserId });
+    } catch (err) {
+      if (err instanceof RunNotFoundError) {
+        ctx.status = 404;
+        ctx.body = { error: 'Run not found or unavailable' };
+
+        return;
+      }
+
+      if (err instanceof UserMismatchError) {
+        ctx.status = 403;
+        ctx.body = { error: 'Forbidden' };
+
+        return;
+      }
+
+      if (err instanceof PendingDataNotFoundError) {
+        ctx.status = 404;
+        ctx.body = { error: 'Step execution not found or has no pending data' };
+
+        return;
+      }
+
+      if (err instanceof InvalidPendingDataError) {
+        ctx.status = 400;
+        ctx.body = { error: 'Invalid request body', details: err.issues };
+
+        return;
+      }
+
+      throw err;
+    }
+
+    ctx.status = 200;
+    ctx.body = { completed: true };
   }
 
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
