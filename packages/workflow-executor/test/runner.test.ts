@@ -11,6 +11,7 @@ import {
   ConfigurationError,
   InvalidPendingDataError,
   PendingDataNotFoundError,
+  RunConflictError,
   RunNotFoundError,
   UserMismatchError,
 } from '../src/errors';
@@ -1264,5 +1265,56 @@ describe('triggerPoll with options', () => {
         pendingData: { userConfirmed: true, name: 'override' },
       }),
     ).rejects.toThrow(InvalidPendingDataError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RunConflictError handling (abort / revised)
+// ---------------------------------------------------------------------------
+
+describe('RunConflictError handling', () => {
+  it('logs info and does not throw when orchestrator rejects with RunConflictError', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const step = makePendingStep({ runId: 'run-aborted', stepId: 'step-1' });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.updateStepExecution.mockRejectedValue(
+      new RunConflictError('run-aborted'),
+    );
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.triggerPoll('run-aborted');
+
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Run was aborted or is no longer updatable, skipping outcome report',
+      expect.objectContaining({
+        runId: 'run-aborted',
+        stepId: 'step-1',
+        stepIndex: 0,
+      }),
+    );
+    expect(mockLogger.error).not.toHaveBeenCalledWith(
+      'Failed to report step outcome',
+      expect.anything(),
+    );
+  });
+
+  it('logs error for non-conflict failures when reporting step outcome', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-1' });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.updateStepExecution.mockRejectedValue(new Error('Network failure'));
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.triggerPoll('run-1');
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Failed to report step outcome',
+      expect.objectContaining({
+        runId: 'run-1',
+        error: 'Network failure',
+      }),
+    );
   });
 });

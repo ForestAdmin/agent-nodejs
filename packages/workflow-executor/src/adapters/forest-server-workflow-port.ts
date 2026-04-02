@@ -6,6 +6,8 @@ import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
+import { RunConflictError } from '../errors';
+
 // TODO: finalize route paths with the team — these are placeholders
 const ROUTES = {
   pendingStepExecutions: '/liana/v1/workflow-step-executions/pending',
@@ -40,13 +42,23 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   async updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void> {
-    await ServerUtils.query(
-      this.options,
-      'post',
-      ROUTES.updateStepExecution(runId),
-      {},
-      stepOutcome,
-    );
+    try {
+      await ServerUtils.query(
+        this.options,
+        'post',
+        ROUTES.updateStepExecution(runId),
+        {},
+        stepOutcome,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (/cannot be updated|already terminated|revised/i.test(message)) {
+        throw new RunConflictError(runId, error);
+      }
+
+      throw error;
+    }
   }
 
   async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {

@@ -5,6 +5,7 @@ import type { StepOutcome } from '../../src/types/step-outcome';
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 import ForestServerWorkflowPort from '../../src/adapters/forest-server-workflow-port';
+import { RunConflictError } from '../../src/errors';
 
 jest.mock('@forestadmin/forestadmin-client', () => ({
   ServerUtils: { query: jest.fn() },
@@ -85,6 +86,39 @@ describe('ForestServerWorkflowPort', () => {
         '/liana/v1/workflow-step-executions/run-42/complete',
         {},
         stepOutcome,
+      );
+    });
+
+    it('throws RunConflictError when server rejects with conflict message', async () => {
+      mockQuery.mockRejectedValue(new Error('Run cannot be updated'));
+
+      await expect(port.updateStepExecution('run-42', {} as StepOutcome)).rejects.toThrow(
+        RunConflictError,
+      );
+    });
+
+    it('throws RunConflictError when server says run is already terminated', async () => {
+      mockQuery.mockRejectedValue(new Error('Workflow run already terminated'));
+
+      await expect(port.updateStepExecution('run-42', {} as StepOutcome)).rejects.toThrow(
+        RunConflictError,
+      );
+    });
+
+    it('throws RunConflictError when step was revised', async () => {
+      mockQuery.mockRejectedValue(new Error('Step was revised'));
+
+      await expect(port.updateStepExecution('run-42', {} as StepOutcome)).rejects.toThrow(
+        RunConflictError,
+      );
+    });
+
+    it('re-throws other errors as-is', async () => {
+      const networkError = new Error('Network failure');
+      mockQuery.mockRejectedValue(networkError);
+
+      await expect(port.updateStepExecution('run-42', {} as StepOutcome)).rejects.toThrow(
+        networkError,
       );
     });
   });

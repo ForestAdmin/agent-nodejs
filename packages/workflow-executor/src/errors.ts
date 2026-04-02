@@ -199,6 +199,17 @@ export class McpToolInvocationError extends WorkflowExecutorError {
   }
 }
 
+/** Thrown when the orchestrator rejects a step update because the run was aborted or is no longer updatable. */
+export class RunConflictError extends Error {
+  cause?: unknown;
+
+  constructor(runId: string, cause?: unknown) {
+    super(`Run "${runId}" can no longer be updated (aborted or already finished)`);
+    this.name = 'RunConflictError';
+    if (cause !== undefined) this.cause = cause;
+  }
+}
+
 export class ConfigurationError extends Error {
   constructor(message: string) {
     super(message);

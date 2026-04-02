@@ -12,6 +12,7 @@ import ConsoleLogger from './adapters/console-logger';
 import {
   InvalidPendingDataError,
   PendingDataNotFoundError,
+  RunConflictError,
   RunNotFoundError,
   UserMismatchError,
   causeMessage,
@@ -256,6 +257,16 @@ export default class Runner {
     try {
       await this.config.workflowPort.updateStepExecution(step.runId, result.stepOutcome);
     } catch (error) {
+      if (error instanceof RunConflictError) {
+        this.logger.info?.('Run was aborted or is no longer updatable, skipping outcome report', {
+          runId: step.runId,
+          stepId: step.stepId,
+          stepIndex: step.stepIndex,
+        });
+
+        return;
+      }
+
       this.logger.error('Failed to report step outcome', {
         runId: step.runId,
         stepId: step.stepId,
