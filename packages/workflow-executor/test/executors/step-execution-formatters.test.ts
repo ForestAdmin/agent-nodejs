@@ -69,7 +69,7 @@ describe('StepExecutionFormatters', () => {
         const execution: StepExecutionData = {
           type: 'mcp',
           stepIndex: 2,
-          executionParams: { name: 'search_records', input: { query: 'foo' } },
+          executionParams: { name: 'search_records', sourceId: 'mcp-server-1', input: { query: 'foo' } },
           executionResult: {
             success: true,
             toolResult: { items: [] },
@@ -84,7 +84,7 @@ describe('StepExecutionFormatters', () => {
         const execution: StepExecutionData = {
           type: 'mcp',
           stepIndex: 2,
-          executionParams: { name: 'search_records', input: { query: 'foo' } },
+          executionParams: { name: 'search_records', sourceId: 'mcp-server-1', input: { query: 'foo' } },
           executionResult: { success: true, toolResult: { items: [] } },
         };
 
@@ -97,7 +97,7 @@ describe('StepExecutionFormatters', () => {
         const execution: StepExecutionData = {
           type: 'mcp',
           stepIndex: 2,
-          pendingData: { name: 'search_records', input: {} },
+          pendingData: { name: 'search_records', sourceId: 'mcp-server-1', input: {} },
         };
 
         expect(StepExecutionFormatters.format(execution)).toBeNull();

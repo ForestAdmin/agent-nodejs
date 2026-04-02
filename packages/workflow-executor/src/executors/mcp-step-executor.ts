@@ -57,7 +57,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     // Branches B & C -- First call
     const tools = this.getFilteredTools();
     const { toolName, args } = await this.selectTool(tools);
-    const target: McpToolCall = { name: toolName, input: args };
+    const selectedTool = tools.find(t => t.base.name === toolName);
+    const target: McpToolCall = { name: toolName, sourceId: selectedTool!.sourceId, input: args };
 
     if (this.context.stepDefinition.automaticExecution) {
       // Branch B -- direct execution
@@ -87,7 +88,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     existingExecution?: McpStepExecutionData,
   ): Promise<StepExecutionResult> {
     const tools = this.getFilteredTools();
-    const tool = tools.find(t => t.base.name === target.name);
+    const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
     let toolResult: unknown;
@@ -104,7 +105,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       ...existingExecution,
       type: 'mcp',
       stepIndex: this.context.stepIndex,
-      executionParams: { name: target.name, input: target.input },
+      executionParams: { name: target.name, sourceId: target.sourceId, input: target.input },
       executionResult: baseExecutionResult,
     };
 
