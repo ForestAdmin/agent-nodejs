@@ -57,7 +57,7 @@ describe('AiProxyRoute', () => {
       expect(context.response.body).toEqual(expectedResponse);
     });
 
-    test('should pass route, body, query, mcpServerConfigs and headers to router', async () => {
+    test('should pass route, body, query, toolConfigs and headers to router', async () => {
       const route = new AiProxyRoute(services, options, aiRouter);
       mockRoute.mockResolvedValueOnce({});
 
@@ -75,19 +75,17 @@ describe('AiProxyRoute', () => {
         route: 'ai-query',
         body: { messages: [{ role: 'user', content: 'Hello' }] },
         query: { 'ai-name': 'gpt4' },
-        mcpServerConfigs: undefined,
+        toolConfigs: undefined,
         headers: context.request.headers,
       });
     });
 
-    test('should pass mcpServerConfigs from forestAdminClient to router', async () => {
+    test('should pass toolConfigs from forestAdminClient to router', async () => {
       const route = new AiProxyRoute(services, options, aiRouter);
       mockRoute.mockResolvedValueOnce({});
 
       const mcpConfigs = {
-        configs: {
-          server1: { type: 'http' as const, url: 'https://server1.com' },
-        },
+        server1: { type: 'http' as const, url: 'https://server1.com' },
       };
       jest
         .spyOn(options.forestAdminClient.mcpServerConfigService, 'getConfiguration')
@@ -105,7 +103,7 @@ describe('AiProxyRoute', () => {
 
       expect(mockRoute).toHaveBeenCalledWith(
         expect.objectContaining({
-          mcpServerConfigs: mcpConfigs,
+          toolConfigs: mcpConfigs,
           headers: context.request.headers,
         }),
       );

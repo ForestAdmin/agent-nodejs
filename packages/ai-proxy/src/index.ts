@@ -1,10 +1,18 @@
-import type { McpConfiguration } from './mcp-client';
+import type { ToolConfig } from './tool-provider-factory';
+import type { Logger } from '@forestadmin/datasource-toolkit';
 
-import McpConfigChecker from './mcp-config-checker';
+import ToolSourceChecker from './tool-source-checker';
 
 export { createAiProvider } from './create-ai-provider';
 export { createBaseChatModel } from './create-base-chat-model';
 export { default as ProviderDispatcher } from './provider-dispatcher';
+
+export {
+  ForestIntegrationConfig,
+  CustomConfig,
+  ForestIntegrationName,
+} from './forest-integration-client';
+
 export * from './provider-dispatcher';
 export * from './ai-client';
 export * from './remote-tools';
@@ -13,9 +21,14 @@ export * from './router';
 export * from './mcp-client';
 export * from './oauth-token-injector';
 export * from './errors';
+export * from './tool-provider';
+export * from './tool-provider-factory';
 
-export function validMcpConfigurationOrThrow(mcpConfig: McpConfiguration) {
-  return McpConfigChecker.check(mcpConfig);
+export function validToolConfigurationOrThrow(
+  configs: Record<string, ToolConfig>,
+  logger?: Logger,
+) {
+  return ToolSourceChecker.check(configs, logger);
 }
 
 export type { BaseChatModel } from '@langchain/core/language_models/chat_models';

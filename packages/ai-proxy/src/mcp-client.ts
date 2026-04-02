@@ -1,3 +1,4 @@
+import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
@@ -13,7 +14,7 @@ export type McpConfiguration = {
   configs: McpServers;
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
 
-export default class McpClient {
+export default class McpClient implements ToolProvider {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
   private readonly logger?: Logger;
 

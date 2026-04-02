@@ -112,7 +112,8 @@ export default class ValidationDecorator extends CollectionDecorator {
         }, this.schema);
       }
 
-      if (!(schema.fields[field] as ColumnSchema).isGroupable) {
+      // Handle field was not seting up
+      if ((schema.fields[field] as ColumnSchema).isGroupable === false) {
         throw new ValidationError(`Field '${group.field}' is not groupable on "${this.name}".`);
       }
     }

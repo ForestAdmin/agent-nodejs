@@ -10,6 +10,7 @@ export default class CollectionChartContext<
   N extends TCollectionName<S> = TCollectionName<S>,
 > extends CollectionCustomizationContext<S, N> {
   readonly compositeRecordId: CompositeId;
+  private _parameters: Record<string, string>;
 
   get recordId(): string | number {
     if (this.compositeRecordId.length > 1) {
@@ -19,10 +20,20 @@ export default class CollectionChartContext<
     return this.compositeRecordId[0];
   }
 
-  constructor(collection: Collection, caller: Caller, recordId: CompositeId) {
+  get parameters(): Record<string, string> {
+    return Object.freeze({ ...this._parameters });
+  }
+
+  constructor(
+    collection: Collection,
+    caller: Caller,
+    recordId: CompositeId,
+    parameters?: Record<string, string>,
+  ) {
     super(collection, caller);
 
     this.compositeRecordId = recordId;
+    this._parameters = parameters ?? {};
   }
 
   async getRecord(fields: TFieldName<S, N>[]): Promise<TRow<S, N>> {

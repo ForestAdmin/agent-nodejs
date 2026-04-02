@@ -16,7 +16,7 @@ import type { ForestSchema } from './schema/types';
 import type { RequestContextVariables } from './utils/context-variables';
 import type ContextVariables from './utils/context-variables';
 import type { HttpOptions } from './utils/http-options';
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
+import type { ToolConfig } from '@forestadmin/ai-proxy';
 import type { ParsedUrlQuery } from 'querystring';
 
 export type { CollectionActionEvent, RawTree, RawTreeWithSources } from './permissions/types';
@@ -271,7 +271,7 @@ export interface ForestAdminServerInterface {
   getUsers?: (...args) => Promise<UserPermissionV4[]>;
   getRenderingPermissions?: (renderingId: number, ...args) => Promise<RenderingPermissionV4>;
   getModelCustomizations?: (options: HttpOptions) => Promise<ModelCustomization[]>;
-  getMcpServerConfigs?: (options: HttpOptions) => Promise<McpConfiguration>;
+  getMcpServerConfigs?: (options: HttpOptions) => Promise<Record<string, ToolConfig>>;
   makeAuthService?(options: ForestAdminClientOptionsWithDefaults): ForestAdminAuthServiceInterface;
 
   // Schema operations

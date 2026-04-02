@@ -1,17 +1,16 @@
-import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration } from './provider';
-import type { RemoteToolsApiKeys } from './remote-tools';
-import type { RouteArgs } from './schemas/route';
+import type { RouteArgs, RouterRouteArgs } from './schemas/route';
+import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
-import { AIBadRequestError } from './errors';
-import getAiConfiguration from './get-ai-configuration';
-import McpClient from './mcp-client';
+import { AIBadRequestError, AIModelNotSupportedError } from './errors';
+import BraveToolProvider from './integrations/brave/brave-tool-provider';
 import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
-import validateAiConfigurations from './validate-ai-configurations';
+import isModelSupportingTools from './supported-models';
+import { createToolProviders } from './tool-provider-factory';
 
 export type {
   AiQueryArgs,
@@ -21,27 +20,47 @@ export type {
   Query,
   RemoteToolsArgs,
   RouteArgs,
+  RouterRouteArgs,
 } from './schemas/route';
 
 // Keep these for backward compatibility
 export type Route = RouteArgs['route'];
-export type ApiKeys = RemoteToolsApiKeys;
 
 export class Router {
-  private readonly localToolsApiKeys?: ApiKeys;
+  private readonly localToolProviders: ToolProvider[];
   private readonly aiConfigurations: AiConfiguration[];
   private readonly logger?: Logger;
 
   constructor(params?: {
     aiConfigurations?: AiConfiguration[];
-    localToolsApiKeys?: ApiKeys;
+    localToolsApiKeys?: Record<string, string>;
     logger?: Logger;
   }) {
     this.aiConfigurations = params?.aiConfigurations ?? [];
-    this.localToolsApiKeys = params?.localToolsApiKeys;
+    this.localToolProviders = Router.createLocalToolProviders(params?.localToolsApiKeys);
     this.logger = params?.logger;
 
-    validateAiConfigurations(this.aiConfigurations);
+    this.validateConfigurations();
+  }
+
+  private static createLocalToolProviders(apiKeys?: Record<string, string>): ToolProvider[] {
+    const providers: ToolProvider[] = [];
+
+    if (apiKeys?.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY) {
+      providers.push(
+        new BraveToolProvider({ apiKey: apiKeys.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY }),
+      );
+    }
+
+    return providers;
+  }
+
+  private validateConfigurations(): void {
+    for (const config of this.aiConfigurations) {
+      if (!isModelSupportingTools(config.model, config.provider)) {
+        throw new AIModelNotSupportedError(config.model);
+      }
+    }
   }
 
   /**
@@ -52,7 +71,7 @@ export class Router {
    * - invoke-remote-tool: Execute a remote tool by name with the provided inputs
    * - remote-tools: Return the list of available remote tools definitions
    */
-  async route(args: RouteArgs & { mcpConfigs?: McpConfiguration }) {
+  async route(args: RouterRouteArgs) {
     // Validate input with Zod schema
     const result = routeArgsSchema.safeParse(args);
 
@@ -60,26 +79,17 @@ export class Router {
       throw new AIBadRequestError(Router.formatZodError(result.error));
     }
 
+    const remoteToolProviders = createToolProviders(args.toolConfigs ?? {}, this.logger);
     const validatedArgs = result.data;
-    let mcpClient: McpClient | undefined;
+    const providers = [...this.localToolProviders, ...remoteToolProviders];
 
     try {
-      if (args.mcpConfigs) {
-        mcpClient = new McpClient(args.mcpConfigs, this.logger);
-      }
-
-      const remoteTools = new RemoteTools(
-        this.localToolsApiKeys ?? {},
-        await mcpClient?.loadTools(),
-      );
+      const allTools = (await Promise.all(providers.map(p => p.loadTools()))).flat();
+      const remoteTools = new RemoteTools(allTools);
 
       switch (validatedArgs.route) {
         case 'ai-query': {
-          const aiConfiguration = getAiConfiguration(
-            this.aiConfigurations,
-            validatedArgs.query?.['ai-name'],
-            this.logger,
-          );
+          const aiConfiguration = this.getAiConfiguration(validatedArgs.query?.['ai-name']);
 
           return await new ProviderDispatcher(aiConfiguration, remoteTools).dispatch(
             validatedArgs.body,
@@ -90,6 +100,7 @@ export class Router {
           return await remoteTools.invokeTool(
             validatedArgs.query['tool-name'],
             validatedArgs.body.inputs,
+            validatedArgs.query['source-id'],
           );
 
         case 'remote-tools':
@@ -97,24 +108,21 @@ export class Router {
 
         /* istanbul ignore next */
         default: {
-          // Exhaustive type check - this code never runs at runtime because Zod validation
-          // catches unknown routes earlier. However, it provides compile-time safety:
-          // if a new route is added to routeArgsSchema, TypeScript will error here with
-          // "Type 'NewRouteArgs' is not assignable to type 'never'", forcing the developer
-          // to add a corresponding case handler.
           const exhaustiveCheck: never = validatedArgs;
 
           return exhaustiveCheck;
         }
       }
     } finally {
-      if (mcpClient) {
-        try {
-          await mcpClient.dispose();
-        } catch (cleanupError) {
-          const error =
-            cleanupError instanceof Error ? cleanupError : new Error(String(cleanupError));
-          this.logger?.('Error', 'Error during MCP connection cleanup', error);
+      const disposeResults = await Promise.allSettled(remoteToolProviders.map(p => p.dispose()));
+
+      for (const disposeResult of disposeResults) {
+        if (disposeResult.status === 'rejected') {
+          const disposeError =
+            disposeResult.reason instanceof Error
+              ? disposeResult.reason
+              : new Error(String(disposeResult.reason));
+          this.logger?.('Error', 'Error during tool provider cleanup', disposeError);
         }
       }
     }
@@ -137,5 +145,27 @@ export class Router {
         return `${path}${issue.message}`;
       })
       .join('; ');
+  }
+
+  private getAiConfiguration(aiName?: string): AiConfiguration | null {
+    if (this.aiConfigurations.length === 0) return null;
+
+    if (aiName) {
+      const config = this.aiConfigurations.find(c => c.name === aiName);
+
+      if (!config) {
+        const fallback = this.aiConfigurations[0];
+        this.logger?.(
+          'Warn',
+          `AI configuration '${aiName}' not found. Falling back to '${fallback.name}' (provider: ${fallback.provider}, model: ${fallback.model})`,
+        );
+
+        return fallback;
+      }
+
+      return config;
+    }
+
+    return this.aiConfigurations[0];
   }
 }

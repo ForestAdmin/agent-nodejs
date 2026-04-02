@@ -49,6 +49,7 @@ describe('DataSourceApiChartRoute', () => {
             timezone: 'Europe/Paris',
           },
           'myChart',
+          { timezone: 'Europe/Paris' },
         );
         expect(context.response.body).toMatchObject({
           data: {
@@ -76,6 +77,7 @@ describe('DataSourceApiChartRoute', () => {
             timezone: 'Europe/Paris',
           },
           'myChart',
+          { timezone: 'Europe/Paris' },
         );
         expect(context.response.body).toStrictEqual({ countCurrent: 12 });
       });

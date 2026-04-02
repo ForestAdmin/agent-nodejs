@@ -643,7 +643,7 @@ describeWithOpenAI('Router integration tests', () => {
       it('should return MCP tools in the list', async () => {
         const response = (await router.route({
           route: 'remote-tools',
-          mcpConfigs: mcpConfig,
+          toolConfigs: mcpConfig.configs,
         })) as Array<{ name: string; sourceType: string; sourceId: string }>;
 
         const toolNames = response.map(t => t.name);
@@ -689,7 +689,7 @@ describeWithOpenAI('Router integration tests', () => {
 
         const response = (await routerWithLogger.route({
           route: 'remote-tools',
-          mcpConfigs: mixedConfig,
+          toolConfigs: mixedConfig.configs,
         })) as Array<{ name: string; sourceId: string }>;
 
         const toolNames = response.map(t => t.name);
@@ -726,7 +726,7 @@ describeWithOpenAI('Router integration tests', () => {
 
         const response = (await routerWithLogger.route({
           route: 'remote-tools',
-          mcpConfigs: badAuthConfig,
+          toolConfigs: badAuthConfig.configs,
         })) as Array<{ name: string }>;
 
         expect(response).toEqual([]);
@@ -753,7 +753,7 @@ describeWithOpenAI('Router integration tests', () => {
           body: {
             messages: [{ role: 'user', content: 'Say "hello"' }],
           },
-          mcpConfigs: brokenMcpConfig,
+          toolConfigs: brokenMcpConfig.configs,
         })) as ChatCompletionResponse;
 
         expect(response.choices[0].message.content).toBeDefined();
@@ -768,7 +768,7 @@ describeWithOpenAI('Router integration tests', () => {
           body: {
             inputs: { a: 5, b: 3 } as any,
           },
-          mcpConfigs: mcpConfig,
+          toolConfigs: mcpConfig.configs,
         });
 
         expect(response).toBe('8');
@@ -781,7 +781,7 @@ describeWithOpenAI('Router integration tests', () => {
           body: {
             inputs: { a: 6, b: 7 } as any,
           },
-          mcpConfigs: mcpConfig,
+          toolConfigs: mcpConfig.configs,
         });
 
         expect(response).toBe('42');
@@ -819,7 +819,7 @@ describeWithOpenAI('Router integration tests', () => {
             ],
             tool_choice: 'required',
           },
-          mcpConfigs: mcpConfig,
+          toolConfigs: mcpConfig.configs,
         })) as ChatCompletionResponse;
 
         expect(response.choices[0].finish_reason).toBe('tool_calls');
@@ -847,7 +847,7 @@ describeWithOpenAI('Router integration tests', () => {
             ],
             tool_choice: 'required',
           },
-          mcpConfigs: mcpConfig,
+          toolConfigs: mcpConfig.configs,
         })) as ChatCompletionResponse;
 
         expect(response.choices[0].finish_reason).toBe('tool_calls');

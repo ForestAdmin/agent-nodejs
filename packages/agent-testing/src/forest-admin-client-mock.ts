@@ -49,7 +49,7 @@ export default class ForestAdminClientMock implements ForestAdminClient {
 
   readonly modelCustomizationService: ModelCustomizationService;
   readonly mcpServerConfigService: ForestAdminClient['mcpServerConfigService'] = {
-    getConfiguration: () => Promise.resolve({ configs: {} }),
+    getConfiguration: () => Promise.resolve({}),
   };
 
   readonly schemaService: ForestAdminClient['schemaService'] = {

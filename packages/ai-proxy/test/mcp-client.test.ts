@@ -332,74 +332,112 @@ describe('McpClient', () => {
 
   describe('injectOauthTokens', () => {
     it('should inject tokens into all matching server configs', () => {
-      const mcpConfigs = {
-        configs: {
-          server1: { type: 'http' as const, url: 'https://server1.com' },
-          server2: { type: 'http' as const, url: 'https://server2.com' },
-        },
+      const configs = {
+        server1: { type: 'http' as const, url: 'https://server1.com' },
+        server2: { type: 'http' as const, url: 'https://server2.com' },
       };
       const tokens = { server1: 'Bearer token1', server2: 'Bearer token2' };
 
-      const result = injectOauthTokens({ mcpConfigs, tokensByMcpServerName: tokens });
+      const result = injectOauthTokens({ configs, tokensByMcpServerName: tokens });
 
       expect(result).toEqual({
-        configs: {
-          server1: {
-            type: 'http',
-            url: 'https://server1.com',
-            headers: { Authorization: 'Bearer token1' },
-          },
-          server2: {
-            type: 'http',
-            url: 'https://server2.com',
-            headers: { Authorization: 'Bearer token2' },
-          },
+        server1: {
+          type: 'http',
+          url: 'https://server1.com',
+          headers: { Authorization: 'Bearer token1' },
+        },
+        server2: {
+          type: 'http',
+          url: 'https://server2.com',
+          headers: { Authorization: 'Bearer token2' },
         },
       });
     });
 
     it('should only inject tokens for servers that have matching tokens', () => {
-      const mcpConfigs = {
-        configs: {
-          server1: { type: 'http' as const, url: 'https://server1.com' },
-          server2: { type: 'http' as const, url: 'https://server2.com' },
-        },
+      const configs = {
+        server1: { type: 'http' as const, url: 'https://server1.com' },
+        server2: { type: 'http' as const, url: 'https://server2.com' },
       };
       const tokens = { server1: 'Bearer token1' };
 
-      const result = injectOauthTokens({ mcpConfigs, tokensByMcpServerName: tokens });
+      const result = injectOauthTokens({ configs, tokensByMcpServerName: tokens });
 
       expect(result).toEqual({
-        configs: {
-          server1: {
-            type: 'http',
-            url: 'https://server1.com',
-            headers: { Authorization: 'Bearer token1' },
-          },
-          server2: { type: 'http', url: 'https://server2.com' },
+        server1: {
+          type: 'http',
+          url: 'https://server1.com',
+          headers: { Authorization: 'Bearer token1' },
         },
+        server2: { type: 'http', url: 'https://server2.com' },
       });
     });
 
-    it('should return undefined when mcpConfigs is undefined', () => {
+    it('should return undefined when configs is undefined', () => {
       const result = injectOauthTokens({
-        mcpConfigs: undefined,
+        configs: undefined,
         tokensByMcpServerName: { server1: 'Bearer token1' },
       });
 
       expect(result).toBeUndefined();
     });
 
-    it('should return mcpConfigs unchanged when tokens is undefined', () => {
-      const mcpConfigs = {
-        configs: {
-          server1: { type: 'http' as const, url: 'https://server1.com' },
-        },
+    it('should return configs unchanged when tokens is undefined', () => {
+      const configs = {
+        server1: { type: 'http' as const, url: 'https://server1.com' },
       };
 
-      const result = injectOauthTokens({ mcpConfigs, tokensByMcpServerName: undefined });
+      const result = injectOauthTokens({ configs, tokensByMcpServerName: undefined });
 
-      expect(result).toBe(mcpConfigs);
+      expect(result).toBe(configs);
+    });
+
+    it('should pass through ForestIntegration configs without injecting tokens', () => {
+      const configs = {
+        server1: { type: 'http' as const, url: 'https://server1.com' },
+        zendesk: {
+          isForestConnector: true as const,
+          integrationName: 'Zendesk' as const,
+          config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
+        },
+      };
+      const tokens = { server1: 'Bearer token1' };
+
+      const result = injectOauthTokens({ configs, tokensByMcpServerName: tokens });
+
+      expect(result).toEqual({
+        server1: {
+          type: 'http',
+          url: 'https://server1.com',
+          headers: { Authorization: 'Bearer token1' },
+        },
+        zendesk: configs.zendesk,
+      });
+    });
+
+    it('should inject token when isForestConnector is false', () => {
+      const configs = {
+        server1: {
+          type: 'http' as const,
+          url: 'https://server1.com',
+          isForestConnector: false,
+        },
+      };
+      const tokens = { server1: 'Bearer token1' };
+
+      const result = injectOauthTokens({
+        configs: configs as any,
+        tokensByMcpServerName: tokens,
+      });
+
+      expect(result).toEqual({
+        server1: {
+          type: 'http',
+          url: 'https://server1.com',
+          isForestConnector: false,
+          headers: { Authorization: 'Bearer token1' },
+        },
+      });
     });
   });
 });

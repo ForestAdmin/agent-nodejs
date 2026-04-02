@@ -1,6 +1,8 @@
-import type { McpConfiguration, McpServerConfig } from './mcp-client';
+import type { McpServerConfig } from './mcp-client';
+import type { ToolConfig } from './tool-provider-factory';
 
 import { AIBadRequestError } from './errors';
+import { isForestIntegrationConfig } from './forest-integration-client';
 
 export const MCP_OAUTH_TOKENS_HEADER = 'x-mcp-oauth-tokens';
 
@@ -57,25 +59,30 @@ export function injectOauthToken({
 }
 
 /**
- * Injects OAuth tokens into all server configurations.
- * Returns a new McpConfiguration with tokens injected, or undefined if no configs provided.
+ * Injects OAuth tokens into tool source configurations.
+ * Only MCP server configs receive token injection; Forest integration configs are passed through.
  */
 export function injectOauthTokens({
-  mcpConfigs,
+  configs,
   tokensByMcpServerName,
 }: {
-  mcpConfigs: McpConfiguration | undefined;
+  configs: Record<string, ToolConfig> | undefined;
   tokensByMcpServerName: Record<string, string> | undefined;
-}): McpConfiguration | undefined {
-  if (!mcpConfigs) return undefined;
-  if (!tokensByMcpServerName) return mcpConfigs;
+}): Record<string, ToolConfig> | undefined {
+  if (!configs) return undefined;
+  if (!tokensByMcpServerName) return configs;
 
-  const configsWithTokens = Object.fromEntries(
-    Object.entries(mcpConfigs.configs).map(([name, serverConfig]) => [
-      name,
-      injectOauthToken({ serverConfig, token: tokensByMcpServerName[name] }),
-    ]),
+  return Object.fromEntries(
+    Object.entries(configs).map(([name, config]) => {
+      if (isForestIntegrationConfig(config)) return [name, config];
+
+      return [
+        name,
+        injectOauthToken({
+          serverConfig: config as McpServerConfig,
+          token: tokensByMcpServerName[name],
+        }),
+      ];
+    }),
   );
-
-  return { ...mcpConfigs, configs: configsWithTokens };
 }

@@ -67,10 +67,14 @@ export default class CompositeDatasource<T extends Collection = Collection>
     this.dataSources.push(dataSource);
   }
 
-  async renderChart(caller: Caller, name: string): Promise<Chart> {
+  async renderChart(
+    caller: Caller,
+    name: string,
+    parameters?: Record<string, string>,
+  ): Promise<Chart> {
     for (const dataSource of this.dataSources) {
       if (dataSource.schema.charts.includes(name)) {
-        return dataSource.renderChart(caller, name);
+        return dataSource.renderChart(caller, name, parameters);
       }
     }
 

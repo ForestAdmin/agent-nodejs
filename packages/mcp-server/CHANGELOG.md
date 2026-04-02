@@ -1,3 +1,63 @@
+## @forestadmin/mcp-server [1.8.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.12...@forestadmin/mcp-server@1.8.13) (2026-04-01)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.18
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.2
+
+## @forestadmin/mcp-server [1.8.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.11...@forestadmin/mcp-server@1.8.12) (2026-03-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.17
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.1
+
+## @forestadmin/mcp-server [1.8.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.10...@forestadmin/mcp-server@1.8.11) (2026-03-31)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.16
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.0
+
+## @forestadmin/mcp-server [1.8.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.9...@forestadmin/mcp-server@1.8.10) (2026-03-31)
+
+
+### Bug Fixes
+
+* address security vulnerabilities in dependencies ([#1516](https://github.com/ForestAdmin/agent-nodejs/issues/1516)) ([c52b1e1](https://github.com/ForestAdmin/agent-nodejs/commit/c52b1e1022b245ac63628a8c738567c727bbb74a))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.15
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.19
+
+## @forestadmin/mcp-server [1.8.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.8...@forestadmin/mcp-server@1.8.9) (2026-03-18)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.14
+* **@forestadmin/forestadmin-client:** upgraded to 1.37.18
+
 ## @forestadmin/mcp-server [1.8.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.7...@forestadmin/mcp-server@1.8.8) (2026-03-04)
 
 

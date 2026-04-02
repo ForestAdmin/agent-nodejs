@@ -49,34 +49,35 @@ describe('createAiProvider', () => {
         query: { 'ai-name': 'my-ai' },
       });
 
-      expect(routeMock).toHaveBeenCalledWith({
-        route: 'ai-query',
-        body: { messages: [] },
-        query: { 'ai-name': 'my-ai' },
-        mcpConfigs: undefined,
-      });
+      expect(routeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          route: 'ai-query',
+          body: { messages: [] },
+          query: { 'ai-name': 'my-ai' },
+          toolConfigs: undefined,
+        }),
+      );
       expect(result).toEqual({ result: 'ok' });
     });
 
-    test('should pass toolConfigs as mcpConfigs to Router when no headers', async () => {
+    test('should pass toolConfigs to router', async () => {
       routeMock.mockResolvedValue({});
       const provider = createAiProvider(config);
       const aiRouter = provider.init(jest.fn());
 
       await aiRouter.route({
         route: 'remote-tools',
-        toolConfigs: { configs: { server1: { command: 'test', args: [] } } },
+        toolConfigs: { server1: { command: 'test', args: [] } },
       });
 
-      expect(routeMock).toHaveBeenCalledWith({
-        route: 'remote-tools',
-        body: undefined,
-        query: undefined,
-        mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
-      });
+      expect(routeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolConfigs: { server1: { command: 'test', args: [] } },
+        }),
+      );
     });
 
-    test('should inject OAuth tokens from headers into mcpConfigs', async () => {
+    test('should inject OAuth tokens before creating tool providers', async () => {
       routeMock.mockResolvedValue({});
       const provider = createAiProvider(config);
       const aiRouter = provider.init(jest.fn());
@@ -84,26 +85,21 @@ describe('createAiProvider', () => {
 
       await aiRouter.route({
         route: 'remote-tools',
-        toolConfigs: {
-          configs: { server1: { type: 'http', url: 'https://server1.com' } },
-        },
+        toolConfigs: { server1: { type: 'http', url: 'https://server1.com' } },
         headers: { 'x-mcp-oauth-tokens': oauthTokens },
       });
 
-      expect(routeMock).toHaveBeenCalledWith({
-        route: 'remote-tools',
-        body: undefined,
-        query: undefined,
-        mcpConfigs: {
-          configs: {
+      expect(routeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toolConfigs: {
             server1: {
               type: 'http',
               url: 'https://server1.com',
               headers: { Authorization: 'Bearer token123' },
             },
           },
-        },
-      });
+        }),
+      );
     });
 
     test('should throw AIBadRequestError when x-mcp-oauth-tokens header contains invalid JSON', () => {
@@ -113,46 +109,22 @@ describe('createAiProvider', () => {
       expect(() =>
         aiRouter.route({
           route: 'remote-tools',
-          toolConfigs: {
-            configs: { server1: { type: 'http', url: 'https://server1.com' } },
-          },
+          toolConfigs: { server1: { type: 'http', url: 'https://server1.com' } },
           headers: { 'x-mcp-oauth-tokens': '{ invalid json }' },
         }),
       ).toThrow('Invalid JSON in x-mcp-oauth-tokens header');
     });
 
-    test('should pass mcpConfigs unchanged when headers are present but x-mcp-oauth-tokens is absent', async () => {
-      routeMock.mockResolvedValue({});
-      const provider = createAiProvider(config);
-      const aiRouter = provider.init(jest.fn());
-
-      await aiRouter.route({
-        route: 'remote-tools',
-        toolConfigs: { configs: { server1: { command: 'test', args: [] } } },
-        headers: { 'content-type': 'application/json' },
-      });
-
-      expect(routeMock).toHaveBeenCalledWith({
-        route: 'remote-tools',
-        body: undefined,
-        query: undefined,
-        mcpConfigs: { configs: { server1: { command: 'test', args: [] } } },
-      });
-    });
-
-    test('should pass mcpConfigs as undefined when no toolConfigs provided', async () => {
+    test('should pass empty tool providers when no toolConfigs provided', async () => {
       routeMock.mockResolvedValue({});
       const provider = createAiProvider(config);
       const aiRouter = provider.init(jest.fn());
 
       await aiRouter.route({ route: 'remote-tools' });
 
-      expect(routeMock).toHaveBeenCalledWith({
-        route: 'remote-tools',
-        body: undefined,
-        query: undefined,
-        mcpConfigs: undefined,
-      });
+      expect(routeMock).toHaveBeenCalledWith(
+        expect.objectContaining({ toolConfigs: undefined }),
+      );
     });
   });
 });

@@ -7,7 +7,9 @@ export * from './types';
 // Decorators (helpers)
 export * from './decorators/actions/types/actions';
 export * from './decorators/actions/types/fields';
-export { DataSourceChartDefinition } from './decorators/chart/types';
+export { CollectionChartDefinition, DataSourceChartDefinition } from './decorators/chart/types';
+export { default as DataSourceChartContext } from './decorators/chart/datasource-chart-context';
+export { default as CollectionChartContext } from './decorators/chart/context';
 export { ComputedDefinition } from './decorators/computed/types';
 export { OperatorDefinition } from './decorators/operators-emulate/types';
 export { RelationDefinition } from './decorators/relation/types';
