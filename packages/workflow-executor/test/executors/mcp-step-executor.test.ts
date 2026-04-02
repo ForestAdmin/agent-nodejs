@@ -145,7 +145,7 @@ describe('McpStepExecutor', () => {
         expect.objectContaining({
           type: 'mcp',
           stepIndex: 0,
-          executionParams: { name: 'send_notification', input: { message: 'Hello' } },
+          executionParams: { name: 'send_notification', sourceId: 'mcp-server-1', input: { message: 'Hello' } },
           executionResult: { success: true, toolResult: { result: 'notification sent' } },
         }),
       );
@@ -292,7 +292,7 @@ describe('McpStepExecutor', () => {
         expect.objectContaining({
           type: 'mcp',
           stepIndex: 0,
-          pendingData: { name: 'send_notification', input: { message: 'Hello' } },
+          pendingData: { name: 'send_notification', sourceId: 'mcp-server-1', input: { message: 'Hello' } },
         }),
       );
     });
@@ -331,6 +331,7 @@ describe('McpStepExecutor', () => {
         stepIndex: 0,
         pendingData: {
           name: 'send_notification',
+          sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
           userConfirmed: true,
         },
@@ -349,10 +350,11 @@ describe('McpStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           type: 'mcp',
-          executionParams: { name: 'send_notification', input: { message: 'Hello' } },
+          executionParams: { name: 'send_notification', sourceId: 'mcp-server-1', input: { message: 'Hello' } },
           executionResult: { success: true, toolResult: 'email sent' },
           pendingData: {
             name: 'send_notification',
+            sourceId: 'mcp-server-1',
             input: { message: 'Hello' },
             userConfirmed: true,
           },
@@ -374,6 +376,7 @@ describe('McpStepExecutor', () => {
         stepIndex: 0,
         pendingData: {
           name: 'send_notification',
+          sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
           userConfirmed: false,
         },
@@ -394,6 +397,7 @@ describe('McpStepExecutor', () => {
           executionResult: { skipped: true },
           pendingData: {
             name: 'send_notification',
+            sourceId: 'mcp-server-1',
             input: { message: 'Hello' },
             userConfirmed: false,
           },
@@ -463,7 +467,7 @@ describe('McpStepExecutor', () => {
       const execution: McpStepExecutionData = {
         type: 'mcp',
         stepIndex: 0,
-        pendingData: { name: 'deleted_tool', input: {}, userConfirmed: true },
+        pendingData: { name: 'deleted_tool', sourceId: 'mcp-server-1', input: {}, userConfirmed: true },
       };
       const tool = new MockRemoteTool({ name: 'other_tool', sourceId: 'mcp-server-1' });
       const runStore = makeMockRunStore({
@@ -525,6 +529,7 @@ describe('McpStepExecutor', () => {
         stepIndex: 0,
         pendingData: {
           name: 'send_notification',
+          sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
           userConfirmed: true,
         },

@@ -83,6 +83,7 @@ export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionD
 /** Reference to an MCP tool by its sanitized name (OpenAI-safe, alphanumeric + underscores/hyphens). */
 export interface McpToolRef {
   name: string;
+  sourceId: string;
 }
 
 /** A resolved tool call: sanitized tool name + input parameters sent to the tool. */
