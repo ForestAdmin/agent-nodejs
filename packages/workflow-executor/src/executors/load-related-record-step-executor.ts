@@ -438,9 +438,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     // NOTE: The Zod schema's .min(0).max(maxIndex) shapes the tool prompt only — it is NOT
     // validated against the AI response. This guard is the sole runtime enforcement.
-    if (recordIndex < 0 || recordIndex > maxIndex) {
+    if (!Number.isInteger(recordIndex) || recordIndex < 0 || recordIndex > maxIndex) {
       throw new InvalidAIResponseError(
-        `AI selected record index ${recordIndex} which is out of range (0-${maxIndex})`,
+        `AI selected record index ${recordIndex} which is out of range (0-${maxIndex}) or not an integer`,
       );
     }
 
