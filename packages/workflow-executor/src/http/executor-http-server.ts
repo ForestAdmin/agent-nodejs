@@ -191,6 +191,7 @@ export default class ExecutorHttpServer {
     }
 
     const pendingData: Record<string, unknown> = { userConfirmed: true };
+
     if (userInput?.selectedOption !== undefined) {
       pendingData.selectedOption = userInput.selectedOption;
     }

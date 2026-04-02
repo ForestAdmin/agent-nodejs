@@ -577,9 +577,13 @@ describe('ExecutorHttpServer', () => {
 
     it('returns 400 when pending data validation fails', async () => {
       const runner = createMockRunner({
-        triggerPoll: jest.fn().mockRejectedValue(
-          new InvalidPendingDataError([{ path: ['value'], message: 'Required', code: 'invalid' }]),
-        ),
+        triggerPoll: jest
+          .fn()
+          .mockRejectedValue(
+            new InvalidPendingDataError([
+              { path: ['value'], message: 'Required', code: 'invalid' },
+            ]),
+          ),
       });
       const server = createServer({ runner });
 
