@@ -1,5 +1,7 @@
 import { StepType } from '../src/index';
 
+jest.mock('@langchain/openai', () => ({ ChatOpenAI: jest.fn() }));
+
 describe('StepType', () => {
   it('should expose exactly 6 step types', () => {
     const values = Object.values(StepType);

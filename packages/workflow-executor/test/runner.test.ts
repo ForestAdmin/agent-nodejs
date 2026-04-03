@@ -1,11 +1,12 @@
 import type { StepContextConfig } from '../src/executors/step-executor-factory';
 import type { AgentPort } from '../src/ports/agent-port';
+import type { AiModelPort } from '../src/ports/ai-model-port';
 import type { Logger } from '../src/ports/logger-port';
 import type { RunStore } from '../src/ports/run-store';
 import type { WorkflowPort } from '../src/ports/workflow-port';
 import type { PendingStepExecution } from '../src/types/execution';
 import type { StepDefinition } from '../src/types/step-definition';
-import type { AiClient, BaseChatModel } from '@forestadmin/ai-proxy';
+import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 import {
   ConfigurationError,
@@ -78,7 +79,7 @@ function createRunnerConfig(
   overrides: Partial<{
     workflowPort: WorkflowPort;
     runStore: RunStore;
-    aiClient: AiClient;
+    aiModelPort: AiModelPort;
     logger: Logger;
     envSecret: string;
     authSecret: string;
@@ -96,7 +97,7 @@ function createRunnerConfig(
       saveStepExecution: jest.fn().mockResolvedValue(undefined),
     } as unknown as RunStore,
     pollingIntervalMs: POLLING_INTERVAL_MS,
-    aiClient: createMockAiClient() as unknown as AiClient,
+    aiModelPort: createMockAiClient() as unknown as AiModelPort,
     logger: createMockLogger(),
     schemaCache: new SchemaCache(),
     envSecret: VALID_ENV_SECRET,
@@ -123,6 +124,7 @@ function makePendingStep(
   const { stepType = StepType.ReadRecord, ...rest } = overrides;
 
   return {
+    envId: 'env-1',
     runId: 'run-1',
     stepId: 'step-1',
     stepIndex: 0,
@@ -280,7 +282,9 @@ describe('graceful shutdown', () => {
     const aiClient = createMockAiClient();
     aiClient.closeConnections.mockRejectedValueOnce(new Error('connection leak'));
 
-    runner = new Runner(createRunnerConfig({ logger, aiClient: aiClient as unknown as AiClient }));
+    runner = new Runner(
+      createRunnerConfig({ logger, aiModelPort: aiClient as unknown as AiModelPort }),
+    );
     await runner.start();
     await runner.stop();
 
@@ -554,7 +558,7 @@ describe('deduplication', () => {
     });
 
     runner = new Runner(
-      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
 
     await runner.triggerPoll('run-1');
@@ -665,7 +669,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
 
     runner = new Runner(
-      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
     await runner.triggerPoll('run-1');
 
@@ -686,7 +690,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     workflowPort.getMcpServerConfigs.mockResolvedValue([{ configs: {} }] as never);
 
     runner = new Runner(
-      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
     await runner.triggerPoll('run-1');
 
@@ -701,9 +705,9 @@ describe('MCP lazy loading (via once thunk)', () => {
 
 describe('StepExecutorFactory.create — factory', () => {
   const makeContextConfig = (): StepContextConfig => ({
-    aiClient: {
+    aiModelPort: {
       getModel: jest.fn().mockReturnValue({} as BaseChatModel),
-    } as unknown as AiClient,
+    } as unknown as AiModelPort,
     agentPort: {} as AgentPort,
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
@@ -777,11 +781,11 @@ describe('StepExecutorFactory.create — factory', () => {
     const logger = { info: jest.fn(), error: jest.fn() };
     const contextConfig: StepContextConfig = {
       ...makeContextConfig(),
-      aiClient: {
+      aiModelPort: {
         getModel: jest.fn().mockImplementationOnce(() => {
           throw error;
         }),
-      } as unknown as AiClient,
+      } as unknown as AiModelPort,
       logger,
     };
 
@@ -799,11 +803,11 @@ describe('StepExecutorFactory.create — factory', () => {
     const logger = { info: jest.fn(), error: jest.fn() };
     const contextConfig: StepContextConfig = {
       ...makeContextConfig(),
-      aiClient: {
+      aiModelPort: {
         getModel: jest.fn().mockImplementationOnce(() => {
           throw error;
         }),
-      } as unknown as AiClient,
+      } as unknown as AiModelPort,
       logger,
     };
 
@@ -834,7 +838,7 @@ describe('error handling', () => {
     runner = new Runner(
       createRunnerConfig({
         workflowPort,
-        aiClient: aiClient as unknown as AiClient,
+        aiModelPort: aiClient as unknown as AiModelPort,
         logger: mockLogger,
       }),
     );
@@ -872,7 +876,7 @@ describe('error handling', () => {
     });
 
     runner = new Runner(
-      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
     await runner.triggerPoll('run-1');
 
@@ -896,7 +900,7 @@ describe('error handling', () => {
     runner = new Runner(
       createRunnerConfig({
         workflowPort,
-        aiClient: aiClient as unknown as AiClient,
+        aiModelPort: aiClient as unknown as AiModelPort,
         logger: mockLogger,
       }),
     );
@@ -925,7 +929,7 @@ describe('error handling', () => {
     workflowPort.updateStepExecution.mockRejectedValueOnce(new Error('update failed'));
 
     runner = new Runner(
-      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
 
     await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
@@ -967,7 +971,7 @@ describe('error handling', () => {
     });
 
     runner = new Runner(
-      createRunnerConfig({ workflowPort, aiClient: aiClient as unknown as AiClient }),
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
     await runner.triggerPoll('run-1');
 

@@ -1,12 +1,13 @@
 import type { StepContextConfig } from './executors/step-executor-factory';
 import type { AgentPort } from './ports/agent-port';
+import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution';
 import type { StepExecutionData } from './types/step-execution-data';
-import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
+import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
 import {
@@ -28,7 +29,7 @@ export interface RunnerConfig {
   runStore: RunStore;
   schemaCache: SchemaCache;
   pollingIntervalMs: number;
-  aiClient: AiClient;
+  aiModelPort: AiModelPort;
   envSecret: string;
   authSecret: string;
   logger?: Logger;
@@ -125,7 +126,7 @@ export default class Runner {
 
       // Close resources — log failures instead of silently swallowing
       const results = await Promise.allSettled([
-        this.config.aiClient.closeConnections(),
+        this.config.aiModelPort.closeConnections(),
         this.config.runStore.close(this.logger),
       ]);
 
@@ -222,7 +223,7 @@ export default class Runner {
       configs: Object.assign({}, ...configs.map(c => c.configs)),
     };
 
-    return this.config.aiClient.loadRemoteTools(mergedConfig);
+    return this.config.aiModelPort.loadRemoteTools(mergedConfig);
   }
 
   private executeStep(step: PendingStepExecution): Promise<void> {
@@ -269,7 +270,7 @@ export default class Runner {
 
   private get contextConfig(): StepContextConfig {
     return {
-      aiClient: this.config.aiClient,
+      aiModelPort: this.config.aiModelPort,
       agentPort: this.config.agentPort,
       workflowPort: this.config.workflowPort,
       runStore: this.config.runStore,

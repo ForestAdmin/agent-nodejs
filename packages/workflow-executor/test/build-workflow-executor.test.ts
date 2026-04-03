@@ -11,9 +11,9 @@ jest.mock('../src/stores/database-store');
 jest.mock('../src/adapters/agent-client-agent-port');
 jest.mock('../src/adapters/forest-server-workflow-port');
 jest.mock('../src/http/executor-http-server');
-jest.mock('@forestadmin/ai-proxy', () => ({
-  AiClient: jest.fn(),
-}));
+jest.mock('../src/adapters/ai-client-adapter');
+jest.mock('@langchain/openai', () => ({ ChatOpenAI: jest.fn() }));
+jest.mock('../src/adapters/server-ai-adapter');
 jest.mock('sequelize', () => ({
   Sequelize: jest.fn(),
 }));
@@ -91,14 +91,25 @@ describe('buildInMemoryExecutor', () => {
     );
   });
 
-  it('creates AiClient with the provided aiConfigurations', () => {
+  it('creates AiClientAdapter when aiConfigurations are provided', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
-    const { AiClient } = require('@forestadmin/ai-proxy');
+    const AiClientAdapter = require('../src/adapters/ai-client-adapter').default;
 
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(AiClient).toHaveBeenCalledWith({
-      aiConfigurations: BASE_OPTIONS.aiConfigurations,
+    expect(AiClientAdapter).toHaveBeenCalledWith(BASE_OPTIONS.aiConfigurations);
+  });
+
+  it('creates ServerAiAdapter when aiConfigurations is not provided', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const ServerAiAdapter = require('../src/adapters/server-ai-adapter').default;
+
+    const { aiConfigurations, ...optionsWithoutAi } = BASE_OPTIONS;
+    buildInMemoryExecutor(optionsWithoutAi);
+
+    expect(ServerAiAdapter).toHaveBeenCalledWith({
+      forestServerUrl: 'https://api.forestadmin.com',
+      envSecret: BASE_OPTIONS.envSecret,
     });
   });
 
