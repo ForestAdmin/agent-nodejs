@@ -303,6 +303,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   ): Promise<{ relationName: string; reasoning: string }> {
     const tool = this.buildSelectRelationTool(schema);
     const messages = [
+      this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(SELECT_RELATION_SYSTEM_PROMPT),
       new SystemMessage(
@@ -365,6 +366,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     });
 
     const messages = [
+      this.buildContextMessage(),
       new SystemMessage(SELECT_FIELDS_SYSTEM_PROMPT),
       new SystemMessage(
         `The related records are from the "${schema.collectionDisplayName}" collection. ` +
@@ -426,6 +428,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       .join('\n');
 
     const messages = [
+      this.buildContextMessage(),
       new SystemMessage(SELECT_RECORD_SYSTEM_PROMPT),
       new SystemMessage(`Candidates:\n${recordList}`),
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),

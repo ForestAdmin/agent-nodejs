@@ -126,6 +126,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   ): Promise<{ actionName: string; reasoning: string }> {
     const tool = this.buildSelectActionTool(schema);
     const messages = [
+      this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(TRIGGER_ACTION_SYSTEM_PROMPT),
       new SystemMessage(

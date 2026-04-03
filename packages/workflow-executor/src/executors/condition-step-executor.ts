@@ -73,6 +73,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     });
 
     const messages = [
+      this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(GATEWAY_SYSTEM_PROMPT),
       new HumanMessage(`**Question**: ${step.prompt ?? 'Choose the most appropriate option.'}`),
