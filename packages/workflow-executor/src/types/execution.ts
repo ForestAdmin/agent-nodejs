@@ -59,4 +59,5 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly schemaCache: SchemaCache;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;
+  readonly incomingPendingData?: unknown;
 }
