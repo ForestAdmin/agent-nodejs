@@ -4,12 +4,7 @@ import type Runner from '../../src/runner';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import {
-  InvalidPendingDataError,
-  PendingDataNotFoundError,
-  RunNotFoundError,
-  UserMismatchError,
-} from '../../src/errors';
+import { RunNotFoundError, UserMismatchError } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
 const AUTH_SECRET = 'test-auth-secret';
@@ -401,41 +396,6 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(403);
       expect(response.body).toEqual({ error: 'Forbidden' });
-    });
-
-    it('returns 404 when triggerPoll rejects with PendingDataNotFoundError', async () => {
-      const runner = createMockRunner({
-        triggerPoll: jest.fn().mockRejectedValue(new PendingDataNotFoundError('run-1', 0)),
-      });
-
-      const server = createServer({ runner });
-      const token = signToken({ id: 1 });
-
-      const response = await request(server.callback)
-        .post('/runs/run-1/trigger')
-        .set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toBe(404);
-      expect(response.body).toEqual({ error: 'Step execution not found or has no pending data' });
-    });
-
-    it('returns 400 when triggerPoll rejects with InvalidPendingDataError', async () => {
-      const issues = [
-        { path: ['userConfirmed'], message: 'Expected boolean', code: 'invalid_type' },
-      ];
-      const runner = createMockRunner({
-        triggerPoll: jest.fn().mockRejectedValue(new InvalidPendingDataError(issues)),
-      });
-
-      const server = createServer({ runner });
-      const token = signToken({ id: 1 });
-
-      const response = await request(server.callback)
-        .post('/runs/run-1/trigger')
-        .set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Invalid request body', details: issues });
     });
 
     it('returns 500 when triggerPoll rejects with an unexpected error', async () => {

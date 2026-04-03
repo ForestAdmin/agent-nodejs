@@ -7,6 +7,7 @@ export enum StepType {
   TriggerAction = 'trigger-action',
   LoadRelatedRecord = 'load-related-record',
   Mcp = 'mcp',
+  Guidance = 'guidance',
 }
 
 interface BaseStepDefinition {
@@ -68,10 +69,18 @@ export interface McpStepDefinition extends BaseStepDefinition {
   automaticExecution?: boolean;
 }
 
+export interface GuidanceStepDefinition extends BaseStepDefinition {
+  type: StepType.Guidance;
+}
+
 export type RecordStepDefinition =
   | ReadRecordStepDefinition
   | UpdateRecordStepDefinition
   | TriggerActionStepDefinition
   | LoadRelatedRecordStepDefinition;
 
-export type StepDefinition = ConditionStepDefinition | RecordStepDefinition | McpStepDefinition;
+export type StepDefinition =
+  | ConditionStepDefinition
+  | RecordStepDefinition
+  | McpStepDefinition
+  | GuidanceStepDefinition;

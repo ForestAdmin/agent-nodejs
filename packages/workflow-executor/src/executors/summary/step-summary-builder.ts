@@ -23,7 +23,7 @@ export default class StepSummaryBuilder {
       if (customLine !== null) {
         lines.push(customLine);
       } else {
-        if (execution.executionParams !== undefined) {
+        if ('executionParams' in execution && execution.executionParams !== undefined) {
           lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
         } else if ('pendingData' in execution && execution.pendingData !== undefined) {
           lines.push(`  Pending: ${JSON.stringify(execution.pendingData)}`);

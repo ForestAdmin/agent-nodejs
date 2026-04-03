@@ -32,6 +32,12 @@ const patchBodySchemas: Partial<Record<StepExecutionData['type'], z.ZodTypeAny>>
     })
     .strict(),
   // relatedCollectionName and suggestedFields are NOT accepted — internal executor data.
+
+  guidance: z
+    .object({
+      userInput: z.string().min(1),
+    })
+    .strict(),
 };
 
 export default patchBodySchemas;

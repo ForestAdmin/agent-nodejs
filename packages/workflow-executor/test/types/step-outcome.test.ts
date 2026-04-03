@@ -26,6 +26,10 @@ describe('stepTypeToOutcomeType', () => {
     expect(stepTypeToOutcomeType(StepType.LoadRelatedRecord)).toBe('record');
   });
 
+  it('maps Guidance to guidance', () => {
+    expect(stepTypeToOutcomeType(StepType.Guidance)).toBe('guidance');
+  });
+
   it('falls through to record for an unknown future step type', () => {
     expect(stepTypeToOutcomeType('future-step-type' as StepType)).toBe('record');
   });

@@ -1,4 +1,5 @@
 import type {
+  GuidanceStepExecutionData,
   LoadRelatedRecordStepExecutionData,
   McpStepExecutionData,
   StepExecutionData,
@@ -23,6 +24,8 @@ export default class StepExecutionFormatters {
         return StepExecutionFormatters.formatLoadRelatedRecord(execution);
       case 'mcp':
         return StepExecutionFormatters.formatMcp(execution as McpStepExecutionData);
+      case 'guidance':
+        return StepExecutionFormatters.formatGuidance(execution as GuidanceStepExecutionData);
       default:
         return null;
     }
@@ -40,6 +43,12 @@ export default class StepExecutionFormatters {
     const toolName = execution.executionParams?.name ?? 'unknown tool';
 
     return `  Executed: ${toolName} (result not summarized)`;
+  }
+
+  private static formatGuidance(execution: GuidanceStepExecutionData): string | null {
+    if (!execution.executionResult) return null;
+
+    return `  The user provided the following input: "${execution.executionResult.userInput}"`;
   }
 
   private static formatLoadRelatedRecord(
