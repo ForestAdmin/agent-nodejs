@@ -39,8 +39,8 @@ interface RelationTarget extends RelationRef {
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
-    const pending = await this.findPendingExecution<LoadRelatedRecordStepExecutionData>(
-      'load-related-record',
+    const pending = await this.patchAndReloadPendingData<LoadRelatedRecordStepExecutionData>(
+      this.context.incomingPendingData,
     );
 
     if (pending) {

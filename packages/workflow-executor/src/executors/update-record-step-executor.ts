@@ -30,7 +30,9 @@ interface UpdateTarget extends FieldRef {
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
-    const pending = await this.findPendingExecution<UpdateRecordStepExecutionData>('update-record');
+    const pending = await this.patchAndReloadPendingData<UpdateRecordStepExecutionData>(
+      this.context.incomingPendingData,
+    );
 
     if (pending) {
       return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {

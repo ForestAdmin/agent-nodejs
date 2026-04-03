@@ -11,6 +11,7 @@ import type {
 } from '../types/execution';
 import type {
   ConditionStepDefinition,
+  GuidanceStepDefinition,
   LoadRelatedRecordStepDefinition,
   McpStepDefinition,
   ReadRecordStepDefinition,
@@ -21,6 +22,7 @@ import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
 
 import { StepStateError, causeMessage } from '../errors';
 import ConditionStepExecutor from './condition-step-executor';
+import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
 import McpStepExecutor from './mcp-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
@@ -43,9 +45,10 @@ export default class StepExecutorFactory {
     step: PendingStepExecution,
     contextConfig: StepContextConfig,
     loadTools: () => Promise<RemoteTool[]>,
+    incomingPendingData?: unknown,
   ): Promise<IStepExecutor> {
     try {
-      const context = StepExecutorFactory.buildContext(step, contextConfig);
+      const context = StepExecutorFactory.buildContext(step, contextConfig, incomingPendingData);
 
       switch (step.stepDefinition.type) {
         case StepType.Condition:
@@ -69,6 +72,8 @@ export default class StepExecutorFactory {
             context as ExecutionContext<McpStepDefinition>,
             await loadTools(),
           );
+        case StepType.Guidance:
+          return new GuidanceStepExecutor(context as ExecutionContext<GuidanceStepDefinition>);
         default:
           throw new StepStateError(
             `Unknown step type: ${(step.stepDefinition as { type: string }).type}`,
@@ -101,6 +106,7 @@ export default class StepExecutorFactory {
   private static buildContext(
     step: PendingStepExecution,
     cfg: StepContextConfig,
+    incomingPendingData?: unknown,
   ): ExecutionContext {
     return {
       ...step,
@@ -110,6 +116,7 @@ export default class StepExecutorFactory {
       runStore: cfg.runStore,
       schemaCache: cfg.schemaCache,
       logger: cfg.logger,
+      incomingPendingData,
     };
   }
 }

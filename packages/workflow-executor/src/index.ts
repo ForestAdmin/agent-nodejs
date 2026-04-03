@@ -7,6 +7,7 @@ export type {
   LoadRelatedRecordStepDefinition,
   RecordStepDefinition,
   McpStepDefinition,
+  GuidanceStepDefinition,
   StepDefinition,
 } from './types/step-definition';
 
@@ -15,6 +16,7 @@ export type {
   ConditionStepOutcome,
   RecordStepOutcome,
   McpStepOutcome,
+  GuidanceStepOutcome,
   StepOutcome,
 } from './types/step-outcome';
 
@@ -35,6 +37,7 @@ export type {
   McpToolRef,
   McpToolCall,
   McpStepExecutionData,
+  GuidanceStepExecutionData,
   ExecutedStepExecutionData,
   StepExecutionData,
 } from './types/step-execution-data';
@@ -101,6 +104,7 @@ export { default as UpdateRecordStepExecutor } from './executors/update-record-s
 export { default as TriggerRecordActionStepExecutor } from './executors/trigger-record-action-step-executor';
 export { default as LoadRelatedRecordStepExecutor } from './executors/load-related-record-step-executor';
 export { default as McpStepExecutor } from './executors/mcp-step-executor';
+export { default as GuidanceStepExecutor } from './executors/guidance-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
 export { default as ExecutorHttpServer } from './http/executor-http-server';

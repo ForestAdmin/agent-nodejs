@@ -144,5 +144,28 @@ describe('StepExecutionFormatters', () => {
         expect(StepExecutionFormatters.format(execution)).toBeNull();
       });
     });
+
+    describe('guidance', () => {
+      it('returns the user input line when executionResult is present', () => {
+        const execution: StepExecutionData = {
+          type: 'guidance',
+          stepIndex: 0,
+          executionResult: { userInput: 'I called the client and confirmed the delivery date.' },
+        };
+
+        expect(StepExecutionFormatters.format(execution)).toBe(
+          '  The user provided the following input: "I called the client and confirmed the delivery date."',
+        );
+      });
+
+      it('returns null when executionResult is absent', () => {
+        const execution: StepExecutionData = {
+          type: 'guidance',
+          stepIndex: 0,
+        };
+
+        expect(StepExecutionFormatters.format(execution)).toBeNull();
+      });
+    });
   });
 });

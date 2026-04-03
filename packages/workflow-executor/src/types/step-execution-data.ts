@@ -137,6 +137,14 @@ export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionDat
   executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
 }
 
+// -- Guidance --
+
+export interface GuidanceStepExecutionData extends BaseStepExecutionData {
+  type: 'guidance';
+  pendingData?: { userInput?: string };
+  executionResult?: { userInput: string };
+}
+
 // -- Union --
 
 export type StepExecutionData =
@@ -146,7 +154,8 @@ export type StepExecutionData =
   | TriggerRecordActionStepExecutionData
   | RecordStepExecutionData
   | LoadRelatedRecordStepExecutionData
-  | McpStepExecutionData;
+  | McpStepExecutionData
+  | GuidanceStepExecutionData;
 
 /** Alias for StepExecutionData — kept for backwards-compatible consumption at the call sites. */
 export type ExecutedStepExecutionData = StepExecutionData;
