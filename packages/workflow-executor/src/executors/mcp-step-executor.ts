@@ -173,6 +173,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     });
 
     const messages = [
+      this.buildContextMessage(),
       new SystemMessage(
         'You are summarizing the result of a workflow tool execution for the end user. ' +
           'Be concise and factual. Do not include raw JSON or technical identifiers.',
@@ -191,6 +192,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
 
   private async selectTool(tools: RemoteTool[]) {
     const messages = [
+      this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(MCP_TASK_SYSTEM_PROMPT),
       new HumanMessage(

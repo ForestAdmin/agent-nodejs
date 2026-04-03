@@ -151,6 +151,20 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return resolveAndExecute(execution);
   }
 
+  /** Returns a SystemMessage with the current user info and date/time context. */
+  protected buildContextMessage(): SystemMessage {
+    const { user } = this.context;
+    const now = new Date();
+
+    return new SystemMessage(
+      [
+        `Step executed by: ${user.firstName} ${user.lastName} (${user.email}, id: ${user.id})`,
+        `Role: ${user.role} | Team: ${user.team}`,
+        `Current date and time: ${now.toISOString()} (UTC)`,
+      ].join('\n'),
+    );
+  }
+
   /**
    * Returns a SystemMessage array summarizing previously executed steps.
    * Empty array when there is no history. Ready to spread into a messages array.
@@ -252,6 +266,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     });
 
     const messages = [
+      this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(
         'You are an AI agent selecting the most relevant record for a workflow step.\n' +

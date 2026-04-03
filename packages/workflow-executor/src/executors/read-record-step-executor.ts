@@ -68,6 +68,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
   ): Promise<string[]> {
     const tool = this.buildReadFieldTool(schema);
     const messages = [
+      this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(READ_RECORD_SYSTEM_PROMPT),
       new SystemMessage(
