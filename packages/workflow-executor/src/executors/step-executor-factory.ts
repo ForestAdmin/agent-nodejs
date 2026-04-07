@@ -1,4 +1,5 @@
 import type { AgentPort } from '../ports/agent-port';
+import type { AiModelPort } from '../ports/ai-model-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
@@ -17,7 +18,7 @@ import type {
   TriggerActionStepDefinition,
   UpdateRecordStepDefinition,
 } from '../types/step-definition';
-import type { AiClient, RemoteTool } from '@forestadmin/ai-proxy';
+import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import { StepStateError, causeMessage } from '../errors';
 import ConditionStepExecutor from './condition-step-executor';
@@ -30,7 +31,7 @@ import { StepType } from '../types/step-definition';
 import { stepTypeToOutcomeType } from '../types/step-outcome';
 
 export interface StepContextConfig {
-  aiClient: AiClient;
+  aiModelPort: AiModelPort;
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
   runStore: RunStore;
@@ -104,7 +105,7 @@ export default class StepExecutorFactory {
   ): ExecutionContext {
     return {
       ...step,
-      model: cfg.aiClient.getModel(step.stepDefinition.aiConfigName),
+      model: cfg.aiModelPort.getModel(step),
       agentPort: cfg.agentPort,
       workflowPort: cfg.workflowPort,
       runStore: cfg.runStore,

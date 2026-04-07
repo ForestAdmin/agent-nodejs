@@ -3,12 +3,13 @@ import type { RunnerState } from './runner';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Options as SequelizeOptions } from 'sequelize';
 
-import { AiClient } from '@forestadmin/ai-proxy';
 import { Sequelize } from 'sequelize';
 
 import AgentClientAgentPort from './adapters/agent-client-agent-port';
+import AiClientAdapter from './adapters/ai-client-adapter';
 import ConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
+import ServerAiAdapter from './adapters/server-ai-adapter';
 import ExecutorHttpServer from './http/executor-http-server';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
@@ -31,7 +32,7 @@ export interface ExecutorOptions {
   agentUrl: string;
   httpPort: number;
   forestServerUrl?: string;
-  aiConfigurations: AiConfiguration[];
+  aiConfigurations?: AiConfiguration[];
   pollingIntervalMs?: number;
   logger?: Logger;
   stopTimeoutMs?: number;
@@ -49,9 +50,9 @@ function buildCommonDependencies(options: ExecutorOptions) {
     forestServerUrl,
   });
 
-  const aiClient = new AiClient({
-    aiConfigurations: options.aiConfigurations,
-  });
+  const aiModelPort = options.aiConfigurations?.length
+    ? new AiClientAdapter(options.aiConfigurations)
+    : new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
 
   const schemaCache = new SchemaCache();
 
@@ -65,7 +66,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     agentPort,
     schemaCache,
     workflowPort,
-    aiClient,
+    aiModelPort,
     logger,
     pollingIntervalMs: options.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,
     envSecret: options.envSecret,

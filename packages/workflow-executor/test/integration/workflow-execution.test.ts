@@ -1,8 +1,9 @@
 import type { AgentPort } from '../../src/ports/agent-port';
+import type { AiModelPort } from '../../src/ports/ai-model-port';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { PendingStepExecution, StepUser } from '../../src/types/execution';
 import type { CollectionSchema } from '../../src/types/record';
-import type { AiClient, BaseChatModel, RemoteTool } from '@forestadmin/ai-proxy';
+import type { BaseChatModel, RemoteTool } from '@forestadmin/ai-proxy';
 
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
@@ -124,12 +125,12 @@ function createSequentialMockModel(
   return { invoke, bindTools: jest.fn().mockReturnThis() } as unknown as BaseChatModel;
 }
 
-function createMockAiClient(model: BaseChatModel): AiClient {
+function createMockAiClient(model: BaseChatModel): AiModelPort {
   return {
     getModel: jest.fn().mockReturnValue(model),
     loadRemoteTools: jest.fn().mockResolvedValue([]),
     closeConnections: jest.fn().mockResolvedValue(undefined),
-  } as unknown as AiClient;
+  } as unknown as AiModelPort;
 }
 
 function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): jest.Mocked<WorkflowPort> {
@@ -169,7 +170,7 @@ function createIntegrationSetup(overrides?: {
   workflowPort?: jest.Mocked<WorkflowPort>;
   model?: BaseChatModel;
   agentPort?: jest.Mocked<AgentPort>;
-  aiClient?: AiClient;
+  aiClient?: AiModelPort;
   pollingIntervalMs?: number;
 }) {
   const model = overrides?.model ?? createMockModel({ fieldNames: ['Email'] });
@@ -184,7 +185,7 @@ function createIntegrationSetup(overrides?: {
     workflowPort,
     runStore,
     schemaCache,
-    aiClient,
+    aiModelPort: aiClient,
     pollingIntervalMs: overrides?.pollingIntervalMs ?? 60_000,
     envSecret: ENV_SECRET,
     authSecret: AUTH_SECRET,
@@ -204,6 +205,7 @@ function buildPendingStep(
   overrides: Partial<PendingStepExecution> & Pick<PendingStepExecution, 'stepDefinition'>,
 ): PendingStepExecution {
   return {
+    envId: 'env-1',
     runId: 'run-1',
     stepId: 'step-1',
     stepIndex: 0,
@@ -222,6 +224,7 @@ describe('workflow execution (integration)', () => {
   it('read-record happy path: trigger → AI selects field → read record → success', async () => {
     const workflowPort = createMockWorkflowPort({
       getPendingStepExecutionsForRun: jest.fn().mockResolvedValue({
+        envId: 'env-1',
         runId: 'run-1',
         stepId: 'step-1',
         stepIndex: 0,
