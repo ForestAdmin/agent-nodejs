@@ -150,6 +150,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   ): Promise<{ fieldName: string; value: string; reasoning: string }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
+      this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(UPDATE_RECORD_SYSTEM_PROMPT),
       new SystemMessage(
