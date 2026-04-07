@@ -56,4 +56,132 @@ describe('createGetTicketsTool', () => {
     });
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json?${expectedParams}`, { headers });
   });
+
+  it('should search tickets by requester email', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    const result = await tool.invoke({ requester_email: 'user@example.com' });
+
+    const expectedParams = new URLSearchParams({
+      query: 'requester:user@example.com type:ticket',
+      page: '1',
+      per_page: '25',
+      sort_by: 'created_at',
+      sort_order: 'desc',
+    });
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/search.json?${expectedParams}`, { headers });
+    expect(result).toBe(JSON.stringify(mockResponse));
+  });
+
+  it('should search tickets by assignee email', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ assignee_email: 'agent@example.com' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=assignee%3Aagent%40example.com+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should search tickets by status and priority', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ status: 'open', priority: 'urgent' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=status%3Aopen+priority%3Aurgent+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should search tickets by date range', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ created_after: '2024-01-01', created_before: '2024-06-01' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=created%3E2024-01-01+created%3C2024-06-01+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should search tickets by tags', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ tags: ['vip', 'billing'] });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=tags%3Avip+tags%3Abilling+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should search tickets by subject and keyword', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ subject: 'refund', keyword: 'payment issue' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=subject%3Arefund+payment+issue+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should combine multiple filters', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({
+      requester_email: 'user@example.com',
+      status: 'open',
+      priority: 'high',
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'query=requester%3Auser%40example.com+status%3Aopen+priority%3Ahigh+type%3Aticket',
+      ),
+      { headers },
+    );
+  });
+
+  it('should not add type:ticket when ticket_type is specified', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ ticket_type: 'incident' });
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('query=type%3Aincident'), {
+      headers,
+    });
+    expect(fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('type%3Aticket'),
+      expect.anything(),
+    );
+  });
+
+  it('should search by group and brand', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ group: 'support', brand: 'acme' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=group%3Asupport+brand%3Aacme+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should throw on HTTP error when searching', async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      json: async () => ({ error: 'Invalid query' }),
+    });
+
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await expect(tool.invoke({ requester_email: 'user@example.com' })).rejects.toThrow(
+      'Zendesk search tickets failed (422): Invalid query',
+    );
+  });
 });
