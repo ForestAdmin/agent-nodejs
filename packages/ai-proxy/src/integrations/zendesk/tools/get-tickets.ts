@@ -51,6 +51,13 @@ const schema = searchFiltersSchema.extend(baseSchema.shape);
 type SearchFilters = z.infer<typeof searchFiltersSchema>;
 type Input = z.infer<typeof schema>;
 
+function quote(v: unknown): string {
+  const s = String(v);
+  if (!s.includes(' ')) return s;
+
+  return `"${s.replace(/"/g, '\\"')}"`;
+}
+
 const FILTER_TO_QUERY: Record<string, (value: unknown) => string> = {
   requester_email: v => `requester:${v}`,
   assignee_email: v => `assignee:${v}`,
@@ -59,16 +66,16 @@ const FILTER_TO_QUERY: Record<string, (value: unknown) => string> = {
   status: v => `status:${v}`,
   priority: v => `priority:${v}`,
   ticket_type: v => `type:${v}`,
-  group: v => `group:${v}`,
-  brand: v => `brand:${v}`,
-  tags: v => (v as string[]).map(t => `tags:${t}`).join(' '),
-  subject: v => `subject:${v}`,
-  description: v => `description:${v}`,
+  group: v => `group:${quote(v)}`,
+  brand: v => `brand:${quote(v)}`,
+  tags: v => (v as string[]).map(t => `tags:${quote(t)}`).join(' '),
+  subject: v => `subject:${quote(v)}`,
+  description: v => `description:${quote(v)}`,
   created_after: v => `created>${v}`,
   created_before: v => `created<${v}`,
   updated_after: v => `updated>${v}`,
   solved_after: v => `solved>${v}`,
-  keyword: v => `${v}`,
+  keyword: v => `${quote(v)}`,
 };
 
 function buildSearchQuery(filters: SearchFilters): string | null {
@@ -78,7 +85,8 @@ function buildSearchQuery(filters: SearchFilters): string | null {
     const value = filters[key as keyof SearchFilters];
 
     if (value !== undefined && value !== null) {
-      parts.push(toQuery(value));
+      const query = toQuery(value);
+      if (query) parts.push(query);
     }
   }
 

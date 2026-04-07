@@ -123,7 +123,7 @@ describe('createGetTicketsTool', () => {
     await tool.invoke({ subject: 'refund', keyword: 'payment issue' });
 
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('query=subject%3Arefund+payment+issue+type%3Aticket'),
+      expect.stringContaining('query=subject%3Arefund+%22payment+issue%22+type%3Aticket'),
       { headers },
     );
   });
@@ -166,6 +166,30 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=group%3Asupport+brand%3Aacme+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should quote multi-word filter values', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ group: 'tier 1 support', subject: 'billing issue', brand: 'acme' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'query=group%3A%22tier+1+support%22+brand%3Aacme+subject%3A%22billing+issue%22+type%3Aticket',
+      ),
+      { headers },
+    );
+  });
+
+  it('should skip empty tags array', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ tags: [], status: 'open' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=status%3Aopen+type%3Aticket'),
       { headers },
     );
   });
