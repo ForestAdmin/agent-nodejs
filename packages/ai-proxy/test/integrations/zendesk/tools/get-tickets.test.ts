@@ -73,6 +73,28 @@ describe('createGetTicketsTool', () => {
     expect(result).toBe(JSON.stringify(mockResponse));
   });
 
+  it('should search tickets by submitter email', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ submitter_email: 'submitter@example.com' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=submitter%3Asubmitter%40example.com+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should search tickets by cc email', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ cc_email: 'cc@example.com' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=cc%3Acc%40example.com+type%3Aticket'),
+      { headers },
+    );
+  });
+
   it('should search tickets by assignee email', async () => {
     const tool = createGetTicketsTool(headers, baseUrl);
 
@@ -102,6 +124,39 @@ describe('createGetTicketsTool', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('query=created%3E2024-01-01+created%3C2024-06-01+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should search tickets by updated_after', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ updated_after: '2024-03-01' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=updated%3E2024-03-01+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should search tickets by solved_after', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ solved_after: '2024-05-01' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=solved%3E2024-05-01+type%3Aticket'),
+      { headers },
+    );
+  });
+
+  it('should search tickets by description', async () => {
+    const tool = createGetTicketsTool(headers, baseUrl);
+
+    await tool.invoke({ description: 'login error' });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('query=description%3A%22login+error%22+type%3Aticket'),
       { headers },
     );
   });
