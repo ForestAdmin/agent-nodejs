@@ -205,7 +205,6 @@ function buildPendingStep(
   overrides: Partial<PendingStepExecution> & Pick<PendingStepExecution, 'stepDefinition'>,
 ): PendingStepExecution {
   return {
-    envId: 'env-1',
     runId: 'run-1',
     stepId: 'step-1',
     stepIndex: 0,
@@ -224,7 +223,6 @@ describe('workflow execution (integration)', () => {
   it('read-record happy path: trigger → AI selects field → read record → success', async () => {
     const workflowPort = createMockWorkflowPort({
       getPendingStepExecutionsForRun: jest.fn().mockResolvedValue({
-        envId: 'env-1',
         runId: 'run-1',
         stepId: 'step-1',
         stepIndex: 0,

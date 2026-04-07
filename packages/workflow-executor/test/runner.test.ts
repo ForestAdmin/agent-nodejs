@@ -125,7 +125,6 @@ function makePendingStep(
   const { stepType = StepType.ReadRecord, ...rest } = overrides;
 
   return {
-    envId: 'env-1',
     runId: 'run-1',
     stepId: 'step-1',
     stepIndex: 0,

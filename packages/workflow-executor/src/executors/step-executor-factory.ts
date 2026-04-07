@@ -111,7 +111,7 @@ export default class StepExecutorFactory {
   ): ExecutionContext {
     return {
       ...step,
-      model: cfg.aiModelPort.getModel(step),
+      model: cfg.aiModelPort.getModel(step.stepDefinition.aiConfigName),
       agentPort: cfg.agentPort,
       workflowPort: cfg.workflowPort,
       runStore: cfg.runStore,

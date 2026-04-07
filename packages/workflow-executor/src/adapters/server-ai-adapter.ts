@@ -1,11 +1,9 @@
 import type { AiModelPort } from '../ports/ai-model-port';
-import type { PendingStepExecution } from '../types/execution';
 import type { McpConfiguration, RemoteTool } from '@forestadmin/ai-proxy';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 import { AiClient } from '@forestadmin/ai-proxy';
 import { ChatOpenAI } from '@langchain/openai';
-import jsonwebtoken from 'jsonwebtoken';
 
 export interface ServerAiAdapterOptions {
   forestServerUrl: string;
@@ -23,14 +21,9 @@ export default class ServerAiAdapter implements AiModelPort {
     this.aiClient = new AiClient();
   }
 
-  getModel(step: PendingStepExecution): BaseChatModel {
-    const jwt = jsonwebtoken.sign(
-      { envId: step.envId, userId: step.user.id, runId: step.runId, stepIndex: step.stepIndex },
-      this.envSecret,
-      { expiresIn: '1h' },
-    );
-
+  getModel(): BaseChatModel {
     const aiProxyUrl = `${this.forestServerUrl}/liana/v1/ai-proxy`;
+    const { envSecret } = this;
 
     return new ChatOpenAI({
       // Model has no effect — the server uses its own configured model.
@@ -38,8 +31,14 @@ export default class ServerAiAdapter implements AiModelPort {
       model: 'gpt-4.1',
       maxRetries: 2,
       configuration: {
-        apiKey: jwt,
-        fetch: (_url: RequestInfo | URL, init?: RequestInit) => fetch(aiProxyUrl, init),
+        apiKey: 'unused',
+        fetch: (_url: RequestInfo | URL, init?: RequestInit) => {
+          const headers = new Headers(init?.headers);
+          headers.delete('authorization');
+          headers.set('forest-secret-key', envSecret);
+
+          return fetch(aiProxyUrl, { ...init, headers });
+        },
       },
     });
   }
