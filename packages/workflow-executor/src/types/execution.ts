@@ -28,7 +28,6 @@ export interface Step {
 }
 
 export interface PendingStepExecution {
-  readonly envId: string;
   readonly runId: string;
   readonly stepId: string;
   readonly stepIndex: number;

@@ -1,5 +1,4 @@
 import type { AiModelPort } from '../ports/ai-model-port';
-import type { PendingStepExecution } from '../types/execution';
 import type { AiConfiguration, McpConfiguration, RemoteTool } from '@forestadmin/ai-proxy';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
@@ -13,8 +12,8 @@ export default class AiClientAdapter implements AiModelPort {
     this.aiClient = new AiClient({ aiConfigurations: withRetries as AiConfiguration[] });
   }
 
-  getModel(step: PendingStepExecution): BaseChatModel {
-    return this.aiClient.getModel(step.stepDefinition.aiConfigName);
+  getModel(aiConfigName?: string): BaseChatModel {
+    return this.aiClient.getModel(aiConfigName);
   }
 
   loadRemoteTools(config: McpConfiguration): Promise<RemoteTool[]> {
