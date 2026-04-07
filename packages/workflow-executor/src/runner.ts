@@ -10,15 +10,8 @@ import type { StepExecutionData } from './types/step-execution-data';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
-import {
-  InvalidPendingDataError,
-  PendingDataNotFoundError,
-  RunNotFoundError,
-  UserMismatchError,
-  causeMessage,
-} from './errors';
+import { RunNotFoundError, UserMismatchError, causeMessage } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
-import patchBodySchemas from './pending-data-validators';
 import validateSecrets from './validate-secrets';
 
 export type RunnerState = 'idle' | 'running' | 'draining' | 'stopped';
@@ -146,33 +139,6 @@ export default class Runner {
     return this.config.runStore.getStepExecutions(runId);
   }
 
-  private async patchPendingData(runId: string, stepIndex: number, body: unknown): Promise<void> {
-    const stepExecutions = await this.config.runStore.getStepExecutions(runId);
-    const execution = stepExecutions.find(e => e.stepIndex === stepIndex);
-    const schema = execution ? patchBodySchemas[execution.type] : undefined;
-
-    if (!execution || !schema || !('pendingData' in execution) || execution.pendingData == null) {
-      throw new PendingDataNotFoundError(runId, stepIndex);
-    }
-
-    const parsed = schema.safeParse(body);
-
-    if (!parsed.success) {
-      throw new InvalidPendingDataError(
-        parsed.error.issues.map(({ path, message, code }) => ({
-          path: path as (string | number)[],
-          message,
-          code,
-        })),
-      );
-    }
-
-    await this.config.runStore.saveStepExecution(runId, {
-      ...execution,
-      pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
-    } as StepExecutionData);
-  }
-
   async triggerPoll(
     runId: string,
     options?: { pendingData?: unknown; bearerUserId?: number },
@@ -185,13 +151,9 @@ export default class Runner {
       throw new UserMismatchError(runId);
     }
 
-    if (options?.pendingData !== undefined) {
-      await this.patchPendingData(runId, step.stepIndex, options.pendingData);
-    }
-
     if (this.inFlightSteps.has(Runner.stepKey(step))) return;
 
-    await this.executeStep(step);
+    await this.executeStep(step, options?.pendingData);
   }
 
   private schedulePoll(): void {
@@ -226,20 +188,27 @@ export default class Runner {
     return this.config.aiModelPort.loadRemoteTools(mergedConfig);
   }
 
-  private executeStep(step: PendingStepExecution): Promise<void> {
+  private executeStep(step: PendingStepExecution, incomingPendingData?: unknown): Promise<void> {
     const key = Runner.stepKey(step);
-    const promise = this.doExecuteStep(step, key);
+    const promise = this.doExecuteStep(step, key, incomingPendingData);
     this.inFlightSteps.set(key, promise);
 
     return promise;
   }
 
-  private async doExecuteStep(step: PendingStepExecution, key: string): Promise<void> {
+  private async doExecuteStep(
+    step: PendingStepExecution,
+    key: string,
+    incomingPendingData?: unknown,
+  ): Promise<void> {
     let result: StepExecutionResult;
 
     try {
-      const executor = await StepExecutorFactory.create(step, this.contextConfig, () =>
-        this.fetchRemoteTools(),
+      const executor = await StepExecutorFactory.create(
+        step,
+        this.contextConfig,
+        () => this.fetchRemoteTools(),
+        incomingPendingData,
       );
       result = await executor.execute();
     } catch (error) {

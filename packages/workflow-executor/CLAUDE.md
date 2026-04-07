@@ -67,7 +67,8 @@ src/
 │   ├── read-record-step-executor.ts  # AI-powered record field reading step
 │   ├── update-record-step-executor.ts # AI-powered record field update step (with confirmation flow)
 │   ├── trigger-record-action-step-executor.ts  # AI-powered action trigger step (with confirmation flow)
-│   └── load-related-record-step-executor.ts  # AI-powered relation loading step (with confirmation flow)
+│   ├── load-related-record-step-executor.ts  # AI-powered relation loading step (with confirmation flow)
+│   └── guidance-step-executor.ts  # Manual guidance step (saves user input, no AI)
 ├── http/                   # HTTP server (optional, for frontend data access)
 │   └── executor-http-server.ts  # Koa server: GET /runs/:runId, POST /runs/:runId/trigger
 └── index.ts                # Barrel exports

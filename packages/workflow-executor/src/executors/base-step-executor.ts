@@ -17,6 +17,7 @@ import {
   StepStateError,
   WorkflowExecutorError,
 } from '../errors';
+import patchBodySchemas from '../pending-data-validators';
 import SafeAgentPort from './safe-agent-port';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
@@ -116,6 +117,43 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return stepExecutions.find(
       (e): e is TExec => (e as TExec).type === type && e.stepIndex === this.context.stepIndex,
     );
+  }
+
+  /**
+   * Finds an existing pending execution and, when pendingData is provided,
+   * validates it against the step-type schema and merges it into the execution.
+   * Returns the (possibly updated) execution, or undefined if none exists.
+   */
+  protected async patchAndReloadPendingData<TExec extends WithPendingData>(
+    pendingData?: unknown,
+  ): Promise<TExec | undefined> {
+    const { type } = this.context.stepDefinition;
+    const execution = await this.findPendingExecution<TExec>(type);
+
+    if (pendingData !== undefined && execution) {
+      const schema = patchBodySchemas[execution.type]!;
+      const parsed = schema.safeParse(pendingData);
+
+      if (!parsed.success) {
+        throw new StepStateError(
+          `Invalid pending data: ${parsed.error.issues.map(i => i.message).join(', ')}`,
+        );
+      }
+
+      const updated = {
+        ...execution,
+        pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
+      } as TExec;
+
+      await this.context.runStore.saveStepExecution(
+        this.context.runId,
+        updated as StepExecutionData,
+      );
+
+      return updated;
+    }
+
+    return execution;
   }
 
   /**

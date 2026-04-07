@@ -39,11 +39,21 @@ export interface McpStepOutcome extends BaseStepOutcome {
   status: RecordStepStatus;
 }
 
-export type StepOutcome = ConditionStepOutcome | RecordStepOutcome | McpStepOutcome;
+export interface GuidanceStepOutcome extends BaseStepOutcome {
+  type: 'guidance';
+  status: BaseStepStatus;
+}
 
-export function stepTypeToOutcomeType(type: StepType): 'condition' | 'record' | 'mcp' {
+export type StepOutcome =
+  | ConditionStepOutcome
+  | RecordStepOutcome
+  | McpStepOutcome
+  | GuidanceStepOutcome;
+
+export function stepTypeToOutcomeType(type: StepType): 'condition' | 'record' | 'mcp' | 'guidance' {
   if (type === StepType.Condition) return 'condition';
   if (type === StepType.Mcp) return 'mcp';
+  if (type === StepType.Guidance) return 'guidance';
 
   return 'record';
 }

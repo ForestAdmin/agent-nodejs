@@ -11,12 +11,7 @@ import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
 import ConsoleLogger from '../adapters/console-logger';
-import {
-  InvalidPendingDataError,
-  PendingDataNotFoundError,
-  RunNotFoundError,
-  UserMismatchError,
-} from '../errors';
+import { RunNotFoundError, UserMismatchError } from '../errors';
 
 export interface ExecutorHttpServerOptions {
   port: number;
@@ -194,20 +189,6 @@ export default class ExecutorHttpServer {
         this.logger.error('User mismatch on trigger', { runId, bearerUserId });
         ctx.status = 403;
         ctx.body = { error: 'Forbidden' };
-
-        return;
-      }
-
-      if (err instanceof PendingDataNotFoundError) {
-        ctx.status = 404;
-        ctx.body = { error: 'Step execution not found or has no pending data' };
-
-        return;
-      }
-
-      if (err instanceof InvalidPendingDataError) {
-        ctx.status = 400;
-        ctx.body = { error: 'Invalid request body', details: err.issues };
 
         return;
       }

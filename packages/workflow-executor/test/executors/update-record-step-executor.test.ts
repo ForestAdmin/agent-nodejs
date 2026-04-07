@@ -987,4 +987,29 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
     });
   });
+
+  describe('patchAndReloadPendingData validation', () => {
+    it('returns error when incomingPendingData fails Zod validation', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'update-record',
+            stepIndex: 0,
+            pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+
+      const context = makeContext({
+        runStore,
+        incomingPendingData: { invalidField: true },
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+  });
 });
