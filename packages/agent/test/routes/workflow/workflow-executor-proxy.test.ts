@@ -1,13 +1,11 @@
-import http from 'http';
-
 import { createMockContext } from '@shopify/jest-koa-mocks';
+import http from 'http';
 
 import WorkflowExecutorProxyRoute from '../../../src/routes/workflow/workflow-executor-proxy';
 import { RouteType } from '../../../src/types';
 import * as factories from '../../__factories__';
 
 describe('WorkflowExecutorProxyRoute', () => {
-  const options = factories.forestAdminHttpDriverOptions.build();
   const services = factories.forestAdminHttpDriverServices.build();
   const router = factories.router.mockAllMethods().build();
 
