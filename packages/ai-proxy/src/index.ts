@@ -4,6 +4,7 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import ToolSourceChecker from './tool-source-checker';
 
 export { createAiProvider } from './create-ai-provider';
+export { createBaseChatModel } from './create-base-chat-model';
 export { default as ProviderDispatcher } from './provider-dispatcher';
 
 export {
@@ -13,6 +14,7 @@ export {
 } from './forest-integration-client';
 
 export * from './provider-dispatcher';
+export * from './ai-client';
 export * from './remote-tools';
 export { default as RemoteTool } from './remote-tool';
 export * from './router';
@@ -28,3 +30,9 @@ export function validToolConfigurationOrThrow(
 ) {
   return ToolSourceChecker.check(configs, logger);
 }
+
+export type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+export type { BaseMessage } from '@langchain/core/messages';
+export { HumanMessage, SystemMessage } from '@langchain/core/messages';
+export type { StructuredToolInterface } from '@langchain/core/tools';
+export { DynamicStructuredTool } from '@langchain/core/tools';
