@@ -21,7 +21,7 @@ describe('declareDeleteTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: { title: string; description: string; inputSchema: { shape: Record<string, unknown> } };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,14 +62,14 @@ describe('declareDeleteTool', () => {
     it('should define correct input schema', () => {
       declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
 
-      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('recordIds');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('recordIds');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
       declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -80,7 +80,7 @@ describe('declareDeleteTool', () => {
     it('should use enum type for collectionName when collection names provided', () => {
       declareDeleteTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'products']);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options: string[]; parse: (value: unknown) => unknown }
       >;
@@ -92,7 +92,7 @@ describe('declareDeleteTool', () => {
     it('should accept array of strings or numbers for recordIds', () => {
       declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { parse: (value: unknown) => unknown }
       >;

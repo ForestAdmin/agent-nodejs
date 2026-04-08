@@ -26,47 +26,18 @@ type RegisterToolConfig = Parameters<McpServer['registerTool']>[1];
 type ToolHandlerExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
 
 // -----------------------------------------------------------------------------
-// Validation Helpers
-// -----------------------------------------------------------------------------
-
-/**
- * Formats a Zod error into a human-readable string.
- * Example: "collectionName: Required, sort.field: Expected string"
- */
-function formatZodError(error: z.ZodError): string {
-  return error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(', ');
-}
-
-/**
- * Validates arguments against a schema and logs errors if validation fails.
- * This is a pre-validation step for logging purposes only - the SDK handles actual validation.
- */
-function logValidationErrorsIfAny(
-  args: unknown,
-  schema: z.ZodSchema,
-  toolName: string,
-  logger: Logger,
-): void {
-  const result = schema.safeParse(args);
-
-  if (!result.success) {
-    const errorMessage = formatZodError(result.error);
-    logger('Error', `Tool "${toolName}" validation error: ${errorMessage}`);
-  }
-}
-
-// -----------------------------------------------------------------------------
 // Tool Registration
 // -----------------------------------------------------------------------------
 
 /**
- * Registers an MCP tool with automatic validation error logging.
+ * Registers an MCP tool with strict input validation.
  *
- * This wrapper logs validation errors with detailed field information,
- * which helps debug tool calls when clients send invalid arguments.
+ * Uses Zod's `.strict()` mode so the SDK rejects unknown keys instead of
+ * silently stripping them. This prevents hard-to-debug issues where a typo
+ * (e.g. "filter" instead of "filters") causes the tool to run without the
+ * intended parameter.
  *
- * Note: Execution errors are caught and converted to { isError: true } tool results.
- * The SSE response interceptor in server.ts additionally logs these errors from the stream.
+ * Execution errors are caught and converted to { isError: true } tool results.
  *
  * @example
  * registerToolWithLogging(
@@ -94,14 +65,12 @@ export default function registerToolWithLogging<
   handler: (args: TArgs, extra: ToolHandlerExtra) => Promise<CallToolResult>,
   logger: Logger,
 ): string {
-  const schema = z.object(config.inputSchema);
+  const strictSchema = z.object(config.inputSchema).strict();
 
   mcpServer.registerTool(
     toolName,
-    config as RegisterToolConfig,
+    { ...config, inputSchema: strictSchema } as RegisterToolConfig,
     async (args: Record<string, unknown>, extra: ToolHandlerExtra) => {
-      logValidationErrorsIfAny(args, schema, toolName, logger);
-
       // Return errors as tool results (isError: true) instead of throwing.
       // Per MCP spec, tool errors should be reported within the result object,
       // not as protocol-level errors, so the LLM can see and handle them.

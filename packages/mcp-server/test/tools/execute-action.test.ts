@@ -26,7 +26,7 @@ const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withAc
 describe('declareExecuteActionTool', () => {
   let mcpServer: McpServer;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: { title: string; description: string; inputSchema: { shape: Record<string, unknown> } };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -66,16 +66,16 @@ describe('declareExecuteActionTool', () => {
     it('should define correct input schema', () => {
       declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
-      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('actionName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('recordIds');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('values');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('actionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('recordIds');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('values');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
       declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -89,7 +89,7 @@ describe('declareExecuteActionTool', () => {
         'products',
       ]);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options: string[]; parse: (value: unknown) => unknown }
       >;
@@ -101,7 +101,7 @@ describe('declareExecuteActionTool', () => {
     it('should accept array of strings or numbers for recordIds', () => {
       declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { parse: (value: unknown) => unknown }
       >;
@@ -113,7 +113,7 @@ describe('declareExecuteActionTool', () => {
     it('should accept null for recordIds (global actions)', () => {
       declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { parse: (value: unknown) => unknown }
       >;
@@ -123,7 +123,7 @@ describe('declareExecuteActionTool', () => {
     it('should accept optional values parameter', () => {
       declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { parse: (value: unknown) => unknown }
       >;
@@ -365,7 +365,7 @@ describe('declareExecuteActionTool', () => {
         const values = { subject: 'Test', message: 'Hello' };
         const valuesAsString = JSON.stringify(values);
 
-        const inputSchema = registeredToolConfig.inputSchema as Record<
+        const inputSchema = registeredToolConfig.inputSchema.shape as Record<
           string,
           { parse: (value: unknown) => unknown }
         >;

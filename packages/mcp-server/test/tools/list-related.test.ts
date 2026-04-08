@@ -28,7 +28,7 @@ describe('declareListRelatedTool', () => {
   let mockLogger: Logger;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: { title: string; description: string; inputSchema: { shape: Record<string, unknown> } };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -101,18 +101,18 @@ describe('declareListRelatedTool', () => {
     it('should define correct input schema', () => {
       declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
 
-      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('relationName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('parentRecordId');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('search');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('filters');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('relationName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('parentRecordId');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('search');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('filters');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('sort');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
       declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -125,7 +125,7 @@ describe('declareListRelatedTool', () => {
     it('should use string type for collectionName when empty array provided', () => {
       declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger, []);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -142,7 +142,7 @@ describe('declareListRelatedTool', () => {
         'orders',
       ]);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options: string[]; parse: (value: unknown) => unknown }
       >;
@@ -158,7 +158,7 @@ describe('declareListRelatedTool', () => {
     it('should accept string parentRecordId', () => {
       declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { parse: (value: unknown) => unknown }
       >;
@@ -168,7 +168,7 @@ describe('declareListRelatedTool', () => {
     it('should accept number parentRecordId', () => {
       declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { parse: (value: unknown) => unknown }
       >;

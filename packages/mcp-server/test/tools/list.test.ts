@@ -29,7 +29,7 @@ describe('declareListTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: { title: string; description: string; inputSchema: { shape: Record<string, unknown> } };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -99,13 +99,13 @@ describe('declareListTool', () => {
     it('should define correct input schema', () => {
       declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
-      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('search');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('filters');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('sort');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('shouldSearchInRelation');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('fields');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('enableCount');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('search');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('filters');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('sort');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('shouldSearchInRelation');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('fields');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('enableCount');
     });
 
     it('should have fields schema with description mentioning @@@ separator for relations', () => {
@@ -115,7 +115,7 @@ describe('declareListTool', () => {
       const schema = registeredToolConfig.inputSchema as any;
       // Zod schema: z.array().describe().optional()
       // The description is stored in metadata, accessible via meta() on the inner type
-      const fieldsZodDef = Reflect.get(schema.fields, '_def');
+      const fieldsZodDef = Reflect.get(schema.shape.fields, '_def');
       const fieldsDescription = fieldsZodDef.innerType.meta().description;
       expect(fieldsDescription).toContain('@@@');
       expect(fieldsDescription).toContain('relationName@@@fieldName');
@@ -124,7 +124,7 @@ describe('declareListTool', () => {
     it('should use string type for collectionName when no collection names provided', () => {
       declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -137,7 +137,7 @@ describe('declareListTool', () => {
     it('should use string type for collectionName when empty array provided', () => {
       declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -154,7 +154,7 @@ describe('declareListTool', () => {
         'orders',
       ]);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options: string[]; parse: (value: unknown) => unknown }
       >;
@@ -170,7 +170,7 @@ describe('declareListTool', () => {
     it('should make ascending optional in sort schema with default value true', () => {
       declareListTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { parse: (value: unknown) => unknown }
       >;
@@ -828,7 +828,7 @@ describe('declareListTool', () => {
         const filtersAsString = JSON.stringify(filters);
 
         // Simulate MCP SDK behavior: parse input through schema before calling handler
-        const inputSchema = registeredToolConfig.inputSchema as Record<
+        const inputSchema = registeredToolConfig.inputSchema.shape as Record<
           string,
           {
             parse: (value: unknown) => unknown;
@@ -861,7 +861,7 @@ describe('declareListTool', () => {
       it('should throw validation error when filters is malformed JSON string', () => {
         const malformedJson = '{ invalid json }';
 
-        const inputSchema = registeredToolConfig.inputSchema as Record<
+        const inputSchema = registeredToolConfig.inputSchema.shape as Record<
           string,
           { parse: (value: unknown) => unknown }
         >;
@@ -872,7 +872,7 @@ describe('declareListTool', () => {
       it('should throw validation error when filters is a plain string', () => {
         const plainString = 'not a json object';
 
-        const inputSchema = registeredToolConfig.inputSchema as Record<
+        const inputSchema = registeredToolConfig.inputSchema.shape as Record<
           string,
           { parse: (value: unknown) => unknown }
         >;
