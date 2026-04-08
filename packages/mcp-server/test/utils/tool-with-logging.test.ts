@@ -6,6 +6,7 @@ describe('registerToolWithLogging', () => {
   let mockMcpServer: { registerTool: jest.Mock };
   let mockLogger: jest.Mock;
   let registeredHandler: (args: unknown, extra: unknown) => Promise<unknown>;
+  let registeredConfig: { inputSchema: z.ZodTypeAny };
 
   const toolConfig = {
     title: 'Test Tool',
@@ -18,7 +19,8 @@ describe('registerToolWithLogging', () => {
 
   beforeEach(() => {
     mockMcpServer = {
-      registerTool: jest.fn((_, __, handler) => {
+      registerTool: jest.fn((_, config, handler) => {
+        registeredConfig = config;
         registeredHandler = handler;
       }),
     };
@@ -33,7 +35,7 @@ describe('registerToolWithLogging', () => {
 
       expect(mockMcpServer.registerTool).toHaveBeenCalledWith(
         'test-tool',
-        toolConfig,
+        expect.objectContaining({ title: 'Test Tool', description: 'A test tool' }),
         expect.any(Function),
       );
     });
@@ -51,49 +53,20 @@ describe('registerToolWithLogging', () => {
 
       expect(result).toBe('my-tool');
     });
-  });
 
-  describe('validation error logging', () => {
-    it('should log validation error when arguments are invalid', async () => {
+    it('should register with a strict schema that rejects unknown keys', () => {
       const handler = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
 
       registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
 
-      const invalidArgs = { name: 123, count: 'not a number' };
-      await registeredHandler(invalidArgs, {});
+      const { inputSchema } = registeredConfig;
 
-      expect(mockLogger).toHaveBeenCalledWith(
-        'Error',
-        expect.stringContaining('Tool "test-tool" validation error:'),
-      );
-      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('name:'));
-      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('count:'));
-    });
+      // Valid args should pass
+      expect(inputSchema.safeParse({ name: 'test', count: 42 }).success).toBe(true);
 
-    it('should log validation error for missing required field', async () => {
-      const handler = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
-
-      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
-
-      const missingFieldArgs = { name: 'test' };
-      await registeredHandler(missingFieldArgs, {});
-
-      expect(mockLogger).toHaveBeenCalledWith(
-        'Error',
-        expect.stringContaining('Tool "test-tool" validation error:'),
-      );
-      expect(mockLogger).toHaveBeenCalledWith('Error', expect.stringContaining('count:'));
-    });
-
-    it('should not log when arguments are valid', async () => {
-      const handler = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
-
-      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
-
-      const validArgs = { name: 'test', count: 42 };
-      await registeredHandler(validArgs, {});
-
-      expect(mockLogger).not.toHaveBeenCalled();
+      // Unknown keys should be rejected
+      const resultWithUnknown = inputSchema.safeParse({ name: 'test', count: 42, filter: 'x' });
+      expect(resultWithUnknown.success).toBe(false);
     });
   });
 
@@ -121,7 +94,7 @@ describe('registerToolWithLogging', () => {
       expect(result).toBe(expectedResult);
     });
 
-    it('should catch handler errors and return isError result without logging', async () => {
+    it('should catch handler errors and return isError result', async () => {
       const error = new Error('Handler failed');
       const handler = jest.fn().mockRejectedValue(error);
 
@@ -132,7 +105,6 @@ describe('registerToolWithLogging', () => {
         content: [{ type: 'text', text: expect.stringContaining('Handler failed') }],
         isError: true,
       });
-      expect(mockLogger).not.toHaveBeenCalled();
     });
 
     it('should stringify non-Error throws in isError result', async () => {
@@ -172,17 +144,6 @@ describe('registerToolWithLogging', () => {
         isError: true,
       });
     });
-
-    it('should call handler even when validation fails', async () => {
-      const handler = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }] });
-
-      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
-
-      const invalidArgs = { name: 123, count: 'bad' };
-      await registeredHandler(invalidArgs, {});
-
-      expect(handler).toHaveBeenCalledWith(invalidArgs, {});
-    });
   });
 
   describe('optional fields', () => {
@@ -208,7 +169,6 @@ describe('registerToolWithLogging', () => {
 
       await registeredHandler({ name: 'test' }, {});
 
-      expect(mockLogger).not.toHaveBeenCalled();
       expect(handler).toHaveBeenCalledWith({ name: 'test' }, {});
     });
   });
