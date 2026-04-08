@@ -33,6 +33,8 @@ export default function createCreateTicketTool(
         )
         .optional()
         .describe('Custom fields to set on the ticket'),
+      requester_email: z.string().email().optional().describe('The email of the requester'),
+      requester_name: z.string().optional().describe('The name of the requester'),
     }),
     func: async ({
       subject,
@@ -43,7 +45,13 @@ export default function createCreateTicketTool(
       type,
       tags,
       custom_fields,
+      requester_email,
+      requester_name,
     }) => {
+      const requester = {
+        ...(requester_email && { email: requester_email }),
+        ...(requester_name && { name: requester_name }),
+      };
       const ticketData: Record<string, unknown> = {
         ticket: {
           subject,
@@ -54,6 +62,7 @@ export default function createCreateTicketTool(
           ...(type && { type }),
           ...(tags && { tags }),
           ...(custom_fields && { custom_fields }),
+          ...(Object.keys(requester).length > 0 && { requester }),
         },
       };
 

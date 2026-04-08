@@ -72,4 +72,71 @@ describe('createCreateTicketTool', () => {
       }),
     });
   });
+
+  it('should create a ticket with requester email', async () => {
+    const tool = createCreateTicketTool(headers, baseUrl);
+
+    await tool.invoke({
+      subject: 'Bug',
+      description: 'Broken',
+      requester_email: 'user@example.com',
+    });
+
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ticket: {
+          subject: 'Bug',
+          comment: { body: 'Broken' },
+          requester: { email: 'user@example.com' },
+        },
+      }),
+    });
+  });
+
+  it('should create a ticket with requester email and name', async () => {
+    const tool = createCreateTicketTool(headers, baseUrl);
+
+    await tool.invoke({
+      subject: 'Bug',
+      description: 'Broken',
+      requester_email: 'user@example.com',
+      requester_name: 'John Doe',
+    });
+
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ticket: {
+          subject: 'Bug',
+          comment: { body: 'Broken' },
+          requester: { email: 'user@example.com', name: 'John Doe' },
+        },
+      }),
+    });
+  });
+
+  it('should create a ticket with requester name only', async () => {
+    const tool = createCreateTicketTool(headers, baseUrl);
+
+    await tool.invoke({
+      subject: 'Bug',
+      description: 'Broken',
+      requester_name: 'John Doe',
+    });
+
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ticket: {
+          subject: 'Bug',
+          comment: { body: 'Broken' },
+          requester: { name: 'John Doe' },
+        },
+      }),
+    });
+  });
 });
