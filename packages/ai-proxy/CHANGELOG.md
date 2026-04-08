@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.7.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.2...@forestadmin/ai-proxy@1.7.3) (2026-04-08)
+
+
+### Bug Fixes
+
+* **ai-proxy:** update zendesk tools functionality ([#1533](https://github.com/ForestAdmin/agent-nodejs/issues/1533)) ([e29e63e](https://github.com/ForestAdmin/agent-nodejs/commit/e29e63e5859697e2929967894bc344ebcbf02f69))
+
 ## @forestadmin/ai-proxy [1.7.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.1...@forestadmin/ai-proxy@1.7.2) (2026-04-01)
 
 
