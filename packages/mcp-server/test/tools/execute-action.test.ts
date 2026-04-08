@@ -26,7 +26,11 @@ const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withAc
 describe('declareExecuteActionTool', () => {
   let mcpServer: McpServer;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: { shape: Record<string, unknown> } };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: { shape: Record<string, unknown> };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();

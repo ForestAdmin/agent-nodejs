@@ -63,6 +63,7 @@ export default function registerToolWithLogging<
   toolName: string,
   config: ToolConfig<TSchema>,
   handler: (args: TArgs, extra: ToolHandlerExtra) => Promise<CallToolResult>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   logger: Logger,
 ): string {
   const strictSchema = z.object(config.inputSchema).strict();
