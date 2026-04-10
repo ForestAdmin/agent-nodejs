@@ -75,7 +75,19 @@ describe('HttpRequester', () => {
       expect(mockRequest.timeout).toHaveBeenCalledWith(10_000);
       expect(mockRequest.set).toHaveBeenCalledWith('Authorization', 'Bearer test-token');
       expect(mockRequest.set).toHaveBeenCalledWith('Content-Type', 'application/json');
+      expect(mockRequest.set).toHaveBeenCalledWith('Accept', 'application/json');
       expect(mockRequest.query).toHaveBeenCalledWith({ timezone: 'Europe/Paris' });
+    });
+
+    it('should set Accept header matching content type', async () => {
+      mockRequest.then = jest.fn((onFulfilled: any) => {
+        return Promise.resolve(onFulfilled({ body: {} }));
+      });
+
+      await requester.query({ method: 'get', path: '/forest/users', contentType: 'text/csv' });
+
+      expect(mockRequest.set).toHaveBeenCalledWith('Content-Type', 'text/csv');
+      expect(mockRequest.set).toHaveBeenCalledWith('Accept', 'text/csv');
     });
 
     it('should make a POST request with body', async () => {

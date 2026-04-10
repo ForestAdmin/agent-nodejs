@@ -345,7 +345,14 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     const expiresIn = expirationDate - Math.floor(Date.now() / 1000);
     const tokenScopes = scope ? scope.split(' ') : ['mcp:read', 'mcp:write', 'mcp:action'];
     const accessToken = jsonwebtoken.sign(
-      { ...user, serverToken: forestServerAccessToken, scopes: tokenScopes },
+      {
+        ...user,
+        ...ForestOAuthProvider.toSnakeCaseKeys(user),
+        rendering_id: String(renderingId),
+        tags: user.tags ? Object.entries(user.tags).map(([key, value]) => ({ key, value })) : [],
+        serverToken: forestServerAccessToken,
+        scopes: tokenScopes,
+      },
       this.authSecret,
       { expiresIn },
     );
@@ -430,6 +437,17 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     // TODO: Implement actual token revocation with Forest Admin server when supported.
     void client;
     void request;
+  }
+
+  private static toSnakeCaseKeys(obj: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      const snakeKey = key.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+      result[snakeKey] = value;
+    }
+
+    return result;
   }
 
   // Skip PKCE validation to match original implementation

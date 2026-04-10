@@ -41,6 +41,7 @@ export default class HttpRequester {
         .timeout(maxTimeAllowed ?? 10_000)
         .set('Authorization', `Bearer ${this.token}`)
         .set('Content-Type', contentType ?? 'application/json')
+        .set('Accept', contentType ?? 'application/json')
         .query({ timezone: 'Europe/Paris', ...query });
 
       if (body) req.send(body);
