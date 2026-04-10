@@ -347,7 +347,9 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     const accessToken = jsonwebtoken.sign(
       {
         ...user,
-        ...ForestOAuthProvider.toSnakeCaseClaims(user, renderingId),
+        ...ForestOAuthProvider.toSnakeCaseKeys(user),
+        rendering_id: String(renderingId),
+        tags: user.tags ? Object.entries(user.tags).map(([key, value]) => ({ key, value })) : [],
         serverToken: forestServerAccessToken,
         scopes: tokenScopes,
       },
@@ -437,21 +439,15 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     void request;
   }
 
-  /**
-   * Convert camelCase UserInfo claims to snake_case for Ruby (forest_liana) compatibility.
-   * The JWT includes both formats so it works with Node and Ruby backends.
-   */
-  private static toSnakeCaseClaims(
-    user: { firstName: string; lastName: string; permissionLevel: string; tags?: Record<string, string> },
-    renderingId: number,
-  ): Record<string, unknown> {
-    return {
-      first_name: user.firstName,
-      last_name: user.lastName,
-      rendering_id: String(renderingId),
-      permission_level: user.permissionLevel,
-      tags: user.tags ? Object.entries(user.tags).map(([key, value]) => ({ key, value })) : [],
-    };
+  private static toSnakeCaseKeys(obj: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      const snakeKey = key.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+      result[snakeKey] = value;
+    }
+
+    return result;
   }
 
   // Skip PKCE validation to match original implementation
