@@ -160,6 +160,18 @@ describe('HttpRequester', () => {
       });
     });
 
+    it('should normalize path without leading slash', async () => {
+      mockRequest.then = jest.fn((onFulfilled: any) => {
+        return Promise.resolve(onFulfilled({ body: {} }));
+      });
+
+      await requester.query({ method: 'get', path: 'forest/actions/my-action' });
+
+      expect(mockSuperagent.get).toHaveBeenCalledWith(
+        'https://api.example.com/forest/actions/my-action',
+      );
+    });
+
     it('should handle URL with prefix', async () => {
       const requesterWithPrefix = new HttpRequester('test-token', {
         url: 'https://api.example.com',
