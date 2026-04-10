@@ -1,3 +1,4 @@
+import type { ActionEndpointsByCollection } from '../../src/domains/action';
 import type HttpRequester from '../../src/http-requester';
 
 import Collection from '../../src/domains/collection';
@@ -10,9 +11,15 @@ describe('Collection', () => {
   let collection: Collection;
   const actionEndpoints = {
     users: {
-      sendEmail: { name: 'Send Email', endpoint: '/forest/actions/send-email' },
+      sendEmail: {
+        name: 'Send Email',
+        endpoint: '/forest/actions/send-email',
+        id: 'Send@@@Email',
+        hooks: { load: false, change: [] },
+        fields: [],
+      },
     },
-  };
+  } as ActionEndpointsByCollection;
 
   beforeEach(() => {
     jest.clearAllMocks();
