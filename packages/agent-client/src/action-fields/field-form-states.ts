@@ -100,13 +100,26 @@ export default class FieldFormStates {
       //
       // - Ruby agent (forest_liana): does NOT register a route for /hooks/load
       //   when hooks.load is false. The POST returns a 404.
-      //   In this case we catch the error and continue with an empty form,
+      //   In this case we catch the 404 and continue with an empty form,
       //   which matches the expected behavior (no dynamic fields to load).
       //
       // We always attempt the call so Node users get their fields,
-      // and gracefully handle the 404 for Ruby users.
-      if (this.hooks && !this.hooks.load) return;
+      // and only swallow 404 errors for Ruby users. Other errors (401, 500,
+      // network failures) are rethrown so they surface properly.
+      if (this.hooks && !this.hooks.load && FieldFormStates.is404(error)) return;
       throw error;
+    }
+  }
+
+  private static is404(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+
+    try {
+      const parsed = JSON.parse(error.message);
+
+      return parsed?.error?.status === 404;
+    } catch {
+      return false;
     }
   }
 

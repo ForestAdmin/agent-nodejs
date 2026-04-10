@@ -274,12 +274,34 @@ describe('FieldFormStates', () => {
         { load: false, change: [] },
       );
 
-      httpRequester.query.mockRejectedValue(new Error('404 Not Found'));
+      // Match the actual error shape from HttpRequester.query (superagent error)
+      const error404 = new Error(
+        JSON.stringify({ error: { status: 404, text: 'Not Found' }, body: null }),
+      );
+      httpRequester.query.mockRejectedValue(error404);
 
       await formStates.loadInitialState();
 
       expect(httpRequester.query).toHaveBeenCalled();
       expect(formStates.getFields()).toHaveLength(0);
+    });
+
+    it('should throw when hooks.load is false but server returns 500', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+      );
+
+      const error500 = new Error(
+        JSON.stringify({ error: { status: 500, text: 'Internal Server Error' }, body: null }),
+      );
+      httpRequester.query.mockRejectedValue(error500);
+
+      await expect(formStates.loadInitialState()).rejects.toThrow();
     });
 
     it('should load fields when hooks.load is false but server responds successfully', async () => {
