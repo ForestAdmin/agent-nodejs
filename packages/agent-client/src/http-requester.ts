@@ -98,6 +98,16 @@ export default class HttpRequester {
     return encodeURI(name).replace(/([+?*])/g, '\\$1');
   }
 
+  static is404Error(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+
+    try {
+      return JSON.parse(error.message)?.error?.status === 404;
+    } catch {
+      return false;
+    }
+  }
+
   private buildUrl(path: string): string {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 

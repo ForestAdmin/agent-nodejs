@@ -28,7 +28,12 @@ export type ActionHooks = {
 
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
-    [actionName: string]: { name: string; endpoint: string; hooks?: ActionHooks };
+    [actionName: string]: {
+      name: string;
+      endpoint: string;
+      hooks?: ActionHooks;
+      fields?: Array<{ field: string; type: string; isRequired?: boolean; defaultValue?: unknown }>;
+    };
   };
 };
 export default class Action {

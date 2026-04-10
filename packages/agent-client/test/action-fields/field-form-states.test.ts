@@ -2,7 +2,11 @@ import type HttpRequester from '../../src/http-requester';
 
 import FieldFormStates from '../../src/action-fields/field-form-states';
 
-jest.mock('../../src/http-requester');
+jest.mock('../../src/http-requester', () => {
+  const actual = jest.requireActual('../../src/http-requester');
+
+  return { __esModule: true, default: actual.default };
+});
 
 describe('FieldFormStates', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
@@ -274,7 +278,6 @@ describe('FieldFormStates', () => {
         { load: false, change: [] },
       );
 
-      // Match the actual error shape from HttpRequester.query (superagent error)
       const error404 = new Error(
         JSON.stringify({ error: { status: 404, text: 'Not Found' }, body: null }),
       );
@@ -284,6 +287,36 @@ describe('FieldFormStates', () => {
 
       expect(httpRequester.query).toHaveBeenCalled();
       expect(formStates.getFields()).toHaveLength(0);
+    });
+
+    it('should use fallback fields when hooks.load is false and server returns 404', async () => {
+      const fallbackFields = [
+        { field: 'percentage', type: 'Number', isRequired: true, defaultValue: 10 },
+        { field: 'note', type: 'String' },
+      ];
+
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+        fallbackFields,
+      );
+
+      const error404 = new Error(
+        JSON.stringify({ error: { status: 404, text: 'Not Found' }, body: null }),
+      );
+      httpRequester.query.mockRejectedValue(error404);
+
+      await formStates.loadInitialState();
+
+      expect(formStates.getFields()).toHaveLength(2);
+      expect(formStates.getFields()[0].getName()).toBe('percentage');
+      expect(formStates.getFields()[0].getValue()).toBe(10);
+      expect(formStates.getFields()[1].getName()).toBe('note');
+      expect(formStates.getFields()[1].getValue()).toBeUndefined();
     });
 
     it('should throw when hooks.load is false but server returns 500', async () => {

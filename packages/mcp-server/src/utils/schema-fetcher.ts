@@ -117,6 +117,7 @@ export type ActionEndpointsByCollection = {
       name: string;
       endpoint: string;
       hooks?: { load: boolean; change: unknown[] };
+      fields?: Array<{ field: string; type: string; isRequired?: boolean; defaultValue?: unknown }>;
     };
   };
 };
@@ -140,6 +141,7 @@ export function getActionEndpoints(schema: ForestSchema): ActionEndpointsByColle
           name: action.name,
           endpoint: action.endpoint,
           hooks: action.hooks,
+          fields: action.fields,
         };
       }
     }

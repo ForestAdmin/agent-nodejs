@@ -1,10 +1,17 @@
 import type { PlainField, ResponseBody } from './types';
 import type { ActionHooks } from '../domains/action';
-import type HttpRequester from '../http-requester';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
+import HttpRequester from '../http-requester';
 import ActionFieldMultipleChoice from './action-field-multiple-choice';
 import FieldGetter from './field-getter';
+
+export type FallbackField = {
+  field: string;
+  type: string;
+  isRequired?: boolean;
+  defaultValue?: unknown;
+};
 
 export default class FieldFormStates {
   private readonly fields: FieldGetter[];
@@ -15,6 +22,7 @@ export default class FieldFormStates {
   private readonly ids: string[];
   private readonly layout: ForestServerActionFormLayoutElement[];
   private readonly hooks?: ActionHooks;
+  private readonly fallbackFields?: FallbackField[];
 
   constructor(
     actionName: string,
@@ -23,6 +31,7 @@ export default class FieldFormStates {
     httpRequester: HttpRequester,
     ids: string[],
     hooks?: ActionHooks,
+    fallbackFields?: FallbackField[],
   ) {
     this.fields = [];
     this.actionName = actionName;
@@ -32,6 +41,7 @@ export default class FieldFormStates {
     this.ids = ids;
     this.layout = [];
     this.hooks = hooks;
+    this.fallbackFields = fallbackFields;
   }
 
   getFieldValues(): Record<string, unknown> {
@@ -106,20 +116,23 @@ export default class FieldFormStates {
       // We always attempt the call so Node users get their fields,
       // and only swallow 404 errors for Ruby users. Other errors (401, 500,
       // network failures) are rethrown so they surface properly.
-      if (this.hooks && !this.hooks.load && FieldFormStates.is404(error)) return;
+      if (this.hooks && !this.hooks.load && HttpRequester.is404Error(error)) {
+        if (this.fallbackFields?.length) {
+          this.addFields(
+            this.fallbackFields.map(f => ({
+              field: f.field,
+              type: f.type,
+              isRequired: f.isRequired ?? false,
+              isReadOnly: false,
+              value: f.defaultValue,
+            })),
+          );
+        }
+
+        return;
+      }
+
       throw error;
-    }
-  }
-
-  private static is404(error: unknown): boolean {
-    if (!(error instanceof Error)) return false;
-
-    try {
-      const parsed = JSON.parse(error.message);
-
-      return parsed?.error?.status === 404;
-    } catch {
-      return false;
     }
   }
 

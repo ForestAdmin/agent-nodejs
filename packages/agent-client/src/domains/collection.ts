@@ -36,6 +36,7 @@ export default class Collection extends CollectionChart {
       this.httpRequester,
       ids,
       actionInfo.hooks,
+      actionInfo.fields,
     );
 
     const action = new Action(
@@ -171,7 +172,7 @@ export default class Collection extends CollectionChart {
     actionEndpoints: ActionEndpointsByCollection,
     collectionName: string,
     actionName: string,
-  ): { endpoint: string; hooks?: ActionHooks } {
+  ): { endpoint: string; hooks?: ActionHooks; fields?: Array<{ field: string; type: string; isRequired?: boolean; defaultValue?: unknown }> } {
     const collection = actionEndpoints[collectionName];
     if (!collection) throw new Error(`Collection ${collectionName} not found in schema`);
 
@@ -185,6 +186,6 @@ export default class Collection extends CollectionChart {
       throw new Error(`Action ${actionName} not found in collection ${collectionName}`);
     }
 
-    return { endpoint: action.endpoint, hooks: action.hooks };
+    return { endpoint: action.endpoint, hooks: action.hooks, fields: action.fields };
   }
 }
