@@ -62,7 +62,7 @@ export default class Action {
           ids: this.ids,
           values: this.fieldsFormStates.getFieldValues(),
           signed_approval_request: signedApprovalRequest,
-          ...(this.actionId && { smart_action_id: this.actionId }),
+          ...(this.actionId !== undefined && { smart_action_id: this.actionId }),
         },
         type: 'custom-action-requests',
       },
