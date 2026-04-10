@@ -531,6 +531,52 @@ describe('ForestOAuthProvider', () => {
       );
     });
 
+    it('should convert non-empty tags to array format for Ruby compatibility', async () => {
+      mockGetUserInfo.mockResolvedValue({
+        id: 123,
+        email: 'user@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        team: 'Operations',
+        role: 'Admin',
+        tags: { region: 'EU', plan: 'enterprise' },
+        renderingId: 456,
+        permissionLevel: 'admin',
+      });
+
+      mockServer
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+        })
+        .post('/oauth/token', {
+          access_token: 'forest-access-token',
+          refresh_token: 'forest-refresh-token',
+          expires_in: 3600,
+          token_type: 'Bearer',
+          scope: 'mcp:read',
+        });
+      global.fetch = mockServer.fetch;
+
+      const provider = createProvider();
+      await provider.exchangeAuthorizationCode(
+        mockClient,
+        'auth-code-123',
+        'code-verifier-456',
+        'https://example.com/callback',
+      );
+
+      expect(mockJwtSign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: [
+            { key: 'region', value: 'EU' },
+            { key: 'plan', value: 'enterprise' },
+          ],
+        }),
+        'test-auth-secret',
+        { expiresIn: expect.any(Number) },
+      );
+    });
+
     it('should throw error when token exchange fails', async () => {
       mockServer
         .get('/liana/environment', {
