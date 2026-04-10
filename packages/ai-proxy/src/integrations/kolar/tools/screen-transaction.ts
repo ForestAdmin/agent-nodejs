@@ -42,11 +42,7 @@ export default function createScreenTransactionTool(
       matchBirthPlace: z.string().optional().describe('Match birth place'),
       matchCountryCode: z.string().optional().describe('Match country code'),
       matchRole: z.string().optional().describe('Match role'),
-      additionalData: z
-        .record(z.string(), z.unknown())
-        .optional()
-        .default({})
-        .describe('Additional data'),
+      additionalData: z.record(z.string(), z.unknown()).optional().describe('Additional data'),
     }),
     func: async inputs => {
       const createResponse = await fetch(`${baseUrl}/alert/create`, {
