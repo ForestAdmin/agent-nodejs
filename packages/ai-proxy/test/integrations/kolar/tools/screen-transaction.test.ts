@@ -82,7 +82,7 @@ describe('createScreenTransactionTool', () => {
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/alert/create`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ ...input, additionalData: {} }),
+      body: JSON.stringify(input),
     });
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/alert-job/create/42`, {
       method: 'POST',
