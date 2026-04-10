@@ -1,3 +1,18 @@
+## @forestadmin/agent-client [1.4.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.20...@forestadmin/agent-client@1.4.21) (2026-04-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** action execution on v1 agent  ([#1542](https://github.com/ForestAdmin/agent-nodejs/issues/1542)) ([01b1a64](https://github.com/ForestAdmin/agent-nodejs/commit/01b1a64a7e0fbf8d5d47ebf0f9b1fc933c6709aa))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.4
+
 ## @forestadmin/agent-client [1.4.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.19...@forestadmin/agent-client@1.4.20) (2026-04-10)
 
 
