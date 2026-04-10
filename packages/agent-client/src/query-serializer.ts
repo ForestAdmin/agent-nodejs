@@ -24,18 +24,30 @@ export default class QuerySerializer {
     return sort.ascending ? sort.field : `-${sort.field}`;
   }
 
+  /**
+   * Serialize filters to JSON with snake_case operators and aggregators.
+   *
+   * Internally, operators use PascalCase (e.g. `Equal`, `GreaterThan`) to match
+   * the datasource-toolkit convention. However, HTTP backends expect snake_case:
+   * - Ruby (forest_liana): requires `equal`, `greater_than`, etc.
+   * - Node (@forestadmin/agent): accepts snake_case via ConditionTreeParser.toPascalCase()
+   *
+   * Converting to snake_case here ensures compatibility with both backends.
+   */
   private static formatFilters(filters: PlainFilter['conditionTree']): string {
     if (!filters) return undefined;
 
     return JSON.stringify(QuerySerializer.toSnakeCaseOperators(filters));
   }
 
+  /**
+   * Recursively walk the condition tree and convert operators/aggregators to snake_case.
+   */
   private static toSnakeCaseOperators(node: unknown): unknown {
     if (!node || typeof node !== 'object') return node;
 
     const obj = node as Record<string, unknown>;
 
-    // Leaf: { field, operator, value }
     if ('operator' in obj) {
       return {
         ...obj,
@@ -43,7 +55,6 @@ export default class QuerySerializer {
       };
     }
 
-    // Branch: { aggregator, conditions }
     if ('aggregator' in obj && Array.isArray(obj.conditions)) {
       return {
         aggregator: (obj.aggregator as string).toLowerCase(),
@@ -54,6 +65,12 @@ export default class QuerySerializer {
     return obj;
   }
 
+  /**
+   * Convert PascalCase to snake_case.
+   * Two passes handle different patterns:
+   * - Pass 1: lowercase→uppercase boundaries (e.g. `greaterThan` → `greater_Than`)
+   * - Pass 2: uppercase sequences (e.g. `IContains` → `I_Contains`, `PreviousXDays` → `PreviousX_Days`)
+   */
   private static toSnakeCase(value: string): string {
     return value
       .replace(/([a-z])([A-Z])/g, '$1_$2')
