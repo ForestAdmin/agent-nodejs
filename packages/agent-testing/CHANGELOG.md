@@ -1,3 +1,20 @@
+## @forestadmin/agent-testing [1.1.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.4...@forestadmin/agent-testing@1.1.5) (2026-04-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** action execution on v1 agent  ([#1542](https://github.com/ForestAdmin/agent-nodejs/issues/1542)) ([01b1a64](https://github.com/ForestAdmin/agent-nodejs/commit/01b1a64a7e0fbf8d5d47ebf0f9b1fc933c6709aa))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.21
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.4
+* **@forestadmin/agent:** upgraded to 1.76.5
+
 ## @forestadmin/agent-testing [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.3...@forestadmin/agent-testing@1.1.4) (2026-04-10)
 
 
