@@ -12,6 +12,7 @@ import type {
 } from '@forestadmin/datasource-customizer';
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
+import type { ToolName } from '@forestadmin/mcp-server';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
@@ -47,7 +48,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
-  private mcpDisabledTools?: string[];
+  private mcpDisabledTools?: ToolName[];
 
   /**
    * Create a new Agent Builder.
@@ -210,7 +211,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * // Or with options:
    * agent.mountAiMcpServer({ disabledTools: ['create', 'update', 'delete'] });
    */
-  mountAiMcpServer(options?: { disabledTools?: string[] }): this {
+  mountAiMcpServer(options?: { disabledTools?: ToolName[] }): this {
     this.mcpEnabled = true;
     this.mcpDisabledTools = options?.disabledTools;
 
