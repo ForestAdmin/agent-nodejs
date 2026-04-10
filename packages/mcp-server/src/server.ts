@@ -87,6 +87,18 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
 };
 
+export type ToolName =
+  | 'describeCollection'
+  | 'list'
+  | 'listRelated'
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'associate'
+  | 'dissociate'
+  | 'getActionForm'
+  | 'executeAction';
+
 /**
  * Options for configuring the Forest Admin MCP Server
  */
@@ -103,12 +115,8 @@ export interface ForestMCPServerOptions {
   logger?: Logger;
   /** Optional Forest server client for dependency injection (from agent integration) */
   forestServerClient?: ForestServerClient;
-  /**
-   * List of tool names to disable. Use this to restrict which tools are exposed.
-   * Available tool names: describeCollection, list, listRelated, create, update,
-   * delete, associate, dissociate, getActionForm, executeAction
-   */
-  disabledTools?: string[];
+  /** List of tool names to disable. Use this to restrict which tools are exposed. */
+  disabledTools?: ToolName[];
 }
 
 /**
