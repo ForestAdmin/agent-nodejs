@@ -9,6 +9,7 @@ export default class SchemaConverter {
         (acc, action) => ({
           ...acc,
           [action.name]: {
+            id: action.id,
             name: action.name,
             endpoint: action.endpoint,
             hooks: action.hooks,
