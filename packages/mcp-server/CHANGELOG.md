@@ -1,3 +1,18 @@
+## @forestadmin/mcp-server [1.8.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.14...@forestadmin/mcp-server@1.8.15) (2026-04-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** add snake_case JWT claims for Ruby backend compatibility ([#1538](https://github.com/ForestAdmin/agent-nodejs/issues/1538)) ([b3b7dcd](https://github.com/ForestAdmin/agent-nodejs/commit/b3b7dcd5605867447eb2a996c4db35ba98402e62))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.20
+
 ## @forestadmin/mcp-server [1.8.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.13...@forestadmin/mcp-server@1.8.14) (2026-04-08)
 
 
