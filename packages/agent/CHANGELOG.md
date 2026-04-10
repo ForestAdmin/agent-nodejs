@@ -1,3 +1,13 @@
+## @forestadmin/agent [1.76.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.76.3...@forestadmin/agent@1.76.4) (2026-04-10)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.8.15
+
 ## @forestadmin/agent [1.76.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.76.2...@forestadmin/agent@1.76.3) (2026-04-08)
 
 
