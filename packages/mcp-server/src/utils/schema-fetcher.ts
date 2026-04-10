@@ -143,7 +143,7 @@ export function getActionEndpoints(schema: ForestSchema): ActionEndpointsByColle
           name: action.name,
           endpoint: action.endpoint,
           hooks: action.hooks,
-          fields: action.fields as ActionEndpointsByCollection[string][string]['fields'],
+          fields: action.fields,
         };
       }
     }
