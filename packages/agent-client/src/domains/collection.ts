@@ -1,5 +1,5 @@
 import type { ExportOptions, LiveQueryOptions, SelectOptions } from '../types';
-import type { ActionEndpointsByCollection, BaseActionContext } from './action';
+import type { ActionEndpointsByCollection, ActionHooks, BaseActionContext } from './action';
 import type HttpRequester from '../http-requester';
 import type { WriteStream } from 'fs';
 
@@ -26,18 +26,25 @@ export default class Collection extends CollectionChart {
   }
 
   async action(actionName: string, actionContext?: BaseActionContext): Promise<Action> {
-    const actionPath = this.getActionPath(this.actionEndpoints, this.name, actionName);
+    const actionInfo = this.getActionInfo(this.actionEndpoints, this.name, actionName);
     const ids = (actionContext?.recordIds ?? [actionContext?.recordId]).filter(Boolean).map(String);
 
     const fieldsFormStates = new FieldFormStates(
       actionName,
-      actionPath,
+      actionInfo.endpoint,
       this.name,
       this.httpRequester,
       ids,
+      actionInfo.hooks,
     );
 
-    const action = new Action(this.name, this.httpRequester, actionPath, fieldsFormStates, ids);
+    const action = new Action(
+      this.name,
+      this.httpRequester,
+      actionInfo.endpoint,
+      fieldsFormStates,
+      ids,
+    );
 
     await fieldsFormStates.loadInitialState();
 
@@ -160,11 +167,11 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  private getActionPath(
+  private getActionInfo(
     actionEndpoints: ActionEndpointsByCollection,
     collectionName: string,
     actionName: string,
-  ): string {
+  ): { endpoint: string; hooks?: ActionHooks } {
     const collection = actionEndpoints[collectionName];
     if (!collection) throw new Error(`Collection ${collectionName} not found in schema`);
 
@@ -178,6 +185,6 @@ export default class Collection extends CollectionChart {
       throw new Error(`Action ${actionName} not found in collection ${collectionName}`);
     }
 
-    return action.endpoint;
+    return { endpoint: action.endpoint, hooks: action.hooks };
   }
 }

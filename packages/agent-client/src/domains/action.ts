@@ -21,9 +21,14 @@ export type BaseActionContext = {
   recordIds?: string[] | number[];
 };
 
+export type ActionHooks = {
+  load: boolean;
+  change: unknown[];
+};
+
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
-    [actionName: string]: { name: string; endpoint: string };
+    [actionName: string]: { name: string; endpoint: string; hooks?: ActionHooks };
   };
 };
 export default class Action {

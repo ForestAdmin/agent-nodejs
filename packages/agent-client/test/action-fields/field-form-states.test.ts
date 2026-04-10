@@ -262,4 +262,97 @@ describe('FieldFormStates', () => {
       expect(fieldFormStates.getLayout()).toEqual(newLayout);
     });
   });
+
+  describe('hooks configuration', () => {
+    it('should skip loadInitialState when hooks.load is false', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+      );
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+    });
+
+    it('should call loadInitialState when hooks.load is true', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: [] },
+      );
+
+      httpRequester.query.mockResolvedValue({ fields: [], layout: [] });
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/actions/test-action/hooks/load' }),
+      );
+    });
+
+    it('should skip change hook when hooks.change is empty', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: [] },
+      );
+
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'initial' },
+        ],
+        layout: [],
+      });
+      await formStates.loadInitialState();
+
+      httpRequester.query.mockClear();
+      await formStates.setFieldValue('name', 'updated');
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+    });
+
+    it('should call change hook when hooks.change is non-empty', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: ['name'] },
+      );
+
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'initial' },
+        ],
+        layout: [],
+      });
+      await formStates.loadInitialState();
+
+      httpRequester.query.mockClear();
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'updated' },
+        ],
+        layout: [],
+      });
+
+      await formStates.setFieldValue('name', 'updated');
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/actions/test-action/hooks/change' }),
+      );
+    });
+  });
 });

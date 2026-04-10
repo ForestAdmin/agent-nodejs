@@ -1,4 +1,5 @@
 import type { PlainField, ResponseBody } from './types';
+import type { ActionHooks } from '../domains/action';
 import type HttpRequester from '../http-requester';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
@@ -13,6 +14,7 @@ export default class FieldFormStates {
   private readonly httpRequester: HttpRequester;
   private readonly ids: string[];
   private readonly layout: ForestServerActionFormLayoutElement[];
+  private readonly hooks?: ActionHooks;
 
   constructor(
     actionName: string,
@@ -20,6 +22,7 @@ export default class FieldFormStates {
     collectionName: string,
     httpRequester: HttpRequester,
     ids: string[],
+    hooks?: ActionHooks,
   ) {
     this.fields = [];
     this.actionName = actionName;
@@ -28,6 +31,7 @@ export default class FieldFormStates {
     this.httpRequester = httpRequester;
     this.ids = ids;
     this.layout = [];
+    this.hooks = hooks;
   }
 
   getFieldValues(): Record<string, unknown> {
@@ -59,10 +63,15 @@ export default class FieldFormStates {
     if (!field) throw new Error(`Field "${name}" not found in action "${this.actionName}"`);
 
     field.getPlainField().value = value;
-    await this.loadChanges(name);
+
+    if (!this.hooks || this.hooks.change.length > 0) {
+      await this.loadChanges(name);
+    }
   }
 
   async loadInitialState(): Promise<void> {
+    if (this.hooks && !this.hooks.load) return;
+
     const requestBody = {
       data: {
         attributes: {
@@ -81,7 +90,7 @@ export default class FieldFormStates {
     });
 
     this.clearFieldsAndLayout();
-    this.layout.push(...queryResults.layout);
+    this.layout.push(...(queryResults.layout ?? []));
     this.addFields(queryResults.fields);
   }
 
