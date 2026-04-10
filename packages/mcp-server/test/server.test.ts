@@ -1500,8 +1500,8 @@ describe('ForestMCPServer Instance', () => {
           expect(response.status).toBe(200);
           const filters = JSON.parse(capturedQueryParams.filters as string);
           expect(filters).toEqual({
-            aggregator: 'And',
-            conditions: [{ field: 'name', operator: 'Equal', value: 'John' }],
+            aggregator: 'and',
+            conditions: [{ field: 'name', operator: 'equal', value: 'John' }],
           });
         });
 
@@ -1534,10 +1534,10 @@ describe('ForestMCPServer Instance', () => {
           expect(response.status).toBe(200);
           const filters = JSON.parse(capturedQueryParams.filters as string);
           expect(filters).toEqual({
-            aggregator: 'And',
+            aggregator: 'and',
             conditions: [
-              { field: 'name', operator: 'Contains', value: 'John' },
-              { field: 'email', operator: 'EndsWith', value: '@example.com' },
+              { field: 'name', operator: 'contains', value: 'John' },
+              { field: 'email', operator: 'ends_with', value: '@example.com' },
             ],
           });
         });
@@ -1576,7 +1576,7 @@ describe('ForestMCPServer Instance', () => {
 
           expect(response.status).toBe(200);
           const filters = JSON.parse(capturedQueryParams.filters as string);
-          expect(filters.aggregator).toBe('Or');
+          expect(filters.aggregator).toBe('or');
           expect(filters.conditions).toHaveLength(2);
         });
 
@@ -1609,7 +1609,10 @@ describe('ForestMCPServer Instance', () => {
 
           expect(response.status).toBe(200);
           const filters = JSON.parse(capturedQueryParams.filters as string);
-          expect(filters).toEqual(filterObject);
+          expect(filters).toEqual({
+            aggregator: 'and',
+            conditions: [{ field: 'name', operator: 'equal', value: 'Jane' }],
+          });
         });
       });
 
@@ -1913,8 +1916,12 @@ describe('ForestMCPServer Instance', () => {
           const listParams = JSON.parse(listCalls[0]);
           const countParams = JSON.parse(countCalls[0]);
 
-          expect(JSON.parse(listParams.filters)).toEqual(filterCondition);
-          expect(JSON.parse(countParams.filters)).toEqual(filterCondition);
+          const expectedSnakeCase = {
+            aggregator: 'and',
+            conditions: [{ field: 'id', operator: 'greater_than', value: 5 }],
+          };
+          expect(JSON.parse(listParams.filters)).toEqual(expectedSnakeCase);
+          expect(JSON.parse(countParams.filters)).toEqual(expectedSnakeCase);
         });
       });
 
@@ -1957,8 +1964,8 @@ describe('ForestMCPServer Instance', () => {
 
           const filters = JSON.parse(capturedQueryParams.filters as string);
           expect(filters).toEqual({
-            aggregator: 'And',
-            conditions: [{ field: 'email', operator: 'Present' }],
+            aggregator: 'and',
+            conditions: [{ field: 'email', operator: 'present' }],
           });
         });
       });

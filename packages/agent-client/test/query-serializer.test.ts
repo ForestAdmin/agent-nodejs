@@ -106,14 +106,64 @@ describe('QuerySerializer', () => {
       expect(result.sort).toBe('-name');
     });
 
-    it('should serialize filters with conditionTree', () => {
+    it('should serialize filters with conditionTree and convert operators to snake_case', () => {
       const filters = {
         field: 'status',
         operator: 'Equal' as const,
         value: 'active',
       };
       const result = QuerySerializer.serialize({ filters }, 'users');
-      expect(result.filters).toBe(JSON.stringify(filters));
+      expect(result.filters).toBe(
+        JSON.stringify({ field: 'status', operator: 'equal', value: 'active' }),
+      );
+    });
+
+    it('should convert PascalCase operators to snake_case in nested conditions', () => {
+      const filters = {
+        aggregator: 'And' as const,
+        conditions: [
+          { field: 'status', operator: 'Equal' as const, value: 'active' },
+          { field: 'age', operator: 'GreaterThan' as const, value: 18 },
+        ],
+      };
+      const result = QuerySerializer.serialize({ filters }, 'users');
+      const parsed = JSON.parse(result.filters as string);
+      expect(parsed.aggregator).toBe('and');
+      expect(parsed.conditions[0].operator).toBe('equal');
+      expect(parsed.conditions[1].operator).toBe('greater_than');
+    });
+
+    it('should convert multi-word PascalCase operators to snake_case', () => {
+      const filters = {
+        aggregator: 'Or' as const,
+        conditions: [
+          { field: 'date', operator: 'PreviousXDaysToDate' as const, value: 7 },
+          { field: 'name', operator: 'NotContains' as const, value: 'test' },
+          { field: 'time', operator: 'BeforeXHoursAgo' as const, value: 24 },
+        ],
+      };
+      const result = QuerySerializer.serialize({ filters }, 'users');
+      const parsed = JSON.parse(result.filters as string);
+      expect(parsed.aggregator).toBe('or');
+      expect(parsed.conditions[0].operator).toBe('previous_x_days_to_date');
+      expect(parsed.conditions[1].operator).toBe('not_contains');
+      expect(parsed.conditions[2].operator).toBe('before_x_hours_ago');
+    });
+
+    it('should convert I-prefixed operators to snake_case', () => {
+      const filters = {
+        aggregator: 'And' as const,
+        conditions: [
+          { field: 'name', operator: 'IContains' as const, value: 'foo' },
+          { field: 'name', operator: 'ILike' as const, value: '%bar%' },
+          { field: 'name', operator: 'NotIContains' as const, value: 'baz' },
+        ],
+      };
+      const result = QuerySerializer.serialize({ filters }, 'users');
+      const parsed = JSON.parse(result.filters as string);
+      expect(parsed.conditions[0].operator).toBe('i_contains');
+      expect(parsed.conditions[1].operator).toBe('i_like');
+      expect(parsed.conditions[2].operator).toBe('not_i_contains');
     });
 
     it('should serialize complex query with multiple options', () => {
@@ -140,7 +190,9 @@ describe('QuerySerializer', () => {
       expect(result['page[number]']).toBe(1);
       expect(result['fields[users]']).toEqual(['id', 'name']);
       expect(result.sort).toBe('-createdAt');
-      expect(result.filters).toBe(JSON.stringify(filters));
+      const parsed = JSON.parse(result.filters as string);
+      expect(parsed.conditions[0].operator).toBe('equal');
+      expect(parsed.conditions[1].operator).toBe('greater_than');
     });
 
     it('should handle collection names with special characters', () => {
