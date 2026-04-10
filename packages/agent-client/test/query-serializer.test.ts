@@ -150,6 +150,22 @@ describe('QuerySerializer', () => {
       expect(parsed.conditions[2].operator).toBe('before_x_hours_ago');
     });
 
+    it('should convert I-prefixed operators to snake_case', () => {
+      const filters = {
+        aggregator: 'And' as const,
+        conditions: [
+          { field: 'name', operator: 'IContains' as const, value: 'foo' },
+          { field: 'name', operator: 'ILike' as const, value: '%bar%' },
+          { field: 'name', operator: 'NotIContains' as const, value: 'baz' },
+        ],
+      };
+      const result = QuerySerializer.serialize({ filters }, 'users');
+      const parsed = JSON.parse(result.filters as string);
+      expect(parsed.conditions[0].operator).toBe('i_contains');
+      expect(parsed.conditions[1].operator).toBe('i_like');
+      expect(parsed.conditions[2].operator).toBe('not_i_contains');
+    });
+
     it('should serialize complex query with multiple options', () => {
       const filters = {
         aggregator: 'And' as const,
