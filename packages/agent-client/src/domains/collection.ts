@@ -1,7 +1,7 @@
 import type { ExportOptions, LiveQueryOptions, SelectOptions } from '../types';
 import type { ActionEndpointsByCollection, BaseActionContext } from './action';
-import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 import type HttpRequester from '../http-requester';
+import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 import type { WriteStream } from 'fs';
 
 import Action from './action';

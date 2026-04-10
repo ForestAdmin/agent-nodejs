@@ -111,7 +111,6 @@ export function getActionsOfCollection(
   return collection.actions || [];
 }
 
-// Re-exported from agent-client to avoid type duplication
 export type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 
 /**
