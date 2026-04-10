@@ -103,6 +103,12 @@ export interface ForestMCPServerOptions {
   logger?: Logger;
   /** Optional Forest server client for dependency injection (from agent integration) */
   forestServerClient?: ForestServerClient;
+  /**
+   * List of tool names to disable. Use this to restrict which tools are exposed.
+   * Available tool names: describeCollection, list, listRelated, create, update,
+   * delete, associate, dissociate, getActionForm, executeAction
+   */
+  disabledTools?: string[];
 }
 
 /**
@@ -123,6 +129,7 @@ export default class ForestMCPServer {
   private authSecret?: string;
   private logger: Logger;
   private collectionNames: string[] = [];
+  private disabledTools: Set<string>;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -130,6 +137,7 @@ export default class ForestMCPServer {
     this.envSecret = options?.envSecret;
     this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
+    this.disabledTools = new Set(options?.disabledTools ?? []);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -161,33 +169,22 @@ export default class ForestMCPServer {
       icons: [{ src: LOGO_URL, mimeType: 'image/png' }],
     });
 
-    const toolNames = [
-      declareDescribeCollectionTool(
-        mcpServer,
-        this.forestServerClient,
-        this.logger,
-        this.collectionNames,
-      ),
-      declareListTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      declareListRelatedTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      declareCreateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      declareUpdateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      declareDeleteTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      declareAssociateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      declareDissociateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      declareGetActionFormTool(
-        mcpServer,
-        this.forestServerClient,
-        this.logger,
-        this.collectionNames,
-      ),
-      declareExecuteActionTool(
-        mcpServer,
-        this.forestServerClient,
-        this.logger,
-        this.collectionNames,
-      ),
+    const allTools: Array<{ name: string; register: () => string }> = [
+      { name: 'describeCollection', register: () => declareDescribeCollectionTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'list', register: () => declareListTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'listRelated', register: () => declareListRelatedTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'create', register: () => declareCreateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'update', register: () => declareUpdateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'delete', register: () => declareDeleteTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'associate', register: () => declareAssociateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'dissociate', register: () => declareDissociateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'getActionForm', register: () => declareGetActionFormTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
+      { name: 'executeAction', register: () => declareExecuteActionTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames) },
     ];
+
+    const toolNames = allTools
+      .filter(tool => !this.disabledTools.has(tool.name))
+      .map(tool => tool.register());
 
     this.logger('Debug', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
 

@@ -2733,6 +2733,34 @@ describe('handleMcpRequest cleanup', () => {
   });
 });
 
+describe('disabledTools', () => {
+  const savedFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = savedFetch;
+  });
+
+  it('should accept disabledTools option and build server', async () => {
+    const mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', { data: [], meta: {} });
+
+    global.fetch = mockFetchServer.fetch;
+
+    const disabledServer = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      disabledTools: ['create', 'update', 'delete', 'associate', 'dissociate'],
+    });
+
+    const app = await disabledServer.buildExpressApp(new URL('http://localhost:3000'));
+    expect(app).toBeDefined();
+  });
+});
+
 describe('Logo URL', () => {
   it('should reference an accessible PNG image', async () => {
     const response = await fetch(LOGO_URL, { method: 'HEAD' });
