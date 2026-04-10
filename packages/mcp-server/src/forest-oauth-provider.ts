@@ -345,7 +345,19 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     const expiresIn = expirationDate - Math.floor(Date.now() / 1000);
     const tokenScopes = scope ? scope.split(' ') : ['mcp:read', 'mcp:write', 'mcp:action'];
     const accessToken = jsonwebtoken.sign(
-      { ...user, serverToken: forestServerAccessToken, scopes: tokenScopes },
+      {
+        ...user,
+        // snake_case duplicates for Ruby (forest_liana) compatibility
+        first_name: user.firstName,
+        last_name: user.lastName,
+        rendering_id: String(renderingId),
+        permission_level: user.permissionLevel,
+        tags: user.tags
+          ? Object.entries(user.tags).map(([key, value]) => ({ key, value }))
+          : [],
+        serverToken: forestServerAccessToken,
+        scopes: tokenScopes,
+      },
       this.authSecret,
       { expiresIn },
     );

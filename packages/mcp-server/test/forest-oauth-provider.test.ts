@@ -502,6 +502,15 @@ describe('ForestOAuthProvider', () => {
         expect.objectContaining({
           id: 123,
           email: 'user@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          renderingId: 456,
+          // snake_case duplicates for Ruby (forest_liana) compatibility
+          first_name: 'Test',
+          last_name: 'User',
+          rendering_id: '456',
+          permission_level: 'admin',
+          tags: [],
           serverToken: 'forest-access-token',
         }),
         'test-auth-secret',
