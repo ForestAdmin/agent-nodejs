@@ -112,6 +112,8 @@ export default class FieldFormStates {
       // and only swallow 404 errors for Ruby users. Other errors (401, 500,
       // network failures) are rethrown so they surface properly.
       if (this.hooks && !this.hooks.load && HttpRequester.is404Error(error)) {
+        this.clearFieldsAndLayout();
+
         if (this.fallbackFields?.length) {
           this.addFields(
             this.fallbackFields.map(f => ({

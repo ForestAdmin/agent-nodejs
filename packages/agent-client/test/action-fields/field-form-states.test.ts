@@ -285,7 +285,9 @@ describe('FieldFormStates', () => {
 
       await formStates.loadInitialState();
 
-      expect(httpRequester.query).toHaveBeenCalled();
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/actions/test-action/hooks/load' }),
+      );
       expect(formStates.getFields()).toHaveLength(0);
     });
 
