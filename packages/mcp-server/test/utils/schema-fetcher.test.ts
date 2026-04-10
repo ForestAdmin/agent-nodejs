@@ -206,18 +206,25 @@ describe('schema-fetcher', () => {
       expect(result).toEqual({
         users: {
           'Send Email': {
+            id: 'action-send-email',
             name: 'Send Email',
             endpoint: '/forest/_actions/users/0/send-email',
             hooks,
           },
           'Reset Password': {
+            id: 'action-reset-password',
             name: 'Reset Password',
             endpoint: '/forest/_actions/users/1/reset-password',
             hooks,
           },
         },
         orders: {
-          Refund: { name: 'Refund', endpoint: '/forest/_actions/orders/0/refund', hooks },
+          Refund: {
+            id: 'action-refund',
+            name: 'Refund',
+            endpoint: '/forest/_actions/orders/0/refund',
+            hooks,
+          },
         },
       });
     });
@@ -252,6 +259,7 @@ describe('schema-fetcher', () => {
       expect(result).toEqual({
         orders: {
           Ship: {
+            id: 'action-ship',
             name: 'Ship',
             endpoint: '/forest/_actions/orders/0/ship',
             hooks: { load: false, change: [] },

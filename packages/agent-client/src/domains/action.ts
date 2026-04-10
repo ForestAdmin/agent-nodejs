@@ -29,6 +29,7 @@ export type ActionHooks = {
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
     [actionName: string]: {
+      id?: string;
       name: string;
       endpoint: string;
       hooks?: ActionHooks;
@@ -42,6 +43,7 @@ export default class Action {
   private readonly httpRequester: HttpRequester;
   protected readonly fieldsFormStates: FieldFormStates;
   private readonly ids: (string | number)[];
+  private readonly actionId: string | undefined;
   private actionPath: string;
 
   constructor(
@@ -50,12 +52,14 @@ export default class Action {
     actionPath: string,
     fieldsFormStates: FieldFormStates,
     ids?: (string | number)[],
+    actionId?: string,
   ) {
     this.collectionName = collectionName;
     this.httpRequester = httpRequester;
     this.ids = ids ?? undefined;
     this.actionPath = actionPath;
     this.fieldsFormStates = fieldsFormStates;
+    this.actionId = actionId;
   }
 
   async execute(
@@ -68,6 +72,7 @@ export default class Action {
           ids: this.ids,
           values: this.fieldsFormStates.getFieldValues(),
           signed_approval_request: signedApprovalRequest,
+          ...(this.actionId && { smart_action_id: this.actionId }),
         },
         type: 'custom-action-requests',
       },

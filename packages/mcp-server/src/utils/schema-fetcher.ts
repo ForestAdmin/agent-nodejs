@@ -114,6 +114,7 @@ export function getActionsOfCollection(
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
     [actionName: string]: {
+      id?: string;
       name: string;
       endpoint: string;
       hooks?: { load: boolean; change: unknown[] };
@@ -138,6 +139,7 @@ export function getActionEndpoints(schema: ForestSchema): ActionEndpointsByColle
 
       for (const action of collection.actions) {
         actionEndpoints[collection.name][action.name] = {
+          id: action.id,
           name: action.name,
           endpoint: action.endpoint,
           hooks: action.hooks,

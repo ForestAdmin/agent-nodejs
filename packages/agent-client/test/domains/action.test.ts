@@ -59,6 +59,43 @@ describe('Action', () => {
       expect(result).toEqual({ success: 'Action executed' });
     });
 
+    it('should include smart_action_id when actionId is provided', async () => {
+      const actionWithId = new Action(
+        'users',
+        httpRequester,
+        '/forest/actions/send-email',
+        fieldsFormStates,
+        ['1'],
+        'users-0-send-email',
+      );
+
+      httpRequester.query.mockResolvedValue({ success: 'Action executed' });
+
+      await actionWithId.execute();
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'post',
+        path: '/forest/actions/send-email',
+        body: {
+          data: {
+            attributes: expect.objectContaining({
+              smart_action_id: 'users-0-send-email',
+            }),
+            type: 'custom-action-requests',
+          },
+        },
+      });
+    });
+
+    it('should not include smart_action_id when actionId is not provided', async () => {
+      httpRequester.query.mockResolvedValue({ success: 'Action executed' });
+
+      await action.execute();
+
+      const body = httpRequester.query.mock.calls[0][0].body as any;
+      expect(body.data.attributes).not.toHaveProperty('smart_action_id');
+    });
+
     it('should include signed approval request when provided', async () => {
       httpRequester.query.mockResolvedValue({ success: 'Action executed' });
       const signedApprovalRequest = { token: 'approval-token', requesterId: '123' };
