@@ -83,6 +83,19 @@ describe('FieldFormStates', () => {
       expect(fieldFormStates.getLayout()).toEqual(mockLayout);
     });
 
+    it('should handle missing layout in response', async () => {
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: '' },
+        ],
+      });
+
+      await fieldFormStates.loadInitialState();
+
+      expect(fieldFormStates.getFields()).toHaveLength(1);
+      expect(fieldFormStates.getLayout()).toEqual([]);
+    });
+
     it('should clear previous fields and layout on reload', async () => {
       // First load
       httpRequester.query.mockResolvedValue({
