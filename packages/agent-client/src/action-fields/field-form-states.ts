@@ -70,8 +70,6 @@ export default class FieldFormStates {
   }
 
   async loadInitialState(): Promise<void> {
-    if (this.hooks && !this.hooks.load) return;
-
     const requestBody = {
       data: {
         attributes: {
@@ -83,15 +81,33 @@ export default class FieldFormStates {
       },
     };
 
-    const queryResults = await this.httpRequester.query<ResponseBody>({
-      method: 'post',
-      path: `${this.actionPath}/hooks/load`,
-      body: requestBody,
-    });
+    try {
+      const queryResults = await this.httpRequester.query<ResponseBody>({
+        method: 'post',
+        path: `${this.actionPath}/hooks/load`,
+        body: requestBody,
+      });
 
-    this.clearFieldsAndLayout();
-    this.layout.push(...(queryResults.layout ?? []));
-    this.addFields(queryResults.fields);
+      this.clearFieldsAndLayout();
+      this.layout.push(...(queryResults.layout ?? []));
+      this.addFields(queryResults.fields);
+    } catch (error) {
+      // When hooks.load is false, the behavior differs between backends:
+      //
+      // - Node agent (@forestadmin/agent): always responds to POST /hooks/load
+      //   with the form fields, even when hooks.load is false in the schema.
+      //   In this case the call above succeeds and fields are loaded normally.
+      //
+      // - Ruby agent (forest_liana): does NOT register a route for /hooks/load
+      //   when hooks.load is false. The POST returns a 404.
+      //   In this case we catch the error and continue with an empty form,
+      //   which matches the expected behavior (no dynamic fields to load).
+      //
+      // We always attempt the call so Node users get their fields,
+      // and gracefully handle the 404 for Ruby users.
+      if (this.hooks && !this.hooks.load) return;
+      throw error;
+    }
   }
 
   private addFields(plainFields: PlainField[]): void {

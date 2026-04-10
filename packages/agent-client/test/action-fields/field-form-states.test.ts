@@ -264,7 +264,7 @@ describe('FieldFormStates', () => {
   });
 
   describe('hooks configuration', () => {
-    it('should skip loadInitialState when hooks.load is false', async () => {
+    it('should not throw when hooks.load is false and server returns 404', async () => {
       const formStates = new FieldFormStates(
         'testAction',
         '/forest/actions/test-action',
@@ -274,9 +274,35 @@ describe('FieldFormStates', () => {
         { load: false, change: [] },
       );
 
+      httpRequester.query.mockRejectedValue(new Error('404 Not Found'));
+
       await formStates.loadInitialState();
 
-      expect(httpRequester.query).not.toHaveBeenCalled();
+      expect(httpRequester.query).toHaveBeenCalled();
+      expect(formStates.getFields()).toHaveLength(0);
+    });
+
+    it('should load fields when hooks.load is false but server responds successfully', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+      );
+
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'percentage', type: 'Number', isRequired: true, isReadOnly: false, value: 10 },
+        ],
+        layout: [],
+      });
+
+      await formStates.loadInitialState();
+
+      expect(formStates.getFields()).toHaveLength(1);
+      expect(formStates.getFields()[0].getName()).toBe('percentage');
     });
 
     it('should call loadInitialState when hooks.load is true', async () => {
