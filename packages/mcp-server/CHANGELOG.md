@@ -1,3 +1,18 @@
+## @forestadmin/mcp-server [1.8.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.16...@forestadmin/mcp-server@1.8.17) (2026-04-10)
+
+
+### Bug Fixes
+
+* **agent-client:** convert filter operators to snake_case for Ruby compatibility ([#1544](https://github.com/ForestAdmin/agent-nodejs/issues/1544)) ([00e8ad5](https://github.com/ForestAdmin/agent-nodejs/commit/00e8ad54c59d7f141c54a756f7a5921bb47f66dc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.22
+
 ## @forestadmin/mcp-server [1.8.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.15...@forestadmin/mcp-server@1.8.16) (2026-04-10)
 
 
