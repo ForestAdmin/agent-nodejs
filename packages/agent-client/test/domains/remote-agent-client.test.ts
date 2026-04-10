@@ -20,7 +20,13 @@ describe('RemoteAgentClient', () => {
       httpRequester,
       actionEndpoints: {
         users: {
-          sendEmail: { name: 'Send Email', endpoint: '/forest/actions/send-email' },
+          sendEmail: {
+            name: 'Send Email',
+            endpoint: '/forest/actions/send-email',
+            id: 'Send@@@Email',
+            hooks: { load: false, change: [] },
+            fields: [],
+          },
         },
       },
       overridePermissions: overridePermissionsMock,

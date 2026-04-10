@@ -201,16 +201,34 @@ describe('schema-fetcher', () => {
 
       const result = getActionEndpoints(schema);
 
+      const hooks = { load: false, change: [] };
+      const fields = [];
+
       expect(result).toEqual({
         users: {
-          'Send Email': { name: 'Send Email', endpoint: '/forest/_actions/users/0/send-email' },
+          'Send Email': {
+            id: 'action-send-email',
+            name: 'Send Email',
+            endpoint: '/forest/_actions/users/0/send-email',
+            hooks,
+            fields,
+          },
           'Reset Password': {
+            id: 'action-reset-password',
             name: 'Reset Password',
             endpoint: '/forest/_actions/users/1/reset-password',
+            hooks,
+            fields,
           },
         },
         orders: {
-          Refund: { name: 'Refund', endpoint: '/forest/_actions/orders/0/refund' },
+          Refund: {
+            id: 'action-refund',
+            name: 'Refund',
+            endpoint: '/forest/_actions/orders/0/refund',
+            hooks,
+            fields,
+          },
         },
       });
     });
@@ -244,7 +262,13 @@ describe('schema-fetcher', () => {
 
       expect(result).toEqual({
         orders: {
-          Ship: { name: 'Ship', endpoint: '/forest/_actions/orders/0/ship' },
+          Ship: {
+            id: 'action-ship',
+            name: 'Ship',
+            endpoint: '/forest/_actions/orders/0/ship',
+            hooks: { load: false, change: [] },
+            fields: [],
+          },
         },
       });
     });
