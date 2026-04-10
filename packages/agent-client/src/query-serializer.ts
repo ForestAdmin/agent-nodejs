@@ -28,7 +28,38 @@ export default class QuerySerializer {
   private static formatFilters(filters: PlainFilter['conditionTree']): string {
     if (!filters) return undefined;
 
-    return JSON.stringify(filters);
+    return JSON.stringify(QuerySerializer.toSnakeCaseOperators(filters));
+  }
+
+  private static toSnakeCaseOperators(node: unknown): unknown {
+    if (!node || typeof node !== 'object') return node;
+
+    const obj = node as Record<string, unknown>;
+
+    // Leaf: { field, operator, value }
+    if ('operator' in obj) {
+      return {
+        ...obj,
+        operator: QuerySerializer.toSnakeCase(obj.operator as string),
+      };
+    }
+
+    // Branch: { aggregator, conditions }
+    if ('aggregator' in obj && Array.isArray(obj.conditions)) {
+      return {
+        aggregator: (obj.aggregator as string).toLowerCase(),
+        conditions: obj.conditions.map(c => QuerySerializer.toSnakeCaseOperators(c)),
+      };
+    }
+
+    return obj;
+  }
+
+  private static toSnakeCase(value: string): string {
+    return value
+      .replace(/([a-z])([A-Z])/g, '$1_$2')
+      .replace(/([A-Z])([A-Z][a-z])/g, '$1_$2')
+      .toLowerCase();
   }
 
   private static formatFields(collectionName: string, fields: string[]): Record<string, string[]> {
