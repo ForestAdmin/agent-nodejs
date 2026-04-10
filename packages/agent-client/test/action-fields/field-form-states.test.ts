@@ -2,7 +2,11 @@ import type HttpRequester from '../../src/http-requester';
 
 import FieldFormStates from '../../src/action-fields/field-form-states';
 
-jest.mock('../../src/http-requester');
+jest.mock('../../src/http-requester', () => {
+  const actual = jest.requireActual('../../src/http-requester');
+
+  return { __esModule: true, default: actual.default };
+});
 
 describe('FieldFormStates', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
@@ -260,6 +264,176 @@ describe('FieldFormStates', () => {
       await fieldFormStates.setFieldValue('name', 'new');
 
       expect(fieldFormStates.getLayout()).toEqual(newLayout);
+    });
+  });
+
+  describe('hooks configuration', () => {
+    it('should not throw when hooks.load is false and server returns 404', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+      );
+
+      const error404 = new Error(
+        JSON.stringify({ error: { status: 404, text: 'Not Found' }, body: null }),
+      );
+      httpRequester.query.mockRejectedValue(error404);
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).toHaveBeenCalled();
+      expect(formStates.getFields()).toHaveLength(0);
+    });
+
+    it('should use fallback fields when hooks.load is false and server returns 404', async () => {
+      const fallbackFields = [
+        { field: 'percentage', type: 'Number', isRequired: true, defaultValue: 10 },
+        { field: 'note', type: 'String' },
+      ];
+
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+        fallbackFields,
+      );
+
+      const error404 = new Error(
+        JSON.stringify({ error: { status: 404, text: 'Not Found' }, body: null }),
+      );
+      httpRequester.query.mockRejectedValue(error404);
+
+      await formStates.loadInitialState();
+
+      expect(formStates.getFields()).toHaveLength(2);
+      expect(formStates.getFields()[0].getName()).toBe('percentage');
+      expect(formStates.getFields()[0].getValue()).toBe(10);
+      expect(formStates.getFields()[1].getName()).toBe('note');
+      expect(formStates.getFields()[1].getValue()).toBeUndefined();
+    });
+
+    it('should throw when hooks.load is false but server returns 500', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+      );
+
+      const error500 = new Error(
+        JSON.stringify({ error: { status: 500, text: 'Internal Server Error' }, body: null }),
+      );
+      httpRequester.query.mockRejectedValue(error500);
+
+      await expect(formStates.loadInitialState()).rejects.toThrow();
+    });
+
+    it('should load fields when hooks.load is false but server responds successfully', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+      );
+
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'percentage', type: 'Number', isRequired: true, isReadOnly: false, value: 10 },
+        ],
+        layout: [],
+      });
+
+      await formStates.loadInitialState();
+
+      expect(formStates.getFields()).toHaveLength(1);
+      expect(formStates.getFields()[0].getName()).toBe('percentage');
+    });
+
+    it('should call loadInitialState when hooks.load is true', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: [] },
+      );
+
+      httpRequester.query.mockResolvedValue({ fields: [], layout: [] });
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/actions/test-action/hooks/load' }),
+      );
+    });
+
+    it('should skip change hook when hooks.change is empty', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: [] },
+      );
+
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'initial' },
+        ],
+        layout: [],
+      });
+      await formStates.loadInitialState();
+
+      httpRequester.query.mockClear();
+      await formStates.setFieldValue('name', 'updated');
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+    });
+
+    it('should call change hook when hooks.change is non-empty', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: ['name'] },
+      );
+
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'initial' },
+        ],
+        layout: [],
+      });
+      await formStates.loadInitialState();
+
+      httpRequester.query.mockClear();
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'updated' },
+        ],
+        layout: [],
+      });
+
+      await formStates.setFieldValue('name', 'updated');
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/actions/test-action/hooks/change' }),
+      );
     });
   });
 });

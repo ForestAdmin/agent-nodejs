@@ -35,7 +35,7 @@ export default class HttpRequester {
     contentType?: 'application/json' | 'text/csv';
   }): Promise<Data> {
     try {
-      const url = new URL(`${this.baseUrl}${HttpRequester.escapeUrlSlug(path)}`).toString();
+      const url = this.buildUrl(path);
 
       const req = superagent[method](url)
         .timeout(maxTimeAllowed ?? 10_000)
@@ -73,7 +73,7 @@ export default class HttpRequester {
     maxTimeAllowed?: number;
     stream: WriteStream;
   }): Promise<void> {
-    const url = new URL(`${this.baseUrl}${HttpRequester.escapeUrlSlug(reqPath)}`).toString();
+    const url = this.buildUrl(reqPath);
 
     return new Promise<void>((resolve, reject) => {
       superagent
@@ -96,5 +96,21 @@ export default class HttpRequester {
 
   static escapeUrlSlug(name: string): string {
     return encodeURI(name).replace(/([+?*])/g, '\\$1');
+  }
+
+  static is404Error(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+
+    try {
+      return JSON.parse(error.message)?.error?.status === 404;
+    } catch {
+      return false;
+    }
+  }
+
+  private buildUrl(path: string): string {
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+    return new URL(`${this.baseUrl}${HttpRequester.escapeUrlSlug(normalizedPath)}`).toString();
   }
 }

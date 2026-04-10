@@ -113,7 +113,12 @@ export function getActionsOfCollection(
 
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
-    [actionName: string]: { name: string; endpoint: string };
+    [actionName: string]: {
+      name: string;
+      endpoint: string;
+      hooks?: { load: boolean; change: unknown[] };
+      fields?: Array<{ field: string; type: string; isRequired?: boolean; defaultValue?: unknown }>;
+    };
   };
 };
 
@@ -135,6 +140,8 @@ export function getActionEndpoints(schema: ForestSchema): ActionEndpointsByColle
         actionEndpoints[collection.name][action.name] = {
           name: action.name,
           endpoint: action.endpoint,
+          hooks: action.hooks,
+          fields: action.fields as ActionEndpointsByCollection[string][string]['fields'],
         };
       }
     }

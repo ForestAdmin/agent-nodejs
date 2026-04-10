@@ -1,9 +1,17 @@
 import type { PlainField, ResponseBody } from './types';
-import type HttpRequester from '../http-requester';
+import type { ActionHooks } from '../domains/action';
 import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
 
+import HttpRequester from '../http-requester';
 import ActionFieldMultipleChoice from './action-field-multiple-choice';
 import FieldGetter from './field-getter';
+
+export type FallbackField = {
+  field: string;
+  type: string;
+  isRequired?: boolean;
+  defaultValue?: unknown;
+};
 
 export default class FieldFormStates {
   private readonly fields: FieldGetter[];
@@ -13,6 +21,8 @@ export default class FieldFormStates {
   private readonly httpRequester: HttpRequester;
   private readonly ids: string[];
   private readonly layout: ForestServerActionFormLayoutElement[];
+  private readonly hooks?: ActionHooks;
+  private readonly fallbackFields?: FallbackField[];
 
   constructor(
     actionName: string,
@@ -20,6 +30,8 @@ export default class FieldFormStates {
     collectionName: string,
     httpRequester: HttpRequester,
     ids: string[],
+    hooks?: ActionHooks,
+    fallbackFields?: FallbackField[],
   ) {
     this.fields = [];
     this.actionName = actionName;
@@ -28,6 +40,8 @@ export default class FieldFormStates {
     this.httpRequester = httpRequester;
     this.ids = ids;
     this.layout = [];
+    this.hooks = hooks;
+    this.fallbackFields = fallbackFields;
   }
 
   getFieldValues(): Record<string, unknown> {
@@ -59,7 +73,10 @@ export default class FieldFormStates {
     if (!field) throw new Error(`Field "${name}" not found in action "${this.actionName}"`);
 
     field.getPlainField().value = value;
-    await this.loadChanges(name);
+
+    if (!this.hooks || this.hooks.change.length > 0) {
+      await this.loadChanges(name);
+    }
   }
 
   async loadInitialState(): Promise<void> {
@@ -74,15 +91,49 @@ export default class FieldFormStates {
       },
     };
 
-    const queryResults = await this.httpRequester.query<ResponseBody>({
-      method: 'post',
-      path: `${this.actionPath}/hooks/load`,
-      body: requestBody,
-    });
+    try {
+      const queryResults = await this.httpRequester.query<ResponseBody>({
+        method: 'post',
+        path: `${this.actionPath}/hooks/load`,
+        body: requestBody,
+      });
 
-    this.clearFieldsAndLayout();
-    this.layout.push(...queryResults.layout);
-    this.addFields(queryResults.fields);
+      this.clearFieldsAndLayout();
+      this.layout.push(...(queryResults.layout ?? []));
+      this.addFields(queryResults.fields);
+    } catch (error) {
+      // When hooks.load is false, the behavior differs between backends:
+      //
+      // - Node agent (@forestadmin/agent): always responds to POST /hooks/load
+      //   with the form fields, even when hooks.load is false in the schema.
+      //   In this case the call above succeeds and fields are loaded normally.
+      //
+      // - Ruby agent (forest_liana): does NOT register a route for /hooks/load
+      //   when hooks.load is false. The POST returns a 404.
+      //   In this case we catch the 404 and continue with an empty form,
+      //   which matches the expected behavior (no dynamic fields to load).
+      //
+      // We always attempt the call so Node users get their fields,
+      // and only swallow 404 errors for Ruby users. Other errors (401, 500,
+      // network failures) are rethrown so they surface properly.
+      if (this.hooks && !this.hooks.load && HttpRequester.is404Error(error)) {
+        if (this.fallbackFields?.length) {
+          this.addFields(
+            this.fallbackFields.map(f => ({
+              field: f.field,
+              type: f.type,
+              isRequired: f.isRequired ?? false,
+              isReadOnly: false,
+              value: f.defaultValue,
+            })),
+          );
+        }
+
+        return;
+      }
+
+      throw error;
+    }
   }
 
   private addFields(plainFields: PlainField[]): void {
