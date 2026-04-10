@@ -1,6 +1,7 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
 import type HttpRequester from '../http-requester';
+import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 
 import ActionFieldCheckbox from '../action-fields/action-field-checkbox';
 import ActionFieldCheckboxGroup from '../action-fields/action-field-checkbox-group';
@@ -21,20 +22,9 @@ export type BaseActionContext = {
   recordIds?: string[] | number[];
 };
 
-export type ActionHooks = {
-  load: boolean;
-  change: unknown[];
-};
-
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
-    [actionName: string]: {
-      id?: string;
-      name: string;
-      endpoint: string;
-      hooks?: ActionHooks;
-      fields?: Array<{ field: string; type: string; isRequired?: boolean; defaultValue?: unknown }>;
-    };
+    [actionName: string]: Pick<ForestSchemaAction, 'id' | 'name' | 'endpoint' | 'hooks' | 'fields'>;
   };
 };
 export default class Action {

@@ -1,17 +1,12 @@
 import type { PlainField, ResponseBody } from './types';
-import type { ActionHooks } from '../domains/action';
-import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+import type {
+  ForestSchemaAction,
+  ForestServerActionFormLayoutElement,
+} from '@forestadmin/forestadmin-client';
 
 import HttpRequester from '../http-requester';
 import ActionFieldMultipleChoice from './action-field-multiple-choice';
 import FieldGetter from './field-getter';
-
-export type FallbackField = {
-  field: string;
-  type: string;
-  isRequired?: boolean;
-  defaultValue?: unknown;
-};
 
 export default class FieldFormStates {
   private readonly fields: FieldGetter[];
@@ -21,8 +16,8 @@ export default class FieldFormStates {
   private readonly httpRequester: HttpRequester;
   private readonly ids: string[];
   private readonly layout: ForestServerActionFormLayoutElement[];
-  private readonly hooks?: ActionHooks;
-  private readonly fallbackFields?: FallbackField[];
+  private readonly hooks?: ForestSchemaAction['hooks'];
+  private readonly fallbackFields?: ForestSchemaAction['fields'];
 
   constructor(
     actionName: string,
@@ -30,8 +25,8 @@ export default class FieldFormStates {
     collectionName: string,
     httpRequester: HttpRequester,
     ids: string[],
-    hooks?: ActionHooks,
-    fallbackFields?: FallbackField[],
+    hooks?: ForestSchemaAction['hooks'],
+    fallbackFields?: ForestSchemaAction['fields'],
   ) {
     this.fields = [];
     this.actionName = actionName;

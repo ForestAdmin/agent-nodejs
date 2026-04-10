@@ -1,5 +1,6 @@
 import type { ExportOptions, LiveQueryOptions, SelectOptions } from '../types';
-import type { ActionEndpointsByCollection, ActionHooks, BaseActionContext } from './action';
+import type { ActionEndpointsByCollection, BaseActionContext } from './action';
+import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 import type HttpRequester from '../http-requester';
 import type { WriteStream } from 'fs';
 
@@ -173,7 +174,7 @@ export default class Collection extends CollectionChart {
     actionEndpoints: ActionEndpointsByCollection,
     collectionName: string,
     actionName: string,
-  ): { id?: string; endpoint: string; hooks?: ActionHooks; fields?: Array<{ field: string; type: string; isRequired?: boolean; defaultValue?: unknown }> } {
+  ): Pick<ForestSchemaAction, 'id' | 'endpoint' | 'hooks' | 'fields'> {
     const collection = actionEndpoints[collectionName];
     if (!collection) throw new Error(`Collection ${collectionName} not found in schema`);
 

@@ -111,17 +111,8 @@ export function getActionsOfCollection(
   return collection.actions || [];
 }
 
-export type ActionEndpointsByCollection = {
-  [collectionName: string]: {
-    [actionName: string]: {
-      id?: string;
-      name: string;
-      endpoint: string;
-      hooks?: { load: boolean; change: unknown[] };
-      fields?: Array<{ field: string; type: string; isRequired?: boolean; defaultValue?: unknown }>;
-    };
-  };
-};
+// Re-exported from agent-client to avoid type duplication
+export type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 
 /**
  * Builds a mapping of action endpoints by collection from the Forest Admin schema.
