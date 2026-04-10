@@ -347,12 +347,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     const accessToken = jsonwebtoken.sign(
       {
         ...user,
-        // snake_case duplicates for Ruby (forest_liana) compatibility
-        first_name: user.firstName,
-        last_name: user.lastName,
-        rendering_id: String(renderingId),
-        permission_level: user.permissionLevel,
-        tags: user.tags ? Object.entries(user.tags).map(([key, value]) => ({ key, value })) : [],
+        ...ForestOAuthProvider.toSnakeCaseClaims(user, renderingId),
         serverToken: forestServerAccessToken,
         scopes: tokenScopes,
       },
@@ -440,6 +435,23 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     // TODO: Implement actual token revocation with Forest Admin server when supported.
     void client;
     void request;
+  }
+
+  /**
+   * Convert camelCase UserInfo claims to snake_case for Ruby (forest_liana) compatibility.
+   * The JWT includes both formats so it works with Node and Ruby backends.
+   */
+  private static toSnakeCaseClaims(
+    user: { firstName: string; lastName: string; permissionLevel: string; tags?: Record<string, string> },
+    renderingId: number,
+  ): Record<string, unknown> {
+    return {
+      first_name: user.firstName,
+      last_name: user.lastName,
+      rendering_id: String(renderingId),
+      permission_level: user.permissionLevel,
+      tags: user.tags ? Object.entries(user.tags).map(([key, value]) => ({ key, value })) : [],
+    };
   }
 
   // Skip PKCE validation to match original implementation
