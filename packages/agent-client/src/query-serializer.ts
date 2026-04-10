@@ -9,7 +9,6 @@ export default class QuerySerializer {
 
     return {
       ...query,
-      ...query.filters,
       sort: QuerySerializer.formatSort(query.sort),
       filters: QuerySerializer.formatFilters(query.filters),
       searchExtended: !!query.shouldSearchInRelation,
