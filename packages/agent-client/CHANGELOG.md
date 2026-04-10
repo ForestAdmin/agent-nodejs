@@ -1,3 +1,10 @@
+## @forestadmin/agent-client [1.4.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.21...@forestadmin/agent-client@1.4.22) (2026-04-10)
+
+
+### Bug Fixes
+
+* **agent-client:** convert filter operators to snake_case for Ruby compatibility ([#1544](https://github.com/ForestAdmin/agent-nodejs/issues/1544)) ([00e8ad5](https://github.com/ForestAdmin/agent-nodejs/commit/00e8ad54c59d7f141c54a756f7a5921bb47f66dc))
+
 ## @forestadmin/agent-client [1.4.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.20...@forestadmin/agent-client@1.4.21) (2026-04-10)
 
 
