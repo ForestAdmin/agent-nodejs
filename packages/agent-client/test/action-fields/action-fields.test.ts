@@ -1,3 +1,4 @@
+import type { PlainField } from '../../src/action-fields/types';
 import type HttpRequester from '../../src/http-requester';
 
 import ActionFieldCheckbox from '../../src/action-fields/action-field-checkbox';
@@ -22,7 +23,7 @@ describe('ActionField implementations', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    httpRequester = { query: jest.fn() } as any;
+    httpRequester = { query: jest.fn() } as unknown as jest.Mocked<HttpRequester>;
     fieldFormStates = new FieldFormStates(
       'testAction',
       '/forest/actions/test',
@@ -32,7 +33,7 @@ describe('ActionField implementations', () => {
     );
   });
 
-  const setupFields = async (fields: any[]) => {
+  const setupFields = async (fields: PlainField[]) => {
     httpRequester.query.mockResolvedValue({ fields, layout: [] });
     await fieldFormStates.loadInitialState();
   };

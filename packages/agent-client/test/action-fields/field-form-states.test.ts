@@ -16,7 +16,7 @@ describe('FieldFormStates', () => {
     jest.clearAllMocks();
     httpRequester = {
       query: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<HttpRequester>;
     fieldFormStates = new FieldFormStates(
       'testAction',
       '/forest/actions/test-action',

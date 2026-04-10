@@ -1,4 +1,7 @@
-import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadmin-client';
+import type {
+  ForestServerActionFormElementFieldReference,
+  ForestServerActionFormLayoutElement,
+} from '@forestadmin/forestadmin-client';
 
 import ActionLayoutElement from '../../src/action-layout/action-layout-element';
 import ActionLayoutInput from '../../src/action-layout/action-layout-input';
@@ -26,7 +29,10 @@ describe('Action Layout', () => {
 
   describe('ActionLayoutInput', () => {
     it('should return the field id', () => {
-      const layoutItem = { component: 'input', fieldId: 'myField' } as any;
+      const layoutItem: ForestServerActionFormElementFieldReference = {
+        component: 'input',
+        fieldId: 'myField',
+      };
       const input = new ActionLayoutInput(layoutItem);
 
       expect(input.getInputId()).toBe('myField');
@@ -36,24 +42,32 @@ describe('Action Layout', () => {
   describe('ActionLayoutElement', () => {
     describe('isRow', () => {
       it('should return true for row component', () => {
-        const element = new ActionLayoutElement({ component: 'row', fields: [] } as any);
+        const element = new ActionLayoutElement({ component: 'row', fields: [] });
         expect(element.isRow()).toBe(true);
       });
 
       it('should return false for non-row component', () => {
-        const element = new ActionLayoutElement({ component: 'input', fieldId: 'test' } as any);
+        const element = new ActionLayoutElement({
+          component: 'input',
+          fieldId: 'test',
+        } as ForestServerActionFormLayoutElement);
         expect(element.isRow()).toBe(false);
       });
     });
 
     describe('isInput', () => {
       it('should return true for input component', () => {
-        const element = new ActionLayoutElement({ component: 'input', fieldId: 'test' } as any);
+        const element = new ActionLayoutElement({
+          component: 'input',
+          fieldId: 'test',
+        } as ForestServerActionFormLayoutElement);
         expect(element.isInput()).toBe(true);
       });
 
       it('should return false for non-input component', () => {
-        const element = new ActionLayoutElement({ component: 'separator' } as any);
+        const element = new ActionLayoutElement({
+          component: 'separator',
+        } as ForestServerActionFormLayoutElement);
         expect(element.isInput()).toBe(false);
       });
     });
@@ -63,24 +77,32 @@ describe('Action Layout', () => {
         const element = new ActionLayoutElement({
           component: 'htmlBlock',
           content: '<p>Hello</p>',
-        } as any);
+        } as ForestServerActionFormLayoutElement);
         expect(element.isHTMLBlock()).toBe(true);
       });
 
       it('should return false for non-htmlBlock component', () => {
-        const element = new ActionLayoutElement({ component: 'input', fieldId: 'test' } as any);
+        const element = new ActionLayoutElement({
+          component: 'input',
+          fieldId: 'test',
+        } as ForestServerActionFormLayoutElement);
         expect(element.isHTMLBlock()).toBe(false);
       });
     });
 
     describe('isSeparator', () => {
       it('should return true for separator component', () => {
-        const element = new ActionLayoutElement({ component: 'separator' } as any);
+        const element = new ActionLayoutElement({
+          component: 'separator',
+        } as ForestServerActionFormLayoutElement);
         expect(element.isSeparator()).toBe(true);
       });
 
       it('should return false for non-separator component', () => {
-        const element = new ActionLayoutElement({ component: 'input', fieldId: 'test' } as any);
+        const element = new ActionLayoutElement({
+          component: 'input',
+          fieldId: 'test',
+        } as ForestServerActionFormLayoutElement);
         expect(element.isSeparator()).toBe(false);
       });
     });
@@ -91,13 +113,16 @@ describe('Action Layout', () => {
         const element = new ActionLayoutElement({
           component: 'htmlBlock',
           content: htmlContent,
-        } as any);
+        } as ForestServerActionFormLayoutElement);
 
         expect(element.getHtmlBlockContent()).toBe(htmlContent);
       });
 
       it('should throw error when element is not htmlBlock', () => {
-        const element = new ActionLayoutElement({ component: 'input', fieldId: 'test' } as any);
+        const element = new ActionLayoutElement({
+          component: 'input',
+          fieldId: 'test',
+        } as ForestServerActionFormLayoutElement);
 
         expect(() => element.getHtmlBlockContent()).toThrow(NotRightElementError);
         expect(() => element.getHtmlBlockContent()).toThrow(
@@ -111,13 +136,15 @@ describe('Action Layout', () => {
         const element = new ActionLayoutElement({
           component: 'input',
           fieldId: 'email',
-        } as any);
+        } as ForestServerActionFormLayoutElement);
 
         expect(element.getInputId()).toBe('email');
       });
 
       it('should throw error when element is not input', () => {
-        const element = new ActionLayoutElement({ component: 'separator' } as any);
+        const element = new ActionLayoutElement({
+          component: 'separator',
+        } as ForestServerActionFormLayoutElement);
 
         expect(() => element.getInputId()).toThrow(NotRightElementError);
         expect(() => element.getInputId()).toThrow(
@@ -134,7 +161,7 @@ describe('Action Layout', () => {
             { component: 'input', fieldId: 'field1' },
             { component: 'input', fieldId: 'field2' },
           ],
-        } as any);
+        } as ForestServerActionFormLayoutElement);
 
         const input = element.rowElement(1);
         expect(input.getInputId()).toBe('field2');
@@ -144,7 +171,7 @@ describe('Action Layout', () => {
         const element = new ActionLayoutElement({
           component: 'row',
           fields: [{ component: 'input', fieldId: 'field1' }],
-        } as any);
+        } as ForestServerActionFormLayoutElement);
 
         expect(() => element.rowElement(5)).toThrow(NotFoundElementError);
       });
@@ -153,7 +180,7 @@ describe('Action Layout', () => {
         const element = new ActionLayoutElement({
           component: 'row',
           fields: [{ component: 'input', fieldId: 'field1' }],
-        } as any);
+        } as ForestServerActionFormLayoutElement);
 
         expect(() => element.rowElement(-1)).toThrow(NotFoundElementError);
       });
@@ -162,7 +189,7 @@ describe('Action Layout', () => {
         const element = new ActionLayoutElement({
           component: 'input',
           fieldId: 'test',
-        } as any);
+        } as ForestServerActionFormLayoutElement);
 
         expect(() => element.rowElement(0)).toThrow(NotRightElementError);
         expect(() => element.rowElement(0)).toThrow("This is not a row, it's a input element");
@@ -177,7 +204,7 @@ describe('Action Layout', () => {
         elements: [{ component: 'input', fieldId: 'name' }, { component: 'separator' }],
         nextButtonLabel: 'Next',
         previousButtonLabel: 'Back',
-      } as any;
+      } as ForestServerActionFormLayoutElement;
 
       const page = new ActionLayoutPage(pageLayout);
 
@@ -186,7 +213,10 @@ describe('Action Layout', () => {
     });
 
     it('should throw error when layout is not a page', () => {
-      const nonPageLayout = { component: 'input', fieldId: 'test' } as any;
+      const nonPageLayout: ForestServerActionFormLayoutElement = {
+        component: 'input',
+        fieldId: 'test',
+      };
 
       expect(() => new ActionLayoutPage(nonPageLayout)).toThrow(NotRightElementError);
       expect(() => new ActionLayoutPage(nonPageLayout)).toThrow(
@@ -200,7 +230,7 @@ describe('Action Layout', () => {
         elements: [{ component: 'input', fieldId: 'email' }],
         nextButtonLabel: 'Submit',
         previousButtonLabel: 'Cancel',
-      } as any;
+      } as ForestServerActionFormLayoutElement;
 
       const page = new ActionLayoutPage(pageLayout);
       const element = page.element(0);
@@ -225,7 +255,7 @@ describe('Action Layout', () => {
           nextButtonLabel: 'Submit',
           previousButtonLabel: 'Previous',
         },
-      ] as any;
+      ] as ForestServerActionFormLayoutElement[];
 
       const root = new ActionLayoutRoot(layout);
       const page = root.page(1);
@@ -241,7 +271,7 @@ describe('Action Layout', () => {
           nextButtonLabel: 'Next',
           previousButtonLabel: 'Back',
         },
-      ] as any;
+      ] as ForestServerActionFormLayoutElement[];
 
       const root = new ActionLayoutRoot(layout);
 
@@ -257,7 +287,7 @@ describe('Action Layout', () => {
           nextButtonLabel: 'Next',
           previousButtonLabel: 'Back',
         },
-      ] as any;
+      ] as ForestServerActionFormLayoutElement[];
 
       const root = new ActionLayoutRoot(layout);
 
@@ -273,7 +303,7 @@ describe('Action Layout', () => {
           nextButtonLabel: 'Next',
           previousButtonLabel: 'Back',
         },
-      ] as any;
+      ] as ForestServerActionFormLayoutElement[];
 
       const root = new ActionLayoutRoot(layout);
 
@@ -283,7 +313,10 @@ describe('Action Layout', () => {
 
     describe('element', () => {
       it('should return element at specified index', () => {
-        const layout = [{ component: 'input', fieldId: 'test' }, { component: 'separator' }] as any;
+        const layout: ForestServerActionFormLayoutElement[] = [
+          { component: 'input', fieldId: 'test' },
+          { component: 'separator' },
+        ];
 
         const root = new ActionLayoutRoot(layout);
         const element = root.element(0);
@@ -292,7 +325,9 @@ describe('Action Layout', () => {
       });
 
       it('should throw error when index is out of bounds', () => {
-        const layout = [{ component: 'input', fieldId: 'test' }] as any;
+        const layout: ForestServerActionFormLayoutElement[] = [
+          { component: 'input', fieldId: 'test' },
+        ];
 
         const root = new ActionLayoutRoot(layout);
 
@@ -300,7 +335,9 @@ describe('Action Layout', () => {
       });
 
       it('should throw error when index is negative', () => {
-        const layout = [{ component: 'input', fieldId: 'test' }] as any;
+        const layout: ForestServerActionFormLayoutElement[] = [
+          { component: 'input', fieldId: 'test' },
+        ];
 
         const root = new ActionLayoutRoot(layout);
 
@@ -315,7 +352,7 @@ describe('Action Layout', () => {
             nextButtonLabel: 'Next',
             previousButtonLabel: 'Back',
           },
-        ] as any;
+        ] as ForestServerActionFormLayoutElement[];
 
         const root = new ActionLayoutRoot(layout);
 
@@ -333,7 +370,7 @@ describe('Action Layout', () => {
             nextButtonLabel: 'Next',
             previousButtonLabel: 'Back',
           },
-        ] as any;
+        ] as ForestServerActionFormLayoutElement[];
 
         const root = new ActionLayoutRoot(layout);
 
@@ -341,7 +378,9 @@ describe('Action Layout', () => {
       });
 
       it('should return false when element is not a page', () => {
-        const layout = [{ component: 'input', fieldId: 'test' }] as any;
+        const layout: ForestServerActionFormLayoutElement[] = [
+          { component: 'input', fieldId: 'test' },
+        ];
 
         const root = new ActionLayoutRoot(layout);
 
@@ -349,7 +388,7 @@ describe('Action Layout', () => {
       });
 
       it('should return false for undefined element', () => {
-        const layout = [] as any;
+        const layout: ForestServerActionFormLayoutElement[] = [];
 
         const root = new ActionLayoutRoot(layout);
 
