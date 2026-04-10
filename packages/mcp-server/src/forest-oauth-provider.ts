@@ -352,9 +352,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         last_name: user.lastName,
         rendering_id: String(renderingId),
         permission_level: user.permissionLevel,
-        tags: user.tags
-          ? Object.entries(user.tags).map(([key, value]) => ({ key, value }))
-          : [],
+        tags: user.tags ? Object.entries(user.tags).map(([key, value]) => ({ key, value })) : [],
         serverToken: forestServerAccessToken,
         scopes: tokenScopes,
       },
