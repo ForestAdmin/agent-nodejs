@@ -42,6 +42,27 @@ describe('HttpRequester', () => {
     });
   });
 
+  describe('is404Error', () => {
+    it('should return true for a 404 error', () => {
+      const error = new Error(JSON.stringify({ error: { status: 404 }, body: null }));
+      expect(HttpRequester.is404Error(error)).toBe(true);
+    });
+
+    it('should return false for a 500 error', () => {
+      const error = new Error(JSON.stringify({ error: { status: 500 }, body: null }));
+      expect(HttpRequester.is404Error(error)).toBe(false);
+    });
+
+    it('should return false for a non-Error', () => {
+      expect(HttpRequester.is404Error('not an error')).toBe(false);
+    });
+
+    it('should return false for non-JSON error message', () => {
+      const error = new Error('plain text error');
+      expect(HttpRequester.is404Error(error)).toBe(false);
+    });
+  });
+
   describe('query', () => {
     let requester: HttpRequester;
     let mockRequest: any;
