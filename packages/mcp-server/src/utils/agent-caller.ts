@@ -1,4 +1,4 @@
-import type { ActionEndpointsByCollection } from './schema-fetcher';
+import type { ActionEndpoints } from './schema-fetcher';
 import type { ForestServerClient } from '../http-client';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
@@ -9,7 +9,7 @@ import { fetchForestSchema, getActionEndpoints } from './schema-fetcher';
 
 interface BuildClientOptions {
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
-  actionEndpoints?: ActionEndpointsByCollection;
+  actionEndpoints?: ActionEndpoints;
 }
 
 export type AuthData = {

@@ -191,7 +191,13 @@ export interface ForestSchemaAction {
   description?: string;
   submitButtonLabel?: string;
   download: boolean;
-  fields: { field: string; type: string; isRequired?: boolean; defaultValue?: unknown; label?: string }[];
+  fields: {
+    field: string;
+    type: string;
+    isRequired?: boolean;
+    defaultValue?: unknown;
+    label?: string;
+  }[];
   hooks: {
     load: boolean;
     change: unknown[];
