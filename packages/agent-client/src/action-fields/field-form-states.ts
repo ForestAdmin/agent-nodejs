@@ -81,7 +81,7 @@ export default class FieldFormStates {
     });
 
     this.clearFieldsAndLayout();
-    this.layout.push(...queryResults.layout);
+    this.layout.push(...(queryResults.layout ?? []));
     this.addFields(queryResults.fields);
   }
 
@@ -115,6 +115,6 @@ export default class FieldFormStates {
 
     this.clearFieldsAndLayout();
     this.addFields(queryResults.fields);
-    this.layout.push(...queryResults.layout);
+    this.layout.push(...(queryResults.layout ?? []));
   }
 }
