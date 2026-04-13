@@ -79,17 +79,17 @@ You can restrict which tools are exposed by the MCP server.
 ```typescript
 // With Forest Admin Agent
 agent.mountAiMcpServer({
-  disabledTools: ['create', 'update', 'delete', 'associate', 'dissociate', 'executeAction'],
+  disabledTools: ['create', 'update', 'delete', 'associate', 'dissociate', 'getActionForm', 'executeAction'],
 });
 ```
 
 ```bash
 # Standalone
-export FOREST_MCP_DISABLED_TOOLS="create,update,delete,associate,dissociate,executeAction"
+export FOREST_MCP_DISABLED_TOOLS="create,update,delete,associate,dissociate,getActionForm,executeAction"
 npx forest-mcp-server
 ```
 
-This keeps only `list`, `listRelated`, `describeCollection` and `getActionForm` available.
+This keeps only `list`, `listRelated` and `describeCollection` available.
 
 **Custom selection** — disable specific tools:
 
