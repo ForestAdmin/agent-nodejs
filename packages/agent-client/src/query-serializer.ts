@@ -20,14 +20,14 @@ export default class QuerySerializer {
 
     return {
       search,
+      segmentQuery,
+      connectionName,
       sort: QuerySerializer.formatSort(sort),
       filters: QuerySerializer.formatFilters(filters),
       searchExtended: !!shouldSearchInRelation,
       'page[size]': pagination?.size,
       'page[number]': pagination?.number,
       ...(fields?.length ? QuerySerializer.formatFields(collectionName, fields) : {}),
-      ...(segmentQuery !== undefined && { segmentQuery }),
-      ...(connectionName !== undefined && { connectionName }),
     };
   }
 
