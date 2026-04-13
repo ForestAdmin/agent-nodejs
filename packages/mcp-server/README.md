@@ -62,8 +62,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
-| `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated allowlist of tools to enable (recommended for read-only) |
-| `FOREST_MCP_DISABLED_TOOLS` | No | - | Comma-separated blocklist of tools to disable |
+| `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
 
 #### Example Configuration
 
@@ -88,11 +87,9 @@ FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx fo
 
 ## Restrict Tools
 
-You can restrict which tools the MCP server exposes. There are two approaches:
+You can restrict which tools the MCP server exposes using `enabledTools`. Only the listed tools will be available. **New tools added in future releases will NOT be automatically enabled** — you must explicitly add them.
 
-### `enabledTools` (allowlist) — recommended for read-only
-
-Only the listed tools will be exposed. **If a new tool is released in a future version, it will NOT be automatically enabled** — you must explicitly add it to your list. This makes your setup future-proof.
+**Read-only mode:**
 
 ```typescript
 // With Forest Admin Agent
@@ -107,24 +104,7 @@ export FOREST_MCP_ENABLED_TOOLS="describeCollection,list,listRelated"
 npx forest-mcp-server
 ```
 
-### `disabledTools` (blocklist) — for disabling specific tools
-
-All tools are enabled except the ones listed. Convenient for removing a few tools, but **new tools released in future versions will be automatically enabled**.
-
-```typescript
-// With Forest Admin Agent
-agent.mountAiMcpServer({
-  disabledTools: ['delete'],
-});
-```
-
-```bash
-# Standalone
-export FOREST_MCP_DISABLED_TOOLS="delete"
-npx forest-mcp-server
-```
-
-If both `enabledTools` and `disabledTools` are set, `enabledTools` takes priority.
+When `enabledTools` is not set, all tools are enabled by default.
 
 See [Available Tools](#available-tools) for the full list. `describeCollection` is always enabled as it is required for the MCP server to function properly.
 

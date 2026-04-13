@@ -392,18 +392,6 @@ describe('Agent', () => {
       expect(mockLogger).toHaveBeenCalledWith('Info', '[MCP] Server initialized successfully');
     });
 
-    test('should pass disabledTools to ForestMCPServer', async () => {
-      const options = factories.forestAdminHttpDriverOptions.build();
-      const agent = new Agent(options);
-
-      agent.mountAiMcpServer({ disabledTools: ['create', 'update', 'delete'] });
-      await agent.start();
-
-      expect(mcpServerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ disabledTools: ['create', 'update', 'delete'] }),
-      );
-    });
-
     test('should pass enabledTools to ForestMCPServer', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);

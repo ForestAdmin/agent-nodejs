@@ -48,7 +48,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
-  private mcpDisabledTools?: ToolName[];
   private mcpEnabledTools?: ToolName[];
 
   /**
@@ -209,14 +208,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/ai/mcp-server}
    * @example
    * agent.mountAiMcpServer();
-   * // Or with options:
-   * agent.mountAiMcpServer({ disabledTools: ['create', 'update', 'delete'] });
-   * // Or read-only mode (recommended — future-proof):
+   * // Or with options (read-only mode):
    * agent.mountAiMcpServer({ enabledTools: ['describeCollection', 'list', 'listRelated'] });
    */
-  mountAiMcpServer(options?: { disabledTools?: ToolName[]; enabledTools?: ToolName[] }): this {
+  mountAiMcpServer(options?: { enabledTools?: ToolName[] }): this {
     this.mcpEnabled = true;
-    this.mcpDisabledTools = options?.disabledTools;
     this.mcpEnabledTools = options?.enabledTools;
 
     return this;
@@ -335,7 +331,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         authSecret: this.options.authSecret,
         logger: mcpLogger,
         forestServerClient,
-        disabledTools: this.mcpDisabledTools,
         enabledTools: this.mcpEnabledTools,
       });
 

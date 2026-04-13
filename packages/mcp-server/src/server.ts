@@ -115,9 +115,7 @@ export interface ForestMCPServerOptions {
   logger?: Logger;
   /** Optional Forest server client for dependency injection (from agent integration) */
   forestServerClient?: ForestServerClient;
-  /** List of tool names to disable (blocklist). New tools in future releases will be enabled. */
-  disabledTools?: ToolName[];
-  /** List of tool names to enable (allowlist). Only these tools will be exposed. Takes priority over disabledTools. */
+  /** List of tool names to enable (allowlist). Only these tools will be exposed. New tools in future releases will NOT be auto-enabled. */
   enabledTools?: ToolName[];
 }
 
@@ -299,34 +297,7 @@ export default class ForestMCPServer {
       'executeAction',
     ];
 
-    let enabled: Set<ToolName>;
-
-    if (options?.enabledTools && options?.disabledTools) {
-      this.logger(
-        'Warn',
-        'Both enabledTools and disabledTools are set. enabledTools takes priority.',
-      );
-    }
-
-    if (options?.enabledTools) {
-      // Allowlist mode — only listed tools are enabled
-      enabled = new Set(options.enabledTools);
-    } else if (options?.disabledTools) {
-      // Blocklist mode — all tools except listed ones
-      const disabled = new Set(options.disabledTools);
-
-      if (disabled.has('describeCollection')) {
-        this.logger(
-          'Warn',
-          'The "describeCollection" tool cannot be disabled as it is required for the MCP server to function properly.',
-        );
-      }
-
-      enabled = new Set(allToolNames.filter(name => !disabled.has(name)));
-    } else {
-      // No filtering — all tools enabled
-      enabled = new Set(allToolNames);
-    }
+    const enabled = new Set(options?.enabledTools ?? allToolNames);
 
     // describeCollection is always required
     enabled.add('describeCollection');
