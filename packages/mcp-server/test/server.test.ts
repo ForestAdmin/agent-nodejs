@@ -2806,10 +2806,8 @@ describe('disabledTools', () => {
     if (response.body && Object.keys(response.body).length > 0) {
       responseData = response.body;
     } else {
-      const dataLine = response.text
-        .split('\n')
-        .find((line: string) => line.startsWith('data: '));
-      responseData = JSON.parse(dataLine!.replace('data: ', ''));
+      const dataLine = response.text.split('\n').find((line: string) => line.startsWith('data: '));
+      responseData = JSON.parse((dataLine as string).replace('data: ', ''));
     }
 
     const toolNames = responseData.result.tools.map(t => t.name);
