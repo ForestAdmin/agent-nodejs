@@ -2845,6 +2845,23 @@ describe('disabledTools', () => {
       'The "describeCollection" tool cannot be disabled as it is required for the MCP server to function properly.',
     );
   });
+
+  it('should re-enable describeCollection and log a warning when it is passed as disabled', () => {
+    const logger = jest.fn();
+
+    const disabledServer = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      disabledTools: ['describeCollection'],
+    });
+
+    expect(disabledServer).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'The "describeCollection" tool cannot be disabled as it is required for the MCP server to function properly.',
+    );
+  });
 });
 
 describe('Logo URL', () => {
