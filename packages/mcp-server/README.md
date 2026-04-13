@@ -27,20 +27,21 @@ The MCP server will be automatically initialized and mounted on your application
 
 ### Standalone Server
 
-You can run the MCP server standalone using the CLI:
+You can also run the MCP server standalone using the CLI:
 
 ```bash
 npx forest-mcp-server
 ```
 
-Or from the package directory:
+Or programmatically:
 
 ```bash
-yarn start           # Production
-yarn start:dev       # Development (loads .env file automatically)
+node dist/index.js
 ```
 
 #### Environment Variables
+
+The following environment variables are required to run the server as a standalone:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
@@ -51,17 +52,12 @@ yarn start:dev       # Development (loads .env file automatically)
 
 #### Example Configuration
 
-Create a `.env` file in the package directory:
-
 ```bash
-FOREST_ENV_SECRET="your-env-secret"
-FOREST_AUTH_SECRET="your-auth-secret"
-```
+export FOREST_ENV_SECRET="your-env-secret"
+export FOREST_AUTH_SECRET="your-auth-secret"
+export MCP_SERVER_PORT=3931
 
-Then run:
-
-```bash
-yarn start:dev
+npx forest-mcp-server
 ```
 
 Or set the variables inline:
@@ -128,41 +124,32 @@ The `/mcp` endpoint expects MCP protocol messages (JSON-RPC 2.0) and requires a 
 ### Building
 
 ```bash
-yarn build
+npm run build
 ```
 
 ### Watch Mode
 
 ```bash
-yarn build:watch
+npm run build:watch
 ```
 
 ### Linting
 
 ```bash
-yarn lint
+npm run lint
 ```
 
 ### Testing
 
 ```bash
-yarn test
+npm test
 ```
 
 ### Cleaning
 
 ```bash
-yarn clean
+npm run clean
 ```
-
-### Internal Environment Variables
-
-These are only needed by Forest Admin developers (e.g. to point to a local or staging server):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `FOREST_SERVER_URL` | `https://api.forestadmin.com` | Forest Admin API URL |
-| `FOREST_APP_URL` | `https://app.forestadmin.com` | Forest Admin application URL |
 
 ## Architecture
 
