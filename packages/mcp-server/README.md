@@ -46,8 +46,6 @@ yarn start:dev       # Development (loads .env file automatically)
 |----------|----------|---------|-------------|
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
-| `FOREST_SERVER_URL` | No | `https://api.forestadmin.com` | Forest Admin API URL |
-| `FOREST_APP_URL` | No | `https://app.forestadmin.com` | Forest Admin application URL |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
 
 #### Example Configuration
@@ -122,6 +120,15 @@ yarn test
 ```bash
 yarn clean
 ```
+
+### Internal Environment Variables
+
+These are only needed by Forest Admin developers (e.g. to point to a local or staging server):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FOREST_SERVER_URL` | `https://api.forestadmin.com` | Forest Admin API URL |
+| `FOREST_APP_URL` | `https://app.forestadmin.com` | Forest Admin application URL |
 
 ## Architecture
 
