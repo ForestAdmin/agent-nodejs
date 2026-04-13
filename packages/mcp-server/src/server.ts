@@ -145,7 +145,9 @@ export default class ForestMCPServer {
     this.envSecret = options?.envSecret;
     this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
-    this.disabledTools = new Set(options?.disabledTools ?? []);
+    this.disabledTools = new Set(
+      options?.disabledTools?.filter(toolName => toolName !== 'describeCollection') ?? [],
+    );
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
