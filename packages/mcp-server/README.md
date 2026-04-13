@@ -27,21 +27,20 @@ The MCP server will be automatically initialized and mounted on your application
 
 ### Standalone Server
 
-You can also run the MCP server standalone using the CLI:
+You can run the MCP server standalone using the CLI:
 
 ```bash
 npx forest-mcp-server
 ```
 
-Or programmatically:
+Or from the package directory:
 
 ```bash
-node dist/index.js
+yarn start           # Production
+yarn start:dev       # Development (loads .env file automatically)
 ```
 
 #### Environment Variables
-
-The following environment variables are required to run the server as a standalone:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
@@ -51,26 +50,42 @@ The following environment variables are required to run the server as a standalo
 
 #### Example Configuration
 
-```bash
-export FOREST_ENV_SECRET="your-env-secret"
-export FOREST_AUTH_SECRET="your-auth-secret"
-export MCP_SERVER_PORT=3931
+Create a `.env` file in the package directory:
 
-npx forest-mcp-server
+```bash
+FOREST_ENV_SECRET="your-env-secret"
+FOREST_AUTH_SECRET="your-auth-secret"
 ```
 
-## API Endpoint
+Then run:
 
-Once running, the MCP server exposes a single endpoint:
+```bash
+yarn start:dev
+```
 
-- **POST** `/mcp` - Main MCP protocol endpoint
+Or set the variables inline:
 
-The server expects MCP protocol messages in the request body and returns MCP-formatted responses.
+```bash
+FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx forest-mcp-server
+```
+
+## API Endpoints
+
+Once running, the MCP server exposes the following endpoints:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/mcp` | Main MCP protocol endpoint (requires Bearer token) |
+| POST | `/oauth/authorize` | OAuth 2.0 authorization |
+| POST | `/oauth/token` | OAuth 2.0 token exchange |
+| GET | `/.well-known/oauth-protected-resource/mcp` | OAuth metadata discovery |
+
+The `/mcp` endpoint expects MCP protocol messages (JSON-RPC 2.0) and requires a valid OAuth Bearer token with at least the `mcp:read` scope.
 
 ## Features
 
 - **HTTP Transport**: Uses streamable HTTP transport for MCP communication
-- **OAuth Authentication**: Built-in support for Forest Admin OAuth
+- **OAuth Authentication**: Built-in OAuth 2.0 with scopes (`mcp:read`, `mcp:write`, `mcp:action`, `mcp:admin`)
 - **CORS Enabled**: Allows cross-origin requests
 - **Express-based**: Built on top of Express.js for reliability and extensibility
 
@@ -79,32 +94,41 @@ The server expects MCP protocol messages in the request body and returns MCP-for
 ### Building
 
 ```bash
-npm run build
+yarn build
 ```
 
 ### Watch Mode
 
 ```bash
-npm run build:watch
+yarn build:watch
 ```
 
 ### Linting
 
 ```bash
-npm run lint
+yarn lint
 ```
 
 ### Testing
 
 ```bash
-npm test
+yarn test
 ```
 
 ### Cleaning
 
 ```bash
-npm run clean
+yarn clean
 ```
+
+### Internal Environment Variables
+
+These are only needed by Forest Admin developers (e.g. to point to a local or staging server):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FOREST_SERVER_URL` | `https://api.forestadmin.com` | Forest Admin API URL |
+| `FOREST_APP_URL` | `https://app.forestadmin.com` | Forest Admin application URL |
 
 ## Architecture
 
