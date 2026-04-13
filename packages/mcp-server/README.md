@@ -6,6 +6,21 @@ Model Context Protocol (MCP) server for Forest Admin with OAuth authentication s
 
 This MCP server provides HTTP REST API access to Forest Admin operations, enabling AI assistants and other MCP clients to interact with your Forest Admin data through a standardized protocol.
 
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `describeCollection` | Get the schema of a collection (fields, types, relations) |
+| `list` | Retrieve records from a collection |
+| `listRelated` | Retrieve related records |
+| `create` | Create a new record |
+| `update` | Update an existing record |
+| `delete` | Delete records |
+| `associate` | Associate records in a relation |
+| `dissociate` | Dissociate records from a relation |
+| `getActionForm` | Get the form fields for a custom action |
+| `executeAction` | Execute a custom action |
+
 ## Usage
 
 ### With Forest Admin Agent
@@ -99,9 +114,7 @@ agent.mountAiMcpServer({
 });
 ```
 
-Available tool names: `list`, `listRelated`, `create`, `update`, `delete`, `associate`, `dissociate`, `getActionForm`, `executeAction`.
-
-Note: `describeCollection` cannot be disabled as it is required for the MCP server to function properly.
+See [Available Tools](#available-tools) for the full list. Note: `describeCollection` cannot be disabled as it is required for the MCP server to function properly.
 
 ## API Endpoints
 
