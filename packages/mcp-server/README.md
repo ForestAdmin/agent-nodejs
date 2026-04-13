@@ -61,6 +61,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
+| `FOREST_MCP_DISABLED_TOOLS` | No | - | Comma-separated list of tools to disable (e.g. `create,update,delete`) |
 
 #### Example Configuration
 
