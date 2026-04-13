@@ -2847,6 +2847,130 @@ describe('disabledTools', () => {
   });
 });
 
+describe('enabledTools', () => {
+  const savedFetch = global.fetch;
+  let enabledToolsServer: ForestMCPServer;
+  let enabledToolsHttpServer: http.Server;
+  let mockServer: MockServer;
+
+  beforeAll(async () => {
+    mockServer = new MockServer();
+    mockServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        included: [],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockServer.fetch;
+
+    enabledToolsServer = new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      enabledTools: ['list', 'listRelated'],
+    });
+    enabledToolsServer.run();
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 500);
+    });
+
+    enabledToolsHttpServer = enabledToolsServer.httpServer as http.Server;
+  });
+
+  afterAll(async () => {
+    global.fetch = savedFetch;
+    await new Promise<void>(resolve => {
+      if (enabledToolsHttpServer) {
+        enabledToolsHttpServer.close(() => resolve());
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  it('should only expose enabled tools plus describeCollection', async () => {
+    const validToken = jsonwebtoken.sign(
+      { id: 123, email: 'user@example.com', renderingId: 456 },
+      'test-auth-secret',
+      { expiresIn: '1h' },
+    );
+
+    const response = await request(enabledToolsHttpServer)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validToken}`)
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    expect(response.status).toBe(200);
+
+    let responseData: { result: { tools: Array<{ name: string }> } };
+
+    if (response.body && Object.keys(response.body).length > 0) {
+      responseData = response.body;
+    } else {
+      const dataLine = response.text.split('\n').find((line: string) => line.startsWith('data: '));
+      if (!dataLine) throw new Error('Expected SSE data line not found in response');
+      responseData = JSON.parse(dataLine.replace('data: ', ''));
+    }
+
+    const toolNames = responseData.result.tools.map(t => t.name);
+
+    // Only enabled tools + describeCollection (always forced)
+    expect(toolNames).toContain('describeCollection');
+    expect(toolNames).toContain('list');
+    expect(toolNames).toContain('listRelated');
+    expect(toolNames).toHaveLength(3);
+
+    // Write tools should NOT be present
+    expect(toolNames).not.toContain('create');
+    expect(toolNames).not.toContain('update');
+    expect(toolNames).not.toContain('delete');
+  });
+
+  it('should log warning when both enabledTools and disabledTools are set', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['list'],
+      disabledTools: ['create'],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Both enabledTools and disabledTools are set. enabledTools takes priority.',
+    );
+  });
+
+  it('should log enabled and disabled tools summary', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['list', 'listRelated'],
+    });
+
+    expect(server).toBeDefined();
+  });
+});
+
 describe('Logo URL', () => {
   it('should reference an accessible PNG image', async () => {
     const response = await fetch(LOGO_URL, { method: 'HEAD' });
