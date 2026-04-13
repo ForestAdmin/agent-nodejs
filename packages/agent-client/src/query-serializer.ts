@@ -7,8 +7,16 @@ export default class QuerySerializer {
   static serialize(query: SelectOptions, collectionName: string): Record<string, unknown> {
     if (!query) return {};
 
-    const { fields, sort, filters, shouldSearchInRelation, pagination, search } = query;
-    const extra = query as Record<string, unknown>;
+    const {
+      fields,
+      sort,
+      filters,
+      shouldSearchInRelation,
+      pagination,
+      search,
+      segmentQuery,
+      connectionName,
+    } = query;
 
     return {
       search,
@@ -18,9 +26,8 @@ export default class QuerySerializer {
       'page[size]': pagination?.size,
       'page[number]': pagination?.number,
       ...(fields?.length ? QuerySerializer.formatFields(collectionName, fields) : {}),
-      // Extra params passed by Segment (segmentQuery, connectionName)
-      ...(extra.segmentQuery !== undefined && { segmentQuery: extra.segmentQuery }),
-      ...(extra.connectionName !== undefined && { connectionName: extra.connectionName }),
+      ...(segmentQuery !== undefined && { segmentQuery }),
+      ...(connectionName !== undefined && { connectionName }),
     };
   }
 
