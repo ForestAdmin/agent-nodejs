@@ -137,7 +137,7 @@ export default class ForestMCPServer {
   private authSecret?: string;
   private logger: Logger;
   private collectionNames: string[] = [];
-  private disabledTools: Set<string>;
+  private disabledTools: Set<ToolName>;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -177,7 +177,7 @@ export default class ForestMCPServer {
       icons: [{ src: LOGO_URL, mimeType: 'image/png' }],
     });
 
-    const allTools: Array<{ name: string; register: () => string }> = [
+    const allTools: Array<{ name: ToolName; register: () => string }> = [
       {
         name: 'describeCollection',
         register: () =>
