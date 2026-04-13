@@ -2735,11 +2735,13 @@ describe('handleMcpRequest cleanup', () => {
 
 describe('enabledTools', () => {
   const savedFetch = global.fetch;
+  const savedPort = process.env.MCP_SERVER_PORT;
   let enabledToolsServer: ForestMCPServer;
   let enabledToolsHttpServer: http.Server;
   let mockServer: MockServer;
 
   beforeAll(async () => {
+    process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
     mockServer = new MockServer();
     mockServer
       .get('/liana/environment', {
@@ -2776,6 +2778,7 @@ describe('enabledTools', () => {
 
   afterAll(async () => {
     global.fetch = savedFetch;
+    process.env.MCP_SERVER_PORT = savedPort;
     await new Promise<void>(resolve => {
       if (enabledToolsHttpServer) {
         enabledToolsHttpServer.close(() => resolve());
@@ -2825,17 +2828,75 @@ describe('enabledTools', () => {
     expect(toolNames).not.toContain('delete');
   });
 
-  it('should log enabled and disabled tools summary', () => {
-    const logger = jest.fn();
+  it('should only expose describeCollection when enabledTools is empty', async () => {
+    const savedFetch2 = global.fetch;
+    const savedPort2 = process.env.MCP_SERVER_PORT;
+    process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
+    const mockServer2 = new MockServer();
+    mockServer2
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        included: [],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
 
-    const server = new ForestMCPServer({
-      envSecret: 'ENV_SECRET',
-      authSecret: 'AUTH_SECRET',
-      logger,
-      enabledTools: ['list', 'listRelated'],
+    global.fetch = mockServer2.fetch;
+
+    const emptyServer = new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      enabledTools: [],
     });
+    emptyServer.run();
+    await new Promise(resolve => {
+      setTimeout(resolve, 500);
+    });
+    const emptyHttpServer = emptyServer.httpServer as http.Server;
 
-    expect(server).toBeDefined();
+    const validToken = jsonwebtoken.sign(
+      { id: 123, email: 'user@example.com', renderingId: 456 },
+      'test-auth-secret',
+      { expiresIn: '1h' },
+    );
+
+    const response = await request(emptyHttpServer)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validToken}`)
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    expect(response.status).toBe(200);
+
+    let responseData: { result: { tools: Array<{ name: string }> } };
+
+    if (response.body && Object.keys(response.body).length > 0) {
+      responseData = response.body;
+    } else {
+      const dataLine = response.text.split('\n').find((line: string) => line.startsWith('data: '));
+      if (!dataLine) throw new Error('Expected SSE data line not found in response');
+      responseData = JSON.parse(dataLine.replace('data: ', ''));
+    }
+
+    const toolNames = responseData.result.tools.map(t => t.name);
+
+    expect(toolNames).toEqual(['describeCollection']);
+
+    await new Promise<void>(resolve => {
+      emptyHttpServer.close(() => resolve());
+    });
+    global.fetch = savedFetch2;
+    process.env.MCP_SERVER_PORT = savedPort2;
   });
 });
 
