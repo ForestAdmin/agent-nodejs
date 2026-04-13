@@ -300,6 +300,16 @@ export default class ForestMCPServer {
     const enabled = new Set(options?.enabledTools ?? allToolNames);
 
     if (options?.enabledTools) {
+      const allToolNamesSet = new Set<string>(allToolNames);
+      const unknownTools = options.enabledTools.filter(name => !allToolNamesSet.has(name));
+
+      if (unknownTools.length > 0) {
+        this.logger(
+          'Warn',
+          `Unknown tool names in enabledTools: ${unknownTools.join(', ')}. These will be ignored.`,
+        );
+      }
+
       if (!options.enabledTools.includes('describeCollection')) {
         this.logger(
           'Warn',

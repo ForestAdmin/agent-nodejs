@@ -2767,13 +2767,13 @@ describe('enabledTools', () => {
       authSecret: 'test-auth-secret',
       enabledTools: ['list', 'listRelated'],
     });
-    enabledToolsServer.run();
 
-    await new Promise(resolve => {
-      setTimeout(resolve, 500);
+    const app = await enabledToolsServer.buildExpressApp();
+    enabledToolsHttpServer = app.listen(Number(process.env.MCP_SERVER_PORT)) as http.Server;
+
+    await new Promise<void>(resolve => {
+      enabledToolsHttpServer.on('listening', resolve);
     });
-
-    enabledToolsHttpServer = enabledToolsServer.httpServer as http.Server;
   });
 
   afterAll(async () => {
@@ -2896,6 +2896,23 @@ describe('enabledTools', () => {
     expect(infoCalls).toHaveLength(0);
   });
 
+  it('should warn about unknown tool names in enabledTools', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['list', 'lst', 'creat' as any],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Unknown tool names in enabledTools: lst, creat. These will be ignored.',
+    );
+  });
+
   it('should only expose describeCollection when enabledTools is empty', async () => {
     const savedFetch2 = global.fetch;
     const savedPort2 = process.env.MCP_SERVER_PORT;
@@ -2925,11 +2942,13 @@ describe('enabledTools', () => {
       authSecret: 'test-auth-secret',
       enabledTools: [],
     });
-    emptyServer.run();
-    await new Promise(resolve => {
-      setTimeout(resolve, 500);
+
+    const emptyApp = await emptyServer.buildExpressApp();
+    const emptyHttpServer = emptyApp.listen(Number(process.env.MCP_SERVER_PORT)) as http.Server;
+
+    await new Promise<void>(resolve => {
+      emptyHttpServer.on('listening', resolve);
     });
-    const emptyHttpServer = emptyServer.httpServer as http.Server;
 
     const validToken = jsonwebtoken.sign(
       { id: 123, email: 'user@example.com', renderingId: 456 },
