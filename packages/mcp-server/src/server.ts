@@ -299,6 +299,27 @@ export default class ForestMCPServer {
 
     const enabled = new Set(options?.enabledTools ?? allToolNames);
 
+    if (options?.enabledTools) {
+      if (!options.enabledTools.includes('describeCollection')) {
+        this.logger(
+          'Warn',
+          'describeCollection was automatically enabled — it is required for the MCP server to function properly.',
+        );
+      }
+
+      const notEnabled = allToolNames.filter(
+        name => name !== 'describeCollection' && !enabled.has(name),
+      );
+
+      if (notEnabled.length > 0) {
+        const toolList = notEnabled.join(', ');
+        this.logger(
+          'Info',
+          `Available tools not enabled: ${toolList}. Add them to enabledTools to use them.`,
+        );
+      }
+    }
+
     // describeCollection is always required
     enabled.add('describeCollection');
 

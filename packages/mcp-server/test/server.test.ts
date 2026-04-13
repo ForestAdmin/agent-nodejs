@@ -2828,6 +2828,74 @@ describe('enabledTools', () => {
     expect(toolNames).not.toContain('delete');
   });
 
+  it('should warn when describeCollection is not in enabledTools', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['list'],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'describeCollection was automatically enabled — it is required for the MCP server to function properly.',
+    );
+  });
+
+  it('should log available tools not included in enabledTools', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['describeCollection', 'list', 'listRelated'],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      expect.stringContaining('Available tools not enabled:'),
+    );
+    expect(logger).toHaveBeenCalledWith('Info', expect.stringContaining('create'));
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      expect.stringContaining('Add them to enabledTools to use them.'),
+    );
+  });
+
+  it('should not log discovery message when all tools are enabled', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: [
+        'describeCollection',
+        'list',
+        'listRelated',
+        'create',
+        'update',
+        'delete',
+        'associate',
+        'dissociate',
+        'getActionForm',
+        'executeAction',
+      ],
+    });
+
+    expect(server).toBeDefined();
+    const infoCalls = logger.mock.calls.filter(
+      ([level, msg]: [string, string]) =>
+        level === 'Info' && msg.includes('Available tools not enabled'),
+    );
+    expect(infoCalls).toHaveLength(0);
+  });
+
   it('should only expose describeCollection when enabledTools is empty', async () => {
     const savedFetch2 = global.fetch;
     const savedPort2 = process.env.MCP_SERVER_PORT;
