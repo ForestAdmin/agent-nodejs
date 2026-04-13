@@ -25,20 +25,6 @@ agent.start();
 
 The MCP server will be automatically initialized and mounted on your application.
 
-#### Disabling Tools
-
-You can restrict which tools are exposed by the MCP server using the `disabledTools` option:
-
-```typescript
-agent.mountAiMcpServer({
-  disabledTools: ['create', 'update', 'delete'],
-});
-```
-
-Available tool names: `list`, `listRelated`, `create`, `update`, `delete`, `associate`, `dissociate`, `getActionForm`, `executeAction`.
-
-Note: `describeCollection` cannot be disabled as it is required for the MCP server to function properly.
-
 ### Standalone Server
 
 You can run the MCP server standalone using the CLI:
@@ -83,6 +69,29 @@ Or set the variables inline:
 ```bash
 FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx forest-mcp-server
 ```
+
+## Disabling Tools
+
+You can restrict which tools are exposed by the MCP server. This is useful to prevent AI assistants from performing write operations, for example.
+
+**With Forest Admin Agent:**
+
+```typescript
+agent.mountAiMcpServer({
+  disabledTools: ['create', 'update', 'delete'],
+});
+```
+
+**Standalone (via environment variable):**
+
+```bash
+export FOREST_MCP_DISABLED_TOOLS="create,update,delete"
+npx forest-mcp-server
+```
+
+Available tool names: `list`, `listRelated`, `create`, `update`, `delete`, `associate`, `dissociate`, `getActionForm`, `executeAction`.
+
+Note: `describeCollection` cannot be disabled as it is required for the MCP server to function properly.
 
 ## API Endpoints
 
