@@ -8,10 +8,10 @@ export default class QuerySerializer {
     if (!query) return {};
 
     return {
-      ...query,
       sort: QuerySerializer.formatSort(query.sort),
       filters: QuerySerializer.formatFilters(query.filters),
       searchExtended: !!query.shouldSearchInRelation,
+      search: query.search,
       'page[size]': query.pagination?.size,
       'page[number]': query.pagination?.number,
       ...(query.fields?.length ? QuerySerializer.formatFields(collectionName, query.fields) : {}),
