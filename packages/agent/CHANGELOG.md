@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.77.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.76.6...@forestadmin/agent@1.77.0) (2026-04-13)
+
+
+### Features
+
+* **mcp-server:** add disabledTools option to ForestMCPServerOptions ([#1543](https://github.com/ForestAdmin/agent-nodejs/issues/1543)) ([d36ad10](https://github.com/ForestAdmin/agent-nodejs/commit/d36ad10bfb18a5972174a9acb3d7821691868494))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.9.0
+
 ## @forestadmin/agent [1.76.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.76.5...@forestadmin/agent@1.76.6) (2026-04-10)
 
 
