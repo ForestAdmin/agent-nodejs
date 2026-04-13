@@ -145,9 +145,7 @@ export default class ForestMCPServer {
     this.envSecret = options?.envSecret;
     this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
-    this.disabledTools = new Set(
-      options?.disabledTools?.filter(toolName => toolName !== 'describeCollection') ?? [],
-    );
+    this.disabledTools = this.getToolsToDisable(options?.disabledTools ?? []);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -269,6 +267,20 @@ export default class ForestMCPServer {
     this.logger('Debug', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
 
     return mcpServer;
+  }
+
+  private getToolsToDisable(toolsToDisable: ToolName[]): Set<ToolName> {
+    const tools = new Set(toolsToDisable);
+
+    if (tools.has('describeCollection')) {
+      tools.delete('describeCollection');
+      this.logger(
+        'Warn',
+        'The "describeCollection" tool cannot be disabled as it is required for the MCP server to function properly.',
+      );
+    }
+
+    return tools;
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {
