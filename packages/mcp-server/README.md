@@ -6,6 +6,21 @@ Model Context Protocol (MCP) server for Forest Admin with OAuth authentication s
 
 This MCP server provides HTTP REST API access to Forest Admin operations, enabling AI assistants and other MCP clients to interact with your Forest Admin data through a standardized protocol.
 
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `describeCollection` | Get the schema of a collection (fields, types, relations) |
+| `list` | Retrieve records from a collection |
+| `listRelated` | Retrieve related records |
+| `create` | Create a new record |
+| `update` | Update an existing record |
+| `delete` | Delete records |
+| `associate` | Associate records in a relation |
+| `dissociate` | Dissociate records from a relation |
+| `getActionForm` | Get the form fields for a custom action |
+| `executeAction` | Execute a custom action |
+
 ## Usage
 
 ### With Forest Admin Agent
@@ -47,6 +62,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
+| `FOREST_MCP_DISABLED_TOOLS` | No | - | Comma-separated list of tools to disable (e.g. `create,update,delete`) |
 
 #### Example Configuration
 
@@ -68,6 +84,37 @@ Or set the variables inline:
 ```bash
 FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx forest-mcp-server
 ```
+
+## Disabling Tools
+
+You can restrict which tools are exposed by the MCP server.
+
+**Read-only mode** — disable all write operations:
+
+```typescript
+// With Forest Admin Agent
+agent.mountAiMcpServer({
+  disabledTools: ['create', 'update', 'delete', 'associate', 'dissociate', 'getActionForm', 'executeAction'],
+});
+```
+
+```bash
+# Standalone
+export FOREST_MCP_DISABLED_TOOLS="create,update,delete,associate,dissociate,getActionForm,executeAction"
+npx forest-mcp-server
+```
+
+This keeps only `list`, `listRelated` and `describeCollection` available.
+
+**Custom selection** — disable specific tools:
+
+```typescript
+agent.mountAiMcpServer({
+  disabledTools: ['create', 'delete'],
+});
+```
+
+See [Available Tools](#available-tools) for the full list. Note: `describeCollection` cannot be disabled as it is required for the MCP server to function properly.
 
 ## API Endpoints
 

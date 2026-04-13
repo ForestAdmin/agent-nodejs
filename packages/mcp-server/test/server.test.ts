@@ -2733,6 +2733,120 @@ describe('handleMcpRequest cleanup', () => {
   });
 });
 
+describe('disabledTools', () => {
+  const savedFetch = global.fetch;
+  let disabledToolsServer: ForestMCPServer;
+  let disabledToolsHttpServer: http.Server;
+  let mockServer: MockServer;
+
+  beforeAll(async () => {
+    mockServer = new MockServer();
+    mockServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        included: [],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockServer.fetch;
+
+    disabledToolsServer = new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      disabledTools: ['create', 'update', 'delete', 'associate', 'dissociate'],
+    });
+    disabledToolsServer.run();
+
+    await new Promise(resolve => {
+      setTimeout(resolve, 500);
+    });
+
+    disabledToolsHttpServer = disabledToolsServer.httpServer as http.Server;
+  });
+
+  afterAll(async () => {
+    global.fetch = savedFetch;
+    await new Promise<void>(resolve => {
+      if (disabledToolsHttpServer) {
+        disabledToolsHttpServer.close(() => resolve());
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  it('should not expose disabled tools and should expose enabled tools', async () => {
+    const validToken = jsonwebtoken.sign(
+      { id: 123, email: 'user@example.com', renderingId: 456 },
+      'test-auth-secret',
+      { expiresIn: '1h' },
+    );
+
+    const response = await request(disabledToolsHttpServer)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validToken}`)
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    expect(response.status).toBe(200);
+
+    let responseData: { result: { tools: Array<{ name: string }> } };
+
+    if (response.body && Object.keys(response.body).length > 0) {
+      responseData = response.body;
+    } else {
+      const dataLine = response.text.split('\n').find((line: string) => line.startsWith('data: '));
+      responseData = JSON.parse((dataLine as string).replace('data: ', ''));
+    }
+
+    const toolNames = responseData.result.tools.map(t => t.name);
+
+    // Disabled tools should NOT be present
+    expect(toolNames).not.toContain('create');
+    expect(toolNames).not.toContain('update');
+    expect(toolNames).not.toContain('delete');
+    expect(toolNames).not.toContain('associate');
+    expect(toolNames).not.toContain('dissociate');
+
+    // Enabled tools SHOULD be present
+    expect(toolNames).toContain('describeCollection');
+    expect(toolNames).toContain('list');
+    expect(toolNames).toContain('listRelated');
+    expect(toolNames).toContain('getActionForm');
+    expect(toolNames).toContain('executeAction');
+
+    expect(toolNames).toHaveLength(5);
+  });
+
+  it('should re-enable describeCollection and log a warning when it is passed as disabled', () => {
+    const logger = jest.fn();
+
+    const disabledServer = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      disabledTools: ['describeCollection'],
+    });
+
+    expect(disabledServer).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'The "describeCollection" tool cannot be disabled as it is required for the MCP server to function properly.',
+    );
+  });
+});
+
 describe('Logo URL', () => {
   it('should reference an accessible PNG image', async () => {
     const response = await fetch(LOGO_URL, { method: 'HEAD' });
