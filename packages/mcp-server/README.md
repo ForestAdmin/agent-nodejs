@@ -35,7 +35,9 @@ agent.mountAiMcpServer({
 });
 ```
 
-Available tool names: `describeCollection`, `list`, `listRelated`, `create`, `update`, `delete`, `associate`, `dissociate`, `getActionForm`, `executeAction`.
+Available tool names: `list`, `listRelated`, `create`, `update`, `delete`, `associate`, `dissociate`, `getActionForm`, `executeAction`.
+
+Note: `describeCollection` cannot be disabled as it is required for the MCP server to function properly.
 
 ### Standalone Server
 
