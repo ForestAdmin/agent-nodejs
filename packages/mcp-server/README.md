@@ -72,21 +72,31 @@ FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx fo
 
 ## Disabling Tools
 
-You can restrict which tools are exposed by the MCP server. This is useful to prevent AI assistants from performing write operations, for example.
+You can restrict which tools are exposed by the MCP server.
 
-**With Forest Admin Agent:**
+**Read-only mode** — disable all write operations:
 
 ```typescript
+// With Forest Admin Agent
 agent.mountAiMcpServer({
-  disabledTools: ['create', 'update', 'delete'],
+  disabledTools: ['create', 'update', 'delete', 'associate', 'dissociate', 'executeAction'],
 });
 ```
 
-**Standalone (via environment variable):**
-
 ```bash
-export FOREST_MCP_DISABLED_TOOLS="create,update,delete"
+# Standalone
+export FOREST_MCP_DISABLED_TOOLS="create,update,delete,associate,dissociate,executeAction"
 npx forest-mcp-server
+```
+
+This keeps only `list`, `listRelated`, `describeCollection` and `getActionForm` available.
+
+**Custom selection** — disable specific tools:
+
+```typescript
+agent.mountAiMcpServer({
+  disabledTools: ['create', 'delete'],
+});
 ```
 
 Available tool names: `list`, `listRelated`, `create`, `update`, `delete`, `associate`, `dissociate`, `getActionForm`, `executeAction`.
