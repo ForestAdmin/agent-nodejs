@@ -7,14 +7,16 @@ export default class QuerySerializer {
   static serialize(query: SelectOptions, collectionName: string): Record<string, unknown> {
     if (!query) return {};
 
+    const { fields, sort, filters, shouldSearchInRelation, pagination, ...rest } = query;
+
     return {
-      sort: QuerySerializer.formatSort(query.sort),
-      filters: QuerySerializer.formatFilters(query.filters),
-      searchExtended: !!query.shouldSearchInRelation,
-      search: query.search,
-      'page[size]': query.pagination?.size,
-      'page[number]': query.pagination?.number,
-      ...(query.fields?.length ? QuerySerializer.formatFields(collectionName, query.fields) : {}),
+      ...rest,
+      sort: QuerySerializer.formatSort(sort),
+      filters: QuerySerializer.formatFilters(filters),
+      searchExtended: !!shouldSearchInRelation,
+      'page[size]': pagination?.size,
+      'page[number]': pagination?.number,
+      ...(fields?.length ? QuerySerializer.formatFields(collectionName, fields) : {}),
     };
   }
 
