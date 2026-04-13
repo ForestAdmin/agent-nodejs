@@ -25,6 +25,18 @@ agent.start();
 
 The MCP server will be automatically initialized and mounted on your application.
 
+#### Disabling Tools
+
+You can restrict which tools are exposed by the MCP server using the `disabledTools` option:
+
+```typescript
+agent.mountAiMcpServer({
+  disabledTools: ['create', 'update', 'delete'],
+});
+```
+
+Available tool names: `describeCollection`, `list`, `listRelated`, `create`, `update`, `delete`, `associate`, `dissociate`, `getActionForm`, `executeAction`.
+
 ### Standalone Server
 
 You can run the MCP server standalone using the CLI:
