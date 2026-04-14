@@ -863,7 +863,7 @@ describe('declareDescribeCollectionTool', () => {
         expect(parsed.actions).toEqual([]);
       });
 
-      it('should exclude actions without endpoint', async () => {
+      it('should exclude actions without endpoint and expose them in _meta.skippedActions', async () => {
         mockGetActionsOfCollection.mockReturnValue([
           {
             id: 'action-with-endpoint',
@@ -901,6 +901,10 @@ describe('declareDescribeCollectionTool', () => {
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.actions).toHaveLength(1);
         expect(parsed.actions[0].name).toBe('Valid Action');
+        expect(parsed._meta.skippedActions).toEqual([
+          { name: 'Invalid Action', reason: 'no endpoint configured' },
+          { name: 'Null Endpoint Action', reason: 'no endpoint configured' },
+        ]);
       });
     });
 

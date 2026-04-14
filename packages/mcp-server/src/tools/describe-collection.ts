@@ -178,6 +178,10 @@ Check \`_meta\` for data availability context.`,
             download: action.download,
           }));
 
+          const skippedActions = schemaActions
+            .filter(action => !action.endpoint)
+            .map(action => ({ name: action.name, reason: 'no endpoint configured' }));
+
           const result = {
             collection: options.collectionName,
             fields,
@@ -190,6 +194,7 @@ Check \`_meta\` for data availability context.`,
                 : {
                     note: 'Operators unavailable (older agent version). Fields have operators: null.',
                   }),
+              ...(skippedActions.length > 0 && { skippedActions }),
             },
           };
 

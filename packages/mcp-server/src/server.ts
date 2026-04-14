@@ -162,17 +162,6 @@ export default class ForestMCPServer {
     try {
       const schema = await fetchForestSchema(this.forestServerClient);
       this.collectionNames = getCollectionNames(schema);
-
-      for (const collection of schema.collections) {
-        for (const action of collection.actions || []) {
-          if (!action.endpoint) {
-            this.logger(
-              'Warn',
-              `Action "${action.name}" on collection "${collection.name}" has no endpoint and will be ignored by the MCP server.`,
-            );
-          }
-        }
-      }
     } catch (error) {
       this.logger(
         'Warn',
