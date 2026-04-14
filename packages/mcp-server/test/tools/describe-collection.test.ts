@@ -620,7 +620,7 @@ describe('declareDescribeCollectionTool', () => {
             enum: null,
             reference: 'commentable.id',
             relationship: 'BelongsTo',
-            'polymorphic-referenced-models': ['Post', 'Video'],
+            polymorphicReferencedModels: ['Post', 'Video'],
           },
         ] as unknown as schemaFetcher.ForestField[];
         mockFetchForestSchema.mockResolvedValue({
@@ -684,7 +684,7 @@ describe('declareDescribeCollectionTool', () => {
             enum: null,
             reference: 'commentable.id',
             relationship: 'BelongsTo',
-            'polymorphic-referenced-models': [],
+            polymorphicReferencedModels: [],
           },
         ] as unknown as schemaFetcher.ForestField[];
         mockFetchForestSchema.mockResolvedValue({

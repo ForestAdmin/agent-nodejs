@@ -155,8 +155,7 @@ Check \`_meta\` for data availability context.`,
           const relations = schemaFields
             .filter(f => f.relationship)
             .map(f => {
-              // forest-rails sends polymorphic-referenced-models (kebab-case in JSON:API)
-              const polymorphicTargets = f['polymorphic-referenced-models'];
+              const polymorphicTargets = f.polymorphicReferencedModels;
               const isPolymorphic =
                 Array.isArray(polymorphicTargets) && polymorphicTargets.length > 0;
 
