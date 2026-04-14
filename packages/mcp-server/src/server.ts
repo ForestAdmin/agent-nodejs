@@ -32,7 +32,7 @@ import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareUpdateTool from './tools/update';
-import { fetchForestSchema, getActionEndpoints, getCollectionNames } from './utils/schema-fetcher';
+import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
 
@@ -162,7 +162,17 @@ export default class ForestMCPServer {
     try {
       const schema = await fetchForestSchema(this.forestServerClient);
       this.collectionNames = getCollectionNames(schema);
-      getActionEndpoints(schema, this.logger);
+
+      for (const collection of schema.collections) {
+        for (const action of collection.actions || []) {
+          if (!action.endpoint) {
+            this.logger(
+              'Warn',
+              `Action "${action.name}" on collection "${collection.name}" has no endpoint and will be ignored by the MCP server.`,
+            );
+          }
+        }
+      }
     } catch (error) {
       this.logger(
         'Warn',
