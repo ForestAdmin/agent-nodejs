@@ -27,4 +27,6 @@ export type SelectOptions = BaseOptions & {
     size?: number; // number of items per page
     number?: number; // current page number
   };
+  segmentQuery?: string; // SQL query for live query segments
+  connectionName?: string; // Connection name for live query segments
 };
