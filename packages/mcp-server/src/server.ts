@@ -115,8 +115,8 @@ export interface ForestMCPServerOptions {
   logger?: Logger;
   /** Optional Forest server client for dependency injection (from agent integration) */
   forestServerClient?: ForestServerClient;
-  /** List of tool names to disable. Use this to restrict which tools are exposed. */
-  disabledTools?: ToolName[];
+  /** List of tool names to enable (allowlist). Only these tools will be exposed. New tools in future releases will NOT be auto-enabled. */
+  enabledTools?: ToolName[];
 }
 
 /**
@@ -137,7 +137,7 @@ export default class ForestMCPServer {
   private authSecret?: string;
   private logger: Logger;
   private collectionNames: string[] = [];
-  private disabledTools: Set<ToolName>;
+  private enabledTools: Set<ToolName>;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -145,7 +145,7 @@ export default class ForestMCPServer {
     this.envSecret = options?.envSecret;
     this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
-    this.disabledTools = this.getToolsToDisable(options?.disabledTools ?? []);
+    this.enabledTools = this.resolveEnabledTools(options);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -260,27 +260,80 @@ export default class ForestMCPServer {
       },
     ];
 
-    const toolNames = allTools
-      .filter(tool => !this.disabledTools.has(tool.name))
-      .map(tool => tool.register());
+    const enabledToolEntries = allTools.filter(tool => this.enabledTools.has(tool.name));
+    const disabledToolNames = allTools
+      .filter(tool => !this.enabledTools.has(tool.name))
+      .map(tool => tool.name);
 
-    this.logger('Debug', `Registered ${toolNames.length} tools: ${toolNames.join(', ')}`);
+    const toolNames = enabledToolEntries.map(tool => tool.register());
+
+    this.logger(
+      'Info',
+      `Tools enabled: ${toolNames.join(', ')} (${toolNames.length}/${allTools.length})`,
+    );
+
+    if (disabledToolNames.length > 0) {
+      const total = allTools.length;
+      this.logger(
+        'Info',
+        `Tools disabled: ${disabledToolNames.join(', ')} (${disabledToolNames.length}/${total})`,
+      );
+    }
 
     return mcpServer;
   }
 
-  private getToolsToDisable(toolsToDisable: ToolName[]): Set<ToolName> {
-    const tools = new Set(toolsToDisable);
+  private resolveEnabledTools(options?: ForestMCPServerOptions): Set<ToolName> {
+    const allToolNames: ToolName[] = [
+      'describeCollection',
+      'list',
+      'listRelated',
+      'create',
+      'update',
+      'delete',
+      'associate',
+      'dissociate',
+      'getActionForm',
+      'executeAction',
+    ];
 
-    if (tools.has('describeCollection')) {
-      tools.delete('describeCollection');
-      this.logger(
-        'Warn',
-        'The "describeCollection" tool cannot be disabled as it is required for the MCP server to function properly.',
+    const enabled = new Set(options?.enabledTools ?? allToolNames);
+
+    if (options?.enabledTools) {
+      const allToolNamesSet = new Set<string>(allToolNames);
+      const unknownTools = options.enabledTools.filter(name => !allToolNamesSet.has(name));
+
+      if (unknownTools.length > 0) {
+        this.logger(
+          'Warn',
+          `Unknown tool names in enabledTools: ${unknownTools.join(', ')}. These will be ignored.`,
+        );
+      }
+
+      if (!options.enabledTools.includes('describeCollection')) {
+        this.logger(
+          'Warn',
+          'describeCollection was automatically enabled — it is required for the MCP server to function properly.',
+        );
+      }
+
+      const notEnabled = allToolNames.filter(
+        name => name !== 'describeCollection' && !enabled.has(name),
       );
+
+      if (notEnabled.length > 0) {
+        const toolList = notEnabled.join(', ');
+        this.logger(
+          'Info',
+          `Available tools not enabled: ${toolList}. Add them to enabledTools to use them.`,
+        );
+      }
     }
 
-    return tools;
+    // describeCollection is always required
+    enabled.add('describeCollection');
+
+    return enabled;
   }
 
   private ensureSecretsAreSet(): { envSecret: string; authSecret: string } {

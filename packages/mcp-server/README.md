@@ -62,7 +62,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
-| `FOREST_MCP_DISABLED_TOOLS` | No | - | Comma-separated list of tools to disable (e.g. `create,update,delete`) |
+| `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
 
 #### Example Configuration
 
@@ -85,36 +85,28 @@ Or set the variables inline:
 FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx forest-mcp-server
 ```
 
-## Disabling Tools
+## Restrict Tools
 
-You can restrict which tools are exposed by the MCP server.
+You can restrict which tools the MCP server exposes using `enabledTools`. Only the listed tools will be available. **New tools added in future releases will NOT be automatically enabled** — you must explicitly add them.
 
-**Read-only mode** — disable all write operations:
+For example, to set up a **read-only mode** where the AI assistant can only browse data (no create, update, delete or action execution):
 
 ```typescript
-// With Forest Admin Agent
+// With Forest Admin Agent — read-only example
 agent.mountAiMcpServer({
-  disabledTools: ['create', 'update', 'delete', 'associate', 'dissociate', 'getActionForm', 'executeAction'],
+  enabledTools: ['describeCollection', 'list', 'listRelated'],
 });
 ```
 
 ```bash
 # Standalone
-export FOREST_MCP_DISABLED_TOOLS="create,update,delete,associate,dissociate,getActionForm,executeAction"
+export FOREST_MCP_ENABLED_TOOLS="describeCollection,list,listRelated"
 npx forest-mcp-server
 ```
 
-This keeps only `list`, `listRelated` and `describeCollection` available.
+When `enabledTools` is not set, all tools are enabled by default.
 
-**Custom selection** — disable specific tools:
-
-```typescript
-agent.mountAiMcpServer({
-  disabledTools: ['create', 'delete'],
-});
-```
-
-See [Available Tools](#available-tools) for the full list. Note: `describeCollection` cannot be disabled as it is required for the MCP server to function properly.
+See [Available Tools](#available-tools) for the full list. `describeCollection` is always enabled as it is required for the MCP server to function properly.
 
 ## API Endpoints
 

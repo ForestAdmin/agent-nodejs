@@ -2733,13 +2733,15 @@ describe('handleMcpRequest cleanup', () => {
   });
 });
 
-describe('disabledTools', () => {
+describe('enabledTools', () => {
   const savedFetch = global.fetch;
-  let disabledToolsServer: ForestMCPServer;
-  let disabledToolsHttpServer: http.Server;
+  const savedPort = process.env.MCP_SERVER_PORT;
+  let enabledToolsServer: ForestMCPServer;
+  let enabledToolsHttpServer: http.Server;
   let mockServer: MockServer;
 
   beforeAll(async () => {
+    process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
     mockServer = new MockServer();
     mockServer
       .get('/liana/environment', {
@@ -2760,39 +2762,40 @@ describe('disabledTools', () => {
 
     global.fetch = mockServer.fetch;
 
-    disabledToolsServer = new ForestMCPServer({
+    enabledToolsServer = new ForestMCPServer({
       envSecret: 'test-env-secret',
       authSecret: 'test-auth-secret',
-      disabledTools: ['create', 'update', 'delete', 'associate', 'dissociate'],
-    });
-    disabledToolsServer.run();
-
-    await new Promise(resolve => {
-      setTimeout(resolve, 500);
+      enabledTools: ['list', 'listRelated'],
     });
 
-    disabledToolsHttpServer = disabledToolsServer.httpServer as http.Server;
+    const app = await enabledToolsServer.buildExpressApp();
+    enabledToolsHttpServer = app.listen(Number(process.env.MCP_SERVER_PORT)) as http.Server;
+
+    await new Promise<void>(resolve => {
+      enabledToolsHttpServer.on('listening', resolve);
+    });
   });
 
   afterAll(async () => {
     global.fetch = savedFetch;
+    process.env.MCP_SERVER_PORT = savedPort;
     await new Promise<void>(resolve => {
-      if (disabledToolsHttpServer) {
-        disabledToolsHttpServer.close(() => resolve());
+      if (enabledToolsHttpServer) {
+        enabledToolsHttpServer.close(() => resolve());
       } else {
         resolve();
       }
     });
   });
 
-  it('should not expose disabled tools and should expose enabled tools', async () => {
+  it('should only expose enabled tools plus describeCollection', async () => {
     const validToken = jsonwebtoken.sign(
       { id: 123, email: 'user@example.com', renderingId: 456 },
       'test-auth-secret',
       { expiresIn: '1h' },
     );
 
-    const response = await request(disabledToolsHttpServer)
+    const response = await request(enabledToolsHttpServer)
       .post('/mcp')
       .set('Authorization', `Bearer ${validToken}`)
       .set('Content-Type', 'application/json')
@@ -2807,43 +2810,180 @@ describe('disabledTools', () => {
       responseData = response.body;
     } else {
       const dataLine = response.text.split('\n').find((line: string) => line.startsWith('data: '));
-      responseData = JSON.parse((dataLine as string).replace('data: ', ''));
+      if (!dataLine) throw new Error('Expected SSE data line not found in response');
+      responseData = JSON.parse(dataLine.replace('data: ', ''));
     }
 
     const toolNames = responseData.result.tools.map(t => t.name);
 
-    // Disabled tools should NOT be present
-    expect(toolNames).not.toContain('create');
-    expect(toolNames).not.toContain('update');
-    expect(toolNames).not.toContain('delete');
-    expect(toolNames).not.toContain('associate');
-    expect(toolNames).not.toContain('dissociate');
-
-    // Enabled tools SHOULD be present
+    // Only enabled tools + describeCollection (always forced)
     expect(toolNames).toContain('describeCollection');
     expect(toolNames).toContain('list');
     expect(toolNames).toContain('listRelated');
-    expect(toolNames).toContain('getActionForm');
-    expect(toolNames).toContain('executeAction');
+    expect(toolNames).toHaveLength(3);
 
-    expect(toolNames).toHaveLength(5);
+    // Write tools should NOT be present
+    expect(toolNames).not.toContain('create');
+    expect(toolNames).not.toContain('update');
+    expect(toolNames).not.toContain('delete');
   });
 
-  it('should re-enable describeCollection and log a warning when it is passed as disabled', () => {
+  it('should warn when describeCollection is not in enabledTools', () => {
     const logger = jest.fn();
 
-    const disabledServer = new ForestMCPServer({
+    const server = new ForestMCPServer({
       envSecret: 'ENV_SECRET',
       authSecret: 'AUTH_SECRET',
       logger,
-      disabledTools: ['describeCollection'],
+      enabledTools: ['list'],
     });
 
-    expect(disabledServer).toBeDefined();
+    expect(server).toBeDefined();
     expect(logger).toHaveBeenCalledWith(
       'Warn',
-      'The "describeCollection" tool cannot be disabled as it is required for the MCP server to function properly.',
+      'describeCollection was automatically enabled — it is required for the MCP server to function properly.',
     );
+  });
+
+  it('should log available tools not included in enabledTools', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['describeCollection', 'list', 'listRelated'],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      expect.stringContaining('Available tools not enabled:'),
+    );
+    expect(logger).toHaveBeenCalledWith('Info', expect.stringContaining('create'));
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      expect.stringContaining('Add them to enabledTools to use them.'),
+    );
+  });
+
+  it('should not log discovery message when all tools are enabled', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: [
+        'describeCollection',
+        'list',
+        'listRelated',
+        'create',
+        'update',
+        'delete',
+        'associate',
+        'dissociate',
+        'getActionForm',
+        'executeAction',
+      ],
+    });
+
+    expect(server).toBeDefined();
+    const infoCalls = logger.mock.calls.filter(
+      ([level, msg]: [string, string]) =>
+        level === 'Info' && msg.includes('Available tools not enabled'),
+    );
+    expect(infoCalls).toHaveLength(0);
+  });
+
+  it('should warn about unknown tool names in enabledTools', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['list', 'lst', 'creat' as any],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Unknown tool names in enabledTools: lst, creat. These will be ignored.',
+    );
+  });
+
+  it('should only expose describeCollection when enabledTools is empty', async () => {
+    const savedFetch2 = global.fetch;
+    const savedPort2 = process.env.MCP_SERVER_PORT;
+    process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
+    const mockServer2 = new MockServer();
+    mockServer2
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        included: [],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockServer2.fetch;
+
+    const emptyServer = new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      enabledTools: [],
+    });
+
+    const emptyApp = await emptyServer.buildExpressApp();
+    const emptyHttpServer = emptyApp.listen(Number(process.env.MCP_SERVER_PORT)) as http.Server;
+
+    await new Promise<void>(resolve => {
+      emptyHttpServer.on('listening', resolve);
+    });
+
+    const validToken = jsonwebtoken.sign(
+      { id: 123, email: 'user@example.com', renderingId: 456 },
+      'test-auth-secret',
+      { expiresIn: '1h' },
+    );
+
+    const response = await request(emptyHttpServer)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validToken}`)
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    expect(response.status).toBe(200);
+
+    let responseData: { result: { tools: Array<{ name: string }> } };
+
+    if (response.body && Object.keys(response.body).length > 0) {
+      responseData = response.body;
+    } else {
+      const dataLine = response.text.split('\n').find((line: string) => line.startsWith('data: '));
+      if (!dataLine) throw new Error('Expected SSE data line not found in response');
+      responseData = JSON.parse(dataLine.replace('data: ', ''));
+    }
+
+    const toolNames = responseData.result.tools.map(t => t.name);
+
+    expect(toolNames).toEqual(['describeCollection']);
+
+    await new Promise<void>(resolve => {
+      emptyHttpServer.close(() => resolve());
+    });
+    global.fetch = savedFetch2;
+    process.env.MCP_SERVER_PORT = savedPort2;
   });
 });
 
