@@ -1,3 +1,10 @@
+## @forestadmin/agent-client [1.4.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.22...@forestadmin/agent-client@1.4.23) (2026-04-14)
+
+
+### Bug Fixes
+
+* **mcp server:** do not pass the whole query in requests ([#1548](https://github.com/ForestAdmin/agent-nodejs/issues/1548)) ([ca4810f](https://github.com/ForestAdmin/agent-nodejs/commit/ca4810fd0ea0c1bc593f7ef5470b7462bc700d37))
+
 ## @forestadmin/agent-client [1.4.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.21...@forestadmin/agent-client@1.4.22) (2026-04-10)
 
 
