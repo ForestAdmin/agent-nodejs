@@ -1,6 +1,6 @@
 import type { ToolName } from '../server';
 
-export default function parseDisabledTools(envValue?: string): ToolName[] | undefined {
+export default function parseToolList(envValue?: string): ToolName[] | undefined {
   if (!envValue) return undefined;
 
   return envValue
