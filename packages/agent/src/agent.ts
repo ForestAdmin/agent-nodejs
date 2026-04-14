@@ -208,7 +208,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/ai/mcp-server}
    * @example
    * agent.mountAiMcpServer();
-   * // Or with options (read-only mode):
+   * // Example: read-only mode (only browse data, no create/update/delete/actions)
    * agent.mountAiMcpServer({ enabledTools: ['describeCollection', 'list', 'listRelated'] });
    */
   mountAiMcpServer(options?: { enabledTools?: ToolName[] }): this {

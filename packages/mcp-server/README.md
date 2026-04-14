@@ -89,10 +89,10 @@ FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx fo
 
 You can restrict which tools the MCP server exposes using `enabledTools`. Only the listed tools will be available. **New tools added in future releases will NOT be automatically enabled** — you must explicitly add them.
 
-**Read-only mode:**
+For example, to set up a **read-only mode** where the AI assistant can only browse data (no create, update, delete or action execution):
 
 ```typescript
-// With Forest Admin Agent
+// With Forest Admin Agent — read-only example
 agent.mountAiMcpServer({
   enabledTools: ['describeCollection', 'list', 'listRelated'],
 });
