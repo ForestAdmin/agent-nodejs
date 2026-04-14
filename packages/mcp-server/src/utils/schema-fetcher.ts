@@ -120,7 +120,10 @@ export function getActionsOfCollection(
  * @param schema - The Forest Admin schema
  * @returns A mapping of collection names to action names to their endpoints
  */
-export function getActionEndpoints(schema: ForestSchema): ActionEndpoints {
+export function getActionEndpoints(
+  schema: ForestSchema,
+  logger?: (level: string, message: string) => void,
+): ActionEndpoints {
   const actionEndpoints: ActionEndpoints = {};
 
   for (const collection of schema.collections) {
@@ -128,7 +131,14 @@ export function getActionEndpoints(schema: ForestSchema): ActionEndpoints {
       actionEndpoints[collection.name] = {};
 
       for (const action of collection.actions) {
-        if (!action.endpoint) continue;
+        if (!action.endpoint) {
+          logger?.(
+            'Warn',
+            `Action "${action.name}" on collection "${collection.name}" has no endpoint and will be ignored by the MCP server.`,
+          );
+
+          continue;
+        }
 
         actionEndpoints[collection.name][action.name] = {
           id: action.id,
