@@ -898,10 +898,10 @@ describe('declareDescribeCollectionTool', () => {
           content: { type: string; text: string }[];
         };
 
-        const parsed = JSON.parse(result.content[0].text);
-        expect(parsed.actions).toHaveLength(1);
-        expect(parsed.actions[0].name).toBe('Valid Action');
-        expect(parsed._meta.skippedActions).toEqual([
+        const { actions, _meta: meta } = JSON.parse(result.content[0].text);
+        expect(actions).toHaveLength(1);
+        expect(actions[0].name).toBe('Valid Action');
+        expect(meta.skippedActions).toEqual([
           { name: 'Invalid Action', reason: 'no endpoint configured' },
           { name: 'Null Endpoint Action', reason: 'no endpoint configured' },
         ]);

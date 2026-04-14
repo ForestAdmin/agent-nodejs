@@ -170,13 +170,15 @@ Check \`_meta\` for data availability context.`,
 
           // Extract actions from schema
           const schemaActions = getActionsOfCollection(schema, options.collectionName);
-          const actions = schemaActions.filter(action => action.endpoint).map(action => ({
-            name: action.name,
-            type: action.type, // 'single', 'bulk', or 'global'
-            description: action.description || null,
-            hasForm: action.fields.length > 0 || action.hooks.load,
-            download: action.download,
-          }));
+          const actions = schemaActions
+            .filter(action => action.endpoint)
+            .map(action => ({
+              name: action.name,
+              type: action.type, // 'single', 'bulk', or 'global'
+              description: action.description || null,
+              hasForm: action.fields.length > 0 || action.hooks.load,
+              download: action.download,
+            }));
 
           const skippedActions = schemaActions
             .filter(action => !action.endpoint)
