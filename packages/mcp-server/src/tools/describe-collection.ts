@@ -98,6 +98,8 @@ Actions properties:
 - hasForm: true if action requires form input (use getActionForm to see fields)
 - download: true if action returns a file download (not executable via AI)
 
+Polymorphic relations (isPolymorphic=true) point to multiple collections. When creating/updating, you must set both the _id and _type fields (e.g. commentable_id and commentable_type).
+
 Check \`_meta\` for data availability context.`,
       inputSchema: argumentShape,
     },
@@ -152,11 +154,22 @@ Check \`_meta\` for data availability context.`,
           // Extract relations from schema
           const relations = schemaFields
             .filter(f => f.relationship)
-            .map(f => ({
-              name: f.field,
-              type: mapRelationType(f.relationship),
-              targetCollection: f.reference?.split('.')[0] || null,
-            }));
+            .map(f => {
+              const fieldData = f as unknown as Record<string, unknown>;
+              // forest-rails sends polymorphic-referenced-models (kebab-case in JSON:API)
+              const polymorphicTargets = fieldData['polymorphic-referenced-models'] as
+                | string[]
+                | undefined;
+              const isPolymorphic =
+                Array.isArray(polymorphicTargets) && polymorphicTargets.length > 0;
+
+              return {
+                name: f.field,
+                type: mapRelationType(f.relationship),
+                targetCollection: isPolymorphic ? null : f.reference?.split('.')[0] || null,
+                ...(isPolymorphic && { isPolymorphic: true, polymorphicTargets }),
+              };
+            });
 
           // Extract actions from schema
           const schemaActions = getActionsOfCollection(schema, options.collectionName);

@@ -607,6 +607,101 @@ describe('declareDescribeCollectionTool', () => {
           targetCollection: null,
         });
       });
+
+      it('should detect polymorphic BelongsTo relations from forest-rails schema', async () => {
+        const mockFields = [
+          {
+            field: 'commentable',
+            type: 'Number',
+            isSortable: false,
+            isPrimaryKey: false,
+            isReadOnly: false,
+            isRequired: false,
+            enum: null,
+            reference: 'commentable.id',
+            relationship: 'BelongsTo',
+            'polymorphic-referenced-models': ['Post', 'Video'],
+          },
+        ] as unknown as schemaFetcher.ForestField[];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'comments', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        const result = (await registeredToolHandler({ collectionName: 'comments' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.relations).toContainEqual({
+          name: 'commentable',
+          type: 'many-to-one',
+          targetCollection: null,
+          isPolymorphic: true,
+          polymorphicTargets: ['Post', 'Video'],
+        });
+      });
+
+      it('should not add polymorphic fields to non-polymorphic relations', async () => {
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'user',
+            type: 'Number',
+            isSortable: false,
+            isPrimaryKey: false,
+            isReadOnly: false,
+            isRequired: false,
+            enum: null,
+            reference: 'users.id',
+            relationship: 'BelongsTo',
+          },
+        ];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'comments', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        const result = (await registeredToolHandler({ collectionName: 'comments' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        const relation = parsed.relations[0];
+        expect(relation.targetCollection).toBe('users');
+        expect(relation.isPolymorphic).toBeUndefined();
+        expect(relation.polymorphicTargets).toBeUndefined();
+      });
+
+      it('should treat empty polymorphic-referenced-models as non-polymorphic', async () => {
+        const mockFields = [
+          {
+            field: 'commentable',
+            type: 'Number',
+            isSortable: false,
+            isPrimaryKey: false,
+            isReadOnly: false,
+            isRequired: false,
+            enum: null,
+            reference: 'commentable.id',
+            relationship: 'BelongsTo',
+            'polymorphic-referenced-models': [],
+          },
+        ] as unknown as schemaFetcher.ForestField[];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'comments', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        const result = (await registeredToolHandler({ collectionName: 'comments' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        const relation = parsed.relations[0];
+        expect(relation.targetCollection).toBe('commentable');
+        expect(relation.isPolymorphic).toBeUndefined();
+        expect(relation.polymorphicTargets).toBeUndefined();
+      });
     });
 
     describe('actions extraction', () => {
