@@ -1,3 +1,63 @@
+# @forestadmin/agent [2.0.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.77.1...@forestadmin/agent@2.0.0) (2026-04-14)
+
+
+### Features
+
+* **mcp-server:** add enabledTools allowlist option ([#1547](https://github.com/ForestAdmin/agent-nodejs/issues/1547)) ([fc5127a](https://github.com/ForestAdmin/agent-nodejs/commit/fc5127a8903f758c9eb2c1493ea90a878695db45))
+
+
+### BREAKING CHANGES
+
+* **mcp-server:** `disabledTools` option has been removed. Use
+`enabledTools` instead. This is an allowlist: only listed tools are
+exposed. New tools in future releases will NOT be auto-enabled.
+
+- Remove disabledTools from ForestMCPServerOptions
+- Remove FOREST_MCP_DISABLED_TOOLS env var
+- Rename parse-disabled-tools.ts to parse-tool-list.ts
+- Simplify resolveEnabledTools (no more blocklist path)
+- Update agent mountAiMcpServer to only accept enabledTools
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+* test(mcp-server): fix enabledTools tests and add empty array edge case
+
+- Fix port conflicts using getAvailablePort()
+- Replace no-op logging test with empty enabledTools edge case test
+- Verify enabledTools: [] only exposes describeCollection
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+* feat(mcp-server): add warning and discovery logs for enabledTools
+
+- Warn when describeCollection is missing from enabledTools (auto-added)
+- Log available tools not enabled for discoverability on new releases
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+* fix(mcp-server): validate enabledTools names and fix test port conflicts
+
+- Warn about unknown tool names in enabledTools (typo protection)
+- Fix test port conflicts by using buildExpressApp + listen instead of run()
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+* chore(example): revert mountAiMcpServer to default (no options)
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+* docs(mcp-server): clarify read-only is an example of enabledTools usage
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 2.0.0
+
 ## @forestadmin/agent [1.77.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.77.0...@forestadmin/agent@1.77.1) (2026-04-14)
 
 
