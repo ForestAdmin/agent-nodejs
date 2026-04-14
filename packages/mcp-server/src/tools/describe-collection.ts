@@ -155,11 +155,8 @@ Check \`_meta\` for data availability context.`,
           const relations = schemaFields
             .filter(f => f.relationship)
             .map(f => {
-              const fieldData = f as unknown as Record<string, unknown>;
               // forest-rails sends polymorphic-referenced-models (kebab-case in JSON:API)
-              const polymorphicTargets = fieldData['polymorphic-referenced-models'] as
-                | string[]
-                | undefined;
+              const polymorphicTargets = f['polymorphic-referenced-models'];
               const isPolymorphic =
                 Array.isArray(polymorphicTargets) && polymorphicTargets.length > 0;
 
@@ -173,7 +170,7 @@ Check \`_meta\` for data availability context.`,
 
           // Extract actions from schema
           const schemaActions = getActionsOfCollection(schema, options.collectionName);
-          const actions = schemaActions.map(action => ({
+          const actions = schemaActions.filter(action => action.endpoint).map(action => ({
             name: action.name,
             type: action.type, // 'single', 'bulk', or 'global'
             description: action.description || null,

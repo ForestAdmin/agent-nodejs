@@ -862,6 +862,46 @@ describe('declareDescribeCollectionTool', () => {
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.actions).toEqual([]);
       });
+
+      it('should exclude actions without endpoint', async () => {
+        mockGetActionsOfCollection.mockReturnValue([
+          {
+            id: 'action-with-endpoint',
+            name: 'Valid Action',
+            type: 'single',
+            endpoint: '/forest/actions/valid',
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+          {
+            id: 'action-without-endpoint',
+            name: 'Invalid Action',
+            type: 'single',
+            endpoint: '',
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+          {
+            id: 'action-null-endpoint',
+            name: 'Null Endpoint Action',
+            type: 'global',
+            endpoint: null,
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+        ]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.actions).toHaveLength(1);
+        expect(parsed.actions[0].name).toBe('Valid Action');
+      });
     });
 
     describe('response format', () => {

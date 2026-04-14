@@ -128,6 +128,8 @@ export function getActionEndpoints(schema: ForestSchema): ActionEndpoints {
       actionEndpoints[collection.name] = {};
 
       for (const action of collection.actions) {
+        if (!action.endpoint) continue;
+
         actionEndpoints[collection.name][action.name] = {
           id: action.id,
           name: action.name,

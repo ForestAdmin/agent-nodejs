@@ -162,6 +162,31 @@ export default class ForestMCPServer {
     try {
       const schema = await fetchForestSchema(this.forestServerClient);
       this.collectionNames = getCollectionNames(schema);
+
+      this.logger(
+        'Debug',
+        `Schema loaded: ${schema.collections.length} collections [${this.collectionNames.join(', ')}]`,
+      );
+
+      for (const collection of schema.collections) {
+        const actions = collection.actions || [];
+
+        if (actions.length > 0) {
+          this.logger(
+            'Debug',
+            `Collection "${collection.name}" actions: ${actions.map(a => `${a.name} → ${a.endpoint || '(no endpoint)'}`).join(', ')}`,
+          );
+        }
+
+        for (const action of actions) {
+          if (!action.endpoint) {
+            this.logger(
+              'Warn',
+              `Action "${action.name}" on collection "${collection.name}" has no endpoint and will be ignored by the MCP server.`,
+            );
+          }
+        }
+      }
     } catch (error) {
       this.logger(
         'Warn',
