@@ -1,0 +1,116 @@
+name: Unpublish @forestadmin/agent v2+
+
+# WARNING: unpublishing is destructive and largely irreversible.
+# - npm only allows `unpublish` within 72 hours of a version's publish time.
+#   Older versions must use `npm deprecate` instead.
+# - Once unpublished, a version number cannot be reused for 24 hours.
+# - Downstream users pinning `^2.0.0` will fail to install.
+#
+# This workflow is manual-only and defaults to dry-run. Review the dry-run
+# output before running with dry-run disabled.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'unpublish @forestadmin/agent v2' to confirm"
+        required: true
+        type: string
+      dry-run:
+        description: "Dry run: list matching versions without unpublishing"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  unpublish:
+    name: Unpublish @forestadmin/agent v2+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate confirmation string
+        run: |
+          expected="unpublish @forestadmin/agent v2"
+          if [ "${{ inputs.confirm }}" != "$expected" ]; then
+            echo "::error::Confirmation did not match. Expected: '$expected'"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+
+      - name: List matching versions (major >= 2)
+        id: list
+        run: |
+          set -euo pipefail
+          versions=$(npm view @forestadmin/agent versions --json \
+            | jq -r '.[] | select((split(".")[0] | tonumber) >= 2)')
+
+          if [ -z "$versions" ]; then
+            echo "No versions of @forestadmin/agent with major >= 2 found."
+            {
+              echo "versions<<EOF"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "Matching versions:"
+            echo "$versions"
+            {
+              echo "versions<<EOF"
+              echo "$versions"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write summary
+        run: |
+          {
+            echo "## @forestadmin/agent v2+ — versions matched"
+            echo ""
+            echo "Dry-run: \`${{ inputs.dry-run }}\`"
+            echo ""
+            if [ -z "${{ steps.list.outputs.versions }}" ]; then
+              echo "_No matching versions._"
+            else
+              echo '```'
+              echo "${{ steps.list.outputs.versions }}"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Unpublish versions
+        if: ${{ inputs.dry-run == false && steps.list.outputs.versions != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN secret is not set. Configure an npm token with unpublish rights on @forestadmin."
+            exit 1
+          fi
+
+          {
+            echo ""
+            echo "## Unpublish results"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          failed=0
+          while IFS= read -r version; do
+            [ -z "$version" ] && continue
+            echo "::group::Unpublishing @forestadmin/agent@$version"
+            if npm unpublish "@forestadmin/agent@$version"; then
+              echo "- [x] \`@forestadmin/agent@$version\`" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- [ ] \`@forestadmin/agent@$version\` (failed)" >> "$GITHUB_STEP_SUMMARY"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done <<< "${{ steps.list.outputs.versions }}"
+
+          exit $failed
