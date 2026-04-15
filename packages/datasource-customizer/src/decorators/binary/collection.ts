@@ -17,7 +17,7 @@ import type {
 } from '@forestadmin/datasource-toolkit';
 
 import { CollectionDecorator, SchemaUtils } from '@forestadmin/datasource-toolkit';
-import FileType from 'file-type';
+import { filetypemime } from 'magic-bytes.js';
 
 /**
  * As the transport layer between the forest admin agent and the frontend is JSON-API, binary data
@@ -249,7 +249,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     const buffer = value as Buffer;
     if (useHex) return buffer.toString('hex');
 
-    const mime = (await FileType.fromBuffer(buffer))?.mime ?? 'application/octet-stream';
+    const mime = filetypemime([...buffer])?.[0] ?? 'application/octet-stream';
     const data = buffer.toString('base64');
 
     return `data:${mime};base64,${data}`;
