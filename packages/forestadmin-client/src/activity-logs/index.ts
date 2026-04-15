@@ -9,6 +9,8 @@ import type {
 export type ActivityLogsOptions = {
   forestServerUrl: string;
   headers?: Record<string, string>;
+  /** When true, uses the /by-collection-name endpoint that resolves collection names to IDs server-side */
+  resolveCollectionName?: boolean;
 };
 
 export default class ActivityLogsService {
@@ -87,6 +89,9 @@ export default class ActivityLogsService {
       forestServerUrl: this.options.forestServerUrl,
       bearerToken,
       headers: this.options.headers,
+      ...(this.options.resolveCollectionName && {
+        createPath: '/api/activity-logs-requests/by-collection-name',
+      }),
     };
   }
 }

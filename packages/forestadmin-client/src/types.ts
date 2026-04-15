@@ -305,6 +305,8 @@ export type ActivityLogHttpOptions = {
   forestServerUrl: string;
   bearerToken: string;
   headers?: Record<string, string>;
+  /** Override the activity log creation path (e.g. for collection name resolution) */
+  createPath?: string;
 };
 
 export type IpWhitelistRulesResponse = {

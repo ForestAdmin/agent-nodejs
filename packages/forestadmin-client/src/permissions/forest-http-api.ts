@@ -101,7 +101,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     }>({
       forestServerUrl: options.forestServerUrl,
       method: 'post',
-      path: '/api/activity-logs-requests',
+      path: options.createPath || '/api/activity-logs-requests',
       bearerToken: options.bearerToken,
       body,
       headers: options.headers,
