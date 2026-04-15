@@ -1,0 +1,74 @@
+name: Unpublish v2 from npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "unpublish-v2" to confirm'
+        required: true
+
+jobs:
+  unpublish:
+    name: Unpublish v2 packages from npm
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'unpublish-v2'
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Validate npm auth
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::NPM_TOKEN secret is not set."
+            exit 1
+          fi
+          npm whoami || { echo "::error::NPM_TOKEN is invalid or expired."; exit 1; }
+          echo "Authenticated as: $(npm whoami)"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Unpublish v2 packages
+        run: |
+          unpublish_pkg() {
+            local pkg=$1
+            echo "--- Unpublishing $pkg ---"
+            output=$(npm unpublish "$pkg" 2>&1) && {
+              echo "SUCCESS: $output"
+              return 0
+            } || {
+              if echo "$output" | grep -qi "not found\|404\|is not in the npm registry"; then
+                echo "::warning::$pkg not found (already unpublished?)"
+                return 0
+              else
+                echo "::error::Failed to unpublish $pkg: $output"
+                return 1
+              fi
+            }
+          }
+
+          failed=0
+          unpublish_pkg "@forestadmin/mcp-server@2.0.0" || failed=1
+          unpublish_pkg "@forestadmin/agent@2.0.1" || failed=1
+          unpublish_pkg "@forestadmin/agent@2.0.0" || failed=1
+
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::Some unpublish operations failed."
+            exit 1
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify packages are gone
+        run: |
+          for pkg in "@forestadmin/mcp-server@2.0.0" "@forestadmin/agent@2.0.0" "@forestadmin/agent@2.0.1"; do
+            if npm view "$pkg" version 2>/dev/null; then
+              echo "::error::$pkg is STILL on npm!"
+              exit 1
+            else
+              echo "OK: $pkg removed"
+            fi
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
