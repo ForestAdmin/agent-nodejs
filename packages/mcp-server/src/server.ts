@@ -547,6 +547,10 @@ export default class ForestMCPServer {
       requireBearerAuth({
         verifier: oauthProvider,
         requiredScopes: ['mcp:read'],
+        resourceMetadataUrl: new URL(
+          '/.well-known/oauth-protected-resource/mcp',
+          effectiveBaseUrl,
+        ).href,
       }),
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
