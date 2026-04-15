@@ -1,0 +1,108 @@
+name: Guard against major releases
+
+# Fails a PR if any of its commits would trigger a major release under
+# semantic-release (conventional-commits breaking-change marker).
+#
+# Because this monorepo uses `multi-semantic-release --deps.bump=override`,
+# a BREAKING CHANGE in *any* package can cascade into a major bump of
+# dependents such as `@forestadmin/agent`. This check blocks every major
+# release behind a labelled approval.
+#
+# To merge a PR with an intentional breaking change: add the
+# `allow-major-release` label to the PR. The check will re-run and pass.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  guard-major-release:
+    name: Block major releases without approval
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan PR commits for breaking-change markers
+        id: scan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          commits=$(git log --format="%H" "$BASE_SHA".."$HEAD_SHA")
+          if [ -z "$commits" ]; then
+            echo "No commits to check."
+            exit 0
+          fi
+
+          breaking=""
+          while IFS= read -r sha; do
+            subject=$(git log -1 --format="%s" "$sha")
+            body=$(git log -1 --format="%b" "$sha")
+            # Conventional-commits breaking marker: `type!:` or `type(scope)!:`
+            if echo "$subject" | grep -qE '^[a-zA-Z]+(\([^)]+\))?!:'; then
+              breaking+="$(git log -1 --format='%h %s' "$sha")"$'\n'
+              continue
+            fi
+            # Footer marker: `BREAKING CHANGE:` or `BREAKING-CHANGE:` at the start of any line
+            if echo "$body" | grep -qE '^BREAKING[ -]CHANGE:'; then
+              breaking+="$(git log -1 --format='%h %s' "$sha")"$'\n'
+            fi
+          done <<< "$commits"
+
+          if [ -n "$breaking" ]; then
+            {
+              echo "breaking<<EOF"
+              echo "$breaking"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enforce allow-major-release label
+        if: steps.scan.outputs.breaking != ''
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BREAKING: ${{ steps.scan.outputs.breaking }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## Breaking-change commits detected"
+            echo ""
+            echo '```'
+            printf '%s' "$BREAKING"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          has_label=$(echo "$LABELS" | jq 'any(. == "allow-major-release")')
+          if [ "$has_label" = "true" ]; then
+            {
+              echo ""
+              echo "### Approved via \`allow-major-release\` label"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Breaking changes approved via 'allow-major-release' label."
+            exit 0
+          fi
+
+          {
+            echo ""
+            echo "### Blocked"
+            echo ""
+            echo "This PR contains commits that would trigger a **major release** under"
+            echo "semantic-release. Because the monorepo uses \`--deps.bump=override\`,"
+            echo "a breaking change in any package can cascade into a major bump of"
+            echo "\`@forestadmin/agent\` and other dependents."
+            echo ""
+            echo "**To proceed:**"
+            echo "- If intentional: add the \`allow-major-release\` label to this PR."
+            echo "- If unintentional: amend the offending commits to remove the \`!:\` marker or the \`BREAKING CHANGE:\` footer."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::This PR would trigger a major release. Add the 'allow-major-release' label to proceed, or remove the breaking-change markers."
+          exit 1
