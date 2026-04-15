@@ -15,9 +15,15 @@ import type {
   Projection,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
+import type * as FileTypeModule from 'file-type';
 
 import { CollectionDecorator, SchemaUtils } from '@forestadmin/datasource-toolkit';
-import FileType from 'file-type';
+
+// `file-type` is ESM-only; `new Function` prevents TS from rewriting import() into require().
+// eslint-disable-next-line @typescript-eslint/no-implied-eval
+const importFileType = new Function('return import("file-type")') as () => Promise<
+  typeof FileTypeModule
+>;
 
 /**
  * As the transport layer between the forest admin agent and the frontend is JSON-API, binary data
@@ -249,7 +255,9 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     const buffer = value as Buffer;
     if (useHex) return buffer.toString('hex');
 
-    const mime = (await FileType.fromBuffer(buffer))?.mime ?? 'application/octet-stream';
+    const { fileTypeFromBuffer } = await importFileType();
+    const bytes = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+    const mime = (await fileTypeFromBuffer(bytes))?.mime ?? 'application/octet-stream';
     const data = buffer.toString('base64');
 
     return `data:${mime};base64,${data}`;
