@@ -1,0 +1,35 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch standalone mcp-server",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "dist/cli.js",
+      "outFiles": [],
+      "sourceMaps": true,
+      "cwd": "${workspaceFolder}/packages/mcp-server",
+      "preLaunchTask": "build-all",
+      "runtimeExecutable": "node",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "FOREST_APP_URL": "https://app.development.forestadmin.com",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "FOREST_SERVER_URL": "https://api.development.forestadmin.com",
+        "FOREST_URL": "https://api.development.forestadmin.com",
+
+        // Fill these with the secrets from the project you want to connect to
+        "FOREST_AUTH_SECRET": "",
+        "FOREST_ENV_SECRET": "",
+
+        // comment this to enable all tools
+        "FOREST_MCP_ENABLED_TOOLS": "list,details"
+      }
+    }
+  ]
+}
