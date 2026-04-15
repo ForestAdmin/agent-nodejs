@@ -1,3 +1,10 @@
+## @forestadmin/datasource-customizer [1.69.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.69.2...@forestadmin/datasource-customizer@1.69.3) (2026-04-15)
+
+
+### Bug Fixes
+
+* **vulnerability:** use magic-bytes instead of FileType ([#1554](https://github.com/ForestAdmin/agent-nodejs/issues/1554)) ([4f9c004](https://github.com/ForestAdmin/agent-nodejs/commit/4f9c004e1aa39120c13cb2db7d9bc7a96bde87dd))
+
 ## @forestadmin/datasource-customizer [1.69.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-customizer@1.69.1...@forestadmin/datasource-customizer@1.69.2) (2026-03-31)
 
 
