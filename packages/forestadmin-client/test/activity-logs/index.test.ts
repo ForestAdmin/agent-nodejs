@@ -6,6 +6,7 @@ import * as factories from '../__factories__';
 describe('ActivityLogsService', () => {
   const options = {
     forestServerUrl: 'http://forestadmin-server.com',
+    envSecret: 'test-env-secret',
   };
   let mockForestAdminServerInterface: jest.Mocked<ForestAdminServerInterface>;
 

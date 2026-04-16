@@ -6,9 +6,11 @@ import type {
   UpdateActivityLogStatusParams,
 } from '../types';
 
+import { toHttpOptions } from '../utils/http-options';
+
 export type ActivityLogsOptions = {
   forestServerUrl: string;
-  envSecret?: string;
+  envSecret: string;
   headers?: Record<string, string>;
 };
 
@@ -87,12 +89,12 @@ export default class ActivityLogsService {
     renderingId: string,
     collectionName: string,
   ): Promise<string | null> {
-    if (!this.forestAdminServerInterface.getCollectionId || !this.options.envSecret) {
+    if (!this.forestAdminServerInterface.getCollectionId) {
       return null;
     }
 
     return this.forestAdminServerInterface.getCollectionId(
-      { forestServerUrl: this.options.forestServerUrl, envSecret: this.options.envSecret },
+      toHttpOptions(this.options),
       renderingId,
       collectionName,
     );
