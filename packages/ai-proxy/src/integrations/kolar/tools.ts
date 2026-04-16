@@ -8,8 +8,7 @@ import { getKolarConfig } from './utils';
 import ServerRemoteTool from '../../server-remote-tool';
 
 export interface KolarConfig {
-  username: string;
-  password: string;
+  apiKey: string;
 }
 
 export default function getKolarTools(config: KolarConfig): RemoteTool[] {
