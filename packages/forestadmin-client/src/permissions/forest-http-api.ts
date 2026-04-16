@@ -96,38 +96,18 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     options: ActivityLogHttpOptions,
     body: object,
   ): Promise<ActivityLogResponse> {
-    const queryOptions = {
+    const { data: activityLog } = await ServerUtils.queryWithBearerToken<{
+      data: ActivityLogResponse;
+    }>({
       forestServerUrl: options.forestServerUrl,
-      method: 'post' as const,
+      method: 'post',
+      path: '/api/activity-logs-requests',
       bearerToken: options.bearerToken,
       body,
       headers: options.headers,
-    };
+    });
 
-    try {
-      const { data: activityLog } = await ServerUtils.queryWithBearerToken<{
-        data: ActivityLogResponse;
-      }>({
-        ...queryOptions,
-        path: options.createPath || '/api/activity-logs-requests',
-      });
-
-      return activityLog;
-    } catch (error) {
-      // Fallback to default endpoint if custom path returns 404 (server not yet updated)
-      if (options.createPath && (error as { name?: string }).name === 'NotFoundError') {
-        const { data: activityLog } = await ServerUtils.queryWithBearerToken<{
-          data: ActivityLogResponse;
-        }>({
-          ...queryOptions,
-          path: '/api/activity-logs-requests',
-        });
-
-        return activityLog;
-      }
-
-      throw error;
-    }
+    return activityLog;
   }
 
   async updateActivityLogStatus(

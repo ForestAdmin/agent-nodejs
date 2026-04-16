@@ -6,14 +6,17 @@ import type {
   UpdateActivityLogStatusParams,
 } from '../types';
 
+import ServerUtils from '../utils/server';
+
 export type ActivityLogsOptions = {
   forestServerUrl: string;
   headers?: Record<string, string>;
-  /** When true, uses the /by-collection-name endpoint that resolves collection names to IDs server-side */
-  resolveCollectionName?: boolean;
 };
 
 export default class ActivityLogsService {
+  // Cache: renderingId → (collectionName → collectionId)
+  private collectionIdCache = new Map<string, Map<string, string>>();
+
   constructor(
     private forestAdminServerInterface: ForestAdminServerInterface,
     private options: ActivityLogsOptions,
@@ -30,6 +33,10 @@ export default class ActivityLogsService {
       recordIds,
       label,
     } = params;
+
+    const collectionId = collectionName
+      ? await this.resolveCollectionId(renderingId, collectionName, forestServerToken)
+      : null;
 
     const body = {
       data: {
@@ -51,9 +58,9 @@ export default class ActivityLogsService {
             },
           },
           collection: {
-            data: collectionName
+            data: (collectionId || collectionName)
               ? {
-                  id: collectionName,
+                  id: collectionId || collectionName,
                   type: 'collections',
                 }
               : null,
@@ -84,14 +91,46 @@ export default class ActivityLogsService {
     );
   }
 
+  private async resolveCollectionId(
+    renderingId: string,
+    collectionName: string,
+    bearerToken: string,
+  ): Promise<string | null> {
+    const renderingCache = this.collectionIdCache.get(renderingId);
+
+    if (renderingCache?.has(collectionName)) {
+      return renderingCache.get(collectionName)!;
+    }
+
+    try {
+      const { collectionId } = await ServerUtils.queryWithBearerToken<{ collectionId: string }>({
+        forestServerUrl: this.options.forestServerUrl,
+        method: 'get',
+        path: `/api/renderings/${renderingId}/collections/${encodeURIComponent(collectionName)}/id`,
+        bearerToken,
+        headers: this.options.headers,
+      });
+
+      if (collectionId) {
+        if (!this.collectionIdCache.has(renderingId)) {
+          this.collectionIdCache.set(renderingId, new Map());
+        }
+
+        this.collectionIdCache.get(renderingId)!.set(collectionName, collectionId);
+      }
+
+      return collectionId;
+    } catch {
+      // Fallback: if endpoint doesn't exist (server not updated), use collectionName as before
+      return null;
+    }
+  }
+
   private getHttpOptions(bearerToken: string): ActivityLogHttpOptions {
     return {
       forestServerUrl: this.options.forestServerUrl,
       bearerToken,
       headers: this.options.headers,
-      ...(this.options.resolveCollectionName && {
-        createPath: '/api/activity-logs-requests/by-collection-name',
-      }),
     };
   }
 }
