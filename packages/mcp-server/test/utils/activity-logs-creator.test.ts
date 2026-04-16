@@ -138,18 +138,78 @@ describe('createPendingActivityLog', () => {
       );
     });
 
-    it('should include collection name when provided', async () => {
+    it('should use resolved collectionId when getCollectionId returns an ID', async () => {
       const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockResolvedValue('resolved-id-123');
 
       await createPendingActivityLog(mockForestServerClient, request, 'index', {
         collectionName: 'users',
       });
 
+      expect(mockForestServerClient.getCollectionId).toHaveBeenCalledWith('12345', 'users');
       expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          collectionName: 'users',
+          collectionName: 'resolved-id-123',
         }),
       );
+    });
+
+    it('should cache resolved collectionId and not call server again', async () => {
+      const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockResolvedValue('cached-id-456');
+
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
+        collectionName: 'trees',
+      });
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
+        collectionName: 'trees',
+      });
+
+      expect(mockForestServerClient.getCollectionId).toHaveBeenCalledTimes(1);
+      expect(mockForestServerClient.createActivityLog).toHaveBeenLastCalledWith(
+        expect.objectContaining({ collectionName: 'cached-id-456' }),
+      );
+    });
+
+    it('should fallback to collectionName when getCollectionId returns null', async () => {
+      const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockResolvedValue(null);
+
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
+        collectionName: 'orders',
+      });
+
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collectionName: 'orders',
+        }),
+      );
+    });
+
+    it('should fallback to collectionName when getCollectionId throws NotFoundError', async () => {
+      const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockRejectedValue(new NotFoundError('not found'));
+
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
+        collectionName: 'products',
+      });
+
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collectionName: 'products',
+        }),
+      );
+    });
+
+    it('should propagate non-NotFoundError from getCollectionId', async () => {
+      const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockRejectedValue(new Error('network error'));
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index', {
+          collectionName: 'categories',
+        }),
+      ).rejects.toThrow('network error');
     });
 
     it('should not include collectionName when not provided', async () => {
@@ -473,6 +533,32 @@ describe('markActivityLogAsSucceeded', () => {
       activityLog,
       status: 'completed',
     });
+
+    jest.useRealTimers();
+  });
+
+  it('should log error when updateActivityLogStatus fails', async () => {
+    jest.useFakeTimers();
+
+    mockForestServerClient.updateActivityLogStatus.mockRejectedValue(new Error('update failed'));
+
+    const request = createMockRequest();
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
+
+    markActivityLogAsSucceeded({
+      forestServerClient: mockForestServerClient,
+      request,
+      activityLog,
+      logger: mockLogger,
+    });
+
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      expect.stringContaining('Unexpected error updating activity log'),
+    );
 
     jest.useRealTimers();
   });

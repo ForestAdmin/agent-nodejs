@@ -44,4 +44,9 @@ export interface ForestServerClient {
    * Updates an activity log status.
    */
   updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void>;
+
+  /**
+   * Resolves a collection name to its internal ID for a given rendering.
+   */
+  getCollectionId(renderingId: string, collectionName: string): Promise<string | null>;
 }

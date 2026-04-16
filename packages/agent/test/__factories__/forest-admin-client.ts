@@ -52,6 +52,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   activityLogsService: {
     createActivityLog: jest.fn(),
     updateActivityLogStatus: jest.fn(),
+    getCollectionId: jest.fn().mockResolvedValue(null),
   },
   subscribeToServerEvents: jest.fn(),
   close: jest.fn(),

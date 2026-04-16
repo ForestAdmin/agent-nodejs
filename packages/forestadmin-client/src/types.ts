@@ -263,6 +263,7 @@ export interface UpdateActivityLogStatusParams {
 export interface ActivityLogsServiceInterface {
   createActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
   updateActivityLogStatus: (params: UpdateActivityLogStatusParams) => Promise<void>;
+  getCollectionId: (renderingId: string, collectionName: string) => Promise<string | null>;
 }
 
 /**
@@ -299,6 +300,13 @@ export interface ForestAdminServerInterface {
     id: string,
     body: object,
   ) => Promise<void>;
+
+  // Collection ID resolution (used by MCP server for activity logs)
+  getCollectionId?: (
+    options: HttpOptions,
+    renderingId: string,
+    collectionName: string,
+  ) => Promise<string | null>;
 }
 
 export type ActivityLogHttpOptions = {

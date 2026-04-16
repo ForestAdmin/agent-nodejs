@@ -6,6 +6,7 @@ import * as factories from '../__factories__';
 describe('ActivityLogsService', () => {
   const options = {
     forestServerUrl: 'http://forestadmin-server.com',
+    envSecret: 'test-env-secret',
   };
   let mockForestAdminServerInterface: jest.Mocked<ForestAdminServerInterface>;
 
@@ -224,6 +225,31 @@ describe('ActivityLogsService', () => {
         'log-123',
         { status: 'completed' },
       );
+    });
+  });
+
+  describe('getCollectionId', () => {
+    it('should call forestAdminServerInterface.getCollectionId with httpOptions', async () => {
+      mockForestAdminServerInterface.getCollectionId = jest.fn().mockResolvedValue('col-123');
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      const result = await service.getCollectionId('456', 'users');
+
+      expect(result).toBe('col-123');
+      expect(mockForestAdminServerInterface.getCollectionId).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, envSecret: options.envSecret },
+        '456',
+        'users',
+      );
+    });
+
+    it('should return null when getCollectionId is not implemented', async () => {
+      delete mockForestAdminServerInterface.getCollectionId;
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      const result = await service.getCollectionId('456', 'users');
+
+      expect(result).toBeNull();
     });
   });
 });

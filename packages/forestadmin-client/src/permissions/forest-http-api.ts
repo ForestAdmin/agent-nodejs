@@ -125,4 +125,18 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       headers: options.headers,
     });
   }
+
+  async getCollectionId(
+    options: HttpOptions,
+    renderingId: string,
+    collectionName: string,
+  ): Promise<string | null> {
+    const { collectionId } = await ServerUtils.query<{ collectionId: string }>(
+      options,
+      'get',
+      `/liana/renderings/${renderingId}/collections/${encodeURIComponent(collectionName)}/id`,
+    );
+
+    return collectionId ?? null;
+  }
 }
