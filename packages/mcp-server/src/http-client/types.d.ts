@@ -48,8 +48,5 @@ export interface ForestServerClient {
   /**
    * Resolves a collection name to its internal ID for a given rendering.
    */
-  getCollectionId(
-    renderingId: string,
-    collectionName: string,
-  ): Promise<string | null>;
+  getCollectionId(renderingId: string, collectionName: string): Promise<string | null>;
 }

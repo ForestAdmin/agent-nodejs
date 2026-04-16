@@ -25,10 +25,7 @@ async function resolveCollectionId(
   if (cached) return cached;
 
   try {
-    const collectionId = await forestServerClient.getCollectionId(
-      renderingId,
-      collectionName,
-    );
+    const collectionId = await forestServerClient.getCollectionId(renderingId, collectionName);
 
     if (collectionId) {
       if (!collectionIdCache.has(renderingId)) {

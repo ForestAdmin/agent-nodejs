@@ -30,10 +30,7 @@ export default class ForestServerClientImpl implements ForestServerClient {
     return this.activityLogsService.updateActivityLogStatus(params);
   }
 
-  async getCollectionId(
-    renderingId: string,
-    collectionName: string,
-  ): Promise<string | null> {
+  async getCollectionId(renderingId: string, collectionName: string): Promise<string | null> {
     return this.activityLogsService.getCollectionId(renderingId, collectionName);
   }
 }
