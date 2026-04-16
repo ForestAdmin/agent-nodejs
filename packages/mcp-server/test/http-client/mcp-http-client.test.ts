@@ -10,6 +10,7 @@ import ForestServerClientImpl from '../../src/http-client/mcp-http-client';
 describe('ForestServerClientImpl', () => {
   let mockSchemaService: jest.Mocked<SchemaServiceInterface>;
   let mockActivityLogsService: jest.Mocked<ActivityLogsServiceInterface>;
+  let mockForestHttpApi: { getCollectionId: jest.Mock };
   let client: ForestServerClientImpl;
 
   beforeEach(() => {
@@ -20,7 +21,15 @@ describe('ForestServerClientImpl', () => {
       createActivityLog: jest.fn(),
       updateActivityLogStatus: jest.fn(),
     };
-    client = new ForestServerClientImpl(mockSchemaService, mockActivityLogsService);
+    mockForestHttpApi = {
+      getCollectionId: jest.fn(),
+    };
+    client = new ForestServerClientImpl(
+      mockSchemaService,
+      mockActivityLogsService,
+      mockForestHttpApi as never,
+      'http://forest-server.com',
+    );
   });
 
   describe('fetchSchema', () => {

@@ -10,6 +10,7 @@ export default function createMockForestServerClient(
       attributes: { index: 'mock-index' },
     }),
     updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
+    getCollectionId: jest.fn().mockResolvedValue(null),
     ...overrides,
   } as jest.Mocked<ForestServerClient>;
 }

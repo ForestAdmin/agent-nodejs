@@ -16,6 +16,7 @@ const mockForestServerClient: ForestServerClient = {
   fetchSchema: jest.fn(),
   createActivityLog: jest.fn(),
   updateActivityLogStatus: jest.fn(),
+  getCollectionId: jest.fn().mockResolvedValue(null),
 };
 
 const mockBuildClientWithActions = buildClientWithActions as jest.MockedFunction<

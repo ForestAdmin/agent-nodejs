@@ -299,6 +299,13 @@ export interface ForestAdminServerInterface {
     id: string,
     body: object,
   ) => Promise<void>;
+
+  // Collection ID resolution (used by MCP server for activity logs)
+  getCollectionId?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    collectionName: string,
+  ) => Promise<string | null>;
 }
 
 export type ActivityLogHttpOptions = {

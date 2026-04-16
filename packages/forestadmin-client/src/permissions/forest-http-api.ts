@@ -125,4 +125,20 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       headers: options.headers,
     });
   }
+
+  async getCollectionId(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    collectionName: string,
+  ): Promise<string | null> {
+    const { collectionId } = await ServerUtils.queryWithBearerToken<{ collectionId: string }>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'get',
+      path: `/api/renderings/${renderingId}/collections/${encodeURIComponent(collectionName)}/id`,
+      bearerToken: options.bearerToken,
+      headers: options.headers,
+    });
+
+    return collectionId ?? null;
+  }
 }

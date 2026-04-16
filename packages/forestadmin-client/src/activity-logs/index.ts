@@ -6,18 +6,12 @@ import type {
   UpdateActivityLogStatusParams,
 } from '../types';
 
-import { NotFoundError } from '../auth/errors';
-import ServerUtils from '../utils/server';
-
 export type ActivityLogsOptions = {
   forestServerUrl: string;
   headers?: Record<string, string>;
 };
 
 export default class ActivityLogsService {
-  // Cache: renderingId → (collectionName → collectionId)
-  private collectionIdCache = new Map<string, Map<string, string>>();
-
   constructor(
     private forestAdminServerInterface: ForestAdminServerInterface,
     private options: ActivityLogsOptions,
@@ -34,10 +28,6 @@ export default class ActivityLogsService {
       recordIds,
       label,
     } = params;
-
-    const collectionId = collectionName
-      ? await this.resolveCollectionId(renderingId, collectionName, forestServerToken)
-      : null;
 
     const body = {
       data: {
@@ -59,13 +49,12 @@ export default class ActivityLogsService {
             },
           },
           collection: {
-            data:
-              collectionId || collectionName
-                ? {
-                    id: collectionId || collectionName,
-                    type: 'collections',
-                  }
-                : null,
+            data: collectionName
+              ? {
+                  id: collectionName,
+                  type: 'collections',
+                }
+              : null,
           },
         },
       },
@@ -91,45 +80,6 @@ export default class ActivityLogsService {
       activityLog.id,
       body,
     );
-  }
-
-  private async resolveCollectionId(
-    renderingId: string,
-    collectionName: string,
-    bearerToken: string,
-  ): Promise<string | null> {
-    const renderingCache = this.collectionIdCache.get(renderingId);
-
-    if (renderingCache?.has(collectionName)) {
-      return renderingCache.get(collectionName)!;
-    }
-
-    try {
-      const { collectionId } = await ServerUtils.queryWithBearerToken<{ collectionId: string }>({
-        forestServerUrl: this.options.forestServerUrl,
-        method: 'get',
-        path: `/api/renderings/${renderingId}/collections/${encodeURIComponent(collectionName)}/id`,
-        bearerToken,
-        headers: this.options.headers,
-      });
-
-      if (collectionId) {
-        if (!this.collectionIdCache.has(renderingId)) {
-          this.collectionIdCache.set(renderingId, new Map());
-        }
-
-        this.collectionIdCache.get(renderingId)!.set(collectionName, collectionId);
-      }
-
-      return collectionId;
-    } catch (error) {
-      // Fallback to collectionName if endpoint doesn't exist (server not yet updated)
-      if (error instanceof NotFoundError) {
-        return null;
-      }
-
-      throw error;
-    }
   }
 
   private getHttpOptions(bearerToken: string): ActivityLogHttpOptions {

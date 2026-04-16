@@ -12,6 +12,45 @@ import { NotFoundError } from '@forestadmin/forestadmin-client';
 
 export type { ActivityLogAction, ActivityLogResponse };
 
+// Cache: renderingId → (collectionName → collectionId)
+const collectionIdCache = new Map<string, Map<string, string>>();
+
+async function resolveCollectionId(
+  forestServerClient: ForestServerClient,
+  renderingId: string,
+  collectionName: string,
+  bearerToken: string,
+): Promise<string | null> {
+  const cached = collectionIdCache.get(renderingId)?.get(collectionName);
+
+  if (cached) return cached;
+
+  try {
+    const collectionId = await forestServerClient.getCollectionId(
+      renderingId,
+      collectionName,
+      bearerToken,
+    );
+
+    if (collectionId) {
+      if (!collectionIdCache.has(renderingId)) {
+        collectionIdCache.set(renderingId, new Map());
+      }
+
+      collectionIdCache.get(renderingId)!.set(collectionName, collectionId);
+    }
+
+    return collectionId;
+  } catch (error) {
+    // Fallback to collectionName if endpoint doesn't exist (server not yet updated)
+    if (error instanceof NotFoundError) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   index: 'read',
   search: 'read',
@@ -57,12 +96,17 @@ export default async function createPendingActivityLog(
   const type = ACTION_TO_TYPE[action];
   const { forestServerToken, renderingId } = getAuthContext(request);
 
+  // Resolve collectionName → collectionId if possible, fallback to name
+  const collectionId = extra?.collectionName
+    ? await resolveCollectionId(forestServerClient, renderingId, extra.collectionName, forestServerToken)
+    : null;
+
   return forestServerClient.createActivityLog({
     forestServerToken,
     renderingId,
     action,
     type,
-    collectionName: extra?.collectionName,
+    collectionName: collectionId || extra?.collectionName,
     recordId: extra?.recordId,
     recordIds: extra?.recordIds,
     label: extra?.label,
