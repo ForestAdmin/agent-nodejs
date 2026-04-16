@@ -1,7 +1,7 @@
 import type { ForestAdminServerInterface } from '../../src/types';
 
-import { NotFoundError } from '../../src/auth/errors';
 import ActivityLogsService from '../../src/activity-logs';
+import { NotFoundError } from '../../src/auth/errors';
 import ServerUtils from '../../src/utils/server';
 import * as factories from '../__factories__';
 

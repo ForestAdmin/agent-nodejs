@@ -59,12 +59,13 @@ export default class ActivityLogsService {
             },
           },
           collection: {
-            data: (collectionId || collectionName)
-              ? {
-                  id: collectionId || collectionName,
-                  type: 'collections',
-                }
-              : null,
+            data:
+              collectionId || collectionName
+                ? {
+                    id: collectionId || collectionName,
+                    type: 'collections',
+                  }
+                : null,
           },
         },
       },
