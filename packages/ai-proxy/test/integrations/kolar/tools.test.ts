@@ -2,7 +2,7 @@ import getKolarTools from '../../../src/integrations/kolar/tools';
 import ServerRemoteTool from '../../../src/server-remote-tool';
 
 describe('getKolarTools', () => {
-  const config = { username: 'admin', password: 'secret' };
+  const config = { apiKey: 'test-api-key' };
 
   it('should return 4 tools wrapped in ServerRemoteTool', () => {
     const tools = getKolarTools(config);

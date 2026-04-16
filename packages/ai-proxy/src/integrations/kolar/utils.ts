@@ -4,10 +4,9 @@ import { McpConnectionError } from '../../errors';
 
 const BASE_URL = 'https://backend-partners.up.railway.app';
 
-export function getKolarConfig(config: KolarConfig) {
-  const auth = Buffer.from(`${config.username}:${config.password}`).toString('base64');
+export function getKolarConfig({ apiKey }: KolarConfig) {
   const headers = {
-    Authorization: `Basic ${auth}`,
+    'X-Api-Key': apiKey,
     'Content-Type': 'application/json',
   };
 

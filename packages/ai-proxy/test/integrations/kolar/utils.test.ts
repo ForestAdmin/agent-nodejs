@@ -7,16 +7,15 @@ import {
 
 describe('kolar/utils', () => {
   describe('getKolarConfig', () => {
-    it('should return baseUrl and headers with basic auth', () => {
-      const config = { username: 'admin', password: 'secret123' };
+    it('should return baseUrl and headers with api key', () => {
+      const config = { apiKey: 'test-api-key' };
 
       const result = getKolarConfig(config);
 
-      const expectedAuth = Buffer.from('admin:secret123').toString('base64');
       expect(result).toEqual({
         baseUrl: 'https://backend-partners.up.railway.app',
         headers: {
-          Authorization: `Basic ${expectedAuth}`,
+          'X-Api-Key': 'test-api-key',
           'Content-Type': 'application/json',
         },
       });
@@ -72,7 +71,7 @@ describe('kolar/utils', () => {
   });
 
   describe('validateKolarConfig', () => {
-    const config = { username: 'admin', password: 'secret123' };
+    const config = { apiKey: 'test-api-key' };
 
     beforeEach(() => jest.restoreAllMocks());
 
@@ -83,7 +82,7 @@ describe('kolar/utils', () => {
       expect(fetch).toHaveBeenCalledWith(
         'https://backend-partners.up.railway.app/auth/verify',
         expect.objectContaining({
-          headers: expect.objectContaining({ Authorization: expect.stringContaining('Basic ') }),
+          headers: expect.objectContaining({ 'X-Api-Key': 'test-api-key' }),
         }),
       );
     });
