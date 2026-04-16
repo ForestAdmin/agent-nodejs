@@ -1,7 +1,11 @@
 import type { ForestAdminServerInterface } from '../../src/types';
 
+import { NotFoundError } from '../../src/auth/errors';
 import ActivityLogsService from '../../src/activity-logs';
+import ServerUtils from '../../src/utils/server';
 import * as factories from '../__factories__';
+
+jest.mock('../../src/utils/server');
 
 describe('ActivityLogsService', () => {
   const options = {
@@ -9,10 +13,14 @@ describe('ActivityLogsService', () => {
   };
   let mockForestAdminServerInterface: jest.Mocked<ForestAdminServerInterface>;
 
+  const mockQueryWithBearerToken = ServerUtils.queryWithBearerToken as jest.Mock;
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockForestAdminServerInterface =
       factories.forestAdminServerInterface.build() as jest.Mocked<ForestAdminServerInterface>;
+    // Default: collection ID resolution succeeds
+    mockQueryWithBearerToken.mockResolvedValue({ collectionId: 'resolved-id-123' });
   });
 
   describe('createActivityLog', () => {
@@ -57,7 +65,7 @@ describe('ActivityLogsService', () => {
               },
               collection: {
                 data: {
-                  id: 'users',
+                  id: 'resolved-id-123',
                   type: 'collections',
                 },
               },
@@ -154,6 +162,113 @@ describe('ActivityLogsService', () => {
         }),
         expect.anything(),
       );
+    });
+  });
+
+  describe('resolveCollectionId', () => {
+    it('should resolve collectionName to collectionId via server endpoint', async () => {
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue({
+        id: 'log-1',
+        attributes: { index: 'idx-1' },
+      });
+      mockQueryWithBearerToken.mockResolvedValue({ collectionId: 'col-456' });
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      await service.createActivityLog({
+        forestServerToken: 'token',
+        renderingId: '100',
+        action: 'index',
+        type: 'read',
+        collectionName: 'users',
+      });
+
+      expect(mockQueryWithBearerToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'get',
+          path: '/api/renderings/100/collections/users/id',
+        }),
+      );
+      expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            relationships: expect.objectContaining({
+              collection: { data: { id: 'col-456', type: 'collections' } },
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should cache resolved collectionId and not call server again', async () => {
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue({
+        id: 'log-1',
+        attributes: { index: 'idx-1' },
+      });
+      mockQueryWithBearerToken.mockResolvedValue({ collectionId: 'col-789' });
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+
+      await service.createActivityLog({
+        forestServerToken: 'token',
+        renderingId: '100',
+        action: 'index',
+        type: 'read',
+        collectionName: 'users',
+      });
+      await service.createActivityLog({
+        forestServerToken: 'token',
+        renderingId: '100',
+        action: 'index',
+        type: 'read',
+        collectionName: 'users',
+      });
+
+      expect(mockQueryWithBearerToken).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fallback to collectionName when server returns 404', async () => {
+      mockForestAdminServerInterface.createActivityLog.mockResolvedValue({
+        id: 'log-1',
+        attributes: { index: 'idx-1' },
+      });
+      mockQueryWithBearerToken.mockRejectedValue(new NotFoundError('Not found'));
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      await service.createActivityLog({
+        forestServerToken: 'token',
+        renderingId: '100',
+        action: 'index',
+        type: 'read',
+        collectionName: 'users',
+      });
+
+      expect(mockForestAdminServerInterface.createActivityLog).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            relationships: expect.objectContaining({
+              collection: { data: { id: 'users', type: 'collections' } },
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should propagate non-404 errors', async () => {
+      mockQueryWithBearerToken.mockRejectedValue(new Error('Network error'));
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+
+      await expect(
+        service.createActivityLog({
+          forestServerToken: 'token',
+          renderingId: '100',
+          action: 'index',
+          type: 'read',
+          collectionName: 'users',
+        }),
+      ).rejects.toThrow('Network error');
     });
   });
 

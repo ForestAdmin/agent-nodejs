@@ -6,6 +6,7 @@ import type {
   UpdateActivityLogStatusParams,
 } from '../types';
 
+import { NotFoundError } from '../auth/errors';
 import ServerUtils from '../utils/server';
 
 export type ActivityLogsOptions = {
@@ -120,9 +121,13 @@ export default class ActivityLogsService {
       }
 
       return collectionId;
-    } catch {
-      // Fallback: if endpoint doesn't exist (server not updated), use collectionName as before
-      return null;
+    } catch (error) {
+      // Fallback to collectionName if endpoint doesn't exist (server not yet updated)
+      if (error instanceof NotFoundError) {
+        return null;
+      }
+
+      throw error;
     }
   }
 
