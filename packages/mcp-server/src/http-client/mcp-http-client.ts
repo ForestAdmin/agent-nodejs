@@ -33,12 +33,11 @@ export default class ForestServerClientImpl implements ForestServerClient {
   async getCollectionId(
     renderingId: string,
     collectionName: string,
-    bearerToken: string,
   ): Promise<string | null> {
     if (!this.activityLogsService.getCollectionId) {
       return null;
     }
 
-    return this.activityLogsService.getCollectionId(bearerToken, renderingId, collectionName);
+    return this.activityLogsService.getCollectionId(renderingId, collectionName);
   }
 }

@@ -19,7 +19,6 @@ async function resolveCollectionId(
   forestServerClient: ForestServerClient,
   renderingId: string,
   collectionName: string,
-  bearerToken: string,
 ): Promise<string | null> {
   const cached = collectionIdCache.get(renderingId)?.get(collectionName);
 
@@ -29,7 +28,6 @@ async function resolveCollectionId(
     const collectionId = await forestServerClient.getCollectionId(
       renderingId,
       collectionName,
-      bearerToken,
     );
 
     if (collectionId) {
@@ -98,7 +96,7 @@ export default async function createPendingActivityLog(
 
   // Resolve collectionName → collectionId if possible, fallback to name
   const collectionId = extra?.collectionName
-    ? await resolveCollectionId(forestServerClient, renderingId, extra.collectionName, forestServerToken)
+    ? await resolveCollectionId(forestServerClient, renderingId, extra.collectionName)
     : null;
 
   return forestServerClient.createActivityLog({

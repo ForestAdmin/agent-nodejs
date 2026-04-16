@@ -8,6 +8,7 @@ import type {
 
 export type ActivityLogsOptions = {
   forestServerUrl: string;
+  envSecret?: string;
   headers?: Record<string, string>;
 };
 
@@ -83,16 +84,15 @@ export default class ActivityLogsService {
   }
 
   async getCollectionId(
-    bearerToken: string,
     renderingId: string,
     collectionName: string,
   ): Promise<string | null> {
-    if (!this.forestAdminServerInterface.getCollectionId) {
+    if (!this.forestAdminServerInterface.getCollectionId || !this.options.envSecret) {
       return null;
     }
 
     return this.forestAdminServerInterface.getCollectionId(
-      this.getHttpOptions(bearerToken),
+      { forestServerUrl: this.options.forestServerUrl, envSecret: this.options.envSecret },
       renderingId,
       collectionName,
     );

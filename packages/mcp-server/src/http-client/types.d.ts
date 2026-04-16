@@ -51,6 +51,5 @@ export interface ForestServerClient {
   getCollectionId(
     renderingId: string,
     collectionName: string,
-    bearerToken: string,
   ): Promise<string | null>;
 }
