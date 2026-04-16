@@ -86,6 +86,10 @@ export default class ActivityLogsService {
   }
 
   async getCollectionId(renderingId: string, collectionName: string): Promise<string | null> {
+    if (!this.forestAdminServerInterface.getCollectionId) {
+      return null;
+    }
+
     return this.forestAdminServerInterface.getCollectionId(
       toHttpOptions(this.options),
       renderingId,

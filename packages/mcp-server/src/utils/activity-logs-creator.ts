@@ -15,6 +15,7 @@ export type { ActivityLogAction, ActivityLogResponse };
 // Cache: renderingId → (collectionName → collectionId)
 const collectionIdCache = new Map<string, Map<string, string>>();
 
+
 async function resolveCollectionId(
   forestServerClient: ForestServerClient,
   renderingId: string,

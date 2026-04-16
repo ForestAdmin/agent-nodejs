@@ -138,18 +138,61 @@ describe('createPendingActivityLog', () => {
       );
     });
 
-    it('should include collection name when provided', async () => {
+    it('should use resolved collectionId when getCollectionId returns an ID', async () => {
       const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockResolvedValue('resolved-id-123');
 
       await createPendingActivityLog(mockForestServerClient, request, 'index', {
         collectionName: 'users',
       });
 
+      expect(mockForestServerClient.getCollectionId).toHaveBeenCalledWith('12345', 'users');
       expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          collectionName: 'users',
+          collectionName: 'resolved-id-123',
         }),
       );
+    });
+
+    it('should fallback to collectionName when getCollectionId returns null', async () => {
+      const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockResolvedValue(null);
+
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
+        collectionName: 'orders',
+      });
+
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collectionName: 'orders',
+        }),
+      );
+    });
+
+    it('should fallback to collectionName when getCollectionId throws NotFoundError', async () => {
+      const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockRejectedValue(new NotFoundError('not found'));
+
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
+        collectionName: 'products',
+      });
+
+      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collectionName: 'products',
+        }),
+      );
+    });
+
+    it('should propagate non-NotFoundError from getCollectionId', async () => {
+      const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockRejectedValue(new Error('network error'));
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'index', {
+          collectionName: 'categories',
+        }),
+      ).rejects.toThrow('network error');
     });
 
     it('should not include collectionName when not provided', async () => {
