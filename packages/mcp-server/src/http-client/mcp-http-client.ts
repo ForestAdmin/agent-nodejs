@@ -34,10 +34,6 @@ export default class ForestServerClientImpl implements ForestServerClient {
     renderingId: string,
     collectionName: string,
   ): Promise<string | null> {
-    if (!this.activityLogsService.getCollectionId) {
-      return null;
-    }
-
     return this.activityLogsService.getCollectionId(renderingId, collectionName);
   }
 }

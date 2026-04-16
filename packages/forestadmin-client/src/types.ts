@@ -263,7 +263,7 @@ export interface UpdateActivityLogStatusParams {
 export interface ActivityLogsServiceInterface {
   createActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
   updateActivityLogStatus: (params: UpdateActivityLogStatusParams) => Promise<void>;
-  getCollectionId?: (
+  getCollectionId: (
     renderingId: string,
     collectionName: string,
   ) => Promise<string | null>;

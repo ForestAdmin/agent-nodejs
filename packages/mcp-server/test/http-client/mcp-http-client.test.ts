@@ -19,6 +19,7 @@ describe('ForestServerClientImpl', () => {
     mockActivityLogsService = {
       createActivityLog: jest.fn(),
       updateActivityLogStatus: jest.fn(),
+      getCollectionId: jest.fn().mockResolvedValue(null),
     };
     client = new ForestServerClientImpl(mockSchemaService, mockActivityLogsService);
   });
