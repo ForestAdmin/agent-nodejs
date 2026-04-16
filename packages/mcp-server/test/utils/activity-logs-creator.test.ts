@@ -154,6 +154,23 @@ describe('createPendingActivityLog', () => {
       );
     });
 
+    it('should cache resolved collectionId and not call server again', async () => {
+      const request = createMockRequest();
+      mockForestServerClient.getCollectionId.mockResolvedValue('cached-id-456');
+
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
+        collectionName: 'trees',
+      });
+      await createPendingActivityLog(mockForestServerClient, request, 'index', {
+        collectionName: 'trees',
+      });
+
+      expect(mockForestServerClient.getCollectionId).toHaveBeenCalledTimes(1);
+      expect(mockForestServerClient.createActivityLog).toHaveBeenLastCalledWith(
+        expect.objectContaining({ collectionName: 'cached-id-456' }),
+      );
+    });
+
     it('should fallback to collectionName when getCollectionId returns null', async () => {
       const request = createMockRequest();
       mockForestServerClient.getCollectionId.mockResolvedValue(null);
@@ -516,6 +533,32 @@ describe('markActivityLogAsSucceeded', () => {
       activityLog,
       status: 'completed',
     });
+
+    jest.useRealTimers();
+  });
+
+  it('should log error when updateActivityLogStatus fails', async () => {
+    jest.useFakeTimers();
+
+    mockForestServerClient.updateActivityLogStatus.mockRejectedValue(new Error('update failed'));
+
+    const request = createMockRequest();
+    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+    const mockLogger = jest.fn();
+
+    markActivityLogAsSucceeded({
+      forestServerClient: mockForestServerClient,
+      request,
+      activityLog,
+      logger: mockLogger,
+    });
+
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      expect.stringContaining('Unexpected error updating activity log'),
+    );
 
     jest.useRealTimers();
   });
