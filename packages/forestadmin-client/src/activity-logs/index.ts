@@ -82,6 +82,22 @@ export default class ActivityLogsService {
     );
   }
 
+  async getCollectionId(
+    bearerToken: string,
+    renderingId: string,
+    collectionName: string,
+  ): Promise<string | null> {
+    if (!this.forestAdminServerInterface.getCollectionId) {
+      return null;
+    }
+
+    return this.forestAdminServerInterface.getCollectionId(
+      this.getHttpOptions(bearerToken),
+      renderingId,
+      collectionName,
+    );
+  }
+
   private getHttpOptions(bearerToken: string): ActivityLogHttpOptions {
     return {
       forestServerUrl: this.options.forestServerUrl,

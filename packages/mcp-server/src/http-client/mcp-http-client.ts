@@ -7,7 +7,6 @@ import type {
   SchemaServiceInterface,
   UpdateActivityLogStatusParams,
 } from './types';
-import type { ForestAdminServerInterface } from '@forestadmin/forestadmin-client';
 
 /**
  * Default implementation of ForestServerClient that uses SchemaService and ActivityLogsService.
@@ -17,8 +16,6 @@ export default class ForestServerClientImpl implements ForestServerClient {
   constructor(
     private readonly schemaService: SchemaServiceInterface,
     private readonly activityLogsService: ActivityLogsServiceInterface,
-    private readonly forestHttpApi: ForestAdminServerInterface,
-    private readonly forestServerUrl: string,
   ) {}
 
   async fetchSchema(): Promise<ForestSchemaCollection[]> {
@@ -38,14 +35,10 @@ export default class ForestServerClientImpl implements ForestServerClient {
     collectionName: string,
     bearerToken: string,
   ): Promise<string | null> {
-    if (!this.forestHttpApi.getCollectionId) {
+    if (!this.activityLogsService.getCollectionId) {
       return null;
     }
 
-    return this.forestHttpApi.getCollectionId(
-      { forestServerUrl: this.forestServerUrl, bearerToken },
-      renderingId,
-      collectionName,
-    );
+    return this.activityLogsService.getCollectionId(bearerToken, renderingId, collectionName);
   }
 }
