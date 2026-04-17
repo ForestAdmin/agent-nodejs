@@ -1,3 +1,18 @@
+# @forestadmin/agent-client [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.23...@forestadmin/agent-client@1.5.0) (2026-04-17)
+
+
+### Features
+
+* **mcp-server:** expose polymorphic relations in describeCollection ([#1551](https://github.com/ForestAdmin/agent-nodejs/issues/1551)) ([f73b417](https://github.com/ForestAdmin/agent-nodejs/commit/f73b41704c246ef86bd7b02299894bcd517f91b6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.0
+
 ## @forestadmin/agent-client [1.4.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.22...@forestadmin/agent-client@1.4.23) (2026-04-14)
 
 
