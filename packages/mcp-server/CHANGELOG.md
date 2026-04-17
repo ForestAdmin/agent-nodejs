@@ -1,3 +1,10 @@
+# @forestadmin/mcp-server [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.9.1...@forestadmin/mcp-server@1.10.0) (2026-04-17)
+
+
+### Features
+
+* **mcp-server:** add enabledTools allowlist option ([#1547](https://github.com/ForestAdmin/agent-nodejs/issues/1547)) ([22df2ec](https://github.com/ForestAdmin/agent-nodejs/commit/22df2ecd2c0e370f0ff9740289aa252d877b20a2))
+
 ## @forestadmin/mcp-server [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.9.0...@forestadmin/mcp-server@1.9.1) (2026-04-14)
 
 
