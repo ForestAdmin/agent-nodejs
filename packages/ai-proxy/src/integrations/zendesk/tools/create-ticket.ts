@@ -35,6 +35,15 @@ export default function createCreateTicketTool(
         .describe('Custom fields to set on the ticket'),
       requester_email: z.string().email().optional().describe('The email of the requester'),
       requester_name: z.string().optional().describe('The name of the requester'),
+      recipient_email: z
+        .string()
+        .email()
+        .optional()
+        .describe('The email of the recipient to notify about the ticket creation'),
+      status: z
+        .enum(['new', 'open', 'pending', 'solved', 'closed'])
+        .optional()
+        .describe('Status for the ticket'),
     }),
     func: async ({
       subject,
@@ -47,6 +56,8 @@ export default function createCreateTicketTool(
       custom_fields,
       requester_email,
       requester_name,
+      recipient_email,
+      status,
     }) => {
       const requester = {
         ...(requester_email && { email: requester_email }),
@@ -63,6 +74,8 @@ export default function createCreateTicketTool(
           ...(tags && { tags }),
           ...(custom_fields && { custom_fields }),
           ...(Object.keys(requester).length > 0 && { requester }),
+          ...(recipient_email && { recipient: recipient_email }),
+          ...(status && { status }),
         },
       };
 
