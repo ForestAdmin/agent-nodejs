@@ -57,7 +57,7 @@ export default async function createPendingActivityLog(
   const type = ACTION_TO_TYPE[action];
   const { forestServerToken, renderingId } = getAuthContext(request);
 
-  return forestServerClient.createActivityLog({
+  return forestServerClient.createMcpActivityLog({
     forestServerToken,
     renderingId,
     action,

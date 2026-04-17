@@ -157,6 +157,119 @@ describe('ActivityLogsService', () => {
     });
   });
 
+  describe('createMcpActivityLog', () => {
+    it('should create an MCP activity log with flat body and collectionModelName', async () => {
+      const mockActivityLog = {
+        id: 'log-123',
+        attributes: { index: 'idx-456' },
+      };
+      mockForestAdminServerInterface.createMcpActivityLog.mockResolvedValue(mockActivityLog);
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      const result = await service.createMcpActivityLog({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        action: 'index',
+        type: 'read',
+        collectionName: 'users',
+        recordId: '42',
+        label: 'Custom Label',
+      });
+
+      expect(result).toEqual(mockActivityLog);
+      expect(mockForestAdminServerInterface.createMcpActivityLog).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        {
+          type: 'read',
+          action: 'index',
+          label: 'Custom Label',
+          status: 'pending',
+          records: ['42'],
+          renderingId: '12345',
+          collectionModelName: 'users',
+        },
+      );
+    });
+
+    it('should map recordIds array to records', async () => {
+      const mockActivityLog = {
+        id: 'log-123',
+        attributes: { index: 'idx-456' },
+      };
+      mockForestAdminServerInterface.createMcpActivityLog.mockResolvedValue(mockActivityLog);
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      await service.createMcpActivityLog({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        action: 'delete',
+        type: 'write',
+        collectionName: 'users',
+        recordIds: ['1', '2', '3'],
+      });
+
+      expect(mockForestAdminServerInterface.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ bearerToken: 'test-token' }),
+        expect.objectContaining({
+          records: ['1', '2', '3'],
+          collectionModelName: 'users',
+        }),
+      );
+    });
+
+    it('should send undefined collectionModelName when collection is omitted', async () => {
+      const mockActivityLog = {
+        id: 'log-123',
+        attributes: { index: 'idx-456' },
+      };
+      mockForestAdminServerInterface.createMcpActivityLog.mockResolvedValue(mockActivityLog);
+
+      const service = new ActivityLogsService(mockForestAdminServerInterface, options);
+      await service.createMcpActivityLog({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        action: 'search',
+        type: 'read',
+      });
+
+      expect(mockForestAdminServerInterface.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ bearerToken: 'test-token' }),
+        expect.objectContaining({
+          records: [],
+          collectionModelName: undefined,
+        }),
+      );
+    });
+
+    it('should pass custom headers when provided', async () => {
+      const mockActivityLog = {
+        id: 'log-123',
+        attributes: { index: 'idx-456' },
+      };
+      mockForestAdminServerInterface.createMcpActivityLog.mockResolvedValue(mockActivityLog);
+
+      const optionsWithHeaders = {
+        ...options,
+        headers: { 'Custom-Header': 'value' },
+      };
+      const service = new ActivityLogsService(mockForestAdminServerInterface, optionsWithHeaders);
+      await service.createMcpActivityLog({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        action: 'search',
+        type: 'read',
+      });
+
+      expect(mockForestAdminServerInterface.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bearerToken: 'test-token',
+          headers: { 'Custom-Header': 'value' },
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
   describe('updateActivityLogStatus', () => {
     it('should update activity log status to completed', async () => {
       mockForestAdminServerInterface.updateActivityLogStatus.mockResolvedValue(undefined);

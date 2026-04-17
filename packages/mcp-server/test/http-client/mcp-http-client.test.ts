@@ -18,6 +18,7 @@ describe('ForestServerClientImpl', () => {
     };
     mockActivityLogsService = {
       createActivityLog: jest.fn(),
+      createMcpActivityLog: jest.fn(),
       updateActivityLogStatus: jest.fn(),
     };
     client = new ForestServerClientImpl(mockSchemaService, mockActivityLogsService);
@@ -58,6 +59,26 @@ describe('ForestServerClientImpl', () => {
       const result = await client.createActivityLog(params);
 
       expect(mockActivityLogsService.createActivityLog).toHaveBeenCalledWith(params);
+      expect(result).toBe(mockActivityLog);
+    });
+  });
+
+  describe('createMcpActivityLog', () => {
+    it('should delegate to activityLogsService.createMcpActivityLog()', async () => {
+      const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+      mockActivityLogsService.createMcpActivityLog.mockResolvedValue(mockActivityLog);
+
+      const params = {
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        action: 'index' as const,
+        type: 'read' as const,
+        collectionName: 'users',
+      };
+
+      const result = await client.createMcpActivityLog(params);
+
+      expect(mockActivityLogsService.createMcpActivityLog).toHaveBeenCalledWith(params);
       expect(result).toBe(mockActivityLog);
     });
   });
@@ -106,6 +127,7 @@ describe('createForestServerClient', () => {
     expect(client).toBeDefined();
     expect(client.fetchSchema).toBeDefined();
     expect(client.createActivityLog).toBeDefined();
+    expect(client.createMcpActivityLog).toBeDefined();
     expect(client.updateActivityLogStatus).toBeDefined();
   });
 });

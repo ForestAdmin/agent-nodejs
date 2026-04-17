@@ -16,6 +16,7 @@ const forestAdminServerInterface = {
     getIpWhitelistRules: jest.fn(),
     // Activity logs operations
     createActivityLog: jest.fn(),
+    createMcpActivityLog: jest.fn(),
     updateActivityLogStatus: jest.fn(),
   }),
 };
