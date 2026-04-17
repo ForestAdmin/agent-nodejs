@@ -110,6 +110,24 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     return activityLog;
   }
 
+  async createMcpActivityLog(
+    options: ActivityLogHttpOptions,
+    body: object,
+  ): Promise<ActivityLogResponse> {
+    const { data: activityLog } = await ServerUtils.queryWithBearerToken<{
+      data: ActivityLogResponse;
+    }>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'post',
+      path: '/api/activity-logs-requests/mcp',
+      bearerToken: options.bearerToken,
+      body,
+      headers: options.headers,
+    });
+
+    return activityLog;
+  }
+
   async updateActivityLogStatus(
     options: ActivityLogHttpOptions,
     index: string,

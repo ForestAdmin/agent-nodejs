@@ -26,6 +26,10 @@ export default class ForestServerClientImpl implements ForestServerClient {
     return this.activityLogsService.createActivityLog(params);
   }
 
+  async createMcpActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse> {
+    return this.activityLogsService.createMcpActivityLog(params);
+  }
+
   async updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void> {
     return this.activityLogsService.updateActivityLogStatus(params);
   }

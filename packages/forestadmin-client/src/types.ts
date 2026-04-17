@@ -262,6 +262,7 @@ export interface UpdateActivityLogStatusParams {
  */
 export interface ActivityLogsServiceInterface {
   createActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
+  createMcpActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
   updateActivityLogStatus: (params: UpdateActivityLogStatusParams) => Promise<void>;
 }
 
@@ -290,6 +291,10 @@ export interface ForestAdminServerInterface {
 
   // Activity logs operations
   createActivityLog?: (
+    options: ActivityLogHttpOptions,
+    body: object,
+  ) => Promise<ActivityLogResponse>;
+  createMcpActivityLog?: (
     options: ActivityLogHttpOptions,
     body: object,
   ) => Promise<ActivityLogResponse>;
