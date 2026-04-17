@@ -2,7 +2,7 @@ import type { KolarConfig } from './tools';
 
 import { McpConnectionError } from '../../errors';
 
-const BASE_URL = 'https://backend-partners.up.railway.app';
+const BASE_URL = 'https://api.kolar.ai/';
 
 export function getKolarConfig({ apiKey }: KolarConfig) {
   const headers = {
