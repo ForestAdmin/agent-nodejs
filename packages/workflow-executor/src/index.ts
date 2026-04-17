@@ -96,6 +96,8 @@ export {
   AgentPortError,
   ConfigurationError,
   InvalidPreRecordedArgsError,
+  UnsupportedStepTypeError,
+  InvalidStepDefinitionError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';
 export { default as ConditionStepExecutor } from './executors/condition-step-executor';
@@ -107,6 +109,18 @@ export { default as McpStepExecutor } from './executors/mcp-step-executor';
 export { default as GuidanceStepExecutor } from './executors/guidance-step-executor';
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
+export { default as toStepDefinition } from './adapters/step-definition-mapper';
+export type {
+  ServerWorkflowTransition,
+  ServerTaskType,
+  ServerWorkflowTask,
+  ServerWorkflowCondition,
+  ServerWorkflowEnd,
+  ServerWorkflowEscalation,
+  ServerStartSubWorkflow,
+  ServerCloseSubWorkflow,
+  ServerWorkflowStep,
+} from './adapters/server-types';
 export { default as ExecutorHttpServer } from './http/executor-http-server';
 export type { ExecutorHttpServerOptions } from './http/executor-http-server';
 export { default as Runner } from './runner';

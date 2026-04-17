@@ -251,3 +251,23 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
     super(`Invalid pre-recorded args: ${detail}`, 'The pre-configured step parameters are invalid');
   }
 }
+
+/** Thrown when a server step type has no executor equivalent (e.g. 'end', 'escalation'). */
+export class UnsupportedStepTypeError extends WorkflowExecutorError {
+  constructor(stepType: string) {
+    super(
+      `Step type "${stepType}" is not supported by the executor`,
+      'This step type is not yet supported.',
+    );
+  }
+}
+
+/** Thrown when a server step definition is malformed (unknown taskType, missing required fields, etc.). */
+export class InvalidStepDefinitionError extends WorkflowExecutorError {
+  constructor(detail: string) {
+    super(
+      `Invalid step definition: ${detail}`,
+      'The workflow step configuration is invalid. Please check the workflow designer.',
+    );
+  }
+}
