@@ -14,7 +14,7 @@
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
     "@forestadmin/agent-toolkit": "1.2.0",
-    "@forestadmin/datasource-customizer": "1.69.2",
+    "@forestadmin/datasource-customizer": "1.69.3",
     "@forestadmin/datasource-toolkit": "1.53.1",
     "@forestadmin/forestadmin-client": "1.38.4",
     "@forestadmin/mcp-server": "1.9.1",

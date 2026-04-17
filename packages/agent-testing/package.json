@@ -44,7 +44,6 @@
   },
   "devDependencies": {
     "@forestadmin/agent": "1.77.1",
-    "@forestadmin/agent": "1.77.1",
     "@forestadmin/datasource-sql": "1.17.10",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/superagent": "^8.1.9",
