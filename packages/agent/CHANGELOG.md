@@ -1,3 +1,23 @@
+# @forestadmin/agent [1.78.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.77.1...@forestadmin/agent@1.78.0) (2026-04-17)
+
+
+### Bug Fixes
+
+* trigger a release ([#1562](https://github.com/ForestAdmin/agent-nodejs/issues/1562)) ([993c815](https://github.com/ForestAdmin/agent-nodejs/commit/993c8156e74d1c6b60a54268c507c25768c00b87))
+
+
+### Features
+
+* **mcp-server:** add enabledTools allowlist option ([#1547](https://github.com/ForestAdmin/agent-nodejs/issues/1547)) ([22df2ec](https://github.com/ForestAdmin/agent-nodejs/commit/22df2ecd2c0e370f0ff9740289aa252d877b20a2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.10.0
+
 ## @forestadmin/agent [1.77.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.77.0...@forestadmin/agent@1.77.1) (2026-04-14)
 
 
