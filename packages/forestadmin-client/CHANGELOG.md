@@ -1,3 +1,10 @@
+# @forestadmin/forestadmin-client [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.38.4...@forestadmin/forestadmin-client@1.39.0) (2026-04-17)
+
+
+### Features
+
+* **mcp-server:** expose polymorphic relations in describeCollection ([#1551](https://github.com/ForestAdmin/agent-nodejs/issues/1551)) ([f73b417](https://github.com/ForestAdmin/agent-nodejs/commit/f73b41704c246ef86bd7b02299894bcd517f91b6))
+
 ## @forestadmin/forestadmin-client [1.38.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.38.3...@forestadmin/forestadmin-client@1.38.4) (2026-04-10)
 
 
