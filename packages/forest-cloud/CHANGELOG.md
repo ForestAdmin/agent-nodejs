@@ -1,3 +1,18 @@
+## @forestadmin/forest-cloud [1.12.111](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.110...@forestadmin/forest-cloud@1.12.111) (2026-04-17)
+
+
+### Bug Fixes
+
+* trigger a release ([#1562](https://github.com/ForestAdmin/agent-nodejs/issues/1562)) ([993c815](https://github.com/ForestAdmin/agent-nodejs/commit/993c8156e74d1c6b60a54268c507c25768c00b87))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.78.0
+
 ## @forestadmin/forest-cloud [1.12.110](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forest-cloud@1.12.109...@forestadmin/forest-cloud@1.12.110) (2026-04-15)
 
 
