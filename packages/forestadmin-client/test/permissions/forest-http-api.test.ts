@@ -148,6 +148,38 @@ describe('ForestHttpApi', () => {
     });
   });
 
+  describe('createMcpActivityLog', () => {
+    it('should call the mcp endpoint with body', async () => {
+      const mockActivityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({ data: mockActivityLog });
+
+      const body = {
+        type: 'read',
+        action: 'index',
+        status: 'pending',
+        records: [],
+        renderingId: '12345',
+        collectionModelName: 'users',
+      };
+      const activityLogOptions = {
+        forestServerUrl: options.forestServerUrl,
+        bearerToken: 'bearer-token',
+        headers: { 'Custom-Header': 'value' },
+      };
+      const result = await new ForestHttpApi().createMcpActivityLog(activityLogOptions, body);
+
+      expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith({
+        forestServerUrl: options.forestServerUrl,
+        method: 'post',
+        path: '/api/activity-logs-requests/mcp',
+        bearerToken: 'bearer-token',
+        body,
+        headers: { 'Custom-Header': 'value' },
+      });
+      expect(result).toEqual(mockActivityLog);
+    });
+  });
+
   describe('updateActivityLogStatus', () => {
     it('should call the right endpoint with status', async () => {
       const body = { status: 'completed' };

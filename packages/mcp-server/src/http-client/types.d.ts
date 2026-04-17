@@ -41,6 +41,11 @@ export interface ForestServerClient {
   createActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse>;
 
   /**
+   * Creates a pending activity log using the MCP-dedicated route.
+   */
+  createMcpActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse>;
+
+  /**
    * Updates an activity log status.
    */
   updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void>;
