@@ -1,0 +1,281 @@
+import type {
+  ServerHydratedWorkflowRun,
+  ServerStepHistory,
+  ServerUserProfile,
+} from '../../src/adapters/server-types';
+
+import toPendingStepExecution from '../../src/adapters/run-to-pending-step-mapper';
+import { InvalidStepDefinitionError } from '../../src/errors';
+import { StepType } from '../../src/types/step-definition';
+
+function makeStepHistory(overrides: Partial<ServerStepHistory> = {}): ServerStepHistory {
+  return {
+    stepName: 'step-a',
+    stepIndex: 0,
+    done: false,
+    stepDefinition: {
+      type: 'task',
+      taskType: 'get-data',
+      title: 'Task',
+      prompt: 'prompt',
+      outgoing: { stepId: 'next', buttonText: null },
+    },
+    ...overrides,
+  };
+}
+
+function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydratedWorkflowRun {
+  return {
+    id: 42,
+    workflowId: 'wf-1',
+    collectionId: '11',
+    collectionName: 'customers',
+    selectedRecordId: '123',
+    bpmnVersion: '1.0',
+    runState: 'running',
+    workflowHistory: [makeStepHistory()],
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    userId: 7,
+    renderingId: 3,
+    userProfile: {
+      id: 7,
+      email: 'alban@forestadmin.com',
+      firstName: 'Alban',
+      lastName: 'Bertolini',
+      team: 'team-a',
+      renderingId: 3,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: { env: 'prod' },
+    },
+    ...overrides,
+  };
+}
+
+describe('toPendingStepExecution', () => {
+  it('should map a run with a pending step to a PendingStepExecution', () => {
+    const run = makeRun();
+
+    const result = toPendingStepExecution(run);
+
+    expect(result).toEqual({
+      runId: '42',
+      stepId: 'step-a',
+      stepIndex: 0,
+      baseRecordRef: {
+        collectionName: 'customers',
+        recordId: ['123'],
+        stepIndex: 0,
+      },
+      stepDefinition: { type: StepType.ReadRecord, prompt: 'prompt' },
+      previousSteps: [],
+      user: expect.objectContaining({ id: 7, email: 'alban@forestadmin.com' }),
+    });
+  });
+
+  it('should stringify the numeric run id', () => {
+    const run = makeRun({ id: 999 });
+
+    const result = toPendingStepExecution(run);
+
+    expect(result?.runId).toBe('999');
+  });
+
+  it('should wrap selectedRecordId in an array for baseRecordRef', () => {
+    const run = makeRun({ selectedRecordId: 'rec-abc' });
+
+    const result = toPendingStepExecution(run);
+
+    expect(result?.baseRecordRef.recordId).toEqual(['rec-abc']);
+  });
+
+  it('should return null when all steps are done', () => {
+    const run = makeRun({
+      workflowHistory: [
+        makeStepHistory({ stepIndex: 0, done: true }),
+        makeStepHistory({ stepIndex: 1, done: true }),
+      ],
+    });
+
+    expect(toPendingStepExecution(run)).toBeNull();
+  });
+
+  it('should return null when all steps are done or cancelled', () => {
+    const run = makeRun({
+      workflowHistory: [
+        makeStepHistory({ stepIndex: 0, done: true }),
+        makeStepHistory({ stepIndex: 1, done: false, cancelled: true }),
+      ],
+    });
+
+    expect(toPendingStepExecution(run)).toBeNull();
+  });
+
+  it('should return null when workflowHistory is empty', () => {
+    const run = makeRun({ workflowHistory: [] });
+
+    expect(toPendingStepExecution(run)).toBeNull();
+  });
+
+  it('should pick the first non-done, non-cancelled step as pending', () => {
+    const run = makeRun({
+      workflowHistory: [
+        makeStepHistory({ stepName: 's0', stepIndex: 0, done: true }),
+        makeStepHistory({ stepName: 's1', stepIndex: 1, done: false, cancelled: true }),
+        makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
+        makeStepHistory({ stepName: 's3', stepIndex: 3, done: false }),
+      ],
+    });
+
+    const result = toPendingStepExecution(run);
+
+    expect(result?.stepId).toBe('s2');
+    expect(result?.stepIndex).toBe(2);
+  });
+
+  describe('previousSteps', () => {
+    it('should include done steps preceding the pending step', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: { type: 'record', status: 'success' },
+          }),
+          makeStepHistory({
+            stepName: 's1',
+            stepIndex: 1,
+            done: true,
+            context: { type: 'condition', status: 'success', selectedOption: 'Yes' },
+          }),
+          makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
+        ],
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.previousSteps).toHaveLength(2);
+      expect(result?.previousSteps[1].stepOutcome).toMatchObject({
+        type: 'condition',
+        status: 'success',
+        selectedOption: 'Yes',
+        stepId: 's1',
+        stepIndex: 1,
+      });
+    });
+
+    it('should synthesize a minimal outcome when context does not look like a StepOutcome', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: { legacyData: 'from-frontend' },
+            stepDefinition: {
+              type: 'task',
+              taskType: 'update-data',
+              title: 't',
+              prompt: 'p',
+              outgoing: { stepId: 'x', buttonText: null },
+            },
+          }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.previousSteps[0].stepOutcome).toEqual({
+        type: 'record',
+        stepId: 's0',
+        stepIndex: 0,
+        status: 'success',
+      });
+    });
+
+    it('should not include done steps that are after the pending step', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 's0', stepIndex: 0, done: false }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: true }),
+        ],
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.stepId).toBe('s0');
+      expect(result?.previousSteps).toHaveLength(0);
+    });
+  });
+
+  describe('user mapping', () => {
+    it('should map server userProfile to StepUser with null → empty string', () => {
+      const profile: ServerUserProfile = {
+        id: 5,
+        email: 'nulls@test.com',
+        firstName: null,
+        lastName: null,
+        team: null,
+        renderingId: 2,
+        role: null,
+        permissionLevel: null,
+        tags: {},
+      };
+      const run = makeRun({ userProfile: profile });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.user).toEqual({
+        id: 5,
+        email: 'nulls@test.com',
+        firstName: '',
+        lastName: '',
+        team: '',
+        renderingId: 2,
+        role: '',
+        permissionLevel: '',
+        tags: {},
+      });
+    });
+
+    it('should return placeholder user when userProfile is undefined', () => {
+      const run = makeRun({ userProfile: undefined });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.user).toEqual({
+        id: 0,
+        email: '',
+        firstName: '',
+        lastName: '',
+        team: '',
+        renderingId: 0,
+        role: '',
+        permissionLevel: '',
+        tags: {},
+      });
+    });
+  });
+
+  describe('error cases', () => {
+    it('should throw InvalidStepDefinitionError when collectionName is null', () => {
+      const run = makeRun({ collectionName: null });
+
+      expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toPendingStepExecution(run)).toThrow(
+        'Run 42 has no collectionName — cannot build baseRecordRef',
+      );
+    });
+
+    it('should propagate mapper errors from toStepDefinition', () => {
+      const run = makeRun({
+        workflowHistory: [makeStepHistory({ stepDefinition: { type: 'end', title: 'End' } })],
+      });
+
+      expect(() => toPendingStepExecution(run)).toThrow();
+    });
+  });
+});

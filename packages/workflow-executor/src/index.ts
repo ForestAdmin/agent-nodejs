@@ -110,6 +110,7 @@ export { default as GuidanceStepExecutor } from './executors/guidance-step-execu
 export { default as AgentClientAgentPort } from './adapters/agent-client-agent-port';
 export { default as ForestServerWorkflowPort } from './adapters/forest-server-workflow-port';
 export { default as toStepDefinition } from './adapters/step-definition-mapper';
+export { default as toPendingStepExecution } from './adapters/run-to-pending-step-mapper';
 export type {
   ServerWorkflowTransition,
   ServerTaskType,
@@ -120,6 +121,10 @@ export type {
   ServerStartSubWorkflow,
   ServerCloseSubWorkflow,
   ServerWorkflowStep,
+  ServerUserProfile,
+  ServerStepHistory,
+  ServerWorkflowRunState,
+  ServerHydratedWorkflowRun,
 } from './adapters/server-types';
 export { default as ExecutorHttpServer } from './http/executor-http-server';
 export type { ExecutorHttpServerOptions } from './http/executor-http-server';

@@ -1,3 +1,4 @@
+import type { ServerHydratedWorkflowRun } from './server-types';
 import type { McpConfiguration, WorkflowPort } from '../ports/workflow-port';
 import type { PendingStepExecution, StepUser } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
@@ -6,13 +7,15 @@ import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
-// TODO: finalize route paths with the team — these are placeholders
+import toPendingStepExecution from './run-to-pending-step-mapper';
+
 const ROUTES = {
-  pendingStepExecutions: '/liana/v1/workflow-step-executions/pending',
-  pendingStepExecutionForRun: (runId: string) =>
-    `/liana/v1/workflow-step-executions/pending?runId=${encodeURIComponent(runId)}`,
-  updateStepExecution: (runId: string) => `/liana/v1/workflow-step-executions/${runId}/complete`,
-  collectionSchema: (collectionName: string) => `/liana/v1/collections/${collectionName}`,
+  pendingRuns: '/api/workflow-orchestrator/pending-run',
+  availableRun: (runId: string) =>
+    `/api/workflow-orchestrator/available-run/${encodeURIComponent(runId)}`,
+  updateStep: '/api/workflow-orchestrator/update-step',
+  collectionSchema: (collectionName: string) =>
+    `/api/workflow-orchestrator/collection-schema/${encodeURIComponent(collectionName)}`,
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
 };
 
@@ -24,32 +27,39 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   async getPendingStepExecutions(): Promise<PendingStepExecution[]> {
-    return ServerUtils.query<PendingStepExecution[]>(
+    const runs = await ServerUtils.query<ServerHydratedWorkflowRun[]>(
       this.options,
       'get',
-      ROUTES.pendingStepExecutions,
+      ROUTES.pendingRuns,
     );
+
+    return runs
+      .map(run => toPendingStepExecution(run))
+      .filter((step): step is PendingStepExecution => step !== null);
   }
 
   async getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null> {
-    return ServerUtils.query<PendingStepExecution | null>(
+    const run = await ServerUtils.query<ServerHydratedWorkflowRun | null>(
       this.options,
       'get',
-      ROUTES.pendingStepExecutionForRun(runId),
+      ROUTES.availableRun(runId),
     );
+
+    if (!run) return null;
+
+    return toPendingStepExecution(run);
   }
 
-  async updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void> {
-    await ServerUtils.query(
-      this.options,
-      'post',
-      ROUTES.updateStepExecution(runId),
-      {},
-      stepOutcome,
-    );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async updateStepExecution(_runId: string, _stepOutcome: StepOutcome): Promise<void> {
+    // TODO 3: wire up StepOutcome → server body mapping.
+    // The server expects `{ runId, stepUpdate, executionStatus }` (see TODO 3 in the plan).
+    throw new Error('updateStepExecution body mapping not implemented yet');
   }
 
   async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
+    // TODO 4: the server endpoint requires a `runId` query param to resolve displayNames
+    // from the correct rendering. This will be plumbed through once the interface supports it.
     return ServerUtils.query<CollectionSchema>(
       this.options,
       'get',
@@ -63,7 +73,8 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async hasRunAccess(_runId: string, _user: StepUser): Promise<boolean> {
-    // TODO: implement once GET /liana/v1/workflow-runs/:runId/access is available.
+    // TODO: implement once an agent-auth access-check endpoint is available.
+    // For now rely on the server already returning null for unauthorized runs.
     return true;
   }
 }

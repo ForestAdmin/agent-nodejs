@@ -77,3 +77,53 @@ export type ServerWorkflowStep =
   | ServerWorkflowEscalation
   | ServerStartSubWorkflow
   | ServerCloseSubWorkflow;
+
+// --- Run envelope (returned by pending-run endpoints) ---
+
+export interface ServerUserProfile {
+  id: number;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  team: string | null;
+  renderingId: number;
+  role: string | null;
+  permissionLevel: string | null;
+  tags: Record<string, string>;
+}
+
+export interface ServerStepHistory {
+  stepName: string;
+  stepIndex: number;
+  done: boolean;
+  revised?: boolean;
+  cancelled?: boolean;
+  context?: Record<string, unknown>;
+  stepDefinition: ServerWorkflowStep;
+}
+
+/** Possible workflow run states (mirror of the server enum). */
+export type ServerWorkflowRunState =
+  | 'pending'
+  | 'running'
+  | 'awaiting-input'
+  | 'done'
+  | 'cancelled'
+  | 'failed';
+
+export interface ServerHydratedWorkflowRun {
+  id: number;
+  workflowId: string;
+  collectionId: string;
+  collectionName: string | null;
+  selectedRecordId: string;
+  bpmnVersion: string;
+  runState: ServerWorkflowRunState;
+  workflowHistory: ServerStepHistory[];
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+  renderingId: number;
+  lockedAt?: string | null;
+  userProfile?: ServerUserProfile;
+}
