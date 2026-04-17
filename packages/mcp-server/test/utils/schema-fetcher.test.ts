@@ -282,5 +282,42 @@ describe('schema-fetcher', () => {
 
       expect(result).toEqual({});
     });
+
+    it('should skip actions without endpoint', () => {
+      const schema: ForestSchema = {
+        collections: [
+          {
+            name: 'users',
+            fields: [],
+            actions: [
+              createAction('Send Email', '/forest/_actions/users/0/send-email'),
+              {
+                id: 'action-no-endpoint',
+                name: 'No Endpoint Action',
+                type: 'single' as const,
+                endpoint: '',
+                download: false,
+                fields: [],
+                hooks: { load: false, change: [] },
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = getActionEndpoints(schema);
+
+      expect(result).toEqual({
+        users: {
+          'Send Email': {
+            id: 'action-send-email',
+            name: 'Send Email',
+            endpoint: '/forest/_actions/users/0/send-email',
+            hooks: { load: false, change: [] },
+            fields: [],
+          },
+        },
+      });
+    });
   });
 });

@@ -607,6 +607,101 @@ describe('declareDescribeCollectionTool', () => {
           targetCollection: null,
         });
       });
+
+      it('should detect polymorphic BelongsTo relations from forest-rails schema', async () => {
+        const mockFields = [
+          {
+            field: 'commentable',
+            type: 'Number',
+            isSortable: false,
+            isPrimaryKey: false,
+            isReadOnly: false,
+            isRequired: false,
+            enum: null,
+            reference: 'commentable.id',
+            relationship: 'BelongsTo',
+            polymorphicReferencedModels: ['Post', 'Video'],
+          },
+        ] as unknown as schemaFetcher.ForestField[];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'comments', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        const result = (await registeredToolHandler({ collectionName: 'comments' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        expect(parsed.relations).toContainEqual({
+          name: 'commentable',
+          type: 'many-to-one',
+          targetCollection: null,
+          isPolymorphic: true,
+          polymorphicTargets: ['Post', 'Video'],
+        });
+      });
+
+      it('should not add polymorphic fields to non-polymorphic relations', async () => {
+        const mockFields: schemaFetcher.ForestField[] = [
+          {
+            field: 'user',
+            type: 'Number',
+            isSortable: false,
+            isPrimaryKey: false,
+            isReadOnly: false,
+            isRequired: false,
+            enum: null,
+            reference: 'users.id',
+            relationship: 'BelongsTo',
+          },
+        ];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'comments', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        const result = (await registeredToolHandler({ collectionName: 'comments' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        const relation = parsed.relations[0];
+        expect(relation.targetCollection).toBe('users');
+        expect(relation.isPolymorphic).toBeUndefined();
+        expect(relation.polymorphicTargets).toBeUndefined();
+      });
+
+      it('should treat empty polymorphic-referenced-models as non-polymorphic', async () => {
+        const mockFields = [
+          {
+            field: 'commentable',
+            type: 'Number',
+            isSortable: false,
+            isPrimaryKey: false,
+            isReadOnly: false,
+            isRequired: false,
+            enum: null,
+            reference: 'commentable.id',
+            relationship: 'BelongsTo',
+            polymorphicReferencedModels: [],
+          },
+        ] as unknown as schemaFetcher.ForestField[];
+        mockFetchForestSchema.mockResolvedValue({
+          collections: [{ name: 'comments', fields: mockFields }],
+        });
+        mockGetFieldsOfCollection.mockReturnValue(mockFields);
+
+        const result = (await registeredToolHandler({ collectionName: 'comments' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const parsed = JSON.parse(result.content[0].text);
+        const relation = parsed.relations[0];
+        expect(relation.targetCollection).toBe('commentable');
+        expect(relation.isPolymorphic).toBeUndefined();
+        expect(relation.polymorphicTargets).toBeUndefined();
+      });
     });
 
     describe('actions extraction', () => {
@@ -766,6 +861,50 @@ describe('declareDescribeCollectionTool', () => {
 
         const parsed = JSON.parse(result.content[0].text);
         expect(parsed.actions).toEqual([]);
+      });
+
+      it('should exclude actions without endpoint and expose them in _meta.skippedActions', async () => {
+        mockGetActionsOfCollection.mockReturnValue([
+          {
+            id: 'action-with-endpoint',
+            name: 'Valid Action',
+            type: 'single',
+            endpoint: '/forest/actions/valid',
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+          {
+            id: 'action-without-endpoint',
+            name: 'Invalid Action',
+            type: 'single',
+            endpoint: '',
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+          {
+            id: 'action-null-endpoint',
+            name: 'Null Endpoint Action',
+            type: 'global',
+            endpoint: null,
+            fields: [],
+            hooks: { load: false, change: [] },
+            download: false,
+          },
+        ]);
+
+        const result = (await registeredToolHandler({ collectionName: 'users' }, mockExtra)) as {
+          content: { type: string; text: string }[];
+        };
+
+        const { actions, _meta: meta } = JSON.parse(result.content[0].text);
+        expect(actions).toHaveLength(1);
+        expect(actions[0].name).toBe('Valid Action');
+        expect(meta.skippedActions).toEqual([
+          { name: 'Invalid Action', reason: 'no endpoint configured' },
+          { name: 'Null Endpoint Action', reason: 'no endpoint configured' },
+        ]);
       });
     });
 

@@ -178,6 +178,7 @@ export interface ForestSchemaField {
   defaultValue?: unknown;
   isPrimaryKey: boolean;
   relationship?: 'HasMany' | 'BelongsToMany' | 'BelongsTo' | 'HasOne' | null;
+  polymorphicReferencedModels?: string[];
 }
 
 /**

@@ -128,13 +128,15 @@ export function getActionEndpoints(schema: ForestSchema): ActionEndpoints {
       actionEndpoints[collection.name] = {};
 
       for (const action of collection.actions) {
-        actionEndpoints[collection.name][action.name] = {
-          id: action.id,
-          name: action.name,
-          endpoint: action.endpoint,
-          hooks: action.hooks,
-          fields: action.fields,
-        };
+        if (action.endpoint) {
+          actionEndpoints[collection.name][action.name] = {
+            id: action.id,
+            name: action.name,
+            endpoint: action.endpoint,
+            hooks: action.hooks,
+            fields: action.fields,
+          };
+        }
       }
     }
   }
