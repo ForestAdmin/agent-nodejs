@@ -18,32 +18,6 @@ const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskType, StepType> = {
   guideline: StepType.Guidance,
 };
 
-/**
- * Convert a server-formatted workflow step into the flat executor StepDefinition.
- *
- * - Server uses `type: 'task'` + `taskType` discriminator for all non-condition steps.
- * - Server uses `outgoing[]` transitions for conditions; executor uses `options: string[]`.
- * - Some server step types (`end`, `escalation`, `start/close-sub-workflow`) have no
- *   executor equivalent yet and throw `UnsupportedStepTypeError`.
- */
-export default function toStepDefinition(serverStep: ServerWorkflowStep): StepDefinition {
-  switch (serverStep.type) {
-    case 'task':
-      return mapTask(serverStep);
-    case 'condition':
-      return mapCondition(serverStep);
-    case 'end':
-    case 'escalation':
-    case 'start-sub-workflow':
-    case 'close-sub-workflow':
-      throw new UnsupportedStepTypeError(serverStep.type);
-    default:
-      throw new InvalidStepDefinitionError(
-        `Unknown server step type: "${(serverStep as { type: string }).type}"`,
-      );
-  }
-}
-
 function mapTask(task: ServerWorkflowTask): StepDefinition {
   const stepType = TASK_TYPE_TO_STEP_TYPE[task.taskType];
 
@@ -56,7 +30,11 @@ function mapTask(task: ServerWorkflowTask): StepDefinition {
 
   switch (stepType) {
     case StepType.Mcp:
-      return { ...base, type: StepType.Mcp, ...(task.mcpServerId && { mcpServerId: task.mcpServerId }) };
+      return {
+        ...base,
+        type: StepType.Mcp,
+        ...(task.mcpServerId !== undefined && { mcpServerId: task.mcpServerId }),
+      };
     case StepType.Guidance:
       return { ...base, type: StepType.Guidance };
     case StepType.ReadRecord:
@@ -88,4 +66,30 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
     prompt: condition.prompt,
     options: options as [string, ...string[]],
   };
+}
+
+/**
+ * Convert a server-formatted workflow step into the flat executor StepDefinition.
+ *
+ * - Server uses `type: 'task'` + `taskType` discriminator for all non-condition steps.
+ * - Server uses `outgoing[]` transitions for conditions; executor uses `options: string[]`.
+ * - Some server step types (`end`, `escalation`, `start/close-sub-workflow`) have no
+ *   executor equivalent yet and throw `UnsupportedStepTypeError`.
+ */
+export default function toStepDefinition(serverStep: ServerWorkflowStep): StepDefinition {
+  switch (serverStep.type) {
+    case 'task':
+      return mapTask(serverStep);
+    case 'condition':
+      return mapCondition(serverStep);
+    case 'end':
+    case 'escalation':
+    case 'start-sub-workflow':
+    case 'close-sub-workflow':
+      throw new UnsupportedStepTypeError(serverStep.type);
+    default:
+      throw new InvalidStepDefinitionError(
+        `Unknown server step type: "${(serverStep as { type: string }).type}"`,
+      );
+  }
 }
