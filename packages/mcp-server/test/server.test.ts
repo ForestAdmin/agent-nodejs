@@ -991,6 +991,20 @@ describe('ForestMCPServer Instance', () => {
       expect(response.status).toBe(401);
     });
 
+    it('should include resource_metadata in WWW-Authenticate header on 401', async () => {
+      const response = await request(listHttpServer).post('/mcp').send({
+        jsonrpc: '2.0',
+        method: 'tools/list',
+        id: 1,
+      });
+
+      expect(response.status).toBe(401);
+      const wwwAuth = response.headers['www-authenticate'];
+      expect(wwwAuth).toBeDefined();
+      expect(wwwAuth).toContain('resource_metadata=');
+      expect(wwwAuth).toContain('/.well-known/oauth-protected-resource/mcp');
+    });
+
     it('should reject requests with invalid bearer token', async () => {
       const response = await request(listHttpServer)
         .post('/mcp')
