@@ -1,7 +1,6 @@
 # Workflow Executor — Example
 
-Local setup to run the workflow executor backed by PostgreSQL, using the
-`forest-workflow-executor` CLI.
+Local setup to run the workflow executor backed by PostgreSQL.
 
 ## Prerequisites
 
@@ -11,11 +10,12 @@ Local setup to run the workflow executor backed by PostgreSQL, using the
 
 ## Quick start
 
+All commands below run from this directory (`packages/workflow-executor/example`).
+
 ### 1. Start PostgreSQL
 
 ```bash
-cd packages/workflow-executor/example
-docker compose up -d
+yarn db:up
 ```
 
 Exposes Postgres on `localhost:5452` with database `workflow_executor`
@@ -36,14 +36,13 @@ on the default port.
 From the package root (one folder up):
 
 ```bash
-cd ..
-yarn build
+cd .. && yarn build && cd -
 ```
 
 ### 4. Run the executor
 
 ```bash
-node --env-file=example/.env dist/cli.js
+yarn start
 ```
 
 Expected output:
@@ -56,6 +55,7 @@ Expected output:
   Polling interval : 5000ms
   AI config        : server fallback (no local AI)
 [forest-workflow-executor] Ready on http://localhost:3400
+{"message":"Poll cycle completed","timestamp":"...","fetched":0,"dispatching":0}
 ```
 
 ### 5. Verify
@@ -67,25 +67,27 @@ curl http://localhost:3400/health
 
 The executor will:
 - Auto-create the `workflow_step_executions` table via Umzug migrations
-- Poll the Forest Admin orchestrator for pending steps
+- Poll the Forest Admin orchestrator every `POLLING_INTERVAL_MS` (5s default)
 - Execute steps locally and report results back
 
-### Dev without a database
+## Available scripts
 
-Skip step 1 and 2 (the `DATABASE_URL`), and run with `--in-memory`:
-
-```bash
-node --env-file=example/.env dist/cli.js --in-memory
-```
-
-Run state is lost on restart — not for production.
+| Script | What it does |
+|--------|--------------|
+| `yarn start` | Run the executor (database mode) — requires `yarn build` first |
+| `yarn start:memory` | Run the executor with an in-memory store (no DB, not for prod) |
+| `yarn start:watch` | Run via `tsx watch` directly on source — no build, auto-restart on file change |
+| `yarn db:up` | Start the Postgres container |
+| `yarn db:down` | Stop the Postgres container (keeps data volume) |
+| `yarn db:reset` | Drop and recreate the DB (wipes the volume) |
+| `yarn db:psql` | Open a `psql` shell in the container |
 
 ## Teardown
 
 ```bash
-# Stop the executor (Ctrl+C in its shell)
-# Stop Postgres
-docker compose down -v  # -v wipes the data volume
+yarn db:down  # keep the data volume
+# or
+yarn db:reset  # wipe everything
 ```
 
 ## See also

@@ -1,0 +1,21 @@
+{
+  "name": "workflow-executor-example",
+  "version": "0.0.0",
+  "license": "GPL-3.0",
+  "private": true,
+  "scripts": {
+    "start": "node --env-file=.env ../dist/cli.js",
+    "start:memory": "node --env-file=.env ../dist/cli.js --in-memory",
+    "start:watch": "tsx watch --env-file=.env ../src/cli.ts",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "db:psql": "docker exec -it workflow_executor_example_postgres psql -U executor -d workflow_executor"
+  },
+  "dependencies": {
+    "@forestadmin/workflow-executor": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}
