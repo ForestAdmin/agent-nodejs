@@ -31,6 +31,7 @@ import ScopeInvalidation from './security/scope-invalidation';
 import ErrorHandling from './system/error-handling';
 import HealthCheck from './system/healthcheck';
 import Logger from './system/logger';
+import WorkflowExecutorProxyRoute from './workflow/workflow-executor-proxy';
 
 export const ROOT_ROUTES_CTOR = [
   Authentication,
@@ -172,6 +173,12 @@ function getAiRoutes(options: Options, services: Services, aiRouter: AiRouter | 
   return [new AiProxyRoute(services, options, aiRouter)];
 }
 
+function getWorkflowExecutorRoutes(options: Options, services: Services): BaseRoute[] {
+  if (!options.workflowExecutorUrl) return [];
+
+  return [new WorkflowExecutorProxyRoute(services, options)];
+}
+
 export default function makeRoutes(
   dataSource: DataSource,
   options: Options,
@@ -187,6 +194,7 @@ export default function makeRoutes(
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
     ...getAiRoutes(options, services, aiRouter),
+    ...getWorkflowExecutorRoutes(options, services),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.
