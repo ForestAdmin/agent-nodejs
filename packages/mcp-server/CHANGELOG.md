@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.11.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.11.0...@forestadmin/mcp-server@1.11.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* **mcp-server:** add resource_metadata to WWW-Authenticate header ([#1558](https://github.com/ForestAdmin/agent-nodejs/issues/1558)) ([c795d67](https://github.com/ForestAdmin/agent-nodejs/commit/c795d6742841ce207321491a84e925ca2e64cd72))
+
 # @forestadmin/mcp-server [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.10.0...@forestadmin/mcp-server@1.11.0) (2026-04-17)
 
 
