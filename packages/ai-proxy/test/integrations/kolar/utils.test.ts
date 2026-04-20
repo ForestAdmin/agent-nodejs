@@ -13,7 +13,7 @@ describe('kolar/utils', () => {
       const result = getKolarConfig(config);
 
       expect(result).toEqual({
-        baseUrl: 'https://backend-partners.up.railway.app',
+        baseUrl: 'https://api.kolar.ai',
         headers: {
           'X-Api-Key': 'test-api-key',
           'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ describe('kolar/utils', () => {
 
       await expect(validateKolarConfig(config)).resolves.toBeUndefined();
       expect(fetch).toHaveBeenCalledWith(
-        'https://backend-partners.up.railway.app/auth/verify',
+        'https://api.kolar.ai/auth/verify',
         expect.objectContaining({
           headers: expect.objectContaining({ 'X-Api-Key': 'test-api-key' }),
         }),
