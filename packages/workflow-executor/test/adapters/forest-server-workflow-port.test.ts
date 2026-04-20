@@ -236,24 +236,37 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('getCollectionSchema', () => {
-    it('fetches the collection schema by name', async () => {
-      const collectionSchema: CollectionSchema = {
-        collectionName: 'users',
-        collectionDisplayName: 'Users',
-        primaryKeyFields: ['id'],
-        fields: [],
-        actions: [],
-      };
+    const collectionSchema: CollectionSchema = {
+      collectionName: 'users',
+      collectionDisplayName: 'Users',
+      primaryKeyFields: ['id'],
+      fields: [],
+      actions: [],
+    };
+
+    it('fetches the collection schema with runId as query param', async () => {
       mockQuery.mockResolvedValue(collectionSchema);
 
-      const result = await port.getCollectionSchema('users');
+      const result = await port.getCollectionSchema('users', '42');
 
       expect(mockQuery).toHaveBeenCalledWith(
         options,
         'get',
-        '/api/workflow-orchestrator/collection-schema/users',
+        '/api/workflow-orchestrator/collection-schema/users?runId=42',
       );
       expect(result).toEqual(collectionSchema);
+    });
+
+    it('encodes special characters in collectionName and runId', async () => {
+      mockQuery.mockResolvedValue(collectionSchema);
+
+      await port.getCollectionSchema('users/admin', 'run/42');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/api/workflow-orchestrator/collection-schema/users%2Fadmin?runId=run%2F42',
+      );
     });
   });
 

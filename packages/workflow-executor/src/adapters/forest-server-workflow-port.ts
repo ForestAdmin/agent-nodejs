@@ -15,8 +15,10 @@ const ROUTES = {
   availableRun: (runId: string) =>
     `/api/workflow-orchestrator/available-run/${encodeURIComponent(runId)}`,
   updateStep: '/api/workflow-orchestrator/update-step',
-  collectionSchema: (collectionName: string) =>
-    `/api/workflow-orchestrator/collection-schema/${encodeURIComponent(collectionName)}`,
+  collectionSchema: (collectionName: string, runId: string) =>
+    `/api/workflow-orchestrator/collection-schema/${encodeURIComponent(
+      collectionName,
+    )}?runId=${encodeURIComponent(runId)}`,
   accessCheck: (runId: string, userId: number) =>
     `/api/workflow-orchestrator/run/${encodeURIComponent(runId)}/access-check?userId=${userId}`,
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
@@ -58,13 +60,11 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     await ServerUtils.query(this.options, 'post', ROUTES.updateStep, {}, body);
   }
 
-  async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    // TODO 4: the server endpoint requires a `runId` query param to resolve displayNames
-    // from the correct rendering. This will be plumbed through once the interface supports it.
+  async getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema> {
     return ServerUtils.query<CollectionSchema>(
       this.options,
       'get',
-      ROUTES.collectionSchema(collectionName),
+      ROUTES.collectionSchema(collectionName, runId),
     );
   }
 

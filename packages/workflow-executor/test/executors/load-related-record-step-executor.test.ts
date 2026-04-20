@@ -967,7 +967,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith('customers');
+      expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith(
+        'customers',
+        expect.any(String),
+      );
     });
   });
 

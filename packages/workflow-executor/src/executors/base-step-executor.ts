@@ -335,7 +335,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const cached = this.context.schemaCache.get(collectionName);
     if (cached) return cached;
 
-    const schema = await this.context.workflowPort.getCollectionSchema(collectionName);
+    const schema = await this.context.workflowPort.getCollectionSchema(
+      collectionName,
+      this.context.runId,
+    );
     this.context.schemaCache.set(collectionName, schema);
 
     return schema;
