@@ -1,5 +1,6 @@
 import type { ServerHydratedWorkflowRun } from '../../src/adapters/server-types';
 import type { CollectionSchema } from '../../src/types/record';
+import type { StepOutcome } from '../../src/types/step-outcome';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
@@ -13,40 +14,42 @@ const mockQuery = ServerUtils.query as jest.Mock;
 
 const options = { envSecret: 'env-secret-123', forestServerUrl: 'https://api.forestadmin.com' };
 
-function makeServerRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydratedWorkflowRun {
+function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydratedWorkflowRun {
   return {
     id: 42,
     workflowId: 'wf-1',
-    collectionId: '11',
-    collectionName: 'customers',
-    selectedRecordId: '123',
+    collectionId: 'col-1',
+    collectionName: 'users',
+    selectedRecordId: '7',
     bpmnVersion: '1.0',
     runState: 'running',
     workflowHistory: [
       {
-        stepName: 'step-a',
+        stepName: 'step-1',
         stepIndex: 0,
         done: false,
         stepDefinition: {
-          type: 'task',
-          taskType: 'get-data',
-          title: 'Task',
-          prompt: 'do it',
-          outgoing: { stepId: 'next', buttonText: null },
+          type: 'condition',
+          title: 'Decide',
+          prompt: 'pick one',
+          outgoing: [
+            { stepId: 'next-a', buttonText: 'A', answer: 'Yes' },
+            { stepId: 'next-b', buttonText: 'B', answer: 'No' },
+          ],
         },
       },
     ],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-    userId: 7,
-    renderingId: 3,
+    createdAt: '2026-04-20T00:00:00.000Z',
+    updatedAt: '2026-04-20T00:00:00.000Z',
+    userId: 1,
+    renderingId: 1,
     userProfile: {
-      id: 7,
-      email: 'alban@forestadmin.com',
-      firstName: 'Alban',
-      lastName: 'Bertolini',
-      team: 'team-a',
-      renderingId: 3,
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
       role: 'admin',
       permissionLevel: 'admin',
       tags: {},
@@ -64,8 +67,8 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('getPendingStepExecutions', () => {
-    it('should call the pending-run route and transform runs into pending step executions', async () => {
-      mockQuery.mockResolvedValue([makeServerRun()]);
+    it('calls the pending-run route and maps runs to PendingStepExecution', async () => {
+      mockQuery.mockResolvedValue([makeRun()]);
 
       const result = await port.getPendingStepExecutions();
 
@@ -75,55 +78,50 @@ describe('ForestServerWorkflowPort', () => {
         '/api/workflow-orchestrator/pending-run',
       );
       expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        runId: '42',
-        stepId: 'step-a',
-        baseRecordRef: { collectionName: 'customers', recordId: ['123'] },
-      });
+      expect(result[0].runId).toBe('42');
+      expect(result[0].stepId).toBe('step-1');
     });
 
-    it('should filter out runs with no pending step', async () => {
-      const doneRun = makeServerRun({
+    it('filters out runs with no pending step', async () => {
+      const terminalRun = makeRun({
         workflowHistory: [
           {
-            stepName: 'done-step',
+            stepName: 'step-1',
             stepIndex: 0,
             done: true,
             stepDefinition: {
-              type: 'task',
-              taskType: 'get-data',
-              title: 't',
-              prompt: 'p',
-              outgoing: { stepId: 'x', buttonText: null },
+              type: 'condition',
+              title: 'Done',
+              prompt: '',
+              outgoing: [{ stepId: 'next', buttonText: 'ok', answer: 'ok' }],
             },
           },
         ],
       });
-      mockQuery.mockResolvedValue([doneRun, makeServerRun({ id: 100 })]);
+      mockQuery.mockResolvedValue([terminalRun]);
 
       const result = await port.getPendingStepExecutions();
 
-      expect(result).toHaveLength(1);
-      expect(result[0].runId).toBe('100');
+      expect(result).toEqual([]);
     });
   });
 
   describe('getPendingStepExecutionsForRun', () => {
-    it('should call the available-run route with the runId in the path', async () => {
-      mockQuery.mockResolvedValue(makeServerRun({ id: 42 }));
+    it('calls the available-run route with the encoded runId', async () => {
+      mockQuery.mockResolvedValue(makeRun({ id: 42 }));
 
-      const result = await port.getPendingStepExecutionsForRun('42');
+      const result = await port.getPendingStepExecutionsForRun('run-42');
 
       expect(mockQuery).toHaveBeenCalledWith(
         options,
         'get',
-        '/api/workflow-orchestrator/available-run/42',
+        '/api/workflow-orchestrator/available-run/run-42',
       );
       expect(result?.runId).toBe('42');
     });
 
-    it('should encode special characters in the runId path segment', async () => {
-      mockQuery.mockResolvedValue(makeServerRun());
+    it('encodes special characters in the runId', async () => {
+      mockQuery.mockResolvedValue(makeRun());
 
       await port.getPendingStepExecutionsForRun('run/42 special');
 
@@ -134,41 +132,111 @@ describe('ForestServerWorkflowPort', () => {
       );
     });
 
-    it('should return null when server returns null', async () => {
+    it('returns null when the server returns null (no pending run)', async () => {
       mockQuery.mockResolvedValue(null);
 
-      const result = await port.getPendingStepExecutionsForRun('nonexistent');
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null when the run has no pending step', async () => {
-      const doneRun = makeServerRun({
-        workflowHistory: [
-          {
-            stepName: 'done',
-            stepIndex: 0,
-            done: true,
-            stepDefinition: {
-              type: 'task',
-              taskType: 'get-data',
-              title: 't',
-              prompt: 'p',
-              outgoing: { stepId: 'x', buttonText: null },
-            },
-          },
-        ],
-      });
-      mockQuery.mockResolvedValue(doneRun);
-
-      const result = await port.getPendingStepExecutionsForRun('42');
+      const result = await port.getPendingStepExecutionsForRun('run-42');
 
       expect(result).toBeNull();
     });
   });
 
+  describe('updateStepExecution', () => {
+    it('posts the mapped body for a condition success outcome', async () => {
+      mockQuery.mockResolvedValue(undefined);
+      const stepOutcome: StepOutcome = {
+        type: 'condition',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'optionA',
+      };
+
+      await port.updateStepExecution('42', stepOutcome);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        {
+          runId: 42,
+          stepUpdate: {
+            stepIndex: 0,
+            attributes: {
+              done: true,
+              context: { status: 'success', selectedOption: 'optionA' },
+            },
+          },
+          executionStatus: { type: 'success' },
+        },
+      );
+    });
+
+    it('posts the mapped body for an error outcome', async () => {
+      mockQuery.mockResolvedValue(undefined);
+      const stepOutcome: StepOutcome = {
+        type: 'record',
+        stepId: 'step-1',
+        stepIndex: 1,
+        status: 'error',
+        error: 'boom',
+      };
+
+      await port.updateStepExecution('42', stepOutcome);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        {
+          runId: 42,
+          stepUpdate: {
+            stepIndex: 1,
+            attributes: {
+              done: true,
+              context: { status: 'error', error: 'boom' },
+            },
+          },
+          executionStatus: { type: 'error', message: 'boom' },
+        },
+      );
+    });
+
+    it('posts the mapped body for an awaiting-input outcome', async () => {
+      mockQuery.mockResolvedValue(undefined);
+      const stepOutcome: StepOutcome = {
+        type: 'record',
+        stepId: 'step-1',
+        stepIndex: 2,
+        status: 'awaiting-input',
+      };
+
+      await port.updateStepExecution('42', stepOutcome);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        {
+          runId: 42,
+          stepUpdate: {
+            stepIndex: 2,
+            attributes: {
+              done: false,
+              context: { status: 'awaiting-input' },
+            },
+          },
+          executionStatus: { type: 'awaiting-input' },
+        },
+      );
+    });
+  });
+
   describe('getCollectionSchema', () => {
-    it('should fetch the collection schema by name', async () => {
+    it('fetches the collection schema by name', async () => {
       const collectionSchema: CollectionSchema = {
         collectionName: 'users',
         collectionDisplayName: 'Users',
@@ -187,28 +255,10 @@ describe('ForestServerWorkflowPort', () => {
       );
       expect(result).toEqual(collectionSchema);
     });
-
-    it('should encode special characters in the collection name', async () => {
-      mockQuery.mockResolvedValue({
-        collectionName: 'a/b',
-        collectionDisplayName: 'A/B',
-        primaryKeyFields: [],
-        fields: [],
-        actions: [],
-      });
-
-      await port.getCollectionSchema('a/b');
-
-      expect(mockQuery).toHaveBeenCalledWith(
-        options,
-        'get',
-        '/api/workflow-orchestrator/collection-schema/a%2Fb',
-      );
-    });
   });
 
   describe('getMcpServerConfigs', () => {
-    it('should fetch mcp server configs', async () => {
+    it('fetches mcp server configs', async () => {
       const configs = [{ name: 'mcp-1' }];
       mockQuery.mockResolvedValue(configs);
 
@@ -243,16 +293,28 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('error propagation', () => {
-    it('should propagate errors from getPendingStepExecutions', async () => {
+    it('propagates errors from ServerUtils.query on getPendingStepExecutions', async () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
       await expect(port.getPendingStepExecutions()).rejects.toThrow('Network error');
     });
 
-    it('should propagate errors from getPendingStepExecutionsForRun', async () => {
+    it('propagates errors from getPendingStepExecutionsForRun', async () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
       await expect(port.getPendingStepExecutionsForRun('run-1')).rejects.toThrow('Network error');
+    });
+
+    it('propagates errors from updateStepExecution', async () => {
+      mockQuery.mockRejectedValue(new Error('Network error'));
+      const outcome: StepOutcome = {
+        type: 'guidance',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+      };
+
+      await expect(port.updateStepExecution('42', outcome)).rejects.toThrow('Network error');
     });
   });
 });

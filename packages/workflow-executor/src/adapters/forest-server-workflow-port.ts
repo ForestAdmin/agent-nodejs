@@ -8,6 +8,7 @@ import type { HttpOptions } from '@forestadmin/forestadmin-client';
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 import toPendingStepExecution from './run-to-pending-step-mapper';
+import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
 
 const ROUTES = {
   pendingRuns: '/api/workflow-orchestrator/pending-run',
@@ -50,11 +51,9 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     return toPendingStepExecution(run);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async updateStepExecution(_runId: string, _stepOutcome: StepOutcome): Promise<void> {
-    // TODO 3: wire up StepOutcome → server body mapping.
-    // The server expects `{ runId, stepUpdate, executionStatus }` (see TODO 3 in the plan).
-    throw new Error('updateStepExecution body mapping not implemented yet');
+  async updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void> {
+    const body = toUpdateStepRequest(runId, stepOutcome);
+    await ServerUtils.query(this.options, 'post', ROUTES.updateStep, {}, body);
   }
 
   async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {

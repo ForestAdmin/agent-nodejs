@@ -142,13 +142,29 @@ describe('toPendingStepExecution', () => {
             stepName: 's0',
             stepIndex: 0,
             done: true,
-            context: { type: 'record', status: 'success' },
+            context: { status: 'success' },
+            stepDefinition: {
+              type: 'task',
+              taskType: 'update-data',
+              title: 't',
+              prompt: 'p',
+              outgoing: { stepId: 'x', buttonText: null },
+            },
           }),
           makeStepHistory({
             stepName: 's1',
             stepIndex: 1,
             done: true,
-            context: { type: 'condition', status: 'success', selectedOption: 'Yes' },
+            context: { status: 'success', selectedOption: 'Yes' },
+            stepDefinition: {
+              type: 'condition',
+              title: 'c',
+              prompt: 'p',
+              outgoing: [
+                { stepId: 'a', buttonText: null, answer: 'Yes' },
+                { stepId: 'b', buttonText: null, answer: 'No' },
+              ],
+            },
           }),
           makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
         ],
@@ -157,7 +173,7 @@ describe('toPendingStepExecution', () => {
       const result = toPendingStepExecution(run);
 
       expect(result?.previousSteps).toHaveLength(2);
-      expect(result?.previousSteps[1].stepOutcome).toMatchObject({
+      expect(result?.previousSteps[1].stepOutcome).toEqual({
         type: 'condition',
         status: 'success',
         selectedOption: 'Yes',
@@ -166,7 +182,7 @@ describe('toPendingStepExecution', () => {
       });
     });
 
-    it('should synthesize a minimal outcome when context does not look like a StepOutcome', () => {
+    it('should default to success status when context is empty (legacy frontend data)', () => {
       const run = makeRun({
         workflowHistory: [
           makeStepHistory({
@@ -193,6 +209,53 @@ describe('toPendingStepExecution', () => {
         stepId: 's0',
         stepIndex: 0,
         status: 'success',
+      });
+    });
+
+    it('should not leak arbitrary context fields into the step outcome', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: {
+              status: 'success',
+              aiReasoning: 'SECRET',
+              clientData: { foo: 'bar' },
+            },
+          }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('aiReasoning');
+      expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('clientData');
+    });
+
+    it('should propagate error status and message', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: { status: 'error', error: 'Something failed' },
+          }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.previousSteps[0].stepOutcome).toEqual({
+        type: 'record',
+        stepId: 's0',
+        stepIndex: 0,
+        status: 'error',
+        error: 'Something failed',
       });
     });
 
@@ -241,22 +304,13 @@ describe('toPendingStepExecution', () => {
       });
     });
 
-    it('should return placeholder user when userProfile is undefined', () => {
+    it('should throw InvalidStepDefinitionError when userProfile is undefined', () => {
       const run = makeRun({ userProfile: undefined });
 
-      const result = toPendingStepExecution(run);
-
-      expect(result?.user).toEqual({
-        id: 0,
-        email: '',
-        firstName: '',
-        lastName: '',
-        team: '',
-        renderingId: 0,
-        role: '',
-        permissionLevel: '',
-        tags: {},
-      });
+      expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toPendingStepExecution(run)).toThrow(
+        'Run 42 has no userProfile — cannot build StepUser',
+      );
     });
   });
 

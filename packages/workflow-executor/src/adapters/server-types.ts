@@ -1,9 +1,9 @@
 /**
- * Local mirror of the orchestrator's step-level contract.
+ * Local mirror of the orchestrator's contract.
  * See forestadmin-server/packages/private-api/src/domain/workflow-orchestrator/types.ts
  *
- * Only step-level types are mirrored here — the run envelope will be added when
- * the run-to-pending-step transformation is implemented.
+ * Contains both step-level types (workflow step variants) and the run envelope
+ * (HydratedWorkflowRun + user profile + step history).
  */
 
 export interface ServerWorkflowTransition {
@@ -126,4 +126,30 @@ export interface ServerHydratedWorkflowRun {
   renderingId: number;
   lockedAt?: string | null;
   userProfile?: ServerUserProfile;
+}
+
+// --- Update step request (POST /api/workflow-orchestrator/update-step) ---
+
+export interface ServerStepHistoryUpdate {
+  isLoading?: boolean;
+  done?: boolean;
+  revised?: boolean;
+  cancelled?: boolean;
+  context?: Record<string, unknown>;
+}
+
+export interface ServerStepUpdate {
+  stepIndex: number;
+  attributes: ServerStepHistoryUpdate;
+}
+
+export type ServerExecutionStatus =
+  | { type: 'success'; nextStepId?: string }
+  | { type: 'error'; message: string }
+  | { type: 'awaiting-input' };
+
+export interface ServerUpdateStepRequest {
+  runId: number;
+  stepUpdate: ServerStepUpdate;
+  executionStatus: ServerExecutionStatus;
 }
