@@ -991,6 +991,20 @@ describe('ForestMCPServer Instance', () => {
       expect(response.status).toBe(401);
     });
 
+    it('should include resource_metadata in WWW-Authenticate header on 401', async () => {
+      const response = await request(listHttpServer).post('/mcp').send({
+        jsonrpc: '2.0',
+        method: 'tools/list',
+        id: 1,
+      });
+
+      expect(response.status).toBe(401);
+      const wwwAuth = response.headers['www-authenticate'];
+      expect(wwwAuth).toBeDefined();
+      expect(wwwAuth).toContain('resource_metadata=');
+      expect(wwwAuth).toContain('/.well-known/oauth-protected-resource/mcp');
+    });
+
     it('should reject requests with invalid bearer token', async () => {
       const response = await request(listHttpServer)
         .post('/mcp')
@@ -1500,8 +1514,8 @@ describe('ForestMCPServer Instance', () => {
           expect(response.status).toBe(200);
           const filters = JSON.parse(capturedQueryParams.filters as string);
           expect(filters).toEqual({
-            aggregator: 'And',
-            conditions: [{ field: 'name', operator: 'Equal', value: 'John' }],
+            aggregator: 'and',
+            conditions: [{ field: 'name', operator: 'equal', value: 'John' }],
           });
         });
 
@@ -1534,10 +1548,10 @@ describe('ForestMCPServer Instance', () => {
           expect(response.status).toBe(200);
           const filters = JSON.parse(capturedQueryParams.filters as string);
           expect(filters).toEqual({
-            aggregator: 'And',
+            aggregator: 'and',
             conditions: [
-              { field: 'name', operator: 'Contains', value: 'John' },
-              { field: 'email', operator: 'EndsWith', value: '@example.com' },
+              { field: 'name', operator: 'contains', value: 'John' },
+              { field: 'email', operator: 'ends_with', value: '@example.com' },
             ],
           });
         });
@@ -1576,7 +1590,7 @@ describe('ForestMCPServer Instance', () => {
 
           expect(response.status).toBe(200);
           const filters = JSON.parse(capturedQueryParams.filters as string);
-          expect(filters.aggregator).toBe('Or');
+          expect(filters.aggregator).toBe('or');
           expect(filters.conditions).toHaveLength(2);
         });
 
@@ -1609,7 +1623,10 @@ describe('ForestMCPServer Instance', () => {
 
           expect(response.status).toBe(200);
           const filters = JSON.parse(capturedQueryParams.filters as string);
-          expect(filters).toEqual(filterObject);
+          expect(filters).toEqual({
+            aggregator: 'and',
+            conditions: [{ field: 'name', operator: 'equal', value: 'Jane' }],
+          });
         });
       });
 
@@ -1913,8 +1930,12 @@ describe('ForestMCPServer Instance', () => {
           const listParams = JSON.parse(listCalls[0]);
           const countParams = JSON.parse(countCalls[0]);
 
-          expect(JSON.parse(listParams.filters)).toEqual(filterCondition);
-          expect(JSON.parse(countParams.filters)).toEqual(filterCondition);
+          const expectedSnakeCase = {
+            aggregator: 'and',
+            conditions: [{ field: 'id', operator: 'greater_than', value: 5 }],
+          };
+          expect(JSON.parse(listParams.filters)).toEqual(expectedSnakeCase);
+          expect(JSON.parse(countParams.filters)).toEqual(expectedSnakeCase);
         });
       });
 
@@ -1957,8 +1978,8 @@ describe('ForestMCPServer Instance', () => {
 
           const filters = JSON.parse(capturedQueryParams.filters as string);
           expect(filters).toEqual({
-            aggregator: 'And',
-            conditions: [{ field: 'email', operator: 'Present' }],
+            aggregator: 'and',
+            conditions: [{ field: 'email', operator: 'present' }],
           });
         });
       });
@@ -2723,6 +2744,260 @@ describe('handleMcpRequest cleanup', () => {
       'Warn',
       expect.stringContaining('Error during MCP cleanup'),
     );
+  });
+});
+
+describe('enabledTools', () => {
+  const savedFetch = global.fetch;
+  const savedPort = process.env.MCP_SERVER_PORT;
+  let enabledToolsServer: ForestMCPServer;
+  let enabledToolsHttpServer: http.Server;
+  let mockServer: MockServer;
+
+  beforeAll(async () => {
+    process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
+    mockServer = new MockServer();
+    mockServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        included: [],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockServer.fetch;
+
+    enabledToolsServer = new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      enabledTools: ['list', 'listRelated'],
+    });
+
+    const app = await enabledToolsServer.buildExpressApp();
+    enabledToolsHttpServer = app.listen(Number(process.env.MCP_SERVER_PORT)) as http.Server;
+
+    await new Promise<void>(resolve => {
+      enabledToolsHttpServer.on('listening', resolve);
+    });
+  });
+
+  afterAll(async () => {
+    global.fetch = savedFetch;
+    process.env.MCP_SERVER_PORT = savedPort;
+    await new Promise<void>(resolve => {
+      if (enabledToolsHttpServer) {
+        enabledToolsHttpServer.close(() => resolve());
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  it('should only expose enabled tools plus describeCollection', async () => {
+    const validToken = jsonwebtoken.sign(
+      { id: 123, email: 'user@example.com', renderingId: 456 },
+      'test-auth-secret',
+      { expiresIn: '1h' },
+    );
+
+    const response = await request(enabledToolsHttpServer)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validToken}`)
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    expect(response.status).toBe(200);
+
+    let responseData: { result: { tools: Array<{ name: string }> } };
+
+    if (response.body && Object.keys(response.body).length > 0) {
+      responseData = response.body;
+    } else {
+      const dataLine = response.text.split('\n').find((line: string) => line.startsWith('data: '));
+      if (!dataLine) throw new Error('Expected SSE data line not found in response');
+      responseData = JSON.parse(dataLine.replace('data: ', ''));
+    }
+
+    const toolNames = responseData.result.tools.map(t => t.name);
+
+    // Only enabled tools + describeCollection (always forced)
+    expect(toolNames).toContain('describeCollection');
+    expect(toolNames).toContain('list');
+    expect(toolNames).toContain('listRelated');
+    expect(toolNames).toHaveLength(3);
+
+    // Write tools should NOT be present
+    expect(toolNames).not.toContain('create');
+    expect(toolNames).not.toContain('update');
+    expect(toolNames).not.toContain('delete');
+  });
+
+  it('should warn when describeCollection is not in enabledTools', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['list'],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'describeCollection was automatically enabled — it is required for the MCP server to function properly.',
+    );
+  });
+
+  it('should log available tools not included in enabledTools', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['describeCollection', 'list', 'listRelated'],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      expect.stringContaining('Available tools not enabled:'),
+    );
+    expect(logger).toHaveBeenCalledWith('Info', expect.stringContaining('create'));
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      expect.stringContaining('Add them to enabledTools to use them.'),
+    );
+  });
+
+  it('should not log discovery message when all tools are enabled', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: [
+        'describeCollection',
+        'list',
+        'listRelated',
+        'create',
+        'update',
+        'delete',
+        'associate',
+        'dissociate',
+        'getActionForm',
+        'executeAction',
+      ],
+    });
+
+    expect(server).toBeDefined();
+    const infoCalls = logger.mock.calls.filter(
+      ([level, msg]: [string, string]) =>
+        level === 'Info' && msg.includes('Available tools not enabled'),
+    );
+    expect(infoCalls).toHaveLength(0);
+  });
+
+  it('should warn about unknown tool names in enabledTools', () => {
+    const logger = jest.fn();
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      logger,
+      enabledTools: ['list', 'lst', 'creat' as any],
+    });
+
+    expect(server).toBeDefined();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Unknown tool names in enabledTools: lst, creat. These will be ignored.',
+    );
+  });
+
+  it('should only expose describeCollection when enabledTools is empty', async () => {
+    const savedFetch2 = global.fetch;
+    const savedPort2 = process.env.MCP_SERVER_PORT;
+    process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
+    const mockServer2 = new MockServer();
+    mockServer2
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        included: [],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockServer2.fetch;
+
+    const emptyServer = new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      enabledTools: [],
+    });
+
+    const emptyApp = await emptyServer.buildExpressApp();
+    const emptyHttpServer = emptyApp.listen(Number(process.env.MCP_SERVER_PORT)) as http.Server;
+
+    await new Promise<void>(resolve => {
+      emptyHttpServer.on('listening', resolve);
+    });
+
+    const validToken = jsonwebtoken.sign(
+      { id: 123, email: 'user@example.com', renderingId: 456 },
+      'test-auth-secret',
+      { expiresIn: '1h' },
+    );
+
+    const response = await request(emptyHttpServer)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${validToken}`)
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+    expect(response.status).toBe(200);
+
+    let responseData: { result: { tools: Array<{ name: string }> } };
+
+    if (response.body && Object.keys(response.body).length > 0) {
+      responseData = response.body;
+    } else {
+      const dataLine = response.text.split('\n').find((line: string) => line.startsWith('data: '));
+      if (!dataLine) throw new Error('Expected SSE data line not found in response');
+      responseData = JSON.parse(dataLine.replace('data: ', ''));
+    }
+
+    const toolNames = responseData.result.tools.map(t => t.name);
+
+    expect(toolNames).toEqual(['describeCollection']);
+
+    await new Promise<void>(resolve => {
+      emptyHttpServer.close(() => resolve());
+    });
+    global.fetch = savedFetch2;
+    process.env.MCP_SERVER_PORT = savedPort2;
   });
 });
 

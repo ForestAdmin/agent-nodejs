@@ -143,7 +143,13 @@ describe('buildClientWithActions', () => {
     };
     const mockActionEndpoints = {
       users: {
-        'Send Email': { name: 'Send Email', endpoint: '/forest/_actions/users/0/send-email' },
+        'Send Email': {
+          name: 'Send Email',
+          endpoint: '/forest/_actions/users/0/send-email',
+          id: 'Send@@@Email',
+          hooks: { load: false, change: [] },
+          fields: [],
+        },
       },
     };
 
@@ -179,8 +185,20 @@ describe('buildClientWithActions', () => {
     };
     const mockActionEndpoints = {
       orders: {
-        Refund: { name: 'Refund', endpoint: '/forest/_actions/orders/0/refund' },
-        Ship: { name: 'Ship', endpoint: '/forest/_actions/orders/1/ship' },
+        Refund: {
+          name: 'Refund',
+          endpoint: '/forest/_actions/orders/0/refund',
+          id: 'Refund',
+          hooks: { load: false, change: [] },
+          fields: [],
+        },
+        Ship: {
+          name: 'Ship',
+          endpoint: '/forest/_actions/orders/1/ship',
+          id: 'Ship',
+          hooks: { load: false, change: [] },
+          fields: [],
+        },
       },
     };
 

@@ -6,6 +6,21 @@ Model Context Protocol (MCP) server for Forest Admin with OAuth authentication s
 
 This MCP server provides HTTP REST API access to Forest Admin operations, enabling AI assistants and other MCP clients to interact with your Forest Admin data through a standardized protocol.
 
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `describeCollection` | Get the schema of a collection (fields, types, relations) |
+| `list` | Retrieve records from a collection |
+| `listRelated` | Retrieve related records |
+| `create` | Create a new record |
+| `update` | Update an existing record |
+| `delete` | Delete records |
+| `associate` | Associate records in a relation |
+| `dissociate` | Dissociate records from a relation |
+| `getActionForm` | Get the form fields for a custom action |
+| `executeAction` | Execute a custom action |
+
 ## Usage
 
 ### With Forest Admin Agent
@@ -27,50 +42,89 @@ The MCP server will be automatically initialized and mounted on your application
 
 ### Standalone Server
 
-You can also run the MCP server standalone using the CLI:
+You can run the MCP server standalone using the CLI:
 
 ```bash
 npx forest-mcp-server
 ```
 
-Or programmatically:
+Or from the package directory:
 
 ```bash
-node dist/index.js
+yarn start           # Production
+yarn start:dev       # Development (loads .env file automatically)
 ```
 
 #### Environment Variables
-
-The following environment variables are required to run the server as a standalone:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
+| `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
 
 #### Example Configuration
 
-```bash
-export FOREST_ENV_SECRET="your-env-secret"
-export FOREST_AUTH_SECRET="your-auth-secret"
-export MCP_SERVER_PORT=3931
+Create a `.env` file in the package directory:
 
+```bash
+FOREST_ENV_SECRET="your-env-secret"
+FOREST_AUTH_SECRET="your-auth-secret"
+```
+
+Then run:
+
+```bash
+yarn start:dev
+```
+
+Or set the variables inline:
+
+```bash
+FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx forest-mcp-server
+```
+
+## Restrict Tools
+
+You can restrict which tools the MCP server exposes using `enabledTools`. Only the listed tools will be available. **New tools added in future releases will NOT be automatically enabled** — you must explicitly add them.
+
+For example, to set up a **read-only mode** where the AI assistant can only browse data (no create, update, delete or action execution):
+
+```typescript
+// With Forest Admin Agent — read-only example
+agent.mountAiMcpServer({
+  enabledTools: ['describeCollection', 'list', 'listRelated'],
+});
+```
+
+```bash
+# Standalone
+export FOREST_MCP_ENABLED_TOOLS="describeCollection,list,listRelated"
 npx forest-mcp-server
 ```
 
-## API Endpoint
+When `enabledTools` is not set, all tools are enabled by default.
 
-Once running, the MCP server exposes a single endpoint:
+See [Available Tools](#available-tools) for the full list. `describeCollection` is always enabled as it is required for the MCP server to function properly.
 
-- **POST** `/mcp` - Main MCP protocol endpoint
+## API Endpoints
 
-The server expects MCP protocol messages in the request body and returns MCP-formatted responses.
+Once running, the MCP server exposes the following endpoints:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/mcp` | Main MCP protocol endpoint (requires Bearer token) |
+| POST | `/oauth/authorize` | OAuth 2.0 authorization |
+| POST | `/oauth/token` | OAuth 2.0 token exchange |
+| GET | `/.well-known/oauth-protected-resource/mcp` | OAuth metadata discovery |
+
+The `/mcp` endpoint expects MCP protocol messages (JSON-RPC 2.0) and requires a valid OAuth Bearer token with at least the `mcp:read` scope.
 
 ## Features
 
 - **HTTP Transport**: Uses streamable HTTP transport for MCP communication
-- **OAuth Authentication**: Built-in support for Forest Admin OAuth
+- **OAuth Authentication**: Built-in OAuth 2.0 with scopes (`mcp:read`, `mcp:write`, `mcp:action`, `mcp:admin`)
 - **CORS Enabled**: Allows cross-origin requests
 - **Express-based**: Built on top of Express.js for reliability and extensibility
 
@@ -79,32 +133,41 @@ The server expects MCP protocol messages in the request body and returns MCP-for
 ### Building
 
 ```bash
-npm run build
+yarn build
 ```
 
 ### Watch Mode
 
 ```bash
-npm run build:watch
+yarn build:watch
 ```
 
 ### Linting
 
 ```bash
-npm run lint
+yarn lint
 ```
 
 ### Testing
 
 ```bash
-npm test
+yarn test
 ```
 
 ### Cleaning
 
 ```bash
-npm run clean
+yarn clean
 ```
+
+### Internal Environment Variables
+
+These are only needed by Forest Admin developers (e.g. to point to a local or staging server):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FOREST_SERVER_URL` | `https://api.forestadmin.com` | Forest Admin API URL |
+| `FOREST_APP_URL` | `https://app.forestadmin.com` | Forest Admin application URL |
 
 ## Architecture
 

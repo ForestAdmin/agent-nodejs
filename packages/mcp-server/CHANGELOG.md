@@ -1,3 +1,107 @@
+## @forestadmin/mcp-server [1.11.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.11.0...@forestadmin/mcp-server@1.11.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* **mcp-server:** add resource_metadata to WWW-Authenticate header ([#1558](https://github.com/ForestAdmin/agent-nodejs/issues/1558)) ([c795d67](https://github.com/ForestAdmin/agent-nodejs/commit/c795d6742841ce207321491a84e925ca2e64cd72))
+
+# @forestadmin/mcp-server [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.10.0...@forestadmin/mcp-server@1.11.0) (2026-04-17)
+
+
+### Features
+
+* **mcp-server:** expose polymorphic relations in describeCollection ([#1551](https://github.com/ForestAdmin/agent-nodejs/issues/1551)) ([f73b417](https://github.com/ForestAdmin/agent-nodejs/commit/f73b41704c246ef86bd7b02299894bcd517f91b6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.5.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.0
+
+# @forestadmin/mcp-server [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.9.1...@forestadmin/mcp-server@1.10.0) (2026-04-17)
+
+
+### Features
+
+* **mcp-server:** add enabledTools allowlist option ([#1547](https://github.com/ForestAdmin/agent-nodejs/issues/1547)) ([22df2ec](https://github.com/ForestAdmin/agent-nodejs/commit/22df2ecd2c0e370f0ff9740289aa252d877b20a2))
+
+## @forestadmin/mcp-server [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.9.0...@forestadmin/mcp-server@1.9.1) (2026-04-14)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.23
+
+# @forestadmin/mcp-server [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.17...@forestadmin/mcp-server@1.9.0) (2026-04-13)
+
+
+### Features
+
+* **mcp-server:** add disabledTools option to ForestMCPServerOptions ([#1543](https://github.com/ForestAdmin/agent-nodejs/issues/1543)) ([d36ad10](https://github.com/ForestAdmin/agent-nodejs/commit/d36ad10bfb18a5972174a9acb3d7821691868494))
+
+## @forestadmin/mcp-server [1.8.17](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.16...@forestadmin/mcp-server@1.8.17) (2026-04-10)
+
+
+### Bug Fixes
+
+* **agent-client:** convert filter operators to snake_case for Ruby compatibility ([#1544](https://github.com/ForestAdmin/agent-nodejs/issues/1544)) ([00e8ad5](https://github.com/ForestAdmin/agent-nodejs/commit/00e8ad54c59d7f141c54a756f7a5921bb47f66dc))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.22
+
+## @forestadmin/mcp-server [1.8.16](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.15...@forestadmin/mcp-server@1.8.16) (2026-04-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** action execution on v1 agent  ([#1542](https://github.com/ForestAdmin/agent-nodejs/issues/1542)) ([01b1a64](https://github.com/ForestAdmin/agent-nodejs/commit/01b1a64a7e0fbf8d5d47ebf0f9b1fc933c6709aa))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.21
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.4
+
+## @forestadmin/mcp-server [1.8.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.14...@forestadmin/mcp-server@1.8.15) (2026-04-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** add snake_case JWT claims for Ruby backend compatibility ([#1538](https://github.com/ForestAdmin/agent-nodejs/issues/1538)) ([b3b7dcd](https://github.com/ForestAdmin/agent-nodejs/commit/b3b7dcd5605867447eb2a996c4db35ba98402e62))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.20
+
+## @forestadmin/mcp-server [1.8.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.13...@forestadmin/mcp-server@1.8.14) (2026-04-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.4.19
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.3
+
 ## @forestadmin/mcp-server [1.8.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.8.12...@forestadmin/mcp-server@1.8.13) (2026-04-01)
 
 

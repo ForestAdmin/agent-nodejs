@@ -8,7 +8,13 @@ export default class SchemaConverter {
       actionEndpoints[c.name] = c.actions.reduce(
         (acc, action) => ({
           ...acc,
-          [action.name]: { name: action.name, endpoint: action.endpoint },
+          [action.name]: {
+            id: action.id,
+            name: action.name,
+            endpoint: action.endpoint,
+            hooks: action.hooks,
+            fields: action.fields,
+          },
         }),
         {},
       );

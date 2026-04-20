@@ -1,6 +1,7 @@
 import type { ExportOptions, LiveQueryOptions, SelectOptions } from '../types';
 import type { ActionEndpointsByCollection, BaseActionContext } from './action';
 import type HttpRequester from '../http-requester';
+import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 import type { WriteStream } from 'fs';
 
 import Action from './action';
@@ -26,18 +27,27 @@ export default class Collection extends CollectionChart {
   }
 
   async action(actionName: string, actionContext?: BaseActionContext): Promise<Action> {
-    const actionPath = this.getActionPath(this.actionEndpoints, this.name, actionName);
+    const actionInfo = this.getActionInfo(this.actionEndpoints, this.name, actionName);
     const ids = (actionContext?.recordIds ?? [actionContext?.recordId]).filter(Boolean).map(String);
 
     const fieldsFormStates = new FieldFormStates(
       actionName,
-      actionPath,
+      actionInfo.endpoint,
       this.name,
       this.httpRequester,
       ids,
+      actionInfo.hooks,
+      actionInfo.fields,
     );
 
-    const action = new Action(this.name, this.httpRequester, actionPath, fieldsFormStates, ids);
+    const action = new Action(
+      this.name,
+      this.httpRequester,
+      actionInfo.endpoint,
+      fieldsFormStates,
+      ids,
+      actionInfo.id,
+    );
 
     await fieldsFormStates.loadInitialState();
 
@@ -160,11 +170,11 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  private getActionPath(
+  private getActionInfo(
     actionEndpoints: ActionEndpointsByCollection,
     collectionName: string,
     actionName: string,
-  ): string {
+  ): Pick<ForestSchemaAction, 'id' | 'endpoint' | 'hooks' | 'fields'> {
     const collection = actionEndpoints[collectionName];
     if (!collection) throw new Error(`Collection ${collectionName} not found in schema`);
 
@@ -178,6 +188,6 @@ export default class Collection extends CollectionChart {
       throw new Error(`Action ${actionName} not found in collection ${collectionName}`);
     }
 
-    return action.endpoint;
+    return { id: action.id, endpoint: action.endpoint, hooks: action.hooks, fields: action.fields };
   }
 }

@@ -28,12 +28,16 @@ const listArgumentSchema = z.object({
   search: z.string().optional(),
   filters: filtersWithPreprocess
     .describe(
-      'Filters to apply on collection. To filter on a nested field, use "@@@" to separate relations, e.g. "relationName@@@fieldName". One level deep max.',
+      'Filters to apply on collection. To filter on a relation field, use ":" as separator in the field name, e.g. { "field": "relationName:fieldName", "operator": "Equal", "value": "..." }. One level deep max. For polymorphic relations, filtering via relation:field is not supported and will fail. Instead use two steps: 1) list the target collection to get IDs, 2) filter on the _type and _id fields directly, e.g. { "field": "commentable_type", "operator": "Equal", "value": "Post" }.',
     )
     .optional(),
   sort: z
     .object({
-      field: z.string(),
+      field: z
+        .string()
+        .describe(
+          'Field to sort by. For relation fields, use ":" as separator, e.g. "relationName:fieldName".',
+        ),
       ascending: z.boolean().optional().default(true),
     })
     .optional(),

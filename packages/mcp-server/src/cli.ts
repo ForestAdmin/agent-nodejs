@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import ForestMCPServer from './server';
+import parseToolList from './utils/parse-tool-list';
 
 // Start the server when run directly as CLI
 const server = new ForestMCPServer({
@@ -8,6 +9,7 @@ const server = new ForestMCPServer({
   forestAppUrl: process.env.FOREST_APP_URL || 'https://app.forestadmin.com',
   envSecret: process.env.FOREST_ENV_SECRET,
   authSecret: process.env.FOREST_AUTH_SECRET,
+  enabledTools: parseToolList(process.env.FOREST_MCP_ENABLED_TOOLS),
 });
 
 server.run().catch(error => {

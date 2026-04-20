@@ -1,5 +1,5 @@
 import RemoteAgentClient from '../src/domains/remote-agent-client';
-import { createRemoteAgentClient } from '../src/index';
+import { type ActionEndpointsByCollection, createRemoteAgentClient } from '../src/index';
 
 describe('createRemoteAgentClient', () => {
   it('should create a RemoteAgentClient instance', () => {
@@ -20,9 +20,15 @@ describe('createRemoteAgentClient', () => {
   });
 
   it('should pass action endpoints to the client', () => {
-    const actionEndpoints = {
+    const actionEndpoints: ActionEndpointsByCollection = {
       users: {
-        sendEmail: { name: 'Send Email', endpoint: '/forest/actions/send-email' },
+        sendEmail: {
+          name: 'Send Email',
+          endpoint: '/forest/actions/send-email',
+          id: 'Send@@@Email',
+          hooks: { load: false, change: [] },
+          fields: [],
+        },
       },
     };
 
@@ -61,7 +67,13 @@ describe('createRemoteAgentClient', () => {
       token: 'test-token',
       actionEndpoints: {
         products: {
-          archive: { name: 'Archive', endpoint: '/forest/actions/archive' },
+          archive: {
+            name: 'Archive',
+            endpoint: '/forest/actions/archive',
+            id: 'Archive',
+            hooks: { load: false, change: [] },
+            fields: [],
+          },
         },
       },
     });

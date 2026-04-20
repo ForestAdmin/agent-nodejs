@@ -1,3 +1,27 @@
+# @forestadmin/forestadmin-client [1.39.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.38.4...@forestadmin/forestadmin-client@1.39.0) (2026-04-17)
+
+
+### Features
+
+* **mcp-server:** expose polymorphic relations in describeCollection ([#1551](https://github.com/ForestAdmin/agent-nodejs/issues/1551)) ([f73b417](https://github.com/ForestAdmin/agent-nodejs/commit/f73b41704c246ef86bd7b02299894bcd517f91b6))
+
+## @forestadmin/forestadmin-client [1.38.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.38.3...@forestadmin/forestadmin-client@1.38.4) (2026-04-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** action execution on v1 agent  ([#1542](https://github.com/ForestAdmin/agent-nodejs/issues/1542)) ([01b1a64](https://github.com/ForestAdmin/agent-nodejs/commit/01b1a64a7e0fbf8d5d47ebf0f9b1fc933c6709aa))
+
+## @forestadmin/forestadmin-client [1.38.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.38.2...@forestadmin/forestadmin-client@1.38.3) (2026-04-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.7.3
+
 ## @forestadmin/forestadmin-client [1.38.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.38.1...@forestadmin/forestadmin-client@1.38.2) (2026-04-01)
 
 

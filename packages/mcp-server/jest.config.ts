@@ -6,6 +6,7 @@ export default {
   collectCoverageFrom: [
     '<rootDir>/src/**/*.ts',
     '!<rootDir>/src/version.ts', // Mocked due to import.meta.url issues in Jest
+    '!<rootDir>/src/cli.ts', // CLI entrypoint with side effects, not unit-testable
     '!<rootDir>/src/__mocks__/**',
   ],
   testMatch: ['<rootDir>/test/**/*.test.ts'],

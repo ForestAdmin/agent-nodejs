@@ -2,7 +2,7 @@ import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadm
 
 export type ResponseBody = {
   fields: PlainField[];
-  layout: ForestServerActionFormLayoutElement[];
+  layout?: ForestServerActionFormLayoutElement[];
 };
 
 export type PlainFieldOption = {

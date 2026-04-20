@@ -12,6 +12,7 @@ import type {
 } from '@forestadmin/datasource-customizer';
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
+import type { ToolName } from '@forestadmin/mcp-server';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
@@ -47,6 +48,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
+  private mcpEnabledTools?: ToolName[];
 
   /**
    * Create a new Agent Builder.
@@ -206,9 +208,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/ai/mcp-server}
    * @example
    * agent.mountAiMcpServer();
+   * // Example: read-only mode (only browse data, no create/update/delete/actions)
+   * agent.mountAiMcpServer({ enabledTools: ['describeCollection', 'list', 'listRelated'] });
    */
-  mountAiMcpServer(): this {
+  mountAiMcpServer(options?: { enabledTools?: ToolName[] }): this {
     this.mcpEnabled = true;
+    this.mcpEnabledTools = options?.enabledTools;
 
     return this;
   }
@@ -326,6 +331,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         authSecret: this.options.authSecret,
         logger: mcpLogger,
         forestServerClient,
+        enabledTools: this.mcpEnabledTools,
       });
 
       const httpCallback = await mcpServer.getHttpCallback();

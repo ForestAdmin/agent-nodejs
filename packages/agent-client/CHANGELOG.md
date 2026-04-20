@@ -1,3 +1,64 @@
+# @forestadmin/agent-client [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.23...@forestadmin/agent-client@1.5.0) (2026-04-17)
+
+
+### Features
+
+* **mcp-server:** expose polymorphic relations in describeCollection ([#1551](https://github.com/ForestAdmin/agent-nodejs/issues/1551)) ([f73b417](https://github.com/ForestAdmin/agent-nodejs/commit/f73b41704c246ef86bd7b02299894bcd517f91b6))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.0
+
+## @forestadmin/agent-client [1.4.23](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.22...@forestadmin/agent-client@1.4.23) (2026-04-14)
+
+
+### Bug Fixes
+
+* **mcp server:** do not pass the whole query in requests ([#1548](https://github.com/ForestAdmin/agent-nodejs/issues/1548)) ([ca4810f](https://github.com/ForestAdmin/agent-nodejs/commit/ca4810fd0ea0c1bc593f7ef5470b7462bc700d37))
+
+## @forestadmin/agent-client [1.4.22](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.21...@forestadmin/agent-client@1.4.22) (2026-04-10)
+
+
+### Bug Fixes
+
+* **agent-client:** convert filter operators to snake_case for Ruby compatibility ([#1544](https://github.com/ForestAdmin/agent-nodejs/issues/1544)) ([00e8ad5](https://github.com/ForestAdmin/agent-nodejs/commit/00e8ad54c59d7f141c54a756f7a5921bb47f66dc))
+
+## @forestadmin/agent-client [1.4.21](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.20...@forestadmin/agent-client@1.4.21) (2026-04-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** action execution on v1 agent  ([#1542](https://github.com/ForestAdmin/agent-nodejs/issues/1542)) ([01b1a64](https://github.com/ForestAdmin/agent-nodejs/commit/01b1a64a7e0fbf8d5d47ebf0f9b1fc933c6709aa))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.4
+
+## @forestadmin/agent-client [1.4.20](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.19...@forestadmin/agent-client@1.4.20) (2026-04-10)
+
+
+### Bug Fixes
+
+* **mcp-server:** add snake_case JWT claims for Ruby backend compatibility ([#1538](https://github.com/ForestAdmin/agent-nodejs/issues/1538)) ([b3b7dcd](https://github.com/ForestAdmin/agent-nodejs/commit/b3b7dcd5605867447eb2a996c4db35ba98402e62))
+
+## @forestadmin/agent-client [1.4.19](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.18...@forestadmin/agent-client@1.4.19) (2026-04-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.38.3
+
 ## @forestadmin/agent-client [1.4.18](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.4.17...@forestadmin/agent-client@1.4.18) (2026-04-01)
 
 

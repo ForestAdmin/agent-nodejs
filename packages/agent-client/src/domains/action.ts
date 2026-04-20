@@ -1,6 +1,7 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
 import type HttpRequester from '../http-requester';
+import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 
 import ActionFieldCheckbox from '../action-fields/action-field-checkbox';
 import ActionFieldCheckboxGroup from '../action-fields/action-field-checkbox-group';
@@ -23,7 +24,7 @@ export type BaseActionContext = {
 
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
-    [actionName: string]: { name: string; endpoint: string };
+    [actionName: string]: Pick<ForestSchemaAction, 'id' | 'name' | 'endpoint' | 'hooks' | 'fields'>;
   };
 };
 export default class Action {
@@ -32,6 +33,7 @@ export default class Action {
   private readonly httpRequester: HttpRequester;
   protected readonly fieldsFormStates: FieldFormStates;
   private readonly ids: (string | number)[];
+  private readonly actionId: string | undefined;
   private actionPath: string;
 
   constructor(
@@ -40,12 +42,14 @@ export default class Action {
     actionPath: string,
     fieldsFormStates: FieldFormStates,
     ids?: (string | number)[],
+    actionId?: string,
   ) {
     this.collectionName = collectionName;
     this.httpRequester = httpRequester;
     this.ids = ids ?? undefined;
     this.actionPath = actionPath;
     this.fieldsFormStates = fieldsFormStates;
+    this.actionId = actionId;
   }
 
   async execute(
@@ -58,6 +62,7 @@ export default class Action {
           ids: this.ids,
           values: this.fieldsFormStates.getFieldValues(),
           signed_approval_request: signedApprovalRequest,
+          ...(this.actionId !== undefined && { smart_action_id: this.actionId }),
         },
         type: 'custom-action-requests',
       },

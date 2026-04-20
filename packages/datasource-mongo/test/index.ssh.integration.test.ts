@@ -12,11 +12,12 @@ describe('Datasource Mongo', () => {
         'mongodb://forest:secret@127.0.0.1:27017/movies-ssh?authSource=admin',
       );
 
-      connection.dropDatabase();
+      await connection.dropDatabase();
 
       try {
         const movieSchema = new Schema({ title: String });
         const Movie = connection.model('Movies', movieSchema);
+        await Movie.createCollection();
         await new Movie({ title: 'Inception' }).save();
       } finally {
         await connection.close(true);

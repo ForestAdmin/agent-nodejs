@@ -392,6 +392,20 @@ describe('Agent', () => {
       expect(mockLogger).toHaveBeenCalledWith('Info', '[MCP] Server initialized successfully');
     });
 
+    test('should pass enabledTools to ForestMCPServer', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer({ enabledTools: ['describeCollection', 'list', 'listRelated'] });
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          enabledTools: ['describeCollection', 'list', 'listRelated'],
+        }),
+      );
+    });
+
     test('should log error when MCP initialization fails', async () => {
       const mockLogger = jest.fn();
       const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
