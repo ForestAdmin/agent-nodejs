@@ -259,6 +259,98 @@ describe('toPendingStepExecution', () => {
       });
     });
 
+    it('should map guidance step outcome with success status', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: { status: 'success' },
+            stepDefinition: {
+              type: 'task',
+              taskType: 'guideline',
+              title: 'Guide',
+              prompt: 'Please review',
+              outgoing: { stepId: 'next', buttonText: null },
+            },
+          }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.previousSteps[0].stepOutcome).toEqual({
+        type: 'guidance',
+        stepId: 's0',
+        stepIndex: 0,
+        status: 'success',
+      });
+    });
+
+    it('should map guidance step outcome with error status', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: { status: 'error', error: 'Guide failed' },
+            stepDefinition: {
+              type: 'task',
+              taskType: 'guideline',
+              title: 'Guide',
+              prompt: 'Please review',
+              outgoing: { stepId: 'next', buttonText: null },
+            },
+          }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.previousSteps[0].stepOutcome).toEqual({
+        type: 'guidance',
+        stepId: 's0',
+        stepIndex: 0,
+        status: 'error',
+        error: 'Guide failed',
+      });
+    });
+
+    it('should map mcp step outcome', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            context: { status: 'success' },
+            stepDefinition: {
+              type: 'task',
+              taskType: 'mcp-server',
+              title: 'MCP',
+              prompt: 'Run tool',
+              mcpServerId: 'srv-1',
+              outgoing: { stepId: 'next', buttonText: null },
+            },
+          }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.previousSteps[0].stepOutcome).toEqual({
+        type: 'mcp',
+        stepId: 's0',
+        stepIndex: 0,
+        status: 'success',
+      });
+    });
+
     it('should not include done steps that are after the pending step', () => {
       const run = makeRun({
         workflowHistory: [

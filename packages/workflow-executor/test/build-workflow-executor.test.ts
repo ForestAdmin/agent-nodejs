@@ -340,4 +340,58 @@ describe('WorkflowExecutor lifecycle', () => {
   it('state getter returns runner state', () => {
     expect(executor.state).toBe('running');
   });
+
+  it('SIGTERM handler calls shutdown and sets exitCode=0 on success', async () => {
+    jest.useFakeTimers();
+    const originalExitCode = process.exitCode;
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    try {
+      await executor.start();
+
+      const sigtermCall = onSpy.mock.calls.find(([sig]) => sig === 'SIGTERM');
+      if (!sigtermCall) throw new Error('SIGTERM handler not registered');
+      const handler = sigtermCall[1] as () => Promise<void>;
+
+      await handler();
+
+      expect(process.exitCode).toBe(0);
+      expect(MockedRunner.prototype.stop).toHaveBeenCalled();
+
+      // Verify safety-net timer is scheduled and triggers process.exit when fired
+      jest.runAllTimers();
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    } finally {
+      process.exitCode = originalExitCode;
+      exitSpy.mockRestore();
+      jest.useRealTimers();
+    }
+  });
+
+  it('SIGTERM handler sets exitCode=1 when shutdown throws', async () => {
+    jest.useFakeTimers();
+    const originalExitCode = process.exitCode;
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    MockedRunner.prototype.stop = jest.fn().mockRejectedValue(new Error('stop failed'));
+
+    try {
+      const exec = buildInMemoryExecutor(BASE_OPTIONS);
+      await exec.start();
+
+      const sigtermCall = onSpy.mock.calls.find(([sig]) => sig === 'SIGTERM');
+      if (!sigtermCall) throw new Error('SIGTERM handler not registered');
+      const handler = sigtermCall[1] as () => Promise<void>;
+
+      await handler();
+
+      expect(process.exitCode).toBe(1);
+
+      jest.runAllTimers();
+      expect(exitSpy).toHaveBeenCalledWith(1);
+    } finally {
+      process.exitCode = originalExitCode;
+      exitSpy.mockRestore();
+      jest.useRealTimers();
+    }
+  });
 });
