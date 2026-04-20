@@ -987,6 +987,23 @@ describe('error handling', () => {
     );
   });
 
+  it('emits Poll cycle completed with fetched/dispatching counts on each cycle', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    workflowPort.getPendingStepExecutions.mockResolvedValue([]);
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+
+    expect(mockLogger.info).toHaveBeenCalledWith('Poll cycle completed', {
+      fetched: 0,
+      dispatching: 0,
+    });
+  });
+
   it('catches getPendingStepExecutions failure, logs it, and reschedules', async () => {
     const workflowPort = createMockWorkflowPort();
     const mockLogger = createMockLogger();
