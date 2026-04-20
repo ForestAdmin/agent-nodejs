@@ -178,6 +178,7 @@ describe('buildDatabaseExecutor', () => {
 
     expect(MockedSequelize).toHaveBeenCalledWith('postgres://localhost/mydb', {
       dialect: 'postgres',
+      logging: false,
     });
   });
 
@@ -210,6 +211,7 @@ describe('buildDatabaseExecutor', () => {
       host: 'db.example.com',
       port: 5432,
       database: 'mydb',
+      logging: false,
     });
   });
 

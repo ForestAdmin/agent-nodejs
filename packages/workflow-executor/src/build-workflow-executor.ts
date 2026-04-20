@@ -162,7 +162,11 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
 export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
   const deps = buildCommonDependencies(options);
   const { uri, ...sequelizeOptions } = options.database as SequelizeOptions & { uri?: string };
-  const sequelize = uri ? new Sequelize(uri, sequelizeOptions) : new Sequelize(sequelizeOptions);
+  // Silence Sequelize's verbose SQL logger by default so our structured logs
+  // stay readable. Caller can still opt in via options.database.logging.
+  const sequelizeDefaults: SequelizeOptions = { logging: false };
+  const mergedOptions = { ...sequelizeDefaults, ...sequelizeOptions };
+  const sequelize = uri ? new Sequelize(uri, mergedOptions) : new Sequelize(mergedOptions);
 
   const runner = new Runner({
     ...deps,
