@@ -41,17 +41,31 @@ Optional AI configuration (all-or-nothing — falls back to server AI if any is 
 forest-workflow-executor
 ```
 
-You should see:
+You should see (pretty format when stdout is a TTY):
 
 ```
-[forest-workflow-executor] Starting (database mode)
-  Forest server    : https://api.forestadmin.com
-  Agent URL        : http://localhost:3351
-  HTTP port        : 3400
-  Polling interval : 5000ms
-  AI config        : server fallback (no local AI)
-[forest-workflow-executor] Ready on http://localhost:3400
+13:33:42 info  Workflow executor starting mode="database" forestServerUrl="https://api.forestadmin.com" agentUrl="http://localhost:3351" httpPort=3400 pollingIntervalMs=5000 aiConfig="server fallback"
+13:33:42 info  Workflow executor ready url="http://localhost:3400"
+13:33:47 info  Poll cycle completed fetched=0 dispatching=0
 ```
+
+When stdout is piped, redirected or inside a container, logs are emitted as
+structured JSON instead — ready to be ingested by Datadog, CloudWatch, Loki, etc.:
+
+```json
+{"message":"Workflow executor ready","timestamp":"2026-04-20T13:33:42.000Z","url":"http://localhost:3400"}
+{"message":"Poll cycle completed","timestamp":"2026-04-20T13:33:47.000Z","fetched":0,"dispatching":0}
+```
+
+### Log format overrides
+
+| Flag | Behavior |
+|------|----------|
+| `--pretty` | Force colorized human-readable logs |
+| `--json` | Force structured JSON logs |
+| (none) | Auto-detect: pretty when stdout is a TTY, JSON otherwise |
+
+Setting `NO_COLOR=1` disables ANSI codes while keeping the pretty format.
 
 ### Health check
 

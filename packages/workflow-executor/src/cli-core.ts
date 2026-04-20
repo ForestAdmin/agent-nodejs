@@ -5,7 +5,11 @@ import type {
   ExecutorOptions,
   WorkflowExecutor,
 } from './build-workflow-executor';
+import type { Logger } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
+
+import ConsoleLogger from './adapters/console-logger';
+import PrettyLogger from './adapters/pretty-logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { version } = require('../package.json') as { version: string };
@@ -16,6 +20,8 @@ export interface CliArgs {
   help: boolean;
   version: boolean;
   inMemory: boolean;
+  pretty: boolean;
+  json: boolean;
 }
 
 export interface CliConfig {
@@ -30,7 +36,13 @@ export interface CliFactories {
 }
 
 export function parseArgs(argv: string[]): CliArgs {
-  const result: CliArgs = { help: false, version: false, inMemory: false };
+  const result: CliArgs = {
+    help: false,
+    version: false,
+    inMemory: false,
+    pretty: false,
+    json: false,
+  };
 
   for (const arg of argv) {
     switch (arg) {
@@ -45,12 +57,35 @@ export function parseArgs(argv: string[]): CliArgs {
       case '--in-memory':
         result.inMemory = true;
         break;
+      case '--pretty':
+        result.pretty = true;
+        break;
+      case '--json':
+        result.json = true;
+        break;
       default:
         throw new Error(`Unknown argument: ${arg}`);
     }
   }
 
   return result;
+}
+
+/**
+ * Pick the logger based on (in priority order):
+ *   1. --json flag     → ConsoleLogger (structured, machine-parseable)
+ *   2. --pretty flag   → PrettyLogger (colorized, human-readable)
+ *   3. stdout is a TTY → PrettyLogger (interactive terminal)
+ *   4. otherwise       → ConsoleLogger (piped, redirected, docker, k8s, CI)
+ *
+ * `NO_COLOR` is respected by picocolors so pretty output stays monochrome
+ * in environments that ban ANSI codes.
+ */
+export function pickLogger(args: CliArgs, stdout: NodeJS.WriteStream = process.stdout): Logger {
+  if (args.json) return new ConsoleLogger();
+  if (args.pretty) return new PrettyLogger();
+
+  return stdout.isTTY ? new PrettyLogger() : new ConsoleLogger();
 }
 
 function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
@@ -122,6 +157,8 @@ Run the Forest Admin workflow executor.
 
 Options:
   --in-memory       Use an in-memory run store (no DB needed, not for prod)
+  --pretty          Force colorized human-readable logs (default when stdout is a TTY)
+  --json            Force structured JSON logs (default when stdout is not a TTY)
   --help, -h        Show this help
   --version, -v     Show version
 
@@ -136,6 +173,7 @@ Optional environment variables:
   FOREST_SERVER_URL      Default: https://api.forestadmin.com
   POLLING_INTERVAL_MS    Default: 5000
   STOP_TIMEOUT_MS        Default: 30000
+  NO_COLOR               Set to any value to disable ANSI colors in pretty logs
 
 AI configuration (all-or-nothing — falls back to server AI if any is missing):
   AI_PROVIDER            'anthropic' | 'openai'
@@ -150,20 +188,20 @@ export function printVersion(): void {
   console.log(version);
 }
 
-export function logStartup(config: CliConfig): void {
+export function logStartup(logger: Logger, config: CliConfig): void {
   const { executorOptions: opts, mode } = config;
-  const pollingMs = opts.pollingIntervalMs ?? 5000;
-  const forestServerUrl = opts.forestServerUrl ?? 'https://api.forestadmin.com';
   const aiLabel = opts.aiConfigurations?.length
     ? `local (${opts.aiConfigurations[0].provider} / ${opts.aiConfigurations[0].model})`
-    : 'server fallback (no local AI)';
+    : 'server fallback';
 
-  console.log(`[${BINARY_NAME}] Starting (${mode} mode)`);
-  console.log(`  Forest server    : ${forestServerUrl}`);
-  console.log(`  Agent URL        : ${opts.agentUrl}`);
-  console.log(`  HTTP port        : ${opts.httpPort}`);
-  console.log(`  Polling interval : ${pollingMs}ms`);
-  console.log(`  AI config        : ${aiLabel}`);
+  logger.info('Workflow executor starting', {
+    mode,
+    forestServerUrl: opts.forestServerUrl ?? 'https://api.forestadmin.com',
+    agentUrl: opts.agentUrl,
+    httpPort: opts.httpPort,
+    pollingIntervalMs: opts.pollingIntervalMs ?? 5000,
+    aiConfig: aiLabel,
+  });
 }
 
 export async function runCli(
@@ -186,7 +224,10 @@ export async function runCli(
   }
 
   const config = readEnvConfig(env, args);
-  logStartup(config);
+  const logger = pickLogger(args);
+  config.executorOptions.logger = logger;
+
+  logStartup(logger, config);
 
   let executor: WorkflowExecutor;
 
@@ -201,7 +242,9 @@ export async function runCli(
   }
 
   await executor.start();
-  console.log(`[${BINARY_NAME}] Ready on http://localhost:${config.executorOptions.httpPort}`);
+  logger.info('Workflow executor ready', {
+    url: `http://localhost:${config.executorOptions.httpPort}`,
+  });
 
   return executor;
 }

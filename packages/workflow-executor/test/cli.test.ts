@@ -1,7 +1,16 @@
 import type { WorkflowExecutor } from '../src/build-workflow-executor';
 import type { CliFactories } from '../src/cli-core';
 
-import { parseArgs, printHelp, printVersion, readEnvConfig, runCli } from '../src/cli-core';
+import ConsoleLogger from '../src/adapters/console-logger';
+import PrettyLogger from '../src/adapters/pretty-logger';
+import {
+  parseArgs,
+  pickLogger,
+  printHelp,
+  printVersion,
+  readEnvConfig,
+  runCli,
+} from '../src/cli-core';
 
 const baseEnv: NodeJS.ProcessEnv = {
   FOREST_ENV_SECRET: 'env-secret',
@@ -28,9 +37,17 @@ function makeFactories() {
   return { factories, executor };
 }
 
+const fakeStream = (isTTY: boolean) => ({ isTTY } as unknown as NodeJS.WriteStream);
+
 describe('parseArgs', () => {
   it('returns all false for empty argv', () => {
-    expect(parseArgs([])).toEqual({ help: false, version: false, inMemory: false });
+    expect(parseArgs([])).toEqual({
+      help: false,
+      version: false,
+      inMemory: false,
+      pretty: false,
+      json: false,
+    });
   });
 
   it('parses --help and -h', () => {
@@ -47,13 +64,49 @@ describe('parseArgs', () => {
     expect(parseArgs(['--in-memory']).inMemory).toBe(true);
   });
 
+  it('parses --pretty', () => {
+    expect(parseArgs(['--pretty']).pretty).toBe(true);
+  });
+
+  it('parses --json', () => {
+    expect(parseArgs(['--json']).json).toBe(true);
+  });
+
   it('throws on unknown argument', () => {
     expect(() => parseArgs(['--nope'])).toThrow('Unknown argument: --nope');
   });
 });
 
+describe('pickLogger', () => {
+  const baseArgs = { help: false, version: false, inMemory: false, pretty: false, json: false };
+
+  it('returns PrettyLogger when stdout is a TTY', () => {
+    expect(pickLogger(baseArgs, fakeStream(true))).toBeInstanceOf(PrettyLogger);
+  });
+
+  it('returns ConsoleLogger when stdout is not a TTY', () => {
+    expect(pickLogger(baseArgs, fakeStream(false))).toBeInstanceOf(ConsoleLogger);
+  });
+
+  it('forces PrettyLogger with --pretty even when stdout is not a TTY', () => {
+    expect(pickLogger({ ...baseArgs, pretty: true }, fakeStream(false))).toBeInstanceOf(
+      PrettyLogger,
+    );
+  });
+
+  it('forces ConsoleLogger with --json even when stdout is a TTY', () => {
+    expect(pickLogger({ ...baseArgs, json: true }, fakeStream(true))).toBeInstanceOf(ConsoleLogger);
+  });
+
+  it('gives --json precedence when both flags are set', () => {
+    expect(pickLogger({ ...baseArgs, pretty: true, json: true }, fakeStream(true))).toBeInstanceOf(
+      ConsoleLogger,
+    );
+  });
+});
+
 describe('readEnvConfig', () => {
-  const args = { help: false, version: false, inMemory: false };
+  const args = { help: false, version: false, inMemory: false, pretty: false, json: false };
 
   it('returns a full config when all required vars are present', () => {
     const config = readEnvConfig(baseEnv, args);
@@ -147,7 +200,10 @@ describe('printHelp / printVersion', () => {
 
     expect(output).toContain('Usage: forest-workflow-executor');
     expect(output).toContain('--in-memory');
+    expect(output).toContain('--pretty');
+    expect(output).toContain('--json');
     expect(output).toContain('FOREST_ENV_SECRET');
+    expect(output).toContain('NO_COLOR');
     expect(output).toContain('SIGTERM');
   });
 
@@ -160,13 +216,19 @@ describe('printHelp / printVersion', () => {
 });
 
 describe('runCli', () => {
+  let infoSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
   let logSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
+    infoSpy.mockRestore();
+    errorSpy.mockRestore();
     logSpy.mockRestore();
   });
 
@@ -213,6 +275,22 @@ describe('runCli', () => {
     expect(executor.start).toHaveBeenCalled();
   });
 
+  it('injects the picked logger into executorOptions', async () => {
+    const { factories } = makeFactories();
+    await runCli(['--json'], baseEnv, factories);
+
+    const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
+    expect(call.logger).toBeInstanceOf(ConsoleLogger);
+  });
+
+  it('injects a PrettyLogger when --pretty is set', async () => {
+    const { factories } = makeFactories();
+    await runCli(['--pretty'], baseEnv, factories);
+
+    const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
+    expect(call.logger).toBeInstanceOf(PrettyLogger);
+  });
+
   it('builds an in-memory executor with --in-memory', async () => {
     const env = { ...baseEnv };
     delete env.DATABASE_URL;
@@ -232,9 +310,20 @@ describe('runCli', () => {
   it('does not log any secret during startup', async () => {
     const { factories } = makeFactories();
     await runCli([], baseEnv, factories);
-    const output = logSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    const output = [...logSpy.mock.calls, ...infoSpy.mock.calls, ...errorSpy.mock.calls]
+      .map(call => call.join(' '))
+      .join('\n');
 
     expect(output).not.toContain('env-secret');
     expect(output).not.toContain('auth-secret');
+  });
+
+  it('emits a startup info log via the injected logger', async () => {
+    const { factories } = makeFactories();
+    await runCli(['--json'], baseEnv, factories);
+
+    const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    expect(output).toContain('Workflow executor starting');
+    expect(output).toContain('Workflow executor ready');
   });
 });
