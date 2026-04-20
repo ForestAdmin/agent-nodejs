@@ -165,6 +165,10 @@ export default class Runner {
     try {
       const steps = await this.config.workflowPort.getPendingStepExecutions();
       const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
+      this.logger.info('Poll cycle completed', {
+        fetched: steps.length,
+        dispatching: pending.length,
+      });
       await Promise.allSettled(pending.map(s => this.executeStep(s)));
     } catch (error) {
       this.logger.error('Poll cycle failed', {
