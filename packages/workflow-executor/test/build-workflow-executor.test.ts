@@ -200,6 +200,31 @@ describe('buildDatabaseExecutor', () => {
     });
   });
 
+  it('forwards a caller-provided logging function to Sequelize', () => {
+    const customLogger = jest.fn();
+    buildDatabaseExecutor({
+      ...BASE_OPTIONS,
+      database: { uri: 'postgres://localhost/mydb', logging: customLogger },
+    });
+
+    expect(MockedSequelize).toHaveBeenCalledWith(
+      'postgres://localhost/mydb',
+      expect.objectContaining({ logging: customLogger }),
+    );
+  });
+
+  it('keeps logging disabled when the caller passes logging: undefined', () => {
+    buildDatabaseExecutor({
+      ...BASE_OPTIONS,
+      database: { uri: 'postgres://localhost/mydb', logging: undefined },
+    });
+
+    expect(MockedSequelize).toHaveBeenCalledWith(
+      'postgres://localhost/mydb',
+      expect.objectContaining({ logging: false }),
+    );
+  });
+
   it('creates Sequelize with options only when no uri is provided', () => {
     buildDatabaseExecutor({
       ...BASE_OPTIONS,

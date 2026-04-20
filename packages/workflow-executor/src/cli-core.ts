@@ -229,22 +229,29 @@ export async function runCli(
 
   logStartup(logger, config);
 
-  let executor: WorkflowExecutor;
+  try {
+    let executor: WorkflowExecutor;
 
-  if (config.mode === 'in-memory') {
-    executor = factories.buildInMemory(config.executorOptions);
-  } else {
-    const databaseOptions: DatabaseExecutorOptions = {
-      ...config.executorOptions,
-      database: { uri: config.databaseUrl as string },
-    };
-    executor = factories.buildDatabase(databaseOptions);
+    if (config.mode === 'in-memory') {
+      executor = factories.buildInMemory(config.executorOptions);
+    } else {
+      const databaseOptions: DatabaseExecutorOptions = {
+        ...config.executorOptions,
+        database: { uri: config.databaseUrl as string },
+      };
+      executor = factories.buildDatabase(databaseOptions);
+    }
+
+    await executor.start();
+    logger.info('Workflow executor ready', {
+      url: `http://localhost:${config.executorOptions.httpPort}`,
+    });
+
+    return executor;
+  } catch (error) {
+    logger.error('Workflow executor failed to start', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
-
-  await executor.start();
-  logger.info('Workflow executor ready', {
-    url: `http://localhost:${config.executorOptions.httpPort}`,
-  });
-
-  return executor;
 }

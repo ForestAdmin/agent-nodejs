@@ -326,4 +326,22 @@ describe('runCli', () => {
     expect(output).toContain('Workflow executor starting');
     expect(output).toContain('Workflow executor ready');
   });
+
+  it('logs a structured error when executor.start() fails and rethrows', async () => {
+    const failingExecutor = {
+      start: jest.fn().mockRejectedValue(new Error('db unreachable')),
+      stop: jest.fn(),
+      state: 'idle',
+    } as unknown as WorkflowExecutor;
+    const factories: CliFactories = {
+      buildDatabase: jest.fn().mockReturnValue(failingExecutor),
+      buildInMemory: jest.fn().mockReturnValue(failingExecutor),
+    };
+
+    await expect(runCli(['--json'], baseEnv, factories)).rejects.toThrow('db unreachable');
+
+    const errorOutput = errorSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    expect(errorOutput).toContain('Workflow executor failed to start');
+    expect(errorOutput).toContain('db unreachable');
+  });
 });

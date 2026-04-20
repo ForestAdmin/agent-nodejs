@@ -164,8 +164,11 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
   const { uri, ...sequelizeOptions } = options.database as SequelizeOptions & { uri?: string };
   // Silence Sequelize's verbose SQL logger by default so our structured logs
   // stay readable. Caller can still opt in via options.database.logging.
+  // An explicit `logging: undefined` in the caller overrides our default via
+  // spread, so we re-apply the default when the merged value ends up undefined.
   const sequelizeDefaults: SequelizeOptions = { logging: false };
-  const mergedOptions = { ...sequelizeDefaults, ...sequelizeOptions };
+  const mergedOptions: SequelizeOptions = { ...sequelizeDefaults, ...sequelizeOptions };
+  if (mergedOptions.logging === undefined) mergedOptions.logging = false;
   const sequelize = uri ? new Sequelize(uri, mergedOptions) : new Sequelize(mergedOptions);
 
   const runner = new Runner({
