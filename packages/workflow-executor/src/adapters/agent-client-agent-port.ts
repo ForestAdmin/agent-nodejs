@@ -144,6 +144,13 @@ export default class AgentClientAgentPort implements AgentPort {
         // satisfy the agent-client contract without activating form-state
         // initialisation. `id` falls back to `name` until the orchestrator
         // exposes the true action id in its collection-schema payload.
+        //
+        // TODO (claude): handle the case where the action is triggered from
+        // the front-end via `ExecutorHttpServer POST /runs/:runId/trigger`.
+        // In that flow the user may fill an interactive form, which requires
+        // the real `hooks`, `fields` and `id` to be propagated from the
+        // orchestrator (extend `CollectionSchemaAction` server-side and
+        // `ActionSchema` executor-side).
         endpoints[collectionName][action.name] = {
           id: action.name,
           name: action.name,
