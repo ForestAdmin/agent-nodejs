@@ -37,6 +37,18 @@ jobs:
         run: yarn && yarn bootstrap --ci
       - name: Build
         run: yarn build
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "=== node_modules/@forestadmin/ai-proxy ==="
+          ls -la node_modules/@forestadmin/ai-proxy || echo "MISSING"
+          echo "=== ai-proxy dist/index.d.ts tail ==="
+          tail -15 packages/ai-proxy/dist/index.d.ts || echo "MISSING dist"
+          echo "=== forestadmin-client dist/index.d.ts tail ==="
+          tail -15 packages/forestadmin-client/dist/index.d.ts || echo "MISSING dist"
+          echo "=== What workflow-executor sees at resolution ==="
+          ls -la packages/workflow-executor/node_modules/@forestadmin 2>/dev/null || echo "no nested"
+          node -e "console.log(require.resolve('@forestadmin/ai-proxy', {paths: ['packages/workflow-executor']}))"
       - uses: actions/cache/save@v4
         with:
           path: packages/*/dist
