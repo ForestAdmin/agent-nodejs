@@ -1,6 +1,7 @@
 import type {
   AgentPort,
   ExecuteActionQuery,
+  GetActionFormInfoQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
   UpdateRecordQuery,
@@ -120,6 +121,16 @@ export default class AgentClientAgentPort implements AgentPort {
     return act.execute();
   }
 
+  async getActionFormInfo(
+    { collection, action, id }: GetActionFormInfoQuery,
+    user: StepUser,
+  ): Promise<{ hasForm: boolean }> {
+    const client = this.createClient(user);
+    const act = await client.collection(collection).action(action, { recordIds: [encodePk(id)] });
+
+    return { hasForm: act.getFields().length > 0 };
+  }
+
   private createClient(user: StepUser) {
     const token = jsonwebtoken.sign({ ...user, scope: 'step-execution' }, this.authSecret, {
       expiresIn: '5m',
@@ -170,17 +181,16 @@ export default class AgentClientAgentPort implements AgentPort {
       endpoints[collectionName] = {};
 
       for (const action of schema.actions) {
-        // The executor triggers actions without interactive forms — the AI
-        // decides the parameters. Neutral values for `hooks` and `fields`
-        // satisfy the agent-client contract without activating form-state
-        // initialisation. `id` falls back to `name` until the orchestrator
-        // exposes the true action id in its collection-schema payload.
+        // `hooks` and `fields` are passed through from the orchestrator's schema so that
+        // agent-client can (a) invoke the agent's /hooks/load route when the agent declares
+        // it and (b) fall back to static fields when an old Ruby agent 404s on that route.
+        // `id` falls back to `name` until the orchestrator exposes the true action id.
         endpoints[collectionName][action.name] = {
           id: action.name,
           name: action.name,
           endpoint: action.endpoint,
-          hooks: { load: false, change: [] },
-          fields: [],
+          hooks: action.hooks ?? { load: false, change: [] },
+          fields: action.fields ?? [],
         };
       }
     }

@@ -73,8 +73,12 @@ export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionD
   /** Display name and technical name of the executed action. */
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
-  /** AI-selected action awaiting user confirmation. Used in the confirmation flow only. */
-  pendingData?: ActionRef & { userConfirmed?: boolean };
+  /**
+   * AI-selected action awaiting user confirmation. Used in the confirmation flow only.
+   * When userConfirmed=true, `actionResult` is required — the frontend executes the action
+   * itself and posts back the result (executor never re-executes).
+   */
+  pendingData?: ActionRef & { userConfirmed?: boolean; actionResult?: unknown };
   selectedRecordRef: RecordRef;
 }
 

@@ -13,7 +13,15 @@ const patchBodySchemas: Partial<Record<StepExecutionData['type'], z.ZodTypeAny>>
     })
     .strict(),
 
-  'trigger-action': z.object({ userConfirmed: z.boolean() }).strict(),
+  'trigger-action': z
+    .object({
+      userConfirmed: z.boolean(),
+      // Opaque action result from the frontend. Required when userConfirmed=true; validated
+      // at step-executor level so we can throw a descriptive StepStateError (zod can't
+      // express "required iff userConfirmed=true" without discriminated unions).
+      actionResult: z.unknown().optional(),
+    })
+    .strict(),
 
   mcp: z.object({ userConfirmed: z.boolean() }).strict(),
 

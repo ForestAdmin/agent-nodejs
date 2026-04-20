@@ -6,7 +6,13 @@ import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/s
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { ActionNotFoundError, NoActionsError, StepPersistenceError } from '../errors';
+import {
+  ActionNotFoundError,
+  NoActionsError,
+  StepPersistenceError,
+  StepStateError,
+  UnsupportedActionFormError,
+} from '../errors';
 import RecordStepExecutor from './record-step-executor';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
@@ -33,12 +39,23 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         pending,
         async exec => {
           const { selectedRecordRef, pendingData } = exec;
+
+          // The frontend executes the action itself and posts the result back.
+          // A confirmed step without actionResult is a broken frontend contract.
+          if (!pendingData || !('actionResult' in pendingData)) {
+            throw new StepStateError(
+              `Frontend confirmed action but did not provide actionResult ` +
+                `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+            );
+          }
+
           const target: ActionTarget = {
             selectedRecordRef,
-            ...(pendingData as ActionRef),
+            displayName: pendingData.displayName,
+            name: pendingData.name,
           };
 
-          return this.resolveAndExecute(target, exec);
+          return this.saveFrontendResult(target, pendingData.actionResult, exec);
         },
       );
     }
@@ -64,9 +81,20 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const name = this.resolveActionName(schema, args.actionName);
     const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
 
+    // Forms are not supported — applies to both automatic and manual branches.
+    const { hasForm } = await this.agentPort.getActionFormInfo(
+      {
+        collection: selectedRecordRef.collectionName,
+        action: name,
+        id: selectedRecordRef.recordId,
+      },
+      this.context.user,
+    );
+    if (hasForm) throw new UnsupportedActionFormError(target.displayName);
+
     // Branch B -- automaticExecution
     if (step.automaticExecution) {
-      return this.resolveAndExecute(target);
+      return this.executeOnExecutor(target);
     }
 
     // Branch C -- Awaiting confirmation
@@ -80,15 +108,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  /**
-   * Resolves the action name, calls executeAction, and persists execution data.
-   * When `existingExecution` is provided (confirmation flow), it is spread into the
-   * saved execution to preserve pendingData for traceability.
-   */
-  private async resolveAndExecute(
-    target: ActionTarget,
-    existingExecution?: TriggerRecordActionStepExecutionData,
-  ): Promise<StepExecutionResult> {
+  /** Branch B — executor runs the action via agentPort, then persists the result. */
+  private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
     const actionResult = await this.agentPort.executeAction(
@@ -102,7 +123,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
     try {
       await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...existingExecution,
         type: 'trigger-action',
         stepIndex: this.context.stepIndex,
         executionParams: { displayName, name },
@@ -112,6 +132,34 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     } catch (cause) {
       throw new StepPersistenceError(
         `Action "${name}" executed but step state could not be persisted ` +
+          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+        cause,
+      );
+    }
+
+    return this.buildOutcomeResult({ status: 'success' });
+  }
+
+  /** Branch A — the frontend executed the action; executor only persists the result it sent. */
+  private async saveFrontendResult(
+    target: ActionTarget,
+    actionResult: unknown,
+    existingExecution: TriggerRecordActionStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    const { selectedRecordRef, displayName, name } = target;
+
+    try {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existingExecution,
+        type: 'trigger-action',
+        stepIndex: this.context.stepIndex,
+        executionParams: { displayName, name },
+        executionResult: { success: true, actionResult },
+        selectedRecordRef,
+      });
+    } catch (cause) {
+      throw new StepPersistenceError(
+        `Frontend action result for "${name}" could not be persisted ` +
           `(run "${this.context.runId}", step ${this.context.stepIndex})`,
         cause,
       );

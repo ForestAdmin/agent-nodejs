@@ -15,7 +15,7 @@ const mockedCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunc
 >;
 
 function createMockClient() {
-  const mockAction = { execute: jest.fn() };
+  const mockAction = { execute: jest.fn(), getFields: jest.fn().mockReturnValue([]) };
   const mockRelation = { list: jest.fn() };
   const mockCollection = {
     list: jest.fn(),
@@ -376,6 +376,103 @@ describe('AgentClientAgentPort', () => {
       await expect(
         port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, user),
       ).rejects.toThrow('Action failed');
+    });
+  });
+
+  describe('getActionFormInfo', () => {
+    it('returns hasForm:false when agent-client reports no fields', async () => {
+      mockAction.getFields.mockReturnValue([]);
+
+      const result = await port.getActionFormInfo(
+        { collection: 'users', action: 'sendEmail', id: [1] },
+        user,
+      );
+
+      expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: ['1'] });
+      expect(result).toEqual({ hasForm: false });
+    });
+
+    it('returns hasForm:true when agent-client reports at least one field', async () => {
+      mockAction.getFields.mockReturnValue([{ getName: () => 'reason' }]);
+
+      const result = await port.getActionFormInfo(
+        { collection: 'users', action: 'sendEmail', id: [1] },
+        user,
+      );
+
+      expect(result).toEqual({ hasForm: true });
+    });
+
+    it('encodes composite ids with pipe separator', async () => {
+      mockAction.getFields.mockReturnValue([]);
+
+      await port.getActionFormInfo(
+        { collection: 'users', action: 'sendEmail', id: [1, 'abc'] },
+        user,
+      );
+
+      expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: ['1|abc'] });
+    });
+  });
+
+  describe('buildActionEndpoints', () => {
+    it('passes fields and hooks from schema to agent-client (supports Ruby agent fallback)', async () => {
+      const schemaCache = new SchemaCache();
+      schemaCache.set('users', {
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [{ fieldName: 'id', displayName: 'id', isRelationship: false }],
+        actions: [
+          {
+            name: 'refund',
+            displayName: 'Refund',
+            endpoint: '/forest/actions/refund',
+            hooks: { load: true, change: ['amount'] },
+            fields: [{ field: 'amount', type: 'Number', isRequired: true }],
+          },
+        ],
+      });
+      const customPort = new AgentClientAgentPort({
+        agentUrl: 'http://localhost:3310',
+        authSecret: 'secret',
+        schemaCache,
+      });
+
+      await customPort.executeAction({ collection: 'users', action: 'refund', id: [1] }, user);
+
+      expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actionEndpoints: {
+            users: {
+              refund: expect.objectContaining({
+                name: 'refund',
+                endpoint: '/forest/actions/refund',
+                hooks: { load: true, change: ['amount'] },
+                fields: [{ field: 'amount', type: 'Number', isRequired: true }],
+              }),
+            },
+          },
+        }),
+      );
+    });
+
+    it('falls back to neutral hooks/fields when the schema omits them', async () => {
+      // Default schema in beforeEach has no hooks/fields on actions.
+      await port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, user);
+
+      expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actionEndpoints: expect.objectContaining({
+            users: expect.objectContaining({
+              sendEmail: expect.objectContaining({
+                hooks: { load: false, change: [] },
+                fields: [],
+              }),
+            }),
+          }),
+        }),
+      );
     });
   });
 

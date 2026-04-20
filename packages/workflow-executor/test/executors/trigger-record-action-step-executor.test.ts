@@ -36,6 +36,7 @@ function makeMockAgentPort(): AgentPort {
     updateRecord: jest.fn(),
     getRelatedData: jest.fn(),
     executeAction: jest.fn().mockResolvedValue(undefined),
+    getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
   } as unknown as AgentPort;
 }
 
@@ -214,9 +215,54 @@ describe('TriggerRecordActionStepExecutor', () => {
   });
 
   describe('confirmation accepted (Branch A)', () => {
-    it('triggers the action when user confirms and preserves pendingAction', async () => {
+    it('saves the frontend-provided actionResult without re-executing the action', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.executeAction as jest.Mock).mockResolvedValue({ message: 'Email sent' });
+      const execution: TriggerRecordActionStepExecutionData = {
+        type: 'trigger-action',
+        stepIndex: 0,
+        pendingData: {
+          displayName: 'Send Welcome Email',
+          name: 'send-welcome-email',
+          userConfirmed: true,
+          actionResult: { success: 'ok', html: '<p>Email queued</p>' },
+        },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ agentPort, runStore });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(agentPort.getActionFormInfo).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          type: 'trigger-action',
+          executionParams: {
+            displayName: 'Send Welcome Email',
+            name: 'send-welcome-email',
+          },
+          executionResult: {
+            success: true,
+            actionResult: { success: 'ok', html: '<p>Email queued</p>' },
+          },
+          pendingData: {
+            displayName: 'Send Welcome Email',
+            name: 'send-welcome-email',
+            userConfirmed: true,
+            actionResult: { success: 'ok', html: '<p>Email queued</p>' },
+          },
+        }),
+      );
+    });
+
+    it('returns error when the frontend confirmed without providing actionResult', async () => {
+      const agentPort = makeMockAgentPort();
       const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
@@ -235,27 +281,12 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.executeAction).toHaveBeenCalledWith(
-        { collection: 'customers', action: 'send-welcome-email', id: [42] },
-        expect.objectContaining({ id: 1 }),
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
       );
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({
-          type: 'trigger-action',
-          executionParams: {
-            displayName: 'Send Welcome Email',
-            name: 'send-welcome-email',
-          },
-          executionResult: { success: true, actionResult: { message: 'Email sent' } },
-          pendingData: {
-            displayName: 'Send Welcome Email',
-            name: 'send-welcome-email',
-            userConfirmed: true,
-          },
-        }),
-      );
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -376,6 +407,59 @@ describe('TriggerRecordActionStepExecutor', () => {
     });
   });
 
+  describe('UnsupportedActionFormError (form detection)', () => {
+    it('throws when the action has a form and automaticExecution is true', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionFormInfo as jest.Mock).mockResolvedValue({ hasForm: true });
+      const mockModel = makeMockModel({
+        actionName: 'Send Welcome Email',
+        reasoning: 'r',
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This action requires user input via a form, which is not yet supported in workflows.',
+      );
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('throws when the action has a form and automaticExecution is false (no pending saved)', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionFormInfo as jest.Mock).mockResolvedValue({ hasForm: true });
+      const mockModel = makeMockModel({
+        actionName: 'Send Welcome Email',
+        reasoning: 'r',
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This action requires user input via a form, which is not yet supported in workflows.',
+      );
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
   describe('resolveActionName failure', () => {
     it('returns error when AI returns an action name not found in the schema', async () => {
       const agentPort = makeMockAgentPort();
@@ -442,41 +526,6 @@ describe('TriggerRecordActionStepExecutor', () => {
     });
   });
 
-  describe('agentPort.executeAction WorkflowExecutorError (Branch A)', () => {
-    it('returns error when executeAction throws WorkflowExecutorError during confirmation', async () => {
-      const agentPort = makeMockAgentPort();
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(
-        new StepStateError('Action not permitted'),
-      );
-      const execution: TriggerRecordActionStepExecutionData = {
-        type: 'trigger-action',
-        stepIndex: 0,
-        pendingData: {
-          displayName: 'Send Welcome Email',
-          name: 'send-welcome-email',
-          userConfirmed: true,
-        },
-        selectedRecordRef: makeRecordRef(),
-      };
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
-      });
-      const context = makeContext({ agentPort, runStore });
-      const executor = new TriggerRecordActionStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.type).toBe('record');
-      expect(result.stepOutcome.stepId).toBe('trigger-1');
-      expect(result.stepOutcome.stepIndex).toBe(0);
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
-      );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-  });
-
   describe('agentPort.executeAction infra error', () => {
     it('returns error outcome for infrastructure errors (Branch B)', async () => {
       const agentPort = makeMockAgentPort();
@@ -490,29 +539,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         agentPort,
         stepDefinition: makeStep({ automaticExecution: true }),
       });
-      const executor = new TriggerRecordActionStepExecutor(context);
-
-      const result = await executor.execute();
-      expect(result.stepOutcome.status).toBe('error');
-    });
-
-    it('returns error outcome for infrastructure errors (Branch A)', async () => {
-      const agentPort = makeMockAgentPort();
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('Connection refused'));
-      const execution: TriggerRecordActionStepExecutionData = {
-        type: 'trigger-action',
-        stepIndex: 0,
-        pendingData: {
-          displayName: 'Send Welcome Email',
-          name: 'send-welcome-email',
-          userConfirmed: true,
-        },
-        selectedRecordRef: makeRecordRef(),
-      };
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([execution]),
-      });
-      const context = makeContext({ agentPort, runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -836,7 +862,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
     });
 
-    it('returns error outcome after successful executeAction when saveStepExecution fails (Branch A confirmed)', async () => {
+    it('returns error outcome when saveStepExecution fails saving the frontend result (Branch A confirmed)', async () => {
       const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
@@ -844,6 +870,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
           userConfirmed: true,
+          actionResult: { success: 'ok' },
         },
         selectedRecordRef: makeRecordRef(),
       };

@@ -1,6 +1,7 @@
 import type {
   AgentPort,
   ExecuteActionQuery,
+  GetActionFormInfoQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
   UpdateRecordQuery,
@@ -27,6 +28,13 @@ export default class SafeAgentPort implements AgentPort {
 
   async executeAction(query: ExecuteActionQuery, user: StepUser): Promise<unknown> {
     return this.call('executeAction', () => this.port.executeAction(query, user));
+  }
+
+  async getActionFormInfo(
+    query: GetActionFormInfoQuery,
+    user: StepUser,
+  ): Promise<{ hasForm: boolean }> {
+    return this.call('getActionFormInfo', () => this.port.getActionFormInfo(query, user));
   }
 
   async probe(): Promise<void> {

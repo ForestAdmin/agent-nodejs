@@ -89,6 +89,15 @@ export class NoActionsError extends WorkflowExecutorError {
   }
 }
 
+export class UnsupportedActionFormError extends WorkflowExecutorError {
+  constructor(actionDisplayName: string) {
+    super(
+      `Action "${actionDisplayName}" requires a form which is not supported by the executor`,
+      'This action requires user input via a form, which is not yet supported in workflows.',
+    );
+  }
+}
+
 /**
  * Thrown when a step's side effect succeeded (action/update/decision)
  * but the resulting state could not be persisted to the RunStore.
