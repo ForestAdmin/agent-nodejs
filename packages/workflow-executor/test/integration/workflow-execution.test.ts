@@ -159,6 +159,7 @@ function createMockAgentPort(): jest.Mocked<AgentPort> {
     }),
     getRelatedData: jest.fn().mockResolvedValue([]),
     executeAction: jest.fn().mockResolvedValue(undefined),
+    getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
     probe: jest.fn().mockResolvedValue(undefined),
   } as jest.Mocked<AgentPort>;
 }
@@ -425,21 +426,20 @@ describe('workflow execution (integration)', () => {
       expect.objectContaining({ type: 'record', status: 'awaiting-input' }),
     );
 
-    // 2nd trigger with userConfirmed: true → success
+    // 2nd trigger with userConfirmed: true + actionResult (frontend executed the action itself)
     const res2 = await request(server.callback)
       .post('/runs/run-1/trigger')
       .set('Authorization', `Bearer ${token}`)
-      .send({ pendingData: { userConfirmed: true } });
+      .send({
+        pendingData: {
+          userConfirmed: true,
+          actionResult: { success: 'Email sent' },
+        },
+      });
 
     expect(res2.status).toBe(200);
-    expect(agentPort.executeAction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        collection: 'customers',
-        action: 'send_email',
-        id: [42],
-      }),
-      expect.objectContaining({ id: STEP_USER.id }),
-    );
+    // Executor no longer re-runs the action — the frontend is the one that executed it.
+    expect(agentPort.executeAction).not.toHaveBeenCalled();
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({ type: 'record', status: 'success' }),
