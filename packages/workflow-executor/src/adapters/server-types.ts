@@ -24,6 +24,7 @@ export type ServerTaskType =
 export interface ServerWorkflowTask {
   type: 'task';
   taskType: ServerTaskType;
+  isSubTask?: boolean;
   title: string;
   prompt: string;
   allowedTools?: string[];
@@ -99,17 +100,12 @@ export interface ServerStepHistory {
   revised?: boolean;
   cancelled?: boolean;
   context?: Record<string, unknown>;
+  childrenWorkflowId?: string;
   stepDefinition: ServerWorkflowStep;
 }
 
-/** Possible workflow run states (mirror of the server enum). */
-export type ServerWorkflowRunState =
-  | 'pending'
-  | 'running'
-  | 'awaiting-input'
-  | 'done'
-  | 'cancelled'
-  | 'failed';
+/** Mirror of the server's `WorkflowRunState` enum (workflow-run-model.ts). */
+export type ServerWorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
 
 export interface ServerHydratedWorkflowRun {
   id: number;
@@ -120,6 +116,7 @@ export interface ServerHydratedWorkflowRun {
   bpmnVersion: string;
   runState: ServerWorkflowRunState;
   workflowHistory: ServerStepHistory[];
+  /** Server types declare `Date`; Express serializes to ISO 8601 string on the wire. */
   createdAt: string;
   updatedAt: string;
   userId: number;
@@ -131,6 +128,7 @@ export interface ServerHydratedWorkflowRun {
 // --- Update step request (POST /api/workflow-orchestrator/update-step) ---
 
 export interface ServerStepHistoryUpdate {
+  /** Accepted by the server Joi schema; missing from the server TS type (server-side gap). */
   isLoading?: boolean;
   done?: boolean;
   revised?: boolean;
@@ -144,6 +142,7 @@ export interface ServerStepUpdate {
 }
 
 export type ServerExecutionStatus =
+  /** `nextStepId` is accepted by the server Joi schema; missing from the server TS type. */
   | { type: 'success'; nextStepId?: string }
   | { type: 'error'; message: string }
   | { type: 'awaiting-input' };

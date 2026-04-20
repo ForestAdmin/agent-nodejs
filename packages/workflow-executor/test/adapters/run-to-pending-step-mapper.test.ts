@@ -32,7 +32,7 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
     collectionName: 'customers',
     selectedRecordId: '123',
     bpmnVersion: '1.0',
-    runState: 'running',
+    runState: 'started',
     workflowHistory: [makeStepHistory()],
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',

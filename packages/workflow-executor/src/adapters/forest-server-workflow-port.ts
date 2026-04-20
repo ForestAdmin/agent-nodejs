@@ -1,4 +1,5 @@
 import type { ServerHydratedWorkflowRun } from './server-types';
+import type { Logger } from '../ports/logger-port';
 import type { McpConfiguration, WorkflowPort } from '../ports/workflow-port';
 import type { PendingStepExecution, StepUser } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
@@ -7,6 +8,7 @@ import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
+import ConsoleLogger from './console-logger';
 import toPendingStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
 
@@ -26,9 +28,11 @@ const ROUTES = {
 
 export default class ForestServerWorkflowPort implements WorkflowPort {
   private readonly options: HttpOptions;
+  private readonly logger: Logger;
 
-  constructor(params: { envSecret: string; forestServerUrl: string }) {
+  constructor(params: { envSecret: string; forestServerUrl: string; logger?: Logger }) {
     this.options = { envSecret: params.envSecret, forestServerUrl: params.forestServerUrl };
+    this.logger = params.logger ?? new ConsoleLogger();
   }
 
   async getPendingStepExecutions(): Promise<PendingStepExecution[]> {
@@ -38,9 +42,19 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       ROUTES.pendingRuns,
     );
 
-    return runs
-      .map(run => toPendingStepExecution(run))
-      .filter((step): step is PendingStepExecution => step !== null);
+    return runs.reduce<PendingStepExecution[]>((acc, run) => {
+      try {
+        const step = toPendingStepExecution(run);
+        if (step) acc.push(step);
+      } catch (error) {
+        this.logger.error('Failed to hydrate pending run — skipping', {
+          runId: run.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      return acc;
+    }, []);
   }
 
   async getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null> {
@@ -79,6 +93,6 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       ROUTES.accessCheck(runId, user.id),
     );
 
-    return hasAccess;
+    return hasAccess === true;
   }
 }

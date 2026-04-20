@@ -22,7 +22,7 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
     collectionName: 'users',
     selectedRecordId: '7',
     bpmnVersion: '1.0',
-    runState: 'running',
+    runState: 'started',
     workflowHistory: [
       {
         stepName: 'step-1',
@@ -103,6 +103,23 @@ describe('ForestServerWorkflowPort', () => {
       const result = await port.getPendingStepExecutions();
 
       expect(result).toEqual([]);
+    });
+
+    it('skips malformed runs and keeps valid ones in the same batch', async () => {
+      const logger = { error: jest.fn(), info: jest.fn() };
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      const validRun = makeRun({ id: 42 });
+      const malformedRun = makeRun({ id: 99, collectionName: null });
+      mockQuery.mockResolvedValue([malformedRun, validRun]);
+
+      const result = await portWithLogger.getPendingStepExecutions();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].runId).toBe('42');
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to hydrate pending run — skipping',
+        expect.objectContaining({ runId: 99 }),
+      );
     });
   });
 
@@ -321,6 +338,14 @@ describe('ForestServerWorkflowPort', () => {
 
     it('returns false when the server responds with hasAccess: false', async () => {
       mockQuery.mockResolvedValue({ hasAccess: false });
+
+      const result = await port.hasRunAccess('run-42', user);
+
+      expect(result).toBe(false);
+    });
+
+    it('returns false (fail-secure) when the server responds with a malformed body', async () => {
+      mockQuery.mockResolvedValue({});
 
       const result = await port.hasRunAccess('run-42', user);
 

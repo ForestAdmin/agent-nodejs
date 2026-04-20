@@ -48,6 +48,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
   const workflowPort = new ForestServerWorkflowPort({
     envSecret: options.envSecret,
     forestServerUrl,
+    logger,
   });
 
   const aiModelPort = options.aiConfigurations?.length
