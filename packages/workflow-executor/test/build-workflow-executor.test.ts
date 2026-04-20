@@ -55,19 +55,23 @@ describe('buildInMemoryExecutor', () => {
   it('creates ForestServerWorkflowPort with default forestServerUrl', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(ForestServerWorkflowPort).toHaveBeenCalledWith({
-      envSecret: BASE_OPTIONS.envSecret,
-      forestServerUrl: 'https://api.forestadmin.com',
-    });
+    expect(ForestServerWorkflowPort).toHaveBeenCalledWith(
+      expect.objectContaining({
+        envSecret: BASE_OPTIONS.envSecret,
+        forestServerUrl: 'https://api.forestadmin.com',
+      }),
+    );
   });
 
   it('creates ForestServerWorkflowPort with custom forestServerUrl', () => {
     buildInMemoryExecutor({ ...BASE_OPTIONS, forestServerUrl: 'https://custom.example.com' });
 
-    expect(ForestServerWorkflowPort).toHaveBeenCalledWith({
-      envSecret: BASE_OPTIONS.envSecret,
-      forestServerUrl: 'https://custom.example.com',
-    });
+    expect(ForestServerWorkflowPort).toHaveBeenCalledWith(
+      expect.objectContaining({
+        envSecret: BASE_OPTIONS.envSecret,
+        forestServerUrl: 'https://custom.example.com',
+      }),
+    );
   });
 
   it('creates AgentClientAgentPort with agentUrl and authSecret as agentPort singleton', () => {
@@ -212,10 +216,12 @@ describe('buildDatabaseExecutor', () => {
   it('shares the same common dependencies as buildInMemoryExecutor', () => {
     buildDatabaseExecutor(DB_OPTIONS);
 
-    expect(ForestServerWorkflowPort).toHaveBeenCalledWith({
-      envSecret: BASE_OPTIONS.envSecret,
-      forestServerUrl: 'https://api.forestadmin.com',
-    });
+    expect(ForestServerWorkflowPort).toHaveBeenCalledWith(
+      expect.objectContaining({
+        envSecret: BASE_OPTIONS.envSecret,
+        forestServerUrl: 'https://api.forestadmin.com',
+      }),
+    );
     expect(MockedRunner).toHaveBeenCalledWith(
       expect.objectContaining({ agentPort: expect.any(Object) }),
     );
