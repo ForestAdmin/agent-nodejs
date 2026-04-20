@@ -53,6 +53,7 @@ describe('createCreateTicketTool', () => {
       type: 'incident',
       tags: ['urgent'],
       custom_fields: [{ id: 100, value: 'foo' }],
+      status: 'open',
     });
 
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
@@ -68,6 +69,51 @@ describe('createCreateTicketTool', () => {
           type: 'incident',
           tags: ['urgent'],
           custom_fields: [{ id: 100, value: 'foo' }],
+          status: 'open',
+        },
+      }),
+    });
+  });
+
+  it('should create a ticket with recipient email', async () => {
+    const tool = createCreateTicketTool(headers, baseUrl);
+
+    await tool.invoke({
+      subject: 'Bug',
+      description: 'Broken',
+      recipient_email: 'notify@example.com',
+    });
+
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ticket: {
+          subject: 'Bug',
+          comment: { body: 'Broken' },
+          recipient: 'notify@example.com',
+        },
+      }),
+    });
+  });
+
+  it('should create a ticket with status', async () => {
+    const tool = createCreateTicketTool(headers, baseUrl);
+
+    await tool.invoke({
+      subject: 'Bug',
+      description: 'Broken',
+      status: 'pending',
+    });
+
+    expect(fetch).toHaveBeenCalledWith(`${baseUrl}/tickets.json`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        ticket: {
+          subject: 'Bug',
+          comment: { body: 'Broken' },
+          status: 'pending',
         },
       }),
     });

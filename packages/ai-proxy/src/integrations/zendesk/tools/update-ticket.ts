@@ -14,7 +14,7 @@ export default function createUpdateTicketTool(
       ticket_id: z.number().int().positive().describe('The ID of the ticket to update'),
       subject: z.string().min(1).optional().describe('New subject for the ticket'),
       status: z
-        .enum(['new', 'open', 'pending', 'hold', 'solved', 'closed'])
+        .enum(['new', 'open', 'pending', 'solved', 'closed'])
         .optional()
         .describe('New status for the ticket'),
       priority: z
