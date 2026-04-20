@@ -8,7 +8,7 @@ import type {
 import type SchemaCache from '../schema-cache';
 import type { StepUser } from '../types/execution';
 import type { CollectionSchema, RecordData } from '../types/record';
-import type { SelectOptions } from '@forestadmin/agent-client';
+import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
@@ -132,16 +132,24 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  private buildActionEndpoints() {
-    const endpoints: Record<string, Record<string, { name: string; endpoint: string }>> = {};
+  private buildActionEndpoints(): ActionEndpointsByCollection {
+    const endpoints: ActionEndpointsByCollection = {};
 
     for (const [collectionName, schema] of this.schemaCache) {
       endpoints[collectionName] = {};
 
       for (const action of schema.actions) {
+        // The executor triggers actions without interactive forms — the AI
+        // decides the parameters. Neutral values for `hooks` and `fields`
+        // satisfy the agent-client contract without activating form-state
+        // initialisation. `id` falls back to `name` until the orchestrator
+        // exposes the true action id in its collection-schema payload.
         endpoints[collectionName][action.name] = {
+          id: action.name,
           name: action.name,
           endpoint: action.endpoint,
+          hooks: { load: false, change: [] },
+          fields: [],
         };
       }
     }
