@@ -17,6 +17,8 @@ const ROUTES = {
   updateStep: '/api/workflow-orchestrator/update-step',
   collectionSchema: (collectionName: string) =>
     `/api/workflow-orchestrator/collection-schema/${encodeURIComponent(collectionName)}`,
+  accessCheck: (runId: string, userId: number) =>
+    `/api/workflow-orchestrator/run/${encodeURIComponent(runId)}/access-check?userId=${userId}`,
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
 };
 
@@ -70,10 +72,13 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     return ServerUtils.query<McpConfiguration[]>(this.options, 'get', ROUTES.mcpServerConfigs);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async hasRunAccess(_runId: string, _user: StepUser): Promise<boolean> {
-    // TODO: implement once an agent-auth access-check endpoint is available.
-    // For now rely on the server already returning null for unauthorized runs.
-    return true;
+  async hasRunAccess(runId: string, user: StepUser): Promise<boolean> {
+    const { hasAccess } = await ServerUtils.query<{ hasAccess: boolean }>(
+      this.options,
+      'get',
+      ROUTES.accessCheck(runId, user.id),
+    );
+
+    return hasAccess;
   }
 }

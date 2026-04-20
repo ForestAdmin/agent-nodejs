@@ -274,21 +274,56 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('hasRunAccess', () => {
-    it('always returns true (stub until orchestrator endpoint is available)', async () => {
-      const result = await port.hasRunAccess('run-42', {
-        id: 1,
-        email: 'test@example.com',
-        firstName: 'Test',
-        lastName: 'User',
-        team: 'admin',
-        renderingId: 1,
-        role: 'admin',
-        permissionLevel: 'admin',
-        tags: {},
-      });
+    const user = {
+      id: 1,
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      team: 'admin',
+      renderingId: 1,
+      role: 'admin',
+      permissionLevel: 'admin',
+      tags: {},
+    };
+
+    it('calls the access-check route with runId in the path and userId in the query', async () => {
+      mockQuery.mockResolvedValue({ hasAccess: true });
+
+      await port.hasRunAccess('run-42', user);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/api/workflow-orchestrator/run/run-42/access-check?userId=1',
+      );
+    });
+
+    it('returns true when the server responds with hasAccess: true', async () => {
+      mockQuery.mockResolvedValue({ hasAccess: true });
+
+      const result = await port.hasRunAccess('run-42', user);
 
       expect(result).toBe(true);
-      expect(mockQuery).not.toHaveBeenCalled();
+    });
+
+    it('returns false when the server responds with hasAccess: false', async () => {
+      mockQuery.mockResolvedValue({ hasAccess: false });
+
+      const result = await port.hasRunAccess('run-42', user);
+
+      expect(result).toBe(false);
+    });
+
+    it('encodes special characters in the runId', async () => {
+      mockQuery.mockResolvedValue({ hasAccess: true });
+
+      await port.hasRunAccess('run/42 special', user);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'get',
+        '/api/workflow-orchestrator/run/run%2F42%20special/access-check?userId=1',
+      );
     });
   });
 
@@ -303,6 +338,24 @@ describe('ForestServerWorkflowPort', () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
       await expect(port.getPendingStepExecutionsForRun('run-1')).rejects.toThrow('Network error');
+    });
+
+    it('propagates errors from hasRunAccess', async () => {
+      mockQuery.mockRejectedValue(new Error('Network error'));
+
+      await expect(
+        port.hasRunAccess('run-42', {
+          id: 1,
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          team: 'admin',
+          renderingId: 1,
+          role: 'admin',
+          permissionLevel: 'admin',
+          tags: {},
+        }),
+      ).rejects.toThrow('Network error');
     });
 
     it('propagates errors from updateStepExecution', async () => {
