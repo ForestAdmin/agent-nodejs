@@ -26,8 +26,13 @@ export interface AgentPort {
   getRelatedData(query: GetRelatedDataQuery, user: StepUser): Promise<RecordData[]>;
   executeAction(query: ExecuteActionQuery, user: StepUser): Promise<unknown>;
   /**
-   * Verifies the executor can reach the agent AND that a JWT signed with the
-   * shared authSecret is accepted on an authenticated route. Throws on failure.
+   * Verifies the agent is reachable at startup by hitting its public
+   * healthcheck route. Throws `AgentProbeError` on network error, timeout,
+   * or non-2xx HTTP response.
+   *
+   * JWT validity is NOT checked here (no public route is auth-required across
+   * all agent versions). The shared authSecret is validated naturally when
+   * the first step runs — any mismatch surfaces in that step's error log.
    */
   probe(): Promise<void>;
 }

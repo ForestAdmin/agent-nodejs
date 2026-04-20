@@ -219,23 +219,27 @@ describe('start', () => {
     await expect(runner.start()).rejects.toThrow('authSecret must be a non-empty string');
   });
 
-  it('calls agentPort.probe() after runStore.init()', async () => {
+  it('probes the agent before initialising the run store', async () => {
     const agentPort = { probe: jest.fn().mockResolvedValue(undefined) } as unknown as AgentPort;
     const config = createRunnerConfig({ agentPort });
     runner = new Runner(config);
 
     await runner.start();
 
-    expect(agentPort.probe).toHaveBeenCalledTimes(1);
+    const probeOrder = (agentPort.probe as jest.Mock).mock.invocationCallOrder[0];
+    const initOrder = (config.runStore.init as jest.Mock).mock.invocationCallOrder[0];
+    expect(probeOrder).toBeLessThan(initOrder);
   });
 
-  it('throws and stays idle when agent probe fails', async () => {
+  it('does not init the run store when agent probe fails', async () => {
     const agentPort = {
       probe: jest.fn().mockRejectedValue(new Error('cannot reach agent')),
     } as unknown as AgentPort;
-    runner = new Runner(createRunnerConfig({ agentPort }));
+    const config = createRunnerConfig({ agentPort });
+    runner = new Runner(config);
 
     await expect(runner.start()).rejects.toThrow('cannot reach agent');
+    expect(config.runStore.init).not.toHaveBeenCalled();
     expect(runner.state).toBe('idle');
   });
 });

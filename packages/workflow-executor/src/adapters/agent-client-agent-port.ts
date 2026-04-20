@@ -134,14 +134,12 @@ export default class AgentClientAgentPort implements AgentPort {
 
   /**
    * Verifies the agent is reachable at startup by hitting its public
-   * `GET /forest/` healthcheck. Accepts any 2xx or 4xx as "alive" (a 404 just
-   * means the route isn't mapped on this agent version — the HTTP response
-   * still proves the process is up). Throws on network error or 5xx.
+   * `GET /forest/` healthcheck. Expects a 2xx response; throws AgentProbeError
+   * on network error, 5s timeout, or non-2xx (4xx on this public route means
+   * the URL points to something that isn't a Forest agent).
    *
-   * JWT validity is NOT checked here: a public route is the only thing we
-   * can rely on across all agent versions. The JWT is naturally validated
-   * by the first step that runs, and any mismatch surfaces in that step's
-   * error log.
+   * JWT validity is not checked — the shared authSecret is validated when
+   * the first real step runs.
    */
   async probe(): Promise<void> {
     const url = `${this.agentUrl.replace(/\/+$/, '')}/forest/`;
@@ -149,13 +147,16 @@ export default class AgentClientAgentPort implements AgentPort {
     let response: Response;
 
     try {
-      response = await fetch(url, { method: 'GET' });
+      response = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5_000) });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new AgentProbeError(`cannot reach ${this.agentUrl} (${message})`);
+      const isTimeout = error instanceof Error && error.name === 'TimeoutError';
+      const reason = isTimeout
+        ? 'timeout after 5000ms'
+        : `${error instanceof Error ? error.message : String(error)}`;
+      throw new AgentProbeError(`cannot reach ${this.agentUrl} (${reason})`, { cause: error });
     }
 
-    if (response.status >= 500) {
+    if (!response.ok) {
       throw new AgentProbeError(
         `${this.agentUrl} responded with ${response.status} ${response.statusText}`,
       );

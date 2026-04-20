@@ -61,18 +61,15 @@ export default class Runner {
 
     validateSecrets({ envSecret: this.config.envSecret, authSecret: this.config.authSecret });
 
+    // Probe the agent first (cheap network check) so we fail fast without
+    // opening database connections when the agent is unreachable. Only flip
+    // the running flags after both probe and migrations succeed.
+    await this.config.agentPort.probe();
+    this.logger.info('Agent probe passed', {});
+    await this.config.runStore.init(this.logger);
+
     this.isRunning = true;
     this._state = 'running';
-
-    try {
-      await this.config.runStore.init(this.logger);
-      await this.config.agentPort.probe();
-      this.logger.info('Agent probe passed', {});
-    } catch (error) {
-      this.isRunning = false;
-      this._state = 'idle';
-      throw error;
-    }
 
     this.schedulePoll();
   }

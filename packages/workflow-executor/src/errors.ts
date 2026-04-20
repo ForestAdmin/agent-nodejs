@@ -258,9 +258,14 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
  * and is caught at the CLI/HTTP layer, not by the step executor.
  */
 export class AgentProbeError extends Error {
-  constructor(message: string) {
+  // Manual `cause` assignment — the Error constructor accepts it natively
+  // since Node 16.9, but our TS target is ES2020 which doesn't type it.
+  readonly cause?: unknown;
+
+  constructor(message: string, options?: { cause?: unknown }) {
     super(`Agent probe failed: ${message}`);
     this.name = 'AgentProbeError';
+    if (options?.cause !== undefined) this.cause = options.cause;
   }
 }
 

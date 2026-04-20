@@ -401,10 +401,18 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('resolves when the agent returns 404 (route absent but agent alive)', async () => {
-      fetchSpy.mockResolvedValue(new Response(null, { status: 404 }));
+    it('throws when the agent responds with 404 (wrong URL / not a Forest agent)', async () => {
+      fetchSpy.mockResolvedValue(new Response(null, { status: 404, statusText: 'Not Found' }));
 
-      await expect(port.probe()).resolves.toBeUndefined();
+      await expect(port.probe()).rejects.toThrow(AgentProbeError);
+      await expect(port.probe()).rejects.toThrow(/404.*Not Found/);
+    });
+
+    it('throws when the agent responds with 401 (reverse proxy auth / wrong host)', async () => {
+      fetchSpy.mockResolvedValue(new Response(null, { status: 401, statusText: 'Unauthorized' }));
+
+      await expect(port.probe()).rejects.toThrow(AgentProbeError);
+      await expect(port.probe()).rejects.toThrow(/401.*Unauthorized/);
     });
 
     it('throws AgentProbeError with status when the agent responds with 5xx', async () => {
@@ -416,11 +424,40 @@ describe('AgentClientAgentPort', () => {
       await expect(port.probe()).rejects.toThrow(/503.*Service Unavailable/);
     });
 
-    it('throws AgentProbeError with "cannot reach" when fetch throws', async () => {
-      fetchSpy.mockRejectedValue(new TypeError('fetch failed'));
+    it('throws AgentProbeError with "cannot reach" when fetch throws and chains the cause', async () => {
+      const underlying = new TypeError('fetch failed');
+      fetchSpy.mockRejectedValue(underlying);
 
       await expect(port.probe()).rejects.toThrow(AgentProbeError);
       await expect(port.probe()).rejects.toThrow(/cannot reach.*fetch failed/);
+
+      let caughtCause: unknown;
+
+      try {
+        await port.probe();
+      } catch (error) {
+        caughtCause = (error as AgentProbeError).cause;
+      }
+
+      expect(caughtCause).toBe(underlying);
+    });
+
+    it('throws AgentProbeError with "timeout" when fetch is aborted by the signal', async () => {
+      const abortError = new Error('This operation was aborted');
+      abortError.name = 'TimeoutError';
+      fetchSpy.mockRejectedValue(abortError);
+
+      await expect(port.probe()).rejects.toThrow(AgentProbeError);
+      await expect(port.probe()).rejects.toThrow(/timeout after 5000ms/);
+    });
+
+    it('passes an AbortSignal with 5s timeout to fetch', async () => {
+      fetchSpy.mockResolvedValue(new Response(null, { status: 200 }));
+
+      await port.probe();
+
+      const fetchCall = fetchSpy.mock.calls[0];
+      expect(fetchCall[1]?.signal).toBeInstanceOf(AbortSignal);
     });
   });
 });
