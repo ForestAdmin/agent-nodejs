@@ -159,6 +159,7 @@ function createMockAgentPort(): jest.Mocked<AgentPort> {
     }),
     getRelatedData: jest.fn().mockResolvedValue([]),
     executeAction: jest.fn().mockResolvedValue(undefined),
+    probe: jest.fn().mockResolvedValue(undefined),
   } as jest.Mocked<AgentPort>;
 }
 

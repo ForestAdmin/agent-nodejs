@@ -66,6 +66,8 @@ export default class Runner {
 
     try {
       await this.config.runStore.init(this.logger);
+      await this.config.agentPort.probe();
+      this.logger.info('Agent probe passed', {});
     } catch (error) {
       this.isRunning = false;
       this._state = 'idle';

@@ -13,7 +13,7 @@ import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/ag
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
-import { RecordNotFoundError } from '../errors';
+import { AgentProbeError, RecordNotFoundError } from '../errors';
 
 function buildPkFilter(
   primaryKeyFields: string[],
@@ -130,6 +130,36 @@ export default class AgentClientAgentPort implements AgentPort {
       token,
       actionEndpoints: this.buildActionEndpoints(),
     });
+  }
+
+  /**
+   * Verifies the agent is reachable at startup by hitting its public
+   * `GET /forest/` healthcheck. Accepts any 2xx or 4xx as "alive" (a 404 just
+   * means the route isn't mapped on this agent version — the HTTP response
+   * still proves the process is up). Throws on network error or 5xx.
+   *
+   * JWT validity is NOT checked here: a public route is the only thing we
+   * can rely on across all agent versions. The JWT is naturally validated
+   * by the first step that runs, and any mismatch surfaces in that step's
+   * error log.
+   */
+  async probe(): Promise<void> {
+    const url = `${this.agentUrl.replace(/\/+$/, '')}/forest/`;
+
+    let response: Response;
+
+    try {
+      response = await fetch(url, { method: 'GET' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new AgentProbeError(`cannot reach ${this.agentUrl} (${message})`);
+    }
+
+    if (response.status >= 500) {
+      throw new AgentProbeError(
+        `${this.agentUrl} responded with ${response.status} ${response.statusText}`,
+      );
+    }
   }
 
   private buildActionEndpoints(): ActionEndpointsByCollection {

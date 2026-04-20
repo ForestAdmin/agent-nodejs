@@ -252,6 +252,18 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
   }
 }
 
+/**
+ * Thrown at startup when the workflow executor cannot reach the Forest agent
+ * it is configured against. Boundary error — surfaces from `Runner.start()`
+ * and is caught at the CLI/HTTP layer, not by the step executor.
+ */
+export class AgentProbeError extends Error {
+  constructor(message: string) {
+    super(`Agent probe failed: ${message}`);
+    this.name = 'AgentProbeError';
+  }
+}
+
 /** Thrown when a server step type has no executor equivalent (e.g. 'end', 'escalation'). */
 export class UnsupportedStepTypeError extends WorkflowExecutorError {
   constructor(stepType: string) {

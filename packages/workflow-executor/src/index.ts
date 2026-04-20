@@ -94,6 +94,7 @@ export {
   McpToolNotFoundError,
   McpToolInvocationError,
   AgentPortError,
+  AgentProbeError,
   ConfigurationError,
   InvalidPreRecordedArgsError,
   UnsupportedStepTypeError,

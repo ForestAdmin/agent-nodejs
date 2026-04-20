@@ -29,6 +29,10 @@ export default class SafeAgentPort implements AgentPort {
     return this.call('executeAction', () => this.port.executeAction(query, user));
   }
 
+  async probe(): Promise<void> {
+    return this.port.probe();
+  }
+
   private async call<T>(operation: string, fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();

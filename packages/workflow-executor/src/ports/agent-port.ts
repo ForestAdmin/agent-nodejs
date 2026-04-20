@@ -25,4 +25,9 @@ export interface AgentPort {
   updateRecord(query: UpdateRecordQuery, user: StepUser): Promise<RecordData>;
   getRelatedData(query: GetRelatedDataQuery, user: StepUser): Promise<RecordData[]>;
   executeAction(query: ExecuteActionQuery, user: StepUser): Promise<unknown>;
+  /**
+   * Verifies the executor can reach the agent AND that a JWT signed with the
+   * shared authSecret is accepted on an authenticated route. Throws on failure.
+   */
+  probe(): Promise<void>;
 }

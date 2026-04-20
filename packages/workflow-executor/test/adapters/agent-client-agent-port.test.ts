@@ -3,7 +3,7 @@ import type { StepUser } from '../../src/types/execution';
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
-import { RecordNotFoundError } from '../../src/errors';
+import { AgentProbeError, RecordNotFoundError } from '../../src/errors';
 import SchemaCache from '../../src/schema-cache';
 
 jest.mock('@forestadmin/agent-client', () => ({
@@ -376,6 +376,51 @@ describe('AgentClientAgentPort', () => {
       await expect(
         port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, user),
       ).rejects.toThrow('Action failed');
+    });
+  });
+
+  describe('probe', () => {
+    let fetchSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(jest.fn());
+    });
+
+    afterEach(() => {
+      fetchSpy.mockRestore();
+    });
+
+    it('resolves when the agent returns 200 at GET /forest/', async () => {
+      fetchSpy.mockResolvedValue(new Response(null, { status: 200 }));
+
+      await expect(port.probe()).resolves.toBeUndefined();
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:3310/forest/',
+        expect.objectContaining({ method: 'GET' }),
+      );
+    });
+
+    it('resolves when the agent returns 404 (route absent but agent alive)', async () => {
+      fetchSpy.mockResolvedValue(new Response(null, { status: 404 }));
+
+      await expect(port.probe()).resolves.toBeUndefined();
+    });
+
+    it('throws AgentProbeError with status when the agent responds with 5xx', async () => {
+      fetchSpy.mockResolvedValue(
+        new Response(null, { status: 503, statusText: 'Service Unavailable' }),
+      );
+
+      await expect(port.probe()).rejects.toThrow(AgentProbeError);
+      await expect(port.probe()).rejects.toThrow(/503.*Service Unavailable/);
+    });
+
+    it('throws AgentProbeError with "cannot reach" when fetch throws', async () => {
+      fetchSpy.mockRejectedValue(new TypeError('fetch failed'));
+
+      await expect(port.probe()).rejects.toThrow(AgentProbeError);
+      await expect(port.probe()).rejects.toThrow(/cannot reach.*fetch failed/);
     });
   });
 });

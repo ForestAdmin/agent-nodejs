@@ -72,6 +72,7 @@ function createMockRunStore(overrides: Partial<RunStore> = {}): jest.Mocked<RunS
 
 function createRunnerConfig(
   overrides: Partial<{
+    agentPort: AgentPort;
     workflowPort: WorkflowPort;
     runStore: RunStore;
     aiModelPort: AiModelPort;
@@ -83,7 +84,7 @@ function createRunnerConfig(
   }> = {},
 ) {
   return {
-    agentPort: {} as AgentPort,
+    agentPort: { probe: jest.fn().mockResolvedValue(undefined) } as unknown as AgentPort,
     workflowPort: createMockWorkflowPort(),
     runStore: {
       init: jest.fn().mockResolvedValue(undefined),
@@ -216,6 +217,26 @@ describe('start', () => {
 
     await expect(runner.start()).rejects.toThrow(ConfigurationError);
     await expect(runner.start()).rejects.toThrow('authSecret must be a non-empty string');
+  });
+
+  it('calls agentPort.probe() after runStore.init()', async () => {
+    const agentPort = { probe: jest.fn().mockResolvedValue(undefined) } as unknown as AgentPort;
+    const config = createRunnerConfig({ agentPort });
+    runner = new Runner(config);
+
+    await runner.start();
+
+    expect(agentPort.probe).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws and stays idle when agent probe fails', async () => {
+    const agentPort = {
+      probe: jest.fn().mockRejectedValue(new Error('cannot reach agent')),
+    } as unknown as AgentPort;
+    runner = new Runner(createRunnerConfig({ agentPort }));
+
+    await expect(runner.start()).rejects.toThrow('cannot reach agent');
+    expect(runner.state).toBe('idle');
   });
 });
 
@@ -708,7 +729,7 @@ describe('StepExecutorFactory.create — factory', () => {
     aiModelPort: {
       getModel: jest.fn().mockReturnValue({} as BaseChatModel),
     } as unknown as AiModelPort,
-    agentPort: {} as AgentPort,
+    agentPort: { probe: jest.fn().mockResolvedValue(undefined) } as unknown as AgentPort,
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
     schemaCache: new SchemaCache(),
