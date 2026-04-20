@@ -137,6 +137,7 @@ export { default as DatabaseStore } from './stores/database-store';
 export type { DatabaseStoreOptions } from './stores/database-store';
 export { buildDatabaseRunStore, buildInMemoryRunStore } from './stores/build-run-store';
 export { buildInMemoryExecutor, buildDatabaseExecutor } from './build-workflow-executor';
+export { runCli } from './cli-core';
 export type {
   WorkflowExecutor,
   ExecutorOptions,

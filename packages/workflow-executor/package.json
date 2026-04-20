@@ -2,6 +2,9 @@
   "name": "@forestadmin/workflow-executor",
   "version": "1.0.0",
   "main": "dist/index.js",
+  "bin": {
+    "forest-workflow-executor": "dist/cli.js"
+  },
   "license": "GPL-3.0",
   "publishConfig": {
     "access": "public"
