@@ -16,9 +16,9 @@ const patchBodySchemas: Partial<Record<StepExecutionData['type'], z.ZodTypeAny>>
   'trigger-action': z
     .object({
       userConfirmed: z.boolean(),
-      // Opaque action result from the frontend. Required when userConfirmed=true; validated
-      // at step-executor level so we can throw a descriptive StepStateError (zod can't
-      // express "required iff userConfirmed=true" without discriminated unions).
+      // Opaque action result from the frontend. Required when userConfirmed=true; the
+      // presence check lives in the step-executor so a descriptive StepStateError can
+      // name the runId/stepIndex — not achievable from inside a zod schema.
       actionResult: z.unknown().optional(),
     })
     .strict(),

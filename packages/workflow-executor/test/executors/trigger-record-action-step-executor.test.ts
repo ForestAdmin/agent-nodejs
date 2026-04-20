@@ -261,6 +261,37 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    it('persists actionResult:null as a legitimate void-action result', async () => {
+      const agentPort = makeMockAgentPort();
+      const execution: TriggerRecordActionStepExecutionData = {
+        type: 'trigger-action',
+        stepIndex: 0,
+        pendingData: {
+          displayName: 'Send Welcome Email',
+          name: 'send-welcome-email',
+          userConfirmed: true,
+          actionResult: null,
+        },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ agentPort, runStore });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: { success: true, actionResult: null },
+        }),
+      );
+    });
+
     it('returns error when the frontend confirmed without providing actionResult', async () => {
       const agentPort = makeMockAgentPort();
       const execution: TriggerRecordActionStepExecutionData = {
@@ -430,6 +461,12 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         'This action requires user input via a form, which is not yet supported in workflows.',
       );
+      // Form detection uses the resolved technical name, not the AI display name —
+      // passing "Send Welcome Email" would 404 against the agent.
+      expect(agentPort.getActionFormInfo).toHaveBeenCalledWith(
+        { collection: 'customers', action: 'send-welcome-email', id: [42] },
+        expect.objectContaining({ id: 1 }),
+      );
       expect(agentPort.executeAction).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -454,6 +491,10 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
         'This action requires user input via a form, which is not yet supported in workflows.',
+      );
+      expect(agentPort.getActionFormInfo).toHaveBeenCalledWith(
+        { collection: 'customers', action: 'send-welcome-email', id: [42] },
+        expect.objectContaining({ id: 1 }),
       );
       expect(agentPort.executeAction).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();

@@ -61,6 +61,7 @@ export type {
 export type {
   AgentPort,
   ExecuteActionQuery,
+  GetActionFormInfoQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
   Id,
@@ -98,6 +99,7 @@ export {
   ConfigurationError,
   InvalidPreRecordedArgsError,
   UnsupportedStepTypeError,
+  UnsupportedActionFormError,
   InvalidStepDefinitionError,
 } from './errors';
 export { default as BaseStepExecutor } from './executors/base-step-executor';

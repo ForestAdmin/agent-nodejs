@@ -181,10 +181,12 @@ export default class AgentClientAgentPort implements AgentPort {
       endpoints[collectionName] = {};
 
       for (const action of schema.actions) {
-        // `hooks` and `fields` are passed through from the orchestrator's schema so that
-        // agent-client can (a) invoke the agent's /hooks/load route when the agent declares
-        // it and (b) fall back to static fields when an old Ruby agent 404s on that route.
-        // `id` falls back to `name` until the orchestrator exposes the true action id.
+        // agent-client always POSTs /hooks/load; `hooks.load` only tells it whether a 404
+        // from that route is expected (Ruby agent with hooks.load=false, swallowed) or a
+        // real error (rethrown). On 404, it falls back to the static `fields` passed here
+        // — so both need to reflect the agent's real schema for form detection to work on
+        // Ruby agents. `id` falls back to `name` until the orchestrator exposes the true
+        // action id.
         endpoints[collectionName][action.name] = {
           id: action.name,
           name: action.name,
