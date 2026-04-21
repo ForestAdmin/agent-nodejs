@@ -10,7 +10,6 @@ import { z } from 'zod';
 import {
   ActionNotFoundError,
   NoActionsError,
-  StepPersistenceError,
   StepStateError,
   UnsupportedActionFormError,
 } from '../errors';
@@ -140,21 +139,13 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       this.context.user,
     );
 
-    try {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        type: 'trigger-action',
-        stepIndex: this.context.stepIndex,
-        executionParams: { displayName, name },
-        executionResult: { success: true, actionResult },
-        selectedRecordRef,
-      });
-    } catch (cause) {
-      throw new StepPersistenceError(
-        `Action "${name}" executed but step state could not be persisted ` +
-          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
-        cause,
-      );
-    }
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'trigger-action',
+      stepIndex: this.context.stepIndex,
+      executionParams: { displayName, name },
+      executionResult: { success: true, actionResult },
+      selectedRecordRef,
+    });
 
     return this.buildOutcomeResult({ status: 'success' });
   }
@@ -167,22 +158,14 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    try {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...existingExecution,
-        type: 'trigger-action',
-        stepIndex: this.context.stepIndex,
-        executionParams: { displayName, name },
-        executionResult: { success: true, actionResult },
-        selectedRecordRef,
-      });
-    } catch (cause) {
-      throw new StepPersistenceError(
-        `Frontend action result for "${name}" could not be persisted ` +
-          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
-        cause,
-      );
-    }
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...existingExecution,
+      type: 'trigger-action',
+      stepIndex: this.context.stepIndex,
+      executionParams: { displayName, name },
+      executionResult: { success: true, actionResult },
+      selectedRecordRef,
+    });
 
     return this.buildOutcomeResult({ status: 'success' });
   }

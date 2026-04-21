@@ -13,7 +13,6 @@ import {
   NoRelationshipFieldsError,
   RelatedRecordNotFoundError,
   RelationNotFoundError,
-  StepPersistenceError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
@@ -291,22 +290,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
 
-    try {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...existingExecution,
-        type: 'load-related-record',
-        stepIndex: this.context.stepIndex,
-        executionParams: { displayName, name },
-        executionResult: { relation: { name, displayName }, record },
-        selectedRecordRef,
-      });
-    } catch (cause) {
-      throw new StepPersistenceError(
-        `Related record loaded but step state could not be persisted ` +
-          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
-        cause,
-      );
-    }
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...existingExecution,
+      type: 'load-related-record',
+      stepIndex: this.context.stepIndex,
+      executionParams: { displayName, name },
+      executionResult: { relation: { name, displayName }, record },
+      selectedRecordRef,
+    });
 
     return this.buildOutcomeResult({ status: 'success' });
   }

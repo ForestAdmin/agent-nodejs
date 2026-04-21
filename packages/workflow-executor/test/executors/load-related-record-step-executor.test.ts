@@ -6,7 +6,7 @@ import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/re
 import type { LoadRelatedRecordStepDefinition } from '../../src/types/step-definition';
 import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-execution-data';
 
-import { AgentPortError } from '../../src/errors';
+import { AgentPortError, RunStorePortError } from '../../src/errors';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
@@ -1150,10 +1150,12 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('StepPersistenceError post-load', () => {
+  describe('RunStorePortError post-load', () => {
     it('returns error outcome when saveStepExecution fails after load (Branch B)', async () => {
       const runStore = makeMockRunStore({
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('saveStepExecution', new Error('Disk full'))),
       });
       const context = makeContext({
         runId: 'run-1',
@@ -1166,7 +1168,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
 
     it('returns error outcome when saveStepExecution fails after load (Branch A confirmed)', async () => {
@@ -1181,7 +1183,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('saveStepExecution', new Error('Disk full'))),
       });
       const context = makeContext({ runId: 'run-1', stepIndex: 0, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -1189,7 +1193,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
   });
 

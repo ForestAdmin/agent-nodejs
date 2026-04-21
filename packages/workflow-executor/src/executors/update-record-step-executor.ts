@@ -7,12 +7,7 @@ import type { FieldRef, UpdateRecordStepExecutionData } from '../types/step-exec
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import {
-  FieldNotFoundError,
-  InvalidPreRecordedArgsError,
-  NoWritableFieldsError,
-  StepPersistenceError,
-} from '../errors';
+import { FieldNotFoundError, InvalidPreRecordedArgsError, NoWritableFieldsError } from '../errors';
 import RecordStepExecutor from './record-step-executor';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
@@ -140,22 +135,14 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       this.context.user,
     );
 
-    try {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...existingExecution,
-        type: 'update-record',
-        stepIndex: this.context.stepIndex,
-        executionParams: { displayName, name, value },
-        executionResult: { updatedValues: updated.values },
-        selectedRecordRef,
-      });
-    } catch (cause) {
-      throw new StepPersistenceError(
-        `Record update persisted but step state could not be saved ` +
-          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
-        cause,
-      );
-    }
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...existingExecution,
+      type: 'update-record',
+      stepIndex: this.context.stepIndex,
+      executionParams: { displayName, name, value },
+      executionResult: { updatedValues: updated.values },
+      selectedRecordRef,
+    });
 
     return this.buildOutcomeResult({ status: 'success' });
   }

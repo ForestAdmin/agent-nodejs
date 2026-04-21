@@ -4,6 +4,8 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
 import { AiClient } from '@forestadmin/ai-proxy';
 
+import { AiModelPortError, WorkflowExecutorError } from '../errors';
+
 export default class AiClientAdapter implements AiModelPort {
   private readonly aiClient: AiClient;
 
@@ -13,14 +15,28 @@ export default class AiClientAdapter implements AiModelPort {
   }
 
   getModel(aiConfigName?: string): BaseChatModel {
-    return this.aiClient.getModel(aiConfigName);
+    try {
+      return this.aiClient.getModel(aiConfigName);
+    } catch (cause) {
+      if (cause instanceof WorkflowExecutorError) throw cause;
+      throw new AiModelPortError('getModel', cause);
+    }
   }
 
   loadRemoteTools(config: McpConfiguration): Promise<RemoteTool[]> {
-    return this.aiClient.loadRemoteTools(config);
+    return this.callPort('loadRemoteTools', () => this.aiClient.loadRemoteTools(config));
   }
 
   closeConnections(): Promise<void> {
-    return this.aiClient.closeConnections();
+    return this.callPort('closeConnections', () => this.aiClient.closeConnections());
+  }
+
+  private async callPort<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (cause) {
+      if (cause instanceof WorkflowExecutorError) throw cause;
+      throw new AiModelPortError(operation, cause);
+    }
   }
 }

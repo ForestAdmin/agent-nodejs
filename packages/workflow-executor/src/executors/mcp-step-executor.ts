@@ -8,12 +8,7 @@ import type { RemoteTool } from '@forestadmin/ai-proxy';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import {
-  McpToolInvocationError,
-  McpToolNotFoundError,
-  NoMcpToolsError,
-  StepPersistenceError,
-} from '../errors';
+import { McpToolInvocationError, McpToolNotFoundError, NoMcpToolsError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
@@ -82,19 +77,11 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
 
     // Branch C -- Awaiting confirmation
-    try {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        type: 'mcp',
-        stepIndex: this.context.stepIndex,
-        pendingData: target,
-      });
-    } catch (cause) {
-      throw new StepPersistenceError(
-        `MCP task step state could not be persisted ` +
-          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
-        cause,
-      );
-    }
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'mcp',
+      stepIndex: this.context.stepIndex,
+      pendingData: target,
+    });
 
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
@@ -125,15 +112,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       executionResult: baseExecutionResult,
     };
 
-    try {
-      await this.context.runStore.saveStepExecution(this.context.runId, baseData);
-    } catch (cause) {
-      throw new StepPersistenceError(
-        `MCP tool "${target.name}" executed but step state could not be persisted ` +
-          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
-        cause,
-      );
-    }
+    await this.context.runStore.saveStepExecution(this.context.runId, baseData);
 
     // 2. AI formatting — non-blocking; errors are logged but do not fail the step
     let formattedResponse: string | null = null;

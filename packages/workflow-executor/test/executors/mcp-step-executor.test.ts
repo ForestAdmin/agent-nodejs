@@ -6,7 +6,7 @@ import type { McpStepExecutionData } from '../../src/types/step-execution-data';
 
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
-import { StepStateError } from '../../src/errors';
+import { RunStorePortError, StepStateError } from '../../src/errors';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
@@ -315,7 +315,11 @@ describe('McpStepExecutor', () => {
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
       const logger = { info: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('DB unavailable')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(
+            new RunStorePortError('saveStepExecution', new Error('DB unavailable')),
+          ),
       });
       const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
       const context = makeContext({ model, runStore, logger });
@@ -324,9 +328,9 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
       expect(logger.error).toHaveBeenCalledWith(
-        'MCP task step state could not be persisted (run "run-1", step 0)',
+        'Run store "saveStepExecution" failed: DB unavailable',
         expect.objectContaining({ cause: 'DB unavailable', stepId: 'mcp-1' }),
       );
     });
@@ -509,7 +513,7 @@ describe('McpStepExecutor', () => {
     });
   });
 
-  describe('StepPersistenceError', () => {
+  describe('RunStorePortError propagation', () => {
     it('returns error and logs cause when saveStepExecution fails after tool invocation (Branch B)', async () => {
       const invokeFn = jest.fn().mockResolvedValue('ok');
       const tool = new MockRemoteTool({
@@ -520,7 +524,9 @@ describe('McpStepExecutor', () => {
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
       const logger = { info: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('saveStepExecution', new Error('Disk full'))),
       });
       const context = makeContext({
         model,
@@ -533,9 +539,9 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
       expect(logger.error).toHaveBeenCalledWith(
-        'MCP tool "send_notification" executed but step state could not be persisted (run "run-1", step 0)',
+        'Run store "saveStepExecution" failed: Disk full',
         expect.objectContaining({ cause: 'Disk full', stepId: 'mcp-1' }),
       );
     });
@@ -560,7 +566,9 @@ describe('McpStepExecutor', () => {
       const logger = { info: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('saveStepExecution', new Error('Disk full'))),
       });
       const context = makeContext({ runStore, logger });
       const executor = new McpStepExecutor(context, [tool]);
@@ -568,9 +576,9 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
       expect(logger.error).toHaveBeenCalledWith(
-        'MCP tool "send_notification" executed but step state could not be persisted (run "run-1", step 0)',
+        'Run store "saveStepExecution" failed: Disk full',
         expect.objectContaining({ cause: 'Disk full', stepId: 'mcp-1' }),
       );
     });

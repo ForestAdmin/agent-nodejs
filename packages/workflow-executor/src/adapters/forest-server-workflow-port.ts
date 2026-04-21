@@ -21,6 +21,7 @@ import {
   InvalidStepDefinitionError,
   MalformedRunError,
   WorkflowExecutorError,
+  WorkflowPortError,
   extractErrorMessage,
 } from '../errors';
 
@@ -48,10 +49,8 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   async getPendingStepExecutions(): Promise<PendingRunsBatch> {
-    const runs = await ServerUtils.query<ServerHydratedWorkflowRun[]>(
-      this.options,
-      'get',
-      ROUTES.pendingRuns,
+    const runs = await this.callPort('getPendingStepExecutions', () =>
+      ServerUtils.query<ServerHydratedWorkflowRun[]>(this.options, 'get', ROUTES.pendingRuns),
     );
 
     const pending: PendingRunDispatch[] = [];
@@ -77,10 +76,12 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   async getPendingStepExecutionsForRun(runId: string): Promise<PendingRunDispatch | null> {
-    const run = await ServerUtils.query<ServerHydratedWorkflowRun | null>(
-      this.options,
-      'get',
-      ROUTES.availableRun(runId),
+    const run = await this.callPort('getPendingStepExecutionsForRun', () =>
+      ServerUtils.query<ServerHydratedWorkflowRun | null>(
+        this.options,
+        'get',
+        ROUTES.availableRun(runId),
+      ),
     );
 
     if (!run) return null;
@@ -138,29 +139,46 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   async updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void> {
-    const body = toUpdateStepRequest(runId, stepOutcome);
-    await ServerUtils.query(this.options, 'post', ROUTES.updateStep, {}, body);
+    return this.callPort('updateStepExecution', async () => {
+      const body = toUpdateStepRequest(runId, stepOutcome);
+      await ServerUtils.query(this.options, 'post', ROUTES.updateStep, {}, body);
+    });
   }
 
   async getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema> {
-    return ServerUtils.query<CollectionSchema>(
-      this.options,
-      'get',
-      ROUTES.collectionSchema(collectionName, runId),
+    return this.callPort('getCollectionSchema', () =>
+      ServerUtils.query<CollectionSchema>(
+        this.options,
+        'get',
+        ROUTES.collectionSchema(collectionName, runId),
+      ),
     );
   }
 
   async getMcpServerConfigs(): Promise<McpConfiguration[]> {
-    return ServerUtils.query<McpConfiguration[]>(this.options, 'get', ROUTES.mcpServerConfigs);
+    return this.callPort('getMcpServerConfigs', () =>
+      ServerUtils.query<McpConfiguration[]>(this.options, 'get', ROUTES.mcpServerConfigs),
+    );
   }
 
   async hasRunAccess(runId: string, user: StepUser): Promise<boolean> {
-    const { hasAccess } = await ServerUtils.query<{ hasAccess: boolean }>(
-      this.options,
-      'get',
-      ROUTES.accessCheck(runId, user.id),
-    );
+    return this.callPort('hasRunAccess', async () => {
+      const { hasAccess } = await ServerUtils.query<{ hasAccess: boolean }>(
+        this.options,
+        'get',
+        ROUTES.accessCheck(runId, user.id),
+      );
 
-    return hasAccess === true;
+      return hasAccess === true;
+    });
+  }
+
+  private async callPort<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (cause) {
+      if (cause instanceof WorkflowExecutorError) throw cause;
+      throw new WorkflowPortError(operation, cause);
+    }
   }
 }

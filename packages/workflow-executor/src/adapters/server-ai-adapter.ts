@@ -5,6 +5,8 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AiClient } from '@forestadmin/ai-proxy';
 import { ChatOpenAI } from '@langchain/openai';
 
+import { AiModelPortError, WorkflowExecutorError } from '../errors';
+
 export interface ServerAiAdapterOptions {
   forestServerUrl: string;
   envSecret: string;
@@ -22,32 +24,46 @@ export default class ServerAiAdapter implements AiModelPort {
   }
 
   getModel(): BaseChatModel {
-    const aiProxyUrl = `${this.forestServerUrl}/liana/v1/ai-proxy`;
-    const { envSecret } = this;
+    try {
+      const aiProxyUrl = `${this.forestServerUrl}/liana/v1/ai-proxy`;
+      const { envSecret } = this;
 
-    return new ChatOpenAI({
-      // Model has no effect — the server uses its own configured model.
-      // Set here only because ChatOpenAI requires it.
-      model: 'gpt-4.1',
-      maxRetries: 2,
-      configuration: {
-        apiKey: 'unused',
-        fetch: (_url: RequestInfo | URL, init?: RequestInit) => {
-          const headers = new Headers(init?.headers);
-          headers.delete('authorization');
-          headers.set('forest-secret-key', envSecret);
+      return new ChatOpenAI({
+        // Model has no effect — the server uses its own configured model.
+        // Set here only because ChatOpenAI requires it.
+        model: 'gpt-4.1',
+        maxRetries: 2,
+        configuration: {
+          apiKey: 'unused',
+          fetch: (_url: RequestInfo | URL, init?: RequestInit) => {
+            const headers = new Headers(init?.headers);
+            headers.delete('authorization');
+            headers.set('forest-secret-key', envSecret);
 
-          return fetch(aiProxyUrl, { ...init, headers });
+            return fetch(aiProxyUrl, { ...init, headers });
+          },
         },
-      },
-    });
+      });
+    } catch (cause) {
+      if (cause instanceof WorkflowExecutorError) throw cause;
+      throw new AiModelPortError('getModel', cause);
+    }
   }
 
   loadRemoteTools(config: McpConfiguration): Promise<RemoteTool[]> {
-    return this.aiClient.loadRemoteTools(config);
+    return this.callPort('loadRemoteTools', () => this.aiClient.loadRemoteTools(config));
   }
 
   closeConnections(): Promise<void> {
-    return this.aiClient.closeConnections();
+    return this.callPort('closeConnections', () => this.aiClient.closeConnections());
+  }
+
+  private async callPort<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (cause) {
+      if (cause instanceof WorkflowExecutorError) throw cause;
+      throw new AiModelPortError(operation, cause);
+    }
   }
 }

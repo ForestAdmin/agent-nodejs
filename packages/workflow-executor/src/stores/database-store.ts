@@ -6,7 +6,7 @@ import type { QueryInterface, Sequelize } from 'sequelize';
 import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
 
-import { extractErrorMessage } from '../errors';
+import { RunStorePortError, WorkflowExecutorError, extractErrorMessage } from '../errors';
 
 const TABLE_NAME = 'workflow_step_executions';
 
@@ -77,52 +77,69 @@ export default class DatabaseStore implements RunStore {
       logger: undefined,
     });
 
-    try {
-      await umzug.up();
-    } catch (error) {
-      logger?.error('Database migration failed', {
-        error: extractErrorMessage(error),
-      });
-      throw error;
-    }
+    return this.callPort('init', async () => {
+      try {
+        await umzug.up();
+      } catch (error) {
+        logger?.error('Database migration failed', {
+          error: extractErrorMessage(error),
+        });
+        throw error;
+      }
+    });
   }
 
   async getStepExecutions(runId: string): Promise<StepExecutionData[]> {
-    const [rows] = await this.sequelize.query(
-      `SELECT data FROM ${TABLE_NAME} WHERE run_id = :runId ORDER BY step_index ASC`,
-      { replacements: { runId } },
-    );
-
-    return (rows as Array<{ data: string | StepExecutionData }>).map(row =>
-      typeof row.data === 'string' ? JSON.parse(row.data) : row.data,
-    );
-  }
-
-  async saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void> {
-    await this.sequelize.transaction(async transaction => {
-      const now = new Date();
-      const data = JSON.stringify(stepExecution);
-      const replacements = { runId, stepIndex: stepExecution.stepIndex, data, now };
-
-      // Delete + insert in transaction: dialect-agnostic upsert (avoids ON CONFLICT / ON DUPLICATE)
-      await this.sequelize.query(
-        `DELETE FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex`,
-        { replacements, transaction },
+    return this.callPort('getStepExecutions', async () => {
+      const [rows] = await this.sequelize.query(
+        `SELECT data FROM ${TABLE_NAME} WHERE run_id = :runId ORDER BY step_index ASC`,
+        { replacements: { runId } },
       );
-      await this.sequelize.query(
-        `INSERT INTO ${TABLE_NAME} (run_id, step_index, data, created_at, updated_at) VALUES (:runId, :stepIndex, :data, :now, :now)`,
-        { replacements, transaction },
+
+      return (rows as Array<{ data: string | StepExecutionData }>).map(row =>
+        typeof row.data === 'string' ? JSON.parse(row.data) : row.data,
       );
     });
   }
 
-  async close(logger?: Logger): Promise<void> {
-    try {
-      await this.sequelize.close();
-    } catch (error) {
-      logger?.error('Failed to close database connection', {
-        error: extractErrorMessage(error),
+  async saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void> {
+    return this.callPort('saveStepExecution', async () => {
+      await this.sequelize.transaction(async transaction => {
+        const now = new Date();
+        const data = JSON.stringify(stepExecution);
+        const replacements = { runId, stepIndex: stepExecution.stepIndex, data, now };
+
+        // Delete + insert in transaction: dialect-agnostic upsert (avoids ON CONFLICT / ON DUPLICATE)
+        await this.sequelize.query(
+          `DELETE FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex`,
+          { replacements, transaction },
+        );
+        await this.sequelize.query(
+          `INSERT INTO ${TABLE_NAME} (run_id, step_index, data, created_at, updated_at) VALUES (:runId, :stepIndex, :data, :now, :now)`,
+          { replacements, transaction },
+        );
       });
+    });
+  }
+
+  async close(logger?: Logger): Promise<void> {
+    return this.callPort('close', async () => {
+      try {
+        await this.sequelize.close();
+      } catch (error) {
+        logger?.error('Failed to close database connection', {
+          error: extractErrorMessage(error),
+        });
+      }
+    });
+  }
+
+  private async callPort<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (cause) {
+      if (cause instanceof WorkflowExecutorError) throw cause;
+      throw new RunStorePortError(operation, cause);
     }
   }
 }

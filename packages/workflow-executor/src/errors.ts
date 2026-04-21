@@ -122,14 +122,13 @@ export class UnsupportedActionFormError extends WorkflowExecutorError {
   }
 }
 
-/**
- * Thrown when a step's side effect succeeded (action/update/decision)
- * but the resulting state could not be persisted to the RunStore.
- */
-export class StepPersistenceError extends WorkflowExecutorError {
-  constructor(message: string, cause?: unknown) {
-    super(message, 'The step result could not be saved. Please retry.');
-    if (cause !== undefined) this.cause = cause;
+export class RunStorePortError extends WorkflowExecutorError {
+  constructor(operation: string, cause: unknown) {
+    super(
+      `Run store "${operation}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      'The step state could not be accessed. Please retry.',
+    );
+    this.cause = cause;
   }
 }
 
@@ -242,6 +241,28 @@ export class AgentPortError extends WorkflowExecutorError {
     super(
       `Agent port "${operation}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
       'An error occurred while accessing your data. Please try again.',
+    );
+    this.cause = cause;
+  }
+}
+
+export class WorkflowPortError extends WorkflowExecutorError {
+  constructor(operation: string, cause: unknown) {
+    super(
+      `Workflow port "${operation}" failed: ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+      'Failed to communicate with the workflow orchestrator. Please try again.',
+    );
+    this.cause = cause;
+  }
+}
+
+export class AiModelPortError extends WorkflowExecutorError {
+  constructor(operation: string, cause: unknown) {
+    super(
+      `AI model "${operation}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      'The AI service is unavailable. Please try again or contact your administrator.',
     );
     this.cause = cause;
   }

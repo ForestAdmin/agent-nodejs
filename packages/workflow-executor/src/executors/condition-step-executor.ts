@@ -5,7 +5,6 @@ import type { BaseStepStatus } from '../types/step-outcome';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { StepPersistenceError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 interface GatewayToolArgs {
@@ -82,20 +81,12 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     const args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
     const { option: selectedOption, reasoning } = args;
 
-    try {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        type: 'condition',
-        stepIndex: this.context.stepIndex,
-        executionParams: { answer: selectedOption, reasoning },
-        executionResult: selectedOption ? { answer: selectedOption } : undefined,
-      });
-    } catch (cause) {
-      throw new StepPersistenceError(
-        `Condition step state could not be persisted ` +
-          `(run "${this.context.runId}", step ${this.context.stepIndex})`,
-        cause,
-      );
-    }
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'condition',
+      stepIndex: this.context.stepIndex,
+      executionParams: { answer: selectedOption, reasoning },
+      executionResult: selectedOption ? { answer: selectedOption } : undefined,
+    });
 
     if (!selectedOption) {
       return this.buildOutcomeResult({

@@ -6,7 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { UpdateRecordStepDefinition } from '../../src/types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
 
-import { AgentPortError, StepStateError } from '../../src/errors';
+import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
@@ -820,7 +820,9 @@ describe('UpdateRecordStepExecutor', () => {
 
     it('returns error outcome after successful updateRecord when saveStepExecution fails (Branch B)', async () => {
       const runStore = makeMockRunStore({
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('saveStepExecution', new Error('Disk full'))),
       });
       const context = makeContext({
         runStore,
@@ -831,7 +833,7 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
   });
 

@@ -14,7 +14,7 @@ import {
   MalformedToolCallError,
   MissingToolCallError,
   NoRecordsError,
-  StepPersistenceError,
+  RunStorePortError,
   WorkflowExecutorError,
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
@@ -274,11 +274,11 @@ describe('BaseStepExecutor', () => {
     it('logs cause when WorkflowExecutorError has a cause', async () => {
       const logger = makeMockLogger();
       const cause = new Error('db timeout');
-      const error = new StepPersistenceError('write failed', cause);
+      const error = new RunStorePortError('saveStepExecution', cause);
       const executor = new TestableExecutor(makeContext({ logger }), error);
       await executor.execute();
       expect(logger.error).toHaveBeenCalledWith(
-        'write failed',
+        'Run store "saveStepExecution" failed: db timeout',
         expect.objectContaining({
           cause: 'db timeout',
           stack: cause.stack,

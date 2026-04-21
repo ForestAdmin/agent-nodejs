@@ -6,7 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { TriggerActionStepDefinition } from '../../src/types/step-definition';
 import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-execution-data';
 
-import { AgentPortError, StepStateError } from '../../src/errors';
+import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
@@ -917,7 +917,9 @@ describe('TriggerRecordActionStepExecutor', () => {
 
     it('returns error outcome after successful executeAction when saveStepExecution fails (Branch B)', async () => {
       const runStore = makeMockRunStore({
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('saveStepExecution', new Error('Disk full'))),
       });
       const context = makeContext({
         runStore,
@@ -928,7 +930,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
 
     it('returns error outcome when saveStepExecution fails saving the frontend result (Branch A confirmed)', async () => {
@@ -945,7 +947,9 @@ describe('TriggerRecordActionStepExecutor', () => {
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('Disk full')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('saveStepExecution', new Error('Disk full'))),
       });
       const context = makeContext({ runStore });
       const executor = new TriggerRecordActionStepExecutor(context);
@@ -953,7 +957,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
   });
 

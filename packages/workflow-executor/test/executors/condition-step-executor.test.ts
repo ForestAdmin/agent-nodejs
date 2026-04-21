@@ -4,6 +4,7 @@ import type { RecordRef } from '../../src/types/record';
 import type { ConditionStepDefinition } from '../../src/types/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/step-outcome';
 
+import { RunStorePortError } from '../../src/errors';
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
@@ -309,14 +310,16 @@ describe('ConditionStepExecutor', () => {
         question: 'Approve?',
       });
       const runStore = makeMockRunStore({
-        saveStepExecution: jest.fn().mockRejectedValue(new Error('Storage full')),
+        saveStepExecution: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('saveStepExecution', new Error('Storage full'))),
       });
       const executor = new ConditionStepExecutor(makeContext({ model: mockModel.model, runStore }));
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('The step result could not be saved. Please retry.');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
   });
 });
