@@ -8,20 +8,24 @@ import type {
 import type { Logger } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 
+import { z } from 'zod';
+
 import ConsoleLogger from './adapters/console-logger';
 import PrettyLogger from './adapters/pretty-logger';
 import { ConfigurationError } from './errors';
 
+const POSITIVE_INT = z.coerce.number().int().positive();
+
 function parsePositiveIntEnv(name: string, raw: string | undefined): number | undefined {
   if (!raw) return undefined;
 
-  const n = Number(raw);
+  const parsed = POSITIVE_INT.safeParse(raw);
 
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+  if (!parsed.success) {
     throw new ConfigurationError(`${name} must be a positive integer (got "${raw}")`);
   }
 
-  return n;
+  return parsed.data;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
