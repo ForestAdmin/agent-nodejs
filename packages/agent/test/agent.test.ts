@@ -21,12 +21,6 @@ jest.mock('../src/routes', () => ({
   default: (...args) => mockMakeRoutes(...args),
 }));
 
-const mockProbeWorkflowExecutor = jest.fn().mockResolvedValue(undefined);
-jest.mock('../src/utils/probe-workflow-executor', () => ({
-  __esModule: true,
-  default: (...args) => mockProbeWorkflowExecutor(...args),
-}));
-
 // Mock options
 const mockPostSchema = jest.fn();
 
@@ -296,33 +290,6 @@ describe('Agent', () => {
       await agent.stop();
 
       expect(options.forestAdminClient.close).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('workflow executor probe', () => {
-    test('start should probe the executor when workflowExecutorUrl is set', async () => {
-      const options = factories.forestAdminHttpDriverOptions.build({
-        workflowExecutorUrl: 'http://localhost:3400',
-      });
-      const agent = new Agent(options);
-
-      await agent.start();
-
-      expect(mockProbeWorkflowExecutor).toHaveBeenCalledWith(
-        'http://localhost:3400',
-        options.logger,
-      );
-    });
-
-    test('start should NOT probe the executor when workflowExecutorUrl is absent', async () => {
-      const options = factories.forestAdminHttpDriverOptions.build({
-        workflowExecutorUrl: undefined,
-      });
-      const agent = new Agent(options);
-
-      await agent.start();
-
-      expect(mockProbeWorkflowExecutor).not.toHaveBeenCalled();
     });
   });
 
