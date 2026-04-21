@@ -10,6 +10,19 @@ import type { AiConfiguration } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
 import PrettyLogger from './adapters/pretty-logger';
+import { ConfigurationError } from './errors';
+
+function parsePositiveIntEnv(name: string, raw: string | undefined): number | undefined {
+  if (!raw) return undefined;
+
+  const n = Number(raw);
+
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+    throw new ConfigurationError(`${name} must be a positive integer (got "${raw}")`);
+  }
+
+  return n;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { version } = require('../package.json') as { version: string };
@@ -138,9 +151,9 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     agentUrl: env.AGENT_URL as string,
     httpPort: env.HTTP_PORT ? Number(env.HTTP_PORT) : 3400,
     forestServerUrl: env.FOREST_SERVER_URL,
-    pollingIntervalMs: env.POLLING_INTERVAL_MS ? Number(env.POLLING_INTERVAL_MS) : undefined,
-    stopTimeoutMs: env.STOP_TIMEOUT_MS ? Number(env.STOP_TIMEOUT_MS) : undefined,
-    stepTimeoutMs: env.STEP_TIMEOUT_MS ? Number(env.STEP_TIMEOUT_MS) : undefined,
+    pollingIntervalMs: parsePositiveIntEnv('POLLING_INTERVAL_MS', env.POLLING_INTERVAL_MS),
+    stopTimeoutMs: parsePositiveIntEnv('STOP_TIMEOUT_MS', env.STOP_TIMEOUT_MS),
+    stepTimeoutMs: parsePositiveIntEnv('STEP_TIMEOUT_MS', env.STEP_TIMEOUT_MS),
     ...(aiConfigurations && { aiConfigurations }),
   };
 
@@ -174,7 +187,7 @@ Optional environment variables:
   FOREST_SERVER_URL      Default: https://api.forestadmin.com
   POLLING_INTERVAL_MS    Default: 5000
   STOP_TIMEOUT_MS        Default: 30000
-  STEP_TIMEOUT_MS        Max duration of a single step in ms; unset = no timeout
+  STEP_TIMEOUT_MS        Max duration of a step in ms (default: 300000 = 5 minutes)
   NO_COLOR               Set to any value to disable ANSI colors in pretty logs
 
 AI configuration (all-or-nothing — falls back to server AI if any is missing):

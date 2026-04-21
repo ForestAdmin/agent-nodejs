@@ -28,9 +28,10 @@ export interface RunnerConfig {
   logger?: Logger;
   stopTimeoutMs?: number;
   /**
-   * Max duration of a single step's execution. Unset = no timeout (steps can hang forever).
-   * On timeout, the step reports `status: 'error'` to the orchestrator with a user-facing
-   * message; the original promise is not aborted (fire-and-forget).
+   * Max duration of a single step's execution. Unset or <= 0 = no timeout.
+   * On timeout, the step reports `status: 'error'` to the orchestrator with a
+   * user-facing message. The underlying work is NOT aborted: late rejections from
+   * the agent/LLM are caught and logged; late resolutions are silently discarded.
    */
   stepTimeoutMs?: number;
 }

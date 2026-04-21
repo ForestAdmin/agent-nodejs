@@ -360,6 +360,85 @@ describe('BaseStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
     });
+
+    it('logs structured context (runId/stepId/timeoutMs/stepType) when a step times out', async () => {
+      jest.useFakeTimers();
+
+      try {
+        const logger = makeMockLogger();
+        const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 50, logger }), 10_000);
+        const resultPromise = executor.execute();
+        jest.advanceTimersByTime(60);
+        await resultPromise;
+
+        expect(logger.error).toHaveBeenCalledWith(
+          'Step execution exceeded timeout of 50ms',
+          expect.objectContaining({
+            runId: 'run-1',
+            stepId: 'step-0',
+            stepIndex: 0,
+            stepType: StepType.Condition,
+            timeoutMs: 50,
+          }),
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('logs a late rejection of the losing promise as info (no UnhandledPromiseRejection)', async () => {
+      class FailingAfterTimeoutExecutor extends BaseStepExecutor {
+        protected async doExecute(): Promise<StepExecutionResult> {
+          await new Promise(resolve => {
+            setTimeout(resolve, 1_000);
+          });
+          throw new Error('late agent failure');
+        }
+
+        protected buildOutcomeResult(outcome: {
+          status: BaseStepStatus;
+          error?: string;
+        }): StepExecutionResult {
+          return {
+            stepOutcome: {
+              type: 'record',
+              stepId: this.context.stepId,
+              stepIndex: this.context.stepIndex,
+              status: outcome.status,
+              ...(outcome.error !== undefined && { error: outcome.error }),
+            },
+          };
+        }
+      }
+
+      const unhandled = jest.fn();
+      process.on('unhandledRejection', unhandled);
+
+      try {
+        const logger = makeMockLogger();
+        const executor = new FailingAfterTimeoutExecutor(
+          makeContext({ stepTimeoutMs: 10, logger }),
+        );
+
+        await executor.execute();
+        // Let the underlying doExecute() reject after the timeout
+        await new Promise(resolve => {
+          setTimeout(resolve, 1_100);
+        });
+
+        expect(logger.info).toHaveBeenCalledWith(
+          'Step work rejected after timeout — result discarded',
+          expect.objectContaining({
+            runId: 'run-1',
+            stepId: 'step-0',
+            error: 'late agent failure',
+          }),
+        );
+        expect(unhandled).not.toHaveBeenCalled();
+      } finally {
+        process.off('unhandledRejection', unhandled);
+      }
+    }, 5_000);
   });
 
   describe('invokeWithTool', () => {

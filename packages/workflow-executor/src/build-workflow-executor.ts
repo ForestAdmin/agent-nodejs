@@ -18,6 +18,7 @@ import InMemoryStore from './stores/in-memory-store';
 
 const DEFAULT_FOREST_SERVER_URL = 'https://api.forestadmin.com';
 const DEFAULT_POLLING_INTERVAL_MS = 5000;
+const DEFAULT_STEP_TIMEOUT_MS = 5 * 60_000;
 const FORCE_EXIT_DELAY_MS = 5000;
 
 export interface WorkflowExecutor {
@@ -74,7 +75,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutMs: options.stopTimeoutMs,
-    stepTimeoutMs: options.stepTimeoutMs,
+    stepTimeoutMs: options.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS,
   };
 }
 

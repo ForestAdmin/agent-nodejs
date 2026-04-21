@@ -129,6 +129,20 @@ describe('buildInMemoryExecutor', () => {
     expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ pollingIntervalMs: 1000 }));
   });
 
+  it('applies a 5-minute default when stepTimeoutMs is not configured', () => {
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ stepTimeoutMs: 5 * 60_000 }),
+    );
+  });
+
+  it('respects a caller-provided stepTimeoutMs over the default', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, stepTimeoutMs: 30_000 });
+
+    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ stepTimeoutMs: 30_000 }));
+  });
+
   it('passes secrets to Runner config', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 

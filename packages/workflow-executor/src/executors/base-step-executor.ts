@@ -59,6 +59,18 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
       return result;
     } catch (error) {
+      if (error instanceof StepTimeoutError) {
+        this.context.logger.error(error.message, {
+          runId: this.context.runId,
+          stepId: this.context.stepId,
+          stepIndex: this.context.stepIndex,
+          stepType: this.context.stepDefinition.type,
+          timeoutMs: this.context.stepTimeoutMs,
+        });
+
+        return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
+      }
+
       if (error instanceof WorkflowExecutorError) {
         if (error.cause !== undefined) {
           this.context.logger.error(error.message, {
@@ -94,19 +106,32 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   /**
    * Wrap doExecute() with a Promise.race timeout when `stepTimeoutMs` is configured.
-   * The losing promise is NOT aborted (Promise.race limitation) — a slow LLM/agent call
-   * will complete in the background and be ignored. Acceptable tradeoff until all port
-   * methods accept an AbortSignal.
+   * The losing promise is NOT aborted (Promise.race limitation) and continues running
+   * in the background. A `.catch()` is attached to the work promise so that a late
+   * rejection becomes a logged info entry instead of UnhandledPromiseRejection; a late
+   * resolution is silently discarded.
    */
   private async runWithOptionalTimeout(): Promise<StepExecutionResult> {
     const timeoutMs = this.context.stepTimeoutMs;
     if (!timeoutMs || timeoutMs <= 0) return this.doExecute();
 
     let timer: NodeJS.Timeout | undefined;
+    const execPromise = this.doExecute();
+
+    // Must be attached BEFORE Promise.race so a late rejection on the losing
+    // branch has a handler and doesn't trigger UnhandledPromiseRejection.
+    execPromise.catch(err => {
+      this.context.logger.info('Step work rejected after timeout — result discarded', {
+        runId: this.context.runId,
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
 
     try {
       return await Promise.race([
-        this.doExecute(),
+        execPromise,
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => reject(new StepTimeoutError(timeoutMs)), timeoutMs);
         }),

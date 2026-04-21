@@ -141,10 +141,37 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.stepTimeoutMs).toBe(60000);
   });
 
-  it('leaves stepTimeoutMs undefined when STEP_TIMEOUT_MS is not set (no timeout)', () => {
+  it('leaves stepTimeoutMs undefined when STEP_TIMEOU_MS is unset (default applied downstream in build)', () => {
     const config = readEnvConfig(baseEnv, args);
 
     expect(config.executorOptions.stepTimeoutMs).toBeUndefined();
+  });
+
+  it.each(['abc', '30s', '1_000', 'NaN'])(
+    'throws ConfigurationError when STEP_TIMEOUT_MS is non-numeric (%s)',
+    value => {
+      expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_MS: value }, args)).toThrow(
+        /STEP_TIMEOUT_MS must be a positive integer/,
+      );
+    },
+  );
+
+  it('throws ConfigurationError when STEP_TIMEOUT_MS is 0', () => {
+    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_MS: '0' }, args)).toThrow(
+      /STEP_TIMEOUT_MS must be a positive integer/,
+    );
+  });
+
+  it('throws ConfigurationError when STEP_TIMEOUT_MS is negative', () => {
+    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_MS: '-100' }, args)).toThrow(
+      /STEP_TIMEOUT_MS must be a positive integer/,
+    );
+  });
+
+  it('throws ConfigurationError when STEP_TIMEOUT_MS is a float', () => {
+    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_MS: '1.5' }, args)).toThrow(
+      /STEP_TIMEOUT_MS must be a positive integer/,
+    );
   });
 
   it('aggregates all missing required env vars in a single error', () => {
