@@ -1,14 +1,22 @@
 import ForestIntegrationClient from '../src/forest-integration-client';
+import { validateKolarConfig } from '../src/integrations/kolar/utils';
 import { validateZendeskConfig } from '../src/integrations/zendesk/utils';
 
 const mockZendeskTools = [{ name: 'zendesk_get_tickets' }, { name: 'zendesk_get_ticket' }];
+const mockKolarTools = [{ name: 'kolar_screen_transaction' }, { name: 'kolar_get_result' }];
 
 jest.mock('../src/integrations/zendesk/tools', () => ({
   __esModule: true,
   default: jest.fn(() => mockZendeskTools),
 }));
 
+jest.mock('../src/integrations/kolar/tools', () => ({
+  __esModule: true,
+  default: jest.fn(() => mockKolarTools),
+}));
+
 jest.mock('../src/integrations/zendesk/utils');
+jest.mock('../src/integrations/kolar/utils');
 
 describe('ForestIntegrationClient', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -39,6 +47,20 @@ describe('ForestIntegrationClient', () => {
       await client.loadTools();
 
       expect(logger).toHaveBeenCalledWith('Warn', 'Unsupported integration: unknown');
+    });
+
+    it('should load kolar tools when integration is Kolar', async () => {
+      const client = new ForestIntegrationClient([
+        {
+          integrationName: 'Kolar',
+          config: { apiKey: 'key' },
+          isForestConnector: true,
+        },
+      ]);
+
+      const tools = await client.loadTools();
+
+      expect(tools).toEqual(mockKolarTools);
     });
 
     it('should return empty array when no configs', async () => {
@@ -91,6 +113,17 @@ describe('ForestIntegrationClient', () => {
       const result = await client.checkConnection();
 
       expect(result).toBe(true);
+    });
+
+    it('should call validateKolarConfig for Kolar integration', async () => {
+      const kolarConfig = { apiKey: 'key' };
+      const client = new ForestIntegrationClient([
+        { integrationName: 'Kolar', config: kolarConfig, isForestConnector: true },
+      ]);
+
+      await client.checkConnection();
+
+      expect(validateKolarConfig).toHaveBeenCalledWith(kolarConfig);
     });
 
     it('should throw for unsupported integration', async () => {
