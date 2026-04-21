@@ -5,6 +5,7 @@ import type { ExecutionContext } from '../../src/types/execution';
 import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { ReadRecordStepDefinition } from '../../src/types/step-definition';
 
+import SafeAgentPort from '../../src/adapters/safe-agent-port';
 import { NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -677,8 +678,10 @@ describe('ReadRecordStepExecutor', () => {
 
     it('returns user message and logs cause when agentPort.getRecord throws an infra error', async () => {
       const logger = { info: jest.fn(), error: jest.fn() };
-      const agentPort = makeMockAgentPort();
-      (agentPort.getRecord as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const rawAgentPort = makeMockAgentPort();
+      (rawAgentPort.getRecord as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      // Simulate the composition-root wiring (SafeAgentPort wraps the raw port).
+      const agentPort = new SafeAgentPort(rawAgentPort);
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const context = makeContext({ model: mockModel.model, agentPort, logger });
       const executor = new ReadRecordStepExecutor(context);

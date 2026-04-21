@@ -6,6 +6,7 @@ import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/re
 import type { LoadRelatedRecordStepDefinition } from '../../src/types/step-definition';
 import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-execution-data';
 
+import SafeAgentPort from '../../src/adapters/safe-agent-port';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
@@ -1308,8 +1309,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
     it('returns user message and logs cause when agentPort.getRelatedData throws an infra error', async () => {
       const logger = { info: jest.fn(), error: jest.fn() };
-      const agentPort = makeMockAgentPort();
-      (agentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const rawAgentPort = makeMockAgentPort();
+      (rawAgentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const agentPort = new SafeAgentPort(rawAgentPort);
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
       const context = makeContext({
         model: mockModel.model,

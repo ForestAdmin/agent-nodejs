@@ -6,6 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { TriggerActionStepDefinition } from '../../src/types/step-definition';
 import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-execution-data';
 
+import SafeAgentPort from '../../src/adapters/safe-agent-port';
 import { StepStateError } from '../../src/errors';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -615,8 +616,9 @@ describe('TriggerRecordActionStepExecutor', () => {
 
     it('returns user message and logs cause when agentPort.executeAction throws an infra error', async () => {
       const logger = { info: jest.fn(), error: jest.fn() };
-      const agentPort = makeMockAgentPort();
-      (agentPort.executeAction as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const rawAgentPort = makeMockAgentPort();
+      (rawAgentPort.executeAction as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+      const agentPort = new SafeAgentPort(rawAgentPort);
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',

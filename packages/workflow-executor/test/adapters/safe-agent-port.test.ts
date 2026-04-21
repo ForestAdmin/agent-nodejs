@@ -1,8 +1,8 @@
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { StepUser } from '../../src/types/execution';
 
+import SafeAgentPort from '../../src/adapters/safe-agent-port';
 import { AgentPortError, StepStateError, WorkflowExecutorError } from '../../src/errors';
-import SafeAgentPort from '../../src/executors/safe-agent-port';
 
 const dummyUser: StepUser = {
   id: 1,

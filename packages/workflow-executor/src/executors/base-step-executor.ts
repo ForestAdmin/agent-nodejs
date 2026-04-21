@@ -21,7 +21,6 @@ import {
   extractErrorMessage,
 } from '../errors';
 import patchBodySchemas from '../pending-data-validators';
-import SafeAgentPort from './safe-agent-port';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
 type WithPendingData = StepExecutionData & { pendingData?: object };
@@ -35,7 +34,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
-    this.agentPort = new SafeAgentPort(context.agentPort);
+    this.agentPort = context.agentPort;
   }
 
   async execute(): Promise<StepExecutionResult> {
