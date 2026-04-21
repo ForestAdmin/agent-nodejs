@@ -17,6 +17,7 @@ import {
   StepStateError,
   StepTimeoutError,
   WorkflowExecutorError,
+  extractErrorMessage,
 } from '../errors';
 import patchBodySchemas from '../pending-data-validators';
 import SafeAgentPort from './safe-agent-port';
@@ -90,7 +91,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         runId: this.context.runId,
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
-        error: error instanceof Error ? error.message : String(error),
+        error: extractErrorMessage(error),
         cause: errorCause instanceof Error ? errorCause.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
@@ -129,7 +130,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         runId: this.context.runId,
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
-        error: err instanceof Error ? err.message : String(err),
+        error: extractErrorMessage(err),
       });
     });
 

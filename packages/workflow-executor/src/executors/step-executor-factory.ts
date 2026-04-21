@@ -21,7 +21,7 @@ import type {
 } from '../types/step-definition';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
-import { StepStateError, causeMessage } from '../errors';
+import { StepStateError, causeMessage, extractErrorMessage } from '../errors';
 import ConditionStepExecutor from './condition-step-executor';
 import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
@@ -86,7 +86,7 @@ export default class StepExecutorFactory {
         runId: step.runId,
         stepId: step.stepId,
         stepIndex: step.stepIndex,
-        error: error instanceof Error ? error.message : String(error),
+        error: extractErrorMessage(error),
         cause: causeMessage(error),
         stack: error instanceof Error ? error.stack : undefined,
       });

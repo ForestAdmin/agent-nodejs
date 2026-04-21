@@ -10,7 +10,7 @@ import type { StepExecutionData } from './types/step-execution-data';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
-import { RunNotFoundError, UserMismatchError, causeMessage } from './errors';
+import { RunNotFoundError, UserMismatchError, causeMessage, extractErrorMessage } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import validateSecrets from './validate-secrets';
 
@@ -178,7 +178,7 @@ export default class Runner {
       await Promise.allSettled(pending.map(s => this.executeStep(s)));
     } catch (error) {
       this.logger.error('Poll cycle failed', {
-        error: error instanceof Error ? error.message : String(error),
+        error: extractErrorMessage(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
     } finally {
@@ -225,7 +225,7 @@ export default class Runner {
       this.logger.error('FATAL: executor contract violated — step outcome not reported', {
         runId: step.runId,
         stepId: step.stepId,
-        error: error instanceof Error ? error.message : String(error),
+        error: extractErrorMessage(error),
       });
 
       return;
@@ -240,7 +240,7 @@ export default class Runner {
         runId: step.runId,
         stepId: step.stepId,
         stepIndex: step.stepIndex,
-        error: error instanceof Error ? error.message : String(error),
+        error: extractErrorMessage(error),
         cause: causeMessage(error),
         stack: error instanceof Error ? error.stack : undefined,
       });

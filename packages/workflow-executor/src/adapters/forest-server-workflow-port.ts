@@ -11,6 +11,7 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 import ConsoleLogger from './console-logger';
 import toPendingStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
+import { extractErrorMessage } from '../errors';
 
 const ROUTES = {
   pendingRuns: '/api/workflow-orchestrator/pending-run',
@@ -49,7 +50,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       } catch (error) {
         this.logger.error('Failed to hydrate pending run — skipping', {
           runId: run.id,
-          error: error instanceof Error ? error.message : String(error),
+          error: extractErrorMessage(error),
         });
       }
 

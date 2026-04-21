@@ -6,6 +6,8 @@ import type { QueryInterface, Sequelize } from 'sequelize';
 import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
 
+import { extractErrorMessage } from '../errors';
+
 const TABLE_NAME = 'workflow_step_executions';
 
 export interface DatabaseStoreOptions {
@@ -79,7 +81,7 @@ export default class DatabaseStore implements RunStore {
       await umzug.up();
     } catch (error) {
       logger?.error('Database migration failed', {
-        error: error instanceof Error ? error.message : String(error),
+        error: extractErrorMessage(error),
       });
       throw error;
     }
@@ -119,7 +121,7 @@ export default class DatabaseStore implements RunStore {
       await this.sequelize.close();
     } catch (error) {
       logger?.error('Failed to close database connection', {
-        error: error instanceof Error ? error.message : String(error),
+        error: extractErrorMessage(error),
       });
     }
   }

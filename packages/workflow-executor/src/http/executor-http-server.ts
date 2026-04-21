@@ -11,7 +11,7 @@ import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
 import ConsoleLogger from '../adapters/console-logger';
-import { RunNotFoundError, UserMismatchError } from '../errors';
+import { RunNotFoundError, UserMismatchError, extractErrorMessage } from '../errors';
 
 export interface ExecutorHttpServerOptions {
   port: number;
@@ -49,7 +49,7 @@ export default class ExecutorHttpServer {
         this.logger.error('Unhandled HTTP error', {
           method: ctx.method,
           path: ctx.path,
-          error: err instanceof Error ? err.message : String(err),
+          error: extractErrorMessage(err),
           stack: err instanceof Error ? err.stack : undefined,
         });
         ctx.status = 500;
@@ -141,7 +141,7 @@ export default class ExecutorHttpServer {
         runId: ctx.params.runId,
         method: ctx.method,
         path: ctx.path,
-        error: err instanceof Error ? err.message : String(err),
+        error: extractErrorMessage(err),
         stack: err instanceof Error ? err.stack : undefined,
       });
       ctx.status = 503;

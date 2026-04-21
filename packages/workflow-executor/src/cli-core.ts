@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 import ConsoleLogger from './adapters/console-logger';
 import PrettyLogger from './adapters/pretty-logger';
-import { ConfigurationError } from './errors';
+import { ConfigurationError, extractErrorMessage } from './errors';
 
 const POSITIVE_INT = z.coerce.number().int().positive();
 
@@ -269,7 +269,7 @@ export async function runCli(
     return executor;
   } catch (error) {
     logger.error('Workflow executor failed to start', {
-      error: error instanceof Error ? error.message : String(error),
+      error: extractErrorMessage(error),
     });
     throw error;
   }

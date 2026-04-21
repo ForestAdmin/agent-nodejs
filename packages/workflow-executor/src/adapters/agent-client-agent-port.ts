@@ -14,7 +14,7 @@ import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/ag
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
-import { AgentProbeError, RecordNotFoundError } from '../errors';
+import { AgentProbeError, RecordNotFoundError, extractErrorMessage } from '../errors';
 
 function buildPkFilter(
   primaryKeyFields: string[],
@@ -161,9 +161,7 @@ export default class AgentClientAgentPort implements AgentPort {
       response = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5_000) });
     } catch (error) {
       const isTimeout = error instanceof Error && error.name === 'TimeoutError';
-      const reason = isTimeout
-        ? 'timeout after 5000ms'
-        : `${error instanceof Error ? error.message : String(error)}`;
+      const reason = isTimeout ? 'timeout after 5000ms' : extractErrorMessage(error);
       throw new AgentProbeError(`cannot reach ${this.agentUrl} (${reason})`, { cause: error });
     }
 

@@ -6,6 +6,29 @@ export function causeMessage(error: unknown): string | undefined {
   return cause instanceof Error ? cause.message : undefined;
 }
 
+/**
+ * Extracts a human-readable message from any thrown value. Cascades through:
+ *   1. `err.message` if non-empty
+ *   2. `err.parent.message` (Sequelize wraps the pg/driver error in .parent)
+ *   3. `err.cause.message` (native Error.cause chaining)
+ *   4. `err.name` fallback
+ *
+ * Prevents empty `error=""` in logs when catching wrapped errors
+ * (e.g. SequelizeConnectionRefusedError has an empty .message).
+ */
+export function extractErrorMessage(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  if (err.message) return err.message;
+
+  const { parent } = err as { parent?: unknown };
+  if (parent instanceof Error && parent.message) return parent.message;
+
+  const { cause } = err as { cause?: unknown };
+  if (cause instanceof Error && cause.message) return cause.message;
+
+  return err.name || 'Unknown error';
+}
+
 export abstract class WorkflowExecutorError extends Error {
   readonly userMessage: string;
   cause?: unknown;
