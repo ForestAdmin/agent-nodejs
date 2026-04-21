@@ -1,3 +1,4 @@
+import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
 import type { ReadRecordStepDefinition } from '../types/step-definition';
@@ -18,6 +19,17 @@ Important rules:
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecordStepDefinition> {
+  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
+    return {
+      forestServerToken: this.context.forestServerToken,
+      renderingId: this.context.user.renderingId,
+      action: 'index',
+      type: 'read',
+      collectionName: this.context.baseRecordRef.collectionName,
+      recordId: this.context.baseRecordRef.recordId[0],
+    };
+  }
+
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;

@@ -1,3 +1,4 @@
+import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { ExecutionContext, StepExecutionResult } from '../types/execution';
 import type { McpStepDefinition } from '../types/step-definition';
 import type { McpStepExecutionData, McpToolCall } from '../types/step-execution-data';
@@ -28,6 +29,16 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   constructor(context: ExecutionContext<McpStepDefinition>, remoteTools: readonly RemoteTool[]) {
     super(context);
     this.remoteTools = remoteTools;
+  }
+
+  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
+    return {
+      forestServerToken: this.context.forestServerToken,
+      renderingId: this.context.user.renderingId,
+      action: 'action',
+      type: 'write',
+      label: this.context.stepDefinition.mcpServerId,
+    };
   }
 
   protected buildOutcomeResult(outcome: {

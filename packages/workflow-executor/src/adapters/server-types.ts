@@ -123,6 +123,11 @@ export interface ServerHydratedWorkflowRun {
   renderingId: number;
   lockedAt?: string | null;
   userProfile?: ServerUserProfile;
+  /**
+   * Forest Admin user token forwarded by the orchestrator so the executor can
+   * post activity logs on behalf of the user who triggered the run.
+   */
+  forestServerToken: string;
 }
 
 // --- Update step request (POST /api/workflow-orchestrator/update-step) ---

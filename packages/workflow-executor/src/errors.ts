@@ -194,6 +194,21 @@ export class StepStateError extends WorkflowExecutorError {
   }
 }
 
+/**
+ * Thrown by the activity-log adapter when all retries on `createPending` are
+ * exhausted (network errors, 5xx, etc.). Bubbles up to base-step-executor,
+ * which converts it to a step error — no step runs without an audit log.
+ */
+export class ActivityLogCreationError extends WorkflowExecutorError {
+  constructor(cause: unknown) {
+    super(
+      'Failed to create activity log after retries',
+      'Could not record this step in the audit log. Please try again, or contact your administrator if the problem persists.',
+    );
+    this.cause = cause;
+  }
+}
+
 /** Thrown when step execution exceeds the configured `stepTimeoutMs`. */
 export class StepTimeoutError extends WorkflowExecutorError {
   constructor(timeoutMs: number) {

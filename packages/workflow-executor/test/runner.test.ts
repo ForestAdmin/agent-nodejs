@@ -94,6 +94,11 @@ function createRunnerConfig(
     } as unknown as RunStore,
     pollingIntervalMs: POLLING_INTERVAL_MS,
     aiModelPort: createMockAiClient() as unknown as AiModelPort,
+    activityLogPort: {
+      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+      markSucceeded: jest.fn().mockResolvedValue(undefined),
+      markFailed: jest.fn().mockResolvedValue(undefined),
+    },
     logger: createMockLogger(),
     schemaCache: new SchemaCache(),
     envSecret: VALID_ENV_SECRET,
@@ -143,6 +148,7 @@ function makePendingStep(
       permissionLevel: 'admin',
       tags: {},
     },
+    forestServerToken: 'test-forest-token',
     ...rest,
   };
 }
@@ -738,6 +744,11 @@ describe('StepExecutorFactory.create — factory', () => {
     runStore: {} as RunStore,
     schemaCache: new SchemaCache(),
     logger: { info: jest.fn(), error: jest.fn() },
+    activityLogPort: {
+      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+      markSucceeded: jest.fn().mockResolvedValue(undefined),
+      markFailed: jest.fn().mockResolvedValue(undefined),
+    },
   });
 
   it('dispatches Condition steps to ConditionStepExecutor', async () => {

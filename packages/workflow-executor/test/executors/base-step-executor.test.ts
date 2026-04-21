@@ -90,6 +90,14 @@ function makeMockLogger(): Logger {
   return { info: jest.fn(), error: jest.fn() };
 }
 
+function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
+  return {
+    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+    markSucceeded: jest.fn().mockResolvedValue(undefined),
+    markFailed: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return {
     runId: 'run-1',
@@ -123,6 +131,8 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: makeMockLogger(),
+    forestServerToken: 'test-forest-token',
+    activityLogPort: makeMockActivityLogPort(),
     ...overrides,
   };
 }
@@ -439,6 +449,118 @@ describe('BaseStepExecutor', () => {
         process.off('unhandledRejection', unhandled);
       }
     }, 5_000);
+  });
+
+  describe('activity log lifecycle', () => {
+    class LoggedExecutor extends BaseStepExecutor {
+      constructor(context: ExecutionContext, private readonly errorToThrow?: unknown) {
+        super(context);
+      }
+
+      protected override buildActivityLogArgs() {
+        return {
+          forestServerToken: this.context.forestServerToken,
+          renderingId: 1,
+          action: 'update',
+          type: 'write' as const,
+          collectionName: 'customers',
+          recordId: 42,
+        };
+      }
+
+      protected async doExecute(): Promise<StepExecutionResult> {
+        if (this.errorToThrow !== undefined) throw this.errorToThrow;
+
+        return this.buildOutcomeResult({ status: 'success' });
+      }
+
+      protected buildOutcomeResult(outcome: {
+        status: BaseStepStatus;
+        error?: string;
+      }): StepExecutionResult {
+        return {
+          stepOutcome: {
+            type: 'record',
+            stepId: this.context.stepId,
+            stepIndex: this.context.stepIndex,
+            status: outcome.status,
+            ...(outcome.error !== undefined && { error: outcome.error }),
+          },
+        };
+      }
+    }
+
+    it('creates pending log, runs doExecute, then marks succeeded on success', async () => {
+      const context = makeContext();
+      const executor = new LoggedExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(context.activityLogPort.createPending).toHaveBeenCalledWith(
+        expect.objectContaining({
+          forestServerToken: 'test-forest-token',
+          action: 'update',
+          type: 'write',
+        }),
+      );
+      expect(context.activityLogPort.markSucceeded).toHaveBeenCalledWith(
+        { id: 'log-1', index: '0' },
+        'test-forest-token',
+      );
+      expect(context.activityLogPort.markFailed).not.toHaveBeenCalled();
+    });
+
+    it('marks failed when doExecute throws a WorkflowExecutorError', async () => {
+      const context = makeContext();
+      const executor = new LoggedExecutor(context, new NoRecordsError());
+
+      await executor.execute();
+
+      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
+        { id: 'log-1', index: '0' },
+        'test-forest-token',
+        'No records available',
+      );
+      expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
+    });
+
+    it('fails the step and does NOT run doExecute when createPending throws ActivityLogCreationError', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+      const { ActivityLogCreationError } = require('../../src/errors');
+      const context = makeContext();
+      (context.activityLogPort.createPending as jest.Mock).mockRejectedValue(
+        new ActivityLogCreationError(new Error('net')),
+      );
+      const doExecuteSpy = jest.fn().mockResolvedValue({
+        stepOutcome: { type: 'record', stepId: 'x', stepIndex: 0, status: 'success' },
+      });
+
+      class NeverRunExecutor extends LoggedExecutor {
+        protected override async doExecute(): Promise<StepExecutionResult> {
+          return doExecuteSpy();
+        }
+      }
+
+      const executor = new NeverRunExecutor(context);
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'Could not record this step in the audit log. Please try again, or contact your administrator if the problem persists.',
+      );
+      expect(doExecuteSpy).not.toHaveBeenCalled();
+    });
+
+    it('does NOT create pending log when buildActivityLogArgs returns null (default)', async () => {
+      const context = makeContext();
+      const executor = new TestableExecutor(context);
+
+      await executor.execute();
+
+      expect(context.activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
+    });
   });
 
   describe('invokeWithTool', () => {

@@ -49,6 +49,7 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
       permissionLevel: 'admin',
       tags: { env: 'prod' },
     },
+    forestServerToken: 'test-forest-token',
     ...overrides,
   };
 }
@@ -71,7 +72,20 @@ describe('toPendingStepExecution', () => {
       stepDefinition: { type: StepType.ReadRecord, prompt: 'prompt' },
       previousSteps: [],
       user: expect.objectContaining({ id: 7, email: 'alban@forestadmin.com' }),
+      forestServerToken: 'test-forest-token',
     });
+  });
+
+  it('should throw InvalidStepDefinitionError when forestServerToken is missing', () => {
+    const run = makeRun({ forestServerToken: undefined as unknown as string });
+
+    expect(() => toPendingStepExecution(run)).toThrow(/forestServerToken/);
+  });
+
+  it('should throw InvalidStepDefinitionError when forestServerToken is empty', () => {
+    const run = makeRun({ forestServerToken: '' });
+
+    expect(() => toPendingStepExecution(run)).toThrow(/forestServerToken/);
   });
 
   it('should stringify the numeric run id', () => {

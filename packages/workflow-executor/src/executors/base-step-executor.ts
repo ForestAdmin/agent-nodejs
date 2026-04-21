@@ -1,3 +1,4 @@
+import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { ExecutionContext, IStepExecutor, StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
@@ -49,7 +50,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     });
 
     try {
-      const result = await this.runWithTimeout();
+      const result = await this.runWithActivityLog();
 
       this.context.logger.info('Step execution completed', {
         runId,
@@ -104,6 +105,62 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   protected abstract doExecute(): Promise<StepExecutionResult>;
+
+  /**
+   * Override in concrete executors to emit a Forest Admin activity log around
+   * the step. Return `null` to skip (default): no log is created.
+   *
+   * Only override when the executor itself performs the action on the agent.
+   * If the frontend executes (e.g., TriggerAction with automaticExecution=false),
+   * return `null` — the front logs on its side via the standard agent flow.
+   */
+  protected buildActivityLogArgs(): CreateActivityLogArgs | null {
+    return null;
+  }
+
+  /**
+   * Wrap runWithTimeout() with a Forest Admin activity log.
+   *
+   * - Creates a Pending log (blocking, with 3 retries in the port adapter).
+   *   If creation fails after all retries, ActivityLogCreationError bubbles
+   *   up and is caught by execute() → step ends in error.
+   * - Transitions the log to completed/failed after the step finishes
+   *   (fire-and-forget; retries happen in background).
+   */
+  private async runWithActivityLog(): Promise<StepExecutionResult> {
+    const args = this.buildActivityLogArgs();
+    if (!args) return this.runWithTimeout();
+
+    const handle = await this.context.activityLogPort.createPending(args);
+
+    let result: StepExecutionResult;
+
+    try {
+      result = await this.runWithTimeout();
+    } catch (err) {
+      // doExecute threw (domain or unexpected error). Mark the log as failed
+      // so the audit trail reflects the failure, then rethrow for execute()
+      // to convert into a stepOutcome.
+      void this.context.activityLogPort.markFailed(
+        handle,
+        this.context.forestServerToken,
+        extractErrorMessage(err),
+      );
+      throw err;
+    }
+
+    if (result.stepOutcome.status === 'error') {
+      void this.context.activityLogPort.markFailed(
+        handle,
+        this.context.forestServerToken,
+        result.stepOutcome.error ?? 'Step failed',
+      );
+    } else {
+      void this.context.activityLogPort.markSucceeded(handle, this.context.forestServerToken);
+    }
+
+    return result;
+  }
 
   /**
    * Wrap doExecute() with a Promise.race against `stepTimeoutMs`. Always applied

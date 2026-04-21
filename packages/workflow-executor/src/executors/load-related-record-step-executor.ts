@@ -1,3 +1,4 @@
+import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordData, RecordRef } from '../types/record';
 import type { LoadRelatedRecordStepDefinition } from '../types/step-definition';
@@ -37,6 +38,17 @@ interface RelationTarget extends RelationRef {
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
+  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
+    return {
+      forestServerToken: this.context.forestServerToken,
+      renderingId: this.context.user.renderingId,
+      action: 'listRelatedData',
+      type: 'read',
+      collectionName: this.context.baseRecordRef.collectionName,
+      recordId: this.context.baseRecordRef.recordId[0],
+    };
+  }
+
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<LoadRelatedRecordStepExecutionData>(

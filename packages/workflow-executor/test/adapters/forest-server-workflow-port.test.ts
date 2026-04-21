@@ -54,6 +54,7 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
       permissionLevel: 'admin',
       tags: {},
     },
+    forestServerToken: 'test-forest-token',
     ...overrides,
   };
 }

@@ -1,3 +1,4 @@
+import type { ActivityLogPort } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { AiModelPort } from '../ports/ai-model-port';
 import type { Logger } from '../ports/logger-port';
@@ -39,6 +40,7 @@ export interface StepContextConfig {
   runStore: RunStore;
   schemaCache: SchemaCache;
   logger: Logger;
+  activityLogPort: ActivityLogPort;
   stepTimeoutMs?: number;
 }
 
@@ -120,6 +122,7 @@ export default class StepExecutorFactory {
       logger: cfg.logger,
       incomingPendingData,
       stepTimeoutMs: cfg.stepTimeoutMs,
+      activityLogPort: cfg.activityLogPort,
     };
   }
 }

@@ -1,3 +1,4 @@
+import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
 import type { UpdateRecordStepDefinition } from '../types/step-definition';
@@ -28,6 +29,17 @@ interface UpdateTarget extends FieldRef {
 }
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
+  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
+    return {
+      forestServerToken: this.context.forestServerToken,
+      renderingId: this.context.user.renderingId,
+      action: 'update',
+      type: 'write',
+      collectionName: this.context.baseRecordRef.collectionName,
+      recordId: this.context.baseRecordRef.recordId[0],
+    };
+  }
+
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<UpdateRecordStepExecutionData>(

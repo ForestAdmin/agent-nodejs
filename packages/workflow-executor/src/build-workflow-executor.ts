@@ -3,12 +3,14 @@ import type { RunnerState } from './runner';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Options as SequelizeOptions } from 'sequelize';
 
+import { ActivityLogsService, ForestHttpApi } from '@forestadmin/forestadmin-client';
 import { Sequelize } from 'sequelize';
 
 import AgentClientAgentPort from './adapters/agent-client-agent-port';
 import AiClientAdapter from './adapters/ai-client-adapter';
 import ConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
+import ForestadminClientActivityLogPort from './adapters/forestadmin-client-activity-log-port';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import ExecutorHttpServer from './http/executor-http-server';
 import Runner from './runner';
@@ -65,11 +67,18 @@ function buildCommonDependencies(options: ExecutorOptions) {
     schemaCache,
   });
 
+  const activityLogsService = new ActivityLogsService(new ForestHttpApi(), {
+    forestServerUrl,
+    headers: { 'Forest-Application-Source': 'WorkflowExecutor' },
+  });
+  const activityLogPort = new ForestadminClientActivityLogPort(activityLogsService, logger);
+
   return {
     agentPort,
     schemaCache,
     workflowPort,
     aiModelPort,
+    activityLogPort,
     logger,
     pollingIntervalMs: options.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,
     envSecret: options.envSecret,

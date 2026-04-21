@@ -1,4 +1,5 @@
 import type { StepContextConfig } from './executors/step-executor-factory';
+import type { ActivityLogPort } from './ports/activity-log-port';
 import type { AgentPort } from './ports/agent-port';
 import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger } from './ports/logger-port';
@@ -23,6 +24,7 @@ export interface RunnerConfig {
   schemaCache: SchemaCache;
   pollingIntervalMs: number;
   aiModelPort: AiModelPort;
+  activityLogPort: ActivityLogPort;
   envSecret: string;
   authSecret: string;
   logger?: Logger;
@@ -256,6 +258,7 @@ export default class Runner {
       schemaCache: this.config.schemaCache,
       logger: this.logger,
       stepTimeoutMs: this.config.stepTimeoutMs,
+      activityLogPort: this.config.activityLogPort,
     };
   }
 }

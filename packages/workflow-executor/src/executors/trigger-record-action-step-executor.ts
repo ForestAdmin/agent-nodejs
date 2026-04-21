@@ -1,3 +1,4 @@
+import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution';
 import type { CollectionSchema, RecordRef } from '../types/record';
 import type { TriggerActionStepDefinition } from '../types/step-definition';
@@ -28,6 +29,21 @@ interface ActionTarget extends ActionRef {
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
+  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
+    // Skip when the frontend executes the action itself (non-automatic mode).
+    // The front logs on its side via the standard agent activity flow.
+    if (this.context.stepDefinition.automaticExecution !== true) return null;
+
+    return {
+      forestServerToken: this.context.forestServerToken,
+      renderingId: this.context.user.renderingId,
+      action: 'action',
+      type: 'write',
+      collectionName: this.context.baseRecordRef.collectionName,
+      recordId: this.context.baseRecordRef.recordId[0],
+    };
+  }
+
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<TriggerRecordActionStepExecutionData>(
