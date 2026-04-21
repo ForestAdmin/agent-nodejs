@@ -11,7 +11,7 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 import ConsoleLogger from './console-logger';
 import toPendingStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
-import { InvalidStepDefinitionError, extractErrorMessage } from '../errors';
+import { WorkflowExecutorError, extractErrorMessage } from '../errors';
 
 const ROUTES = {
   pendingRuns: '/api/workflow-orchestrator/pending-run',
@@ -50,7 +50,9 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
         const step = toPendingStepExecution(run);
         if (step) pending.push(step);
       } catch (error) {
-        if (error instanceof InvalidStepDefinitionError) {
+        if (error instanceof WorkflowExecutorError) {
+          // Sequential on purpose: a pathological batch shouldn't fan out
+          // N concurrent error reports to the orchestrator.
           // eslint-disable-next-line no-await-in-loop
           await this.reportMalformedRun(run, error);
         } else {
@@ -77,7 +79,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     try {
       return toPendingStepExecution(run);
     } catch (error) {
-      if (error instanceof InvalidStepDefinitionError) {
+      if (error instanceof WorkflowExecutorError) {
         await this.reportMalformedRun(run, error);
       }
 
@@ -92,10 +94,14 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
    * Extracts the stepIndex from `workflowHistory` (first non-done,
    * non-cancelled step). If none is identifiable, logs and skips — the run
    * will keep looping until ops fixes the data manually (edge case).
+   *
+   * Uses `err.userMessage` (not the technical `err.message`) as the
+   * `executionStatus.message`, which surfaces verbatim in the Forest Admin
+   * audit trail / workflow designer UI. Keep `userMessage` user-safe.
    */
   private async reportMalformedRun(
     run: ServerHydratedWorkflowRun,
-    err: InvalidStepDefinitionError,
+    err: WorkflowExecutorError,
   ): Promise<void> {
     const pending = run.workflowHistory.find(s => !s.done && !s.cancelled);
 

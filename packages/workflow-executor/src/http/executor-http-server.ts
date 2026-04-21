@@ -12,9 +12,9 @@ import koaJwt from 'koa-jwt';
 
 import ConsoleLogger from '../adapters/console-logger';
 import {
-  InvalidStepDefinitionError,
   RunNotFoundError,
   UserMismatchError,
+  WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
 
@@ -198,10 +198,12 @@ export default class ExecutorHttpServer {
         return;
       }
 
-      if (err instanceof InvalidStepDefinitionError) {
+      if (err instanceof WorkflowExecutorError) {
         this.logger.error('Malformed run on trigger', {
           runId,
+          bearerUserId,
           error: extractErrorMessage(err),
+          stack: err.stack,
         });
         ctx.status = 400;
         ctx.body = { error: err.userMessage };

@@ -118,7 +118,9 @@ describe('ForestServerWorkflowPort', () => {
       expect(result).toHaveLength(1);
       expect(result[0].runId).toBe('42');
 
-      // Report posted to the orchestrator for the malformed run
+      // Report posted to the orchestrator for the malformed run — assert the
+      // full payload so regressions on userMessage (privacy) or done:true
+      // (pending-pool exit) are caught.
       expect(mockQuery).toHaveBeenCalledWith(
         options,
         'post',
@@ -126,7 +128,15 @@ describe('ForestServerWorkflowPort', () => {
         {},
         expect.objectContaining({
           runId: 99,
-          executionStatus: expect.objectContaining({ type: 'error' }),
+          executionStatus: {
+            type: 'error',
+            message:
+              'The workflow step configuration is invalid. Please check the workflow designer.',
+          },
+          stepUpdate: expect.objectContaining({
+            stepIndex: 0,
+            attributes: expect.objectContaining({ done: true }),
+          }),
         }),
       );
 
@@ -200,6 +210,42 @@ describe('ForestServerWorkflowPort', () => {
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to hydrate pending run — no pending step to report, skipping',
         expect.objectContaining({ runId: 88 }),
+      );
+    });
+
+    it('reports UnsupportedStepTypeError the same way as InvalidStepDefinitionError', async () => {
+      const logger = { error: jest.fn(), info: jest.fn() };
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      const unsupportedRun = makeRun({
+        id: 33,
+        workflowHistory: [
+          {
+            stepName: 'esc-step',
+            stepIndex: 0,
+            done: false,
+            stepDefinition: {
+              type: 'escalation',
+              title: 'x',
+              prompt: 'x',
+              outgoing: { stepId: 'n', buttonText: null },
+              inboxId: null,
+            },
+          },
+        ],
+      });
+      mockQuery.mockResolvedValue([unsupportedRun]);
+
+      await portWithLogger.getPendingStepExecutions();
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        expect.objectContaining({
+          runId: 33,
+          executionStatus: expect.objectContaining({ type: 'error' }),
+        }),
       );
     });
 
