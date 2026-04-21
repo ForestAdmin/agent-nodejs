@@ -31,7 +31,7 @@ export default function makeAgent() {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     forestAppUrl: process.env.FOREST_APP_URL,
-    workflowExecutorUrl: process.env.WORKFLOW_EXECUTOR_URL ?? 'http://localhost:3400',
+    workflowExecutorUrl: process.env.WORKFLOW_EXECUTOR_URL,
     isProduction: false,
     loggerLevel: 'Info',
     typingsPath: 'src/forest/typings.ts',
