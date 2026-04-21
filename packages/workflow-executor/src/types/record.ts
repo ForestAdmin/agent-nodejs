@@ -34,13 +34,12 @@ export interface CollectionSchema {
 
 // -- Record types (data — source: AgentPort/RunStore) --
 
-/** Lightweight pointer to a specific record. */
 export interface RecordRef {
   collectionName: string;
   recordId: Array<string | number>;
-  /** Index of the workflow step that loaded this record. */
+  // Index of the workflow step that loaded this record.
   stepIndex: number;
 }
 
-/** A record with its loaded field values — no stepIndex (agent doesn't know about steps). */
+// No stepIndex — the agent doesn't know about steps.
 export type RecordData = Omit<RecordRef, 'stepIndex'> & { values: Record<string, unknown> };

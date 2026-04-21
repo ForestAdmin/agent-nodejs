@@ -30,7 +30,7 @@ export default class SchemaCache {
     this.store.set(collectionName, { schema, fetchedAt: this.now() });
   }
 
-  /** Iterates over non-expired entries, removing stale ones. */
+  // Yields non-expired entries; deletes stale ones along the way.
   *[Symbol.iterator](): IterableIterator<[string, CollectionSchema]> {
     const now = this.now();
 

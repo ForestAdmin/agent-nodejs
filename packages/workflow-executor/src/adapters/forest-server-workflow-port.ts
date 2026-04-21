@@ -97,11 +97,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     }
   }
 
-  /**
-   * Assemble the domain step + adapter metadata (auth token) into a dispatch.
-   * Validates the forestServerToken at the adapter boundary so the domain
-   * never sees a missing/empty token.
-   */
+  // Validates forestServerToken at the adapter boundary so the domain never sees a missing token.
   private toDispatch(run: ServerHydratedWorkflowRun): PendingRunDispatch | null {
     if (typeof run.forestServerToken !== 'string' || !run.forestServerToken) {
       throw new InvalidStepDefinitionError(
@@ -116,13 +112,6 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     return { step, auth: { forestServerToken: run.forestServerToken } };
   }
 
-  /**
-   * Pure mapping: build the domain-level MalformedRunInfo from a server run
-   * that failed toPendingStepExecution. Extracts the stepId/stepIndex from
-   * `workflowHistory` (first non-done, non-cancelled) when available — the
-   * caller needs them to post an error outcome via updateStepExecution.
-   * Returns null stepId/stepIndex when no pending step is identifiable.
-   */
   private toMalformedInfo(
     run: ServerHydratedWorkflowRun,
     err: WorkflowExecutorError,

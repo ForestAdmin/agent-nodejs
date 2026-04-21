@@ -88,16 +88,8 @@ export function parseArgs(argv: string[]): CliArgs {
   return result;
 }
 
-/**
- * Pick the logger based on (in priority order):
- *   1. --json flag     → ConsoleLogger (structured, machine-parseable)
- *   2. --pretty flag   → PrettyLogger (colorized, human-readable)
- *   3. stdout is a TTY → PrettyLogger (interactive terminal)
- *   4. otherwise       → ConsoleLogger (piped, redirected, docker, k8s, CI)
- *
- * `NO_COLOR` is respected by picocolors so pretty output stays monochrome
- * in environments that ban ANSI codes.
- */
+// Priority: --json → Console; --pretty → Pretty; TTY → Pretty; else Console (piped/docker/k8s/CI).
+// NO_COLOR is respected by picocolors so pretty output stays monochrome where ANSI is banned.
 export function pickLogger(args: CliArgs, stdout: NodeJS.WriteStream = process.stdout): Logger {
   if (args.json) return new ConsoleLogger();
   if (args.pretty) return new PrettyLogger();

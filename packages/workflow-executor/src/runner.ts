@@ -40,12 +40,8 @@ export interface RunnerConfig {
   authSecret: string;
   logger?: Logger;
   stopTimeoutMs?: number;
-  /**
-   * Max duration of a single step's execution. Unset or <= 0 = no timeout.
-   * On timeout, the step reports `status: 'error'` to the orchestrator with a
-   * user-facing message. The underlying work is NOT aborted: late rejections from
-   * the agent/LLM are caught and logged; late resolutions are silently discarded.
-   */
+  // On timeout the step reports status:error; the underlying work is not aborted (Promise.race
+  // limitation). Late rejections are caught and logged; late resolutions are silently discarded.
   stepTimeoutMs?: number;
 }
 
@@ -81,9 +77,7 @@ export default class Runner {
 
     validateSecrets({ envSecret: this.config.envSecret, authSecret: this.config.authSecret });
 
-    // Probe the agent first (cheap network check) so we fail fast without
-    // opening database connections when the agent is unreachable. Only flip
-    // the running flags after both probe and migrations succeed.
+    // Probe the agent first so we fail fast without opening DB connections when unreachable.
     await this.config.agentPort.probe();
     this.logger.info('Agent probe passed', {});
     await this.config.runStore.init(this.logger);
@@ -136,12 +130,10 @@ export default class Runner {
         }
       }
 
-      // Wait for fire-and-forget activity-log transitions (markSucceeded /
-      // markFailed) to settle before closing resources — otherwise we can
-      // exit with audit-trail rows still stuck in Pending.
+      // Wait for fire-and-forget activity-log transitions to settle before closing resources —
+      // otherwise audit-trail rows can be left stuck in Pending.
       await this.config.activityLogPort.drain();
 
-      // Close resources — log failures instead of silently swallowing
       const results = await Promise.allSettled([
         this.config.aiModelPort.closeConnections(),
         this.config.runStore.close(this.logger),
@@ -200,8 +192,7 @@ export default class Runner {
   private async runPollCycle(): Promise<void> {
     try {
       const { pending, malformed } = await this.config.workflowPort.getPendingStepExecutions();
-      // Report malformed runs concurrently — each has its own try/catch inside
-      // reportMalformedRun so no individual failure poisons the cycle.
+      // Each reportMalformedRun has its own try/catch, no individual failure poisons the cycle.
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
       const dispatchable = pending.filter(d => !this.inFlightSteps.has(Runner.stepKey(d.step)));
@@ -223,13 +214,9 @@ export default class Runner {
     }
   }
 
-  /**
-   * Policy for runs that failed to map (WorkflowPort produced a MalformedRunInfo).
-   * Post an error outcome via updateStepExecution so the orchestrator marks the
-   * run failed and stops re-dispatching it. Idempotent at the orchestrator level
-   * (re-posting on the next cycle is accepted). If no stepIndex is identifiable,
-   * log loudly and skip — edge case, ops has to clean up manually.
-   */
+  // Posts an error outcome so the orchestrator marks the run failed and stops re-dispatching it.
+  // Idempotent server-side. If stepIndex is null (empty/corrupt history), log loudly and skip —
+  // ops has to clean up manually.
   private async reportMalformedRun(info: MalformedRunInfo): Promise<void> {
     if (info.stepId === null || info.stepIndex === null) {
       this.logger.error('Malformed run cannot be reported — no pending step identified', {
@@ -341,11 +328,6 @@ export default class Runner {
     };
   }
 
-  /**
-   * Bind the global ActivityLogPort with the run's forestServerToken to a
-   * scoped logger. Executors see this limited view; the token never traverses
-   * the domain types.
-   */
   private createRunLogger(forestServerToken: string): RunActivityLogger {
     const port = this.config.activityLogPort;
 

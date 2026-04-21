@@ -115,11 +115,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  /**
-   * Resolves the field name, calls updateRecord, and persists execution data.
-   * When `existingExecution` is provided (confirmation flow), it is spread into the
-   * saved execution to preserve pendingData for traceability.
-   */
+  // existingExecution (confirmation flow) is spread into the saved execution to preserve pendingData.
   private async resolveAndUpdate(
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,

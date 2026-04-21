@@ -105,27 +105,12 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   protected abstract doExecute(): Promise<StepExecutionResult>;
 
-  /**
-   * Override in concrete executors to emit a Forest Admin activity log around
-   * the step. Return `null` to skip (default): no log is created.
-   *
-   * Only override when the executor itself performs the action on the agent.
-   * If the frontend executes (e.g., TriggerAction with automaticExecution=false),
-   * return `null` — the front logs on its side via the standard agent flow.
-   */
+  // Return null when the frontend performs the action (e.g. TriggerAction with automaticExecution=false)
+  // — the front logs on its side. Override when the executor itself calls the agent.
   protected buildActivityLogArgs(): Omit<CreateActivityLogArgs, 'forestServerToken'> | null {
     return null;
   }
 
-  /**
-   * Wrap runWithTimeout() with a Forest Admin activity log.
-   *
-   * - Creates a Pending log (blocking, with 3 retries in the port adapter).
-   *   If creation fails after all retries, ActivityLogCreationError bubbles
-   *   up and is caught by execute() → step ends in error.
-   * - Transitions the log to completed/failed after the step finishes
-   *   (fire-and-forget; retries happen in background).
-   */
   private async runWithActivityLog(): Promise<StepExecutionResult> {
     const args = this.buildActivityLogArgs();
     if (!args) return this.runWithTimeout();
@@ -137,14 +122,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     try {
       result = await this.runWithTimeout();
     } catch (err) {
-      // doExecute threw (domain or unexpected error). Mark the log as failed
-      // so the audit trail reflects the failure, then rethrow for execute()
-      // to convert into a stepOutcome.
-      //
-      // Use userMessage (not the technical message) — the errorMessage field
-      // is rendered to end-users in the Forest Admin UI, so leaking
-      // collection/field/AI internals (CLAUDE.md "Dual error messages") is
-      // a privacy/UX issue. Same choice as buildOutcomeResult below.
+      // Use userMessage (not the technical message) — errorMessage is rendered to end-users
+      // in the Forest Admin UI. Privacy: no collection/field/AI internals in the audit trail.
       const errorMessage =
         err instanceof WorkflowExecutorError ? err.userMessage : 'Unexpected error';
       void this.context.activityLogPort.markFailed(handle, errorMessage);
@@ -163,17 +142,9 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return result;
   }
 
-  /**
-   * Wrap doExecute() with a Promise.race against `stepTimeoutMs`. Always applied
-   * when a timeout is configured (default 5 min in build-workflow-executor); the
-   * `<= 0` guard below is defense-in-depth for programmatic consumers who pass 0
-   * or undefined explicitly.
-   *
-   * The losing promise is NOT aborted (Promise.race limitation) and continues
-   * running in the background. A `.catch()` is attached to the work promise so a
-   * late rejection becomes a logged info entry instead of UnhandledPromiseRejection;
-   * a late resolution is silently discarded.
-   */
+  // Promise.race doesn't abort the losing branch — it keeps running in the background. The .catch()
+  // on execPromise must be attached BEFORE the race so a late rejection doesn't trigger
+  // UnhandledPromiseRejection. Late resolutions are silently discarded.
   private async runWithTimeout(): Promise<StepExecutionResult> {
     const timeoutMs = this.context.stepTimeoutMs;
     if (!timeoutMs || timeoutMs <= 0) return this.doExecute();
@@ -181,8 +152,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     let timer: NodeJS.Timeout | undefined;
     const execPromise = this.doExecute();
 
-    // Must be attached BEFORE Promise.race so a late rejection on the losing
-    // branch has a handler and doesn't trigger UnhandledPromiseRejection.
     execPromise.catch(err => {
       this.context.logger.info('Step work rejected after timeout — result discarded', {
         runId: this.context.runId,
@@ -204,7 +173,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     }
   }
 
-  /** Find a field by displayName first, then fallback to fieldName. */
   protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
     return (
       schema.fields.find(f => f.displayName === name) ??
@@ -212,16 +180,11 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  /** Builds a StepExecutionResult with the step-type-specific outcome shape. */
   protected abstract buildOutcomeResult(outcome: {
     status: StepStatus;
     error?: string;
   }): StepExecutionResult;
 
-  /**
-   * Finds a step execution in the RunStore matching the given type and the current stepIndex.
-   * Returns undefined if no matching execution exists (first call → Branch B/C).
-   */
   protected async findPendingExecution<TExec extends WithPendingData>(
     type: string,
   ): Promise<TExec | undefined> {
@@ -232,11 +195,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  /**
-   * Finds an existing pending execution and, when pendingData is provided,
-   * validates it against the step-type schema and merges it into the execution.
-   * Returns the (possibly updated) execution, or undefined if none exists.
-   */
   protected async patchAndReloadPendingData<TExec extends WithPendingData>(
     pendingData?: unknown,
   ): Promise<TExec | undefined> {
@@ -269,13 +227,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return execution;
   }
 
-  /**
-   * Shared confirmation flow for executors that require user approval before acting.
-   * Receives a pre-loaded execution (from findPendingExecution) and checks pendingData.userConfirmed:
-   * - undefined → PATCH not yet called → re-emit awaiting-input (safe no-op)
-   * - false → save execution as skipped and return success outcome
-   * - true → execute via resolveAndExecute
-   */
+  // userConfirmed branches: undefined → re-emit awaiting-input (PATCH not yet called);
+  // false → save as skipped + success outcome; true → resolveAndExecute.
   protected async handleConfirmationFlow<TExec extends WithPendingData>(
     execution: TExec,
     resolveAndExecute: (execution: TExec) => Promise<StepExecutionResult>,
@@ -302,7 +255,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return resolveAndExecute(execution);
   }
 
-  /** Returns a SystemMessage with the current user info and date/time context. */
   protected buildContextMessage(): SystemMessage {
     const { user } = this.context;
     const now = new Date();
@@ -316,10 +268,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  /**
-   * Returns a SystemMessage array summarizing previously executed steps.
-   * Empty array when there is no history. Ready to spread into a messages array.
-   */
   protected async buildPreviousStepsMessages(): Promise<SystemMessage[]> {
     if (!this.context.previousSteps.length) return [];
 
@@ -335,10 +283,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return [new SystemMessage(summary)];
   }
 
-  /**
-   * Binds multiple tools to the model, invokes it, and returns the selected tool name + args.
-   * Throws MalformedToolCallError or MissingToolCallError on invalid AI responses.
-   */
   protected async invokeWithTools<T = Record<string, unknown>>(
     messages: BaseMessage[],
     tools: StructuredToolInterface[],
@@ -367,10 +311,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     throw new MissingToolCallError();
   }
 
-  /**
-   * Binds a single tool to the model, invokes it, and extracts the tool call args.
-   * Throws MalformedToolCallError or MissingToolCallError on invalid AI responses.
-   */
   protected async invokeWithTool<T = Record<string, unknown>>(
     messages: BaseMessage[],
     tool: DynamicStructuredTool,
@@ -378,7 +318,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return (await this.invokeWithTools<T>(messages, [tool])).args;
   }
 
-  /** Returns baseRecordRef + any related records loaded by previous steps. */
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const relatedRecords = stepExecutions.flatMap(e => {
@@ -396,7 +335,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return [this.context.baseRecordRef, ...relatedRecords];
   }
 
-  /** Selects a record ref via AI when multiple are available, returns directly when only one. */
   protected async selectRecordRef(
     records: RecordRef[],
     prompt: string | undefined,
@@ -443,7 +381,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return records[selectedIndex];
   }
 
-  /** Fetches a collection schema from WorkflowPort, with TTL-based caching. */
   protected async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
     const cached = this.context.schemaCache.get(collectionName);
     if (cached) return cached;
@@ -457,7 +394,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return schema;
   }
 
-  /** Formats a record ref as "Step X - CollectionDisplayName #id". */
   protected async toRecordIdentifier(record: RecordRef): Promise<string> {
     const schema = await this.getCollectionSchema(record.collectionName);
 

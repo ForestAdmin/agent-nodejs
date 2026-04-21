@@ -7,16 +7,8 @@ export function causeMessage(error: unknown): string | undefined {
   return cause instanceof Error ? cause.message : undefined;
 }
 
-/**
- * Extracts a human-readable message from any thrown value. Cascades through:
- *   1. `err.message` if non-empty
- *   2. `err.parent.message` (Sequelize wraps the pg/driver error in .parent)
- *   3. `err.cause.message` (native Error.cause chaining)
- *   4. `err.name` fallback
- *
- * Prevents empty `error=""` in logs when catching wrapped errors
- * (e.g. SequelizeConnectionRefusedError has an empty .message).
- */
+// Cascades through err.message → err.parent.message (Sequelize) → err.cause.message → err.name,
+// so wrapped infra errors (SequelizeConnectionRefusedError has an empty .message) don't log as empty.
 export function extractErrorMessage(err: unknown): string {
   if (!(err instanceof Error)) return String(err);
   if (err.message) return err.message;
@@ -150,14 +142,12 @@ export class RelatedRecordNotFoundError extends WorkflowExecutorError {
   }
 }
 
-/** Thrown when the AI returns a response that violates expected constraints (bad index, empty selection, unknown identifier, etc.). */
 export class InvalidAIResponseError extends WorkflowExecutorError {
   constructor(message: string) {
     super(message, "The AI made an unexpected choice. Try rephrasing the step's prompt.");
   }
 }
 
-/** Thrown when a named relation is not found in the collection schema. */
 export class RelationNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(
@@ -167,7 +157,6 @@ export class RelationNotFoundError extends WorkflowExecutorError {
   }
 }
 
-/** Thrown when a named field is not found in the collection schema. */
 export class FieldNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(
@@ -177,7 +166,6 @@ export class FieldNotFoundError extends WorkflowExecutorError {
   }
 }
 
-/** Thrown when a named action is not found in the collection schema. */
 export class ActionNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(
@@ -187,20 +175,13 @@ export class ActionNotFoundError extends WorkflowExecutorError {
   }
 }
 
-/** Thrown when step execution state is invalid (missing execution record, missing pending data, etc.). */
 export class StepStateError extends WorkflowExecutorError {
   constructor(message: string) {
     super(message, 'An unexpected error occurred while processing this step.');
   }
 }
 
-/**
- * Thrown by the activity-log adapter when `createPending` fails — either
- * after all retries are exhausted (network errors, 5xx) or immediately for
- * non-retryable errors (401, 403, other 4xx). Bubbles up to
- * base-step-executor, which converts it to a step error — no step runs
- * without an audit log.
- */
+// Bubbles from base-step-executor, which converts it to a step error — no step runs without an audit log.
 export class ActivityLogCreationError extends WorkflowExecutorError {
   constructor(cause: unknown) {
     super(
@@ -211,7 +192,6 @@ export class ActivityLogCreationError extends WorkflowExecutorError {
   }
 }
 
-/** Thrown when step execution exceeds the configured `stepTimeoutMs`. */
 export class StepTimeoutError extends WorkflowExecutorError {
   constructor(timeoutMs: number) {
     super(
@@ -311,7 +291,7 @@ export class PendingDataNotFoundError extends Error {
   }
 }
 
-/** Minimal mirror of ZodIssue — avoids importing Zod types into errors.ts. */
+// Minimal mirror of ZodIssue — avoids importing Zod types into errors.ts.
 export interface ValidationIssue {
   path: (string | number)[];
   message: string;
@@ -333,14 +313,9 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
   }
 }
 
-/**
- * Thrown at startup when the workflow executor cannot reach the Forest agent
- * it is configured against. Boundary error — surfaces from `Runner.start()`
- * and is caught at the CLI/HTTP layer, not by the step executor.
- */
+// Boundary error — surfaces from Runner.start() and is caught at the CLI/HTTP layer, not by step executors.
 export class AgentProbeError extends Error {
-  // Manual `cause` assignment — the Error constructor accepts it natively
-  // since Node 16.9, but our TS target is ES2020 which doesn't type it.
+  // Manual `cause` assignment: Error accepts it natively since Node 16.9 but our TS target is ES2020.
   readonly cause?: unknown;
 
   constructor(message: string, options?: { cause?: unknown }) {
@@ -350,7 +325,6 @@ export class AgentProbeError extends Error {
   }
 }
 
-/** Thrown when a server step type has no executor equivalent (e.g. 'end', 'escalation'). */
 export class UnsupportedStepTypeError extends WorkflowExecutorError {
   constructor(stepType: string) {
     super(
@@ -360,7 +334,6 @@ export class UnsupportedStepTypeError extends WorkflowExecutorError {
   }
 }
 
-/** Thrown when a server step definition is malformed (unknown taskType, missing required fields, etc.). */
 export class InvalidStepDefinitionError extends WorkflowExecutorError {
   constructor(detail: string) {
     super(
@@ -370,12 +343,7 @@ export class InvalidStepDefinitionError extends WorkflowExecutorError {
   }
 }
 
-/**
- * Thrown by `WorkflowPort.getPendingStepExecutionsForRun` when a run cannot be
- * mapped. Carries a `MalformedRunInfo` so the Runner can report it to the
- * orchestrator without re-parsing the error message. Still a
- * WorkflowExecutorError so the HTTP layer surfaces it as 400 + userMessage.
- */
+// Carries MalformedRunInfo so the Runner can report the run without re-parsing the message.
 export class MalformedRunError extends WorkflowExecutorError {
   readonly info: MalformedRunInfo;
 

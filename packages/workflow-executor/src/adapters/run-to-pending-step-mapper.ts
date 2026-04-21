@@ -23,17 +23,9 @@ function toRecordStatus(ctxStatus: unknown): RecordStepOutcome['status'] {
   return 'success';
 }
 
-/**
- * Build a StepOutcome from a server history entry.
- *
- * `context` may come from the executor (our StepOutcome format, stored verbatim)
- * or from the legacy frontend (free-form object). We whitelist known StepOutcome
- * fields per type to:
- *   - avoid leaking legacy/unknown fields (privacy concern — outcomes are sent
- *     back to the orchestrator)
- *   - enforce the discriminated union shape (e.g. ConditionStepOutcome status
- *     can only be 'success' | 'error')
- */
+// `context` may come from the executor (our StepOutcome, stored verbatim) or the legacy frontend
+// (free-form). We whitelist known fields per type to avoid leaking legacy ones back to the
+// orchestrator and to enforce the discriminated-union shape.
 function toStepOutcome(s: ServerStepHistory): StepOutcome {
   const stepDef = toStepDefinition(s.stepDefinition);
   const outcomeType = stepTypeToOutcomeType(stepDef.type);
@@ -89,9 +81,8 @@ function toStepUser(runId: number, profile: ServerUserProfile | undefined): Step
     throw new InvalidStepDefinitionError(`Run ${runId} has no userProfile — cannot build StepUser`);
   }
 
-  // renderingId flows into the Forest activity-log payload as a String. Reject
-  // at the boundary to avoid silently posting `"undefined"` / `"NaN"` to the
-  // audit trail.
+  // renderingId is stringified into the activity-log payload — reject non-finite so we don't
+  // silently post "undefined"/"NaN" to the audit trail.
   if (typeof profile.renderingId !== 'number' || !Number.isFinite(profile.renderingId)) {
     throw new InvalidStepDefinitionError(
       `Run ${runId} userProfile has no valid renderingId (got "${String(profile.renderingId)}")`,
@@ -111,16 +102,9 @@ function toStepUser(runId: number, profile: ServerUserProfile | undefined): Step
   };
 }
 
-/**
- * Convert a server HydratedWorkflowRun into an executor PendingStepExecution,
- * or return null if the run has no pending step (terminal state or all steps done).
- *
- * A "pending" step is the first entry in `workflowHistory` that is not `done` and
- * not `cancelled`.
- *
- * Throws InvalidStepDefinitionError when the run is missing required fields
- * (collectionName, userProfile) or when a step definition cannot be mapped.
- */
+// Returns null when the run has no pending step (terminal state or all done/cancelled).
+// Throws InvalidStepDefinitionError on missing required fields (collectionName, userProfile)
+// or an unmappable step definition.
 export default function toPendingStepExecution(
   run: ServerHydratedWorkflowRun,
 ): PendingStepExecution | null {

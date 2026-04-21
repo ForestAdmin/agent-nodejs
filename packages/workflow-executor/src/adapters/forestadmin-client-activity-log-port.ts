@@ -143,10 +143,6 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     await Promise.allSettled([...this.inFlight]);
   }
 
-  /**
-   * Register a pending promise so `drain()` can await it at shutdown.
-   * Automatically removes itself on settle.
-   */
   private track<T>(fn: () => Promise<T>): Promise<T> {
     const promise = fn();
     this.inFlight.add(promise);

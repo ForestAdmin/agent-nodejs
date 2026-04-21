@@ -1,7 +1,6 @@
 export interface CreateActivityLogArgs {
   forestServerToken: string;
   renderingId: number;
-  /** Action identifier understood by Forest Admin backend. */
   action: string;
   type: 'read' | 'write';
   collectionName?: string;
@@ -9,30 +8,13 @@ export interface CreateActivityLogArgs {
   label?: string;
 }
 
-/**
- * Opaque handle returned by `createPending`; caller passes it back to
- * `markSucceeded` / `markFailed` to transition the log status.
- */
 export interface ActivityLogHandle {
   id: string;
   index: string;
 }
 
-/**
- * Port for emitting Forest Admin activity logs around each workflow step
- * whose action is executed by the executor itself.
- *
- * Lifecycle:
- *   1. `createPending` creates a Pending log; throws ActivityLogCreationError
- *      if creation ultimately fails. Step must then fail in error.
- *   2. `markSucceeded` / `markFailed` transitions the log once the step is done.
- *
- * The transition methods (`markSucceeded` / `markFailed`) internally retry
- * transient failures before resolving. Callers that don't want to block on
- * completion should invoke with `void` — see
- * `base-step-executor.ts::runWithActivityLog`. Such callers must call
- * `drain()` at shutdown to let the in-flight transitions settle.
- */
+// markSucceeded/markFailed retry transient failures internally and are invoked with `void`
+// from base-step-executor; the Runner must call drain() at shutdown to let them settle.
 export interface ActivityLogPort {
   createPending(args: CreateActivityLogArgs): Promise<ActivityLogHandle>;
   markSucceeded(handle: ActivityLogHandle, forestServerToken: string): Promise<void>;
@@ -41,21 +23,11 @@ export interface ActivityLogPort {
     forestServerToken: string,
     errorMessage: string,
   ): Promise<void>;
-  /**
-   * Resolve once all in-flight transitions (from voided `markSucceeded` /
-   * `markFailed` calls) have settled. Called by the Runner at shutdown so the
-   * audit trail isn't left with Pending rows when the process exits.
-   */
   drain(): Promise<void>;
 }
 
-/**
- * Per-run scoped view of `ActivityLogPort` with the `forestServerToken` baked
- * in. Executors see this interface, not the wide `ActivityLogPort` — that way
- * the token never traverses the domain (no field on `PendingStepExecution`
- * or `ExecutionContext` carries it). The Runner binds a scoped instance from
- * the global port + the run's token.
- */
+// Per-run scoped view of ActivityLogPort with forestServerToken baked in. The Runner binds it
+// so the token never traverses PendingStepExecution / ExecutionContext.
 export interface RunActivityLogger {
   createPending(args: Omit<CreateActivityLogArgs, 'forestServerToken'>): Promise<ActivityLogHandle>;
   markSucceeded(handle: ActivityLogHandle): Promise<void>;

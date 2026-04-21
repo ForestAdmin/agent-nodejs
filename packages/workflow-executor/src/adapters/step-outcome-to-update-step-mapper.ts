@@ -19,14 +19,8 @@ function toExecutionStatus(outcome: StepOutcome): ServerExecutionStatus {
   return { type: 'success' };
 }
 
-/**
- * Convert an executor StepOutcome into the body expected by
- * POST /api/workflow-orchestrator/update-step.
- *
- * Mirrors `run-to-pending-step-mapper.ts` in the reverse direction: the reverse
- * mapper reads `status`, `error`, `selectedOption` from `ServerStepHistory.context`,
- * so we write them into `context` here to keep the round-trip ISO.
- */
+// Write to `context` so the round-trip with run-to-pending-step-mapper stays ISO (reverse mapper
+// reads status/error/selectedOption from ServerStepHistory.context).
 export default function toUpdateStepRequest(
   runId: string,
   outcome: StepOutcome,

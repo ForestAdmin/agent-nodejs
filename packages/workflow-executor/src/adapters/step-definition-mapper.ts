@@ -68,14 +68,9 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
   };
 }
 
-/**
- * Convert a server-formatted workflow step into the flat executor StepDefinition.
- *
- * - Server uses `type: 'task'` + `taskType` discriminator for all non-condition steps.
- * - Server uses `outgoing[]` transitions for conditions; executor uses `options: string[]`.
- * - Some server step types (`end`, `escalation`, `start/close-sub-workflow`) have no
- *   executor equivalent yet and throw `UnsupportedStepTypeError`.
- */
+// Server uses `type:'task' + taskType` for non-condition steps and `outgoing[]` for conditions;
+// executor uses flat StepDefinition with `options[]`. Unsupported server types
+// (end/escalation/sub-workflow) throw UnsupportedStepTypeError.
 export default function toStepDefinition(serverStep: ServerWorkflowStep): StepDefinition {
   switch (serverStep.type) {
     case 'task':

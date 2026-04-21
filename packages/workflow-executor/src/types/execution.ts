@@ -61,8 +61,6 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;
   readonly incomingPendingData?: unknown;
-  /** Maximum duration of doExecute(); unset = no timeout. */
   readonly stepTimeoutMs?: number;
-  /** Per-run scoped logger (token baked in by the Runner). */
   readonly activityLogPort: RunActivityLogger;
 }

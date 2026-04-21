@@ -109,11 +109,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     };
   }
 
-  /**
-   * Branch C: uses AI to select the best candidate, persists pendingData with suggestion, returns awaiting-input.
-   * Unlike persistAndReturn (Branches A/B), storage errors propagate directly here:
-   * the relation-load has not yet happened so the step can safely be retried.
-   */
+  // Branch C: AI suggests the best candidate, then awaits user confirmation. Save errors
+  // propagate directly — the relation-load hasn't run yet, so the step can be safely retried.
   private async saveAndAwaitInput(target: RelationTarget): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
 
@@ -144,12 +141,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.persistAndReturn(record, target, undefined);
   }
 
-  /**
-   * Branch A: builds RecordRef from pendingData.selectedRecordId.
-   * Re-derives relatedCollectionName from FieldSchema using the (possibly updated) relation name,
-   * so a user-overridden relation name is handled correctly.
-   * No additional getRelatedData call.
-   */
+  // Branch A: builds RecordRef from pendingData.selectedRecordId without a new getRelatedData call.
+  // Re-derives relatedCollectionName so a user-overridden relation name is handled correctly.
   private async resolveFromSelection(
     execution: LoadRelatedRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
@@ -182,10 +175,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.persistAndReturn(record, { selectedRecordRef, name, displayName }, execution);
   }
 
-  /**
-   * Fetches up to `limit` related records and uses AI to select the best one when multiple exist.
-   * Returns the full RecordData array, the best index, and the AI-selected fields.
-   */
   private async selectBestFromRelatedData(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
     limit: number,
@@ -256,10 +245,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return candidates[0];
   }
 
-  /**
-   * Fetches related records and converts them to RecordRefs.
-   * Throws RelatedRecordNotFoundError when the result is empty.
-   */
+  // Throws RelatedRecordNotFoundError when the result is empty.
   private async fetchCandidates(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
     limit: number,

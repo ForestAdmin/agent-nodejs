@@ -2,14 +2,8 @@ import type { Logger } from '../ports/logger-port';
 
 import pc from 'picocolors';
 
-/**
- * Human-readable colorized logger for TTY/dev usage.
- *
- * Pair with ConsoleLogger for prod/pipe/container (JSON output).
- * The CLI auto-picks based on `process.stdout.isTTY` and the `--pretty` /
- * `--json` flags. Color is disabled automatically when `NO_COLOR` is set
- * (picocolors handles that).
- */
+// Colorized logger for TTY/dev. Pair with ConsoleLogger for piped output.
+// CLI auto-picks via process.stdout.isTTY + --pretty/--json flags. NO_COLOR is honored.
 export default class PrettyLogger implements Logger {
   info(message: string, context: Record<string, unknown>): void {
     // eslint-disable-next-line no-console

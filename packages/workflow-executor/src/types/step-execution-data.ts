@@ -47,9 +47,8 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
   type: 'update-record';
   executionParams?: FieldRef & { value: string };
-  /** User confirmed → values returned by updateRecord. User rejected → skipped. */
+  // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  /** AI-selected field and value awaiting user confirmation. Used in the confirmation flow only. */
   pendingData?: FieldRef & { value: string; userConfirmed?: boolean };
   selectedRecordRef: RecordRef;
 }
@@ -70,27 +69,22 @@ export interface RelationRef {
 
 export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionData {
   type: 'trigger-action';
-  /** Display name and technical name of the executed action. */
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
-  /**
-   * AI-selected action awaiting user confirmation. Used in the confirmation flow only.
-   * When userConfirmed=true, `actionResult` is required — the frontend executes the action
-   * itself and posts back the result (executor never re-executes).
-   */
+  // When userConfirmed=true, actionResult is required: the frontend executes the action and
+  // posts the result back (the executor never re-executes on confirmation).
   pendingData?: ActionRef & { userConfirmed?: boolean; actionResult?: unknown };
   selectedRecordRef: RecordRef;
 }
 
 // -- Mcp --
 
-/** Reference to an MCP tool by its sanitized name (OpenAI-safe, alphanumeric + underscores/hyphens). */
+// `name` is the OpenAI-safe sanitized MCP tool name (alphanumeric + underscores/hyphens).
 export interface McpToolRef {
   name: string;
   sourceId: string;
 }
 
-/** A resolved tool call: sanitized tool name + input parameters sent to the tool. */
 export interface McpToolCall extends McpToolRef {
   input: Record<string, unknown>;
 }
@@ -116,28 +110,19 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 // -- Load Related Record --
 
 export interface LoadRelatedRecordPendingData extends RelationRef {
-  /** AI-selected fields suggested for display on the frontend. undefined = not computed (no non-relation fields). */
+  // undefined when not computed (record has no non-relation fields).
   suggestedFields?: string[];
-  /**
-   * The record id to load. Initially set by the AI. Can be overridden by the frontend
-   * via PATCH /runs/:runId/steps/:stepIndex/pending-data.
-   */
+  // AI-selected initially; can be overridden by the frontend via PATCH .../pending-data.
   selectedRecordId: Array<string | number>;
-  /** Set by the frontend via PATCH /runs/:runId/steps/:stepIndex/pending-data. */
   userConfirmed?: boolean;
 }
 
 export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
   type: 'load-related-record';
-  /** AI-selected relation with pre-fetched candidates awaiting user confirmation. */
   pendingData?: LoadRelatedRecordPendingData;
-  /** The record ref used to load the relation. Required for handleConfirmationFlow. */
   selectedRecordRef: RecordRef;
   executionParams?: RelationRef;
-  /**
-   * Navigation path captured at execution time — used by StepSummaryBuilder for AI context.
-   * Source is not repeated here — it is always selectedRecordRef, consistent with other step types.
-   */
+  // Source is always selectedRecordRef, not repeated here (consistent with other step types).
   executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
 }
 
@@ -161,5 +146,4 @@ export type StepExecutionData =
   | McpStepExecutionData
   | GuidanceStepExecutionData;
 
-/** Alias for StepExecutionData — kept for backwards-compatible consumption at the call sites. */
 export type ExecutedStepExecutionData = StepExecutionData;

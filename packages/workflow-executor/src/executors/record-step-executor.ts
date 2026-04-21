@@ -23,9 +23,6 @@ export default abstract class RecordStepExecutor<
     };
   }
 
-  /**
-   * Resolves a record ref: uses pre-recorded stepIndex if provided, otherwise delegates to AI.
-   */
   protected async resolveRecordRef(
     records: RecordRef[],
     prompt: string | undefined,

@@ -27,24 +27,10 @@ export interface AgentPort {
   updateRecord(query: UpdateRecordQuery, user: StepUser): Promise<RecordData>;
   getRelatedData(query: GetRelatedDataQuery, user: StepUser): Promise<RecordData[]>;
   executeAction(query: ExecuteActionQuery, user: StepUser): Promise<unknown>;
-  /**
-   * Returns whether the action has a user-facing form. Queries the agent via
-   * agent-client's `collection.action()` which triggers the /hooks/load endpoint.
-   *
-   * - Node agents always respond with the real fields (even when hooks.load=false).
-   * - Old Ruby agents with hooks.load=false return 404; agent-client falls back to
-   *   the `fields` passed in `ActionEndpointsByCollection` (populated from the
-   *   orchestrator's schema).
-   */
+  // Old Ruby agents with hooks.load=false return 404; agent-client falls back to the fields
+  // passed via ActionEndpointsByCollection (populated from the orchestrator's schema).
   getActionFormInfo(query: GetActionFormInfoQuery, user: StepUser): Promise<{ hasForm: boolean }>;
-  /**
-   * Verifies the agent is reachable at startup by hitting its public
-   * healthcheck route. Throws `AgentProbeError` on network error, timeout,
-   * or non-2xx HTTP response.
-   *
-   * JWT validity is NOT checked here (no public route is auth-required across
-   * all agent versions). The shared authSecret is validated naturally when
-   * the first step runs — any mismatch surfaces in that step's error log.
-   */
+  // Startup healthcheck. Throws AgentProbeError on network error, timeout, or non-2xx.
+  // JWT is not verified here — it's validated naturally when the first step runs.
   probe(): Promise<void>;
 }

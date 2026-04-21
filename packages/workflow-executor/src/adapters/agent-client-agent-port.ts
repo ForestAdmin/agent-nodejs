@@ -147,12 +147,6 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  /**
-   * Normalizes any thrown value from an agent call into a WorkflowExecutorError,
-   * so every caller (executors) sees a consistent error hierarchy. Domain errors
-   * (RecordNotFoundError, etc.) pass through unchanged; anything else is wrapped
-   * in AgentPortError with the operation name as context.
-   */
   private async callAgent<T>(operation: string, fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
@@ -174,15 +168,8 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  /**
-   * Verifies the agent is reachable at startup by hitting its public
-   * `GET /forest/` healthcheck. Expects a 2xx response; throws AgentProbeError
-   * on network error, 5s timeout, or non-2xx (4xx on this public route means
-   * the URL points to something that isn't a Forest agent).
-   *
-   * JWT validity is not checked — the shared authSecret is validated when
-   * the first real step runs.
-   */
+  // Hits GET /forest/ (public, no auth required across all agent versions). A 4xx here means
+  // the URL points to something that isn't a Forest agent. JWT is validated naturally on first step.
   async probe(): Promise<void> {
     const url = `${this.agentUrl.replace(/\/+$/, '')}/forest/`;
 
@@ -210,12 +197,10 @@ export default class AgentClientAgentPort implements AgentPort {
       endpoints[collectionName] = {};
 
       for (const action of schema.actions) {
-        // agent-client always POSTs /hooks/load; `hooks.load` only tells it whether a 404
-        // from that route is expected (Ruby agent with hooks.load=false, swallowed) or a
-        // real error (rethrown). On 404, it falls back to the static `fields` passed here
-        // — so both need to reflect the agent's real schema for form detection to work on
-        // Ruby agents. `id` falls back to `name` until the orchestrator exposes the true
-        // action id.
+        // agent-client POSTs /hooks/load unconditionally; `hooks.load` tells it whether a 404
+        // there is expected (Ruby agent, swallowed → fallback to the static `fields` below) or
+        // a real error. Both `hooks` and `fields` must mirror the agent's real schema for form
+        // detection to work on Ruby agents.
         endpoints[collectionName][action.name] = {
           id: action.name,
           name: action.name,
