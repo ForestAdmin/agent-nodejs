@@ -125,6 +125,11 @@ export default class Runner {
         }
       }
 
+      // Wait for fire-and-forget activity-log transitions (markSucceeded /
+      // markFailed) to settle before closing resources — otherwise we can
+      // exit with audit-trail rows still stuck in Pending.
+      await this.config.activityLogPort.drain();
+
       // Close resources — log failures instead of silently swallowing
       const results = await Promise.allSettled([
         this.config.aiModelPort.closeConnections(),

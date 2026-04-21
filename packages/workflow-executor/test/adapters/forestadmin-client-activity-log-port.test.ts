@@ -181,6 +181,48 @@ describe('ForestadminClientActivityLogPort', () => {
     });
   });
 
+  describe('drain', () => {
+    it('resolves immediately when no transitions are in flight', async () => {
+      const port = new ForestadminClientActivityLogPort(makeService(), makeLogger());
+
+      jest.useRealTimers();
+      await expect(port.drain()).resolves.toBeUndefined();
+      jest.useFakeTimers();
+    });
+
+    it('awaits in-flight markSucceeded calls before resolving', async () => {
+      const service = makeService();
+      let resolveUpdate!: () => void;
+      service.updateActivityLogStatus.mockImplementation(
+        () =>
+          new Promise<void>(resolve => {
+            resolveUpdate = resolve;
+          }),
+      );
+      const port = new ForestadminClientActivityLogPort(service, makeLogger());
+
+      // Kick off a mark that will block on the pending update
+      const markPromise = port.markSucceeded({ id: 'log-1', index: '0' }, 'tok');
+
+      // drain() must not resolve before the in-flight transition settles
+      jest.useRealTimers();
+      let drainResolved = false;
+      const drainPromise = port.drain().then(() => {
+        drainResolved = true;
+      });
+      await new Promise(r => {
+        setTimeout(r, 10);
+      });
+      expect(drainResolved).toBe(false);
+
+      resolveUpdate();
+      await markPromise;
+      await drainPromise;
+      expect(drainResolved).toBe(true);
+      jest.useFakeTimers();
+    });
+  });
+
   describe('markFailed', () => {
     it('forwards the errorMessage and retries on 503', async () => {
       const service = makeService();

@@ -23,10 +23,14 @@ export interface ActivityLogHandle {
  * whose action is executed by the executor itself.
  *
  * Lifecycle:
- *   1. `createPending` (blocking, retried) — throws ActivityLogCreationError
- *      if all retries fail; step must then fail in error.
- *   2. `markSucceeded` or `markFailed` (fire-and-forget, retried in background)
- *      transitions the log once the step is done.
+ *   1. `createPending` creates a Pending log; throws ActivityLogCreationError
+ *      if creation ultimately fails. Step must then fail in error.
+ *   2. `markSucceeded` / `markFailed` transitions the log once the step is done.
+ *
+ * Both methods internally retry transient failures before resolving. Callers
+ * that don't want to block on completion should invoke with `void` — see
+ * `base-step-executor.ts::runWithActivityLog`. Such callers must call
+ * `drain()` at shutdown to let the in-flight transitions settle.
  */
 export interface ActivityLogPort {
   createPending(args: CreateActivityLogArgs): Promise<ActivityLogHandle>;
@@ -36,4 +40,10 @@ export interface ActivityLogPort {
     forestServerToken: string,
     errorMessage: string,
   ): Promise<void>;
+  /**
+   * Resolve once all in-flight transitions (from voided `markSucceeded` /
+   * `markFailed` calls) have settled. Called by the Runner at shutdown so the
+   * audit trail isn't left with Pending rows when the process exits.
+   */
+  drain(): Promise<void>;
 }

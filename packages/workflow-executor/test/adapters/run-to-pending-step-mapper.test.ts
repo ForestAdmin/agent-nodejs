@@ -418,6 +418,30 @@ describe('toPendingStepExecution', () => {
         'Run 42 has no userProfile — cannot build StepUser',
       );
     });
+
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['NaN', Number.NaN],
+      ['string', '3' as unknown as number],
+    ])('should throw InvalidStepDefinitionError when renderingId is %s', (_label, badValue) => {
+      const run = makeRun({
+        userProfile: {
+          id: 7,
+          email: 'alban@forestadmin.com',
+          firstName: 'Alban',
+          lastName: 'Bertolini',
+          team: 'team-a',
+          renderingId: badValue as unknown as number,
+          role: 'admin',
+          permissionLevel: 'admin',
+          tags: {},
+        },
+      });
+
+      expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toPendingStepExecution(run)).toThrow(/renderingId/);
+    });
   });
 
   describe('error cases', () => {

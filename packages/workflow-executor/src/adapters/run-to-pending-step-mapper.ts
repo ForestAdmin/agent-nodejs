@@ -89,6 +89,15 @@ function toStepUser(runId: number, profile: ServerUserProfile | undefined): Step
     throw new InvalidStepDefinitionError(`Run ${runId} has no userProfile — cannot build StepUser`);
   }
 
+  // renderingId flows into the Forest activity-log payload as a String. Reject
+  // at the boundary to avoid silently posting `"undefined"` / `"NaN"` to the
+  // audit trail.
+  if (typeof profile.renderingId !== 'number' || !Number.isFinite(profile.renderingId)) {
+    throw new InvalidStepDefinitionError(
+      `Run ${runId} userProfile has no valid renderingId (got "${String(profile.renderingId)}")`,
+    );
+  }
+
   return {
     id: profile.id,
     email: profile.email,

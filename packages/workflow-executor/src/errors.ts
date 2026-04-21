@@ -202,7 +202,7 @@ export class StepStateError extends WorkflowExecutorError {
 export class ActivityLogCreationError extends WorkflowExecutorError {
   constructor(cause: unknown) {
     super(
-      'Failed to create activity log after retries',
+      'Failed to create activity log',
       'Could not record this step in the audit log. Please try again, or contact your administrator if the problem persists.',
     );
     this.cause = cause;

@@ -137,6 +137,7 @@ function makeContext(
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
       markSucceeded: jest.fn().mockResolvedValue(undefined),
       markFailed: jest.fn().mockResolvedValue(undefined),
+      drain: jest.fn().mockResolvedValue(undefined),
     },
     ...overrides,
   };
@@ -217,6 +218,24 @@ describe('TriggerRecordActionStepExecutor', () => {
           }),
         }),
       );
+    });
+
+    it('does NOT create an activity log (the frontend logs on its side)', async () => {
+      const mockModel = makeMockModel({
+        actionName: 'Send Welcome Email',
+        reasoning: 'User requested welcome email',
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ automaticExecution: false }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      await executor.execute();
+
+      expect(context.activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
+      expect(context.activityLogPort.markFailed).not.toHaveBeenCalled();
     });
   });
 

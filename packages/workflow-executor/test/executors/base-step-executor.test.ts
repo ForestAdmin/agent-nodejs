@@ -15,6 +15,7 @@ import {
   MissingToolCallError,
   NoRecordsError,
   StepPersistenceError,
+  WorkflowExecutorError,
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -95,6 +96,7 @@ function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
     createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
     markSucceeded: jest.fn().mockResolvedValue(undefined),
     markFailed: jest.fn().mockResolvedValue(undefined),
+    drain: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -559,6 +561,74 @@ describe('BaseStepExecutor', () => {
       await executor.execute();
 
       expect(context.activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
+    });
+
+    it('calls markFailed with userMessage (not the technical message) on WorkflowExecutorError', async () => {
+      class DualMessageError extends WorkflowExecutorError {
+        constructor() {
+          super(
+            'Internal: datasource "customers" returned no record for pk=42',
+            'The record no longer exists.',
+          );
+        }
+      }
+      const context = makeContext();
+      const executor = new LoggedExecutor(context, new DualMessageError());
+
+      await executor.execute();
+
+      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
+        { id: 'log-1', index: '0' },
+        'test-forest-token',
+        'The record no longer exists.',
+      );
+    });
+
+    it('marks failed when doExecute returns an error outcome without throwing', async () => {
+      class ErrorOutcomeExecutor extends BaseStepExecutor {
+        protected override buildActivityLogArgs() {
+          return {
+            forestServerToken: this.context.forestServerToken,
+            renderingId: 1,
+            action: 'update',
+            type: 'write' as const,
+            collectionName: 'customers',
+            recordId: 42,
+          };
+        }
+
+        protected async doExecute(): Promise<StepExecutionResult> {
+          return this.buildOutcomeResult({ status: 'error', error: 'soft failure' });
+        }
+
+        protected buildOutcomeResult(outcome: {
+          status: BaseStepStatus;
+          error?: string;
+        }): StepExecutionResult {
+          return {
+            stepOutcome: {
+              type: 'record',
+              stepId: this.context.stepId,
+              stepIndex: this.context.stepIndex,
+              status: outcome.status,
+              ...(outcome.error !== undefined && { error: outcome.error }),
+            },
+          };
+        }
+      }
+
+      const context = makeContext();
+      const executor = new ErrorOutcomeExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
+        { id: 'log-1', index: '0' },
+        'test-forest-token',
+        'soft failure',
+      );
       expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
     });
   });

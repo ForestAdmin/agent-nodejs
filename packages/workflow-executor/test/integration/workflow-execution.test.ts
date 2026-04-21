@@ -192,6 +192,7 @@ function createIntegrationSetup(overrides?: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
       markSucceeded: jest.fn().mockResolvedValue(undefined),
       markFailed: jest.fn().mockResolvedValue(undefined),
+      drain: jest.fn().mockResolvedValue(undefined),
     },
     pollingIntervalMs: overrides?.pollingIntervalMs ?? 60_000,
     envSecret: ENV_SECRET,

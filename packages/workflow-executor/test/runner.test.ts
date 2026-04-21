@@ -98,6 +98,7 @@ function createRunnerConfig(
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
       markSucceeded: jest.fn().mockResolvedValue(undefined),
       markFailed: jest.fn().mockResolvedValue(undefined),
+      drain: jest.fn().mockResolvedValue(undefined),
     },
     logger: createMockLogger(),
     schemaCache: new SchemaCache(),
@@ -412,6 +413,29 @@ describe('graceful shutdown', () => {
 
     expect(logger.info).not.toHaveBeenCalledWith('Draining in-flight steps', expect.anything());
     expect(runner.state).toBe('stopped');
+  });
+
+  it('stop() awaits activityLogPort.drain() before closing resources', async () => {
+    const config = createRunnerConfig();
+    const callOrder: string[] = [];
+
+    (config.activityLogPort.drain as jest.Mock).mockImplementation(async () => {
+      callOrder.push('activityLogDrain');
+    });
+    (config.aiModelPort.closeConnections as jest.Mock).mockImplementation(async () => {
+      callOrder.push('aiClose');
+    });
+    (config.runStore.close as jest.Mock).mockImplementation(async () => {
+      callOrder.push('runStoreClose');
+    });
+
+    runner = new Runner(config);
+    await runner.start();
+    await runner.stop();
+
+    expect(callOrder[0]).toBe('activityLogDrain');
+    expect(callOrder).toContain('aiClose');
+    expect(callOrder).toContain('runStoreClose');
   });
 
   it('logs drain info when steps are in flight', async () => {
@@ -748,6 +772,7 @@ describe('StepExecutorFactory.create — factory', () => {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
       markSucceeded: jest.fn().mockResolvedValue(undefined),
       markFailed: jest.fn().mockResolvedValue(undefined),
+      drain: jest.fn().mockResolvedValue(undefined),
     },
   });
 

@@ -141,10 +141,17 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       // doExecute threw (domain or unexpected error). Mark the log as failed
       // so the audit trail reflects the failure, then rethrow for execute()
       // to convert into a stepOutcome.
+      //
+      // Use userMessage (not the technical message) — the errorMessage field
+      // is rendered to end-users in the Forest Admin UI, so leaking
+      // collection/field/AI internals (CLAUDE.md "Dual error messages") is
+      // a privacy/UX issue. Same choice as buildOutcomeResult below.
+      const errorMessage =
+        err instanceof WorkflowExecutorError ? err.userMessage : 'Unexpected error';
       void this.context.activityLogPort.markFailed(
         handle,
         this.context.forestServerToken,
-        extractErrorMessage(err),
+        errorMessage,
       );
       throw err;
     }

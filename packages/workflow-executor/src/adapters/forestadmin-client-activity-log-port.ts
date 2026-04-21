@@ -54,6 +54,8 @@ async function withRetry<T>(label: string, fn: () => Promise<T>, logger: Logger)
 }
 
 export default class ForestadminClientActivityLogPort implements ActivityLogPort {
+  private readonly inFlight = new Set<Promise<unknown>>();
+
   constructor(
     private readonly service: ActivityLogsServiceInterface,
     private readonly logger: Logger,
@@ -78,28 +80,36 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
 
       return { id: response.id, index: response.attributes.index };
     } catch (cause) {
+      this.logger.error('Activity log creation failed', {
+        action: args.action,
+        collectionName: args.collectionName,
+        status: (cause as { status?: number }).status,
+        error: extractErrorMessage(cause),
+      });
       throw new ActivityLogCreationError(cause);
     }
   }
 
   async markSucceeded(handle: ActivityLogHandle, forestServerToken: string): Promise<void> {
-    try {
-      await withRetry(
-        'markSucceeded',
-        () =>
-          this.service.updateActivityLogStatus({
-            forestServerToken,
-            activityLog: { id: handle.id, attributes: { index: handle.index } },
-            status: 'completed',
-          }),
-        this.logger,
-      );
-    } catch (err) {
-      this.logger.error('Activity log markSucceeded failed after retries', {
-        handleId: handle.id,
-        error: extractErrorMessage(err),
-      });
-    }
+    return this.track(async () => {
+      try {
+        await withRetry(
+          'markSucceeded',
+          () =>
+            this.service.updateActivityLogStatus({
+              forestServerToken,
+              activityLog: { id: handle.id, attributes: { index: handle.index } },
+              status: 'completed',
+            }),
+          this.logger,
+        );
+      } catch (err) {
+        this.logger.error('Activity log markSucceeded failed after retries', {
+          handleId: handle.id,
+          error: extractErrorMessage(err),
+        });
+      }
+    });
   }
 
   async markFailed(
@@ -107,23 +117,41 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     forestServerToken: string,
     errorMessage: string,
   ): Promise<void> {
-    try {
-      await withRetry(
-        'markFailed',
-        () =>
-          this.service.updateActivityLogStatus({
-            forestServerToken,
-            activityLog: { id: handle.id, attributes: { index: handle.index } },
-            status: 'failed',
-            errorMessage,
-          }),
-        this.logger,
-      );
-    } catch (err) {
-      this.logger.error('Activity log markFailed failed after retries', {
-        handleId: handle.id,
-        error: extractErrorMessage(err),
-      });
-    }
+    return this.track(async () => {
+      try {
+        await withRetry(
+          'markFailed',
+          () =>
+            this.service.updateActivityLogStatus({
+              forestServerToken,
+              activityLog: { id: handle.id, attributes: { index: handle.index } },
+              status: 'failed',
+              errorMessage,
+            }),
+          this.logger,
+        );
+      } catch (err) {
+        this.logger.error('Activity log markFailed failed after retries', {
+          handleId: handle.id,
+          error: extractErrorMessage(err),
+        });
+      }
+    });
+  }
+
+  async drain(): Promise<void> {
+    await Promise.allSettled([...this.inFlight]);
+  }
+
+  /**
+   * Register a pending promise so `drain()` can await it at shutdown.
+   * Automatically removes itself on settle.
+   */
+  private track<T>(fn: () => Promise<T>): Promise<T> {
+    const promise = fn();
+    this.inFlight.add(promise);
+    promise.finally(() => this.inFlight.delete(promise));
+
+    return promise;
   }
 }
