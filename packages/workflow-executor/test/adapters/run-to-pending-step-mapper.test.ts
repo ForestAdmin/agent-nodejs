@@ -442,6 +442,26 @@ describe('toPendingStepExecution', () => {
       expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
       expect(() => toPendingStepExecution(run)).toThrow(/renderingId/);
     });
+
+    it('should accept renderingId = 0 (valid finite number)', () => {
+      const run = makeRun({
+        userProfile: {
+          id: 7,
+          email: 'alban@forestadmin.com',
+          firstName: 'Alban',
+          lastName: 'Bertolini',
+          team: 'team-a',
+          renderingId: 0,
+          role: 'admin',
+          permissionLevel: 'admin',
+          tags: {},
+        },
+      });
+
+      const result = toPendingStepExecution(run);
+
+      expect(result?.user.renderingId).toBe(0);
+    });
   });
 
   describe('error cases', () => {

@@ -195,9 +195,11 @@ export class StepStateError extends WorkflowExecutorError {
 }
 
 /**
- * Thrown by the activity-log adapter when all retries on `createPending` are
- * exhausted (network errors, 5xx, etc.). Bubbles up to base-step-executor,
- * which converts it to a step error — no step runs without an audit log.
+ * Thrown by the activity-log adapter when `createPending` fails — either
+ * after all retries are exhausted (network errors, 5xx) or immediately for
+ * non-retryable errors (401, 403, other 4xx). Bubbles up to
+ * base-step-executor, which converts it to a step error — no step runs
+ * without an audit log.
  */
 export class ActivityLogCreationError extends WorkflowExecutorError {
   constructor(cause: unknown) {

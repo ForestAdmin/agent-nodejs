@@ -204,22 +204,19 @@ describe('ForestadminClientActivityLogPort', () => {
       // Kick off a mark that will block on the pending update
       const markPromise = port.markSucceeded({ id: 'log-1', index: '0' }, 'tok');
 
-      // drain() must not resolve before the in-flight transition settles
-      jest.useRealTimers();
       let drainResolved = false;
       const drainPromise = port.drain().then(() => {
         drainResolved = true;
       });
-      await new Promise(r => {
-        setTimeout(r, 10);
-      });
+      // Flush microtasks — drain() would have resolved here if it could.
+      await Promise.resolve();
+      await Promise.resolve();
       expect(drainResolved).toBe(false);
 
       resolveUpdate();
       await markPromise;
       await drainPromise;
       expect(drainResolved).toBe(true);
-      jest.useFakeTimers();
     });
   });
 

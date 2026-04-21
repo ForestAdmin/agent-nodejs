@@ -27,8 +27,9 @@ export interface ActivityLogHandle {
  *      if creation ultimately fails. Step must then fail in error.
  *   2. `markSucceeded` / `markFailed` transitions the log once the step is done.
  *
- * Both methods internally retry transient failures before resolving. Callers
- * that don't want to block on completion should invoke with `void` — see
+ * The transition methods (`markSucceeded` / `markFailed`) internally retry
+ * transient failures before resolving. Callers that don't want to block on
+ * completion should invoke with `void` — see
  * `base-step-executor.ts::runWithActivityLog`. Such callers must call
  * `drain()` at shutdown to let the in-flight transitions settle.
  */
