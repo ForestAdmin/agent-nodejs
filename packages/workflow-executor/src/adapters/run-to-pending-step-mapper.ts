@@ -130,13 +130,6 @@ export default function toPendingStepExecution(
     );
   }
 
-  if (typeof run.forestServerToken !== 'string' || !run.forestServerToken) {
-    throw new InvalidStepDefinitionError(
-      `Run ${run.id} is missing required field forestServerToken — ` +
-        `the orchestrator must include it in the run payload`,
-    );
-  }
-
   const pending = run.workflowHistory.find(s => !s.done && !s.cancelled);
   if (!pending) return null;
 
@@ -152,6 +145,5 @@ export default function toPendingStepExecution(
     stepDefinition: toStepDefinition(pending.stepDefinition),
     previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex),
     user: toStepUser(run.id, run.userProfile),
-    forestServerToken: run.forestServerToken,
   };
 }

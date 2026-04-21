@@ -219,7 +219,7 @@ function buildPendingStep(
     baseRecordRef: BASE_RECORD_REF,
     previousSteps: [],
     user: STEP_USER,
-    forestServerToken: 'test-forest-token',
+
     ...overrides,
   };
 }
@@ -232,13 +232,16 @@ describe('workflow execution (integration)', () => {
   it('read-record happy path: trigger → AI selects field → read record → success', async () => {
     const workflowPort = createMockWorkflowPort({
       getPendingStepExecutionsForRun: jest.fn().mockResolvedValue({
-        runId: 'run-1',
-        stepId: 'step-1',
-        stepIndex: 0,
-        baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
-        stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer email' },
-        previousSteps: [],
-        user: STEP_USER,
+        step: {
+          runId: 'run-1',
+          stepId: 'step-1',
+          stepIndex: 0,
+          baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+          stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer email' },
+          previousSteps: [],
+          user: STEP_USER,
+        },
+        auth: { forestServerToken: 'test-forest-token' },
       }),
     });
 
@@ -312,7 +315,9 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(step),
+      getPendingStepExecutionsForRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
     });
 
     const { server, runStore } = createIntegrationSetup({ workflowPort, model });
@@ -355,7 +360,9 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(step),
+      getPendingStepExecutionsForRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
       getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_STATUS),
     });
 
@@ -412,7 +419,9 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(step),
+      getPendingStepExecutionsForRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
       getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_ACTIONS),
     });
 
@@ -468,7 +477,9 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(step),
+      getPendingStepExecutionsForRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
       getCollectionSchema: jest.fn().mockImplementation(async (collectionName: string) => {
         if (collectionName === 'orders') return ORDERS_SCHEMA;
 
@@ -557,7 +568,9 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(step),
+      getPendingStepExecutionsForRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
       getMcpServerConfigs: jest
         .fn()
         .mockResolvedValue([{ type: 'sse', configs: { 'mcp-1': { url: 'http://fake' } } }]),
@@ -609,7 +622,9 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(step),
+      getPendingStepExecutionsForRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
     });
 
     const { server, runStore } = createIntegrationSetup({ workflowPort });
@@ -638,7 +653,9 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(step),
+      getPendingStepExecutionsForRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
     });
 
     const { server, runStore } = createIntegrationSetup({ workflowPort });
@@ -705,7 +722,9 @@ describe('workflow execution (integration)', () => {
     });
 
     const workflowPort = createMockWorkflowPort({
-      getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(step),
+      getPendingStepExecutionsForRun: jest
+        .fn()
+        .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
       getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA_WITH_STATUS),
     });
 
@@ -752,7 +771,10 @@ describe('workflow execution (integration)', () => {
       // Return the step only on the first poll, then empty (to avoid re-execution loops)
       getPendingStepExecutions: jest
         .fn()
-        .mockResolvedValueOnce({ pending: [pendingStep], malformed: [] })
+        .mockResolvedValueOnce({
+          pending: [{ step: pendingStep, auth: { forestServerToken: 'test-forest-token' } }],
+          malformed: [],
+        })
         .mockResolvedValue({ pending: [], malformed: [] }),
     });
 

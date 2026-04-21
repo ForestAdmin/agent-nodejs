@@ -22,8 +22,18 @@ export interface MalformedRunInfo {
   technicalMessage: string;
 }
 
+/**
+ * A pending run dispatched to the executor. Carries the domain step + the
+ * adapter-level metadata (e.g. auth token for Forest Admin activity logs)
+ * separately so the domain types don't leak secrets.
+ */
+export interface PendingRunDispatch {
+  step: PendingStepExecution;
+  auth: { forestServerToken: string };
+}
+
 export interface PendingRunsBatch {
-  pending: PendingStepExecution[];
+  pending: PendingRunDispatch[];
   malformed: MalformedRunInfo[];
 }
 
@@ -31,7 +41,7 @@ export interface WorkflowPort {
   /** Returns pending runs + runs that failed to map (to be reported by the caller). */
   getPendingStepExecutions(): Promise<PendingRunsBatch>;
   /** Throws `MalformedRunError` on mapping failure. */
-  getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null>;
+  getPendingStepExecutionsForRun(runId: string): Promise<PendingRunDispatch | null>;
   updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void>;
   getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema>;
   getMcpServerConfigs(): Promise<McpConfiguration[]>;

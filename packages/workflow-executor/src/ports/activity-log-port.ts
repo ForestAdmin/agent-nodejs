@@ -48,3 +48,16 @@ export interface ActivityLogPort {
    */
   drain(): Promise<void>;
 }
+
+/**
+ * Per-run scoped view of `ActivityLogPort` with the `forestServerToken` baked
+ * in. Executors see this interface, not the wide `ActivityLogPort` — that way
+ * the token never traverses the domain (no field on `PendingStepExecution`
+ * or `ExecutionContext` carries it). The Runner binds a scoped instance from
+ * the global port + the run's token.
+ */
+export interface RunActivityLogger {
+  createPending(args: Omit<CreateActivityLogArgs, 'forestServerToken'>): Promise<ActivityLogHandle>;
+  markSucceeded(handle: ActivityLogHandle): Promise<void>;
+  markFailed(handle: ActivityLogHandle, errorMessage: string): Promise<void>;
+}

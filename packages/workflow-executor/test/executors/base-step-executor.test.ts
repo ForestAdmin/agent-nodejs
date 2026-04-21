@@ -96,7 +96,6 @@ function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
     createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
     markSucceeded: jest.fn().mockResolvedValue(undefined),
     markFailed: jest.fn().mockResolvedValue(undefined),
-    drain: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -133,7 +132,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     schemaCache: new SchemaCache(),
     previousSteps: [],
     logger: makeMockLogger(),
-    forestServerToken: 'test-forest-token',
+
     activityLogPort: makeMockActivityLogPort(),
     ...overrides,
   };
@@ -461,7 +460,6 @@ describe('BaseStepExecutor', () => {
 
       protected override buildActivityLogArgs() {
         return {
-          forestServerToken: this.context.forestServerToken,
           renderingId: 1,
           action: 'update',
           type: 'write' as const,
@@ -501,15 +499,14 @@ describe('BaseStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(context.activityLogPort.createPending).toHaveBeenCalledWith(
         expect.objectContaining({
-          forestServerToken: 'test-forest-token',
           action: 'update',
           type: 'write',
         }),
       );
-      expect(context.activityLogPort.markSucceeded).toHaveBeenCalledWith(
-        { id: 'log-1', index: '0' },
-        'test-forest-token',
-      );
+      expect(context.activityLogPort.markSucceeded).toHaveBeenCalledWith({
+        id: 'log-1',
+        index: '0',
+      });
       expect(context.activityLogPort.markFailed).not.toHaveBeenCalled();
     });
 
@@ -521,7 +518,6 @@ describe('BaseStepExecutor', () => {
 
       expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
         { id: 'log-1', index: '0' },
-        'test-forest-token',
         'No records available',
       );
       expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
@@ -580,7 +576,6 @@ describe('BaseStepExecutor', () => {
 
       expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
         { id: 'log-1', index: '0' },
-        'test-forest-token',
         'The record no longer exists.',
       );
     });
@@ -589,7 +584,6 @@ describe('BaseStepExecutor', () => {
       class ErrorOutcomeExecutor extends BaseStepExecutor {
         protected override buildActivityLogArgs() {
           return {
-            forestServerToken: this.context.forestServerToken,
             renderingId: 1,
             action: 'update',
             type: 'write' as const,
@@ -626,7 +620,6 @@ describe('BaseStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
         { id: 'log-1', index: '0' },
-        'test-forest-token',
         'soft failure',
       );
       expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();

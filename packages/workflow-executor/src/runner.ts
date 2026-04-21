@@ -1,10 +1,15 @@
 import type { StepContextConfig } from './executors/step-executor-factory';
-import type { ActivityLogPort } from './ports/activity-log-port';
+import type { ActivityLogPort, RunActivityLogger } from './ports/activity-log-port';
 import type { AgentPort } from './ports/agent-port';
 import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
-import type { MalformedRunInfo, McpConfiguration, WorkflowPort } from './ports/workflow-port';
+import type {
+  MalformedRunInfo,
+  McpConfiguration,
+  PendingRunDispatch,
+  WorkflowPort,
+} from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution';
 import type { StepExecutionData } from './types/step-execution-data';
@@ -162,10 +167,10 @@ export default class Runner {
     runId: string,
     options?: { pendingData?: unknown; bearerUserId?: number },
   ): Promise<void> {
-    let step: PendingStepExecution | null;
+    let dispatch: PendingRunDispatch | null;
 
     try {
-      step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
+      dispatch = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
     } catch (err) {
       if (err instanceof MalformedRunError) {
         await this.reportMalformedRun(err.info);
@@ -174,7 +179,9 @@ export default class Runner {
       throw err;
     }
 
-    if (!step) throw new RunNotFoundError(runId);
+    if (!dispatch) throw new RunNotFoundError(runId);
+
+    const { step, auth } = dispatch;
 
     if (options?.bearerUserId !== undefined && step.user.id !== options.bearerUserId) {
       throw new UserMismatchError(runId);
@@ -182,7 +189,7 @@ export default class Runner {
 
     if (this.inFlightSteps.has(Runner.stepKey(step))) return;
 
-    await this.executeStep(step, options?.pendingData);
+    await this.executeStep(step, auth.forestServerToken, options?.pendingData);
   }
 
   private schedulePoll(): void {
@@ -197,13 +204,15 @@ export default class Runner {
       // reportMalformedRun so no individual failure poisons the cycle.
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
-      const dispatchable = pending.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
+      const dispatchable = pending.filter(d => !this.inFlightSteps.has(Runner.stepKey(d.step)));
       this.logger.info('Poll cycle completed', {
         fetched: pending.length,
         dispatching: dispatchable.length,
         malformed: malformed.length,
       });
-      await Promise.allSettled(dispatchable.map(s => this.executeStep(s)));
+      await Promise.allSettled(
+        dispatchable.map(d => this.executeStep(d.step, d.auth.forestServerToken)),
+      );
     } catch (error) {
       this.logger.error('Poll cycle failed', {
         error: extractErrorMessage(error),
@@ -265,9 +274,13 @@ export default class Runner {
     return this.config.aiModelPort.loadRemoteTools(mergedConfig);
   }
 
-  private executeStep(step: PendingStepExecution, incomingPendingData?: unknown): Promise<void> {
+  private executeStep(
+    step: PendingStepExecution,
+    forestServerToken: string,
+    incomingPendingData?: unknown,
+  ): Promise<void> {
     const key = Runner.stepKey(step);
-    const promise = this.doExecuteStep(step, key, incomingPendingData);
+    const promise = this.doExecuteStep(step, forestServerToken, key, incomingPendingData);
     this.inFlightSteps.set(key, promise);
 
     return promise;
@@ -275,6 +288,7 @@ export default class Runner {
 
   private async doExecuteStep(
     step: PendingStepExecution,
+    forestServerToken: string,
     key: string,
     incomingPendingData?: unknown,
   ): Promise<void> {
@@ -284,6 +298,7 @@ export default class Runner {
       const executor = await StepExecutorFactory.create(
         step,
         this.contextConfig,
+        this.createRunLogger(forestServerToken),
         () => this.fetchRemoteTools(),
         incomingPendingData,
       );
@@ -323,7 +338,22 @@ export default class Runner {
       schemaCache: this.config.schemaCache,
       logger: this.logger,
       stepTimeoutMs: this.config.stepTimeoutMs,
-      activityLogPort: this.config.activityLogPort,
+    };
+  }
+
+  /**
+   * Bind the global ActivityLogPort with the run's forestServerToken to a
+   * scoped logger. Executors see this limited view; the token never traverses
+   * the domain types.
+   */
+  private createRunLogger(forestServerToken: string): RunActivityLogger {
+    const port = this.config.activityLogPort;
+
+    return {
+      createPending: args => port.createPending({ ...args, forestServerToken }),
+      markSucceeded: handle => port.markSucceeded(handle, forestServerToken),
+      markFailed: (handle, errorMessage) =>
+        port.markFailed(handle, forestServerToken, errorMessage),
     };
   }
 }

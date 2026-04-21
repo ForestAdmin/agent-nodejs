@@ -4,7 +4,7 @@ import type { RecordRef } from './record';
 import type SchemaCache from '../schema-cache';
 import type { StepDefinition } from './step-definition';
 import type { StepOutcome } from './step-outcome';
-import type { ActivityLogPort } from '../ports/activity-log-port';
+import type { RunActivityLogger } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
@@ -36,8 +36,6 @@ export interface PendingStepExecution {
   readonly stepDefinition: StepDefinition;
   readonly previousSteps: ReadonlyArray<Step>;
   readonly user: StepUser;
-  /** User token to auth against Forest Admin backend (activity logs). Required. */
-  readonly forestServerToken: string;
 }
 
 export interface StepExecutionResult {
@@ -65,8 +63,6 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly incomingPendingData?: unknown;
   /** Maximum duration of doExecute(); unset = no timeout. */
   readonly stepTimeoutMs?: number;
-  /** User token to auth against Forest Admin backend (activity logs). Required. */
-  readonly forestServerToken: string;
-  /** Port to emit activity logs around executor-driven steps. */
-  readonly activityLogPort: ActivityLogPort;
+  /** Per-run scoped logger (token baked in by the Runner). */
+  readonly activityLogPort: RunActivityLogger;
 }

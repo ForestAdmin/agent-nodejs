@@ -80,8 +80,9 @@ describe('ForestServerWorkflowPort', () => {
         '/api/workflow-orchestrator/pending-run',
       );
       expect(result.pending).toHaveLength(1);
-      expect(result.pending[0].runId).toBe('42');
-      expect(result.pending[0].stepId).toBe('step-1');
+      expect(result.pending[0].step.runId).toBe('42');
+      expect(result.pending[0].step.stepId).toBe('step-1');
+      expect(result.pending[0].auth.forestServerToken).toBe('test-forest-token');
       expect(result.malformed).toEqual([]);
     });
 
@@ -117,7 +118,7 @@ describe('ForestServerWorkflowPort', () => {
       const result = await port.getPendingStepExecutions();
 
       expect(result.pending).toHaveLength(1);
-      expect(result.pending[0].runId).toBe('42');
+      expect(result.pending[0].step.runId).toBe('42');
       expect(result.malformed).toEqual([
         {
           runId: '99',
@@ -211,6 +212,21 @@ describe('ForestServerWorkflowPort', () => {
       );
     });
 
+    it('bucketizes runs missing forestServerToken as malformed (token validated at the adapter)', async () => {
+      const malformedRun = makeRun({ id: 44, forestServerToken: undefined as unknown as string });
+      mockQuery.mockResolvedValue([malformedRun]);
+
+      const result = await port.getPendingStepExecutions();
+
+      expect(result.pending).toEqual([]);
+      expect(result.malformed[0]).toEqual(
+        expect.objectContaining({
+          runId: '44',
+          technicalMessage: expect.stringContaining('forestServerToken'),
+        }),
+      );
+    });
+
     it('logs and skips when the mapping throws a non-WorkflowExecutorError', async () => {
       const logger = { error: jest.fn(), info: jest.fn() };
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
@@ -241,7 +257,8 @@ describe('ForestServerWorkflowPort', () => {
         'get',
         '/api/workflow-orchestrator/available-run/run-42',
       );
-      expect(result?.runId).toBe('42');
+      expect(result?.step.runId).toBe('42');
+      expect(result?.auth.forestServerToken).toBe('test-forest-token');
     });
 
     it('encodes special characters in the runId', async () => {

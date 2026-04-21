@@ -31,9 +31,11 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     this.remoteTools = remoteTools;
   }
 
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
+  protected override buildActivityLogArgs(): Omit<
+    CreateActivityLogArgs,
+    'forestServerToken'
+  > | null {
     return {
-      forestServerToken: this.context.forestServerToken,
       renderingId: this.context.user.renderingId,
       action: 'action',
       type: 'write',

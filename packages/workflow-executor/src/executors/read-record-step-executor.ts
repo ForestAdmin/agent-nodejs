@@ -19,9 +19,11 @@ Important rules:
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecordStepDefinition> {
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
+  protected override buildActivityLogArgs(): Omit<
+    CreateActivityLogArgs,
+    'forestServerToken'
+  > | null {
     return {
-      forestServerToken: this.context.forestServerToken,
       renderingId: this.context.user.renderingId,
       action: 'index',
       type: 'read',

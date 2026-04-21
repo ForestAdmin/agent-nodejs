@@ -113,7 +113,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
    * If the frontend executes (e.g., TriggerAction with automaticExecution=false),
    * return `null` — the front logs on its side via the standard agent flow.
    */
-  protected buildActivityLogArgs(): CreateActivityLogArgs | null {
+  protected buildActivityLogArgs(): Omit<CreateActivityLogArgs, 'forestServerToken'> | null {
     return null;
   }
 
@@ -147,22 +147,17 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       // a privacy/UX issue. Same choice as buildOutcomeResult below.
       const errorMessage =
         err instanceof WorkflowExecutorError ? err.userMessage : 'Unexpected error';
-      void this.context.activityLogPort.markFailed(
-        handle,
-        this.context.forestServerToken,
-        errorMessage,
-      );
+      void this.context.activityLogPort.markFailed(handle, errorMessage);
       throw err;
     }
 
     if (result.stepOutcome.status === 'error') {
       void this.context.activityLogPort.markFailed(
         handle,
-        this.context.forestServerToken,
         result.stepOutcome.error ?? 'Step failed',
       );
     } else {
-      void this.context.activityLogPort.markSucceeded(handle, this.context.forestServerToken);
+      void this.context.activityLogPort.markSucceeded(handle);
     }
 
     return result;

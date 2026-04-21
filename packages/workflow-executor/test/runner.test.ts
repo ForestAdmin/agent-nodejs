@@ -154,9 +154,15 @@ function makePendingStep(
       permissionLevel: 'admin',
       tags: {},
     },
-    forestServerToken: 'test-forest-token',
     ...rest,
   };
+}
+
+function makePendingDispatch(
+  overrides: Partial<PendingStepExecution> & { stepType?: StepType } = {},
+  forestServerToken = 'test-forest-token',
+) {
+  return { step: makePendingStep(overrides), auth: { forestServerToken } };
 }
 
 // ---------------------------------------------------------------------------
@@ -348,7 +354,7 @@ describe('graceful shutdown', () => {
 
     const workflowPort = createMockWorkflowPort();
     workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
-      pending: [makePendingStep({ runId: 'run-1', stepId: 'step-1' })],
+      pending: [makePendingDispatch({ runId: 'run-1', stepId: 'step-1' })],
       malformed: [],
     });
 
@@ -384,7 +390,7 @@ describe('graceful shutdown', () => {
     const workflowPort = createMockWorkflowPort();
     const logger = createMockLogger();
     workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
-      pending: [makePendingStep({ runId: 'run-1', stepId: 'stuck-step' })],
+      pending: [makePendingDispatch({ runId: 'run-1', stepId: 'stuck-step' })],
       malformed: [],
     });
 
@@ -454,7 +460,7 @@ describe('graceful shutdown', () => {
     const workflowPort = createMockWorkflowPort();
     const logger = createMockLogger();
     workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
-      pending: [makePendingStep({ runId: 'run-1', stepId: 'step-1' })],
+      pending: [makePendingDispatch({ runId: 'run-1', stepId: 'step-1' })],
       malformed: [],
     });
 
@@ -566,7 +572,10 @@ describe('deduplication', () => {
   it('skips a step whose key is already in inFlightSteps', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'inflight-step' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     // Block the first execution so the key stays in-flight
     const unblockRef = { fn: (): void => {} };
@@ -601,7 +610,10 @@ describe('deduplication', () => {
   it('removes the step key after successful execution', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-dedup' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
@@ -615,7 +627,10 @@ describe('deduplication', () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-throws' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('construction error');
     });
@@ -646,7 +661,10 @@ describe('triggerPoll', () => {
   it('calls getPendingStepExecutionsForRun with the given runId and executes the step', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-A', stepId: 'step-a' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
     await runner.triggerPoll('run-A');
@@ -660,7 +678,10 @@ describe('triggerPoll', () => {
   it('skips in-flight steps', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-inflight' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     const unblockRef = { fn: (): void => {} };
     executeSpy.mockReturnValueOnce(
@@ -693,7 +714,10 @@ describe('triggerPoll', () => {
   it('resolves after the step has settled', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-a' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
@@ -729,7 +753,10 @@ describe('MCP lazy loading (via once thunk)', () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepType: StepType.ReadRecord });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
@@ -748,7 +775,10 @@ describe('MCP lazy loading (via once thunk)', () => {
       stepId: 'step-mcp-1',
       stepType: StepType.Mcp,
     });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
     // Provide a non-empty config so fetchRemoteTools actually calls loadRemoteTools
     workflowPort.getMcpServerConfigs.mockResolvedValue([{ configs: {} }] as never);
 
@@ -776,55 +806,90 @@ describe('StepExecutorFactory.create — factory', () => {
     runStore: {} as RunStore,
     schemaCache: new SchemaCache(),
     logger: { info: jest.fn(), error: jest.fn() },
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-      drain: jest.fn().mockResolvedValue(undefined),
-    },
+  });
+
+  const makeRunLogger = () => ({
+    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+    markSucceeded: jest.fn().mockResolvedValue(undefined),
+    markFailed: jest.fn().mockResolvedValue(undefined),
   });
 
   it('dispatches Condition steps to ConditionStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.Condition });
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      jest.fn(),
+    );
     expect(executor).toBeInstanceOf(ConditionStepExecutor);
   });
 
   it('dispatches ReadRecord steps to ReadRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.ReadRecord });
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      jest.fn(),
+    );
     expect(executor).toBeInstanceOf(ReadRecordStepExecutor);
   });
 
   it('dispatches UpdateRecord steps to UpdateRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.UpdateRecord });
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      jest.fn(),
+    );
     expect(executor).toBeInstanceOf(UpdateRecordStepExecutor);
   });
 
   it('dispatches TriggerAction steps to TriggerRecordActionStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.TriggerAction });
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      jest.fn(),
+    );
     expect(executor).toBeInstanceOf(TriggerRecordActionStepExecutor);
   });
 
   it('dispatches LoadRelatedRecord steps to LoadRelatedRecordStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.LoadRelatedRecord });
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      jest.fn(),
+    );
     expect(executor).toBeInstanceOf(LoadRelatedRecordStepExecutor);
   });
 
   it('dispatches McpTask steps to McpStepExecutor and calls loadTools', async () => {
     const step = makePendingStep({ stepType: StepType.Mcp });
     const loadTools = jest.fn().mockResolvedValue([]);
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      loadTools,
+    );
     expect(executor).toBeInstanceOf(McpStepExecutor);
     expect(loadTools).toHaveBeenCalledTimes(1);
   });
 
   it('dispatches Guidance steps to GuidanceStepExecutor', async () => {
     const step = makePendingStep({ stepType: StepType.Guidance });
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      jest.fn(),
+    );
     expect(executor).toBeInstanceOf(GuidanceStepExecutor);
   });
 
@@ -833,7 +898,12 @@ describe('StepExecutorFactory.create — factory', () => {
       ...makePendingStep(),
       stepDefinition: { type: 'unknown-type' as StepType },
     } as unknown as PendingStepExecution;
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), jest.fn());
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      jest.fn(),
+    );
     const { stepOutcome } = await executor.execute();
     expect(stepOutcome.status).toBe('error');
     expect(stepOutcome.error).toBe('An unexpected error occurred.');
@@ -842,7 +912,12 @@ describe('StepExecutorFactory.create — factory', () => {
   it('returns an executor with an error outcome when loadTools rejects for a McpTask step', async () => {
     const step = makePendingStep({ stepType: StepType.Mcp });
     const loadTools = jest.fn().mockRejectedValueOnce(new Error('MCP server down'));
-    const executor = await StepExecutorFactory.create(step, makeContextConfig(), loadTools);
+    const executor = await StepExecutorFactory.create(
+      step,
+      makeContextConfig(),
+      makeRunLogger(),
+      loadTools,
+    );
     const { stepOutcome } = await executor.execute();
     expect(stepOutcome.status).toBe('error');
     expect(stepOutcome.type).toBe('mcp');
@@ -864,7 +939,7 @@ describe('StepExecutorFactory.create — factory', () => {
       logger,
     };
 
-    await StepExecutorFactory.create(makePendingStep(), contextConfig, jest.fn());
+    await StepExecutorFactory.create(makePendingStep(), contextConfig, makeRunLogger(), jest.fn());
 
     expect(logger.error).toHaveBeenCalledWith(
       'Step execution failed unexpectedly',
@@ -886,7 +961,7 @@ describe('StepExecutorFactory.create — factory', () => {
       logger,
     };
 
-    await StepExecutorFactory.create(makePendingStep(), contextConfig, jest.fn());
+    await StepExecutorFactory.create(makePendingStep(), contextConfig, makeRunLogger(), jest.fn());
 
     expect(logger.error).toHaveBeenCalledWith(
       'Step execution failed unexpectedly',
@@ -905,7 +980,10 @@ describe('error handling', () => {
     const mockLogger = createMockLogger();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-err' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('AI not configured');
     });
@@ -945,7 +1023,10 @@ describe('error handling', () => {
       stepId: 'step-mcp-err',
       stepType: StepType.Mcp,
     });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('AI not configured');
     });
@@ -967,7 +1048,10 @@ describe('error handling', () => {
     const aiClient = createMockAiClient();
     const error = new Error('something blew up');
     const step = makePendingStep({ runId: 'run-2', stepId: 'step-log' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
     aiClient.getModel.mockImplementationOnce(() => {
       throw error;
     });
@@ -997,7 +1081,10 @@ describe('error handling', () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-fallback' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
     aiClient.getModel.mockImplementationOnce(() => {
       throw new Error('construction error');
     });
@@ -1014,7 +1101,10 @@ describe('error handling', () => {
     const workflowPort = createMockWorkflowPort();
     const mockLogger = createMockLogger();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-fatal' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     // Simulate a broken executor that violates the never-throw contract
     jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
@@ -1039,7 +1129,10 @@ describe('error handling', () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-string-throw' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
     aiClient.getModel.mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/no-throw-literal
       throw 'plain string error';
@@ -1221,7 +1314,10 @@ describe('triggerPoll with options', () => {
   it('succeeds when bearerUserId matches step.user.id', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1' }); // user.id = 1
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
     await expect(runner.triggerPoll('run-1', { bearerUserId: 1 })).resolves.toBeUndefined();
@@ -1232,7 +1328,10 @@ describe('triggerPoll with options', () => {
   it('throws UserMismatchError when bearerUserId does not match step.user.id', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1' }); // user.id = 1
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
@@ -1245,7 +1344,10 @@ describe('triggerPoll with options', () => {
   it('skips user check when bearerUserId is undefined', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1' });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
     await expect(runner.triggerPoll('run-1', {})).resolves.toBeUndefined();
@@ -1256,7 +1358,10 @@ describe('triggerPoll with options', () => {
   it('passes pendingData through to executor via context when provided', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     const createSpy = jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
       execute: jest.fn().mockResolvedValue({
@@ -1268,10 +1373,13 @@ describe('triggerPoll with options', () => {
 
     await runner.triggerPoll('run-1', { pendingData: { userConfirmed: true, value: 'new' } });
 
-    expect(createSpy).toHaveBeenCalledWith(step, expect.anything(), expect.any(Function), {
-      userConfirmed: true,
-      value: 'new',
-    });
+    expect(createSpy).toHaveBeenCalledWith(
+      step,
+      expect.anything(),
+      expect.anything(),
+      expect.any(Function),
+      { userConfirmed: true, value: 'new' },
+    );
 
     createSpy.mockRestore();
   });
@@ -1279,7 +1387,10 @@ describe('triggerPoll with options', () => {
   it('passes undefined incomingPendingData when no pendingData option is provided', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepIndex: 0 });
-    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue(step);
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
 
     const createSpy = jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
       execute: jest.fn().mockResolvedValue({
@@ -1293,6 +1404,7 @@ describe('triggerPoll with options', () => {
 
     expect(createSpy).toHaveBeenCalledWith(
       step,
+      expect.anything(),
       expect.anything(),
       expect.any(Function),
       undefined,

@@ -3,10 +3,11 @@ import type { Logger } from '../ports/logger-port';
 import type {
   MalformedRunInfo,
   McpConfiguration,
+  PendingRunDispatch,
   PendingRunsBatch,
   WorkflowPort,
 } from '../ports/workflow-port';
-import type { PendingStepExecution, StepUser } from '../types/execution';
+import type { StepUser } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
 import type { StepOutcome } from '../types/step-outcome';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
@@ -16,7 +17,12 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 import ConsoleLogger from './console-logger';
 import toPendingStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
-import { MalformedRunError, WorkflowExecutorError, extractErrorMessage } from '../errors';
+import {
+  InvalidStepDefinitionError,
+  MalformedRunError,
+  WorkflowExecutorError,
+  extractErrorMessage,
+} from '../errors';
 
 const ROUTES = {
   pendingRuns: '/api/workflow-orchestrator/pending-run',
@@ -48,13 +54,13 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       ROUTES.pendingRuns,
     );
 
-    const pending: PendingStepExecution[] = [];
+    const pending: PendingRunDispatch[] = [];
     const malformed: MalformedRunInfo[] = [];
 
     for (const run of runs) {
       try {
-        const step = toPendingStepExecution(run);
-        if (step) pending.push(step);
+        const dispatch = this.toDispatch(run);
+        if (dispatch) pending.push(dispatch);
       } catch (error) {
         if (error instanceof WorkflowExecutorError) {
           malformed.push(this.toMalformedInfo(run, error));
@@ -70,7 +76,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     return { pending, malformed };
   }
 
-  async getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null> {
+  async getPendingStepExecutionsForRun(runId: string): Promise<PendingRunDispatch | null> {
     const run = await ServerUtils.query<ServerHydratedWorkflowRun | null>(
       this.options,
       'get',
@@ -80,7 +86,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     if (!run) return null;
 
     try {
-      return toPendingStepExecution(run);
+      return this.toDispatch(run);
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
         throw new MalformedRunError(this.toMalformedInfo(run, error));
@@ -88,6 +94,25 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
 
       throw error;
     }
+  }
+
+  /**
+   * Assemble the domain step + adapter metadata (auth token) into a dispatch.
+   * Validates the forestServerToken at the adapter boundary so the domain
+   * never sees a missing/empty token.
+   */
+  private toDispatch(run: ServerHydratedWorkflowRun): PendingRunDispatch | null {
+    if (typeof run.forestServerToken !== 'string' || !run.forestServerToken) {
+      throw new InvalidStepDefinitionError(
+        `Run ${run.id} is missing required field forestServerToken — ` +
+          `the orchestrator must include it in the run payload`,
+      );
+    }
+
+    const step = toPendingStepExecution(run);
+    if (!step) return null;
+
+    return { step, auth: { forestServerToken: run.forestServerToken } };
   }
 
   /**
