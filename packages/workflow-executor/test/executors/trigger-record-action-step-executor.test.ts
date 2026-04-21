@@ -471,8 +471,9 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('throws when the action has a form and automaticExecution is false (no pending saved)', async () => {
+    it('supports form-bearing actions when automaticExecution is false (frontend handles the form)', async () => {
       const agentPort = makeMockAgentPort();
+      // hasForm would return true if called — but it should not be called in this branch.
       (agentPort.getActionFormInfo as jest.Mock).mockResolvedValue({ hasForm: true });
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
@@ -488,16 +489,17 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'This action requires user input via a form, which is not yet supported in workflows.',
-      );
-      expect(agentPort.getActionFormInfo).toHaveBeenCalledWith(
-        { collection: 'customers', action: 'send-welcome-email', id: [42] },
-        expect.objectContaining({ id: 1 }),
-      );
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      // Form check is skipped when not automatic — the frontend will handle the form.
+      expect(agentPort.getActionFormInfo).not.toHaveBeenCalled();
       expect(agentPort.executeAction).not.toHaveBeenCalled();
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          type: 'trigger-action',
+          pendingData: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+        }),
+      );
     });
   });
 

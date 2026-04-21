@@ -81,23 +81,24 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const name = this.resolveActionName(schema, args.actionName);
     const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
 
-    // Forms are not supported — applies to both automatic and manual branches.
-    const { hasForm } = await this.agentPort.getActionFormInfo(
-      {
-        collection: selectedRecordRef.collectionName,
-        action: name,
-        id: selectedRecordRef.recordId,
-      },
-      this.context.user,
-    );
-    if (hasForm) throw new UnsupportedActionFormError(target.displayName);
-
-    // Branch B -- automaticExecution
+    // Branch B -- automaticExecution: executor runs the action itself, so it cannot
+    // handle forms (no UI to fill them). Reject form-bearing actions here. When the
+    // frontend is in the loop (Branch C), it handles the form natively so no check.
     if (step.automaticExecution) {
+      const { hasForm } = await this.agentPort.getActionFormInfo(
+        {
+          collection: selectedRecordRef.collectionName,
+          action: name,
+          id: selectedRecordRef.recordId,
+        },
+        this.context.user,
+      );
+      if (hasForm) throw new UnsupportedActionFormError(target.displayName);
+
       return this.executeOnExecutor(target);
     }
 
-    // Branch C -- Awaiting confirmation
+    // Branch C -- Awaiting confirmation (frontend executes the action, including forms)
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
