@@ -1,4 +1,5 @@
 /* eslint-disable max-classes-per-file */
+import type { MalformedRunInfo } from './ports/workflow-port';
 
 export function causeMessage(error: unknown): string | undefined {
   const { cause } = error as { cause?: unknown };
@@ -345,5 +346,20 @@ export class InvalidStepDefinitionError extends WorkflowExecutorError {
       `Invalid step definition: ${detail}`,
       'The workflow step configuration is invalid. Please check the workflow designer.',
     );
+  }
+}
+
+/**
+ * Thrown by `WorkflowPort.getPendingStepExecutionsForRun` when a run cannot be
+ * mapped. Carries a `MalformedRunInfo` so the Runner can report it to the
+ * orchestrator without re-parsing the error message. Still a
+ * WorkflowExecutorError so the HTTP layer surfaces it as 400 + userMessage.
+ */
+export class MalformedRunError extends WorkflowExecutorError {
+  readonly info: MalformedRunInfo;
+
+  constructor(info: MalformedRunInfo) {
+    super(info.technicalMessage, info.userMessage);
+    this.info = info;
   }
 }

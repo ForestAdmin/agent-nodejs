@@ -1,6 +1,11 @@
 import type { ServerHydratedWorkflowRun } from './server-types';
 import type { Logger } from '../ports/logger-port';
-import type { McpConfiguration, WorkflowPort } from '../ports/workflow-port';
+import type {
+  MalformedRunInfo,
+  McpConfiguration,
+  PendingRunsBatch,
+  WorkflowPort,
+} from '../ports/workflow-port';
 import type { PendingStepExecution, StepUser } from '../types/execution';
 import type { CollectionSchema } from '../types/record';
 import type { StepOutcome } from '../types/step-outcome';
@@ -11,7 +16,7 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 import ConsoleLogger from './console-logger';
 import toPendingStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
-import { WorkflowExecutorError, extractErrorMessage } from '../errors';
+import { MalformedRunError, WorkflowExecutorError, extractErrorMessage } from '../errors';
 
 const ROUTES = {
   pendingRuns: '/api/workflow-orchestrator/pending-run',
@@ -36,7 +41,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     this.logger = params.logger ?? new ConsoleLogger();
   }
 
-  async getPendingStepExecutions(): Promise<PendingStepExecution[]> {
+  async getPendingStepExecutions(): Promise<PendingRunsBatch> {
     const runs = await ServerUtils.query<ServerHydratedWorkflowRun[]>(
       this.options,
       'get',
@@ -44,6 +49,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     );
 
     const pending: PendingStepExecution[] = [];
+    const malformed: MalformedRunInfo[] = [];
 
     for (const run of runs) {
       try {
@@ -51,10 +57,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
         if (step) pending.push(step);
       } catch (error) {
         if (error instanceof WorkflowExecutorError) {
-          // Sequential on purpose: a pathological batch shouldn't fan out
-          // N concurrent error reports to the orchestrator.
-          // eslint-disable-next-line no-await-in-loop
-          await this.reportMalformedRun(run, error);
+          malformed.push(this.toMalformedInfo(run, error));
         } else {
           this.logger.error('Failed to hydrate pending run — unexpected error', {
             runId: run.id,
@@ -64,7 +67,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       }
     }
 
-    return pending;
+    return { pending, malformed };
   }
 
   async getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null> {
@@ -80,7 +83,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       return toPendingStepExecution(run);
     } catch (error) {
       if (error instanceof WorkflowExecutorError) {
-        await this.reportMalformedRun(run, error);
+        throw new MalformedRunError(this.toMalformedInfo(run, error));
       }
 
       throw error;
@@ -88,52 +91,25 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   /**
-   * Report a malformed run to the orchestrator as a terminal error, so it
-   * leaves the pending pool instead of being re-fetched on every poll cycle.
-   *
-   * Extracts the stepIndex from `workflowHistory` (first non-done,
-   * non-cancelled step). If none is identifiable, logs and skips — the run
-   * will keep looping until ops fixes the data manually (edge case).
-   *
-   * Uses `err.userMessage` (not the technical `err.message`) as the
-   * `executionStatus.message`, which surfaces verbatim in the Forest Admin
-   * audit trail / workflow designer UI. Keep `userMessage` user-safe.
+   * Pure mapping: build the domain-level MalformedRunInfo from a server run
+   * that failed toPendingStepExecution. Extracts the stepId/stepIndex from
+   * `workflowHistory` (first non-done, non-cancelled) when available — the
+   * caller needs them to post an error outcome via updateStepExecution.
+   * Returns null stepId/stepIndex when no pending step is identifiable.
    */
-  private async reportMalformedRun(
+  private toMalformedInfo(
     run: ServerHydratedWorkflowRun,
     err: WorkflowExecutorError,
-  ): Promise<void> {
+  ): MalformedRunInfo {
     const pending = run.workflowHistory.find(s => !s.done && !s.cancelled);
 
-    if (!pending) {
-      this.logger.error('Failed to hydrate pending run — no pending step to report, skipping', {
-        runId: run.id,
-        error: err.message,
-      });
-
-      return;
-    }
-
-    try {
-      await this.updateStepExecution(String(run.id), {
-        type: 'record',
-        stepId: pending.stepName,
-        stepIndex: pending.stepIndex,
-        status: 'error',
-        error: err.userMessage,
-      });
-      this.logger.error('Failed to hydrate pending run — reported as error', {
-        runId: run.id,
-        stepIndex: pending.stepIndex,
-        error: err.message,
-      });
-    } catch (reportErr) {
-      this.logger.error('Failed to hydrate pending run — also failed to report', {
-        runId: run.id,
-        mappingError: err.message,
-        reportError: extractErrorMessage(reportErr),
-      });
-    }
+    return {
+      runId: String(run.id),
+      stepId: pending?.stepName ?? null,
+      stepIndex: pending?.stepIndex ?? null,
+      userMessage: err.userMessage,
+      technicalMessage: err.message,
+    };
   }
 
   async updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void> {

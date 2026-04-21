@@ -4,7 +4,7 @@ import type Runner from '../../src/runner';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import { InvalidStepDefinitionError, RunNotFoundError, UserMismatchError } from '../../src/errors';
+import { MalformedRunError, RunNotFoundError, UserMismatchError } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
 const AUTH_SECRET = 'test-auth-secret';
@@ -26,7 +26,7 @@ function createMockRunner(overrides: Partial<Runner> = {}): Runner {
 
 function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): WorkflowPort {
   return {
-    getPendingStepExecutions: jest.fn().mockResolvedValue([]),
+    getPendingStepExecutions: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
     getPendingStepExecutionsForRun: jest.fn(),
     updateStepExecution: jest.fn().mockResolvedValue(undefined),
     getCollectionSchema: jest.fn(),
@@ -414,11 +414,18 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
 
-    it('returns 400 with userMessage when triggerPoll rejects with InvalidStepDefinitionError', async () => {
+    it('returns 400 with userMessage when triggerPoll rejects with MalformedRunError', async () => {
       const runner = createMockRunner({
-        triggerPoll: jest
-          .fn()
-          .mockRejectedValue(new InvalidStepDefinitionError('Run 1 has no collectionName')),
+        triggerPoll: jest.fn().mockRejectedValue(
+          new MalformedRunError({
+            runId: '1',
+            stepId: 'step-1',
+            stepIndex: 0,
+            userMessage:
+              'The workflow step configuration is invalid. Please check the workflow designer.',
+            technicalMessage: 'Run 1 has no collectionName',
+          }),
+        ),
       });
 
       const server = createServer({ runner });

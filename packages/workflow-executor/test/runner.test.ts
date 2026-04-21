@@ -8,7 +8,12 @@ import type { PendingStepExecution } from '../src/types/execution';
 import type { StepDefinition } from '../src/types/step-definition';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
-import { ConfigurationError, RunNotFoundError, UserMismatchError } from '../src/errors';
+import {
+  ConfigurationError,
+  MalformedRunError,
+  RunNotFoundError,
+  UserMismatchError,
+} from '../src/errors';
 import BaseStepExecutor from '../src/executors/base-step-executor';
 import ConditionStepExecutor from '../src/executors/condition-step-executor';
 import GuidanceStepExecutor from '../src/executors/guidance-step-executor';
@@ -36,7 +41,7 @@ const flushPromises = async () => {
 
 function createMockWorkflowPort(): jest.Mocked<WorkflowPort> {
   return {
-    getPendingStepExecutions: jest.fn().mockResolvedValue([]),
+    getPendingStepExecutions: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
     getPendingStepExecutionsForRun: jest.fn(),
     updateStepExecution: jest.fn().mockResolvedValue(undefined),
     getCollectionSchema: jest.fn(),
@@ -342,9 +347,10 @@ describe('graceful shutdown', () => {
     });
 
     const workflowPort = createMockWorkflowPort();
-    workflowPort.getPendingStepExecutions.mockResolvedValueOnce([
-      makePendingStep({ runId: 'run-1', stepId: 'step-1' }),
-    ]);
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
+      pending: [makePendingStep({ runId: 'run-1', stepId: 'step-1' })],
+      malformed: [],
+    });
 
     jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
       execute: () =>
@@ -377,9 +383,10 @@ describe('graceful shutdown', () => {
   it('stop() resolves after timeout when step is stuck', async () => {
     const workflowPort = createMockWorkflowPort();
     const logger = createMockLogger();
-    workflowPort.getPendingStepExecutions.mockResolvedValueOnce([
-      makePendingStep({ runId: 'run-1', stepId: 'stuck-step' }),
-    ]);
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
+      pending: [makePendingStep({ runId: 'run-1', stepId: 'stuck-step' })],
+      malformed: [],
+    });
 
     jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
       execute: () => new Promise(() => {}), // never resolves
@@ -446,9 +453,10 @@ describe('graceful shutdown', () => {
 
     const workflowPort = createMockWorkflowPort();
     const logger = createMockLogger();
-    workflowPort.getPendingStepExecutions.mockResolvedValueOnce([
-      makePendingStep({ runId: 'run-1', stepId: 'step-1' }),
-    ]);
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
+      pending: [makePendingStep({ runId: 'run-1', stepId: 'step-1' })],
+      malformed: [],
+    });
 
     jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
       execute: () =>
@@ -1051,7 +1059,7 @@ describe('error handling', () => {
   it('emits Poll cycle completed with fetched/dispatching counts on each cycle', async () => {
     const workflowPort = createMockWorkflowPort();
     const mockLogger = createMockLogger();
-    workflowPort.getPendingStepExecutions.mockResolvedValue([]);
+    workflowPort.getPendingStepExecutions.mockResolvedValue({ pending: [], malformed: [] });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
     await runner.start();
@@ -1062,6 +1070,7 @@ describe('error handling', () => {
     expect(mockLogger.info).toHaveBeenCalledWith('Poll cycle completed', {
       fetched: 0,
       dispatching: 0,
+      malformed: 0,
     });
   });
 
@@ -1070,7 +1079,7 @@ describe('error handling', () => {
     const mockLogger = createMockLogger();
     workflowPort.getPendingStepExecutions
       .mockRejectedValueOnce(new Error('network error'))
-      .mockResolvedValue([]);
+      .mockResolvedValue({ pending: [], malformed: [] });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
     await runner.start();
@@ -1088,6 +1097,100 @@ describe('error handling', () => {
     await flushPromises();
 
     expect(workflowPort.getPendingStepExecutions).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// malformed run reporting
+// ---------------------------------------------------------------------------
+
+describe('malformed run reporting', () => {
+  const malformedInfo = {
+    runId: '99',
+    stepId: 'pending-step',
+    stepIndex: 2,
+    userMessage: 'The workflow step configuration is invalid. Please check the workflow designer.',
+    technicalMessage: 'Invalid step definition: some detail',
+  };
+
+  it('runPollCycle reports each malformed run via updateStepExecution', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
+      pending: [],
+      malformed: [malformedInfo],
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith('99', {
+      type: 'record',
+      stepId: 'pending-step',
+      stepIndex: 2,
+      status: 'error',
+      error: malformedInfo.userMessage,
+    });
+  });
+
+  it('runPollCycle skips updateStepExecution and logs when stepIndex is null', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
+      pending: [],
+      malformed: [{ ...malformedInfo, stepId: null, stepIndex: null }],
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+
+    expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Malformed run cannot be reported — no pending step identified',
+      expect.objectContaining({ runId: '99' }),
+    );
+  });
+
+  it('runPollCycle logs when updateStepExecution itself fails but keeps running', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    workflowPort.updateStepExecution.mockRejectedValueOnce(new Error('orchestrator unreachable'));
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
+      pending: [],
+      malformed: [malformedInfo],
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Malformed run — also failed to report',
+      expect.objectContaining({ runId: '99', reportError: 'orchestrator unreachable' }),
+    );
+  });
+
+  it('triggerPoll reports the malformed run via updateStepExecution before rethrowing', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getPendingStepExecutionsForRun.mockRejectedValue(
+      new MalformedRunError(malformedInfo),
+    );
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(runner.triggerPoll('99')).rejects.toBeInstanceOf(MalformedRunError);
+
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+      '99',
+      expect.objectContaining({ status: 'error', stepIndex: 2 }),
+    );
   });
 });
 

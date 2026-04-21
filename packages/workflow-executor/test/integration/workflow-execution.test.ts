@@ -135,7 +135,7 @@ function createMockAiClient(model: BaseChatModel): AiModelPort {
 
 function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): jest.Mocked<WorkflowPort> {
   return {
-    getPendingStepExecutions: jest.fn().mockResolvedValue([]),
+    getPendingStepExecutions: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
     getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(null),
     updateStepExecution: jest.fn().mockResolvedValue(undefined),
     getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA),
@@ -752,8 +752,8 @@ describe('workflow execution (integration)', () => {
       // Return the step only on the first poll, then empty (to avoid re-execution loops)
       getPendingStepExecutions: jest
         .fn()
-        .mockResolvedValueOnce([pendingStep])
-        .mockResolvedValue([]),
+        .mockResolvedValueOnce({ pending: [pendingStep], malformed: [] })
+        .mockResolvedValue({ pending: [], malformed: [] }),
     });
 
     const { runner, runStore } = createIntegrationSetup({

@@ -51,7 +51,7 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
 
 function makeMockWorkflowPort(): WorkflowPort {
   return {
-    getPendingStepExecutions: jest.fn().mockResolvedValue([]),
+    getPendingStepExecutions: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
     getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(null),
     updateStepExecution: jest.fn().mockResolvedValue(undefined),
     getCollectionSchema: jest.fn().mockResolvedValue({

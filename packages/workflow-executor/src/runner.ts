@@ -4,14 +4,20 @@ import type { AgentPort } from './ports/agent-port';
 import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
-import type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
+import type { MalformedRunInfo, McpConfiguration, WorkflowPort } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
-import { RunNotFoundError, UserMismatchError, causeMessage, extractErrorMessage } from './errors';
+import {
+  MalformedRunError,
+  RunNotFoundError,
+  UserMismatchError,
+  causeMessage,
+  extractErrorMessage,
+} from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import validateSecrets from './validate-secrets';
 
@@ -156,7 +162,17 @@ export default class Runner {
     runId: string,
     options?: { pendingData?: unknown; bearerUserId?: number },
   ): Promise<void> {
-    const step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
+    let step: PendingStepExecution | null;
+
+    try {
+      step = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
+    } catch (err) {
+      if (err instanceof MalformedRunError) {
+        await this.reportMalformedRun(err.info);
+      }
+
+      throw err;
+    }
 
     if (!step) throw new RunNotFoundError(runId);
 
@@ -176,13 +192,18 @@ export default class Runner {
 
   private async runPollCycle(): Promise<void> {
     try {
-      const steps = await this.config.workflowPort.getPendingStepExecutions();
-      const pending = steps.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
+      const { pending, malformed } = await this.config.workflowPort.getPendingStepExecutions();
+      // Report malformed runs concurrently — each has its own try/catch inside
+      // reportMalformedRun so no individual failure poisons the cycle.
+      await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
+
+      const dispatchable = pending.filter(s => !this.inFlightSteps.has(Runner.stepKey(s)));
       this.logger.info('Poll cycle completed', {
-        fetched: steps.length,
-        dispatching: pending.length,
+        fetched: pending.length,
+        dispatching: dispatchable.length,
+        malformed: malformed.length,
       });
-      await Promise.allSettled(pending.map(s => this.executeStep(s)));
+      await Promise.allSettled(dispatchable.map(s => this.executeStep(s)));
     } catch (error) {
       this.logger.error('Poll cycle failed', {
         error: extractErrorMessage(error),
@@ -190,6 +211,45 @@ export default class Runner {
       });
     } finally {
       this.schedulePoll();
+    }
+  }
+
+  /**
+   * Policy for runs that failed to map (WorkflowPort produced a MalformedRunInfo).
+   * Post an error outcome via updateStepExecution so the orchestrator marks the
+   * run failed and stops re-dispatching it. Idempotent at the orchestrator level
+   * (re-posting on the next cycle is accepted). If no stepIndex is identifiable,
+   * log loudly and skip — edge case, ops has to clean up manually.
+   */
+  private async reportMalformedRun(info: MalformedRunInfo): Promise<void> {
+    if (info.stepId === null || info.stepIndex === null) {
+      this.logger.error('Malformed run cannot be reported — no pending step identified', {
+        runId: info.runId,
+        error: info.technicalMessage,
+      });
+
+      return;
+    }
+
+    try {
+      await this.config.workflowPort.updateStepExecution(info.runId, {
+        type: 'record',
+        stepId: info.stepId,
+        stepIndex: info.stepIndex,
+        status: 'error',
+        error: info.userMessage,
+      });
+      this.logger.error('Malformed run reported as error', {
+        runId: info.runId,
+        stepIndex: info.stepIndex,
+        error: info.technicalMessage,
+      });
+    } catch (reportErr) {
+      this.logger.error('Malformed run — also failed to report', {
+        runId: info.runId,
+        mappingError: info.technicalMessage,
+        reportError: extractErrorMessage(reportErr),
+      });
     }
   }
 
