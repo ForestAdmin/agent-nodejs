@@ -6,8 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { UpdateRecordStepDefinition } from '../../src/types/step-definition';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
 
-import SafeAgentPort from '../../src/adapters/safe-agent-port';
-import { StepStateError } from '../../src/errors';
+import { AgentPortError, StepStateError } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepType } from '../../src/types/step-definition';
@@ -689,9 +688,10 @@ describe('UpdateRecordStepExecutor', () => {
 
     it('returns user message and logs cause when agentPort.updateRecord throws an infra error', async () => {
       const logger = { info: jest.fn(), error: jest.fn() };
-      const rawAgentPort = makeMockAgentPort();
-      (rawAgentPort.updateRecord as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
-      const agentPort = new SafeAgentPort(rawAgentPort);
+      const agentPort = makeMockAgentPort();
+      (agentPort.updateRecord as jest.Mock).mockRejectedValue(
+        new AgentPortError('updateRecord', new Error('DB connection lost')),
+      );
       const mockModel = makeMockModel({
         fieldName: 'Status',
         value: 'active',

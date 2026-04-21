@@ -14,7 +14,13 @@ import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/ag
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
-import { AgentProbeError, RecordNotFoundError, extractErrorMessage } from '../errors';
+import {
+  AgentPortError,
+  AgentProbeError,
+  RecordNotFoundError,
+  WorkflowExecutorError,
+  extractErrorMessage,
+} from '../errors';
 
 function buildPkFilter(
   primaryKeyFields: string[],
@@ -58,77 +64,102 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async getRecord({ collection, id, fields }: GetRecordQuery, user: StepUser): Promise<RecordData> {
-    const client = this.createClient(user);
-    const schema = this.resolveSchema(collection);
-    const records = await client.collection(collection).list<Record<string, unknown>>({
-      filters: buildPkFilter(schema.primaryKeyFields, id),
-      pagination: { size: 1, number: 1 },
-      ...(fields?.length && { fields }),
+    return this.callAgent('getRecord', async () => {
+      const client = this.createClient(user);
+      const schema = this.resolveSchema(collection);
+      const records = await client.collection(collection).list<Record<string, unknown>>({
+        filters: buildPkFilter(schema.primaryKeyFields, id),
+        pagination: { size: 1, number: 1 },
+        ...(fields?.length && { fields }),
+      });
+
+      if (records.length === 0) {
+        throw new RecordNotFoundError(collection, encodePk(id));
+      }
+
+      return { collectionName: collection, recordId: id, values: records[0] };
     });
-
-    if (records.length === 0) {
-      throw new RecordNotFoundError(collection, encodePk(id));
-    }
-
-    return { collectionName: collection, recordId: id, values: records[0] };
   }
 
   async updateRecord(
     { collection, id, values }: UpdateRecordQuery,
     user: StepUser,
   ): Promise<RecordData> {
-    const client = this.createClient(user);
-    const updatedRecord = await client
-      .collection(collection)
-      .update<Record<string, unknown>>(encodePk(id), values);
+    return this.callAgent('updateRecord', async () => {
+      const client = this.createClient(user);
+      const updatedRecord = await client
+        .collection(collection)
+        .update<Record<string, unknown>>(encodePk(id), values);
 
-    return { collectionName: collection, recordId: id, values: updatedRecord };
+      return { collectionName: collection, recordId: id, values: updatedRecord };
+    });
   }
 
   async getRelatedData(
     { collection, id, relation, limit, fields }: GetRelatedDataQuery,
     user: StepUser,
   ): Promise<RecordData[]> {
-    const client = this.createClient(user);
-    const parentSchema = this.resolveSchema(collection);
-    const relationField = parentSchema.fields.find(f => f.fieldName === relation);
-    const relatedCollectionName = relationField?.relatedCollectionName ?? relation;
-    const relatedSchema = this.resolveSchema(relatedCollectionName);
+    return this.callAgent('getRelatedData', async () => {
+      const client = this.createClient(user);
+      const parentSchema = this.resolveSchema(collection);
+      const relationField = parentSchema.fields.find(f => f.fieldName === relation);
+      const relatedCollectionName = relationField?.relatedCollectionName ?? relation;
+      const relatedSchema = this.resolveSchema(relatedCollectionName);
 
-    const records = await client
-      .collection(collection)
-      .relation(relation, encodePk(id))
-      .list<Record<string, unknown>>({
-        ...(limit !== null && { pagination: { size: limit, number: 1 } }),
-        ...(fields?.length && { fields }),
-      });
+      const records = await client
+        .collection(collection)
+        .relation(relation, encodePk(id))
+        .list<Record<string, unknown>>({
+          ...(limit !== null && { pagination: { size: limit, number: 1 } }),
+          ...(fields?.length && { fields }),
+        });
 
-    return records.map(record => ({
-      collectionName: relatedSchema.collectionName,
-      recordId: extractRecordId(relatedSchema.primaryKeyFields, record),
-      values: record,
-    }));
+      return records.map(record => ({
+        collectionName: relatedSchema.collectionName,
+        recordId: extractRecordId(relatedSchema.primaryKeyFields, record),
+        values: record,
+      }));
+    });
   }
 
   async executeAction(
     { collection, action, id }: ExecuteActionQuery,
     user: StepUser,
   ): Promise<unknown> {
-    const client = this.createClient(user);
-    const encodedId = id?.length ? [encodePk(id)] : [];
-    const act = await client.collection(collection).action(action, { recordIds: encodedId });
+    return this.callAgent('executeAction', async () => {
+      const client = this.createClient(user);
+      const encodedId = id?.length ? [encodePk(id)] : [];
+      const act = await client.collection(collection).action(action, { recordIds: encodedId });
 
-    return act.execute();
+      return act.execute();
+    });
   }
 
   async getActionFormInfo(
     { collection, action, id }: GetActionFormInfoQuery,
     user: StepUser,
   ): Promise<{ hasForm: boolean }> {
-    const client = this.createClient(user);
-    const act = await client.collection(collection).action(action, { recordIds: [encodePk(id)] });
+    return this.callAgent('getActionFormInfo', async () => {
+      const client = this.createClient(user);
+      const act = await client.collection(collection).action(action, { recordIds: [encodePk(id)] });
 
-    return { hasForm: act.getFields().length > 0 };
+      return { hasForm: act.getFields().length > 0 };
+    });
+  }
+
+  /**
+   * Normalizes any thrown value from an agent call into a WorkflowExecutorError,
+   * so every caller (executors) sees a consistent error hierarchy. Domain errors
+   * (RecordNotFoundError, etc.) pass through unchanged; anything else is wrapped
+   * in AgentPortError with the operation name as context.
+   */
+  private async callAgent<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (cause) {
+      if (cause instanceof WorkflowExecutorError) throw cause;
+      throw new AgentPortError(operation, cause);
+    }
   }
 
   private createClient(user: StepUser) {

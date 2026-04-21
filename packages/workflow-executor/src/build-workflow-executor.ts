@@ -11,7 +11,6 @@ import AiClientAdapter from './adapters/ai-client-adapter';
 import ConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPort from './adapters/forestadmin-client-activity-log-port';
-import SafeAgentPort from './adapters/safe-agent-port';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import ExecutorHttpServer from './http/executor-http-server';
 import Runner from './runner';
@@ -62,16 +61,11 @@ function buildCommonDependencies(options: ExecutorOptions) {
 
   const schemaCache = new SchemaCache();
 
-  // Decorate with SafeAgentPort at the composition root so every downstream
-  // consumer (Runner, executors) sees a port that normalizes errors into
-  // WorkflowExecutorError.
-  const agentPort = new SafeAgentPort(
-    new AgentClientAgentPort({
-      agentUrl: options.agentUrl,
-      authSecret: options.authSecret,
-      schemaCache,
-    }),
-  );
+  const agentPort = new AgentClientAgentPort({
+    agentUrl: options.agentUrl,
+    authSecret: options.authSecret,
+    schemaCache,
+  });
 
   const activityLogsService = new ActivityLogsService(new ForestHttpApi(), {
     forestServerUrl,
