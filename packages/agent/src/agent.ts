@@ -27,6 +27,7 @@ import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
+import probeWorkflowExecutor from './utils/probe-workflow-executor';
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -83,6 +84,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    */
   async start(): Promise<void> {
     const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
+
+    if (this.options.workflowExecutorUrl) {
+      await probeWorkflowExecutor(this.options.workflowExecutorUrl, this.options.logger);
+    }
 
     await this.options.forestAdminClient.subscribeToServerEvents();
     this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
