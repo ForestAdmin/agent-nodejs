@@ -1,3 +1,5 @@
+name: workflow-executor-example
+
 services:
   postgres:
     image: postgres:16
