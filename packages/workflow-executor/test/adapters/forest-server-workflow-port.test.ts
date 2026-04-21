@@ -106,7 +106,7 @@ describe('ForestServerWorkflowPort', () => {
       expect(result).toEqual([]);
     });
 
-    it('skips malformed runs and keeps valid ones in the same batch', async () => {
+    it('reports malformed runs and keeps valid ones in the same batch', async () => {
       const logger = { error: jest.fn(), info: jest.fn() };
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
       const validRun = makeRun({ id: 42 });
@@ -117,9 +117,108 @@ describe('ForestServerWorkflowPort', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].runId).toBe('42');
+
+      // Report posted to the orchestrator for the malformed run
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        expect.objectContaining({
+          runId: 99,
+          executionStatus: expect.objectContaining({ type: 'error' }),
+        }),
+      );
+
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to hydrate pending run — skipping',
-        expect.objectContaining({ runId: 99 }),
+        'Failed to hydrate pending run — reported as error',
+        expect.objectContaining({ runId: 99, stepIndex: 0 }),
+      );
+    });
+
+    it('reports malformed run with the pending step extracted from workflowHistory', async () => {
+      const logger = { error: jest.fn(), info: jest.fn() };
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      const malformedRun = makeRun({
+        id: 77,
+        collectionName: null,
+        workflowHistory: [
+          {
+            stepName: 'done-step',
+            stepIndex: 0,
+            done: true,
+            stepDefinition: {
+              type: 'condition',
+              title: 'x',
+              prompt: 'x',
+              outgoing: [{ stepId: 'n', buttonText: 'ok', answer: 'ok' }],
+            },
+          },
+          {
+            stepName: 'pending-step',
+            stepIndex: 1,
+            done: false,
+            stepDefinition: {
+              type: 'condition',
+              title: 'y',
+              prompt: 'y',
+              outgoing: [{ stepId: 'm', buttonText: 'ok', answer: 'ok' }],
+            },
+          },
+        ],
+      });
+      mockQuery.mockResolvedValue([malformedRun]);
+
+      await portWithLogger.getPendingStepExecutions();
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        expect.objectContaining({
+          runId: 77,
+          stepUpdate: expect.objectContaining({ stepIndex: 1 }),
+        }),
+      );
+    });
+
+    it('logs and skips when malformed run has no identifiable pending step', async () => {
+      const logger = { error: jest.fn(), info: jest.fn() };
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      const malformedRun = makeRun({
+        id: 88,
+        collectionName: null,
+        workflowHistory: [],
+      });
+      mockQuery.mockResolvedValue([malformedRun]);
+
+      await portWithLogger.getPendingStepExecutions();
+
+      // No POST to update-step was attempted — only the GET for pending-runs
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to hydrate pending run — no pending step to report, skipping',
+        expect.objectContaining({ runId: 88 }),
+      );
+    });
+
+    it('logs and skips when the report itself fails', async () => {
+      const logger = { error: jest.fn(), info: jest.fn() };
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      const malformedRun = makeRun({ id: 55, collectionName: null });
+      mockQuery
+        .mockResolvedValueOnce([malformedRun])
+        .mockRejectedValueOnce(new Error('orchestrator unreachable'));
+
+      await portWithLogger.getPendingStepExecutions();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to hydrate pending run — also failed to report',
+        expect.objectContaining({
+          runId: 55,
+          reportError: 'orchestrator unreachable',
+        }),
       );
     });
   });
@@ -156,6 +255,28 @@ describe('ForestServerWorkflowPort', () => {
       const result = await port.getPendingStepExecutionsForRun('run-42');
 
       expect(result).toBeNull();
+    });
+
+    it('reports a malformed run before rethrowing so the caller sees the error', async () => {
+      const logger = { error: jest.fn(), info: jest.fn() };
+      const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
+      const malformedRun = makeRun({ id: 66, collectionName: null });
+      mockQuery.mockResolvedValue(malformedRun);
+
+      await expect(portWithLogger.getPendingStepExecutionsForRun('66')).rejects.toThrow(
+        /collectionName/,
+      );
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        expect.objectContaining({
+          runId: 66,
+          executionStatus: expect.objectContaining({ type: 'error' }),
+        }),
+      );
     });
   });
 

@@ -11,7 +11,7 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 import ConsoleLogger from './console-logger';
 import toPendingStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
-import { extractErrorMessage } from '../errors';
+import { InvalidStepDefinitionError, extractErrorMessage } from '../errors';
 
 const ROUTES = {
   pendingRuns: '/api/workflow-orchestrator/pending-run',
@@ -43,19 +43,26 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       ROUTES.pendingRuns,
     );
 
-    return runs.reduce<PendingStepExecution[]>((acc, run) => {
+    const pending: PendingStepExecution[] = [];
+
+    for (const run of runs) {
       try {
         const step = toPendingStepExecution(run);
-        if (step) acc.push(step);
+        if (step) pending.push(step);
       } catch (error) {
-        this.logger.error('Failed to hydrate pending run — skipping', {
-          runId: run.id,
-          error: extractErrorMessage(error),
-        });
+        if (error instanceof InvalidStepDefinitionError) {
+          // eslint-disable-next-line no-await-in-loop
+          await this.reportMalformedRun(run, error);
+        } else {
+          this.logger.error('Failed to hydrate pending run — unexpected error', {
+            runId: run.id,
+            error: extractErrorMessage(error),
+          });
+        }
       }
+    }
 
-      return acc;
-    }, []);
+    return pending;
   }
 
   async getPendingStepExecutionsForRun(runId: string): Promise<PendingStepExecution | null> {
@@ -67,7 +74,60 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
 
     if (!run) return null;
 
-    return toPendingStepExecution(run);
+    try {
+      return toPendingStepExecution(run);
+    } catch (error) {
+      if (error instanceof InvalidStepDefinitionError) {
+        await this.reportMalformedRun(run, error);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Report a malformed run to the orchestrator as a terminal error, so it
+   * leaves the pending pool instead of being re-fetched on every poll cycle.
+   *
+   * Extracts the stepIndex from `workflowHistory` (first non-done,
+   * non-cancelled step). If none is identifiable, logs and skips — the run
+   * will keep looping until ops fixes the data manually (edge case).
+   */
+  private async reportMalformedRun(
+    run: ServerHydratedWorkflowRun,
+    err: InvalidStepDefinitionError,
+  ): Promise<void> {
+    const pending = run.workflowHistory.find(s => !s.done && !s.cancelled);
+
+    if (!pending) {
+      this.logger.error('Failed to hydrate pending run — no pending step to report, skipping', {
+        runId: run.id,
+        error: err.message,
+      });
+
+      return;
+    }
+
+    try {
+      await this.updateStepExecution(String(run.id), {
+        type: 'record',
+        stepId: pending.stepName,
+        stepIndex: pending.stepIndex,
+        status: 'error',
+        error: err.userMessage,
+      });
+      this.logger.error('Failed to hydrate pending run — reported as error', {
+        runId: run.id,
+        stepIndex: pending.stepIndex,
+        error: err.message,
+      });
+    } catch (reportErr) {
+      this.logger.error('Failed to hydrate pending run — also failed to report', {
+        runId: run.id,
+        mappingError: err.message,
+        reportError: extractErrorMessage(reportErr),
+      });
+    }
   }
 
   async updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void> {

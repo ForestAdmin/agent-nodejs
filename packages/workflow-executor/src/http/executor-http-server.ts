@@ -11,7 +11,12 @@ import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
 import ConsoleLogger from '../adapters/console-logger';
-import { RunNotFoundError, UserMismatchError, extractErrorMessage } from '../errors';
+import {
+  InvalidStepDefinitionError,
+  RunNotFoundError,
+  UserMismatchError,
+  extractErrorMessage,
+} from '../errors';
 
 export interface ExecutorHttpServerOptions {
   port: number;
@@ -189,6 +194,17 @@ export default class ExecutorHttpServer {
         this.logger.error('User mismatch on trigger', { runId, bearerUserId });
         ctx.status = 403;
         ctx.body = { error: 'Forbidden' };
+
+        return;
+      }
+
+      if (err instanceof InvalidStepDefinitionError) {
+        this.logger.error('Malformed run on trigger', {
+          runId,
+          error: extractErrorMessage(err),
+        });
+        ctx.status = 400;
+        ctx.body = { error: err.userMessage };
 
         return;
       }

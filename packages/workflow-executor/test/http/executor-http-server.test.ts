@@ -4,7 +4,7 @@ import type Runner from '../../src/runner';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import { RunNotFoundError, UserMismatchError } from '../../src/errors';
+import { InvalidStepDefinitionError, RunNotFoundError, UserMismatchError } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
 const AUTH_SECRET = 'test-auth-secret';
@@ -412,6 +412,26 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
+    it('returns 400 with userMessage when triggerPoll rejects with InvalidStepDefinitionError', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest
+          .fn()
+          .mockRejectedValue(new InvalidStepDefinitionError('Run 1 has no collectionName')),
+      });
+
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'The workflow step configuration is invalid. Please check the workflow designer.',
+      });
     });
   });
 
