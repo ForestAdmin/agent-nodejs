@@ -3,7 +3,7 @@ services:
     image: postgres:16
     container_name: workflow_executor_example_postgres
     ports:
-      - '5452:5432'
+      - '5459:5432'
     environment:
       - POSTGRES_DB=workflow_executor
       - POSTGRES_USER=executor

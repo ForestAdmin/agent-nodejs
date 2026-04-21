@@ -30,8 +30,6 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
   setupRoutes(router: KoaRouter): void {
     router.get('/_internal/workflow-executions/:runId', this.handleProxy.bind(this));
     router.post('/_internal/workflow-executions/:runId/trigger', this.handleProxy.bind(this));
-    // Note: the former PATCH /.../steps/:stepIndex/pending-data route has been
-    // retired. Pending data is now sent as part of the POST /trigger body.
   }
 
   private async handleProxy(context: Context): Promise<void> {
