@@ -1,5 +1,5 @@
 import type { ActivityLogAction } from './activity-logs-creator';
-import type { ForestServerClient } from '../http-client';
+import type { ActivityLogResponse, ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
@@ -42,11 +42,11 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
 
   // We want to create the activity log before executing the operation
   // If activity log creation fails, we must prevent the execution of the operation
-  const activityLogPromise = createPendingActivityLog(forestServerClient, request, action, context);
+
+  const activityLog = await createPendingActivityLog(forestServerClient, request, action, context);
 
   try {
     const result = await operation();
-    const activityLog = await activityLogPromise;
 
     markActivityLogAsSucceeded({
       forestServerClient,
@@ -77,7 +77,7 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
     markActivityLogAsFailed({
       forestServerClient,
       request,
-      activityLog: await activityLogPromise,
+      activityLog,
       errorMessage,
       logger,
     });
