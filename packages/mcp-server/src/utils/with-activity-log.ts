@@ -1,5 +1,5 @@
 import type { ActivityLogAction } from './activity-logs-creator';
-import type { ActivityLogResponse, ForestServerClient } from '../http-client';
+import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol.js';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types.js';
