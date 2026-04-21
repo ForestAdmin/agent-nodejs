@@ -10,7 +10,7 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d",
-    "db:psql": "docker exec -it workflow_executor_example_postgres psql -U executor -d workflow_executor"
+    "db:psql": "docker compose exec postgres psql -U executor -d workflow_executor"
   },
   "dependencies": {
     "@forestadmin/workflow-executor": "*"
