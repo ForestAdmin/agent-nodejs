@@ -15,6 +15,7 @@ import {
   MissingToolCallError,
   NoRecordsError,
   StepStateError,
+  StepTimeoutError,
   WorkflowExecutorError,
 } from '../errors';
 import patchBodySchemas from '../pending-data-validators';
@@ -47,7 +48,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     });
 
     try {
-      const result = await this.doExecute();
+      const result = await this.runWithOptionalTimeout();
 
       this.context.logger.info('Step execution completed', {
         runId,
@@ -90,6 +91,30 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   protected abstract doExecute(): Promise<StepExecutionResult>;
+
+  /**
+   * Wrap doExecute() with a Promise.race timeout when `stepTimeoutMs` is configured.
+   * The losing promise is NOT aborted (Promise.race limitation) — a slow LLM/agent call
+   * will complete in the background and be ignored. Acceptable tradeoff until all port
+   * methods accept an AbortSignal.
+   */
+  private async runWithOptionalTimeout(): Promise<StepExecutionResult> {
+    const timeoutMs = this.context.stepTimeoutMs;
+    if (!timeoutMs || timeoutMs <= 0) return this.doExecute();
+
+    let timer: NodeJS.Timeout | undefined;
+
+    try {
+      return await Promise.race([
+        this.doExecute(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new StepTimeoutError(timeoutMs)), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
 
   /** Find a field by displayName first, then fallback to fieldName. */
   protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {

@@ -283,6 +283,85 @@ describe('BaseStepExecutor', () => {
     });
   });
 
+  describe('step execution timeout', () => {
+    class SlowExecutor extends BaseStepExecutor {
+      constructor(context: ExecutionContext, private readonly delayMs: number) {
+        super(context);
+      }
+
+      protected async doExecute(): Promise<StepExecutionResult> {
+        await new Promise(resolve => {
+          setTimeout(resolve, this.delayMs);
+        });
+
+        return this.buildOutcomeResult({ status: 'success' });
+      }
+
+      protected buildOutcomeResult(outcome: {
+        status: BaseStepStatus;
+        error?: string;
+      }): StepExecutionResult {
+        return {
+          stepOutcome: {
+            type: 'record',
+            stepId: this.context.stepId,
+            stepIndex: this.context.stepIndex,
+            status: outcome.status,
+            ...(outcome.error !== undefined && { error: outcome.error }),
+          },
+        };
+      }
+    }
+
+    it('returns error outcome with timeout userMessage when step exceeds stepTimeoutMs', async () => {
+      jest.useFakeTimers();
+
+      try {
+        const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 50 }), 10_000);
+        const resultPromise = executor.execute();
+        jest.advanceTimersByTime(60);
+        const result = await resultPromise;
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect((result.stepOutcome as { error?: string }).error).toBe(
+          'The step took too long to complete. Please try again, or contact your administrator if the problem persists.',
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('returns success when step finishes before stepTimeoutMs', async () => {
+      const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 5_000 }), 5);
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+    });
+
+    it('does not apply a timeout when stepTimeoutMs is unset', async () => {
+      jest.useFakeTimers();
+
+      try {
+        const executor = new SlowExecutor(makeContext({ stepTimeoutMs: undefined }), 1_000);
+        const resultPromise = executor.execute();
+        // Advance past a hypothetical default; no timeout should fire
+        jest.advanceTimersByTime(10_000);
+        jest.useRealTimers();
+        const result = await resultPromise;
+        expect(result.stepOutcome.status).toBe('success');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('ignores stepTimeoutMs <= 0 (treated as disabled)', async () => {
+      const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 0 }), 5);
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+    });
+  });
+
   describe('invokeWithTool', () => {
     function makeMockModel(response: unknown) {
       const invoke = jest.fn().mockResolvedValue(response);

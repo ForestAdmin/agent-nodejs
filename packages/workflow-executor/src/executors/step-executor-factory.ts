@@ -39,6 +39,7 @@ export interface StepContextConfig {
   runStore: RunStore;
   schemaCache: SchemaCache;
   logger: Logger;
+  stepTimeoutMs?: number;
 }
 
 export default class StepExecutorFactory {
@@ -118,6 +119,7 @@ export default class StepExecutorFactory {
       schemaCache: cfg.schemaCache,
       logger: cfg.logger,
       incomingPendingData,
+      stepTimeoutMs: cfg.stepTimeoutMs,
     };
   }
 }

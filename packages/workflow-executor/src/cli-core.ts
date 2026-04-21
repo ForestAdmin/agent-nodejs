@@ -140,6 +140,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     forestServerUrl: env.FOREST_SERVER_URL,
     pollingIntervalMs: env.POLLING_INTERVAL_MS ? Number(env.POLLING_INTERVAL_MS) : undefined,
     stopTimeoutMs: env.STOP_TIMEOUT_MS ? Number(env.STOP_TIMEOUT_MS) : undefined,
+    stepTimeoutMs: env.STEP_TIMEOUT_MS ? Number(env.STEP_TIMEOUT_MS) : undefined,
     ...(aiConfigurations && { aiConfigurations }),
   };
 
@@ -173,6 +174,7 @@ Optional environment variables:
   FOREST_SERVER_URL      Default: https://api.forestadmin.com
   POLLING_INTERVAL_MS    Default: 5000
   STOP_TIMEOUT_MS        Default: 30000
+  STEP_TIMEOUT_MS        Max duration of a single step in ms; unset = no timeout
   NO_COLOR               Set to any value to disable ANSI colors in pretty logs
 
 AI configuration (all-or-nothing — falls back to server AI if any is missing):

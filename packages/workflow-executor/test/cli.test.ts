@@ -125,13 +125,26 @@ describe('readEnvConfig', () => {
 
   it('parses numeric env vars as numbers', () => {
     const config = readEnvConfig(
-      { ...baseEnv, HTTP_PORT: '5000', POLLING_INTERVAL_MS: '1000', STOP_TIMEOUT_MS: '10000' },
+      {
+        ...baseEnv,
+        HTTP_PORT: '5000',
+        POLLING_INTERVAL_MS: '1000',
+        STOP_TIMEOUT_MS: '10000',
+        STEP_TIMEOUT_MS: '60000',
+      },
       args,
     );
 
     expect(config.executorOptions.httpPort).toBe(5000);
     expect(config.executorOptions.pollingIntervalMs).toBe(1000);
     expect(config.executorOptions.stopTimeoutMs).toBe(10000);
+    expect(config.executorOptions.stepTimeoutMs).toBe(60000);
+  });
+
+  it('leaves stepTimeoutMs undefined when STEP_TIMEOUT_MS is not set (no timeout)', () => {
+    const config = readEnvConfig(baseEnv, args);
+
+    expect(config.executorOptions.stepTimeoutMs).toBeUndefined();
   });
 
   it('aggregates all missing required env vars in a single error', () => {

@@ -171,6 +171,16 @@ export class StepStateError extends WorkflowExecutorError {
   }
 }
 
+/** Thrown when step execution exceeds the configured `stepTimeoutMs`. */
+export class StepTimeoutError extends WorkflowExecutorError {
+  constructor(timeoutMs: number) {
+    super(
+      `Step execution exceeded timeout of ${timeoutMs}ms`,
+      'The step took too long to complete. Please try again, or contact your administrator if the problem persists.',
+    );
+  }
+}
+
 export class NoMcpToolsError extends WorkflowExecutorError {
   constructor() {
     super('No MCP tools available', 'No tools are available to execute this step.');

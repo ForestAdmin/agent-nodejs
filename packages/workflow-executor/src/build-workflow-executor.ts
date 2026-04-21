@@ -36,6 +36,7 @@ export interface ExecutorOptions {
   pollingIntervalMs?: number;
   logger?: Logger;
   stopTimeoutMs?: number;
+  stepTimeoutMs?: number;
 }
 
 export type DatabaseExecutorOptions = ExecutorOptions &
@@ -73,6 +74,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutMs: options.stopTimeoutMs,
+    stepTimeoutMs: options.stepTimeoutMs,
   };
 }
 

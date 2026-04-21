@@ -27,6 +27,12 @@ export interface RunnerConfig {
   authSecret: string;
   logger?: Logger;
   stopTimeoutMs?: number;
+  /**
+   * Max duration of a single step's execution. Unset = no timeout (steps can hang forever).
+   * On timeout, the step reports `status: 'error'` to the orchestrator with a user-facing
+   * message; the original promise is not aborted (fire-and-forget).
+   */
+  stepTimeoutMs?: number;
 }
 
 const DEFAULT_STOP_TIMEOUT_MS = 30_000;
@@ -248,6 +254,7 @@ export default class Runner {
       runStore: this.config.runStore,
       schemaCache: this.config.schemaCache,
       logger: this.logger,
+      stepTimeoutMs: this.config.stepTimeoutMs,
     };
   }
 }
