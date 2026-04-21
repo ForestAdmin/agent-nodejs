@@ -48,7 +48,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     });
 
     try {
-      const result = await this.runWithOptionalTimeout();
+      const result = await this.runWithTimeout();
 
       this.context.logger.info('Step execution completed', {
         runId,
@@ -105,13 +105,17 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   protected abstract doExecute(): Promise<StepExecutionResult>;
 
   /**
-   * Wrap doExecute() with a Promise.race timeout when `stepTimeoutMs` is configured.
-   * The losing promise is NOT aborted (Promise.race limitation) and continues running
-   * in the background. A `.catch()` is attached to the work promise so that a late
-   * rejection becomes a logged info entry instead of UnhandledPromiseRejection; a late
-   * resolution is silently discarded.
+   * Wrap doExecute() with a Promise.race against `stepTimeoutMs`. Always applied
+   * when a timeout is configured (default 5 min in build-workflow-executor); the
+   * `<= 0` guard below is defense-in-depth for programmatic consumers who pass 0
+   * or undefined explicitly.
+   *
+   * The losing promise is NOT aborted (Promise.race limitation) and continues
+   * running in the background. A `.catch()` is attached to the work promise so a
+   * late rejection becomes a logged info entry instead of UnhandledPromiseRejection;
+   * a late resolution is silently discarded.
    */
-  private async runWithOptionalTimeout(): Promise<StepExecutionResult> {
+  private async runWithTimeout(): Promise<StepExecutionResult> {
     const timeoutMs = this.context.stepTimeoutMs;
     if (!timeoutMs || timeoutMs <= 0) return this.doExecute();
 
