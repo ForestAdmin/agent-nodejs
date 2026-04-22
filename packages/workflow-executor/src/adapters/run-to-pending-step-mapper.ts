@@ -3,7 +3,6 @@ import type {
   ServerStepHistory,
   ServerUserProfile,
 } from './server-types';
-import type { PendingStepExecution, Step, StepUser } from '../types/execution';
 import type {
   ConditionStepOutcome,
   GuidanceStepOutcome,
@@ -12,8 +11,16 @@ import type {
   StepOutcome,
 } from '../types/step-outcome';
 
+import { z } from 'zod';
+
 import toStepDefinition from './step-definition-mapper';
-import { InvalidStepDefinitionError } from '../errors';
+import { DomainValidationError, InvalidStepDefinitionError } from '../errors';
+import {
+  type PendingStepExecution,
+  PendingStepExecutionSchema,
+  type Step,
+  type StepUser,
+} from '../types/execution';
 import { stepTypeToOutcomeType } from '../types/step-outcome';
 
 function toRecordStatus(ctxStatus: unknown): RecordStepOutcome['status'] {
@@ -119,7 +126,7 @@ export default function toPendingStepExecution(
   const pending = run.workflowHistory.find(s => !s.done && !s.cancelled);
   if (!pending) return null;
 
-  return {
+  const result = {
     runId: String(run.id),
     stepId: pending.stepName,
     stepIndex: pending.stepIndex,
@@ -133,4 +140,17 @@ export default function toPendingStepExecution(
     previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex),
     user: toStepUser(run.id, run.userProfile),
   };
+
+  // Defense against mapper bugs: zod asserts the shape we produce is what the domain expects,
+  // before any executor consumes it. Fails loudly with a typed error instead of crashing deep.
+
+  try {
+    return PendingStepExecutionSchema.parse(result);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      throw new DomainValidationError(run.id, err);
+    }
+
+    throw err;
+  }
 }

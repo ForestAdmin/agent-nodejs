@@ -2,6 +2,8 @@
 
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 
+import { z } from 'zod';
+
 // -- Schema types (structure of a collection — source: WorkflowPort) --
 
 export interface FieldSchema {
@@ -34,12 +36,13 @@ export interface CollectionSchema {
 
 // -- Record types (data — source: AgentPort/RunStore) --
 
-export interface RecordRef {
-  collectionName: string;
-  recordId: Array<string | number>;
+export const RecordRefSchema = z.object({
+  collectionName: z.string().min(1),
+  recordId: z.array(z.union([z.string(), z.number()])).min(1),
   // Index of the workflow step that loaded this record.
-  stepIndex: number;
-}
+  stepIndex: z.number().int().nonnegative(),
+});
+export type RecordRef = z.infer<typeof RecordRefSchema>;
 
 // No stepIndex — the agent doesn't know about steps.
 export type RecordData = Omit<RecordRef, 'stepIndex'> & { values: Record<string, unknown> };

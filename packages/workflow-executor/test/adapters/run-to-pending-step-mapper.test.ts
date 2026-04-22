@@ -4,8 +4,10 @@ import type {
   ServerUserProfile,
 } from '../../src/adapters/server-types';
 
+import { z } from 'zod';
+
 import toPendingStepExecution from '../../src/adapters/run-to-pending-step-mapper';
-import { InvalidStepDefinitionError } from '../../src/errors';
+import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
 import { StepType } from '../../src/types/step-definition';
 
 function makeStepHistory(overrides: Partial<ServerStepHistory> = {}): ServerStepHistory {
@@ -471,6 +473,37 @@ describe('toPendingStepExecution', () => {
       });
 
       expect(() => toPendingStepExecution(run)).toThrow();
+    });
+
+    it('should throw DomainValidationError exposing zod issue paths', () => {
+      // Directly exercise the DomainValidationError class — the zod parse path in the mapper is
+      // hard to trigger without mocking (wire guards catch most malformed input first). This
+      // verifies the error surface is usable by operators.
+      const zodError = new z.ZodError([
+        {
+          code: 'invalid_type',
+          path: ['runId'],
+          message: 'Expected string, received number',
+          expected: 'string',
+          input: 42,
+        },
+        {
+          code: 'custom',
+          path: ['user', 'renderingId'],
+          message: 'Number must be finite',
+          input: Number.POSITIVE_INFINITY,
+        },
+      ]);
+      const err = new DomainValidationError(42, zodError);
+
+      expect(err.issues).toHaveLength(2);
+      expect(err.issues[0]).toEqual({ path: 'runId', message: 'Expected string, received number' });
+      expect(err.issues[1]).toEqual({
+        path: 'user.renderingId',
+        message: 'Number must be finite',
+      });
+      expect(err.message).toContain('runId: Expected string, received number');
+      expect(err.userMessage).toMatch(/Internal validation error/);
     });
   });
 });

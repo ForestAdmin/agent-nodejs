@@ -64,7 +64,7 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
   return {
     type: StepType.Condition,
     prompt: condition.prompt,
-    options: options as [string, ...string[]],
+    options,
   };
 }
 

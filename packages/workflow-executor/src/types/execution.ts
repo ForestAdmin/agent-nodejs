@@ -1,43 +1,49 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { RecordRef } from './record';
-import type SchemaCache from '../schema-cache';
-import type { StepDefinition } from './step-definition';
-import type { StepOutcome } from './step-outcome';
 import type { ActivityLogPort } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
+import type SchemaCache from '../schema-cache';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
-export interface StepUser {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  team: string;
-  renderingId: number;
-  role: string;
-  permissionLevel: string;
-  tags: Record<string, string>;
-}
+import { z } from 'zod';
 
-export interface Step {
-  stepDefinition: StepDefinition;
-  stepOutcome: StepOutcome;
-}
+import { type RecordRef, RecordRefSchema } from './record';
+import { type StepDefinition, StepDefinitionSchema } from './step-definition';
+import { type StepOutcome, StepOutcomeSchema } from './step-outcome';
 
-export interface PendingStepExecution {
-  readonly runId: string;
-  readonly stepId: string;
-  readonly stepIndex: number;
-  readonly collectionId: string;
-  readonly baseRecordRef: RecordRef;
-  readonly stepDefinition: StepDefinition;
-  readonly previousSteps: ReadonlyArray<Step>;
-  readonly user: StepUser;
-}
+export const StepUserSchema = z.object({
+  id: z.number(),
+  email: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  team: z.string(),
+  renderingId: z.number().finite(),
+  role: z.string(),
+  permissionLevel: z.string(),
+  tags: z.record(z.string(), z.string()),
+});
+export type StepUser = z.infer<typeof StepUserSchema>;
+
+export const StepSchema = z.object({
+  stepDefinition: StepDefinitionSchema,
+  stepOutcome: StepOutcomeSchema,
+});
+export type Step = z.infer<typeof StepSchema>;
+
+export const PendingStepExecutionSchema = z.object({
+  runId: z.string().min(1),
+  stepId: z.string().min(1),
+  stepIndex: z.number().int().nonnegative(),
+  collectionId: z.string().min(1),
+  baseRecordRef: RecordRefSchema,
+  stepDefinition: StepDefinitionSchema,
+  previousSteps: z.array(StepSchema),
+  user: StepUserSchema,
+});
+export type PendingStepExecution = z.infer<typeof PendingStepExecutionSchema>;
 
 export interface StepExecutionResult {
   stepOutcome: StepOutcome;
@@ -47,6 +53,7 @@ export interface IStepExecutor {
   execute(): Promise<StepExecutionResult>;
 }
 
+// ExecutionContext holds port instances (with methods) — not zod-validatable.
 export interface ExecutionContext<TStep extends StepDefinition = StepDefinition> {
   readonly runId: string;
   readonly stepId: string;

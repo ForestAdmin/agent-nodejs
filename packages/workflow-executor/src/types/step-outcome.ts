@@ -1,11 +1,15 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
+import { z } from 'zod';
+
 import { StepType } from './step-definition';
 
-export type BaseStepStatus = 'success' | 'error';
+export const BaseStepStatusSchema = z.enum(['success', 'error']);
+export type BaseStepStatus = z.infer<typeof BaseStepStatusSchema>;
 
 // AI steps can pause mid-execution to await user input (awaiting-input).
-export type RecordStepStatus = BaseStepStatus | 'awaiting-input';
+export const RecordStepStatusSchema = z.enum(['success', 'error', 'awaiting-input']);
+export type RecordStepStatus = z.infer<typeof RecordStepStatusSchema>;
 
 export type StepStatus = BaseStepStatus | RecordStepStatus;
 
@@ -14,40 +18,50 @@ export type StepStatus = BaseStepStatus | RecordStepStatus;
  * Any privacy-sensitive information (e.g. AI reasoning) must stay in
  * StepExecutionData (persisted in the RunStore, client-side only).
  */
-interface BaseStepOutcome {
-  stepId: string;
-  stepIndex: number;
+const baseOutcomeFields = {
+  stepId: z.string().min(1),
+  stepIndex: z.number().int().nonnegative(),
   /** Present when status is 'error'. */
-  error?: string;
-}
+  error: z.string().optional(),
+};
 
-export interface ConditionStepOutcome extends BaseStepOutcome {
-  type: 'condition';
-  status: BaseStepStatus;
+export const ConditionStepOutcomeSchema = z.object({
+  ...baseOutcomeFields,
+  type: z.literal('condition'),
+  status: BaseStepStatusSchema,
   /** Present when status is 'success'. */
-  selectedOption?: string;
-}
+  selectedOption: z.string().optional(),
+});
+export type ConditionStepOutcome = z.infer<typeof ConditionStepOutcomeSchema>;
 
-export interface RecordStepOutcome extends BaseStepOutcome {
-  type: 'record';
-  status: RecordStepStatus;
-}
+export const RecordStepOutcomeSchema = z.object({
+  ...baseOutcomeFields,
+  type: z.literal('record'),
+  status: RecordStepStatusSchema,
+});
+export type RecordStepOutcome = z.infer<typeof RecordStepOutcomeSchema>;
 
-export interface McpStepOutcome extends BaseStepOutcome {
-  type: 'mcp';
-  status: RecordStepStatus;
-}
+export const McpStepOutcomeSchema = z.object({
+  ...baseOutcomeFields,
+  type: z.literal('mcp'),
+  status: RecordStepStatusSchema,
+});
+export type McpStepOutcome = z.infer<typeof McpStepOutcomeSchema>;
 
-export interface GuidanceStepOutcome extends BaseStepOutcome {
-  type: 'guidance';
-  status: BaseStepStatus;
-}
+export const GuidanceStepOutcomeSchema = z.object({
+  ...baseOutcomeFields,
+  type: z.literal('guidance'),
+  status: BaseStepStatusSchema,
+});
+export type GuidanceStepOutcome = z.infer<typeof GuidanceStepOutcomeSchema>;
 
-export type StepOutcome =
-  | ConditionStepOutcome
-  | RecordStepOutcome
-  | McpStepOutcome
-  | GuidanceStepOutcome;
+export const StepOutcomeSchema = z.discriminatedUnion('type', [
+  ConditionStepOutcomeSchema,
+  RecordStepOutcomeSchema,
+  McpStepOutcomeSchema,
+  GuidanceStepOutcomeSchema,
+]);
+export type StepOutcome = z.infer<typeof StepOutcomeSchema>;
 
 export function stepTypeToOutcomeType(type: StepType): 'condition' | 'record' | 'mcp' | 'guidance' {
   if (type === StepType.Condition) return 'condition';

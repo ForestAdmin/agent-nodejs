@@ -119,7 +119,14 @@ export default class StepExecutorFactory {
     incomingPendingData?: unknown,
   ): ExecutionContext {
     return {
-      ...step,
+      runId: step.runId,
+      stepId: step.stepId,
+      stepIndex: step.stepIndex,
+      collectionId: step.collectionId,
+      baseRecordRef: step.baseRecordRef,
+      stepDefinition: step.stepDefinition,
+      previousSteps: step.previousSteps,
+      user: step.user,
       model: cfg.aiModelPort.getModel(step.stepDefinition.aiConfigName),
       agentPort: cfg.agentPort,
       workflowPort: cfg.workflowPort,

@@ -1,5 +1,6 @@
 /* eslint-disable max-classes-per-file */
 import type { MalformedRunInfo } from './ports/workflow-port';
+import type { z } from 'zod';
 
 export function causeMessage(error: unknown): string | undefined {
   const { cause } = error as { cause?: unknown };
@@ -340,6 +341,28 @@ export class InvalidStepDefinitionError extends WorkflowExecutorError {
       `Invalid step definition: ${detail}`,
       'The workflow step configuration is invalid. Please check the workflow designer.',
     );
+  }
+}
+
+// Thrown when zod validation fails on a domain object produced internally (e.g. by the
+// run-to-pending-step mapper). Distinct from InvalidStepDefinitionError (which flags wire-format
+// bugs coming from the orchestrator) so the two can be triaged separately in Sentry.
+export class DomainValidationError extends WorkflowExecutorError {
+  readonly issues: ReadonlyArray<{ path: string; message: string }>;
+
+  constructor(runId: number, zodError: z.ZodError) {
+    const issues = zodError.issues.map(i => ({
+      path: i.path.join('.') || '(root)',
+      message: i.message,
+    }));
+    const summary = issues.map(i => `${i.path}: ${i.message}`).join('; ');
+
+    super(
+      `Run ${runId} mapper produced invalid PendingStepExecution — ${summary}`,
+      'Internal validation error occurred while preparing the step. Please contact support.',
+    );
+    this.cause = zodError;
+    this.issues = issues;
   }
 }
 
