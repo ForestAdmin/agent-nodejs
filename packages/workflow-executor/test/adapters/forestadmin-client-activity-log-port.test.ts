@@ -134,6 +134,26 @@ describe('ForestadminClientActivityLogPort', () => {
         expect.objectContaining({ renderingId: '42' }),
       );
     });
+
+    it('feeds args.collectionId into the lib collectionName slot (JSON:API relationship id)', async () => {
+      const service = makeService();
+      service.createActivityLog.mockResolvedValue({
+        id: 'log-5',
+        attributes: { index: '4' },
+      });
+      const port = makePort(service);
+
+      await port.createPending({
+        renderingId: 5,
+        action: 'update',
+        type: 'write',
+        collectionId: '11',
+      });
+
+      expect(service.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ collectionName: '11' }),
+      );
+    });
   });
 
   describe('markSucceeded', () => {

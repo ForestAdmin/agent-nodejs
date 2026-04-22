@@ -464,7 +464,7 @@ describe('BaseStepExecutor', () => {
           renderingId: 1,
           action: 'update',
           type: 'write' as const,
-          collectionName: 'customers',
+          collectionId: 'col-1',
           recordId: 42,
         };
       }
@@ -502,6 +502,7 @@ describe('BaseStepExecutor', () => {
         expect.objectContaining({
           action: 'update',
           type: 'write',
+          collectionId: 'col-1',
         }),
       );
       expect(context.activityLogPort.markSucceeded).toHaveBeenCalledWith({

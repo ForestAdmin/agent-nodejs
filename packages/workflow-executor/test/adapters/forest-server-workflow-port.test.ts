@@ -1,4 +1,4 @@
-import type { ServerHydratedWorkflowRun } from '../../src/adapters/server-types';
+import type { ServerHydratedWorkflowRun, ServerUserProfile } from '../../src/adapters/server-types';
 import type { CollectionSchema } from '../../src/types/record';
 import type { StepOutcome } from '../../src/types/step-outcome';
 
@@ -218,7 +218,7 @@ describe('ForestServerWorkflowPort', () => {
           role: 'admin',
           permissionLevel: 'admin',
           tags: {},
-          serverToken: undefined as unknown as string,
+          serverToken: '',
         },
       });
       mockQuery.mockResolvedValue([malformedRun]);
@@ -229,7 +229,25 @@ describe('ForestServerWorkflowPort', () => {
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({
           runId: '44',
-          technicalMessage: expect.stringContaining('serverToken'),
+          technicalMessage: expect.stringContaining('userProfile is missing serverToken'),
+        }),
+      );
+    });
+
+    it('bucketizes runs missing userProfile as malformed with a distinct error', async () => {
+      const malformedRun = makeRun({
+        id: 45,
+        userProfile: undefined as unknown as ServerUserProfile,
+      });
+      mockQuery.mockResolvedValue([malformedRun]);
+
+      const result = await port.getPendingStepExecutions();
+
+      expect(result.pending).toEqual([]);
+      expect(result.malformed[0]).toEqual(
+        expect.objectContaining({
+          runId: '45',
+          technicalMessage: expect.stringContaining('missing required field userProfile'),
         }),
       );
     });

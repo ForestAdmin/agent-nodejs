@@ -97,13 +97,21 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     }
   }
 
-  // Validates serverToken at the adapter boundary so the domain never sees a missing token.
+  // Validates userProfile + serverToken at the adapter boundary. Split into two checks so an
+  // operator can diagnose "userProfile missing" vs "serverToken missing" from the error alone.
   private toDispatch(run: ServerHydratedWorkflowRun): PendingRunDispatch | null {
-    const token = run.userProfile?.serverToken;
+    if (!run.userProfile) {
+      throw new InvalidStepDefinitionError(
+        `Run ${run.id} is missing required field userProfile — ` +
+          `the orchestrator must include it in the run payload`,
+      );
+    }
+
+    const token = run.userProfile.serverToken;
 
     if (typeof token !== 'string' || !token) {
       throw new InvalidStepDefinitionError(
-        `Run ${run.id} is missing required field userProfile.serverToken — ` +
+        `Run ${run.id} userProfile is missing serverToken — ` +
           `the orchestrator must include it in the run payload`,
       );
     }

@@ -76,11 +76,7 @@ function toPreviousSteps(
     }));
 }
 
-function toStepUser(runId: number, profile: ServerUserProfile | undefined): StepUser {
-  if (!profile) {
-    throw new InvalidStepDefinitionError(`Run ${runId} has no userProfile — cannot build StepUser`);
-  }
-
+function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
   // renderingId is stringified into the activity-log payload — reject non-finite so we don't
   // silently post "undefined"/"NaN" to the audit trail.
   if (typeof profile.renderingId !== 'number' || !Number.isFinite(profile.renderingId)) {

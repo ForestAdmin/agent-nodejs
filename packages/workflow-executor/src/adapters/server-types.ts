@@ -113,7 +113,7 @@ export interface ServerHydratedWorkflowRun {
   selectedRecordId: string;
   workflowHistory: ServerStepHistory[];
   lockedAt?: string | null;
-  userProfile?: ServerUserProfile;
+  userProfile: ServerUserProfile;
 }
 
 // --- Update step request (POST /api/workflow-orchestrator/update-step) ---

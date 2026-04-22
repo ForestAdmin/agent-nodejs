@@ -392,15 +392,6 @@ describe('toPendingStepExecution', () => {
       });
     });
 
-    it('should throw InvalidStepDefinitionError when userProfile is undefined', () => {
-      const run = makeRun({ userProfile: undefined });
-
-      expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
-      expect(() => toPendingStepExecution(run)).toThrow(
-        'Run 42 has no userProfile — cannot build StepUser',
-      );
-    });
-
     it.each([
       ['undefined', undefined],
       ['null', null],
