@@ -20,7 +20,7 @@ export type FieldSchema = z.infer<typeof FieldSchemaSchema>;
 // ActionSchema.fields / hooks content is a discriminated union owned by the upstream
 // `@forestadmin/forestadmin-client` lib and consumed downstream by `@forestadmin/agent-client`.
 // We validate the envelope shape only — detail re-validation would duplicate the lib's job.
-const ActionFieldsSchema = z.array(z.object({}).passthrough()).optional();
+const ActionFieldsSchema = z.array(z.looseObject({})).optional();
 const ActionHooksSchema = z
   .object({
     load: z.boolean(),
