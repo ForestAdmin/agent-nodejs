@@ -15,6 +15,7 @@ const mockLogger: Logger = jest.fn();
 const mockForestServerClient: ForestServerClient = {
   fetchSchema: jest.fn(),
   createActivityLog: jest.fn(),
+  createMcpActivityLog: jest.fn(),
   updateActivityLogStatus: jest.fn(),
 };
 

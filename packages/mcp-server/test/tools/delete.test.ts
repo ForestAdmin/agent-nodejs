@@ -211,7 +211,7 @@ describe('declareDeleteTool', () => {
           forestServerClient: mockForestServerClient,
           request: mockExtra,
           action: 'delete',
-          context: { collectionName: 'users', recordIds },
+          context: { collectionName: 'users', recordIds, label: 'deleted' },
           logger: mockLogger,
           operation: expect.any(Function),
         });

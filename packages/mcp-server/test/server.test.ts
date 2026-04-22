@@ -1152,11 +1152,9 @@ describe('ForestMCPServer Instance', () => {
       // The tool call should succeed (or fail on agent call, but activity log should be created first)
       expect(response.status).toBe(200);
 
-      // Verify activity log API was called with the correct forestServerToken
-      // The mock httpClient captures all createActivityLog calls
-      expect(listMockForestServerClient.createActivityLog).toHaveBeenCalled();
+      expect(listMockForestServerClient.createMcpActivityLog).toHaveBeenCalled();
 
-      const activityLogCall = listMockForestServerClient.createActivityLog.mock.calls[0][0];
+      const activityLogCall = listMockForestServerClient.createMcpActivityLog.mock.calls[0][0];
       expect(activityLogCall.forestServerToken).toBe(forestServerToken);
       expect(activityLogCall.action).toBe('index');
       expect(activityLogCall.collectionName).toBe('users');

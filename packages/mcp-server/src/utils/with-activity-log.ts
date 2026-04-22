@@ -42,6 +42,7 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
 
   // We want to create the activity log before executing the operation
   // If activity log creation fails, we must prevent the execution of the operation
+
   const activityLog = await createPendingActivityLog(forestServerClient, request, action, context);
 
   try {

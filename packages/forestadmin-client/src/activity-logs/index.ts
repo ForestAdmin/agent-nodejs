@@ -66,6 +66,34 @@ export default class ActivityLogsService {
     );
   }
 
+  async createMcpActivityLog(params: CreateActivityLogParams): Promise<ActivityLogResponse> {
+    const {
+      forestServerToken,
+      renderingId,
+      action,
+      type,
+      collectionName,
+      recordId,
+      recordIds,
+      label,
+    } = params;
+
+    const body = {
+      type,
+      action,
+      label,
+      status: 'pending',
+      records: (recordIds || (recordId ? [recordId] : [])).map(String),
+      renderingId,
+      collectionModelName: collectionName,
+    };
+
+    return this.forestAdminServerInterface.createMcpActivityLog(
+      this.getHttpOptions(forestServerToken),
+      body,
+    );
+  }
+
   async updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void> {
     const { forestServerToken, activityLog, status, errorMessage } = params;
 
