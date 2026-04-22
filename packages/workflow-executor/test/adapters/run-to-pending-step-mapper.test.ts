@@ -27,9 +27,16 @@ function makeStepHistory(overrides: Partial<ServerStepHistory> = {}): ServerStep
 function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydratedWorkflowRun {
   return {
     id: 42,
+    workflowId: 'wf-1',
     collectionId: '11',
     collectionName: 'customers',
     selectedRecordId: '123',
+    bpmnVersion: '1.0',
+    userId: 7,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    renderingId: 3,
+    runState: 'started',
     workflowHistory: [makeStepHistory()],
     userProfile: {
       id: 7,

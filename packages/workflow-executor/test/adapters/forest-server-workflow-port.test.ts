@@ -18,9 +18,12 @@ const options = { envSecret: 'env-secret-123', forestServerUrl: 'https://api.for
 function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydratedWorkflowRun {
   return {
     id: 42,
+    workflowId: 'wf-1',
     collectionId: 'col-1',
     collectionName: 'users',
     selectedRecordId: '7',
+    bpmnVersion: '1.0',
+    runState: 'started',
     workflowHistory: [
       {
         stepName: 'step-1',
@@ -37,6 +40,10 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
         },
       },
     ],
+    createdAt: '2026-04-20T00:00:00.000Z',
+    updatedAt: '2026-04-20T00:00:00.000Z',
+    userId: 1,
+    renderingId: 1,
     userProfile: {
       id: 1,
       email: 'test@example.com',
