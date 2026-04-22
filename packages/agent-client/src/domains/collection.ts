@@ -161,12 +161,12 @@ export default class Collection extends CollectionChart {
   }
 
   async update<Data = unknown>(id: RecordId, attributes: Record<string, unknown>): Promise<Data> {
-    const encodedId = serializeRecordId(id);
-    const requestBody = { data: { attributes, type: this.name, id: encodedId } };
+    const serializedId = serializeRecordId(id);
+    const requestBody = { data: { attributes, type: this.name, id: serializedId } };
 
     return this.httpRequester.query<Data>({
       method: 'put',
-      path: `/forest/${this.name}/${encodedId}`,
+      path: `/forest/${this.name}/${serializedId}`,
       body: requestBody,
     });
   }
