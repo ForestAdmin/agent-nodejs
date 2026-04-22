@@ -1,4 +1,4 @@
-import type { CollectionSchema } from './types/record';
+import type { CollectionSchema } from './types/collection';
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000; // 10 minutes
 

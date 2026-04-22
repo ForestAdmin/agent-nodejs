@@ -1,6 +1,6 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { RecordRef } from './record';
+import type { RecordRef } from './collection';
 
 // -- Base --
 

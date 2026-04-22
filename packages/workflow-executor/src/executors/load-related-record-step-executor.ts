@@ -1,6 +1,6 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
+import type { CollectionSchema, RecordData, RecordRef } from '../types/collection';
 import type { StepExecutionResult } from '../types/execution';
-import type { CollectionSchema, RecordData, RecordRef } from '../types/record';
 import type { LoadRelatedRecordStepDefinition } from '../types/step-definition';
 import type { LoadRelatedRecordStepExecutionData, RelationRef } from '../types/step-execution-data';
 

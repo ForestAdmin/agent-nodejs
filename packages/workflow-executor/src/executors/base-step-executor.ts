@@ -1,7 +1,7 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
+import type { CollectionSchema, FieldSchema, RecordRef } from '../types/collection';
 import type { ExecutionContext, IStepExecutor, StepExecutionResult } from '../types/execution';
-import type { CollectionSchema, FieldSchema, RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type { StepExecutionData } from '../types/step-execution-data';
 import type { StepStatus } from '../types/step-outcome';

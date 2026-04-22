@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
 import type { Logger } from '../../src/ports/logger-port';
 import type { RunStore } from '../../src/ports/run-store';
+import type { RecordRef } from '../../src/types/collection';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution';
-import type { RecordRef } from '../../src/types/record';
 import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { BaseStepStatus, StepOutcome } from '../../src/types/step-outcome';

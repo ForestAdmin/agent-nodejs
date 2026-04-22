@@ -10,7 +10,7 @@ import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 import { z } from 'zod';
 
-import { type RecordRef, RecordRefSchema } from './record';
+import { type RecordRef, RecordRefSchema } from './collection';
 import { type StepDefinition, StepDefinitionSchema } from './step-definition';
 import { type StepOutcome, StepOutcomeSchema } from './step-outcome';
 

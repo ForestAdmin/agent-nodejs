@@ -1,5 +1,5 @@
+import type { RecordRef } from '../types/collection';
 import type { StepExecutionResult } from '../types/execution';
-import type { RecordRef } from '../types/record';
 import type { StepDefinition } from '../types/step-definition';
 import type { RecordStepStatus } from '../types/step-outcome';
 

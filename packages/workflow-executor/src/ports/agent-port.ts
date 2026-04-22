@@ -1,7 +1,7 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
+import type { RecordData } from '../types/collection';
 import type { StepUser } from '../types/execution';
-import type { RecordData } from '../types/record';
 
 export type Id = string | number;
 

@@ -1,8 +1,8 @@
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { AiModelPort } from '../../src/ports/ai-model-port';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
+import type { CollectionSchema } from '../../src/types/collection';
 import type { PendingStepExecution, StepUser } from '../../src/types/execution';
-import type { CollectionSchema } from '../../src/types/record';
 import type { BaseChatModel, RemoteTool } from '@forestadmin/ai-proxy';
 
 import jsonwebtoken from 'jsonwebtoken';

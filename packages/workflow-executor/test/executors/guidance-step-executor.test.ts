@@ -1,6 +1,6 @@
 import type { RunStore } from '../../src/ports/run-store';
+import type { RecordRef } from '../../src/types/collection';
 import type { ExecutionContext } from '../../src/types/execution';
-import type { RecordRef } from '../../src/types/record';
 import type { GuidanceStepDefinition } from '../../src/types/step-definition';
 import type { GuidanceStepOutcome } from '../../src/types/step-outcome';
 

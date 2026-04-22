@@ -1,8 +1,8 @@
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
+import type { CollectionSchema, RecordRef } from '../../src/types/collection';
 import type { ExecutionContext } from '../../src/types/execution';
-import type { CollectionSchema, RecordRef } from '../../src/types/record';
 import type { ReadRecordStepDefinition } from '../../src/types/step-definition';
 
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';

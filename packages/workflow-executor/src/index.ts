@@ -48,7 +48,7 @@ export type {
   CollectionSchema,
   RecordRef,
   RecordData,
-} from './types/record';
+} from './types/collection';
 
 export type {
   StepUser,
