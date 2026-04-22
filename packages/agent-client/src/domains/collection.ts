@@ -10,7 +10,7 @@ import Relation from './relation';
 import Segment from './segment';
 import FieldFormStates from '../action-fields/field-form-states';
 import QuerySerializer from '../query-serializer';
-import encodeRecordId from '../record-id';
+import serializeRecordId from '../record-id';
 
 export default class Collection extends CollectionChart {
   protected readonly name: string;
@@ -31,7 +31,7 @@ export default class Collection extends CollectionChart {
     const actionInfo = this.getActionInfo(this.actionEndpoints, this.name, actionName);
     const ids = (actionContext?.recordIds ?? [actionContext?.recordId])
       .filter((id): id is RecordId => Boolean(id))
-      .map(encodeRecordId);
+      .map(serializeRecordId);
 
     const fieldsFormStates = new FieldFormStates(
       actionName,
@@ -135,7 +135,7 @@ export default class Collection extends CollectionChart {
   }
 
   async delete<Data = unknown>(ids: RecordId[]): Promise<Data> {
-    const serializedIds = ids.map(encodeRecordId);
+    const serializedIds = ids.map(serializeRecordId);
     const requestBody = {
       data: {
         attributes: { collection_name: this.name, ids: serializedIds },
@@ -161,7 +161,7 @@ export default class Collection extends CollectionChart {
   }
 
   async update<Data = unknown>(id: RecordId, attributes: Record<string, unknown>): Promise<Data> {
-    const encodedId = encodeRecordId(id);
+    const encodedId = serializeRecordId(id);
     const requestBody = { data: { attributes, type: this.name, id: encodedId } };
 
     return this.httpRequester.query<Data>({

@@ -2,7 +2,7 @@ import type HttpRequester from '../http-requester';
 import type { RecordId, SelectOptions } from '../types';
 
 import QuerySerializer from '../query-serializer';
-import encodeRecordId from '../record-id';
+import serializeRecordId from '../record-id';
 
 export default class Relation {
   private readonly name: string;
@@ -19,7 +19,7 @@ export default class Relation {
     this.name = name;
     this.collectionName = collectionName;
     this.httpRequester = httpRequester;
-    this.parentId = encodeRecordId(parentId);
+    this.parentId = serializeRecordId(parentId);
   }
 
   list<Data = unknown>(options?: SelectOptions): Promise<Data[]> {
@@ -47,7 +47,7 @@ export default class Relation {
       method: 'post',
       path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
       body: {
-        data: [{ id: encodeRecordId(targetRecordId), type: this.name }],
+        data: [{ id: serializeRecordId(targetRecordId), type: this.name }],
       },
     });
   }
@@ -59,7 +59,7 @@ export default class Relation {
       body: {
         data: {
           attributes: {
-            ids: targetRecordIds.map(encodeRecordId),
+            ids: targetRecordIds.map(serializeRecordId),
             collection_name: this.name,
             all_records: false,
             all_records_ids_excluded: [],
