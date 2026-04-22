@@ -72,7 +72,9 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
             renderingId: String(args.renderingId),
             action: args.action as ActivityLogAction,
             type: args.type,
-            collectionName: args.collectionName,
+            // The lib writes this value verbatim into relationships.collection.data.id
+            // (JSON:API). The Forest server audit-trail API expects the numeric collectionId.
+            collectionName: args.collectionId,
             recordId: args.recordId,
             label: args.label,
           }),
@@ -83,7 +85,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     } catch (cause) {
       this.logger.error('Activity log creation failed', {
         action: args.action,
-        collectionName: args.collectionName,
+        collectionId: args.collectionId,
         status: (cause as { status?: number }).status,
         error: extractErrorMessage(cause),
       });

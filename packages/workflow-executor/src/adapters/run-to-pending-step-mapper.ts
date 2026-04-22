@@ -103,14 +103,20 @@ function toStepUser(runId: number, profile: ServerUserProfile | undefined): Step
 }
 
 // Returns null when the run has no pending step (terminal state or all done/cancelled).
-// Throws InvalidStepDefinitionError on missing required fields (collectionName, userProfile)
-// or an unmappable step definition.
+// Throws InvalidStepDefinitionError on missing required fields (collectionId, collectionName,
+// userProfile) or an unmappable step definition.
 export default function toPendingStepExecution(
   run: ServerHydratedWorkflowRun,
 ): PendingStepExecution | null {
   if (!run.collectionName) {
     throw new InvalidStepDefinitionError(
       `Run ${run.id} has no collectionName — cannot build baseRecordRef`,
+    );
+  }
+
+  if (!run.collectionId) {
+    throw new InvalidStepDefinitionError(
+      `Run ${run.id} has no collectionId — cannot build baseRecordRef`,
     );
   }
 
@@ -121,6 +127,7 @@ export default function toPendingStepExecution(
     runId: String(run.id),
     stepId: pending.stepName,
     stepIndex: pending.stepIndex,
+    collectionId: run.collectionId,
     baseRecordRef: {
       collectionName: run.collectionName,
       recordId: [run.selectedRecordId],

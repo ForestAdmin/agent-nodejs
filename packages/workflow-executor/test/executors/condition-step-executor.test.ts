@@ -47,6 +47,7 @@ function makeContext(
     runId: 'run-1',
     stepId: 'cond-1',
     stepIndex: 0,
+    collectionId: 'col-1',
     baseRecordRef: {
       collectionName: 'customers',
       recordId: [1],

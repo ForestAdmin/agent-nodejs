@@ -97,11 +97,13 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     }
   }
 
-  // Validates forestServerToken at the adapter boundary so the domain never sees a missing token.
+  // Validates serverToken at the adapter boundary so the domain never sees a missing token.
   private toDispatch(run: ServerHydratedWorkflowRun): PendingRunDispatch | null {
-    if (typeof run.forestServerToken !== 'string' || !run.forestServerToken) {
+    const token = run.userProfile?.serverToken;
+
+    if (typeof token !== 'string' || !token) {
       throw new InvalidStepDefinitionError(
-        `Run ${run.id} is missing required field forestServerToken — ` +
+        `Run ${run.id} is missing required field userProfile.serverToken — ` +
           `the orchestrator must include it in the run payload`,
       );
     }
@@ -109,7 +111,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     const step = toPendingStepExecution(run);
     if (!step) return null;
 
-    return { step, auth: { forestServerToken: run.forestServerToken } };
+    return { step, auth: { forestServerToken: token } };
   }
 
   private toMalformedInfo(

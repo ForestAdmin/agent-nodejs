@@ -24,7 +24,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       renderingId: this.context.user.renderingId,
       action: 'index',
       type: 'read',
-      collectionName: this.context.baseRecordRef.collectionName,
+      collectionId: this.context.collectionId,
       recordId: this.context.baseRecordRef.recordId[0],
     };
   }

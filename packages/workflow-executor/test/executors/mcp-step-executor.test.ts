@@ -83,6 +83,7 @@ function makeContext(
     runId: 'run-1',
     stepId: 'mcp-1',
     stepIndex: 0,
+    collectionId: 'col-1',
     baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
     stepDefinition: makeStep(),
     model: makeMockModel('send_notification', { message: 'Hello' }).model,

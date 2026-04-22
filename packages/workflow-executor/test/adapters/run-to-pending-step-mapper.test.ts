@@ -27,17 +27,10 @@ function makeStepHistory(overrides: Partial<ServerStepHistory> = {}): ServerStep
 function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydratedWorkflowRun {
   return {
     id: 42,
-    workflowId: 'wf-1',
     collectionId: '11',
     collectionName: 'customers',
     selectedRecordId: '123',
-    bpmnVersion: '1.0',
-    runState: 'started',
     workflowHistory: [makeStepHistory()],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-    userId: 7,
-    renderingId: 3,
     userProfile: {
       id: 7,
       email: 'alban@forestadmin.com',
@@ -48,8 +41,8 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
       role: 'admin',
       permissionLevel: 'admin',
       tags: { env: 'prod' },
+      serverToken: 'test-forest-token',
     },
-    forestServerToken: 'test-forest-token',
     ...overrides,
   };
 }
@@ -64,6 +57,7 @@ describe('toPendingStepExecution', () => {
       runId: '42',
       stepId: 'step-a',
       stepIndex: 0,
+      collectionId: '11',
       baseRecordRef: {
         collectionName: 'customers',
         recordId: ['123'],
@@ -379,6 +373,7 @@ describe('toPendingStepExecution', () => {
         role: null,
         permissionLevel: null,
         tags: {},
+        serverToken: 'test-forest-token',
       };
       const run = makeRun({ userProfile: profile });
 
@@ -423,6 +418,7 @@ describe('toPendingStepExecution', () => {
           role: 'admin',
           permissionLevel: 'admin',
           tags: {},
+          serverToken: 'test-forest-token',
         },
       });
 
@@ -442,6 +438,7 @@ describe('toPendingStepExecution', () => {
           role: 'admin',
           permissionLevel: 'admin',
           tags: {},
+          serverToken: 'test-forest-token',
         },
       });
 
@@ -458,6 +455,15 @@ describe('toPendingStepExecution', () => {
       expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
       expect(() => toPendingStepExecution(run)).toThrow(
         'Run 42 has no collectionName — cannot build baseRecordRef',
+      );
+    });
+
+    it('should throw InvalidStepDefinitionError when collectionId is empty', () => {
+      const run = makeRun({ collectionId: '' });
+
+      expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toPendingStepExecution(run)).toThrow(
+        'Run 42 has no collectionId — cannot build baseRecordRef',
       );
     });
 

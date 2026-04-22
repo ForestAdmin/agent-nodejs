@@ -2,7 +2,7 @@ export interface CreateActivityLogArgs {
   renderingId: number;
   action: string;
   type: 'read' | 'write';
-  collectionName?: string;
+  collectionId?: string;
   recordId?: string | number;
   label?: string;
 }

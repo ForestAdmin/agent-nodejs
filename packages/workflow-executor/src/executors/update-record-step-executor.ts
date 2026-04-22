@@ -29,7 +29,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       renderingId: this.context.user.renderingId,
       action: 'update',
       type: 'write',
-      collectionName: this.context.baseRecordRef.collectionName,
+      collectionId: this.context.collectionId,
       recordId: this.context.baseRecordRef.recordId[0],
     };
   }

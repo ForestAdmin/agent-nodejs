@@ -18,12 +18,9 @@ const options = { envSecret: 'env-secret-123', forestServerUrl: 'https://api.for
 function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydratedWorkflowRun {
   return {
     id: 42,
-    workflowId: 'wf-1',
     collectionId: 'col-1',
     collectionName: 'users',
     selectedRecordId: '7',
-    bpmnVersion: '1.0',
-    runState: 'started',
     workflowHistory: [
       {
         stepName: 'step-1',
@@ -40,10 +37,6 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
         },
       },
     ],
-    createdAt: '2026-04-20T00:00:00.000Z',
-    updatedAt: '2026-04-20T00:00:00.000Z',
-    userId: 1,
-    renderingId: 1,
     userProfile: {
       id: 1,
       email: 'test@example.com',
@@ -54,8 +47,8 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
       role: 'admin',
       permissionLevel: 'admin',
       tags: {},
+      serverToken: 'test-forest-token',
     },
-    forestServerToken: 'test-forest-token',
     ...overrides,
   };
 }
@@ -212,8 +205,22 @@ describe('ForestServerWorkflowPort', () => {
       );
     });
 
-    it('bucketizes runs missing forestServerToken as malformed (token validated at the adapter)', async () => {
-      const malformedRun = makeRun({ id: 44, forestServerToken: undefined as unknown as string });
+    it('bucketizes runs missing serverToken as malformed (token validated at the adapter)', async () => {
+      const malformedRun = makeRun({
+        id: 44,
+        userProfile: {
+          id: 1,
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          team: 'admin',
+          renderingId: 1,
+          role: 'admin',
+          permissionLevel: 'admin',
+          tags: {},
+          serverToken: undefined as unknown as string,
+        },
+      });
       mockQuery.mockResolvedValue([malformedRun]);
 
       const result = await port.getPendingStepExecutions();
@@ -222,7 +229,7 @@ describe('ForestServerWorkflowPort', () => {
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({
           runId: '44',
-          technicalMessage: expect.stringContaining('forestServerToken'),
+          technicalMessage: expect.stringContaining('serverToken'),
         }),
       );
     });

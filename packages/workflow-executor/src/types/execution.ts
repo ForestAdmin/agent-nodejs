@@ -32,6 +32,7 @@ export interface PendingStepExecution {
   readonly runId: string;
   readonly stepId: string;
   readonly stepIndex: number;
+  readonly collectionId: string;
   readonly baseRecordRef: RecordRef;
   readonly stepDefinition: StepDefinition;
   readonly previousSteps: ReadonlyArray<Step>;
@@ -50,6 +51,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly runId: string;
   readonly stepId: string;
   readonly stepIndex: number;
+  readonly collectionId: string;
   readonly baseRecordRef: RecordRef;
   readonly stepDefinition: TStep;
   readonly model: BaseChatModel;

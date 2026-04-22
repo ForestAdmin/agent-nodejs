@@ -104,6 +104,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     runId: 'run-1',
     stepId: 'step-0',
     stepIndex: 0,
+    collectionId: 'col-1',
     baseRecordRef: {
       collectionName: 'customers',
       recordId: [1],

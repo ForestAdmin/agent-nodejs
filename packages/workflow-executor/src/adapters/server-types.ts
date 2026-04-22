@@ -91,6 +91,8 @@ export interface ServerUserProfile {
   role: string | null;
   permissionLevel: string | null;
   tags: Record<string, string>;
+  // Forwarded by the orchestrator so the executor can post activity logs on behalf of the user.
+  serverToken: string;
 }
 
 export interface ServerStepHistory {
@@ -104,27 +106,14 @@ export interface ServerStepHistory {
   stepDefinition: ServerWorkflowStep;
 }
 
-/** Mirror of the server's `WorkflowRunState` enum (workflow-run-model.ts). */
-export type ServerWorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
-
 export interface ServerHydratedWorkflowRun {
   id: number;
-  workflowId: string;
   collectionId: string;
   collectionName: string | null;
   selectedRecordId: string;
-  bpmnVersion: string;
-  runState: ServerWorkflowRunState;
   workflowHistory: ServerStepHistory[];
-  /** Server types declare `Date`; Express serializes to ISO 8601 string on the wire. */
-  createdAt: string;
-  updatedAt: string;
-  userId: number;
-  renderingId: number;
   lockedAt?: string | null;
   userProfile?: ServerUserProfile;
-  // Forwarded by the orchestrator so the executor can post activity logs on behalf of the user.
-  forestServerToken: string;
 }
 
 // --- Update step request (POST /api/workflow-orchestrator/update-step) ---

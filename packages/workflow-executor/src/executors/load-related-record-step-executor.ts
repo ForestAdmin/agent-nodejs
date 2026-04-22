@@ -42,7 +42,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       renderingId: this.context.user.renderingId,
       action: 'listRelatedData',
       type: 'read',
-      collectionName: this.context.baseRecordRef.collectionName,
+      collectionId: this.context.collectionId,
       recordId: this.context.baseRecordRef.recordId[0],
     };
   }

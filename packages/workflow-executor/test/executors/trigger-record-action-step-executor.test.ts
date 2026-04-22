@@ -109,6 +109,7 @@ function makeContext(
     runId: 'run-1',
     stepId: 'trigger-1',
     stepIndex: 0,
+    collectionId: 'col-1',
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
     model: makeMockModel({
