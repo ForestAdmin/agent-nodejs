@@ -62,6 +62,7 @@ export default function declareUpdateTool(
         context: {
           collectionName: options.collectionName,
           recordId: options.recordId,
+          label: 'updated',
         },
         logger,
         operation: async () => {

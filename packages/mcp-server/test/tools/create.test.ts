@@ -192,7 +192,7 @@ describe('declareCreateTool', () => {
           forestServerClient: mockForestServerClient,
           request: mockExtra,
           action: 'create',
-          context: { collectionName: 'users' },
+          context: { collectionName: 'users', label: 'created' },
           logger: mockLogger,
           operation: expect.any(Function),
         });

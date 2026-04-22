@@ -204,7 +204,7 @@ describe('declareUpdateTool', () => {
           forestServerClient: mockForestServerClient,
           request: mockExtra,
           action: 'update',
-          context: { collectionName: 'users', recordId: 42 },
+          context: { collectionName: 'users', recordId: 42, label: 'updated' },
           logger: mockLogger,
           operation: expect.any(Function),
         });

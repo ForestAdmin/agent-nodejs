@@ -51,6 +51,7 @@ export default function declareDeleteTool(
         action: 'delete',
         context: {
           collectionName: options.collectionName,
+          label: 'deleted',
           recordIds,
         },
         logger,

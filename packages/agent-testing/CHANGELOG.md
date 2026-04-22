@@ -1,3 +1,44 @@
+## @forestadmin/agent-testing [1.1.15](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.14...@forestadmin/agent-testing@1.1.15) (2026-04-22)
+
+
+### Bug Fixes
+
+* **mcp server:** create activity logs from modelname ([#1561](https://github.com/ForestAdmin/agent-nodejs/issues/1561)) ([0942c42](https://github.com/ForestAdmin/agent-nodejs/commit/0942c42767aeb5739c92a88b4309f107e24b51c8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.5.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.3
+* **@forestadmin/agent:** upgraded to 1.78.5
+
+## @forestadmin/agent-testing [1.1.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.13...@forestadmin/agent-testing@1.1.14) (2026-04-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.5.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.2
+* **@forestadmin/agent:** upgraded to 1.78.4
+
+## @forestadmin/agent-testing [1.1.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.12...@forestadmin/agent-testing@1.1.13) (2026-04-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.5.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.1
+* **@forestadmin/agent:** upgraded to 1.78.3
+
 ## @forestadmin/agent-testing [1.1.12](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.11...@forestadmin/agent-testing@1.1.12) (2026-04-20)
 
 

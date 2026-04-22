@@ -45,7 +45,7 @@ describe('createPendingActivityLog', () => {
 
       await createPendingActivityLog(mockForestServerClient, request, action);
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action,
           type: expectedType,
@@ -55,12 +55,12 @@ describe('createPendingActivityLog', () => {
   });
 
   describe('request formatting', () => {
-    it('should call createActivityLog with forestServerToken from authInfo.extra', async () => {
+    it('should call createMcpActivityLog with forestServerToken from authInfo.extra', async () => {
       const request = createMockRequest();
 
       await createPendingActivityLog(mockForestServerClient, request, 'index');
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           forestServerToken: 'test-forest-token',
           renderingId: '12345',
@@ -81,7 +81,7 @@ describe('createPendingActivityLog', () => {
 
       await createPendingActivityLog(mockForestServerClient, request, 'index');
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           forestServerToken: 'original-forest-server-token',
         }),
@@ -131,7 +131,7 @@ describe('createPendingActivityLog', () => {
 
       await createPendingActivityLog(mockForestServerClient, request, 'index');
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           renderingId: '456', // should be converted to string
         }),
@@ -145,7 +145,7 @@ describe('createPendingActivityLog', () => {
         collectionName: 'users',
       });
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           collectionName: 'users',
         }),
@@ -157,7 +157,7 @@ describe('createPendingActivityLog', () => {
 
       await createPendingActivityLog(mockForestServerClient, request, 'index');
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           collectionName: undefined,
         }),
@@ -171,7 +171,7 @@ describe('createPendingActivityLog', () => {
         label: 'Custom Action Label',
       });
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           label: 'Custom Action Label',
         }),
@@ -185,7 +185,7 @@ describe('createPendingActivityLog', () => {
         recordId: 42,
       });
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           recordId: 42,
         }),
@@ -199,7 +199,7 @@ describe('createPendingActivityLog', () => {
         recordIds: [1, 2, 3],
       });
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           recordIds: [1, 2, 3],
         }),
@@ -214,7 +214,7 @@ describe('createPendingActivityLog', () => {
         recordIds: [1, 2, 3],
       });
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           recordId: 99,
           recordIds: [1, 2, 3],
@@ -227,7 +227,7 @@ describe('createPendingActivityLog', () => {
 
       await createPendingActivityLog(mockForestServerClient, request, 'search');
 
-      expect(mockForestServerClient.createActivityLog).toHaveBeenCalledWith(
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'search',
         }),
@@ -236,8 +236,8 @@ describe('createPendingActivityLog', () => {
   });
 
   describe('error handling', () => {
-    it('should propagate error when createActivityLog fails', async () => {
-      mockForestServerClient.createActivityLog.mockRejectedValue(
+    it('should propagate error when createMcpActivityLog fails', async () => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(
         new Error('Failed to create activity log: Server error message'),
       );
 
@@ -248,7 +248,7 @@ describe('createPendingActivityLog', () => {
       ).rejects.toThrow('Failed to create activity log: Server error message');
     });
 
-    it('should not throw when createActivityLog succeeds', async () => {
+    it('should not throw when createMcpActivityLog succeeds', async () => {
       const request = createMockRequest();
 
       await expect(

@@ -57,7 +57,7 @@ export default function declareCreateTool(
         forestServerClient,
         request: extra,
         action: 'create',
-        context: { collectionName: options.collectionName },
+        context: { collectionName: options.collectionName, label: 'created' },
         logger,
         operation: async () => {
           const record = await rpcClient

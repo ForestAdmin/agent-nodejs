@@ -1,3 +1,17 @@
+# @forestadmin/ai-proxy [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.4...@forestadmin/ai-proxy@1.8.0) (2026-04-21)
+
+
+### Features
+
+* **ai-proxy:** add kolar tools ([#1537](https://github.com/ForestAdmin/agent-nodejs/issues/1537)) ([a966400](https://github.com/ForestAdmin/agent-nodejs/commit/a9664009cffb4833e724efc352f361f278729f16))
+
+## @forestadmin/ai-proxy [1.7.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.3...@forestadmin/ai-proxy@1.7.4) (2026-04-20)
+
+
+### Bug Fixes
+
+* **ai-proxy:** add status and recepient mail to zendesk tools ([#1563](https://github.com/ForestAdmin/agent-nodejs/issues/1563)) ([aee5a7b](https://github.com/ForestAdmin/agent-nodejs/commit/aee5a7b7293f97e03236647a0ee2113bbeec24be))
+
 ## @forestadmin/ai-proxy [1.7.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.2...@forestadmin/ai-proxy@1.7.3) (2026-04-08)
 
 

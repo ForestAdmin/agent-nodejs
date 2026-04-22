@@ -1,3 +1,41 @@
+## @forestadmin/agent [1.78.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.4...@forestadmin/agent@1.78.5) (2026-04-22)
+
+
+### Bug Fixes
+
+* **mcp server:** create activity logs from modelname ([#1561](https://github.com/ForestAdmin/agent-nodejs/issues/1561)) ([0942c42](https://github.com/ForestAdmin/agent-nodejs/commit/0942c42767aeb5739c92a88b4309f107e24b51c8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.3
+* **@forestadmin/mcp-server:** upgraded to 1.11.4
+
+## @forestadmin/agent [1.78.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.3...@forestadmin/agent@1.78.4) (2026-04-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.2
+* **@forestadmin/mcp-server:** upgraded to 1.11.3
+
+## @forestadmin/agent [1.78.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.2...@forestadmin/agent@1.78.3) (2026-04-20)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.1
+* **@forestadmin/mcp-server:** upgraded to 1.11.2
+
 ## @forestadmin/agent [1.78.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.1...@forestadmin/agent@1.78.2) (2026-04-20)
 
 
