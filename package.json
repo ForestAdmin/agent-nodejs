@@ -59,6 +59,13 @@
     "semantic-release": "^25.0.0",
     "qs": ">=6.14.1",
     "lerna/js-yaml": "4.1.1",
-    "@lerna/create/js-yaml": "4.1.1"
+    "@lerna/create/js-yaml": "4.1.1",
+    "axios": ">=1.15.0",
+    "follow-redirects": ">=1.16.0",
+    "lodash": ">=4.18.0",
+    "lodash-es": ">=4.18.0",
+    "hono": ">=4.12.14",
+    "@hono/node-server": "^1.19.13",
+    "langsmith": ">=0.5.19"
   }
 }
