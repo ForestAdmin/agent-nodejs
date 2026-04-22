@@ -158,6 +158,20 @@ describe('Collection', () => {
         }),
       });
     });
+
+    it('should pipe-encode composite primary keys', async () => {
+      httpRequester.query.mockResolvedValue({});
+
+      await collection.update([1, 'abc'], { name: 'Test' });
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'put',
+        path: '/forest/users/1|abc',
+        body: expect.objectContaining({
+          data: expect.objectContaining({ id: '1|abc' }),
+        }),
+      });
+    });
   });
 
   describe('delete', () => {
@@ -194,6 +208,29 @@ describe('Collection', () => {
             attributes: {
               collection_name: 'users',
               ids: ['abc', 'def'],
+            },
+            type: 'action-requests',
+          },
+        },
+      });
+    });
+
+    it('should pipe-encode composite primary keys', async () => {
+      httpRequester.query.mockResolvedValue({});
+
+      await collection.delete([
+        [1, 'abc'],
+        [2, 'def'],
+      ]);
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'delete',
+        path: '/forest/users',
+        body: {
+          data: {
+            attributes: {
+              collection_name: 'users',
+              ids: ['1|abc', '2|def'],
             },
             type: 'action-requests',
           },
@@ -255,6 +292,18 @@ describe('Collection', () => {
     it('should return a Relation instance', () => {
       const relation = collection.relation('posts', 1);
       expect(relation).toBeDefined();
+    });
+
+    it('should pipe-encode composite parent ids when querying the relationship', async () => {
+      httpRequester.query.mockResolvedValue([]);
+
+      await collection.relation('posts', [1, 'abc']).list();
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'get',
+        path: '/forest/users/1|abc/relationships/posts',
+        query: expect.any(Object),
+      });
     });
   });
 
@@ -318,6 +367,47 @@ describe('Collection', () => {
       const result = await collection.action('sendEmail', {});
 
       expect(result).toBeDefined();
+    });
+
+    it('should pipe-encode composite recordIds when executing the action', async () => {
+      const action = await collection.action('sendEmail', {
+        recordIds: [
+          [1, 'abc'],
+          [2, 'def'],
+        ],
+      });
+      httpRequester.query.mockResolvedValue({ success: 'ok' });
+
+      await action.execute();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'post',
+          path: '/forest/actions/send-email',
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({ ids: ['1|abc', '2|def'] }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should pipe-encode a composite recordId when executing the action', async () => {
+      const action = await collection.action('sendEmail', { recordId: [42, 'x'] });
+      httpRequester.query.mockResolvedValue({ success: 'ok' });
+
+      await action.execute();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            data: expect.objectContaining({
+              attributes: expect.objectContaining({ ids: ['42|x'] }),
+            }),
+          }),
+        }),
+      );
     });
   });
 

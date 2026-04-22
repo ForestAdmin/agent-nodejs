@@ -1,4 +1,4 @@
-import type { ExportOptions, LiveQueryOptions, SelectOptions } from '../types';
+import type { ExportOptions, LiveQueryOptions, RecordId, SelectOptions } from '../types';
 import type { ActionEndpointsByCollection, BaseActionContext } from './action';
 import type HttpRequester from '../http-requester';
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
@@ -10,6 +10,7 @@ import Relation from './relation';
 import Segment from './segment';
 import FieldFormStates from '../action-fields/field-form-states';
 import QuerySerializer from '../query-serializer';
+import serializeRecordId from '../record-id';
 
 export default class Collection extends CollectionChart {
   protected readonly name: string;
@@ -28,7 +29,9 @@ export default class Collection extends CollectionChart {
 
   async action(actionName: string, actionContext?: BaseActionContext): Promise<Action> {
     const actionInfo = this.getActionInfo(this.actionEndpoints, this.name, actionName);
-    const ids = (actionContext?.recordIds ?? [actionContext?.recordId]).filter(Boolean).map(String);
+    const ids = (actionContext?.recordIds ?? [actionContext?.recordId])
+      .filter((id): id is RecordId => Boolean(id))
+      .map(serializeRecordId);
 
     const fieldsFormStates = new FieldFormStates(
       actionName,
@@ -63,7 +66,7 @@ export default class Collection extends CollectionChart {
     return new Segment(undefined, this.name, this.httpRequester, options);
   }
 
-  relation(name: string, parentId: string | number): Relation {
+  relation(name: string, parentId: RecordId): Relation {
     return new Relation(name, this.name, parentId, this.httpRequester);
   }
 
@@ -131,8 +134,8 @@ export default class Collection extends CollectionChart {
     return { fields: collection.fields };
   }
 
-  async delete<Data = unknown>(ids: string[] | number[]): Promise<Data> {
-    const serializedIds = ids.map((id: string | number) => id.toString());
+  async delete<Data = unknown>(ids: RecordId[]): Promise<Data> {
+    const serializedIds = ids.map(serializeRecordId);
     const requestBody = {
       data: {
         attributes: { collection_name: this.name, ids: serializedIds },
@@ -157,15 +160,13 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  async update<Data = unknown>(
-    id: string | number,
-    attributes: Record<string, unknown>,
-  ): Promise<Data> {
-    const requestBody = { data: { attributes, type: this.name, id: id.toString() } };
+  async update<Data = unknown>(id: RecordId, attributes: Record<string, unknown>): Promise<Data> {
+    const serializedId = serializeRecordId(id);
+    const requestBody = { data: { attributes, type: this.name, id: serializedId } };
 
     return this.httpRequester.query<Data>({
       method: 'put',
-      path: `/forest/${this.name}/${id.toString()}`,
+      path: `/forest/${this.name}/${serializedId}`,
       body: requestBody,
     });
   }

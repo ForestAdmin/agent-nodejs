@@ -1,24 +1,25 @@
 import type HttpRequester from '../http-requester';
-import type { SelectOptions } from '../types';
+import type { RecordId, SelectOptions } from '../types';
 
 import QuerySerializer from '../query-serializer';
+import serializeRecordId from '../record-id';
 
 export default class Relation {
   private readonly name: string;
   private readonly collectionName: string;
-  private readonly parentId: string | number;
+  private readonly parentId: string;
   private readonly httpRequester: HttpRequester;
 
   constructor(
     name: string,
     collectionName: string,
-    parentId: string | number,
+    parentId: RecordId,
     httpRequester: HttpRequester,
   ) {
     this.name = name;
     this.collectionName = collectionName;
     this.httpRequester = httpRequester;
-    this.parentId = parentId;
+    this.parentId = serializeRecordId(parentId);
   }
 
   list<Data = unknown>(options?: SelectOptions): Promise<Data[]> {
@@ -41,24 +42,24 @@ export default class Relation {
     );
   }
 
-  async associate(targetRecordId: string | number): Promise<void> {
+  async associate(targetRecordId: RecordId): Promise<void> {
     await this.httpRequester.query({
       method: 'post',
       path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
       body: {
-        data: [{ id: String(targetRecordId), type: this.name }],
+        data: [{ id: serializeRecordId(targetRecordId), type: this.name }],
       },
     });
   }
 
-  async dissociate(targetRecordIds: (string | number)[]): Promise<void> {
+  async dissociate(targetRecordIds: RecordId[]): Promise<void> {
     await this.httpRequester.query({
       method: 'delete',
       path: `/forest/${this.collectionName}/${this.parentId}/relationships/${this.name}`,
       body: {
         data: {
           attributes: {
-            ids: targetRecordIds.map(String),
+            ids: targetRecordIds.map(serializeRecordId),
             collection_name: this.name,
             all_records: false,
             all_records_ids_excluded: [],
