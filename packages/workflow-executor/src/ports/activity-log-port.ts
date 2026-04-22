@@ -24,5 +24,6 @@ export interface ActivityLogPort {
 // Runner can wait for in-flight fire-and-forget transitions before shutting down.
 export interface ActivityLogPortFactory {
   forRun(forestServerToken: string): ActivityLogPort;
+  // Never rejects — individual transition failures are logged by the adapter.
   drain(): Promise<void>;
 }

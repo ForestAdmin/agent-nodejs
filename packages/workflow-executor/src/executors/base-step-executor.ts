@@ -107,7 +107,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   // Return null when the frontend performs the action (e.g. TriggerAction with automaticExecution=false)
   // — the front logs on its side. Override when the executor itself calls the agent.
-  protected buildActivityLogArgs(): Omit<CreateActivityLogArgs, 'forestServerToken'> | null {
+  protected buildActivityLogArgs(): CreateActivityLogArgs | null {
     return null;
   }
 

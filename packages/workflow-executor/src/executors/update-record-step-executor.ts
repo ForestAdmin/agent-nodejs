@@ -24,10 +24,7 @@ interface UpdateTarget extends FieldRef {
 }
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
-  protected override buildActivityLogArgs(): Omit<
-    CreateActivityLogArgs,
-    'forestServerToken'
-  > | null {
+  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
     return {
       renderingId: this.context.user.renderingId,
       action: 'update',

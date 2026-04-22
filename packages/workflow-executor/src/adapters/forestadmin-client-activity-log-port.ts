@@ -130,6 +130,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
       } catch (err) {
         this.logger.error('Activity log markFailed failed after retries', {
           handleId: handle.id,
+          stepErrorMessage: errorMessage,
           error: extractErrorMessage(err),
         });
       }

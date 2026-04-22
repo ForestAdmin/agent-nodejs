@@ -37,10 +37,7 @@ interface RelationTarget extends RelationRef {
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
-  protected override buildActivityLogArgs(): Omit<
-    CreateActivityLogArgs,
-    'forestServerToken'
-  > | null {
+  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
     return {
       renderingId: this.context.user.renderingId,
       action: 'listRelatedData',

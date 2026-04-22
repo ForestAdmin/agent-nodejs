@@ -49,4 +49,14 @@ describe('ActivityLogDrainer', () => {
 
     await expect(drainer.drain()).resolves.toBeUndefined();
   });
+
+  it('track() still rejects on the returned promise when the tracked fn throws', async () => {
+    const drainer = new ActivityLogDrainer();
+
+    await expect(
+      drainer.track(async () => {
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+  });
 });

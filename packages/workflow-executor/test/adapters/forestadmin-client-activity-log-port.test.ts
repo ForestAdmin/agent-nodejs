@@ -218,5 +218,33 @@ describe('ForestadminClientActivityLogPort', () => {
       await drainPromise;
       expect(drainResolved).toBe(true);
     });
+
+    it('registers markFailed in the shared drainer for drain() to await', async () => {
+      const service = makeService();
+      let resolveUpdate!: () => void;
+      service.updateActivityLogStatus.mockImplementation(
+        () =>
+          new Promise<void>(resolve => {
+            resolveUpdate = resolve;
+          }),
+      );
+      const drainer = new ActivityLogDrainer();
+      const port = makePort(service, { drainer });
+
+      const markPromise = port.markFailed({ id: 'log-1', index: '0' }, 'boom');
+
+      let drainResolved = false;
+      const drainPromise = drainer.drain().then(() => {
+        drainResolved = true;
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(drainResolved).toBe(false);
+
+      resolveUpdate();
+      await markPromise;
+      await drainPromise;
+      expect(drainResolved).toBe(true);
+    });
   });
 });

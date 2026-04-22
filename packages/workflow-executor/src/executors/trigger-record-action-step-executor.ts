@@ -28,10 +28,7 @@ interface ActionTarget extends ActionRef {
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
-  protected override buildActivityLogArgs(): Omit<
-    CreateActivityLogArgs,
-    'forestServerToken'
-  > | null {
+  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
     // Skip when the frontend executes the action itself (non-automatic mode).
     // The front logs on its side via the standard agent activity flow.
     if (this.context.stepDefinition.automaticExecution !== true) return null;

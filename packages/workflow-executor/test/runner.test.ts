@@ -433,10 +433,17 @@ describe('graceful shutdown', () => {
   it('stop() awaits activityLogPortFactory.drain() before closing resources', async () => {
     const config = createRunnerConfig();
     const callOrder: string[] = [];
+    let releaseDrain!: () => void;
 
-    (config.activityLogPortFactory.drain as jest.Mock).mockImplementation(async () => {
-      callOrder.push('activityLogDrain');
-    });
+    (config.activityLogPortFactory.drain as jest.Mock).mockImplementation(
+      () =>
+        new Promise<void>(resolve => {
+          releaseDrain = () => {
+            callOrder.push('activityLogDrain');
+            resolve();
+          };
+        }),
+    );
     (config.aiModelPort.closeConnections as jest.Mock).mockImplementation(async () => {
       callOrder.push('aiClose');
     });
@@ -446,11 +453,17 @@ describe('graceful shutdown', () => {
 
     runner = new Runner(config);
     await runner.start();
-    await runner.stop();
+    const stopPromise = runner.stop();
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(callOrder).toEqual([]);
+
+    releaseDrain();
+    await stopPromise;
 
     expect(callOrder[0]).toBe('activityLogDrain');
-    expect(callOrder).toContain('aiClose');
-    expect(callOrder).toContain('runStoreClose');
+    expect(callOrder.slice(1).sort()).toEqual(['aiClose', 'runStoreClose']);
   });
 
   it('logs drain info when steps are in flight', async () => {
