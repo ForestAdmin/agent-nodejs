@@ -17,7 +17,25 @@ describe('encodeRecordId', () => {
     expect(encodeRecordId([42])).toBe('42');
   });
 
-  it('should handle an empty array', () => {
-    expect(encodeRecordId([])).toBe('');
+  it('should throw on an empty composite array', () => {
+    expect(() => encodeRecordId([])).toThrow('Composite record id cannot be empty');
+  });
+
+  it('should throw when a composite part is null', () => {
+    expect(() => encodeRecordId([1, null as unknown as string])).toThrow(
+      'Composite record id parts cannot be null or undefined',
+    );
+  });
+
+  it('should throw when a composite part is undefined', () => {
+    expect(() => encodeRecordId([1, undefined as unknown as string])).toThrow(
+      'Composite record id parts cannot be null or undefined',
+    );
+  });
+
+  it('should throw when a composite part contains the pipe separator', () => {
+    expect(() => encodeRecordId(['1|abc', 2])).toThrow(
+      'Composite record id part "1|abc" cannot contain the "|" separator',
+    );
   });
 });
