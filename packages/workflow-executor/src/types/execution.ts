@@ -4,7 +4,7 @@ import type { RecordRef } from './record';
 import type SchemaCache from '../schema-cache';
 import type { StepDefinition } from './step-definition';
 import type { StepOutcome } from './step-outcome';
-import type { RunActivityLogger } from '../ports/activity-log-port';
+import type { ActivityLogPort } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
@@ -62,5 +62,5 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly logger: Logger;
   readonly incomingPendingData?: unknown;
   readonly stepTimeoutMs?: number;
-  readonly activityLogPort: RunActivityLogger;
+  readonly activityLogPort: ActivityLogPort;
 }

@@ -1,4 +1,4 @@
-import type { RunActivityLogger } from '../ports/activity-log-port';
+import type { ActivityLogPort } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { AiModelPort } from '../ports/ai-model-port';
 import type { Logger } from '../ports/logger-port';
@@ -47,7 +47,7 @@ export default class StepExecutorFactory {
   static async create(
     step: PendingStepExecution,
     contextConfig: StepContextConfig,
-    runActivityLogger: RunActivityLogger,
+    activityLogPort: ActivityLogPort,
     loadTools: () => Promise<RemoteTool[]>,
     incomingPendingData?: unknown,
   ): Promise<IStepExecutor> {
@@ -55,7 +55,7 @@ export default class StepExecutorFactory {
       const context = StepExecutorFactory.buildContext(
         step,
         contextConfig,
-        runActivityLogger,
+        activityLogPort,
         incomingPendingData,
       );
 
@@ -115,7 +115,7 @@ export default class StepExecutorFactory {
   private static buildContext(
     step: PendingStepExecution,
     cfg: StepContextConfig,
-    runActivityLogger: RunActivityLogger,
+    activityLogPort: ActivityLogPort,
     incomingPendingData?: unknown,
   ): ExecutionContext {
     return {
@@ -128,7 +128,7 @@ export default class StepExecutorFactory {
       logger: cfg.logger,
       incomingPendingData,
       stepTimeoutMs: cfg.stepTimeoutMs,
-      activityLogPort: runActivityLogger,
+      activityLogPort,
     };
   }
 }

@@ -99,10 +99,12 @@ function createRunnerConfig(
     } as unknown as RunStore,
     pollingIntervalMs: POLLING_INTERVAL_MS,
     aiModelPort: createMockAiClient() as unknown as AiModelPort,
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
+    activityLogPortFactory: {
+      forRun: jest.fn().mockReturnValue({
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      }),
       drain: jest.fn().mockResolvedValue(undefined),
     },
     logger: createMockLogger(),
@@ -428,11 +430,11 @@ describe('graceful shutdown', () => {
     expect(runner.state).toBe('stopped');
   });
 
-  it('stop() awaits activityLogPort.drain() before closing resources', async () => {
+  it('stop() awaits activityLogPortFactory.drain() before closing resources', async () => {
     const config = createRunnerConfig();
     const callOrder: string[] = [];
 
-    (config.activityLogPort.drain as jest.Mock).mockImplementation(async () => {
+    (config.activityLogPortFactory.drain as jest.Mock).mockImplementation(async () => {
       callOrder.push('activityLogDrain');
     });
     (config.aiModelPort.closeConnections as jest.Mock).mockImplementation(async () => {

@@ -1,5 +1,5 @@
 import type { StepContextConfig } from './executors/step-executor-factory';
-import type { ActivityLogPort, RunActivityLogger } from './ports/activity-log-port';
+import type { ActivityLogPortFactory } from './ports/activity-log-port';
 import type { AgentPort } from './ports/agent-port';
 import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger } from './ports/logger-port';
@@ -35,7 +35,7 @@ export interface RunnerConfig {
   schemaCache: SchemaCache;
   pollingIntervalMs: number;
   aiModelPort: AiModelPort;
-  activityLogPort: ActivityLogPort;
+  activityLogPortFactory: ActivityLogPortFactory;
   envSecret: string;
   authSecret: string;
   logger?: Logger;
@@ -132,7 +132,7 @@ export default class Runner {
 
       // Wait for fire-and-forget activity-log transitions to settle before closing resources —
       // otherwise audit-trail rows can be left stuck in Pending.
-      await this.config.activityLogPort.drain();
+      await this.config.activityLogPortFactory.drain();
 
       const results = await Promise.allSettled([
         this.config.aiModelPort.closeConnections(),
@@ -285,7 +285,7 @@ export default class Runner {
       const executor = await StepExecutorFactory.create(
         step,
         this.contextConfig,
-        this.createRunLogger(forestServerToken),
+        this.config.activityLogPortFactory.forRun(forestServerToken),
         () => this.fetchRemoteTools(),
         incomingPendingData,
       );
@@ -325,17 +325,6 @@ export default class Runner {
       schemaCache: this.config.schemaCache,
       logger: this.logger,
       stepTimeoutMs: this.config.stepTimeoutMs,
-    };
-  }
-
-  private createRunLogger(forestServerToken: string): RunActivityLogger {
-    const port = this.config.activityLogPort;
-
-    return {
-      createPending: args => port.createPending({ ...args, forestServerToken }),
-      markSucceeded: handle => port.markSucceeded(handle, forestServerToken),
-      markFailed: (handle, errorMessage) =>
-        port.markFailed(handle, forestServerToken, errorMessage),
     };
   }
 }

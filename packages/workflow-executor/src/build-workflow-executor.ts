@@ -10,7 +10,7 @@ import AgentClientAgentPort from './adapters/agent-client-agent-port';
 import AiClientAdapter from './adapters/ai-client-adapter';
 import ConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
-import ForestadminClientActivityLogPort from './adapters/forestadmin-client-activity-log-port';
+import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import ExecutorHttpServer from './http/executor-http-server';
 import Runner from './runner';
@@ -71,14 +71,17 @@ function buildCommonDependencies(options: ExecutorOptions) {
     forestServerUrl,
     headers: { 'Forest-Application-Source': 'WorkflowExecutor' },
   });
-  const activityLogPort = new ForestadminClientActivityLogPort(activityLogsService, logger);
+  const activityLogPortFactory = new ForestadminClientActivityLogPortFactory(
+    activityLogsService,
+    logger,
+  );
 
   return {
     agentPort,
     schemaCache,
     workflowPort,
     aiModelPort,
-    activityLogPort,
+    activityLogPortFactory,
     logger,
     pollingIntervalMs: options.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,
     envSecret: options.envSecret,

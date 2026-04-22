@@ -1,5 +1,6 @@
 import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 
+import ActivityLogDrainer from '../../src/adapters/activity-log-drainer';
 import ForestadminClientActivityLogPort from '../../src/adapters/forestadmin-client-activity-log-port';
 import { ActivityLogCreationError } from '../../src/errors';
 
@@ -18,6 +19,22 @@ function makeHttpError(status: number): Error {
   return Object.assign(new Error(`HTTP ${status}`), { status });
 }
 
+function makePort(
+  service: ActivityLogsServiceInterface,
+  overrides: {
+    logger?: ReturnType<typeof makeLogger>;
+    token?: string;
+    drainer?: ActivityLogDrainer;
+  } = {},
+) {
+  return new ForestadminClientActivityLogPort(
+    service,
+    overrides.logger ?? makeLogger(),
+    overrides.token ?? 'tok',
+    overrides.drainer ?? new ActivityLogDrainer(),
+  );
+}
+
 describe('ForestadminClientActivityLogPort', () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -34,16 +51,14 @@ describe('ForestadminClientActivityLogPort', () => {
         id: 'log-1',
         attributes: { index: '0' },
       });
-      const port = new ForestadminClientActivityLogPort(service, makeLogger());
+      const port = makePort(service);
 
-      const handle = await port.createPending({
-        forestServerToken: 'tok',
-        renderingId: 5,
-        action: 'update',
-        type: 'write',
-      });
+      const handle = await port.createPending({ renderingId: 5, action: 'update', type: 'write' });
 
       expect(handle).toEqual({ id: 'log-1', index: '0' });
+      expect(service.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ forestServerToken: 'tok', renderingId: '5', action: 'update' }),
+      );
       expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
 
@@ -53,15 +68,9 @@ describe('ForestadminClientActivityLogPort', () => {
         .mockRejectedValueOnce(makeHttpError(503))
         .mockResolvedValueOnce({ id: 'log-2', attributes: { index: '1' } });
       const logger = makeLogger();
-      const port = new ForestadminClientActivityLogPort(service, logger);
+      const port = makePort(service, { logger });
 
-      const promise = port.createPending({
-        forestServerToken: 'tok',
-        renderingId: 5,
-        action: 'update',
-        type: 'write',
-      });
-      // Advance the 100ms backoff between attempts
+      const promise = port.createPending({ renderingId: 5, action: 'update', type: 'write' });
       await jest.advanceTimersByTimeAsync(100);
       const handle = await promise;
 
@@ -76,16 +85,9 @@ describe('ForestadminClientActivityLogPort', () => {
     it('throws ActivityLogCreationError after all retries are exhausted', async () => {
       const service = makeService();
       service.createActivityLog.mockRejectedValue(makeHttpError(502));
-      const port = new ForestadminClientActivityLogPort(service, makeLogger());
+      const port = makePort(service);
 
-      const promise = port.createPending({
-        forestServerToken: 'tok',
-        renderingId: 5,
-        action: 'update',
-        type: 'write',
-      });
-      // Attach a silencing catch BEFORE advancing timers so Jest's fake-timers
-      // drain doesn't flag the rejection as unhandled.
+      const promise = port.createPending({ renderingId: 5, action: 'update', type: 'write' });
       const settled = promise.catch(err => err);
       await jest.advanceTimersByTimeAsync(2_600);
       const err = await settled;
@@ -97,15 +99,10 @@ describe('ForestadminClientActivityLogPort', () => {
     it('does not retry on 401 (not a transient error)', async () => {
       const service = makeService();
       service.createActivityLog.mockRejectedValue(makeHttpError(401));
-      const port = new ForestadminClientActivityLogPort(service, makeLogger());
+      const port = makePort(service);
 
       await expect(
-        port.createPending({
-          forestServerToken: 'tok',
-          renderingId: 5,
-          action: 'update',
-          type: 'write',
-        }),
+        port.createPending({ renderingId: 5, action: 'update', type: 'write' }),
       ).rejects.toBeInstanceOf(ActivityLogCreationError);
       expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
@@ -116,14 +113,9 @@ describe('ForestadminClientActivityLogPort', () => {
       service.createActivityLog
         .mockRejectedValueOnce(networkErr)
         .mockResolvedValueOnce({ id: 'log-3', attributes: { index: '2' } });
-      const port = new ForestadminClientActivityLogPort(service, makeLogger());
+      const port = makePort(service);
 
-      const promise = port.createPending({
-        forestServerToken: 'tok',
-        renderingId: 5,
-        action: 'update',
-        type: 'write',
-      });
+      const promise = port.createPending({ renderingId: 5, action: 'update', type: 'write' });
       await jest.advanceTimersByTimeAsync(100);
       await expect(promise).resolves.toEqual({ id: 'log-3', index: '2' });
     });
@@ -134,14 +126,9 @@ describe('ForestadminClientActivityLogPort', () => {
         id: 'log-4',
         attributes: { index: '3' },
       });
-      const port = new ForestadminClientActivityLogPort(service, makeLogger());
+      const port = makePort(service);
 
-      await port.createPending({
-        forestServerToken: 'tok',
-        renderingId: 42,
-        action: 'update',
-        type: 'write',
-      });
+      await port.createPending({ renderingId: 42, action: 'update', type: 'write' });
 
       expect(service.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({ renderingId: '42' }),
@@ -155,13 +142,13 @@ describe('ForestadminClientActivityLogPort', () => {
       service.updateActivityLogStatus
         .mockRejectedValueOnce(makeHttpError(503))
         .mockResolvedValueOnce(undefined);
-      const port = new ForestadminClientActivityLogPort(service, makeLogger());
+      const port = makePort(service);
 
-      const promise = port.markSucceeded({ id: 'log-1', index: '0' }, 'tok');
+      const promise = port.markSucceeded({ id: 'log-1', index: '0' });
       await jest.advanceTimersByTimeAsync(100);
       await expect(promise).resolves.toBeUndefined();
       expect(service.updateActivityLogStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'completed' }),
+        expect.objectContaining({ status: 'completed', forestServerToken: 'tok' }),
       );
     });
 
@@ -169,9 +156,9 @@ describe('ForestadminClientActivityLogPort', () => {
       const service = makeService();
       service.updateActivityLogStatus.mockRejectedValue(makeHttpError(503));
       const logger = makeLogger();
-      const port = new ForestadminClientActivityLogPort(service, logger);
+      const port = makePort(service, { logger });
 
-      const promise = port.markSucceeded({ id: 'log-1', index: '0' }, 'tok');
+      const promise = port.markSucceeded({ id: 'log-1', index: '0' });
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
@@ -181,16 +168,30 @@ describe('ForestadminClientActivityLogPort', () => {
     });
   });
 
-  describe('drain', () => {
-    it('resolves immediately when no transitions are in flight', async () => {
-      const port = new ForestadminClientActivityLogPort(makeService(), makeLogger());
+  describe('markFailed', () => {
+    it('forwards the errorMessage and retries on 503', async () => {
+      const service = makeService();
+      service.updateActivityLogStatus
+        .mockRejectedValueOnce(makeHttpError(503))
+        .mockResolvedValueOnce(undefined);
+      const port = makePort(service);
 
-      jest.useRealTimers();
-      await expect(port.drain()).resolves.toBeUndefined();
-      jest.useFakeTimers();
+      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'boom');
+      await jest.advanceTimersByTimeAsync(100);
+      await promise;
+
+      expect(service.updateActivityLogStatus).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: 'failed',
+          errorMessage: 'boom',
+          forestServerToken: 'tok',
+        }),
+      );
     });
+  });
 
-    it('awaits in-flight markSucceeded calls before resolving', async () => {
+  describe('drainer integration', () => {
+    it('registers markSucceeded in the shared drainer for drain() to await', async () => {
       const service = makeService();
       let resolveUpdate!: () => void;
       service.updateActivityLogStatus.mockImplementation(
@@ -199,16 +200,15 @@ describe('ForestadminClientActivityLogPort', () => {
             resolveUpdate = resolve;
           }),
       );
-      const port = new ForestadminClientActivityLogPort(service, makeLogger());
+      const drainer = new ActivityLogDrainer();
+      const port = makePort(service, { drainer });
 
-      // Kick off a mark that will block on the pending update
-      const markPromise = port.markSucceeded({ id: 'log-1', index: '0' }, 'tok');
+      const markPromise = port.markSucceeded({ id: 'log-1', index: '0' });
 
       let drainResolved = false;
-      const drainPromise = port.drain().then(() => {
+      const drainPromise = drainer.drain().then(() => {
         drainResolved = true;
       });
-      // Flush microtasks — drain() would have resolved here if it could.
       await Promise.resolve();
       await Promise.resolve();
       expect(drainResolved).toBe(false);
@@ -217,24 +217,6 @@ describe('ForestadminClientActivityLogPort', () => {
       await markPromise;
       await drainPromise;
       expect(drainResolved).toBe(true);
-    });
-  });
-
-  describe('markFailed', () => {
-    it('forwards the errorMessage and retries on 503', async () => {
-      const service = makeService();
-      service.updateActivityLogStatus
-        .mockRejectedValueOnce(makeHttpError(503))
-        .mockResolvedValueOnce(undefined);
-      const port = new ForestadminClientActivityLogPort(service, makeLogger());
-
-      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'tok', 'boom');
-      await jest.advanceTimersByTimeAsync(100);
-      await promise;
-
-      expect(service.updateActivityLogStatus).toHaveBeenLastCalledWith(
-        expect.objectContaining({ status: 'failed', errorMessage: 'boom' }),
-      );
     });
   });
 });
