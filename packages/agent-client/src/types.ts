@@ -1,5 +1,7 @@
 import type { PlainFilter, PlainSortClause } from '@forestadmin/datasource-toolkit';
 
+export type RecordId = string | number | Array<string | number>;
+
 export type BaseOptions = {
   filters?: PlainFilter['conditionTree']; // Filters to apply to the query
   sort?: PlainSortClause; // Sort clause for the query

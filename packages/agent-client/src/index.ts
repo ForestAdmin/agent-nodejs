@@ -33,4 +33,4 @@ export function createRemoteAgentClient(params: {
   });
 }
 
-export type { SelectOptions } from './types';
+export type { RecordId, SelectOptions } from './types';
