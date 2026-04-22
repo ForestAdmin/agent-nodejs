@@ -1,6 +1,6 @@
 import type { ServerHydratedWorkflowRun, ServerUserProfile } from '../../src/adapters/server-types';
-import type { CollectionSchema } from '../../src/types/collection';
-import type { StepOutcome } from '../../src/types/step-outcome';
+import type { CollectionSchema } from '../../src/types/validated/collection';
+import type { StepOutcome } from '../../src/types/validated/step-outcome';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 

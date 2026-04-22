@@ -1,14 +1,14 @@
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
-import type { CollectionSchema, RecordRef } from '../../src/types/collection';
-import type { ExecutionContext } from '../../src/types/execution';
-import type { ReadRecordStepDefinition } from '../../src/types/step-definition';
+import type { ExecutionContext } from '../../src/types/execution-context';
+import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
+import type { ReadRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ReadRecordStepDefinition> = {}): ReadRecordStepDefinition {
   return {

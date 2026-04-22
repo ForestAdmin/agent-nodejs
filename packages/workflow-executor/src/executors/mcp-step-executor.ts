@@ -1,8 +1,8 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
-import type { ExecutionContext, StepExecutionResult } from '../types/execution';
-import type { McpStepDefinition } from '../types/step-definition';
+import type { ExecutionContext, StepExecutionResult } from '../types/execution-context';
 import type { McpStepExecutionData, McpToolCall } from '../types/step-execution-data';
-import type { RecordStepStatus } from '../types/step-outcome';
+import type { McpStepDefinition } from '../types/validated/step-definition';
+import type { RecordStepStatus } from '../types/validated/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';

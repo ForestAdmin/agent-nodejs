@@ -1,8 +1,8 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
-import type { CollectionSchema, RecordRef } from '../types/collection';
-import type { StepExecutionResult } from '../types/execution';
-import type { UpdateRecordStepDefinition } from '../types/step-definition';
+import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldRef, UpdateRecordStepExecutionData } from '../types/step-execution-data';
+import type { CollectionSchema, RecordRef } from '../types/validated/collection';
+import type { UpdateRecordStepDefinition } from '../types/validated/step-definition';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';

@@ -4,10 +4,10 @@ import type {
   ServerWorkflowStep,
   ServerWorkflowTask,
 } from './server-types';
-import type { ConditionStepDefinition, StepDefinition } from '../types/step-definition';
+import type { ConditionStepDefinition, StepDefinition } from '../types/validated/step-definition';
 
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../errors';
-import { StepType } from '../types/step-definition';
+import { StepType } from '../types/validated/step-definition';
 
 const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskType, StepType> = {
   'get-data': StepType.ReadRecord,

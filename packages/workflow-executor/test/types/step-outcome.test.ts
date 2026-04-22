@@ -1,5 +1,5 @@
-import { StepType } from '../../src/types/step-definition';
-import { stepTypeToOutcomeType } from '../../src/types/step-outcome';
+import { StepType } from '../../src/types/validated/step-definition';
+import { stepTypeToOutcomeType } from '../../src/types/validated/step-outcome';
 
 describe('stepTypeToOutcomeType', () => {
   it('maps Condition to condition', () => {

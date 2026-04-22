@@ -1,4 +1,4 @@
-import type { StepUser } from '../../src/types/execution';
+import type { StepUser } from '../../src/types/execution-context';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 

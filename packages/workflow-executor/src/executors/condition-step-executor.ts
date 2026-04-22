@@ -1,6 +1,6 @@
-import type { StepExecutionResult } from '../types/execution';
-import type { ConditionStepDefinition } from '../types/step-definition';
-import type { BaseStepStatus } from '../types/step-outcome';
+import type { StepExecutionResult } from '../types/execution-context';
+import type { ConditionStepDefinition } from '../types/validated/step-definition';
+import type { BaseStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';

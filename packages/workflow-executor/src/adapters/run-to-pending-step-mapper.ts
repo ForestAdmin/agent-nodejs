@@ -9,7 +9,7 @@ import type {
   McpStepOutcome,
   RecordStepOutcome,
   StepOutcome,
-} from '../types/step-outcome';
+} from '../types/validated/step-outcome';
 
 import { z } from 'zod';
 
@@ -20,8 +20,8 @@ import {
   PendingStepExecutionSchema,
   type Step,
   type StepUser,
-} from '../types/execution';
-import { stepTypeToOutcomeType } from '../types/step-outcome';
+} from '../types/validated/execution';
+import { stepTypeToOutcomeType } from '../types/validated/step-outcome';
 
 function toRecordStatus(ctxStatus: unknown): RecordStepOutcome['status'] {
   if (ctxStatus === 'error') return 'error';

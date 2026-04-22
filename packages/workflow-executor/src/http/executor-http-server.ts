@@ -1,7 +1,7 @@
 import type { Logger } from '../ports/logger-port';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
-import type { StepUser } from '../types/execution';
+import type { StepUser } from '../types/execution-context';
 import type { Server } from 'http';
 
 import bodyParser from '@koa/bodyparser';

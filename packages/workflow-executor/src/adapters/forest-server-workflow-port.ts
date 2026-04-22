@@ -7,9 +7,9 @@ import type {
   PendingRunsBatch,
   WorkflowPort,
 } from '../ports/workflow-port';
-import type { CollectionSchema } from '../types/collection';
-import type { StepUser } from '../types/execution';
-import type { StepOutcome } from '../types/step-outcome';
+import type { StepUser } from '../types/execution-context';
+import type { CollectionSchema } from '../types/validated/collection';
+import type { StepOutcome } from '../types/validated/step-outcome';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
@@ -26,7 +26,7 @@ import {
   WorkflowPortError,
   extractErrorMessage,
 } from '../errors';
-import { CollectionSchemaSchema } from '../types/collection';
+import { CollectionSchemaSchema } from '../types/validated/collection';
 
 const ROUTES = {
   pendingRuns: '/api/workflow-orchestrator/pending-run',

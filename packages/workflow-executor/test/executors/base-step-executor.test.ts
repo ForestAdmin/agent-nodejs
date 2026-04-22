@@ -1,11 +1,11 @@
 /* eslint-disable max-classes-per-file */
 import type { Logger } from '../../src/ports/logger-port';
 import type { RunStore } from '../../src/ports/run-store';
-import type { RecordRef } from '../../src/types/collection';
-import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution';
-import type { StepDefinition } from '../../src/types/step-definition';
+import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution-context';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
-import type { BaseStepStatus, StepOutcome } from '../../src/types/step-outcome';
+import type { RecordRef } from '../../src/types/validated/collection';
+import type { StepDefinition } from '../../src/types/validated/step-definition';
+import type { BaseStepStatus, StepOutcome } from '../../src/types/validated/step-outcome';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
 import { SystemMessage } from '@forestadmin/ai-proxy';
@@ -19,7 +19,7 @@ import {
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
 class TestableExecutor extends BaseStepExecutor {

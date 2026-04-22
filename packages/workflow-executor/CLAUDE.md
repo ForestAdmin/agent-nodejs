@@ -45,11 +45,13 @@ src/
 ├── errors.ts               # WorkflowExecutorError, MissingToolCallError, MalformedToolCallError, NoRecordsError, NoReadableFieldsError, NoWritableFieldsError, NoActionsError, StepPersistenceError, NoRelationshipFieldsError, RelatedRecordNotFoundError, InvalidPreRecordedArgsError
 ├── runner.ts               # Runner class — main entry point (start/stop/triggerPoll, HTTP server wiring, graceful drain)
 ├── types/                  # Core type definitions (@draft)
-│   ├── step-definition.ts  # StepType enum + step definition interfaces
-│   ├── step-outcome.ts     # Step outcome tracking types (StepOutcome, sent to orchestrator)
-│   ├── step-execution-data.ts # Runtime state for in-progress steps
-│   ├── record.ts           # Record references and data types
-│   └── execution.ts        # Top-level execution types (context, results)
+│   ├── validated/          # Types validated at a trust boundary (zod schemas + inferred types)
+│   │   ├── collection.ts   # CollectionSchema, FieldSchema, ActionSchema, RecordRef, RecordData
+│   │   ├── execution.ts    # PendingStepExecution, StepUser, Step
+│   │   ├── step-definition.ts  # StepType enum + 7 step definition variants
+│   │   └── step-outcome.ts # StepOutcome + 4 variants (validated when input via previousSteps)
+│   ├── execution-context.ts  # ExecutionContext + StepExecutionResult + IStepExecutor (runtime, not validated)
+│   └── step-execution-data.ts # Runtime state for in-progress steps (not validated)
 ├── ports/                  # IO boundary interfaces (@draft)
 │   ├── agent-port.ts       # Interface to the Forest Admin agent (datasource)
 │   ├── workflow-port.ts    # Interface to the orchestrator
@@ -90,6 +92,7 @@ src/
 - **Fetched steps must be executed** — Any step retrieved from the orchestrator via `getPendingStepExecutions()` must be executed. Silently discarding a fetched step (e.g. filtering it out by `runId` after fetching) violates the executor contract: the orchestrator assumes execution is guaranteed once the step is dispatched. The only valid filter before executing is deduplication via `inFlightSteps` (to avoid running the same step twice concurrently).
 - **Pre-recorded AI decisions** — Record step executors support `preRecordedArgs` in the step definition to bypass AI calls. When provided, executors use the pre-recorded values (display names) directly instead of invoking the AI. Each record step type has its own typed `preRecordedArgs` shape. Validation happens via schema resolution — invalid display names throw `InvalidPreRecordedArgsError`. Partial args are supported: only the provided fields skip AI, the rest still use AI.
 - **Graceful shutdown** — `stop()` drains in-flight steps before closing resources. The `state` getter exposes the lifecycle: `idle → running → draining → stopped`. `stopTimeoutMs` (default 30s) prevents `stop()` from hanging forever if a step is stuck. The HTTP server stays up during drain so the frontend can still query run status. Signal handling (`SIGTERM`/`SIGINT`) is the consumer's responsibility — the Runner is a library class.
+- **Boundary validation** — Types that cross a trust boundary (wire from the orchestrator, or mapper output) live under `src/types/validated/` and are declared as zod schemas with TS types inferred via `z.infer<>`. Every schema uses `.strict()` by default. Validation runs at the boundary where the data enters the executor (`forest-server-workflow-port.getCollectionSchema` → `CollectionSchemaSchema.parse`, `run-to-pending-step-mapper.toPendingStepExecution` → `PendingStepExecutionSchema.parse`). On parse failure: throw `DomainValidationError` (extends `WorkflowExecutorError`) → bucketized as malformed → reported to the orchestrator. Types outside `validated/` (`execution-context.ts`, `step-execution-data.ts`) are internal runtime state and are not zod-validated. Note: `StepOutcome` is validated when it arrives as input via `previousSteps`; outputs produced by executors are trusted by construction.
 
 ## Commands
 

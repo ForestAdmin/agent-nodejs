@@ -1,12 +1,12 @@
 import type { RunStore } from '../../src/ports/run-store';
-import type { RecordRef } from '../../src/types/collection';
-import type { ExecutionContext } from '../../src/types/execution';
-import type { GuidanceStepDefinition } from '../../src/types/step-definition';
-import type { GuidanceStepOutcome } from '../../src/types/step-outcome';
+import type { ExecutionContext } from '../../src/types/execution-context';
+import type { RecordRef } from '../../src/types/validated/collection';
+import type { GuidanceStepDefinition } from '../../src/types/validated/step-definition';
+import type { GuidanceStepOutcome } from '../../src/types/validated/step-outcome';
 
 import GuidanceStepExecutor from '../../src/executors/guidance-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {

@@ -1,6 +1,6 @@
-import type { StepExecutionResult } from '../types/execution';
-import type { GuidanceStepDefinition } from '../types/step-definition';
-import type { BaseStepStatus } from '../types/step-outcome';
+import type { StepExecutionResult } from '../types/execution-context';
+import type { GuidanceStepDefinition } from '../types/validated/step-definition';
+import type { BaseStepStatus } from '../types/validated/step-outcome';
 
 import { StepStateError } from '../errors';
 import patchBodySchemas from '../pending-data-validators';

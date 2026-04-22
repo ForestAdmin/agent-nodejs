@@ -1,7 +1,7 @@
-import type { RecordRef } from '../types/collection';
-import type { StepExecutionResult } from '../types/execution';
-import type { StepDefinition } from '../types/step-definition';
-import type { RecordStepStatus } from '../types/step-outcome';
+import type { StepExecutionResult } from '../types/execution-context';
+import type { RecordRef } from '../types/validated/collection';
+import type { StepDefinition } from '../types/validated/step-definition';
+import type { RecordStepStatus } from '../types/validated/step-outcome';
 
 import { InvalidPreRecordedArgsError } from '../errors';
 import BaseStepExecutor from './base-step-executor';

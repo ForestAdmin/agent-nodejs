@@ -1,8 +1,8 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { CollectionSchema } from '../types/collection';
-import type { PendingStepExecution, StepUser } from '../types/execution';
-import type { StepOutcome } from '../types/step-outcome';
+import type { PendingStepExecution, StepUser } from '../types/execution-context';
+import type { CollectionSchema } from '../types/validated/collection';
+import type { StepOutcome } from '../types/validated/step-outcome';
 import type { McpConfiguration } from '@forestadmin/ai-proxy';
 
 export type { McpConfiguration };

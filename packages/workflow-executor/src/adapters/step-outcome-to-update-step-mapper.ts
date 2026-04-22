@@ -3,7 +3,7 @@ import type {
   ServerStepHistoryUpdate,
   ServerUpdateStepRequest,
 } from './server-types';
-import type { StepOutcome } from '../types/step-outcome';
+import type { StepOutcome } from '../types/validated/step-outcome';
 
 function toExecutionStatus(outcome: StepOutcome): ServerExecutionStatus {
   if (outcome.status === 'error') {

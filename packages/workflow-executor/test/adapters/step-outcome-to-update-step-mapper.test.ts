@@ -1,4 +1,4 @@
-import type { StepOutcome } from '../../src/types/step-outcome';
+import type { StepOutcome } from '../../src/types/validated/step-outcome';
 
 import toUpdateStepRequest from '../../src/adapters/step-outcome-to-update-step-mapper';
 

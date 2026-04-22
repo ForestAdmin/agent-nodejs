@@ -10,7 +10,7 @@ import type {
   IStepExecutor,
   PendingStepExecution,
   StepExecutionResult,
-} from '../types/execution';
+} from '../types/execution-context';
 import type {
   ConditionStepDefinition,
   GuidanceStepDefinition,
@@ -19,7 +19,7 @@ import type {
   ReadRecordStepDefinition,
   TriggerActionStepDefinition,
   UpdateRecordStepDefinition,
-} from '../types/step-definition';
+} from '../types/validated/step-definition';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import { StepStateError, causeMessage, extractErrorMessage } from '../errors';
@@ -30,8 +30,8 @@ import McpStepExecutor from './mcp-step-executor';
 import ReadRecordStepExecutor from './read-record-step-executor';
 import TriggerRecordActionStepExecutor from './trigger-record-action-step-executor';
 import UpdateRecordStepExecutor from './update-record-step-executor';
-import { StepType } from '../types/step-definition';
-import { stepTypeToOutcomeType } from '../types/step-outcome';
+import { StepType } from '../types/validated/step-definition';
+import { stepTypeToOutcomeType } from '../types/validated/step-outcome';
 
 export interface StepContextConfig {
   aiModelPort: AiModelPort;

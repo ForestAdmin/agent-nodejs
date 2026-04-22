@@ -1,8 +1,8 @@
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { AiModelPort } from '../../src/ports/ai-model-port';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
-import type { CollectionSchema } from '../../src/types/collection';
-import type { PendingStepExecution, StepUser } from '../../src/types/execution';
+import type { PendingStepExecution, StepUser } from '../../src/types/execution-context';
+import type { CollectionSchema } from '../../src/types/validated/collection';
 import type { BaseChatModel, RemoteTool } from '@forestadmin/ai-proxy';
 
 import jsonwebtoken from 'jsonwebtoken';
@@ -13,7 +13,7 @@ import ExecutorHttpServer from '../../src/http/executor-http-server';
 import Runner from '../../src/runner';
 import SchemaCache from '../../src/schema-cache';
 import InMemoryStore from '../../src/stores/in-memory-store';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
 // Constants

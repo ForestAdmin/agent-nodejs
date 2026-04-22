@@ -11,7 +11,7 @@ import type {
   WorkflowPort,
 } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
-import type { PendingStepExecution, StepExecutionResult } from './types/execution';
+import type { PendingStepExecution, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 

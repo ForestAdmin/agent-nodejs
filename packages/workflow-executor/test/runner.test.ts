@@ -4,8 +4,8 @@ import type { AiModelPort } from '../src/ports/ai-model-port';
 import type { Logger } from '../src/ports/logger-port';
 import type { RunStore } from '../src/ports/run-store';
 import type { WorkflowPort } from '../src/ports/workflow-port';
-import type { PendingStepExecution } from '../src/types/execution';
-import type { StepDefinition } from '../src/types/step-definition';
+import type { PendingStepExecution } from '../src/types/execution-context';
+import type { StepDefinition } from '../src/types/validated/step-definition';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 import {
@@ -25,7 +25,7 @@ import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-act
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
-import { StepType } from '../src/types/step-definition';
+import { StepType } from '../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
 // Helpers

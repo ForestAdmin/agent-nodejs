@@ -1,4 +1,4 @@
-export { StepType } from './types/step-definition';
+export { StepType } from './types/validated/step-definition';
 export type {
   ConditionStepDefinition,
   ReadRecordStepDefinition,
@@ -9,7 +9,7 @@ export type {
   McpStepDefinition,
   GuidanceStepDefinition,
   StepDefinition,
-} from './types/step-definition';
+} from './types/validated/step-definition';
 
 export type {
   StepStatus,
@@ -18,7 +18,7 @@ export type {
   McpStepOutcome,
   GuidanceStepOutcome,
   StepOutcome,
-} from './types/step-outcome';
+} from './types/validated/step-outcome';
 
 export type {
   FieldReadSuccess,
@@ -48,7 +48,7 @@ export type {
   CollectionSchema,
   RecordRef,
   RecordData,
-} from './types/collection';
+} from './types/validated/collection';
 
 export type {
   StepUser,
@@ -56,7 +56,7 @@ export type {
   PendingStepExecution,
   StepExecutionResult,
   ExecutionContext,
-} from './types/execution';
+} from './types/execution-context';
 
 export type {
   AgentPort,

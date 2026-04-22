@@ -10,7 +10,7 @@ import type {
 
 import toStepDefinition from '../../src/adapters/step-definition-mapper';
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../../src/errors';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 function makeTask(overrides: Partial<ServerWorkflowTask> = {}): ServerWorkflowTask {
   return {

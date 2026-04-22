@@ -1,15 +1,15 @@
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
-import type { CollectionSchema, RecordRef } from '../../src/types/collection';
-import type { ExecutionContext } from '../../src/types/execution';
-import type { TriggerActionStepDefinition } from '../../src/types/step-definition';
+import type { ExecutionContext } from '../../src/types/execution-context';
 import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-execution-data';
+import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
+import type { TriggerActionStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
   overrides: Partial<TriggerActionStepDefinition> = {},

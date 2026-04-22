@@ -1,15 +1,15 @@
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
-import type { ExecutionContext } from '../../src/types/execution';
-import type { McpStepDefinition } from '../../src/types/step-definition';
+import type { ExecutionContext } from '../../src/types/execution-context';
 import type { McpStepExecutionData } from '../../src/types/step-execution-data';
+import type { McpStepDefinition } from '../../src/types/validated/step-definition';
 
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { RunStorePortError, StepStateError } from '../../src/errors';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
 // Helpers

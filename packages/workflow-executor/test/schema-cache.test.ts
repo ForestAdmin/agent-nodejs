@@ -1,4 +1,4 @@
-import type { CollectionSchema } from '../src/types/collection';
+import type { CollectionSchema } from '../src/types/validated/collection';
 
 import SchemaCache from '../src/schema-cache';
 

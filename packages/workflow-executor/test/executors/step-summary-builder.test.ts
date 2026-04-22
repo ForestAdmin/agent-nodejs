@@ -1,9 +1,9 @@
-import type { StepDefinition } from '../../src/types/step-definition';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
-import type { StepOutcome } from '../../src/types/step-outcome';
+import type { StepDefinition } from '../../src/types/validated/step-definition';
+import type { StepOutcome } from '../../src/types/validated/step-outcome';
 
 import StepSummaryBuilder from '../../src/executors/summary/step-summary-builder';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 function makeConditionStep(prompt?: string): StepDefinition {
   return { type: StepType.Condition, options: ['A', 'B'], prompt };

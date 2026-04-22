@@ -6,50 +6,14 @@ import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type SchemaCache from '../schema-cache';
+import type { RecordRef } from './validated/collection';
+import type { PendingStepExecution, Step, StepUser } from './validated/execution';
+import type { StepDefinition } from './validated/step-definition';
+import type { StepOutcome } from './validated/step-outcome';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
-import { z } from 'zod';
-
-import { type RecordRef, RecordRefSchema } from './collection';
-import { type StepDefinition, StepDefinitionSchema } from './step-definition';
-import { type StepOutcome, StepOutcomeSchema } from './step-outcome';
-
-export const StepUserSchema = z
-  .object({
-    id: z.number(),
-    email: z.string(),
-    firstName: z.string(),
-    lastName: z.string(),
-    team: z.string(),
-    renderingId: z.number().int().nonnegative(),
-    role: z.string(),
-    permissionLevel: z.string(),
-    tags: z.record(z.string(), z.string()),
-  })
-  .strict();
-export type StepUser = z.infer<typeof StepUserSchema>;
-
-export const StepSchema = z
-  .object({
-    stepDefinition: StepDefinitionSchema,
-    stepOutcome: StepOutcomeSchema,
-  })
-  .strict();
-export type Step = z.infer<typeof StepSchema>;
-
-export const PendingStepExecutionSchema = z
-  .object({
-    runId: z.string().min(1),
-    stepId: z.string().min(1),
-    stepIndex: z.number().int().nonnegative(),
-    collectionId: z.string().min(1),
-    baseRecordRef: RecordRefSchema,
-    stepDefinition: StepDefinitionSchema,
-    previousSteps: z.array(StepSchema),
-    user: StepUserSchema,
-  })
-  .strict();
-export type PendingStepExecution = z.infer<typeof PendingStepExecutionSchema>;
+// Re-export the runtime result types alongside the context they flow with.
+export type { PendingStepExecution, Step, StepUser };
 
 export interface StepExecutionResult {
   stepOutcome: StepOutcome;

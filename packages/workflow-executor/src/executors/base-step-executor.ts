@@ -1,10 +1,14 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
-import type { CollectionSchema, FieldSchema, RecordRef } from '../types/collection';
-import type { ExecutionContext, IStepExecutor, StepExecutionResult } from '../types/execution';
-import type { StepDefinition } from '../types/step-definition';
+import type {
+  ExecutionContext,
+  IStepExecutor,
+  StepExecutionResult,
+} from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { StepStatus } from '../types/step-outcome';
+import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
+import type { StepDefinition } from '../types/validated/step-definition';
+import type { StepStatus } from '../types/validated/step-outcome';
 import type { BaseMessage, StructuredToolInterface } from '@forestadmin/ai-proxy';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';

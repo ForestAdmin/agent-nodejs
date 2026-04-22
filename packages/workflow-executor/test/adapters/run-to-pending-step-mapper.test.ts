@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 import toPendingStepExecution from '../../src/adapters/run-to-pending-step-mapper';
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
-import { StepType } from '../../src/types/step-definition';
+import { StepType } from '../../src/types/validated/step-definition';
 
 function makeStepHistory(overrides: Partial<ServerStepHistory> = {}): ServerStepHistory {
   return {
