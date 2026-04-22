@@ -1,6 +1,7 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
 import type HttpRequester from '../http-requester';
+import type { RecordId } from '../types';
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 
 import ActionFieldCheckbox from '../action-fields/action-field-checkbox';
@@ -18,8 +19,8 @@ import ActionFieldStringList from '../action-fields/action-field-string-list';
 import ActionLayoutRoot from '../action-layout/action-layout-root';
 
 export type BaseActionContext = {
-  recordId?: string | number;
-  recordIds?: string[] | number[];
+  recordId?: RecordId;
+  recordIds?: RecordId[];
 };
 
 export type ActionEndpointsByCollection = {

@@ -44,6 +44,19 @@ describe('Relation', () => {
       });
     });
 
+    it('should pipe-encode composite parent id', async () => {
+      const relation = new Relation('posts', 'users', [1, 'abc'], httpRequester);
+      httpRequester.query.mockResolvedValue([]);
+
+      await relation.list();
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'get',
+        path: '/forest/users/1|abc/relationships/posts',
+        query: expect.any(Object),
+      });
+    });
+
     it('should pass options to query serializer', async () => {
       const relation = new Relation('posts', 'users', 1, httpRequester);
       httpRequester.query.mockResolvedValue([]);
@@ -145,6 +158,21 @@ describe('Relation', () => {
         },
       });
     });
+
+    it('should pipe-encode composite target record id', async () => {
+      const relation = new Relation('tags', 'posts', [1, 'abc'], httpRequester);
+      httpRequester.query.mockResolvedValue(undefined);
+
+      await relation.associate([42, 'x']);
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'post',
+        path: '/forest/posts/1|abc/relationships/tags',
+        body: {
+          data: [{ id: '42|x', type: 'tags' }],
+        },
+      });
+    });
   });
 
   describe('dissociate', () => {
@@ -207,6 +235,32 @@ describe('Relation', () => {
           data: {
             attributes: {
               ids: ['99'],
+              collection_name: 'tags',
+              all_records: false,
+              all_records_ids_excluded: [],
+            },
+            type: 'action-requests',
+          },
+        },
+      });
+    });
+
+    it('should pipe-encode composite target record ids', async () => {
+      const relation = new Relation('tags', 'posts', [1, 'abc'], httpRequester);
+      httpRequester.query.mockResolvedValue(undefined);
+
+      await relation.dissociate([
+        [42, 'x'],
+        [43, 'y'],
+      ]);
+
+      expect(httpRequester.query).toHaveBeenCalledWith({
+        method: 'delete',
+        path: '/forest/posts/1|abc/relationships/tags',
+        body: {
+          data: {
+            attributes: {
+              ids: ['42|x', '43|y'],
               collection_name: 'tags',
               all_records: false,
               all_records_ids_excluded: [],
