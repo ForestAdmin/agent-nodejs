@@ -209,6 +209,24 @@ describe('ForestadminClientActivityLogPort', () => {
         }),
       );
     });
+
+    it('swallows errors after retries are exhausted (fire-and-forget) and logs with stepErrorMessage', async () => {
+      const service = makeService();
+      service.updateActivityLogStatus.mockRejectedValue(makeHttpError(503));
+      const logger = makeLogger();
+      const port = makePort(service, { logger });
+
+      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'step-error-msg');
+      await jest.advanceTimersByTimeAsync(2_600);
+      await expect(promise).resolves.toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('markFailed failed'),
+        expect.objectContaining({
+          handleId: 'log-1',
+          stepErrorMessage: 'step-error-msg',
+        }),
+      );
+    });
   });
 
   describe('drainer integration', () => {

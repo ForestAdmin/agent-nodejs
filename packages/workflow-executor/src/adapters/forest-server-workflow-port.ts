@@ -96,6 +96,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
         throw new MalformedRunError(this.toMalformedInfo(run, error));
       }
 
+      /* istanbul ignore next — defensive fallback for unexpected non-domain errors */
       throw error;
     }
   }
@@ -163,6 +164,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
           throw new DomainValidationError(Number(runId) || 0, err);
         }
 
+        /* istanbul ignore next — zod.parse only throws ZodError; defensive fallback */
         throw err;
       }
     });

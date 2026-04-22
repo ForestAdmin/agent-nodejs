@@ -151,6 +151,7 @@ export default function toPendingStepExecution(
       throw new DomainValidationError(run.id, err);
     }
 
+    /* istanbul ignore next — zod.parse only throws ZodError; defensive fallback */
     throw err;
   }
 }
