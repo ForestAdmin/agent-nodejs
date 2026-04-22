@@ -1,4 +1,4 @@
-import patchBodySchemas from '../src/pending-data-validators';
+import patchBodySchemas from '../../src/http/pending-data-validators';
 
 describe('patchBodySchemas', () => {
   describe('trigger-action', () => {

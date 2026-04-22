@@ -3,8 +3,8 @@ import type { GuidanceStepDefinition } from '../types/validated/step-definition'
 import type { BaseStepStatus } from '../types/validated/step-outcome';
 
 import { StepStateError } from '../errors';
-import patchBodySchemas from '../pending-data-validators';
 import BaseStepExecutor from './base-step-executor';
+import patchBodySchemas from '../http/pending-data-validators';
 
 export default class GuidanceStepExecutor extends BaseStepExecutor<GuidanceStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {

@@ -24,7 +24,7 @@ import {
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
-import patchBodySchemas from '../pending-data-validators';
+import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
 type WithPendingData = StepExecutionData & { pendingData?: object };
