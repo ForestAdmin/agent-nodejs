@@ -1,38 +1,57 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
-
 import { z } from 'zod';
 
 // -- Schema types (structure of a collection — source: WorkflowPort) --
 
-export interface FieldSchema {
-  fieldName: string;
-  displayName: string;
-  isRelationship: boolean;
-  /** Cardinality of the relation. Absent for non-relationship fields. */
-  relationType?: 'BelongsTo' | 'HasMany' | 'HasOne';
-  /** Target collection name; only meaningful for relationship fields. */
-  relatedCollectionName?: string;
-}
+export const FieldSchemaSchema = z
+  .object({
+    fieldName: z.string().min(1),
+    displayName: z.string().min(1),
+    isRelationship: z.boolean(),
+    /** Cardinality of the relation. Absent for non-relationship fields. */
+    relationType: z.enum(['BelongsTo', 'HasMany', 'HasOne']).optional(),
+    /** Target collection name; only meaningful for relationship fields. */
+    relatedCollectionName: z.string().optional(),
+  })
+  .strict();
+export type FieldSchema = z.infer<typeof FieldSchemaSchema>;
 
-export interface ActionSchema {
-  name: string;
-  displayName: string;
-  endpoint: string;
-  /** Static form fields. Used as fallback when the agent's /hooks/load route 404s (old Ruby agents). */
-  fields?: ForestSchemaAction['fields'];
-  /** Action lifecycle hooks. Drives agent-client's dynamic form loading. */
-  hooks?: ForestSchemaAction['hooks'];
-}
+// ActionSchema.fields / hooks content is a discriminated union owned by the upstream
+// `@forestadmin/forestadmin-client` lib and consumed downstream by `@forestadmin/agent-client`.
+// We validate the envelope shape only — detail re-validation would duplicate the lib's job.
+const ActionFieldsSchema = z.array(z.object({}).passthrough()).optional();
+const ActionHooksSchema = z
+  .object({
+    load: z.boolean(),
+    change: z.array(z.unknown()),
+  })
+  .strict()
+  .optional();
 
-export interface CollectionSchema {
-  collectionName: string;
-  collectionDisplayName: string;
-  primaryKeyFields: string[];
-  fields: FieldSchema[];
-  actions: ActionSchema[];
-}
+export const ActionSchemaSchema = z
+  .object({
+    name: z.string().min(1),
+    displayName: z.string().min(1),
+    endpoint: z.string().min(1),
+    /** Static form fields. Used as fallback when the agent's /hooks/load route 404s (old Ruby agents). */
+    fields: ActionFieldsSchema,
+    /** Action lifecycle hooks. Drives agent-client's dynamic form loading. */
+    hooks: ActionHooksSchema,
+  })
+  .strict();
+export type ActionSchema = z.infer<typeof ActionSchemaSchema>;
+
+export const CollectionSchemaSchema = z
+  .object({
+    collectionName: z.string().min(1),
+    collectionDisplayName: z.string().min(1),
+    primaryKeyFields: z.array(z.string().min(1)).min(1),
+    fields: z.array(FieldSchemaSchema),
+    actions: z.array(ActionSchemaSchema),
+  })
+  .strict();
+export type CollectionSchema = z.infer<typeof CollectionSchemaSchema>;
 
 // -- Record types (data — source: AgentPort/RunStore) --
 

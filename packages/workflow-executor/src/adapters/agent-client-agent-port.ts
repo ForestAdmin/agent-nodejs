@@ -206,7 +206,9 @@ export default class AgentClientAgentPort implements AgentPort {
           name: action.name,
           endpoint: action.endpoint,
           hooks: action.hooks ?? { load: false, change: [] },
-          fields: action.fields ?? [],
+          // Zod envelope-validates `fields` as an array of opaque objects. Inner widget/parameters
+          // shape is owned by @forestadmin/forestadmin-client and consumed by agent-client below.
+          fields: (action.fields ?? []) as ActionEndpointsByCollection[string][string]['fields'],
         };
       }
     }

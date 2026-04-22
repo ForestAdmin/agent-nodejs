@@ -505,6 +505,32 @@ describe('ForestServerWorkflowPort', () => {
         '/api/workflow-orchestrator/collection-schema/users%2Fadmin?runId=run%2F42',
       );
     });
+
+    it('throws WorkflowPortError wrapping DomainValidationError when the wire response does not match CollectionSchema', async () => {
+      // Shape invalide : fields[0] manque fieldName (violation FieldSchema.fieldName.min(1)).
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [{ displayName: 'Email', isRelationship: false }],
+        actions: [],
+      });
+
+      await expect(port.getCollectionSchema('users', '42')).rejects.toThrow(/invalid/i);
+    });
+
+    it('rejects unknown extra fields on the wire (strict mode)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [],
+        actions: [],
+        unexpectedNewField: 'oops',
+      });
+
+      await expect(port.getCollectionSchema('users', '42')).rejects.toThrow();
+    });
   });
 
   describe('getMcpServerConfigs', () => {

@@ -13,17 +13,20 @@ import type { StepOutcome } from '../types/step-outcome';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
+import { z } from 'zod';
 
 import ConsoleLogger from './console-logger';
 import toPendingStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
 import {
+  DomainValidationError,
   InvalidStepDefinitionError,
   MalformedRunError,
   WorkflowExecutorError,
   WorkflowPortError,
   extractErrorMessage,
 } from '../errors';
+import { CollectionSchemaSchema } from '../types/record';
 
 const ROUTES = {
   pendingRuns: '/api/workflow-orchestrator/pending-run',
@@ -145,13 +148,24 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   }
 
   async getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema> {
-    return this.callPort('getCollectionSchema', () =>
-      ServerUtils.query<CollectionSchema>(
+    return this.callPort('getCollectionSchema', async () => {
+      const response = await ServerUtils.query<unknown>(
         this.options,
         'get',
         ROUTES.collectionSchema(collectionName, runId),
-      ),
-    );
+      );
+
+      try {
+        return CollectionSchemaSchema.parse(response);
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          // runId is passed for observability — the schema call is scoped to a run.
+          throw new DomainValidationError(Number(runId) || 0, err);
+        }
+
+        throw err;
+      }
+    });
   }
 
   async getMcpServerConfigs(): Promise<McpConfiguration[]> {
