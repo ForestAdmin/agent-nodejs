@@ -40,11 +40,6 @@ function buildPkFilter(
   };
 }
 
-// agent-client methods (update, relation, action) still expect the pipe-encoded string format
-function encodePk(id: Array<string | number>): string {
-  return id.map(v => String(v)).join('|');
-}
-
 function extractRecordId(
   primaryKeyFields: string[],
   record: Record<string, unknown>,
@@ -74,7 +69,7 @@ export default class AgentClientAgentPort implements AgentPort {
       });
 
       if (records.length === 0) {
-        throw new RecordNotFoundError(collection, encodePk(id));
+        throw new RecordNotFoundError(collection, id.join('|'));
       }
 
       return { collectionName: collection, recordId: id, values: records[0] };
@@ -89,7 +84,7 @@ export default class AgentClientAgentPort implements AgentPort {
       const client = this.createClient(user);
       const updatedRecord = await client
         .collection(collection)
-        .update<Record<string, unknown>>(encodePk(id), values);
+        .update<Record<string, unknown>>(id, values);
 
       return { collectionName: collection, recordId: id, values: updatedRecord };
     });
@@ -108,7 +103,7 @@ export default class AgentClientAgentPort implements AgentPort {
 
       const records = await client
         .collection(collection)
-        .relation(relation, encodePk(id))
+        .relation(relation, id)
         .list<Record<string, unknown>>({
           ...(limit !== null && { pagination: { size: limit, number: 1 } }),
           ...(fields?.length && { fields }),
@@ -128,8 +123,8 @@ export default class AgentClientAgentPort implements AgentPort {
   ): Promise<unknown> {
     return this.callAgent('executeAction', async () => {
       const client = this.createClient(user);
-      const encodedId = id?.length ? [encodePk(id)] : [];
-      const act = await client.collection(collection).action(action, { recordIds: encodedId });
+      const recordIds = id?.length ? [id] : [];
+      const act = await client.collection(collection).action(action, { recordIds });
 
       return act.execute();
     });
@@ -141,7 +136,7 @@ export default class AgentClientAgentPort implements AgentPort {
   ): Promise<{ hasForm: boolean }> {
     return this.callAgent('getActionFormInfo', async () => {
       const client = this.createClient(user);
-      const act = await client.collection(collection).action(action, { recordIds: [encodePk(id)] });
+      const act = await client.collection(collection).action(action, { recordIds: [id] });
 
       return { hasForm: act.getFields().length > 0 };
     });

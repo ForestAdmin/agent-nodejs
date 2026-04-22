@@ -190,7 +190,7 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('updateRecord', () => {
-    it('should call update with pipe-encoded id and return a RecordData', async () => {
+    it('should forward the RecordId array to agent-client and return a RecordData', async () => {
       mockCollection.update.mockResolvedValue({ id: 42, name: 'Bob' });
 
       const result = await port.updateRecord(
@@ -202,7 +202,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.update).toHaveBeenCalledWith('42', { name: 'Bob' });
+      expect(mockCollection.update).toHaveBeenCalledWith([42], { name: 'Bob' });
       expect(result).toEqual({
         collectionName: 'users',
         recordId: [42],
@@ -210,7 +210,7 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    it('should encode composite PK to pipe format for update', async () => {
+    it('should forward composite PKs as arrays (agent-client handles pipe encoding)', async () => {
       mockCollection.update.mockResolvedValue({ tenantId: 1, orderId: 2 });
 
       await port.updateRecord(
@@ -218,7 +218,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.update).toHaveBeenCalledWith('1|2', { status: 'done' });
+      expect(mockCollection.update).toHaveBeenCalledWith([1, 2], { status: 'done' });
     });
   });
 
@@ -239,7 +239,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.relation).toHaveBeenCalledWith('posts', '42');
+      expect(mockCollection.relation).toHaveBeenCalledWith('posts', [42]);
       expect(result).toEqual([
         {
           collectionName: 'posts',
@@ -345,7 +345,7 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('executeAction', () => {
-    it('should encode ids to pipe format and call execute', async () => {
+    it('should forward the RecordId array to agent-client and call execute', async () => {
       mockAction.execute.mockResolvedValue({ success: 'done' });
 
       const result = await port.executeAction(
@@ -357,7 +357,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: ['1'] });
+      expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: [[1]] });
       expect(result).toEqual({ success: 'done' });
     });
 
@@ -388,7 +388,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: ['1'] });
+      expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: [[1]] });
       expect(result).toEqual({ hasForm: false });
     });
 
@@ -403,7 +403,7 @@ describe('AgentClientAgentPort', () => {
       expect(result).toEqual({ hasForm: true });
     });
 
-    it('encodes composite ids with pipe separator', async () => {
+    it('forwards composite ids as arrays (agent-client handles pipe encoding)', async () => {
       mockAction.getFields.mockReturnValue([]);
 
       await port.getActionFormInfo(
@@ -411,7 +411,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: ['1|abc'] });
+      expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: [[1, 'abc']] });
     });
   });
 
