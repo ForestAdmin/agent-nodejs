@@ -475,10 +475,48 @@ describe('toPendingStepExecution', () => {
       expect(() => toPendingStepExecution(run)).toThrow();
     });
 
-    it('should throw DomainValidationError exposing zod issue paths', () => {
-      // Directly exercise the DomainValidationError class — the zod parse path in the mapper is
-      // hard to trigger without mocking (wire guards catch most malformed input first). This
-      // verifies the error surface is usable by operators.
+    it('should throw DomainValidationError when the mapper output violates a zod invariant (empty stepId)', () => {
+      // Wire guards don't validate pending.stepName, but PendingStepExecutionSchema requires
+      // stepId.min(1). This exercises the actual parse path in the mapper.
+      const run = makeRun({
+        workflowHistory: [makeStepHistory({ stepName: '' })],
+      });
+
+      let caught: unknown;
+
+      try {
+        toPendingStepExecution(run);
+      } catch (err) {
+        caught = err;
+      }
+
+      expect(caught).toBeInstanceOf(DomainValidationError);
+      const domainErr = caught as DomainValidationError;
+      expect(domainErr.issues.some(i => i.path === 'stepId')).toBe(true);
+      expect(domainErr.userMessage).toMatch(/Internal validation error/);
+    });
+
+    it('should throw DomainValidationError when renderingId is not an integer (zod catches what wire finite check misses)', () => {
+      // profile.renderingId = 0.5 passes toStepUser's finite() guard but fails zod's int() check.
+      const run = makeRun({
+        userProfile: {
+          id: 7,
+          email: 'a@b.c',
+          firstName: 'A',
+          lastName: 'B',
+          team: 't',
+          renderingId: 0.5,
+          role: 'admin',
+          permissionLevel: 'admin',
+          tags: {},
+          serverToken: 'tok',
+        },
+      });
+
+      expect(() => toPendingStepExecution(run)).toThrow(DomainValidationError);
+    });
+
+    it('should structure DomainValidationError.issues as { path, message } objects', () => {
       const zodError = new z.ZodError([
         {
           code: 'invalid_type',

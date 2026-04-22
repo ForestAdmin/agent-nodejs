@@ -259,6 +259,42 @@ describe('ForestServerWorkflowPort', () => {
       );
     });
 
+    it('bucketizes DomainValidationError (zod parse failure in mapper) as malformed', async () => {
+      // Wire guards pass but the pending step has an empty stepName → zod parse rejects via
+      // PendingStepExecutionSchema.stepId.min(1). Proves DomainValidationError flows through the
+      // malformed pathway just like InvalidStepDefinitionError.
+      const malformedRun = makeRun({
+        id: 46,
+        workflowHistory: [
+          {
+            stepName: '',
+            stepIndex: 0,
+            done: false,
+            stepDefinition: {
+              type: 'condition',
+              title: 'Decide',
+              prompt: 'pick one',
+              outgoing: [
+                { stepId: 'a', buttonText: 'A', answer: 'Yes' },
+                { stepId: 'b', buttonText: 'B', answer: 'No' },
+              ],
+            },
+          },
+        ],
+      });
+      mockQuery.mockResolvedValue([malformedRun]);
+
+      const result = await port.getPendingStepExecutions();
+
+      expect(result.pending).toEqual([]);
+      expect(result.malformed[0]).toEqual(
+        expect.objectContaining({
+          runId: '46',
+          technicalMessage: expect.stringContaining('invalid PendingStepExecution'),
+        }),
+      );
+    });
+
     it('logs and skips when the mapping throws a non-WorkflowExecutorError', async () => {
       const logger = { error: jest.fn(), info: jest.fn() };
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });

@@ -25,34 +25,42 @@ const baseOutcomeFields = {
   error: z.string().optional(),
 };
 
-export const ConditionStepOutcomeSchema = z.object({
-  ...baseOutcomeFields,
-  type: z.literal('condition'),
-  status: BaseStepStatusSchema,
-  /** Present when status is 'success'. */
-  selectedOption: z.string().optional(),
-});
+export const ConditionStepOutcomeSchema = z
+  .object({
+    ...baseOutcomeFields,
+    type: z.literal('condition'),
+    status: BaseStepStatusSchema,
+    /** Present when status is 'success'. */
+    selectedOption: z.string().optional(),
+  })
+  .strict();
 export type ConditionStepOutcome = z.infer<typeof ConditionStepOutcomeSchema>;
 
-export const RecordStepOutcomeSchema = z.object({
-  ...baseOutcomeFields,
-  type: z.literal('record'),
-  status: RecordStepStatusSchema,
-});
+export const RecordStepOutcomeSchema = z
+  .object({
+    ...baseOutcomeFields,
+    type: z.literal('record'),
+    status: RecordStepStatusSchema,
+  })
+  .strict();
 export type RecordStepOutcome = z.infer<typeof RecordStepOutcomeSchema>;
 
-export const McpStepOutcomeSchema = z.object({
-  ...baseOutcomeFields,
-  type: z.literal('mcp'),
-  status: RecordStepStatusSchema,
-});
+export const McpStepOutcomeSchema = z
+  .object({
+    ...baseOutcomeFields,
+    type: z.literal('mcp'),
+    status: RecordStepStatusSchema,
+  })
+  .strict();
 export type McpStepOutcome = z.infer<typeof McpStepOutcomeSchema>;
 
-export const GuidanceStepOutcomeSchema = z.object({
-  ...baseOutcomeFields,
-  type: z.literal('guidance'),
-  status: BaseStepStatusSchema,
-});
+export const GuidanceStepOutcomeSchema = z
+  .object({
+    ...baseOutcomeFields,
+    type: z.literal('guidance'),
+    status: BaseStepStatusSchema,
+  })
+  .strict();
 export type GuidanceStepOutcome = z.infer<typeof GuidanceStepOutcomeSchema>;
 
 export const StepOutcomeSchema = z.discriminatedUnion('type', [

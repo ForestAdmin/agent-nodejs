@@ -36,12 +36,14 @@ export interface CollectionSchema {
 
 // -- Record types (data — source: AgentPort/RunStore) --
 
-export const RecordRefSchema = z.object({
-  collectionName: z.string().min(1),
-  recordId: z.array(z.union([z.string(), z.number()])).min(1),
-  // Index of the workflow step that loaded this record.
-  stepIndex: z.number().int().nonnegative(),
-});
+export const RecordRefSchema = z
+  .object({
+    collectionName: z.string().min(1),
+    recordId: z.array(z.union([z.string(), z.number()])).min(1),
+    // Index of the workflow step that loaded this record.
+    stepIndex: z.number().int().nonnegative(),
+  })
+  .strict();
 export type RecordRef = z.infer<typeof RecordRefSchema>;
 
 // No stepIndex — the agent doesn't know about steps.

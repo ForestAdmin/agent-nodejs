@@ -355,7 +355,9 @@ export class DomainValidationError extends WorkflowExecutorError {
       path: i.path.join('.') || '(root)',
       message: i.message,
     }));
-    const summary = issues.map(i => `${i.path}: ${i.message}`).join('; ');
+    const summary = issues.length
+      ? issues.map(i => `${i.path}: ${i.message}`).join('; ')
+      : '(no zod issues reported — unexpected empty ZodError)';
 
     super(
       `Run ${runId} mapper produced invalid PendingStepExecution — ${summary}`,
