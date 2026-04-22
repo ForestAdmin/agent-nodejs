@@ -10,6 +10,7 @@ function makeLogger() {
 function makeService(): jest.Mocked<ActivityLogsServiceInterface> {
   return {
     createActivityLog: jest.fn().mockResolvedValue({ id: 'log-1', attributes: { index: '0' } }),
+    createMcpActivityLog: jest.fn().mockResolvedValue({ id: 'log-1', attributes: { index: '0' } }),
     updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
   };
 }

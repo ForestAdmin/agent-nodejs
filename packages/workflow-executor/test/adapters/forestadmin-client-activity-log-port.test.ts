@@ -11,6 +11,7 @@ function makeLogger() {
 function makeService(): jest.Mocked<ActivityLogsServiceInterface> {
   return {
     createActivityLog: jest.fn(),
+    createMcpActivityLog: jest.fn(),
     updateActivityLogStatus: jest.fn(),
   };
 }
