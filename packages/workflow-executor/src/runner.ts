@@ -28,6 +28,11 @@ import validateSecrets from './validate-secrets';
 
 export type RunnerState = 'idle' | 'running' | 'draining' | 'stopped';
 
+// Default cap on auto-chained steps per entry (initial step + chained). High enough to cover
+// realistic auto workflows; low enough to fail loud if a workflow misbehaves.
+const DEFAULT_MAX_CHAIN_DEPTH = 50;
+const DEFAULT_STOP_TIMEOUT_MS = 30_000;
+
 export interface RunnerConfig {
   agentPort: AgentPort;
   workflowPort: WorkflowPort;
@@ -43,21 +48,20 @@ export interface RunnerConfig {
   // On timeout the step reports status:error; the underlying work is not aborted (Promise.race
   // limitation). Late rejections are caught and logged; late resolutions are silently discarded.
   stepTimeoutMs?: number;
+  // Max number of ADDITIONAL steps auto-chained via /update-step response before yielding to the
+  // next poll cycle (counted after the initial step). 0 disables chaining entirely. Default 50.
+  maxChainDepth?: number;
 }
-
-const DEFAULT_STOP_TIMEOUT_MS = 30_000;
 
 export default class Runner {
   private readonly config: RunnerConfig;
   private pollingTimer: NodeJS.Timeout | null = null;
-  private readonly inFlightSteps = new Map<string, Promise<void>>();
+  // Keyed by runId (not stepId): a run has one pending step at a time, and a chain advances the
+  // stepId between iterations. Keying by runId keeps the dedup guarantee across the whole chain.
+  private readonly inFlightRuns = new Map<string, Promise<void>>();
   private isRunning = false;
   private readonly logger: Logger;
   private _state: RunnerState = 'idle';
-
-  private static stepKey(step: PendingStepExecution): string {
-    return `${step.runId}:${step.stepId}`;
-  }
 
   constructor(config: RunnerConfig) {
     this.config = config;
@@ -100,17 +104,17 @@ export default class Runner {
     }
 
     try {
-      // Drain in-flight steps
-      if (this.inFlightSteps.size > 0) {
-        this.logger.info?.('Draining in-flight steps', {
-          count: this.inFlightSteps.size,
-          steps: [...this.inFlightSteps.keys()],
+      // Drain in-flight runs (each entry may cover a whole auto-chain).
+      if (this.inFlightRuns.size > 0) {
+        this.logger.info?.('Draining in-flight runs', {
+          count: this.inFlightRuns.size,
+          runs: [...this.inFlightRuns.keys()],
         });
 
         const timeout = this.config.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS;
         let drainTimer: NodeJS.Timeout | undefined;
         const drainResult = await Promise.race([
-          Promise.allSettled(this.inFlightSteps.values()).then(() => {
+          Promise.allSettled(this.inFlightRuns.values()).then(() => {
             if (drainTimer) clearTimeout(drainTimer);
 
             return 'drained' as const;
@@ -121,12 +125,12 @@ export default class Runner {
         ]);
 
         if (drainResult === 'timeout') {
-          this.logger.error('Drain timeout — steps still in flight', {
-            remainingSteps: [...this.inFlightSteps.keys()],
+          this.logger.error('Drain timeout — runs still in flight', {
+            remainingRuns: [...this.inFlightRuns.keys()],
             timeoutMs: timeout,
           });
         } else {
-          this.logger.info?.('All in-flight steps drained', {});
+          this.logger.info?.('All in-flight runs drained', {});
         }
       }
 
@@ -179,7 +183,7 @@ export default class Runner {
       throw new UserMismatchError(runId);
     }
 
-    if (this.inFlightSteps.has(Runner.stepKey(step))) return;
+    if (this.inFlightRuns.has(step.runId)) return;
 
     await this.executeStep(step, auth.forestServerToken, options?.pendingData);
   }
@@ -195,7 +199,7 @@ export default class Runner {
       // Each reportMalformedRun has its own try/catch, no individual failure poisons the cycle.
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
-      const dispatchable = pending.filter(d => !this.inFlightSteps.has(Runner.stepKey(d.step)));
+      const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
       this.logger.info('Poll cycle completed', {
         fetched: pending.length,
         dispatching: dispatchable.length,
@@ -266,54 +270,124 @@ export default class Runner {
     forestServerToken: string,
     incomingPendingData?: unknown,
   ): Promise<void> {
-    const key = Runner.stepKey(step);
-    const promise = this.doExecuteStep(step, forestServerToken, key, incomingPendingData);
-    this.inFlightSteps.set(key, promise);
+    // The tracked promise covers the entire auto-chain for this run plus the map cleanup —
+    // register it once, clean up once. Storing per-step entries (or Promise.resolve()) would
+    // break drain: Promise.allSettled would see already-resolved entries and stop waiting while
+    // the chain is still running.
+    const trackedPromise = this.doExecuteStep(step, forestServerToken, incomingPendingData).finally(
+      () => {
+        this.inFlightRuns.delete(step.runId);
+      },
+    );
+    this.inFlightRuns.set(step.runId, trackedPromise);
 
-    return promise;
+    return trackedPromise;
   }
 
   private async doExecuteStep(
     step: PendingStepExecution,
     forestServerToken: string,
-    key: string,
     incomingPendingData?: unknown,
   ): Promise<void> {
-    let result: StepExecutionResult;
+    let currentStep = step;
+    let currentToken = forestServerToken;
+    let currentIncomingData = incomingPendingData;
+    let chainedCount = 0; // additional steps chained after the initial one
+    const maxDepth = this.config.maxChainDepth ?? DEFAULT_MAX_CHAIN_DEPTH;
 
-    try {
-      const executor = await StepExecutorFactory.create(
-        step,
-        this.contextConfig,
-        this.config.activityLogPortFactory.forRun(forestServerToken),
-        () => this.fetchRemoteTools(),
-        incomingPendingData,
-      );
-      result = await executor.execute();
-    } catch (error) {
-      this.logger.error('FATAL: executor contract violated — step outcome not reported', {
-        runId: step.runId,
-        stepId: step.stepId,
-        error: extractErrorMessage(error),
-      });
+    // Sequential by design: each step's outcome drives the next dispatch; steps within one run
+    // cannot overlap. The no-await-in-loop rule doesn't apply here.
+    /* eslint-disable no-await-in-loop, no-constant-condition */
+    while (true) {
+      let result: StepExecutionResult;
 
-      return;
-    } finally {
-      this.inFlightSteps.delete(key);
+      try {
+        const executor = await StepExecutorFactory.create(
+          currentStep,
+          this.contextConfig,
+          this.config.activityLogPortFactory.forRun(currentToken),
+          () => this.fetchRemoteTools(),
+          currentIncomingData,
+        );
+        result = await executor.execute();
+      } catch (error) {
+        this.logger.error('FATAL: executor contract violated — step outcome not reported', {
+          runId: currentStep.runId,
+          stepId: currentStep.stepId,
+          error: extractErrorMessage(error),
+        });
+
+        return;
+      }
+
+      let nextDispatch: PendingRunDispatch | null;
+
+      try {
+        nextDispatch = await this.config.workflowPort.updateStepExecution(
+          currentStep.runId,
+          result.stepOutcome,
+        );
+      } catch (error) {
+        this.logger.error('Failed to report step outcome', {
+          runId: currentStep.runId,
+          stepId: currentStep.stepId,
+          stepIndex: currentStep.stepIndex,
+          error: extractErrorMessage(error),
+          cause: causeMessage(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+
+        return;
+      }
+
+      if (nextDispatch === null) return;
+
+      // Progression safety: the server must advance the workflow within the same run. A cross-run
+      // dispatch would execute under the initial run's inFlightRuns key (and leak the map entry
+      // on cleanup); a non-progressing stepIndex would loop forever. Both are server bugs —
+      // exit the chain and let the next poll re-fetch authoritative state.
+      if (
+        nextDispatch.step.runId !== currentStep.runId ||
+        nextDispatch.step.stepIndex <= currentStep.stepIndex
+      ) {
+        this.logger.error('Server returned non-progressing next step — exiting chain', {
+          runId: currentStep.runId,
+          currentStepIndex: currentStep.stepIndex,
+          returnedRunId: nextDispatch.step.runId,
+          returnedStepIndex: nextDispatch.step.stepIndex,
+        });
+
+        return;
+      }
+
+      // Cap check BEFORE incrementing: chainedCount counts chained steps we've already executed.
+      // maxDepth=2 means "run up to 2 chained steps after the initial one" (3 total).
+      if (chainedCount >= maxDepth) {
+        this.logger.info?.('Chain depth cap reached — yielding to next poll', {
+          runId: currentStep.runId,
+          stepIndex: currentStep.stepIndex,
+          maxDepth,
+        });
+
+        return;
+      }
+
+      // Graceful stop: finish the current step, then yield instead of chaining further.
+      if (this._state === 'draining') {
+        this.logger.info?.('Chain interrupted by stop() — yielding', {
+          runId: currentStep.runId,
+          stepIndex: currentStep.stepIndex,
+        });
+
+        return;
+      }
+
+      chainedCount += 1;
+      currentStep = nextDispatch.step;
+      currentToken = nextDispatch.auth.forestServerToken;
+      currentIncomingData = undefined; // chained steps never carry pending data
     }
-
-    try {
-      await this.config.workflowPort.updateStepExecution(step.runId, result.stepOutcome);
-    } catch (error) {
-      this.logger.error('Failed to report step outcome', {
-        runId: step.runId,
-        stepId: step.stepId,
-        stepIndex: step.stepIndex,
-        error: extractErrorMessage(error),
-        cause: causeMessage(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-    }
+    /* eslint-enable no-await-in-loop, no-constant-condition */
   }
 
   private get contextConfig(): StepContextConfig {

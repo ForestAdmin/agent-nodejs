@@ -26,10 +26,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/agent-client": "1.5.0",
-    "@forestadmin/ai-proxy": "1.7.3",
+    "@forestadmin/agent-client": "1.5.3",
+    "@forestadmin/ai-proxy": "1.8.0",
     "@langchain/openai": "1.2.5",
-    "@forestadmin/forestadmin-client": "1.39.0",
+    "@forestadmin/forestadmin-client": "1.39.3",
     "@koa/bodyparser": "^6.1.0",
     "@koa/router": "^13.1.0",
     "jsonwebtoken": "^9.0.3",

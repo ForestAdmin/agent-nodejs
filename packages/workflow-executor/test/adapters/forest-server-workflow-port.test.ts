@@ -470,6 +470,109 @@ describe('ForestServerWorkflowPort', () => {
         },
       );
     });
+
+    it('returns null when the server returns null (no chain)', async () => {
+      mockQuery.mockResolvedValue(null);
+      const stepOutcome: StepOutcome = {
+        type: 'condition',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'optionA',
+      };
+
+      const result = await port.updateStepExecution('42', stepOutcome);
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when the server returns undefined (legacy contract)', async () => {
+      mockQuery.mockResolvedValue(undefined);
+      const stepOutcome: StepOutcome = {
+        type: 'condition',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'optionA',
+      };
+
+      const result = await port.updateStepExecution('42', stepOutcome);
+
+      expect(result).toBeNull();
+    });
+
+    it('returns the next dispatch parsed from the /update-step response', async () => {
+      mockQuery.mockResolvedValue(
+        makeRun({
+          id: 42,
+          workflowHistory: [
+            {
+              stepName: 'step-1',
+              stepIndex: 0,
+              done: true,
+              stepDefinition: {
+                type: 'condition',
+                title: 'Decide',
+                prompt: 'pick one',
+                outgoing: [
+                  { stepId: 'step-2', buttonText: 'Yes', answer: 'Yes' },
+                  { stepId: 'step-end', buttonText: 'No', answer: 'No' },
+                ],
+              },
+            },
+            {
+              stepName: 'step-2',
+              stepIndex: 1,
+              done: false,
+              stepDefinition: {
+                type: 'condition',
+                title: 'Next',
+                prompt: 'choose',
+                outgoing: [
+                  { stepId: 'end-a', buttonText: 'A', answer: 'Yes' },
+                  { stepId: 'end-b', buttonText: 'B', answer: 'No' },
+                ],
+              },
+            },
+          ],
+        }),
+      );
+      const stepOutcome: StepOutcome = {
+        type: 'condition',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'Yes',
+      };
+
+      const result = await port.updateStepExecution('42', stepOutcome);
+
+      expect(result).not.toBeNull();
+      expect(result?.step.runId).toBe('42');
+      expect(result?.step.stepId).toBe('step-2');
+      expect(result?.step.stepIndex).toBe(1);
+      expect(result?.auth.forestServerToken).toBe('test-forest-token');
+    });
+
+    it('returns null (and does not throw) when the chain response is malformed', async () => {
+      // Run returned by /update-step is missing its userProfile — toDispatch throws
+      // InvalidStepDefinitionError. The outcome was already recorded server-side, so we
+      // gracefully yield to the next poll rather than propagate the parse failure.
+      mockQuery.mockResolvedValue(
+        makeRun({ userProfile: undefined as unknown as ServerUserProfile }),
+      );
+      const stepOutcome: StepOutcome = {
+        type: 'condition',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+        selectedOption: 'optionA',
+      };
+
+      const result = await port.updateStepExecution('42', stepOutcome);
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('getCollectionSchema', () => {

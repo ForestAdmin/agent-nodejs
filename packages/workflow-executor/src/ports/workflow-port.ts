@@ -32,7 +32,9 @@ export interface WorkflowPort {
   getPendingStepExecutions(): Promise<PendingRunsBatch>;
   // Throws MalformedRunError on mapping failure.
   getPendingStepExecutionsForRun(runId: string): Promise<PendingRunDispatch | null>;
-  updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void>;
+  // Returns the next step to chain when the orchestrator has one ready, or null when the run is
+  // awaiting-input / finished / errored. Lets the executor skip a poll cycle for auto workflows.
+  updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<PendingRunDispatch | null>;
   getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema>;
   getMcpServerConfigs(): Promise<McpConfiguration[]>;
   hasRunAccess(runId: string, user: StepUser): Promise<boolean>;

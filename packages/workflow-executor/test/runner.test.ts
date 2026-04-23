@@ -43,7 +43,7 @@ function createMockWorkflowPort(): jest.Mocked<WorkflowPort> {
   return {
     getPendingStepExecutions: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
     getPendingStepExecutionsForRun: jest.fn(),
-    updateStepExecution: jest.fn().mockResolvedValue(undefined),
+    updateStepExecution: jest.fn().mockResolvedValue(null),
     getCollectionSchema: jest.fn(),
     getMcpServerConfigs: jest.fn().mockResolvedValue([]),
     hasRunAccess: jest.fn().mockResolvedValue(true),
@@ -86,6 +86,7 @@ function createRunnerConfig(
     authSecret: string;
     schemaCache: SchemaCache;
     stopTimeoutMs: number;
+    maxChainDepth: number;
   }> = {},
 ) {
   return {
@@ -412,9 +413,9 @@ describe('graceful shutdown', () => {
     jest.useFakeTimers();
 
     expect(logger.error).toHaveBeenCalledWith(
-      'Drain timeout — steps still in flight',
+      'Drain timeout — runs still in flight',
       expect.objectContaining({
-        remainingSteps: ['run-1:stuck-step'],
+        remainingRuns: ['run-1'],
         timeoutMs: 50,
       }),
     );
@@ -427,7 +428,7 @@ describe('graceful shutdown', () => {
     await runner.start();
     await runner.stop();
 
-    expect(logger.info).not.toHaveBeenCalledWith('Draining in-flight steps', expect.anything());
+    expect(logger.info).not.toHaveBeenCalledWith('Draining in-flight runs', expect.anything());
     expect(runner.state).toBe('stopped');
   });
 
@@ -496,11 +497,11 @@ describe('graceful shutdown', () => {
     resolveStep();
     await runner.stop();
 
-    expect(logger.info).toHaveBeenCalledWith('Draining in-flight steps', {
+    expect(logger.info).toHaveBeenCalledWith('Draining in-flight runs', {
       count: 1,
-      steps: ['run-1:step-1'],
+      runs: ['run-1'],
     });
-    expect(logger.info).toHaveBeenCalledWith('All in-flight steps drained', {});
+    expect(logger.info).toHaveBeenCalledWith('All in-flight runs drained', {});
   });
 });
 
@@ -585,7 +586,7 @@ describe('polling loop', () => {
 // ---------------------------------------------------------------------------
 
 describe('deduplication', () => {
-  it('skips a step whose key is already in inFlightSteps', async () => {
+  it('skips a run already tracked in inFlightRuns', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'inflight-step' });
     workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
@@ -623,7 +624,7 @@ describe('deduplication', () => {
     await poll1;
   });
 
-  it('removes the step key after successful execution', async () => {
+  it('removes the run entry after successful execution', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-dedup' });
     workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
@@ -639,7 +640,7 @@ describe('deduplication', () => {
     expect(executeSpy).toHaveBeenCalledTimes(2);
   });
 
-  it('removes the step key even when executor construction fails', async () => {
+  it('removes the run entry even when executor construction fails', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-throws' });
@@ -757,6 +758,362 @@ describe('triggerPoll', () => {
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
     await expect(runner.triggerPoll('run-1')).rejects.toThrow('Network error');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Chain (auto-chained steps from /update-step response)
+// ---------------------------------------------------------------------------
+
+describe('chain', () => {
+  it('chains the next step dispatched by updateStepExecution', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    workflowPort.updateStepExecution
+      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.triggerPoll('run-1');
+
+    expect(executeSpy).toHaveBeenCalledTimes(2);
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(2);
+    expect(workflowPort.updateStepExecution).toHaveBeenNthCalledWith(1, 'run-1', expect.anything());
+    expect(workflowPort.updateStepExecution).toHaveBeenNthCalledWith(2, 'run-1', expect.anything());
+  });
+
+  it('uses the forestServerToken from each dispatch when calling activityLogPortFactory.forRun', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-initial' },
+    });
+    workflowPort.updateStepExecution
+      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-chained' } })
+      .mockResolvedValueOnce(null);
+
+    const config = createRunnerConfig({ workflowPort });
+    runner = new Runner(config);
+    await runner.triggerPoll('run-1');
+
+    expect(config.activityLogPortFactory.forRun).toHaveBeenNthCalledWith(1, 'token-initial');
+    expect(config.activityLogPortFactory.forRun).toHaveBeenNthCalledWith(2, 'token-chained');
+  });
+
+  it('exits the chain when the server returns a non-progressing next step', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 5 });
+    // Same stepIndex → must exit the chain without executing the regression dispatch.
+    const regression = makePendingStep({ runId: 'run-1', stepId: 'step-loop', stepIndex: 5 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    workflowPort.updateStepExecution.mockResolvedValueOnce({
+      step: regression,
+      auth: { forestServerToken: 'token-regression' },
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.triggerPoll('run-1');
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(1);
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Server returned non-progressing next step — exiting chain',
+      expect.objectContaining({
+        runId: 'run-1',
+        currentStepIndex: 5,
+        returnedRunId: 'run-1',
+        returnedStepIndex: 5,
+      }),
+    );
+  });
+
+  it('exits the chain when the server returns a dispatch for a different runId', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    // Cross-run dispatch — server contract violation. Chain must exit to avoid leaking the
+    // initial run's inFlightRuns entry.
+    const foreign = makePendingStep({ runId: 'run-other', stepId: 'step-x', stepIndex: 1 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    workflowPort.updateStepExecution.mockResolvedValueOnce({
+      step: foreign,
+      auth: { forestServerToken: 'token-foreign' },
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.triggerPoll('run-1');
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Server returned non-progressing next step — exiting chain',
+      expect.objectContaining({ runId: 'run-1', returnedRunId: 'run-other' }),
+    );
+  });
+
+  it('yields after maxChainDepth chained steps', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    // Always return a progressing next step — the cap must stop us.
+    let i = 0;
+    workflowPort.updateStepExecution.mockImplementation(async () => {
+      i += 1;
+
+      return {
+        step: makePendingStep({ runId: 'run-1', stepId: `step-${i}`, stepIndex: i }),
+        auth: { forestServerToken: `token-${i}` },
+      };
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger, maxChainDepth: 2 }));
+    await runner.triggerPoll('run-1');
+
+    // initial + 2 chained = 3 total executions; the 3rd update returns a next we don't chain.
+    expect(executeSpy).toHaveBeenCalledTimes(3);
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Chain depth cap reached — yielding to next poll',
+      expect.objectContaining({ runId: 'run-1', maxDepth: 2 }),
+    );
+  });
+
+  it('disables chaining when maxChainDepth is 0', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    workflowPort.updateStepExecution.mockResolvedValueOnce({
+      step: chained,
+      auth: { forestServerToken: 'token-1' },
+    });
+
+    runner = new Runner(createRunnerConfig({ maxChainDepth: 0, workflowPort }));
+    await runner.triggerPoll('run-1');
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('dedups by runId — a concurrent triggerPoll during a chain is skipped', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+
+    // Block the first step so the chain is in progress when the second triggerPoll arrives.
+    const unblockRef = { fn: (): void => {} };
+    executeSpy.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          unblockRef.fn = () =>
+            resolve({
+              stepOutcome: { type: 'record', stepId: 'step-0', stepIndex: 0, status: 'success' },
+            });
+        }),
+    );
+    workflowPort.updateStepExecution
+      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    const first = runner.triggerPoll('run-1');
+    await Promise.resolve();
+    // Concurrent trigger arrives — even though the chain will advance stepId, dedup is by runId.
+    await runner.triggerPoll('run-1');
+
+    // Only the initial step ran so far; the concurrent trigger was dropped.
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+
+    unblockRef.fn();
+    await first;
+
+    // After the chain completes, the run entry is released. executeSpy ran once for initial,
+    // once for chained — that's 2 total. The concurrent trigger never added a third.
+    expect(executeSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('exits the chain and releases the run entry when updateStepExecution throws mid-chain', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
+    // First triggerPoll: initial + 1 chained, then update #2 explodes.
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    // A second triggerPoll will re-dispatch the same initial — we expect it to actually run,
+    // proving the run entry was released (not leaked in inFlightRuns).
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    workflowPort.updateStepExecution
+      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockRejectedValueOnce(new Error('orchestrator down'))
+      // Second triggerPoll's update returns null (end of chain).
+      .mockResolvedValueOnce(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.triggerPoll('run-1');
+
+    expect(executeSpy).toHaveBeenCalledTimes(2); // initial + 1 chained before the throw
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Failed to report step outcome',
+      expect.objectContaining({
+        runId: 'run-1',
+        stepId: 'step-1',
+        stepIndex: 1,
+        error: 'orchestrator down',
+      }),
+    );
+
+    // Run entry released — a subsequent triggerPoll executes rather than being deduped.
+    await runner.triggerPoll('run-1');
+    expect(executeSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('logs FATAL and exits the chain when a chained executor violates the never-throw contract', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    const chained = makePendingStep({ runId: 'run-1', stepId: 'step-chained-fatal', stepIndex: 1 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    workflowPort.updateStepExecution.mockResolvedValueOnce({
+      step: chained,
+      auth: { forestServerToken: 'token-1' },
+    });
+
+    // Initial step executes normally via BaseStepExecutor.execute mock (see beforeEach). The
+    // chained step gets a factory that returns an executor which rejects — violating contract.
+    jest
+      .spyOn(StepExecutorFactory, 'create')
+      .mockImplementationOnce(async () => ({
+        execute: jest.fn().mockResolvedValue({
+          stepOutcome: { type: 'record', stepId: 'step-0', stepIndex: 0, status: 'success' },
+        }),
+      }))
+      .mockImplementationOnce(async () => ({
+        execute: jest.fn().mockRejectedValue(new Error('chained contract violated')),
+      }));
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.triggerPoll('run-1');
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'FATAL: executor contract violated — step outcome not reported',
+      expect.objectContaining({
+        runId: 'run-1',
+        stepId: 'step-chained-fatal',
+        error: 'chained contract violated',
+      }),
+    );
+    // Only the initial outcome was reported; the chained FATAL exits without re-POST.
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes undefined incomingPendingData to the factory for chained steps', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    workflowPort.updateStepExecution
+      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce(null);
+
+    const createSpy = jest.spyOn(StepExecutorFactory, 'create');
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.triggerPoll('run-1', { pendingData: { userConfirmed: true } });
+
+    // Initial dispatch carries pendingData; chained dispatch must NOT — pending data only flows
+    // via the triggerPoll PATCH endpoint, never inline through the auto-chain.
+    expect(createSpy).toHaveBeenNthCalledWith(
+      1,
+      initial,
+      expect.anything(),
+      expect.anything(),
+      expect.any(Function),
+      { userConfirmed: true },
+    );
+    expect(createSpy).toHaveBeenNthCalledWith(
+      2,
+      chained,
+      expect.anything(),
+      expect.anything(),
+      expect.any(Function),
+      undefined,
+    );
+
+    createSpy.mockRestore();
+  });
+
+  it('finishes the current step then yields when stop() is called mid-chain', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const initial = makePendingStep({ runId: 'run-1', stepId: 'step-0', stepIndex: 0 });
+    const chained = makePendingStep({ runId: 'run-1', stepId: 'step-1', stepIndex: 1 });
+
+    // Poll cycle dispatches the initial step.
+    workflowPort.getPendingStepExecutions.mockResolvedValueOnce({
+      pending: [{ step: initial, auth: { forestServerToken: 'token-0' } }],
+      malformed: [],
+    });
+
+    // updateStepExecution for the initial step triggers stop() WITHOUT awaiting — stop() drains
+    // by awaiting the in-flight run promise, and awaiting it here would deadlock (the chain is
+    // the in-flight run). stop() sets `_state='draining'` synchronously before suspending, so
+    // the chain's next iteration observes it.
+    workflowPort.updateStepExecution.mockImplementationOnce(async () => {
+      void runner.stop();
+
+      return { step: chained, auth: { forestServerToken: 'token-1' } };
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await runner.start();
+
+    jest.advanceTimersByTime(POLLING_INTERVAL_MS);
+    await flushPromises();
+    // Let the chain reach the draining check, log, exit, and release the inFlightRuns entry so
+    // stop()'s drain settles too.
+    await flushPromises();
+
+    // Only the initial step executed — the draining check prevented chaining.
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Chain interrupted by stop() — yielding',
+      expect.objectContaining({ runId: 'run-1' }),
+    );
   });
 });
 

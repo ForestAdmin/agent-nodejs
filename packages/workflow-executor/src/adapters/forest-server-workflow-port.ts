@@ -141,10 +141,34 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     };
   }
 
-  async updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<void> {
+  async updateStepExecution(
+    runId: string,
+    stepOutcome: StepOutcome,
+  ): Promise<PendingRunDispatch | null> {
     return this.callPort('updateStepExecution', async () => {
       const body = toUpdateStepRequest(runId, stepOutcome);
-      await ServerUtils.query(this.options, 'post', ROUTES.updateStep, {}, body);
+      const run = await ServerUtils.query<ServerHydratedWorkflowRun | null>(
+        this.options,
+        'post',
+        ROUTES.updateStep,
+        {},
+        body,
+      );
+
+      if (!run) return null;
+
+      try {
+        return this.toDispatch(run);
+      } catch (error) {
+        // The outcome was recorded server-side; only the chain parse failed. Fall back to the
+        // next poll cycle — don't let a malformed chain response mask the successful update.
+        this.logger.error('Failed to parse chained next step from /update-step response', {
+          runId: String(run.id),
+          error: extractErrorMessage(error),
+        });
+
+        return null;
+      }
     });
   }
 

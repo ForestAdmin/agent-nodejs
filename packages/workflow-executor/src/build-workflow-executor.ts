@@ -40,6 +40,8 @@ export interface ExecutorOptions {
   logger?: Logger;
   stopTimeoutMs?: number;
   stepTimeoutMs?: number;
+  // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
+  maxChainDepth?: number;
 }
 
 export type DatabaseExecutorOptions = ExecutorOptions &
@@ -88,6 +90,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     authSecret: options.authSecret,
     stopTimeoutMs: options.stopTimeoutMs,
     stepTimeoutMs: options.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS,
+    maxChainDepth: options.maxChainDepth,
   };
 }
 
