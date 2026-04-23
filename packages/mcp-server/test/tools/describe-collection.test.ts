@@ -32,7 +32,11 @@ describe('declareDescribeCollectionTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: { shape: Record<string, unknown> };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -79,13 +83,13 @@ describe('declareDescribeCollectionTool', () => {
     it('should define correct input schema', () => {
       declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
 
-      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('collectionName');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
       declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -102,7 +106,7 @@ describe('declareDescribeCollectionTool', () => {
         'orders',
       ]);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options: string[]; parse: (value: unknown) => unknown }
       >;

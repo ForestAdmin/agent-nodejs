@@ -21,7 +21,11 @@ describe('declareCreateTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: { shape: Record<string, unknown> };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,14 +66,14 @@ describe('declareCreateTool', () => {
     it('should define correct input schema', () => {
       declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
 
-      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('attributes');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('attributes');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
       declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -80,7 +84,7 @@ describe('declareCreateTool', () => {
     it('should use enum type for collectionName when collection names provided', () => {
       declareCreateTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'products']);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options: string[]; parse: (value: unknown) => unknown }
       >;
@@ -222,7 +226,7 @@ describe('declareCreateTool', () => {
         const attributes = { name: 'John', age: 30 };
         const attributesAsString = JSON.stringify(attributes);
 
-        const inputSchema = registeredToolConfig.inputSchema as Record<
+        const inputSchema = registeredToolConfig.inputSchema.shape as Record<
           string,
           { parse: (value: unknown) => unknown }
         >;
