@@ -73,8 +73,24 @@ function logErrorWithStack(logger: Logger, message: string, err: Error): void {
   }
 }
 
+/** Single source of truth for all tool names */
+const TOOL_NAMES = [
+  'describeCollection',
+  'list',
+  'listRelated',
+  'create',
+  'update',
+  'delete',
+  'associate',
+  'dissociate',
+  'getActionForm',
+  'executeAction',
+] as const;
+
+export type ToolName = (typeof TOOL_NAMES)[number];
+
 /** Fields that are safe to log for each tool (non-sensitive data) */
-const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
+const SAFE_ARGUMENTS_FOR_LOGGING: Record<ToolName, string[]> = {
   list: ['collectionName'],
   listRelated: ['collectionName', 'relationName', 'parentRecordId'],
   create: ['collectionName'],
