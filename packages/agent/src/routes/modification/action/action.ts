@@ -173,6 +173,7 @@ export default class ActionRoute extends CollectionRoute {
       searchField: body.data.attributes.search_field,
       searchValues,
       includeHiddenFields: false,
+      actionIntentParams: body.data.attributes.action_intent_params,
     });
 
     context.response.body = SchemaGeneratorActions.buildFieldsAndLayout(
