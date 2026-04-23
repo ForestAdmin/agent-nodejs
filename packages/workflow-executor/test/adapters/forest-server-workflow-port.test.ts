@@ -757,4 +757,111 @@ describe('ForestServerWorkflowPort', () => {
       await expect(port.updateStepExecution('42', outcome)).rejects.toThrow('Network error');
     });
   });
+
+  describe('retry on transient failures', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    const makeHttpError = (status: number) => {
+      const err = new Error(`HTTP ${status}`);
+      (err as Error & { status: number }).status = status;
+
+      return err;
+    };
+
+    it('updateStepExecution retries on HTTP 503 and succeeds on the second attempt', async () => {
+      mockQuery.mockRejectedValueOnce(makeHttpError(503)).mockResolvedValueOnce(null);
+      const outcome: StepOutcome = {
+        type: 'guidance',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+      };
+
+      const promise = port.updateStepExecution('42', outcome);
+      await jest.advanceTimersByTimeAsync(100);
+
+      await expect(promise).resolves.toBeNull();
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenNthCalledWith(
+        1,
+        options,
+        'post',
+        '/api/workflow-orchestrator/update-step',
+        {},
+        expect.any(Object),
+      );
+    });
+
+    it('updateStepExecution retries multiple times and succeeds on the third attempt', async () => {
+      mockQuery
+        .mockRejectedValueOnce(makeHttpError(503))
+        .mockRejectedValueOnce(makeHttpError(503))
+        .mockResolvedValueOnce(null);
+      const outcome: StepOutcome = {
+        type: 'guidance',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+      };
+
+      const promise = port.updateStepExecution('42', outcome);
+      await jest.advanceTimersByTimeAsync(100 + 500);
+
+      await expect(promise).resolves.toBeNull();
+      expect(mockQuery).toHaveBeenCalledTimes(3);
+    });
+
+    it('getCollectionSchema retries on HTTP 408 (timeout)', async () => {
+      const validSchema: CollectionSchema = {
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'id',
+            displayName: 'Id',
+            isRelationship: false,
+          },
+        ],
+        actions: [],
+      };
+
+      mockQuery.mockRejectedValueOnce(makeHttpError(408)).mockResolvedValueOnce(validSchema);
+
+      const promise = port.getCollectionSchema('users', '42');
+      await jest.advanceTimersByTimeAsync(100);
+
+      await expect(promise).resolves.toMatchObject({ collectionName: 'users' });
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('getMcpServerConfigs retries on HTTP 502', async () => {
+      mockQuery.mockRejectedValueOnce(makeHttpError(502)).mockResolvedValueOnce([]);
+
+      const promise = port.getMcpServerConfigs();
+      await jest.advanceTimersByTimeAsync(100);
+
+      await expect(promise).resolves.toEqual([]);
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry on non-retryable HTTP errors (4xx)', async () => {
+      mockQuery.mockRejectedValue(makeHttpError(400));
+      const outcome: StepOutcome = {
+        type: 'guidance',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+      };
+
+      await expect(port.updateStepExecution('42', outcome)).rejects.toThrow();
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+    });
+  });
 });

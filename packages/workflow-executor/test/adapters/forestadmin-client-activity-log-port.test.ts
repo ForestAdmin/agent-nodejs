@@ -108,11 +108,11 @@ describe('ForestadminClientActivityLogPort', () => {
       expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
 
-    it('retries on network error (TypeError from fetch)', async () => {
+    it('retries on retryable HTTP status (503)', async () => {
       const service = makeService();
-      const networkErr = new TypeError('fetch failed');
+      const httpErr = Object.assign(new Error('maintenance'), { status: 503 });
       service.createActivityLog
-        .mockRejectedValueOnce(networkErr)
+        .mockRejectedValueOnce(httpErr)
         .mockResolvedValueOnce({ id: 'log-3', attributes: { index: '2' } });
       const port = makePort(service);
 
