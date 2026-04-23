@@ -13,6 +13,7 @@ import type {
 import type SchemaCache from './schema-cache';
 import type { PendingStepExecution, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
+import type { StepOutcome } from './types/validated/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
@@ -24,6 +25,7 @@ import {
   extractErrorMessage,
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
+import { stepTypeToOutcomeType } from './types/validated/step-outcome';
 import validateSecrets from './validate-secrets';
 
 export type RunnerState = 'idle' | 'running' | 'draining' | 'stopped';
@@ -311,11 +313,32 @@ export default class Runner {
         );
         result = await executor.execute();
       } catch (error) {
-        this.logger.error('FATAL: executor contract violated — step outcome not reported', {
+        this.logger.error('FATAL: executor contract violated — reporting synthetic error outcome', {
           runId: currentStep.runId,
           stepId: currentStep.stepId,
+          stepIndex: currentStep.stepIndex,
           error: extractErrorMessage(error),
         });
+
+        // Report a synthetic error outcome so the orchestrator marks the run failed and stops
+        // re-dispatching — without this, the contract-violating step loops forever.
+        const syntheticOutcome: StepOutcome = {
+          type: stepTypeToOutcomeType(currentStep.stepDefinition.type),
+          stepId: currentStep.stepId,
+          stepIndex: currentStep.stepIndex,
+          status: 'error',
+          error: 'An unexpected error occurred.',
+        };
+
+        try {
+          await this.config.workflowPort.updateStepExecution(currentStep.runId, syntheticOutcome);
+        } catch (reportErr) {
+          this.logger.error('FATAL: also failed to report synthetic error outcome', {
+            runId: currentStep.runId,
+            stepId: currentStep.stepId,
+            reportError: extractErrorMessage(reportErr),
+          });
+        }
 
         return;
       }

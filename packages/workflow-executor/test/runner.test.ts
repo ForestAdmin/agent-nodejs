@@ -1027,15 +1027,25 @@ describe('chain', () => {
     await runner.triggerPoll('run-1');
 
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'FATAL: executor contract violated — step outcome not reported',
+      'FATAL: executor contract violated — reporting synthetic error outcome',
       expect.objectContaining({
         runId: 'run-1',
         stepId: 'step-chained-fatal',
         error: 'chained contract violated',
       }),
     );
-    // Only the initial outcome was reported; the chained FATAL exits without re-POST.
-    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(1);
+    // 2 calls: initial success outcome (step-0) + synthetic error outcome (step-chained-fatal).
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(2);
+    expect(workflowPort.updateStepExecution).toHaveBeenNthCalledWith(
+      2,
+      'run-1',
+      expect.objectContaining({
+        stepId: 'step-chained-fatal',
+        stepIndex: 1,
+        status: 'error',
+        error: 'An unexpected error occurred.',
+      }),
+    );
   });
 
   it('passes undefined incomingPendingData to the factory for chained steps', async () => {
@@ -1470,10 +1480,14 @@ describe('error handling', () => {
     await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
   });
 
-  it('logs FATAL and does not call updateStepExecution if executor.execute() rejects', async () => {
+  it('logs FATAL and posts a synthetic error outcome if executor.execute() rejects', async () => {
     const workflowPort = createMockWorkflowPort();
     const mockLogger = createMockLogger();
-    const step = makePendingStep({ runId: 'run-1', stepId: 'step-fatal' });
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-fatal',
+      stepType: StepType.ReadRecord,
+    });
     workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
       step,
       auth: { forestServerToken: 'test-forest-token' },
@@ -1488,14 +1502,100 @@ describe('error handling', () => {
     await runner.triggerPoll('run-1');
 
     expect(mockLogger.error).toHaveBeenCalledWith(
-      'FATAL: executor contract violated — step outcome not reported',
+      'FATAL: executor contract violated — reporting synthetic error outcome',
       expect.objectContaining({
         runId: 'run-1',
         stepId: 'step-fatal',
+        stepIndex: 0,
         error: 'contract violated',
       }),
     );
-    expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith('run-1', {
+      type: 'record',
+      stepId: 'step-fatal',
+      stepIndex: 0,
+      status: 'error',
+      error: 'An unexpected error occurred.',
+    });
+  });
+
+  it.each([
+    [StepType.Condition, 'condition'],
+    [StepType.Mcp, 'mcp'],
+    [StepType.Guidance, 'guidance'],
+    [StepType.ReadRecord, 'record'],
+    [StepType.UpdateRecord, 'record'],
+    [StepType.TriggerAction, 'record'],
+    [StepType.LoadRelatedRecord, 'record'],
+  ])(
+    'synthetic error outcome uses the %s-matching outcome type',
+    async (stepType, expectedOutcomeType) => {
+      const workflowPort = createMockWorkflowPort();
+      const step = makePendingStep({ runId: 'run-1', stepId: 'step-f', stepType });
+      workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+        step,
+        auth: { forestServerToken: 'test-forest-token' },
+      });
+      jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+        execute: jest.fn().mockRejectedValueOnce(new Error('boom')),
+      });
+
+      runner = new Runner(createRunnerConfig({ workflowPort }));
+      await runner.triggerPoll('run-1');
+
+      expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ type: expectedOutcomeType, status: 'error' }),
+      );
+    },
+  );
+
+  it('logs a second FATAL (without rethrowing) when the synthetic error POST also fails', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-double' });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+      execute: jest.fn().mockRejectedValueOnce(new Error('contract violated')),
+    });
+    workflowPort.updateStepExecution.mockRejectedValueOnce(new Error('orchestrator unreachable'));
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+    await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'FATAL: also failed to report synthetic error outcome',
+      expect.objectContaining({
+        runId: 'run-1',
+        stepId: 'step-double',
+        reportError: 'orchestrator unreachable',
+      }),
+    );
+  });
+
+  it('releases the inFlightRuns entry after a FATAL so a subsequent triggerPoll executes', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-release' });
+    workflowPort.getPendingStepExecutionsForRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    // Only the FIRST call fails the contract — second call runs normally via BaseStepExecutor
+    // mock from beforeEach.
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+      execute: jest.fn().mockRejectedValueOnce(new Error('contract violated')),
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.triggerPoll('run-1');
+    await runner.triggerPoll('run-1');
+
+    // 2 POSTs: 1st is the synthetic error for the failed attempt, 2nd is the success outcome
+    // produced by the default BaseStepExecutor.execute mock on the 2nd trigger.
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(2);
   });
 
   it('reports an outcome when getModel throws a non-Error throwable', async () => {
