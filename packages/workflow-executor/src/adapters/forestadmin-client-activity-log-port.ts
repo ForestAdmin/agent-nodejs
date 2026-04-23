@@ -10,49 +10,8 @@ import type {
   ActivityLogsServiceInterface,
 } from '@forestadmin/forestadmin-client';
 
+import withRetry from './with-retry';
 import { ActivityLogCreationError, extractErrorMessage } from '../errors';
-
-const RETRY_DELAYS_MS = [100, 500, 2_000];
-const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
-const RETRYABLE_ERROR_NAMES = new Set(['TypeError', 'TimeoutError', 'AbortError', 'FetchError']);
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(resolve, ms);
-  });
-}
-
-function isRetryable(err: unknown): boolean {
-  if (err instanceof Error && RETRYABLE_ERROR_NAMES.has(err.name)) return true;
-
-  const status =
-    (err as { status?: number }).status ??
-    (err as { response?: { status?: number } }).response?.status;
-
-  return typeof status === 'number' && RETRYABLE_STATUS.has(status);
-}
-
-async function withRetry<T>(label: string, fn: () => Promise<T>, logger: Logger): Promise<T> {
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      return await fn();
-    } catch (err) {
-      lastError = err;
-      if (!isRetryable(err) || attempt === RETRY_DELAYS_MS.length) throw err;
-      logger.info(`Activity log call "${label}" failed, retrying`, {
-        attempt: attempt + 1,
-        error: extractErrorMessage(err),
-      });
-      // eslint-disable-next-line no-await-in-loop
-      await sleep(RETRY_DELAYS_MS[attempt]);
-    }
-  }
-
-  throw lastError;
-}
 
 export default class ForestadminClientActivityLogPort implements ActivityLogPort {
   constructor(
@@ -65,7 +24,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
   async createPending(args: CreateActivityLogArgs): Promise<ActivityLogHandle> {
     try {
       const response = await withRetry(
-        'createPending',
+        'Activity log createPending',
         () =>
           this.service.createActivityLog({
             forestServerToken: this.forestServerToken,
@@ -78,7 +37,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
             recordId: args.recordId,
             label: args.label,
           }),
-        this.logger,
+        { logger: this.logger },
       );
 
       return { id: response.id, index: response.attributes.index };
@@ -97,14 +56,14 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     return this.drainer.track(async () => {
       try {
         await withRetry(
-          'markSucceeded',
+          'Activity log markSucceeded',
           () =>
             this.service.updateActivityLogStatus({
               forestServerToken: this.forestServerToken,
               activityLog: { id: handle.id, attributes: { index: handle.index } },
               status: 'completed',
             }),
-          this.logger,
+          { logger: this.logger },
         );
       } catch (err) {
         this.logger.error('Activity log markSucceeded failed after retries', {
@@ -119,7 +78,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     return this.drainer.track(async () => {
       try {
         await withRetry(
-          'markFailed',
+          'Activity log markFailed',
           () =>
             this.service.updateActivityLogStatus({
               forestServerToken: this.forestServerToken,
@@ -127,7 +86,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
               status: 'failed',
               errorMessage,
             }),
-          this.logger,
+          { logger: this.logger },
         );
       } catch (err) {
         this.logger.error('Activity log markFailed failed after retries', {
