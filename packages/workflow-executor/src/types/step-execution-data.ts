@@ -6,6 +6,9 @@ import type { RecordRef } from './validated/collection';
 
 interface BaseStepExecutionData {
   stepIndex: number;
+  // Write-ahead log for mutating executors (update-record, trigger-action, mcp).
+  // 'executing': side effect may have fired; 'done': completed, safe to replay via buildOutcomeResult.
+  idempotencyPhase?: 'executing' | 'done';
 }
 
 // -- Condition --

@@ -42,6 +42,22 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     };
   }
 
+  protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
+    const existing = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
+      'trigger-action',
+    );
+
+    if (existing?.idempotencyPhase === 'done') {
+      return this.buildOutcomeResult({ status: 'success' });
+    }
+
+    if (existing?.idempotencyPhase === 'executing') {
+      throw new StepStateError('Step execution was interrupted. Please retry the step manually.');
+    }
+
+    return null;
+  }
+
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<TriggerRecordActionStepExecutionData>(
@@ -127,6 +143,13 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'trigger-action',
+      stepIndex: this.context.stepIndex,
+      selectedRecordRef,
+      idempotencyPhase: 'executing',
+    });
+
     const actionResult = await this.agentPort.executeAction(
       {
         collection: selectedRecordRef.collectionName,
@@ -142,6 +165,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       executionParams: { displayName, name },
       executionResult: { success: true, actionResult },
       selectedRecordRef,
+      idempotencyPhase: 'done',
     });
 
     return this.buildOutcomeResult({ status: 'success' });

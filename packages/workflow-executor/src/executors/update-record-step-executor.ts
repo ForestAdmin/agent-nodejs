@@ -7,7 +7,12 @@ import type { UpdateRecordStepDefinition } from '../types/validated/step-definit
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { FieldNotFoundError, InvalidPreRecordedArgsError, NoWritableFieldsError } from '../errors';
+import {
+  FieldNotFoundError,
+  InvalidPreRecordedArgsError,
+  NoWritableFieldsError,
+  StepStateError,
+} from '../errors';
 import RecordStepExecutor from './record-step-executor';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
@@ -32,6 +37,22 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       collectionId: this.context.collectionId,
       recordId: this.context.baseRecordRef.recordId[0],
     };
+  }
+
+  protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
+    const existing = await this.findPendingExecution<UpdateRecordStepExecutionData>(
+      'update-record',
+    );
+
+    if (existing?.idempotencyPhase === 'done') {
+      return this.buildOutcomeResult({ status: 'success' });
+    }
+
+    if (existing?.idempotencyPhase === 'executing') {
+      throw new StepStateError('Step execution was interrupted. Please retry the step manually.');
+    }
+
+    return null;
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
@@ -119,6 +140,14 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name, value } = target;
 
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...existingExecution,
+      type: 'update-record',
+      stepIndex: this.context.stepIndex,
+      selectedRecordRef,
+      idempotencyPhase: 'executing',
+    });
+
     const updated = await this.agentPort.updateRecord(
       {
         collection: selectedRecordRef.collectionName,
@@ -135,6 +164,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       executionParams: { displayName, name, value },
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,
+      idempotencyPhase: 'done',
     });
 
     return this.buildOutcomeResult({ status: 'success' });

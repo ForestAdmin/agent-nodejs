@@ -8,7 +8,12 @@ import type { RemoteTool } from '@forestadmin/ai-proxy';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { McpToolInvocationError, McpToolNotFoundError, NoMcpToolsError } from '../errors';
+import {
+  McpToolInvocationError,
+  McpToolNotFoundError,
+  NoMcpToolsError,
+  StepStateError,
+} from '../errors';
 import BaseStepExecutor from './base-step-executor';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
@@ -47,6 +52,20 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
         ...outcome,
       },
     };
+  }
+
+  protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
+    const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');
+
+    if (existing?.idempotencyPhase === 'done') {
+      return this.buildOutcomeResult({ status: 'success' });
+    }
+
+    if (existing?.idempotencyPhase === 'executing') {
+      throw new StepStateError('Step execution was interrupted. Please retry the step manually.');
+    }
+
+    return null;
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
@@ -91,6 +110,13 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...existingExecution,
+      type: 'mcp',
+      stepIndex: this.context.stepIndex,
+      idempotencyPhase: 'executing',
+    });
+
     let toolResult: unknown;
 
     try {
@@ -107,6 +133,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       stepIndex: this.context.stepIndex,
       executionParams: { name: target.name, sourceId: target.sourceId, input: target.input },
       executionResult: baseExecutionResult,
+      idempotencyPhase: 'done',
     };
 
     await this.context.runStore.saveStepExecution(this.context.runId, baseData);

@@ -1023,4 +1023,97 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
     });
   });
+
+  describe('idempotency', () => {
+    it('returns success without re-executing or emitting activity log when idempotencyPhase is done', async () => {
+      const agentPort = makeMockAgentPort();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const doneExecution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+        executionResult: { updatedValues: { status: 'active' } },
+        selectedRecordRef: makeRecordRef(),
+        idempotencyPhase: 'done',
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([doneExecution]),
+      });
+      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+
+    it('returns error without activity log when idempotencyPhase is executing', async () => {
+      const agentPort = makeMockAgentPort();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const executingExecution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        selectedRecordRef: makeRecordRef(),
+        idempotencyPhase: 'executing',
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([executingExecution]),
+      });
+      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('An unexpected error occurred while processing this step.');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+
+    it('saves executing marker before side effect and done marker with executionResult after', async () => {
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
+      const runStore = makeMockRunStore();
+      const mockModel = makeMockModel({
+        fieldName: 'Status',
+        value: 'active',
+        reasoning: 'test',
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      const { calls } = (runStore.saveStepExecution as jest.Mock).mock;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][1]).toMatchObject({
+        type: 'update-record',
+        stepIndex: 0,
+        idempotencyPhase: 'executing',
+      });
+      expect(calls[0][1]).not.toHaveProperty('executionResult');
+      expect(calls[1][1]).toMatchObject({
+        type: 'update-record',
+        stepIndex: 0,
+        idempotencyPhase: 'done',
+        executionResult: { updatedValues },
+      });
+    });
+  });
 });

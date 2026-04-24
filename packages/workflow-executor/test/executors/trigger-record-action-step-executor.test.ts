@@ -590,7 +590,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         'An unexpected error occurred while processing this step.',
       );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'executing' }),
+      );
     });
   });
 
@@ -1087,6 +1091,97 @@ describe('TriggerRecordActionStepExecutor', () => {
       await executor.execute();
 
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('idempotency', () => {
+    it('returns success without re-executing or emitting activity log when idempotencyPhase is done', async () => {
+      const agentPort = makeMockAgentPort();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const doneExecution: TriggerRecordActionStepExecutionData = {
+        type: 'trigger-action',
+        stepIndex: 0,
+        executionParams: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+        executionResult: { success: true, actionResult: undefined },
+        selectedRecordRef: makeRecordRef(),
+        idempotencyPhase: 'done',
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([doneExecution]),
+      });
+      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+
+    it('returns error without activity log when idempotencyPhase is executing', async () => {
+      const agentPort = makeMockAgentPort();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const executingExecution: TriggerRecordActionStepExecutionData = {
+        type: 'trigger-action',
+        stepIndex: 0,
+        selectedRecordRef: makeRecordRef(),
+        idempotencyPhase: 'executing',
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([executingExecution]),
+      });
+      const context = makeContext({ agentPort, runStore, activityLogPort });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('An unexpected error occurred while processing this step.');
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+
+    it('saves executing marker before side effect and done marker with executionResult after', async () => {
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore();
+      const mockModel = makeMockModel({
+        actionName: 'Send Welcome Email',
+        reasoning: 'test',
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      await executor.execute();
+
+      const { calls } = (runStore.saveStepExecution as jest.Mock).mock;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][1]).toMatchObject({
+        type: 'trigger-action',
+        stepIndex: 0,
+        idempotencyPhase: 'executing',
+      });
+      expect(calls[0][1]).not.toHaveProperty('executionResult');
+      expect(calls[1][1]).toMatchObject({
+        type: 'trigger-action',
+        stepIndex: 0,
+        idempotencyPhase: 'done',
+        executionResult: { success: true },
+      });
     });
   });
 });

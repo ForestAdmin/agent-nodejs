@@ -197,17 +197,24 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(modelInvoke).toHaveBeenCalledTimes(2);
-      // First save: raw result only
+      // First save: executing marker (before tool call)
       expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
         1,
         'run-1',
-        expect.objectContaining({
-          executionResult: { success: true, toolResult },
-        }),
+        expect.objectContaining({ idempotencyPhase: 'executing' }),
       );
-      // Second save: raw result + formattedResponse
+      // Second save: raw result with done marker
       expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
         2,
+        'run-1',
+        expect.objectContaining({
+          executionResult: { success: true, toolResult },
+          idempotencyPhase: 'done',
+        }),
+      );
+      // Third save: raw result + formattedResponse
+      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
+        3,
         'run-1',
         expect.objectContaining({
           executionResult: { success: true, toolResult, formattedResponse: 'Found 3 results.' },
@@ -242,9 +249,10 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // Only the first save (raw result) — no second save since formatting failed
-      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+      // Two saves: executing marker, then raw result with done marker (no third save since formatting failed)
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(2);
+      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
+        2,
         'run-1',
         expect.objectContaining({
           executionResult: { success: true, toolResult: { result: 'ok' } },
@@ -277,8 +285,10 @@ describe('McpStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       // Model called only once (tool selection) — no formatting call for null result
       expect(modelInvoke).toHaveBeenCalledTimes(1);
-      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+      // Two saves: executing marker, then raw result with done marker
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(2);
+      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
+        2,
         'run-1',
         expect.objectContaining({
           executionResult: { success: true, toolResult: null },
@@ -664,7 +674,11 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(mockRunStore.saveStepExecution).not.toHaveBeenCalled();
+      expect(mockRunStore.saveStepExecution).toHaveBeenCalledTimes(1);
+      expect(mockRunStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'executing' }),
+      );
     });
 
     it('returns error and logs when tool invocation throws an infrastructure error', async () => {
@@ -795,6 +809,94 @@ describe('McpStepExecutor', () => {
       expect(messages).toHaveLength(4);
       expect(messages[0].content).toContain('Step executed by');
       expect(messages[1].content).toContain('Should we send a notification?');
+    });
+  });
+
+  describe('idempotency', () => {
+    it('returns success without re-executing or emitting activity log when idempotencyPhase is done', async () => {
+      const toolInvoke = jest.fn().mockResolvedValue('tool-result');
+      const tool = new MockRemoteTool({ name: 'send_notification', invoke: toolInvoke });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const doneExecution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        executionParams: { name: 'send_notification', sourceId: 'mcp-server-1', input: {} },
+        executionResult: { success: true, toolResult: 'tool-result' },
+        idempotencyPhase: 'done',
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([doneExecution]),
+      });
+      const context = makeContext({ runStore, activityLogPort });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(toolInvoke).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+
+    it('returns error without activity log when idempotencyPhase is executing', async () => {
+      const toolInvoke = jest.fn().mockResolvedValue('tool-result');
+      const tool = new MockRemoteTool({ name: 'send_notification', invoke: toolInvoke });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const executingExecution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        idempotencyPhase: 'executing',
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([executingExecution]),
+      });
+      const context = makeContext({ runStore, activityLogPort });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('An unexpected error occurred while processing this step.');
+      expect(toolInvoke).not.toHaveBeenCalled();
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+
+    it('saves executing marker before side effect and done marker with executionResult after', async () => {
+      const toolInvoke = jest.fn().mockResolvedValue('tool-result');
+      const tool = new MockRemoteTool({ name: 'send_notification', invoke: toolInvoke });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      await executor.execute();
+
+      const { calls } = (runStore.saveStepExecution as jest.Mock).mock;
+      // First: 'executing'; Second: 'done' with executionResult (no formattedResponse model call)
+      expect(calls[0][1]).toMatchObject({
+        type: 'mcp',
+        stepIndex: 0,
+        idempotencyPhase: 'executing',
+      });
+      expect(calls[0][1]).not.toHaveProperty('executionResult');
+      expect(calls[1][1]).toMatchObject({
+        type: 'mcp',
+        stepIndex: 0,
+        idempotencyPhase: 'done',
+        executionResult: { success: true, toolResult: 'tool-result' },
+      });
     });
   });
 });

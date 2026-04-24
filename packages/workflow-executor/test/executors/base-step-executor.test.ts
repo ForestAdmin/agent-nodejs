@@ -331,6 +331,7 @@ describe('BaseStepExecutor', () => {
       try {
         const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 50 }), 10_000);
         const resultPromise = executor.execute();
+        await Promise.resolve(); // flush checkIdempotency microtask so timers are registered
         jest.advanceTimersByTime(60);
         const result = await resultPromise;
 
@@ -380,6 +381,7 @@ describe('BaseStepExecutor', () => {
         const logger = makeMockLogger();
         const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 50, logger }), 10_000);
         const resultPromise = executor.execute();
+        await Promise.resolve(); // flush checkIdempotency microtask so timers are registered
         jest.advanceTimersByTime(60);
         await resultPromise;
 

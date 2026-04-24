@@ -53,6 +53,21 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     });
 
     try {
+      // Idempotency guard — mutating executors override this. Called before runWithActivityLog
+      // so that cache hits and uncertain-state errors never emit an activity log entry.
+      const cached = await this.checkIdempotency();
+
+      if (cached) {
+        this.context.logger.info('Step execution completed (replayed from cache)', {
+          runId,
+          stepId,
+          stepIndex,
+          status: cached.stepOutcome.status,
+        });
+
+        return cached;
+      }
+
       const result = await this.runWithActivityLog();
 
       this.context.logger.info('Step execution completed', {
@@ -108,6 +123,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   protected abstract doExecute(): Promise<StepExecutionResult>;
+
+  protected checkIdempotency(): Promise<StepExecutionResult | null> {
+    return Promise.resolve(null);
+  }
 
   // Return null when the frontend performs the action (e.g. TriggerAction with automaticExecution=false)
   // — the front logs on its side. Override when the executor itself calls the agent.
