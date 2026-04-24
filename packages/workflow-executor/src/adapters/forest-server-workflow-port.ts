@@ -18,6 +18,7 @@ import { z } from 'zod';
 import ConsoleLogger from './console-logger';
 import toPendingStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
+import withRetry from './with-retry';
 import {
   DomainValidationError,
   InvalidStepDefinitionError,
@@ -145,58 +146,68 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     runId: string,
     stepOutcome: StepOutcome,
   ): Promise<PendingRunDispatch | null> {
-    return this.callPort('updateStepExecution', async () => {
-      const body = toUpdateStepRequest(runId, stepOutcome);
-      const run = await ServerUtils.query<ServerHydratedWorkflowRun | null>(
-        this.options,
-        'post',
-        ROUTES.updateStep,
-        {},
-        body,
-      );
+    return this.callPort(
+      'updateStepExecution',
+      async () => {
+        const body = toUpdateStepRequest(runId, stepOutcome);
+        const run = await ServerUtils.query<ServerHydratedWorkflowRun | null>(
+          this.options,
+          'post',
+          ROUTES.updateStep,
+          {},
+          body,
+        );
 
-      if (!run) return null;
+        if (!run) return null;
 
-      try {
-        return this.toDispatch(run);
-      } catch (error) {
-        // The outcome was recorded server-side; only the chain parse failed. Fall back to the
-        // next poll cycle — don't let a malformed chain response mask the successful update.
-        this.logger.error('Failed to parse chained next step from /update-step response', {
-          runId: String(run.id),
-          error: extractErrorMessage(error),
-        });
+        try {
+          return this.toDispatch(run);
+        } catch (error) {
+          // The outcome was recorded server-side; only the chain parse failed. Fall back to the
+          // next poll cycle — don't let a malformed chain response mask the successful update.
+          this.logger.error('Failed to parse chained next step from /update-step response', {
+            runId: String(run.id),
+            error: extractErrorMessage(error),
+          });
 
-        return null;
-      }
-    });
+          return null;
+        }
+      },
+      { retry: true },
+    );
   }
 
   async getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema> {
-    return this.callPort('getCollectionSchema', async () => {
-      const response = await ServerUtils.query<unknown>(
-        this.options,
-        'get',
-        ROUTES.collectionSchema(collectionName, runId),
-      );
+    return this.callPort(
+      'getCollectionSchema',
+      async () => {
+        const response = await ServerUtils.query<unknown>(
+          this.options,
+          'get',
+          ROUTES.collectionSchema(collectionName, runId),
+        );
 
-      try {
-        return CollectionSchemaSchema.parse(response);
-      } catch (err) {
-        if (err instanceof z.ZodError) {
-          // runId is passed for observability — the schema call is scoped to a run.
-          throw new DomainValidationError(Number(runId) || 0, err);
+        try {
+          return CollectionSchemaSchema.parse(response);
+        } catch (err) {
+          if (err instanceof z.ZodError) {
+            // runId is passed for observability — the schema call is scoped to a run.
+            throw new DomainValidationError(Number(runId) || 0, err);
+          }
+
+          /* istanbul ignore next — zod.parse only throws ZodError; defensive fallback */
+          throw err;
         }
-
-        /* istanbul ignore next — zod.parse only throws ZodError; defensive fallback */
-        throw err;
-      }
-    });
+      },
+      { retry: true },
+    );
   }
 
   async getMcpServerConfigs(): Promise<McpConfiguration[]> {
-    return this.callPort('getMcpServerConfigs', () =>
-      ServerUtils.query<McpConfiguration[]>(this.options, 'get', ROUTES.mcpServerConfigs),
+    return this.callPort(
+      'getMcpServerConfigs',
+      () => ServerUtils.query<McpConfiguration[]>(this.options, 'get', ROUTES.mcpServerConfigs),
+      { retry: true },
     );
   }
 
@@ -212,9 +223,15 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     });
   }
 
-  private async callPort<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+  private async callPort<T>(
+    operation: string,
+    fn: () => Promise<T>,
+    options?: { retry?: boolean },
+  ): Promise<T> {
+    const run = options?.retry ? () => withRetry(operation, fn, { logger: this.logger }) : fn;
+
     try {
-      return await fn();
+      return await run();
     } catch (cause) {
       if (cause instanceof WorkflowExecutorError) throw cause;
       throw new WorkflowPortError(operation, cause);
