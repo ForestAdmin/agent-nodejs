@@ -282,6 +282,44 @@ describe('Agent', () => {
     });
   });
 
+  describe('start error handling', () => {
+    test('should log the error and re-throw when buildRouterAndSendSchema fails', async () => {
+      const mockLogger = jest.fn();
+      const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
+      const agent = new Agent(options);
+
+      jest
+        .mocked(DataSourceCustomizer.prototype.getDataSource)
+        .mockRejectedValueOnce(new Error('datasource connection failed'));
+
+      await expect(() => agent.start()).rejects.toThrow('datasource connection failed');
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Forest Admin agent startup failure: datasource connection failed',
+      );
+    });
+
+    test('should log the error and re-throw when subscribeToServerEvents fails', async () => {
+      const mockLogger = jest.fn();
+      const forestAdminClient = factories.forestAdminClient.build({
+        subscribeToServerEvents: jest.fn().mockRejectedValue(new Error('subscription failed')),
+      });
+      const options = factories.forestAdminHttpDriverOptions.build({
+        logger: mockLogger,
+        forestAdminClient,
+      });
+      const agent = new Agent(options);
+
+      await expect(() => agent.start()).rejects.toThrow('subscription failed');
+
+      expect(mockLogger).toHaveBeenCalledWith(
+        'Error',
+        'Forest Admin agent startup failure: subscription failed',
+      );
+    });
+  });
+
   describe('stop', () => {
     test('stop should close the Forest Admin client', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
