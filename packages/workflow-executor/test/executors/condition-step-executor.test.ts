@@ -343,7 +343,7 @@ describe('ConditionStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
         type: 'condition',
         stepIndex: 0,
-        executionParams: { answer: 'Approve', reasoning: 'User override via trigger' },
+        executionParams: { answer: 'Approve', reasoning: 'Selected by user' },
         executionResult: { answer: 'Approve' },
       });
       expect(result.stepOutcome.status).toBe('success');

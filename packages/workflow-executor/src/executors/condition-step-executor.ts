@@ -15,6 +15,11 @@ interface GatewayToolArgs {
   question: string;
 }
 
+interface GatewayDecision {
+  selectedOption: string | null;
+  reasoning: string;
+}
+
 const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option for a workflow gateway decision.
 
 **Task**: Analyze the question and available options, then select the option that DIRECTLY answers the question. Options must be literal answers, not interpretations.
@@ -56,10 +61,53 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step, incomingPendingData } = this.context;
 
-    if (incomingPendingData !== undefined) {
-      return this.applyUserOverride(step, incomingPendingData);
+    const { selectedOption, reasoning } =
+      incomingPendingData !== undefined
+        ? this.readUserChoice(step, incomingPendingData)
+        : await this.askAi(step);
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'condition',
+      stepIndex: this.context.stepIndex,
+      executionParams: { answer: selectedOption, reasoning },
+      executionResult: selectedOption ? { answer: selectedOption } : undefined,
+    });
+
+    if (!selectedOption) {
+      return this.buildOutcomeResult({
+        status: 'error',
+        error: "The AI couldn't decide. Try rephrasing the step's prompt.",
+      });
     }
 
+    return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
+  private readUserChoice(
+    step: ConditionStepDefinition,
+    incomingPendingData: unknown,
+  ): GatewayDecision {
+    const parsed = patchBodySchemas.condition!.safeParse(incomingPendingData);
+
+    if (!parsed.success) {
+      throw new StepStateError(
+        `Invalid condition input: ${parsed.error.issues.map(i => i.message).join(', ')}`,
+      );
+    }
+
+    const { selectedOption } = parsed.data as { selectedOption: string };
+
+    if (!step.options.includes(selectedOption)) {
+      const allowed = step.options.join(', ');
+      throw new StepStateError(
+        `Option "${selectedOption}" is not a valid choice (expected one of: ${allowed})`,
+      );
+    }
+
+    return { selectedOption, reasoning: 'Selected by user' };
+  }
+
+  private async askAi(step: ConditionStepDefinition): Promise<GatewayDecision> {
     const tool = new DynamicStructuredTool({
       name: 'choose-gateway-option',
       description:
@@ -85,53 +133,7 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
     ];
 
     const args = await this.invokeWithTool<GatewayToolArgs>(messages, tool);
-    const { option: selectedOption, reasoning } = args;
 
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      type: 'condition',
-      stepIndex: this.context.stepIndex,
-      executionParams: { answer: selectedOption, reasoning },
-      executionResult: selectedOption ? { answer: selectedOption } : undefined,
-    });
-
-    if (!selectedOption) {
-      return this.buildOutcomeResult({
-        status: 'error',
-        error: "The AI couldn't decide. Try rephrasing the step's prompt.",
-      });
-    }
-
-    return this.buildOutcomeResult({ status: 'success', selectedOption });
-  }
-
-  private async applyUserOverride(
-    step: ConditionStepDefinition,
-    incomingPendingData: unknown,
-  ): Promise<StepExecutionResult> {
-    const parsed = patchBodySchemas.condition!.safeParse(incomingPendingData);
-
-    if (!parsed.success) {
-      throw new StepStateError(
-        `Invalid condition input: ${parsed.error.issues.map(i => i.message).join(', ')}`,
-      );
-    }
-
-    const { selectedOption } = parsed.data as { selectedOption: string };
-
-    if (!step.options.includes(selectedOption)) {
-      const allowed = step.options.join(', ');
-      throw new StepStateError(
-        `Option "${selectedOption}" is not a valid choice (expected one of: ${allowed})`,
-      );
-    }
-
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      type: 'condition',
-      stepIndex: this.context.stepIndex,
-      executionParams: { answer: selectedOption, reasoning: 'User override via trigger' },
-      executionResult: { answer: selectedOption },
-    });
-
-    return this.buildOutcomeResult({ status: 'success', selectedOption });
+    return { selectedOption: args.option, reasoning: args.reasoning };
   }
 }
