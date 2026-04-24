@@ -35,6 +35,8 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
       - name: Install & Bootstrap
         run: yarn && yarn bootstrap --ci
+      - name: Remove nested workspace packages (force root hoisting)
+        run: rm -rf packages/*/node_modules/@forestadmin
       - name: Build
         run: yarn build
       - uses: actions/cache/save@v4
@@ -80,6 +82,7 @@ jobs:
           - plugin-aws-s3
           - plugin-export-advanced
           - plugin-flattener
+          - workflow-executor
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

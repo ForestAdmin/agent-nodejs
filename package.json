@@ -50,7 +50,8 @@
     "test:coverage": "yarn test --coverage"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/workflow-executor/example"
   ],
   "resolutions": {
     "tar": ">=7.5.11",

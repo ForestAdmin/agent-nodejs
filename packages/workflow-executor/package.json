@@ -1,0 +1,51 @@
+{
+  "name": "@forestadmin/workflow-executor",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "bin": {
+    "forest-workflow-executor": "dist/cli.js"
+  },
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/workflow-executor"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "lint": "eslint src test",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@forestadmin/agent-client": "1.5.5",
+    "@forestadmin/ai-proxy": "1.8.0",
+    "@langchain/openai": "1.2.5",
+    "@forestadmin/forestadmin-client": "1.39.4",
+    "@koa/bodyparser": "^6.1.0",
+    "@koa/router": "^13.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "koa": "^3.0.1",
+    "koa-jwt": "^4.0.4",
+    "picocolors": "^1.1.1",
+    "sequelize": "^6.37.8",
+    "umzug": "^3.8.2",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/koa": "^2.13.5",
+    "@types/koa__router": "^12.0.4",
+    "@types/sequelize": "^6.12.0",
+    "sqlite3": "^6.0.1",
+    "supertest": "^7.1.3"
+  }
+}

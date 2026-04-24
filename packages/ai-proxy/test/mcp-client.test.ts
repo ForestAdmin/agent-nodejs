@@ -109,7 +109,7 @@ describe('McpClient', () => {
     });
   });
 
-  describe('closeConnection', () => {
+  describe('dispose', () => {
     it('should close the connection', async () => {
       const mcpClient = new McpClient(aConfig);
 
