@@ -1,3 +1,13 @@
+## @forestadmin/agent-client [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.5.4...@forestadmin/agent-client@1.5.5) (2026-04-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.4
+
 ## @forestadmin/agent-client [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.5.3...@forestadmin/agent-client@1.5.4) (2026-04-22)
 
 
