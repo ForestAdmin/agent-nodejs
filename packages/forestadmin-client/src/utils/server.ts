@@ -3,7 +3,7 @@ import type { ResponseError } from 'superagent';
 
 import superagent from 'superagent';
 
-import { ForbiddenError, NotFoundError } from '..';
+import { ForbiddenError, HttpError, NotFoundError } from './errors';
 
 type HttpOptions = Pick<ForestAdminClientOptionsWithDefaults, 'envSecret' | 'forestServerUrl'>;
 
@@ -83,10 +83,11 @@ export default class ServerUtils {
       return response.body;
     } catch (error) {
       if (error.timeout) {
-        throw new Error(
+        throw new HttpError(
           `The request to Forest Admin server has timed out while trying to reach ${url} at ${new Date().toISOString()}. Message: ${
             error.message
           }`,
+          408,
         );
       }
 
@@ -105,12 +106,13 @@ export default class ServerUtils {
     }
 
     if ((e as ResponseError).response) {
-      const status = (e as ResponseError)?.response?.status;
+      // Fall back to 0 if the response exists but has no status — treated as "offline".
+      const status = (e as ResponseError).response?.status ?? 0;
       const message = (e as ResponseError)?.response?.body?.errors?.[0]?.detail;
 
       // 0 == offline, 502 == bad gateway from proxy
       if (status === 0 || status === 502) {
-        throw new Error('Failed to reach Forest Admin server. Are you online?');
+        throw new HttpError('Failed to reach Forest Admin server. Are you online?', status);
       }
 
       if (status === 403) {
@@ -125,18 +127,20 @@ export default class ServerUtils {
       }
 
       if (status === 503) {
-        throw new Error(
+        throw new HttpError(
           'Forest is in maintenance for a few minutes. We are upgrading your experience in ' +
             'the forest. We just need a few more minutes to get it right.',
+          503,
         );
       }
 
       // If the server has something to say about the error, we display it.
-      if (message) throw new Error(message);
+      if (message) throw new HttpError(message, status);
 
-      throw new Error(
+      throw new HttpError(
         'An unexpected error occurred while contacting the Forest Admin server. ' +
           'Please contact support@forestadmin.com for further investigations.',
+        status,
       );
     }
 

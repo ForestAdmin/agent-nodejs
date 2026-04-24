@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.39.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.3...@forestadmin/forestadmin-client@1.39.4) (2026-04-24)
+
+
+### Bug Fixes
+
+* **forestadmin-client:** introduce HttpError on wrapped HTTP errors ([#1571](https://github.com/ForestAdmin/agent-nodejs/issues/1571)) ([f96a2ca](https://github.com/ForestAdmin/agent-nodejs/commit/f96a2caae21e1680d5edbc3bf31e4585bd36e0d5))
+
 ## @forestadmin/forestadmin-client [1.39.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.2...@forestadmin/forestadmin-client@1.39.3) (2026-04-22)
 
 

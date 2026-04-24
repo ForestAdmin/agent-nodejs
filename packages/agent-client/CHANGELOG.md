@@ -1,3 +1,20 @@
+## @forestadmin/agent-client [1.5.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.5.4...@forestadmin/agent-client@1.5.5) (2026-04-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.4
+
+## @forestadmin/agent-client [1.5.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.5.3...@forestadmin/agent-client@1.5.4) (2026-04-22)
+
+
+### Bug Fixes
+
+* **agent-client:** accept composite PKs as arrays ([#1565](https://github.com/ForestAdmin/agent-nodejs/issues/1565)) ([a72fda0](https://github.com/ForestAdmin/agent-nodejs/commit/a72fda0a187a0226e7dfcd351f0c8b2ed91da615))
+
 ## @forestadmin/agent-client [1.5.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.5.2...@forestadmin/agent-client@1.5.3) (2026-04-22)
 
 
