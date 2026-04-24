@@ -95,3 +95,4 @@ export { default as SchemaService, SchemaServiceOptions } from './schema';
 export { default as ActivityLogsService, ActivityLogsOptions } from './activity-logs';
 
 export * from './auth/errors';
+export * from './utils/errors';

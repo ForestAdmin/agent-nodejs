@@ -1,6 +1,6 @@
 import nock from 'nock';
 
-import { ForbiddenError } from '../../src';
+import { ForbiddenError, HttpError, NotFoundError } from '../../src';
 import ServerUtils from '../../src/utils/server';
 
 const options = { envSecret: '123', forestServerUrl: 'http://forestadmin-server.com' };
@@ -146,6 +146,97 @@ describe('ServerUtils', () => {
         .reply(424, { errors: [{ detail: message }] });
 
       await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toThrow(message);
+    });
+  });
+
+  describe('error metadata', () => {
+    it('should throw HttpError with status=408 on timeout', async () => {
+      nock(options.forestServerUrl)
+        .get('/endpoint')
+        .reply(() => {
+          return new Promise(resolve => {
+            setTimeout(resolve, 50);
+          });
+        });
+
+      await expect(
+        ServerUtils.query(options, 'get', '/endpoint', {}, undefined, 10),
+      ).rejects.toMatchObject({ status: 408 });
+    });
+
+    it('should attach .status=503 when the server is in maintenance', async () => {
+      nock(options.forestServerUrl).get('/endpoint').reply(503, { error: 'maintenance' });
+
+      await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toMatchObject({
+        status: 503,
+      });
+    });
+
+    it('should attach .status=502 when the upstream proxy fails', async () => {
+      nock(options.forestServerUrl).get('/endpoint').reply(502, { error: 'bad gateway' });
+
+      await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toMatchObject({
+        status: 502,
+      });
+    });
+
+    it('should attach .status on generic non-specific HTTP errors', async () => {
+      nock(options.forestServerUrl).get('/endpoint').reply(500, { error: 'boom' });
+
+      await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toMatchObject({
+        status: 500,
+      });
+    });
+
+    it('should attach .status on errors that forward the server message', async () => {
+      nock(options.forestServerUrl)
+        .get('/endpoint')
+        .reply(429, { errors: [{ detail: 'rate limited' }] });
+
+      await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toMatchObject({
+        message: 'rate limited',
+        status: 429,
+      });
+    });
+
+    it('should attach .status=403 on ForbiddenError', async () => {
+      nock(options.forestServerUrl)
+        .get('/endpoint')
+        .reply(403, { errors: [{ detail: 'nope' }] });
+
+      await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toMatchObject({
+        status: 403,
+        message: 'nope',
+      });
+    });
+
+    it('should attach .status=404 on NotFoundError', async () => {
+      nock(options.forestServerUrl)
+        .get('/endpoint')
+        .reply(404, { errors: [{ detail: 'missing' }] });
+
+      await expect(ServerUtils.query(options, 'get', '/endpoint')).rejects.toMatchObject({
+        status: 404,
+        message: 'missing',
+      });
+    });
+  });
+
+  describe('error class hierarchy', () => {
+    it('ForbiddenError extends HttpError and carries status=403 by default', () => {
+      const err = new ForbiddenError();
+
+      expect(err).toBeInstanceOf(HttpError);
+      expect(err).toBeInstanceOf(ForbiddenError);
+      expect(err.status).toBe(403);
+    });
+
+    it('NotFoundError extends HttpError and carries status=404 by default', () => {
+      const err = new NotFoundError();
+
+      expect(err).toBeInstanceOf(HttpError);
+      expect(err).toBeInstanceOf(NotFoundError);
+      expect(err.status).toBe(404);
     });
   });
 
