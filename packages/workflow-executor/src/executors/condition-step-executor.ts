@@ -5,7 +5,9 @@ import type { BaseStepStatus } from '../types/validated/step-outcome';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
+import { StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import patchBodySchemas from '../http/pending-data-validators';
 
 interface GatewayToolArgs {
   option: string | null;
@@ -52,7 +54,11 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
-    const { stepDefinition: step } = this.context;
+    const { stepDefinition: step, incomingPendingData } = this.context;
+
+    if (incomingPendingData !== undefined) {
+      return this.applyUserOverride(step, incomingPendingData);
+    }
 
     const tool = new DynamicStructuredTool({
       name: 'choose-gateway-option',
@@ -94,6 +100,37 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
         error: "The AI couldn't decide. Try rephrasing the step's prompt.",
       });
     }
+
+    return this.buildOutcomeResult({ status: 'success', selectedOption });
+  }
+
+  private async applyUserOverride(
+    step: ConditionStepDefinition,
+    incomingPendingData: unknown,
+  ): Promise<StepExecutionResult> {
+    const parsed = patchBodySchemas.condition!.safeParse(incomingPendingData);
+
+    if (!parsed.success) {
+      throw new StepStateError(
+        `Invalid condition input: ${parsed.error.issues.map(i => i.message).join(', ')}`,
+      );
+    }
+
+    const { selectedOption } = parsed.data as { selectedOption: string };
+
+    if (!step.options.includes(selectedOption)) {
+      const allowed = step.options.join(', ');
+      throw new StepStateError(
+        `Option "${selectedOption}" is not a valid choice (expected one of: ${allowed})`,
+      );
+    }
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'condition',
+      stepIndex: this.context.stepIndex,
+      executionParams: { answer: selectedOption, reasoning: 'User override via trigger' },
+      executionResult: { answer: selectedOption },
+    });
 
     return this.buildOutcomeResult({ status: 'success', selectedOption });
   }

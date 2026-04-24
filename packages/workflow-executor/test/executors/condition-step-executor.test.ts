@@ -323,4 +323,67 @@ describe('ConditionStepExecutor', () => {
       expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
   });
+
+  describe('user override via incomingPendingData', () => {
+    it('bypasses AI and persists the user-selected option', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const executor = new ConditionStepExecutor(
+        makeContext({
+          model: mockModel.model,
+          runStore,
+          incomingPendingData: { selectedOption: 'Approve' },
+        }),
+      );
+
+      const result = await executor.execute();
+
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(mockModel.invoke).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: { answer: 'Approve', reasoning: 'User override via trigger' },
+        executionResult: { answer: 'Approve' },
+      });
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Approve');
+    });
+
+    it('returns error outcome when the selected option is not in step.options', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const executor = new ConditionStepExecutor(
+        makeContext({
+          model: mockModel.model,
+          runStore,
+          incomingPendingData: { selectedOption: 'Maybe' },
+        }),
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('returns error outcome when incomingPendingData has unexpected fields', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const executor = new ConditionStepExecutor(
+        makeContext({
+          model: mockModel.model,
+          runStore,
+          incomingPendingData: { selectedOption: 'Approve', extraField: 'x' },
+        }),
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
 });

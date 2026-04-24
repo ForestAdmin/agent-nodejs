@@ -2,9 +2,9 @@ import type { StepExecutionData } from '../types/step-execution-data';
 
 import { z } from 'zod';
 
-// Per-step-type body schemas for PATCH /runs/:runId/steps/:stepIndex/pending-data.
-// Only step types that support the confirmation flow are listed here — others return 404.
-// Schemas use .strict() to reject unknown fields from the client.
+// Per-step-type schemas for the `pendingData` payload sent by the front via
+// POST /runs/:runId/trigger. Consumed by step executors to validate `incomingPendingData`
+// before applying user confirmation or override. Schemas use .strict() to reject unknown fields.
 const patchBodySchemas: Partial<Record<StepExecutionData['type'], z.ZodTypeAny>> = {
   'update-record': z
     .object({
@@ -46,6 +46,8 @@ const patchBodySchemas: Partial<Record<StepExecutionData['type'], z.ZodTypeAny>>
       userInput: z.string().min(1),
     })
     .strict(),
+
+  condition: z.object({ selectedOption: z.string() }).strict(),
 };
 
 export default patchBodySchemas;
