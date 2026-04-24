@@ -864,7 +864,9 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('An unexpected error occurred while processing this step.');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
       expect(toolInvoke).not.toHaveBeenCalled();
       expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
