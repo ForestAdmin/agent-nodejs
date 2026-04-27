@@ -185,7 +185,14 @@ export default class Runner {
       throw new UserMismatchError(runId);
     }
 
-    if (this.inFlightRuns.has(step.runId)) return;
+    if (this.inFlightRuns.has(step.runId)) {
+      this.logger.info?.('Trigger ignored — run already in flight', {
+        runId: step.runId,
+        stepIndex: step.stepIndex,
+      });
+
+      return;
+    }
 
     await this.executeStep(step, auth.forestServerToken, options?.pendingData);
   }
@@ -363,7 +370,14 @@ export default class Runner {
         return;
       }
 
-      if (nextDispatch === null) return;
+      if (nextDispatch === null) {
+        this.logger.info?.('Chain completed — orchestrator returned no further step', {
+          runId: currentStep.runId,
+          stepIndex: currentStep.stepIndex,
+        });
+
+        return;
+      }
 
       // Progression safety: the server must advance the workflow within the same run. A cross-run
       // dispatch would execute under the initial run's inFlightRuns key (and leak the map entry
