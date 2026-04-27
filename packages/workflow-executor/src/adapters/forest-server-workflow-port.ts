@@ -1,10 +1,10 @@
 import type { ServerHydratedWorkflowRun } from './server-types';
 import type { Logger } from '../ports/logger-port';
 import type {
+  AvailableRunDispatch,
+  AvailableRunsBatch,
   MalformedRunInfo,
   McpConfiguration,
-  PendingRunDispatch,
-  PendingRunsBatch,
   WorkflowPort,
 } from '../ports/workflow-port';
 import type { StepUser } from '../types/execution-context';
@@ -16,7 +16,7 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 import { z } from 'zod';
 
 import ConsoleLogger from './console-logger';
-import toPendingStepExecution from './run-to-pending-step-mapper';
+import toAvailableStepExecution from './run-to-pending-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
 import withRetry from './with-retry';
 import {
@@ -52,12 +52,12 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     this.logger = params.logger ?? new ConsoleLogger();
   }
 
-  async getPendingStepExecutions(): Promise<PendingRunsBatch> {
-    const runs = await this.callPort('getPendingStepExecutions', () =>
+  async getAvailableRuns(): Promise<AvailableRunsBatch> {
+    const runs = await this.callPort('getAvailableRuns', () =>
       ServerUtils.query<ServerHydratedWorkflowRun[]>(this.options, 'get', ROUTES.pendingRuns),
     );
 
-    const pending: PendingRunDispatch[] = [];
+    const pending: AvailableRunDispatch[] = [];
     const malformed: MalformedRunInfo[] = [];
 
     for (const run of runs) {
@@ -79,8 +79,8 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     return { pending, malformed };
   }
 
-  async getPendingStepExecutionsForRun(runId: string): Promise<PendingRunDispatch | null> {
-    const run = await this.callPort('getPendingStepExecutionsForRun', () =>
+  async getAvailableRun(runId: string): Promise<AvailableRunDispatch | null> {
+    const run = await this.callPort('getAvailableRun', () =>
       ServerUtils.query<ServerHydratedWorkflowRun | null>(
         this.options,
         'get',
@@ -104,7 +104,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
 
   // Validates userProfile + serverToken at the adapter boundary. Split into two checks so an
   // operator can diagnose "userProfile missing" vs "serverToken missing" from the error alone.
-  private toDispatch(run: ServerHydratedWorkflowRun): PendingRunDispatch | null {
+  private toDispatch(run: ServerHydratedWorkflowRun): AvailableRunDispatch | null {
     if (!run.userProfile) {
       throw new InvalidStepDefinitionError(
         `Run ${run.id} is missing required field userProfile — ` +
@@ -121,7 +121,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       );
     }
 
-    const step = toPendingStepExecution(run);
+    const step = toAvailableStepExecution(run);
     if (!step) return null;
 
     return { step, auth: { forestServerToken: token } };
@@ -145,7 +145,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
   async updateStepExecution(
     runId: string,
     stepOutcome: StepOutcome,
-  ): Promise<PendingRunDispatch | null> {
+  ): Promise<AvailableRunDispatch | null> {
     return this.callPort(
       'updateStepExecution',
       async () => {

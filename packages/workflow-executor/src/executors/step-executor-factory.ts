@@ -6,9 +6,9 @@ import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type SchemaCache from '../schema-cache';
 import type {
+  AvailableStepExecution,
   ExecutionContext,
   IStepExecutor,
-  PendingStepExecution,
   StepExecutionResult,
 } from '../types/execution-context';
 import type {
@@ -45,7 +45,7 @@ export interface StepContextConfig {
 
 export default class StepExecutorFactory {
   static async create(
-    step: PendingStepExecution,
+    step: AvailableStepExecution,
     contextConfig: StepContextConfig,
     activityLogPort: ActivityLogPort,
     loadTools: () => Promise<RemoteTool[]>,
@@ -113,7 +113,7 @@ export default class StepExecutorFactory {
   }
 
   private static buildContext(
-    step: PendingStepExecution,
+    step: AvailableStepExecution,
     cfg: StepContextConfig,
     activityLogPort: ActivityLogPort,
     incomingPendingData?: unknown,

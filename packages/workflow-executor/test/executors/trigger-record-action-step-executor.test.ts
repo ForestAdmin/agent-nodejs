@@ -77,8 +77,8 @@ function makeMockWorkflowPort(
   },
 ): WorkflowPort {
   return {
-    getPendingStepExecutions: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
-    getPendingStepExecutionsForRun: jest.fn().mockResolvedValue(null),
+    getAvailableRuns: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
+    getAvailableRun: jest.fn().mockResolvedValue(null),
     updateStepExecution: jest.fn().mockResolvedValue(undefined),
     getCollectionSchema: jest
       .fn()

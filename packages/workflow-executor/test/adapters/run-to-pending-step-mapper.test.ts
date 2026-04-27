@@ -6,7 +6,7 @@ import type {
 
 import { z } from 'zod';
 
-import toPendingStepExecution from '../../src/adapters/run-to-pending-step-mapper';
+import toAvailableStepExecution from '../../src/adapters/run-to-pending-step-mapper';
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
 import { StepType } from '../../src/types/validated/step-definition';
 
@@ -56,11 +56,11 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
   };
 }
 
-describe('toPendingStepExecution', () => {
-  it('should map a run with a pending step to a PendingStepExecution', () => {
+describe('toAvailableStepExecution', () => {
+  it('should map a run with a available step to a AvailableStepExecution', () => {
     const run = makeRun();
 
-    const result = toPendingStepExecution(run);
+    const result = toAvailableStepExecution(run);
 
     expect(result).toEqual({
       runId: '42',
@@ -81,7 +81,7 @@ describe('toPendingStepExecution', () => {
   it('should stringify the numeric run id', () => {
     const run = makeRun({ id: 999 });
 
-    const result = toPendingStepExecution(run);
+    const result = toAvailableStepExecution(run);
 
     expect(result?.runId).toBe('999');
   });
@@ -89,7 +89,7 @@ describe('toPendingStepExecution', () => {
   it('should wrap selectedRecordId in an array for baseRecordRef', () => {
     const run = makeRun({ selectedRecordId: 'rec-abc' });
 
-    const result = toPendingStepExecution(run);
+    const result = toAvailableStepExecution(run);
 
     expect(result?.baseRecordRef.recordId).toEqual(['rec-abc']);
   });
@@ -102,7 +102,7 @@ describe('toPendingStepExecution', () => {
       ],
     });
 
-    expect(toPendingStepExecution(run)).toBeNull();
+    expect(toAvailableStepExecution(run)).toBeNull();
   });
 
   it('should return null when all steps are done or cancelled', () => {
@@ -113,13 +113,13 @@ describe('toPendingStepExecution', () => {
       ],
     });
 
-    expect(toPendingStepExecution(run)).toBeNull();
+    expect(toAvailableStepExecution(run)).toBeNull();
   });
 
   it('should return null when workflowHistory is empty', () => {
     const run = makeRun({ workflowHistory: [] });
 
-    expect(toPendingStepExecution(run)).toBeNull();
+    expect(toAvailableStepExecution(run)).toBeNull();
   });
 
   it('should pick the first non-done, non-cancelled step as pending', () => {
@@ -132,14 +132,14 @@ describe('toPendingStepExecution', () => {
       ],
     });
 
-    const result = toPendingStepExecution(run);
+    const result = toAvailableStepExecution(run);
 
     expect(result?.stepId).toBe('s2');
     expect(result?.stepIndex).toBe(2);
   });
 
   describe('previousSteps', () => {
-    it('should include done steps preceding the pending step', () => {
+    it('should include done steps preceding the available step', () => {
       const run = makeRun({
         workflowHistory: [
           makeStepHistory({
@@ -174,7 +174,7 @@ describe('toPendingStepExecution', () => {
         ],
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps).toHaveLength(2);
       expect(result?.previousSteps[1].stepOutcome).toEqual({
@@ -206,7 +206,7 @@ describe('toPendingStepExecution', () => {
         ],
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'record',
@@ -233,7 +233,7 @@ describe('toPendingStepExecution', () => {
         ],
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('aiReasoning');
       expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('clientData');
@@ -252,7 +252,7 @@ describe('toPendingStepExecution', () => {
         ],
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'record',
@@ -283,7 +283,7 @@ describe('toPendingStepExecution', () => {
         ],
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'guidance',
@@ -313,7 +313,7 @@ describe('toPendingStepExecution', () => {
         ],
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'guidance',
@@ -345,7 +345,7 @@ describe('toPendingStepExecution', () => {
         ],
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'mcp',
@@ -355,7 +355,7 @@ describe('toPendingStepExecution', () => {
       });
     });
 
-    it('should not include done steps that are after the pending step', () => {
+    it('should not include done steps that are after the available step', () => {
       const run = makeRun({
         workflowHistory: [
           makeStepHistory({ stepName: 's0', stepIndex: 0, done: false }),
@@ -363,7 +363,7 @@ describe('toPendingStepExecution', () => {
         ],
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.stepId).toBe('s0');
       expect(result?.previousSteps).toHaveLength(0);
@@ -386,7 +386,7 @@ describe('toPendingStepExecution', () => {
       };
       const run = makeRun({ userProfile: profile });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.user).toEqual({
         id: 5,
@@ -422,8 +422,8 @@ describe('toPendingStepExecution', () => {
         },
       });
 
-      expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
-      expect(() => toPendingStepExecution(run)).toThrow(/renderingId/);
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(/renderingId/);
     });
 
     it('should accept renderingId = 0 (valid finite number)', () => {
@@ -442,7 +442,7 @@ describe('toPendingStepExecution', () => {
         },
       });
 
-      const result = toPendingStepExecution(run);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.user.renderingId).toBe(0);
     });
@@ -452,8 +452,8 @@ describe('toPendingStepExecution', () => {
     it('should throw InvalidStepDefinitionError when collectionName is null', () => {
       const run = makeRun({ collectionName: null });
 
-      expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
-      expect(() => toPendingStepExecution(run)).toThrow(
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(
         'Run 42 has no collectionName — cannot build baseRecordRef',
       );
     });
@@ -461,8 +461,8 @@ describe('toPendingStepExecution', () => {
     it('should throw InvalidStepDefinitionError when collectionId is empty', () => {
       const run = makeRun({ collectionId: '' });
 
-      expect(() => toPendingStepExecution(run)).toThrow(InvalidStepDefinitionError);
-      expect(() => toPendingStepExecution(run)).toThrow(
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(
         'Run 42 has no collectionId — cannot build baseRecordRef',
       );
     });
@@ -472,11 +472,11 @@ describe('toPendingStepExecution', () => {
         workflowHistory: [makeStepHistory({ stepDefinition: { type: 'end', title: 'End' } })],
       });
 
-      expect(() => toPendingStepExecution(run)).toThrow();
+      expect(() => toAvailableStepExecution(run)).toThrow();
     });
 
     it('should throw DomainValidationError when the mapper output violates a zod invariant (empty stepId)', () => {
-      // Wire guards don't validate pending.stepName, but PendingStepExecutionSchema requires
+      // Wire guards don't validate pending.stepName, but AvailableStepExecutionSchema requires
       // stepId.min(1). This exercises the actual parse path in the mapper.
       const run = makeRun({
         workflowHistory: [makeStepHistory({ stepName: '' })],
@@ -485,7 +485,7 @@ describe('toPendingStepExecution', () => {
       let caught: unknown;
 
       try {
-        toPendingStepExecution(run);
+        toAvailableStepExecution(run);
       } catch (err) {
         caught = err;
       }
@@ -513,7 +513,7 @@ describe('toPendingStepExecution', () => {
         },
       });
 
-      expect(() => toPendingStepExecution(run)).toThrow(DomainValidationError);
+      expect(() => toAvailableStepExecution(run)).toThrow(DomainValidationError);
     });
 
     it('should structure DomainValidationError.issues as { path, message } objects', () => {

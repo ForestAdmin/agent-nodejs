@@ -53,7 +53,7 @@ export type {
 export type {
   StepUser,
   Step,
-  PendingStepExecution,
+  AvailableStepExecution,
   StepExecutionResult,
   ExecutionContext,
 } from './types/execution-context';

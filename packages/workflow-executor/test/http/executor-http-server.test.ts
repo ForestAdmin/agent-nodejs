@@ -26,8 +26,8 @@ function createMockRunner(overrides: Partial<Runner> = {}): Runner {
 
 function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): WorkflowPort {
   return {
-    getPendingStepExecutions: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
-    getPendingStepExecutionsForRun: jest.fn(),
+    getAvailableRuns: jest.fn().mockResolvedValue({ pending: [], malformed: [] }),
+    getAvailableRun: jest.fn(),
     updateStepExecution: jest.fn().mockResolvedValue(undefined),
     getCollectionSchema: jest.fn(),
     getMcpServerConfigs: jest.fn().mockResolvedValue([]),

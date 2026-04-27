@@ -16,8 +16,8 @@ import { z } from 'zod';
 import toStepDefinition from './step-definition-mapper';
 import { DomainValidationError, InvalidStepDefinitionError } from '../errors';
 import {
-  type PendingStepExecution,
-  PendingStepExecutionSchema,
+  type AvailableStepExecution,
+  AvailableStepExecutionSchema,
   type Step,
   type StepUser,
 } from '../types/validated/execution';
@@ -105,12 +105,12 @@ function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
   };
 }
 
-// Returns null when the run has no pending step (terminal state or all done/cancelled).
+// Returns null when the run has no available step (terminal state or all done/cancelled).
 // Throws InvalidStepDefinitionError on missing required fields (collectionId, collectionName,
 // userProfile) or an unmappable step definition.
-export default function toPendingStepExecution(
+export default function toAvailableStepExecution(
   run: ServerHydratedWorkflowRun,
-): PendingStepExecution | null {
+): AvailableStepExecution | null {
   if (!run.collectionName) {
     throw new InvalidStepDefinitionError(
       `Run ${run.id} has no collectionName — cannot build baseRecordRef`,
@@ -145,7 +145,7 @@ export default function toPendingStepExecution(
   // before any executor consumes it. Fails loudly with a typed error instead of crashing deep.
 
   try {
-    return PendingStepExecutionSchema.parse(result);
+    return AvailableStepExecutionSchema.parse(result);
   } catch (err) {
     if (err instanceof z.ZodError) {
       throw new DomainValidationError(run.id, err);

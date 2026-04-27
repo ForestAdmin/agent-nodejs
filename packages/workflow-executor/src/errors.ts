@@ -360,7 +360,7 @@ export class DomainValidationError extends WorkflowExecutorError {
       : '(no zod issues reported — unexpected empty ZodError)';
 
     super(
-      `Run ${runId} mapper produced invalid PendingStepExecution — ${summary}`,
+      `Run ${runId} mapper produced invalid AvailableStepExecution — ${summary}`,
       'Internal validation error occurred while preparing the step. Please contact support.',
     );
     this.cause = zodError;

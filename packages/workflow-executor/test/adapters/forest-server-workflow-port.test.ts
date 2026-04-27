@@ -68,11 +68,11 @@ describe('ForestServerWorkflowPort', () => {
     port = new ForestServerWorkflowPort(options);
   });
 
-  describe('getPendingStepExecutions', () => {
+  describe('getAvailableRuns', () => {
     it('calls the pending-run route and returns pending + malformed buckets', async () => {
       mockQuery.mockResolvedValue([makeRun()]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(mockQuery).toHaveBeenCalledWith(
         options,
@@ -86,7 +86,7 @@ describe('ForestServerWorkflowPort', () => {
       expect(result.malformed).toEqual([]);
     });
 
-    it('filters out runs with no pending step', async () => {
+    it('filters out runs with no available step', async () => {
       const terminalRun = makeRun({
         workflowHistory: [
           {
@@ -104,7 +104,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([terminalRun]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toEqual([]);
@@ -115,7 +115,7 @@ describe('ForestServerWorkflowPort', () => {
       const malformedRun = makeRun({ id: 99, collectionName: null });
       mockQuery.mockResolvedValue([malformedRun, validRun]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(result.pending).toHaveLength(1);
       expect(result.pending[0].step.runId).toBe('42');
@@ -165,18 +165,18 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({ stepId: 'pending-step', stepIndex: 1 }),
       );
     });
 
-    it('returns null stepId/stepIndex when workflowHistory has no pending step', async () => {
+    it('returns null stepId/stepIndex when workflowHistory has no available step', async () => {
       const malformedRun = makeRun({ id: 88, collectionName: null, workflowHistory: [] });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({ runId: '88', stepId: null, stepIndex: null }),
@@ -203,7 +203,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([unsupportedRun]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toHaveLength(1);
@@ -230,7 +230,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
@@ -248,7 +248,7 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
@@ -260,8 +260,8 @@ describe('ForestServerWorkflowPort', () => {
     });
 
     it('bucketizes DomainValidationError (zod parse failure in mapper) as malformed', async () => {
-      // Wire guards pass but the pending step has an empty stepName → zod parse rejects via
-      // PendingStepExecutionSchema.stepId.min(1). Proves DomainValidationError flows through the
+      // Wire guards pass but the available step has an empty stepName → zod parse rejects via
+      // AvailableStepExecutionSchema.stepId.min(1). Proves DomainValidationError flows through the
       // malformed pathway just like InvalidStepDefinitionError.
       const malformedRun = makeRun({
         id: 46,
@@ -284,13 +284,13 @@ describe('ForestServerWorkflowPort', () => {
       });
       mockQuery.mockResolvedValue([malformedRun]);
 
-      const result = await port.getPendingStepExecutions();
+      const result = await port.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
       expect(result.malformed[0]).toEqual(
         expect.objectContaining({
           runId: '46',
-          technicalMessage: expect.stringContaining('invalid PendingStepExecution'),
+          technicalMessage: expect.stringContaining('invalid AvailableStepExecution'),
         }),
       );
     });
@@ -303,7 +303,7 @@ describe('ForestServerWorkflowPort', () => {
       const brokenRun = { ...makeRun({ id: 111 }), workflowHistory: null as never };
       mockQuery.mockResolvedValue([brokenRun]);
 
-      const result = await portWithLogger.getPendingStepExecutions();
+      const result = await portWithLogger.getAvailableRuns();
 
       expect(result.pending).toEqual([]);
       expect(result.malformed).toEqual([]);
@@ -314,11 +314,11 @@ describe('ForestServerWorkflowPort', () => {
     });
   });
 
-  describe('getPendingStepExecutionsForRun', () => {
+  describe('getAvailableRun', () => {
     it('calls the available-run route with the encoded runId', async () => {
       mockQuery.mockResolvedValue(makeRun({ id: 42 }));
 
-      const result = await port.getPendingStepExecutionsForRun('run-42');
+      const result = await port.getAvailableRun('run-42');
 
       expect(mockQuery).toHaveBeenCalledWith(
         options,
@@ -332,7 +332,7 @@ describe('ForestServerWorkflowPort', () => {
     it('encodes special characters in the runId', async () => {
       mockQuery.mockResolvedValue(makeRun());
 
-      await port.getPendingStepExecutionsForRun('run/42 special');
+      await port.getAvailableRun('run/42 special');
 
       expect(mockQuery).toHaveBeenCalledWith(
         options,
@@ -344,7 +344,7 @@ describe('ForestServerWorkflowPort', () => {
     it('returns null when the server returns null (no pending run)', async () => {
       mockQuery.mockResolvedValue(null);
 
-      const result = await port.getPendingStepExecutionsForRun('run-42');
+      const result = await port.getAvailableRun('run-42');
 
       expect(result).toBeNull();
     });
@@ -353,7 +353,7 @@ describe('ForestServerWorkflowPort', () => {
       const malformedRun = makeRun({ id: 66, collectionName: null });
       mockQuery.mockResolvedValue(malformedRun);
 
-      await expect(port.getPendingStepExecutionsForRun('66')).rejects.toMatchObject({
+      await expect(port.getAvailableRun('66')).rejects.toMatchObject({
         name: 'MalformedRunError',
         info: {
           runId: '66',
@@ -372,7 +372,7 @@ describe('ForestServerWorkflowPort', () => {
       const malformedRun = makeRun({ id: 66, collectionName: null });
       mockQuery.mockResolvedValue(malformedRun);
 
-      await expect(port.getPendingStepExecutionsForRun('66')).rejects.toBeInstanceOf(
+      await expect(port.getAvailableRun('66')).rejects.toBeInstanceOf(
         MalformedRunError,
       );
     });
@@ -715,16 +715,16 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('error propagation', () => {
-    it('propagates errors from ServerUtils.query on getPendingStepExecutions', async () => {
+    it('propagates errors from ServerUtils.query on getAvailableRuns', async () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
-      await expect(port.getPendingStepExecutions()).rejects.toThrow('Network error');
+      await expect(port.getAvailableRuns()).rejects.toThrow('Network error');
     });
 
-    it('propagates errors from getPendingStepExecutionsForRun', async () => {
+    it('propagates errors from getAvailableRun', async () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
-      await expect(port.getPendingStepExecutionsForRun('run-1')).rejects.toThrow('Network error');
+      await expect(port.getAvailableRun('run-1')).rejects.toThrow('Network error');
     });
 
     it('propagates errors from hasRunAccess', async () => {

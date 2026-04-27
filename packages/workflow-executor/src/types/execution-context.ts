@@ -7,13 +7,13 @@ import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type SchemaCache from '../schema-cache';
 import type { RecordRef } from './validated/collection';
-import type { PendingStepExecution, Step, StepUser } from './validated/execution';
+import type { AvailableStepExecution, Step, StepUser } from './validated/execution';
 import type { StepDefinition } from './validated/step-definition';
 import type { StepOutcome } from './validated/step-outcome';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 // Re-export the runtime result types alongside the context they flow with.
-export type { PendingStepExecution, Step, StepUser };
+export type { AvailableStepExecution, Step, StepUser };
 
 export interface StepExecutionResult {
   stepOutcome: StepOutcome;

@@ -29,7 +29,7 @@ export const StepSchema = z
   .strict();
 export type Step = z.infer<typeof StepSchema>;
 
-export const PendingStepExecutionSchema = z
+export const AvailableStepExecutionSchema = z
   .object({
     runId: z.string().min(1),
     stepId: z.string().min(1),
@@ -41,4 +41,4 @@ export const PendingStepExecutionSchema = z
     user: StepUserSchema,
   })
   .strict();
-export type PendingStepExecution = z.infer<typeof PendingStepExecutionSchema>;
+export type AvailableStepExecution = z.infer<typeof AvailableStepExecutionSchema>;

@@ -5,13 +5,13 @@ import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type {
+  AvailableRunDispatch,
   MalformedRunInfo,
   McpConfiguration,
-  PendingRunDispatch,
   WorkflowPort,
 } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
-import type { PendingStepExecution, StepExecutionResult } from './types/execution-context';
+import type { AvailableStepExecution, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
@@ -165,10 +165,10 @@ export default class Runner {
     runId: string,
     options?: { pendingData?: unknown; bearerUserId?: number },
   ): Promise<void> {
-    let dispatch: PendingRunDispatch | null;
+    let dispatch: AvailableRunDispatch | null;
 
     try {
-      dispatch = await this.config.workflowPort.getPendingStepExecutionsForRun(runId);
+      dispatch = await this.config.workflowPort.getAvailableRun(runId);
     } catch (err) {
       if (err instanceof MalformedRunError) {
         await this.reportMalformedRun(err.info);
@@ -204,7 +204,7 @@ export default class Runner {
 
   private async runPollCycle(): Promise<void> {
     try {
-      const { pending, malformed } = await this.config.workflowPort.getPendingStepExecutions();
+      const { pending, malformed } = await this.config.workflowPort.getAvailableRuns();
       // Each reportMalformedRun has its own try/catch, no individual failure poisons the cycle.
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
@@ -232,7 +232,7 @@ export default class Runner {
   // ops has to clean up manually.
   private async reportMalformedRun(info: MalformedRunInfo): Promise<void> {
     if (info.stepId === null || info.stepIndex === null) {
-      this.logger.error('Malformed run cannot be reported — no pending step identified', {
+      this.logger.error('Malformed run cannot be reported — no available step identified', {
         runId: info.runId,
         error: info.technicalMessage,
       });
@@ -275,7 +275,7 @@ export default class Runner {
   }
 
   private executeStep(
-    step: PendingStepExecution,
+    step: AvailableStepExecution,
     forestServerToken: string,
     incomingPendingData?: unknown,
   ): Promise<void> {
@@ -294,7 +294,7 @@ export default class Runner {
   }
 
   private async doExecuteStep(
-    step: PendingStepExecution,
+    step: AvailableStepExecution,
     forestServerToken: string,
     incomingPendingData?: unknown,
   ): Promise<void> {
@@ -350,7 +350,7 @@ export default class Runner {
         return;
       }
 
-      let nextDispatch: PendingRunDispatch | null;
+      let nextDispatch: AvailableRunDispatch | null;
 
       try {
         nextDispatch = await this.config.workflowPort.updateStepExecution(
