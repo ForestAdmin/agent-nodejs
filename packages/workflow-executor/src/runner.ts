@@ -58,10 +58,9 @@ export interface RunnerConfig {
 export default class Runner {
   private readonly config: RunnerConfig;
   private pollingTimer: NodeJS.Timeout | null = null;
-  // Keyed by runId (not stepId): a run has one pending step at a time, and a chain advances the
+  // Keyed by runId (not stepId): a run has one available step at a time, and a chain advances the
   // stepId between iterations. Keying by runId keeps the dedup guarantee across the whole chain.
   private readonly inFlightRuns = new Map<string, Promise<void>>();
-  private isRunning = false;
   private readonly logger: Logger;
   private _state: RunnerState = 'idle';
 
@@ -79,7 +78,7 @@ export default class Runner {
       throw new Error('Runner has been stopped and cannot be restarted');
     }
 
-    if (this.isRunning) return;
+    if (this._state === 'running') return;
 
     validateSecrets({ envSecret: this.config.envSecret, authSecret: this.config.authSecret });
 
@@ -88,7 +87,6 @@ export default class Runner {
     this.logger.info('Agent probe passed', {});
     await this.config.runStore.init(this.logger);
 
-    this.isRunning = true;
     this._state = 'running';
 
     this.schedulePoll();
@@ -98,7 +96,6 @@ export default class Runner {
     if (this._state === 'idle' || this._state === 'stopped' || this._state === 'draining') return;
 
     this._state = 'draining';
-    this.isRunning = false;
 
     if (this.pollingTimer !== null) {
       clearTimeout(this.pollingTimer);
@@ -108,7 +105,7 @@ export default class Runner {
     try {
       // Drain in-flight runs (each entry may cover a whole auto-chain).
       if (this.inFlightRuns.size > 0) {
-        this.logger.info?.('Draining in-flight runs', {
+        this.logger.info('Draining in-flight runs', {
           count: this.inFlightRuns.size,
           runs: [...this.inFlightRuns.keys()],
         });
@@ -132,7 +129,7 @@ export default class Runner {
             timeoutMs: timeout,
           });
         } else {
-          this.logger.info?.('All in-flight runs drained', {});
+          this.logger.info('All in-flight runs drained', {});
         }
       }
 
@@ -186,7 +183,7 @@ export default class Runner {
     }
 
     if (this.inFlightRuns.has(step.runId)) {
-      this.logger.info?.('Trigger ignored — run already in flight', {
+      this.logger.info('Trigger ignored — run already in flight', {
         runId: step.runId,
         stepIndex: step.stepIndex,
       });
@@ -198,7 +195,7 @@ export default class Runner {
   }
 
   private schedulePoll(): void {
-    if (!this.isRunning) return;
+    if (this._state !== 'running') return;
     this.pollingTimer = setTimeout(() => this.runPollCycle(), this.config.pollingIntervalMs);
   }
 
@@ -371,7 +368,7 @@ export default class Runner {
       }
 
       if (nextDispatch === null) {
-        this.logger.info?.('Chain completed — orchestrator returned no further step', {
+        this.logger.info('Chain completed — orchestrator returned no further step', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
         });
@@ -400,7 +397,7 @@ export default class Runner {
       // Cap check BEFORE incrementing: chainedCount counts chained steps we've already executed.
       // maxDepth=2 means "run up to 2 chained steps after the initial one" (3 total).
       if (chainedCount >= maxDepth) {
-        this.logger.info?.('Chain depth cap reached — yielding to next poll', {
+        this.logger.info('Chain depth cap reached — yielding to next poll', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
           maxDepth,
@@ -411,7 +408,7 @@ export default class Runner {
 
       // Graceful stop: finish the current step, then yield instead of chaining further.
       if (this._state === 'draining') {
-        this.logger.info?.('Chain interrupted by stop() — yielding', {
+        this.logger.info('Chain interrupted by stop() — yielding', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
         });
