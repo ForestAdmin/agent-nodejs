@@ -372,9 +372,7 @@ describe('ForestServerWorkflowPort', () => {
       const malformedRun = makeRun({ id: 66, collectionName: null });
       mockQuery.mockResolvedValue(malformedRun);
 
-      await expect(port.getAvailableRun('66')).rejects.toBeInstanceOf(
-        MalformedRunError,
-      );
+      await expect(port.getAvailableRun('66')).rejects.toBeInstanceOf(MalformedRunError);
     });
   });
 

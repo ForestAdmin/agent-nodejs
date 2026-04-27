@@ -34,7 +34,10 @@ export interface WorkflowPort {
   getAvailableRun(runId: string): Promise<AvailableRunDispatch | null>;
   // Returns the next step to chain when the orchestrator has one ready, or null when the run is
   // awaiting-input / finished / errored. Lets the executor skip a poll cycle for auto workflows.
-  updateStepExecution(runId: string, stepOutcome: StepOutcome): Promise<AvailableRunDispatch | null>;
+  updateStepExecution(
+    runId: string,
+    stepOutcome: StepOutcome,
+  ): Promise<AvailableRunDispatch | null>;
   getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema>;
   getMcpServerConfigs(): Promise<McpConfiguration[]>;
   hasRunAccess(runId: string, user: StepUser): Promise<boolean>;

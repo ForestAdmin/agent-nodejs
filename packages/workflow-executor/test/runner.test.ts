@@ -1745,9 +1745,7 @@ describe('malformed run reporting', () => {
 
   it('triggerPoll reports the malformed run via updateStepExecution before rethrowing', async () => {
     const workflowPort = createMockWorkflowPort();
-    workflowPort.getAvailableRun.mockRejectedValue(
-      new MalformedRunError(malformedInfo),
-    );
+    workflowPort.getAvailableRun.mockRejectedValue(new MalformedRunError(malformedInfo));
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
