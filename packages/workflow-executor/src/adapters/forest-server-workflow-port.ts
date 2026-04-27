@@ -16,7 +16,7 @@ import { ServerUtils } from '@forestadmin/forestadmin-client';
 import { z } from 'zod';
 
 import ConsoleLogger from './console-logger';
-import toAvailableStepExecution from './run-to-pending-step-mapper';
+import toAvailableStepExecution from './run-to-available-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
 import withRetry from './with-retry';
 import {

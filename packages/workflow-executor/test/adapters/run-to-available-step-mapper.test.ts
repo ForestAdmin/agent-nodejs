@@ -6,7 +6,7 @@ import type {
 
 import { z } from 'zod';
 
-import toAvailableStepExecution from '../../src/adapters/run-to-pending-step-mapper';
+import toAvailableStepExecution from '../../src/adapters/run-to-available-step-mapper';
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
 import { StepType } from '../../src/types/validated/step-definition';
 

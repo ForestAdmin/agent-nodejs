@@ -19,7 +19,7 @@ function toExecutionStatus(outcome: StepOutcome): ServerExecutionStatus {
   return { type: 'success' };
 }
 
-// Write to `context` so the round-trip with run-to-pending-step-mapper stays ISO (reverse mapper
+// Write to `context` so the round-trip with run-to-available-step-mapper stays ISO (reverse mapper
 // reads status/error/selectedOption from ServerStepHistory.context).
 export default function toUpdateStepRequest(
   runId: string,
