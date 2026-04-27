@@ -25,6 +25,7 @@ import {
   extractErrorMessage,
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
+import InFlightRunRegistry from './in-flight-run-registry';
 import { stepTypeToOutcomeType } from './types/validated/step-outcome';
 import validateSecrets from './validate-secrets';
 
@@ -58,9 +59,7 @@ export interface RunnerConfig {
 export default class Runner {
   private readonly config: RunnerConfig;
   private pollingTimer: NodeJS.Timeout | null = null;
-  // Keyed by runId (not stepId): a run has one available step at a time, and a chain advances the
-  // stepId between iterations. Keying by runId keeps the dedup guarantee across the whole chain.
-  private readonly inFlightRuns = new Map<string, Promise<void>>();
+  private readonly inFlightRuns = new InFlightRunRegistry();
   private readonly logger: Logger;
   private _state: RunnerState = 'idle';
 
@@ -113,7 +112,7 @@ export default class Runner {
         const timeout = this.config.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS;
         let drainTimer: NodeJS.Timeout | undefined;
         const drainResult = await Promise.race([
-          Promise.allSettled(this.inFlightRuns.values()).then(() => {
+          this.inFlightRuns.drain().then(() => {
             if (drainTimer) clearTimeout(drainTimer);
 
             return 'drained' as const;
@@ -280,14 +279,10 @@ export default class Runner {
     // register it once, clean up once. Storing per-step entries (or Promise.resolve()) would
     // break drain: Promise.allSettled would see already-resolved entries and stop waiting while
     // the chain is still running.
-    const trackedPromise = this.doExecuteStep(step, forestServerToken, incomingPendingData).finally(
-      () => {
-        this.inFlightRuns.delete(step.runId);
-      },
+    return this.inFlightRuns.track(
+      step.runId,
+      this.doExecuteStep(step, forestServerToken, incomingPendingData),
     );
-    this.inFlightRuns.set(step.runId, trackedPromise);
-
-    return trackedPromise;
   }
 
   private async doExecuteStep(
