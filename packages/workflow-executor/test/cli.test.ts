@@ -131,6 +131,7 @@ describe('readEnvConfig', () => {
         POLLING_INTERVAL_MS: '1000',
         STOP_TIMEOUT_MS: '10000',
         STEP_TIMEOUT_MS: '60000',
+        MAX_CHAIN_DEPTH: '10',
       },
       args,
     );
@@ -139,12 +140,19 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.pollingIntervalMs).toBe(1000);
     expect(config.executorOptions.stopTimeoutMs).toBe(10000);
     expect(config.executorOptions.stepTimeoutMs).toBe(60000);
+    expect(config.executorOptions.maxChainDepth).toBe(10);
   });
 
   it('leaves stepTimeoutMs undefined when STEP_TIMEOU_MS is unset (default applied downstream in build)', () => {
     const config = readEnvConfig(baseEnv, args);
 
     expect(config.executorOptions.stepTimeoutMs).toBeUndefined();
+  });
+
+  it('leaves maxChainDepth undefined when MAX_CHAIN_DEPTH is unset (default applied downstream in build)', () => {
+    const config = readEnvConfig(baseEnv, args);
+
+    expect(config.executorOptions.maxChainDepth).toBeUndefined();
   });
 
   it.each(['abc', '30s', '1_000', 'NaN'])(
