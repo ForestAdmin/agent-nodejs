@@ -49,10 +49,10 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
-      { fieldName: 'email', displayName: 'Email', isRelationship: false },
-      { fieldName: 'status', displayName: 'Status', isRelationship: false },
-      { fieldName: 'name', displayName: 'Full Name', isRelationship: false },
-      { fieldName: 'orders', displayName: 'Orders', isRelationship: true },
+      { fieldName: 'email', displayName: 'Email', isRelationship: false, type: 'String' },
+      { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
+      { fieldName: 'name', displayName: 'Full Name', isRelationship: false, type: 'String' },
+      { fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null },
     ],
     actions: [],
     ...overrides,
@@ -373,8 +373,13 @@ describe('UpdateRecordStepExecutor', () => {
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
         fields: [
-          { fieldName: 'total', displayName: 'Total', isRelationship: false },
-          { fieldName: 'status', displayName: 'Order Status', isRelationship: false },
+          { fieldName: 'total', displayName: 'Total', isRelationship: false, type: 'Number' },
+          {
+            fieldName: 'status',
+            displayName: 'Order Status',
+            isRelationship: false,
+            type: 'String',
+          },
         ],
       });
 
@@ -453,7 +458,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('NoWritableFieldsError', () => {
     it('returns error when all fields are relationships', async () => {
       const schema = makeCollectionSchema({
-        fields: [{ fieldName: 'orders', displayName: 'Orders', isRelationship: true }],
+        fields: [{ fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null }],
       });
       const mockModel = makeMockModel({
         fieldName: 'Status',
@@ -515,14 +520,14 @@ describe('UpdateRecordStepExecutor', () => {
       const tool = lastCall[0][0];
       expect(tool.name).toBe('update-record-field');
 
-      // Non-relationship display names should be accepted
+      // Each non-relationship field is a literal in the union — exact displayName required
       expect(tool.schema.parse({ fieldName: 'Email', value: 'x', reasoning: 'r' })).toBeTruthy();
       expect(tool.schema.parse({ fieldName: 'Status', value: 'x', reasoning: 'r' })).toBeTruthy();
       expect(
         tool.schema.parse({ fieldName: 'Full Name', value: 'x', reasoning: 'r' }),
       ).toBeTruthy();
 
-      // Relationship display name should be rejected
+      // Relationship display name rejected — no union variant has fieldName 'Orders'
       expect(() =>
         tool.schema.parse({ fieldName: 'Orders', value: 'x', reasoning: 'r' }),
       ).toThrow();
@@ -996,6 +1001,183 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+    });
+  });
+
+  describe('buildUpdateFieldTool — type-specific schemas', () => {
+    async function getToolSchema(fields: CollectionSchema['fields']) {
+      const mockModel = makeMockModel({
+        fieldName: fields[0].displayName,
+        value: null,
+        reasoning: 'r',
+      });
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({ fields }),
+      });
+      const context = makeContext({ model: mockModel.model, workflowPort });
+      const executor = new UpdateRecordStepExecutor(context);
+      await executor.execute();
+      const lastCall = mockModel.bindTools.mock.calls[mockModel.bindTools.mock.calls.length - 1];
+
+      return lastCall[0][0].schema;
+    }
+
+    it('Boolean: accepts true/false and coerces string "true"/"false"', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'active', displayName: 'Active', isRelationship: false, type: 'Boolean' },
+      ]);
+
+      expect(schema.parse({ fieldName: 'Active', value: true, reasoning: 'r' }).value).toBe(true);
+      expect(schema.parse({ fieldName: 'Active', value: 'true', reasoning: 'r' }).value).toBe(true);
+      expect(schema.parse({ fieldName: 'Active', value: false, reasoning: 'r' }).value).toBe(false);
+      expect(() => schema.parse({ fieldName: 'Active', value: 'maybe', reasoning: 'r' })).toThrow();
+    });
+
+    it('Date: accepts ISO 8601 datetime, rejects date-only string', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'created_at', displayName: 'Created At', isRelationship: false, type: 'Date' },
+      ]);
+
+      expect(
+        schema.parse({ fieldName: 'Created At', value: '2024-06-01T00:00:00Z', reasoning: 'r' })
+          .value,
+      ).toBe('2024-06-01T00:00:00Z');
+      expect(() =>
+        schema.parse({ fieldName: 'Created At', value: '2024-06-01', reasoning: 'r' }),
+      ).toThrow();
+      expect(() =>
+        schema.parse({ fieldName: 'Created At', value: 'not-a-date', reasoning: 'r' }),
+      ).toThrow();
+    });
+
+    it('Dateonly: accepts ISO 8601 date, rejects datetime and free text', async () => {
+      const schema = await getToolSchema([
+        {
+          fieldName: 'birth_date',
+          displayName: 'Birth Date',
+          isRelationship: false,
+          type: 'Dateonly',
+        },
+      ]);
+
+      expect(
+        schema.parse({ fieldName: 'Birth Date', value: '2024-06-01', reasoning: 'r' }).value,
+      ).toBe('2024-06-01');
+      expect(() =>
+        schema.parse({ fieldName: 'Birth Date', value: 'not-a-date', reasoning: 'r' }),
+      ).toThrow();
+      // datetime string must be rejected — Dateonly only accepts date-only format
+      expect(() =>
+        schema.parse({ fieldName: 'Birth Date', value: '2024-06-01T00:00:00Z', reasoning: 'r' }),
+      ).toThrow();
+    });
+
+    it('Number: coerces string "42" to 42', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
+      ]);
+
+      expect(schema.parse({ fieldName: 'Age', value: 42, reasoning: 'r' }).value).toBe(42);
+      expect(schema.parse({ fieldName: 'Age', value: '42', reasoning: 'r' }).value).toBe(42);
+      expect(() =>
+        schema.parse({ fieldName: 'Age', value: 'not-a-number', reasoning: 'r' }),
+      ).toThrow();
+    });
+
+    it('Enum: accepts valid enum values, rejects unknown ones', async () => {
+      const schema = await getToolSchema([
+        {
+          fieldName: 'status',
+          displayName: 'Status',
+          isRelationship: false,
+          type: 'Enum',
+          enumValues: ['active', 'inactive', 'pending'],
+        },
+      ]);
+
+      expect(schema.parse({ fieldName: 'Status', value: 'active', reasoning: 'r' }).value).toBe(
+        'active',
+      );
+      expect(() =>
+        schema.parse({ fieldName: 'Status', value: 'unknown', reasoning: 'r' }),
+      ).toThrow();
+    });
+
+    it('Enum with single enumValue: only accepts the one literal', async () => {
+      const schema = await getToolSchema([
+        {
+          fieldName: 'flag',
+          displayName: 'Flag',
+          isRelationship: false,
+          type: 'Enum',
+          enumValues: ['only'],
+        },
+      ]);
+
+      expect(schema.parse({ fieldName: 'Flag', value: 'only', reasoning: 'r' }).value).toBe('only');
+      expect(() => schema.parse({ fieldName: 'Flag', value: 'other', reasoning: 'r' })).toThrow();
+    });
+
+    it('Enum with no enumValues: falls back to any string', async () => {
+      const schema = await getToolSchema([
+        {
+          fieldName: 'tag',
+          displayName: 'Tag',
+          isRelationship: false,
+          type: 'Enum',
+          enumValues: [],
+        },
+      ]);
+
+      expect(schema.parse({ fieldName: 'Tag', value: 'anything', reasoning: 'r' }).value).toBe(
+        'anything',
+      );
+    });
+
+    it('Json: accepts valid JSON string, rejects non-JSON', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'metadata', displayName: 'Metadata', isRelationship: false, type: 'Json' },
+      ]);
+
+      expect(
+        schema.parse({ fieldName: 'Metadata', value: '{"key":"val"}', reasoning: 'r' }).value,
+      ).toBe('{"key":"val"}');
+      expect(() =>
+        schema.parse({ fieldName: 'Metadata', value: 'not json', reasoning: 'r' }),
+      ).toThrow();
+    });
+
+    it('Point: accepts [longitude, latitude] array, rejects wrong length', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'location', displayName: 'Location', isRelationship: false, type: 'Point' },
+      ]);
+
+      expect(
+        schema.parse({ fieldName: 'Location', value: [-0.5, 44.8], reasoning: 'r' }).value,
+      ).toEqual([-0.5, 44.8]);
+      expect(() => schema.parse({ fieldName: 'Location', value: [1], reasoning: 'r' })).toThrow();
+    });
+
+    it('String/Uuid/Time (default): accepts any string', async () => {
+      const schemas = await Promise.all(
+        (['String', 'Uuid', 'Time'] as const).map(type =>
+          getToolSchema([{ fieldName: 'f', displayName: 'F', isRelationship: false, type }]),
+        ),
+      );
+
+      for (const schema of schemas) {
+        expect(schema.parse({ fieldName: 'F', value: 'anything', reasoning: 'r' }).value).toBe(
+          'anything',
+        );
+      }
+    });
+
+    it('any field: accepts null value', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'name', displayName: 'Name', isRelationship: false, type: 'String' },
+      ]);
+
+      expect(schema.parse({ fieldName: 'Name', value: null, reasoning: 'r' }).value).toBeNull();
     });
   });
 

@@ -4,6 +4,34 @@ import { z } from 'zod';
 
 // -- Schema types (structure of a collection — source: WorkflowPort) --
 
+// Mirrors PrimitiveTypes from @forestadmin/datasource-toolkit — kept local to avoid
+// adding a hard dependency on datasource-toolkit from the executor package.
+export const PRIMITIVE_TYPES = [
+  'Boolean',
+  'Binary',
+  'Date',
+  'Dateonly',
+  'Enum',
+  'Json',
+  'Number',
+  'Point',
+  'String',
+  'Time',
+  'Timeonly',
+  'Uuid',
+] as const;
+export type PrimitiveType = (typeof PRIMITIVE_TYPES)[number];
+
+// Mirrors ColumnType = PrimitiveTypes | [ColumnType] | { [key: string]: ColumnType }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ColumnTypeSchema: z.ZodType<any> = z.lazy(() =>
+  z.union([
+    z.enum(PRIMITIVE_TYPES),
+    z.tuple([ColumnTypeSchema]),
+    z.record(z.string(), ColumnTypeSchema),
+  ]),
+);
+
 export const FieldSchemaSchema = z
   .object({
     fieldName: z.string().min(1),
@@ -13,6 +41,10 @@ export const FieldSchemaSchema = z
     relationType: z.enum(['BelongsTo', 'HasMany', 'HasOne']).optional(),
     /** Target collection name; only meaningful for relationship fields. */
     relatedCollectionName: z.string().optional(),
+    /** Column type — null for relationship fields. */
+    type: ColumnTypeSchema.nullable(),
+    /** Allowed values for Enum fields. */
+    enumValues: z.array(z.string()).optional(),
   })
   .strict();
 export type FieldSchema = z.infer<typeof FieldSchemaSchema>;

@@ -1,7 +1,7 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldRef, UpdateRecordStepExecutionData } from '../types/step-execution-data';
-import type { CollectionSchema, RecordRef } from '../types/validated/collection';
+import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../types/validated/step-definition';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -23,9 +23,73 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
+const jsonStringSchema = z
+  .string()
+  .refine(
+    val => {
+      try {
+        JSON.parse(val);
+
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Must be a valid JSON string' },
+  )
+  .describe('JSON content as a valid JSON string');
+
+function buildZodSchemaForPrimitive(type: string, enumValues?: string[]): z.ZodTypeAny {
+  switch (type) {
+    case 'Boolean':
+      return z.preprocess(val => {
+        if (typeof val !== 'string') return val;
+        if (val === 'true') return true;
+        if (val === 'false') return false;
+
+        return val;
+      }, z.boolean());
+    case 'Date':
+      return z.string().datetime().describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
+    case 'Dateonly':
+      return z.string().date().describe('ISO 8601 date, e.g. 2024-06-01');
+    case 'Number':
+      return z.coerce.number();
+    case 'Enum':
+      if (enumValues && enumValues.length >= 2) {
+        return z.enum(enumValues as [string, string, ...string[]]);
+      }
+
+      if (enumValues?.length === 1) return z.literal(enumValues[0]);
+
+      return z.string();
+    case 'Json':
+      return jsonStringSchema;
+    case 'Point':
+      return z.array(z.number()).length(2).describe('[longitude, latitude]');
+    // String, Uuid, Time, Binary, Timeonly → plain string
+    default:
+      return z.string();
+  }
+}
+
+function buildZodSchemaForField(field: FieldSchema): z.ZodTypeAny {
+  const { type, enumValues } = field;
+
+  if (Array.isArray(type)) {
+    return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues));
+  }
+
+  if (typeof type === 'object' && type !== null) {
+    return jsonStringSchema;
+  }
+
+  return buildZodSchemaForPrimitive(type as string, enumValues);
+}
+
 interface UpdateTarget extends FieldRef {
   selectedRecordRef: RecordRef;
-  value: string;
+  value: unknown;
 }
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
@@ -66,7 +130,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         const { selectedRecordRef, pendingData } = exec;
         const target: UpdateTarget = {
           selectedRecordRef,
-          ...(pendingData as FieldRef & { value: string }),
+          ...(pendingData as FieldRef & { value: unknown }),
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -173,7 +237,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ fieldName: string; value: string; reasoning: string }> {
+  ): Promise<{ fieldName: string; value: unknown; reasoning: string }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -185,7 +249,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       new HumanMessage(`**Request**: ${prompt ?? 'Update the relevant field.'}`),
     ];
 
-    return this.invokeWithTool<{ fieldName: string; value: string; reasoning: string }>(
+    return this.invokeWithTool<{ fieldName: string; value: unknown; reasoning: string }>(
       messages,
       tool,
     );
@@ -198,18 +262,32 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       throw new NoWritableFieldsError(schema.collectionName);
     }
 
-    const displayNames = nonRelationFields.map(f => f.displayName) as [string, ...string[]];
+    type FieldObject = z.ZodObject<{
+      fieldName: z.ZodLiteral<string>;
+      value: z.ZodNullable<z.ZodTypeAny>;
+      reasoning: z.ZodString;
+    }>;
+
+    const fieldObjects = nonRelationFields.map(f =>
+      z.object({
+        fieldName: z.literal(f.displayName),
+        value: buildZodSchemaForField(f).nullable(),
+        reasoning: z.string().describe('Why this field and value were chosen'),
+      }),
+    ) as FieldObject[];
+
+    const unionSchema =
+      fieldObjects.length === 1
+        ? fieldObjects[0]
+        : z.discriminatedUnion(
+            'fieldName',
+            fieldObjects as [FieldObject, FieldObject, ...FieldObject[]],
+          );
 
     return new DynamicStructuredTool({
       name: 'update-record-field',
       description: 'Update a field on the selected record.',
-      schema: z.object({
-        fieldName: z.enum(displayNames),
-        // z.string() intentionally: the value is always transmitted as string
-        // to updateRecord; data typing is handled by the agent/datasource layer.
-        value: z.string().describe('The new value for the field'),
-        reasoning: z.string().describe('Why this field and value were chosen'),
-      }),
+      schema: unionSchema,
       func: undefined,
     });
   }

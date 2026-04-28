@@ -825,6 +825,7 @@ describe('ForestServerWorkflowPort', () => {
             fieldName: 'id',
             displayName: 'Id',
             isRelationship: false,
+            type: 'String',
           },
         ],
         actions: [],
