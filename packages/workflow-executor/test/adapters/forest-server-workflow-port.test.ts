@@ -633,6 +633,20 @@ describe('ForestServerWorkflowPort', () => {
       await expect(port.getCollectionSchema('users', '42')).rejects.toThrow();
     });
 
+    it('normalizes collectionDisplayName: null to collectionName', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: null,
+        primaryKeyFields: ['id'],
+        fields: [],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.collectionDisplayName).toBe('users');
+    });
+
     it('accepts relationType BelongsToMany (many-to-many relation)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',

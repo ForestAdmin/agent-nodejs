@@ -78,12 +78,17 @@ export type ActionSchema = z.infer<typeof ActionSchemaSchema>;
 export const CollectionSchemaSchema = z
   .object({
     collectionName: z.string().min(1),
-    collectionDisplayName: z.string().min(1),
+    // null when the rendering has no explicit displayName configured — normalized to collectionName.
+    collectionDisplayName: z.string().min(1).nullable(),
     primaryKeyFields: z.array(z.string().min(1)).min(1),
     fields: z.array(FieldSchemaSchema),
     actions: z.array(ActionSchemaSchema),
   })
-  .strict();
+  .strict()
+  .transform(data => ({
+    ...data,
+    collectionDisplayName: data.collectionDisplayName ?? data.collectionName,
+  }));
 export type CollectionSchema = z.infer<typeof CollectionSchemaSchema>;
 
 // -- Record types (data — source: AgentPort/RunStore) --
