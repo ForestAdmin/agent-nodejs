@@ -44,7 +44,7 @@
     "start:watch:inspect": "node --enable-source-maps --async-stack-traces -r ts-node/register --watch --inspect src/serve.ts",
     "test": "jest",
     "db:seed": "ts-node scripts/db-seed.ts",
-    "start:with-executor": "concurrently --kill-others --names 'agent,executor' \"yarn start\" \"bash -c 'set -a && source .env && AGENT_URL=\\$EXECUTOR_AGENT_URL && DATABASE_URL=\\$EXECUTOR_DATABASE_URL && until curl -s \\$EXECUTOR_AGENT_URL >/dev/null 2>&1; do sleep 1; done && exec tsx watch ../workflow-executor/src/cli.ts --pretty'\"",
+    "start:with-executor": "concurrently --kill-others --names 'agent,executor' \"yarn start\" \"bash -c 'set -a && source .env && AGENT_URL=\\$EXECUTOR_AGENT_URL && DATABASE_URL=\\$EXECUTOR_DATABASE_URL && until curl -s \\$EXECUTOR_AGENT_URL >/dev/null 2>&1; do sleep 1; done && exec tsx ../workflow-executor/src/cli.ts --pretty'\"",
     "db:executor:up": "cd ../workflow-executor/example && docker compose up -d",
     "db:executor:down": "cd ../workflow-executor/example && docker compose down",
     "db:executor:reset": "cd ../workflow-executor/example && docker compose down -v && docker compose up -d"
