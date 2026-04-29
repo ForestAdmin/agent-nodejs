@@ -125,11 +125,11 @@ function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
 }
 
 export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig {
-  const requiredBase = ['FOREST_ENV_SECRET', 'FOREST_AUTH_SECRET', 'AGENT_URL'] as const;
+  const requiredBase = ['FOREST_ENV_SECRET', 'FOREST_AUTH_SECRET', 'EXECUTOR_AGENT_URL'] as const;
   const missing: string[] = requiredBase.filter(key => !env[key]);
 
-  if (!args.inMemory && !env.DATABASE_URL) {
-    missing.push('DATABASE_URL (required unless --in-memory)');
+  if (!args.inMemory && !env.EXECUTOR_DATABASE_URL) {
+    missing.push('EXECUTOR_DATABASE_URL (required unless --in-memory)');
   }
 
   if (missing.length > 0) {
@@ -144,7 +144,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
   const executorOptions: ExecutorOptions = {
     envSecret: env.FOREST_ENV_SECRET as string,
     authSecret: env.FOREST_AUTH_SECRET as string,
-    agentUrl: env.AGENT_URL as string,
+    agentUrl: env.EXECUTOR_AGENT_URL as string,
     httpPort: parsePositiveIntEnv('HTTP_PORT', env.HTTP_PORT) ?? 3400,
     forestServerUrl: env.FOREST_SERVER_URL,
     pollingIntervalMs: parsePositiveIntEnv('POLLING_INTERVAL_MS', env.POLLING_INTERVAL_MS),
@@ -156,7 +156,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
 
   return {
     executorOptions,
-    databaseUrl: env.DATABASE_URL,
+    databaseUrl: env.EXECUTOR_DATABASE_URL,
     mode: args.inMemory ? 'in-memory' : 'database',
   };
 }
@@ -176,8 +176,8 @@ Options:
 Required environment variables:
   FOREST_ENV_SECRET   Forest Admin project environment secret
   FOREST_AUTH_SECRET  JWT signing secret (shared with your agent)
-  AGENT_URL           URL of your running Forest Admin agent
-  DATABASE_URL        Postgres connection string (not needed with --in-memory)
+  EXECUTOR_AGENT_URL      URL of your running Forest Admin agent
+  EXECUTOR_DATABASE_URL   Postgres connection string (not needed with --in-memory)
 
 Optional environment variables:
   HTTP_PORT              Default: 3400
