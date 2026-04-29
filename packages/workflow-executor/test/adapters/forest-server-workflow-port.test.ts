@@ -632,6 +632,86 @@ describe('ForestServerWorkflowPort', () => {
 
       await expect(port.getCollectionSchema('users', '42')).rejects.toThrow();
     });
+
+    it('accepts relationType BelongsToMany (many-to-many relation)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'tags',
+            displayName: 'Tags',
+            isRelationship: true,
+            relationType: 'BelongsToMany',
+            relatedCollectionName: 'tags',
+            type: null,
+          },
+        ],
+        actions: [],
+      });
+
+      await expect(port.getCollectionSchema('users', '42')).resolves.toMatchObject({
+        collectionName: 'users',
+      });
+    });
+
+    it('accepts type File (Forest Admin extension)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          { fieldName: 'avatar', displayName: 'Avatar', isRelationship: false, type: 'File' },
+        ],
+        actions: [],
+      });
+
+      await expect(port.getCollectionSchema('users', '42')).resolves.toMatchObject({
+        collectionName: 'users',
+      });
+    });
+
+    it('accepts type [File] (array of files)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'attachments',
+            displayName: 'Attachments',
+            isRelationship: false,
+            type: ['File'],
+          },
+        ],
+        actions: [],
+      });
+
+      await expect(port.getCollectionSchema('users', '42')).resolves.toMatchObject({
+        collectionName: 'users',
+      });
+    });
+
+    it('rejects enumValues: [] (empty enum is invalid)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'status',
+            displayName: 'Status',
+            isRelationship: false,
+            type: 'Enum',
+            enumValues: [],
+          },
+        ],
+        actions: [],
+      });
+
+      await expect(port.getCollectionSchema('users', '42')).rejects.toThrow();
+    });
   });
 
   describe('getMcpServerConfigs', () => {

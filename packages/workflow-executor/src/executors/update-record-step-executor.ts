@@ -67,7 +67,7 @@ function buildZodSchemaForPrimitive(type: string, enumValues?: string[]): z.ZodT
       return jsonStringSchema;
     case 'Point':
       return z.array(z.number()).length(2).describe('[longitude, latitude]');
-    // String, Uuid, Time, Binary, Timeonly → plain string
+    // String, Uuid, Time, Binary, Timeonly, File → plain string
     default:
       return z.string();
   }

@@ -33,7 +33,7 @@ Choose the record that best matches the user request based on the provided field
 
 interface RelationTarget extends RelationRef {
   selectedRecordRef: RecordRef;
-  relationType?: 'BelongsTo' | 'HasMany' | 'HasOne';
+  relationType?: 'BelongsTo' | 'HasMany' | 'HasOne' | 'BelongsToMany';
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {

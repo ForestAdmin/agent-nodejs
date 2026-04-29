@@ -12,6 +12,7 @@ export const PRIMITIVE_TYPES = [
   'Date',
   'Dateonly',
   'Enum',
+  'File',
   'Json',
   'Number',
   'Point',
@@ -38,13 +39,13 @@ export const FieldSchemaSchema = z
     displayName: z.string().min(1),
     isRelationship: z.boolean(),
     /** Cardinality of the relation. Absent for non-relationship fields. */
-    relationType: z.enum(['BelongsTo', 'HasMany', 'HasOne']).optional(),
+    relationType: z.enum(['BelongsTo', 'HasMany', 'HasOne', 'BelongsToMany']).optional(),
     /** Target collection name; only meaningful for relationship fields. */
     relatedCollectionName: z.string().optional(),
     /** Column type — null for relationship fields. */
     type: ColumnTypeSchema.nullable(),
     /** Allowed values for Enum fields. */
-    enumValues: z.array(z.string()).optional(),
+    enumValues: z.array(z.string()).min(1).optional(),
   })
   .strict();
 export type FieldSchema = z.infer<typeof FieldSchemaSchema>;

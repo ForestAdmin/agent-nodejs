@@ -1158,9 +1158,9 @@ describe('UpdateRecordStepExecutor', () => {
       expect(() => schema.parse({ fieldName: 'Location', value: [1], reasoning: 'r' })).toThrow();
     });
 
-    it('String/Uuid/Time (default): accepts any string', async () => {
+    it('String/Uuid/Time/File (default): accepts any string', async () => {
       const schemas = await Promise.all(
-        (['String', 'Uuid', 'Time'] as const).map(type =>
+        (['String', 'Uuid', 'Time', 'File'] as const).map(type =>
           getToolSchema([{ fieldName: 'f', displayName: 'F', isRelationship: false, type }]),
         ),
       );
@@ -1170,6 +1170,28 @@ describe('UpdateRecordStepExecutor', () => {
           'anything',
         );
       }
+    });
+
+    it('type [File]: accepts array of strings', async () => {
+      const schema = await getToolSchema([
+        {
+          fieldName: 'attachments',
+          displayName: 'Attachments',
+          isRelationship: false,
+          type: ['File'],
+        },
+      ]);
+
+      expect(
+        schema.parse({
+          fieldName: 'Attachments',
+          value: ['file1.pdf', 'file2.pdf'],
+          reasoning: 'r',
+        }).value,
+      ).toEqual(['file1.pdf', 'file2.pdf']);
+      expect(() =>
+        schema.parse({ fieldName: 'Attachments', value: 'not-an-array', reasoning: 'r' }),
+      ).toThrow();
     });
 
     it('any field: accepts null value', async () => {
