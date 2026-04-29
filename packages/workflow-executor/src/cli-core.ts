@@ -145,7 +145,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     envSecret: env.FOREST_ENV_SECRET as string,
     authSecret: env.FOREST_AUTH_SECRET as string,
     agentUrl: env.AGENT_URL as string,
-    httpPort: env.HTTP_PORT ? Number(env.HTTP_PORT) : 3400,
+    httpPort: parsePositiveIntEnv('HTTP_PORT', env.HTTP_PORT) ?? 3400,
     forestServerUrl: env.FOREST_SERVER_URL,
     pollingIntervalMs: parsePositiveIntEnv('POLLING_INTERVAL_MS', env.POLLING_INTERVAL_MS),
     stopTimeoutMs: parsePositiveIntEnv('STOP_TIMEOUT_MS', env.STOP_TIMEOUT_MS),

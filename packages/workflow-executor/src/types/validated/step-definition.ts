@@ -56,7 +56,7 @@ export const UpdateRecordStepDefinitionSchema = z
         selectedRecordStepIndex: z.number().int().optional(),
         /** Display name of the field to update */
         fieldDisplayName: z.string().optional(),
-        value: z.string().optional(),
+        value: z.unknown().optional(),
       })
       .strict()
       .optional(),

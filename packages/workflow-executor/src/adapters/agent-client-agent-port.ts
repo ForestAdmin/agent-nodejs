@@ -212,8 +212,18 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   private resolveSchema(collectionName: string): CollectionSchema {
+    const cached = this.schemaCache.get(collectionName);
+
+    if (!cached) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[workflow-executor] Schema not found in cache for collection "${collectionName}". ` +
+          'Falling back to primaryKeyFields: ["id"]. Call getCollectionSchema first.',
+      );
+    }
+
     return (
-      this.schemaCache.get(collectionName) ?? {
+      cached ?? {
         collectionName,
         collectionDisplayName: collectionName,
         primaryKeyFields: ['id'],

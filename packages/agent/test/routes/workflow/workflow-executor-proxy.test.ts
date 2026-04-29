@@ -12,11 +12,13 @@ describe('WorkflowExecutorProxyRoute', () => {
   let executorServer: http.Server;
   let executorPort: number;
   let receivedHeaders: Record<string, string | string[] | undefined> = {};
+  let receivedUrl: string | undefined;
 
   // Start a real HTTP server to act as the workflow executor
   beforeAll(async () => {
     executorServer = http.createServer((req, res) => {
       receivedHeaders = { ...req.headers };
+      receivedUrl = req.url;
       const chunks: Uint8Array[] = [];
       req.on('data', chunk => chunks.push(chunk));
       req.on('end', () => {
@@ -27,10 +29,10 @@ describe('WorkflowExecutorProxyRoute', () => {
         if (req.url?.includes('not-found')) {
           res.writeHead(404);
           res.end(JSON.stringify({ error: 'Run not found or unavailable' }));
-        } else if (req.method === 'GET' && req.url?.match(/^\/runs\/[\w-]+$/)) {
+        } else if (req.method === 'GET' && req.url?.match(/^\/runs\/[\w-]+(\/.*)?(\?.*)?$/)) {
           res.writeHead(200);
           res.end(JSON.stringify({ steps: [{ stepId: 's1', status: 'success' }] }));
-        } else if (req.method === 'POST' && req.url?.match(/^\/runs\/[\w-]+\/trigger$/)) {
+        } else if (req.method === 'POST' && req.url?.match(/^\/runs\/[\w-]+\/trigger(\?.*)?$/)) {
           const parsed = body ? JSON.parse(body) : {};
           res.writeHead(200);
           res.end(JSON.stringify({ triggered: true, received: parsed }));
@@ -59,6 +61,7 @@ describe('WorkflowExecutorProxyRoute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     receivedHeaders = {};
+    receivedUrl = undefined;
   });
 
   const buildOptions = (url: string) =>
@@ -99,7 +102,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       const context = createMockContext({
         customProperties: { params: { runId: 'run-123' } },
       });
-      Object.defineProperty(context, 'path', {
+      Object.defineProperty(context, 'url', {
         value: '/_internal/workflow-executions/run-123',
       });
 
@@ -124,7 +127,7 @@ describe('WorkflowExecutorProxyRoute', () => {
         customProperties: { params: { runId: 'run-456' } },
         requestBody: { pendingData: { answer: 'yes' } },
       });
-      Object.defineProperty(context, 'path', {
+      Object.defineProperty(context, 'url', {
         value: '/_internal/workflow-executions/run-456/trigger',
       });
 
@@ -148,7 +151,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       const context = createMockContext({
         customProperties: { params: { runId: 'not-found' } },
       });
-      Object.defineProperty(context, 'path', {
+      Object.defineProperty(context, 'url', {
         value: '/_internal/workflow-executions/not-found',
       });
 
@@ -173,7 +176,7 @@ describe('WorkflowExecutorProxyRoute', () => {
           cookie: 'forest_session_token=cookie-token',
         },
       });
-      Object.defineProperty(context, 'path', {
+      Object.defineProperty(context, 'url', {
         value: '/_internal/workflow-executions/run-123',
       });
 
@@ -194,7 +197,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       const context = createMockContext({
         customProperties: { params: { runId: 'run-123' } },
       });
-      Object.defineProperty(context, 'path', {
+      Object.defineProperty(context, 'url', {
         value: '/_internal/workflow-executions/run-123',
       });
 
@@ -212,13 +215,33 @@ describe('WorkflowExecutorProxyRoute', () => {
       const context = createMockContext({
         customProperties: { params: { runId: 'run-789' } },
       });
-      Object.defineProperty(context, 'path', {
+      Object.defineProperty(context, 'url', {
         value: '/_internal/workflow-executions/run-789',
       });
 
       await expect(
         (route as unknown as { handleProxy: (ctx: unknown) => Promise<void> }).handleProxy(context),
       ).rejects.toThrow();
+    });
+
+    test('should forward query params to the executor', async () => {
+      const route = new WorkflowExecutorProxyRoute(
+        services,
+        buildOptions(`http://localhost:${executorPort}`),
+      );
+
+      const context = createMockContext({
+        customProperties: { params: { runId: 'run-123' } },
+      });
+      Object.defineProperty(context, 'url', {
+        value: '/_internal/workflow-executions/run-123?foo=bar&page=2',
+      });
+
+      await (route as unknown as { handleProxy: (ctx: unknown) => Promise<void> }).handleProxy(
+        context,
+      );
+
+      expect(receivedUrl).toBe('/runs/run-123?foo=bar&page=2');
     });
   });
 });

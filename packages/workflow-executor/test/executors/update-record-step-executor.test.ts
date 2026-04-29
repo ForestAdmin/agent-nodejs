@@ -1002,6 +1002,34 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
     });
+
+    it('accepts non-string pre-recorded value (Number) and passes it through to updateRecord', async () => {
+      const runStore = makeMockRunStore();
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
+          ],
+        }),
+      });
+      const context = makeContext({
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({
+          automaticExecution: true,
+          preRecordedArgs: { fieldDisplayName: 'Age', value: 42 },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ values: { age: 42 } }),
+        context.user,
+      );
+    });
   });
 
   describe('buildUpdateFieldTool — type-specific schemas', () => {
@@ -1200,6 +1228,24 @@ describe('UpdateRecordStepExecutor', () => {
       ]);
 
       expect(schema.parse({ fieldName: 'Name', value: null, reasoning: 'r' }).value).toBeNull();
+    });
+
+    it('type [[String]] (nested array): treats as array of JSON strings', async () => {
+      const schema = await getToolSchema([
+        {
+          fieldName: 'data',
+          displayName: 'Data',
+          isRelationship: false,
+          type: [['String']] as unknown as ['String'],
+        },
+      ]);
+
+      expect(
+        schema.parse({ fieldName: 'Data', value: ['{"a":1}', '{"b":2}'], reasoning: 'r' }).value,
+      ).toEqual(['{"a":1}', '{"b":2}']);
+      expect(() =>
+        schema.parse({ fieldName: 'Data', value: ['not json'], reasoning: 'r' }),
+      ).toThrow();
     });
   });
 

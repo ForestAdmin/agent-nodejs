@@ -77,6 +77,9 @@ function buildZodSchemaForField(field: FieldSchema): z.ZodTypeAny {
   const { type, enumValues } = field;
 
   if (Array.isArray(type)) {
+    // Nested array (e.g. [['String']]) → treat as opaque JSON.
+    if (Array.isArray(type[0])) return z.array(jsonStringSchema);
+
     return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues));
   }
 
@@ -167,7 +170,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     const args =
       preRecordedArgs?.fieldDisplayName !== undefined
-        ? { fieldName: preRecordedArgs.fieldDisplayName, value: preRecordedArgs.value as string }
+        ? { fieldName: preRecordedArgs.fieldDisplayName, value: preRecordedArgs.value }
         : await this.selectFieldAndValue(schema, step.prompt);
     const name = this.resolveFieldName(schema, args.fieldName);
     const target: UpdateTarget = {

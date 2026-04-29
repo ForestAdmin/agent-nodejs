@@ -33,11 +33,11 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
   }
 
   private async handleProxy(context: Context): Promise<void> {
-    const executorPath = context.path.replace(
+    const executorRelativeUrl = context.url.replace(
       WorkflowExecutorProxyRoute.AGENT_PREFIX,
       WorkflowExecutorProxyRoute.EXECUTOR_PREFIX,
     );
-    const targetUrl = new URL(executorPath, this.executorUrl);
+    const targetUrl = new URL(executorRelativeUrl, this.executorUrl);
 
     const forwardedHeaders: ForwardedHeaders = {
       authorization: context.request.header.authorization,
