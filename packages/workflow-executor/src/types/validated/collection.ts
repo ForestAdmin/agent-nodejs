@@ -79,7 +79,7 @@ export const CollectionSchemaSchema = z
   .object({
     collectionName: z.string().min(1),
     // null when the rendering has no explicit displayName configured — normalized to collectionName.
-    collectionDisplayName: z.string().min(1).nullable(),
+    collectionDisplayName: z.string().nullable(),
     primaryKeyFields: z.array(z.string().min(1)).min(1),
     fields: z.array(FieldSchemaSchema),
     actions: z.array(ActionSchemaSchema),
@@ -87,7 +87,7 @@ export const CollectionSchemaSchema = z
   .strict()
   .transform(data => ({
     ...data,
-    collectionDisplayName: data.collectionDisplayName ?? data.collectionName,
+    collectionDisplayName: data.collectionDisplayName || data.collectionName,
   }));
 export type CollectionSchema = z.infer<typeof CollectionSchemaSchema>;
 
