@@ -1,9 +1,15 @@
 import ForestIntegrationClient from '../src/forest-integration-client';
 import { validateKolarConfig } from '../src/integrations/kolar/utils';
+import { validateSnowflakeConfig } from '../src/integrations/snowflake/utils';
 import { validateZendeskConfig } from '../src/integrations/zendesk/utils';
 
 const mockZendeskTools = [{ name: 'zendesk_get_tickets' }, { name: 'zendesk_get_ticket' }];
 const mockKolarTools = [{ name: 'kolar_screen_transaction' }, { name: 'kolar_get_result' }];
+const mockSnowflakeTools = [
+  { name: 'snowflake_cortex_search' },
+  { name: 'snowflake_cortex_analyst' },
+  { name: 'snowflake_execute_query' },
+];
 
 jest.mock('../src/integrations/zendesk/tools', () => ({
   __esModule: true,
@@ -15,8 +21,14 @@ jest.mock('../src/integrations/kolar/tools', () => ({
   default: jest.fn(() => mockKolarTools),
 }));
 
+jest.mock('../src/integrations/snowflake/tools', () => ({
+  __esModule: true,
+  default: jest.fn(() => mockSnowflakeTools),
+}));
+
 jest.mock('../src/integrations/zendesk/utils');
 jest.mock('../src/integrations/kolar/utils');
+jest.mock('../src/integrations/snowflake/utils');
 
 describe('ForestIntegrationClient', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -61,6 +73,23 @@ describe('ForestIntegrationClient', () => {
       const tools = await client.loadTools();
 
       expect(tools).toEqual(mockKolarTools);
+    });
+
+    it('should load snowflake tools when integration is Snowflake', async () => {
+      const client = new ForestIntegrationClient([
+        {
+          integrationName: 'Snowflake',
+          config: {
+            accountIdentifier: 'a',
+            programmaticAccessToken: 'tok',
+          },
+          isForestConnector: true,
+        },
+      ]);
+
+      const tools = await client.loadTools();
+
+      expect(tools).toEqual(mockSnowflakeTools);
     });
 
     it('should return empty array when no configs', async () => {
@@ -124,6 +153,20 @@ describe('ForestIntegrationClient', () => {
       await client.checkConnection();
 
       expect(validateKolarConfig).toHaveBeenCalledWith(kolarConfig);
+    });
+
+    it('should call validateSnowflakeConfig for Snowflake integration', async () => {
+      const snowflakeConfig = {
+        accountIdentifier: 'a',
+        programmaticAccessToken: 'tok',
+      };
+      const client = new ForestIntegrationClient([
+        { integrationName: 'Snowflake', config: snowflakeConfig, isForestConnector: true },
+      ]);
+
+      await client.checkConnection();
+
+      expect(validateSnowflakeConfig).toHaveBeenCalledWith(snowflakeConfig);
     });
 
     it('should throw for unsupported integration', async () => {
