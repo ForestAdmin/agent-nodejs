@@ -15,8 +15,8 @@ import {
 const baseEnv: NodeJS.ProcessEnv = {
   FOREST_ENV_SECRET: 'env-secret',
   FOREST_AUTH_SECRET: 'auth-secret',
-  EXECUTOR_AGENT_URL: 'http://localhost:3351',
-  EXECUTOR_DATABASE_URL: 'postgres://u:p@localhost:5432/wfe',
+  AGENT_URL: 'http://localhost:3351',
+  DATABASE_URL: 'postgres://u:p@localhost:5432/wfe',
 };
 
 function makeFakeExecutor(): WorkflowExecutor {
@@ -184,13 +184,13 @@ describe('readEnvConfig', () => {
 
   it('aggregates all missing required env vars in a single error', () => {
     expect(() => readEnvConfig({}, args)).toThrow(
-      /FOREST_ENV_SECRET[\s\S]*FOREST_AUTH_SECRET[\s\S]*EXECUTOR_AGENT_URL[\s\S]*EXECUTOR_DATABASE_URL/,
+      /FOREST_ENV_SECRET[\s\S]*FOREST_AUTH_SECRET[\s\S]*AGENT_URL[\s\S]*DATABASE_URL/,
     );
   });
 
-  it('does not require EXECUTOR_DATABASE_URL in --in-memory mode', () => {
+  it('does not require DATABASE_URL in --in-memory mode', () => {
     const envWithoutDb = { ...baseEnv };
-    delete envWithoutDb.EXECUTOR_DATABASE_URL;
+    delete envWithoutDb.DATABASE_URL;
     const config = readEnvConfig(envWithoutDb, { ...args, inMemory: true });
 
     expect(config.mode).toBe('in-memory');
@@ -341,7 +341,7 @@ describe('runCli', () => {
 
   it('builds an in-memory executor with --in-memory', async () => {
     const env = { ...baseEnv };
-    delete env.EXECUTOR_DATABASE_URL;
+    delete env.DATABASE_URL;
     const { factories, executor } = makeFactories();
     await runCli(['--in-memory'], env, factories);
 
