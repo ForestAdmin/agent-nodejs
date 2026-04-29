@@ -1007,9 +1007,7 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore();
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema({
-          fields: [
-            { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
-          ],
+          fields: [{ fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' }],
         }),
       });
       const context = makeContext({
