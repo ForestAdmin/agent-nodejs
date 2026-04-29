@@ -95,6 +95,7 @@ export default class Runner {
     if (this._state === 'idle' || this._state === 'stopped' || this._state === 'draining') return;
 
     this._state = 'draining';
+    this.logger.info('Graceful shutdown initiated', { inFlightRuns: this.inFlightRuns.size });
 
     if (this.pollingTimer !== null) {
       clearTimeout(this.pollingTimer);
@@ -150,6 +151,7 @@ export default class Runner {
       }
     } finally {
       this._state = 'stopped';
+      this.logger.info('Workflow executor stopped', {});
     }
   }
 
