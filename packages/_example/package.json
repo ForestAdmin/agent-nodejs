@@ -43,10 +43,15 @@
     "start:watch": "node --enable-source-maps --async-stack-traces -r ts-node/register --watch src/serve.ts",
     "start:watch:inspect": "node --enable-source-maps --async-stack-traces -r ts-node/register --watch --inspect src/serve.ts",
     "test": "jest",
-    "db:seed": "ts-node scripts/db-seed.ts"
+    "db:seed": "ts-node scripts/db-seed.ts",
+    "start:with-executor": "concurrently --kill-others --names 'agent,executor' \"yarn start\" \"bash -c 'sleep 5 && node --env-file=.env ../workflow-executor/dist/cli.js --pretty'\"",
+    "db:executor:up": "cd ../workflow-executor/example && docker compose up -d",
+    "db:executor:down": "cd ../workflow-executor/example && docker compose down",
+    "db:executor:reset": "cd ../workflow-executor/example && docker compose down -v && docker compose up -d"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
+    "concurrently": "^9.0.0",
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
     "typescript": "^5.6.3"
