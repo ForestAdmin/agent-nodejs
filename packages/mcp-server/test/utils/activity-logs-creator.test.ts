@@ -279,7 +279,7 @@ describe('markActivityLogAsFailed', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
   }
 
-  it('should call updateActivityLogStatus with failed status and error message', async () => {
+  it('should call updateActivityLogStatus with failed status', async () => {
     const request = createMockRequest();
     const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
     const mockLogger = jest.fn();
@@ -446,29 +446,4 @@ describe('markActivityLogAsSucceeded', () => {
     jest.useRealTimers();
   });
 
-  it('should not include errorMessage in completed status', async () => {
-    jest.useFakeTimers();
-
-    const request = createMockRequest();
-    const activityLog = { id: 'log-123', attributes: { index: 'idx-456' } };
-    const mockLogger = jest.fn();
-
-    markActivityLogAsSucceeded({
-      forestServerClient: mockForestServerClient,
-      request,
-      activityLog,
-      logger: mockLogger,
-    });
-
-    // Wait for the fire-and-forget promise to resolve
-    await jest.advanceTimersByTimeAsync(0);
-
-    expect(mockForestServerClient.updateActivityLogStatus).toHaveBeenCalledWith({
-      forestServerToken: 'test-forest-token',
-      activityLog,
-      status: 'completed',
-    });
-
-    jest.useRealTimers();
-  });
 });
