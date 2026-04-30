@@ -84,7 +84,6 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
               forestServerToken: this.forestServerToken,
               activityLog: { id: handle.id, attributes: { index: handle.index } },
               status: 'failed',
-              errorMessage,
             }),
           { logger: this.logger },
         );

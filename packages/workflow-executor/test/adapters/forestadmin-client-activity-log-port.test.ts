@@ -190,7 +190,7 @@ describe('ForestadminClientActivityLogPort', () => {
   });
 
   describe('markFailed', () => {
-    it('forwards the errorMessage and retries on 503', async () => {
+    it('sends status: failed (no errorMessage — server schema rejects unknown fields) and retries on 503', async () => {
       const service = makeService();
       service.updateActivityLogStatus
         .mockRejectedValueOnce(makeHttpError(503))
@@ -204,9 +204,11 @@ describe('ForestadminClientActivityLogPort', () => {
       expect(service.updateActivityLogStatus).toHaveBeenLastCalledWith(
         expect.objectContaining({
           status: 'failed',
-          errorMessage: 'boom',
           forestServerToken: 'tok',
         }),
+      );
+      expect(service.updateActivityLogStatus).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({ errorMessage: expect.anything() }),
       );
     });
 
