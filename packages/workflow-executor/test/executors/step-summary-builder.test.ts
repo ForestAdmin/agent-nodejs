@@ -357,6 +357,78 @@ describe('StepSummaryBuilder', () => {
         expect(result).not.toContain('handled this step manually');
         expect(result).toContain('Pending:');
       });
+
+      it('does NOT signal manually handled for trigger-action completed via saveFrontendResult (executionResult present)', () => {
+        const step: StepDefinition = {
+          type: StepType.TriggerAction,
+          prompt: 'Archive the customer',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'trigger-action',
+          stepIndex: 0,
+          pendingData: { displayName: 'Archive Customer', name: 'archive' },
+          executionResult: { success: true, actionResult: {} },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+      });
+
+      it('does NOT signal manually handled for update-record skipped (executionResult: skipped)', () => {
+        const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status' };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          executionResult: { skipped: true },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+      });
+
+      it('does NOT signal manually handled for load-related-record success (executionResult present, no idempotencyPhase)', () => {
+        const step: StepDefinition = {
+          type: StepType.LoadRelatedRecord,
+          prompt: 'Load the address',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'load-1',
+          stepIndex: 1,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'load-related-record',
+          stepIndex: 1,
+          selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+          pendingData: { displayName: 'Address', name: 'address', selectedRecordId: [1] },
+          executionResult: {
+            relation: { name: 'address', displayName: 'Address' },
+            record: { collectionName: 'addresses', recordId: [1], stepIndex: 1 },
+          },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+      });
     });
 
     it('shows "(no prompt)" when step has no prompt', () => {
