@@ -1,3 +1,19 @@
+## @forestadmin/agent [1.78.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.7...@forestadmin/agent@1.78.8) (2026-04-30)
+
+
+### Bug Fixes
+
+* **logger:** add logger in case of start failure ([#1572](https://github.com/ForestAdmin/agent-nodejs/issues/1572)) ([f6a90c6](https://github.com/ForestAdmin/agent-nodejs/commit/f6a90c679884c78623b975bba75af5651de09b96))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.5
+* **@forestadmin/mcp-server:** upgraded to 1.11.7
+
 ## @forestadmin/agent [1.78.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.6...@forestadmin/agent@1.78.7) (2026-04-24)
 
 
