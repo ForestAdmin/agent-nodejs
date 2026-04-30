@@ -116,7 +116,6 @@ describe('withActivityLog', () => {
       forestServerClient: mockForestServerClient,
       request: mockRequest,
       activityLog: mockActivityLog,
-      errorMessage: 'Operation failed',
       logger: mockLogger,
     });
   });
@@ -162,7 +161,6 @@ describe('withActivityLog', () => {
       forestServerClient: mockForestServerClient,
       request: mockRequest,
       activityLog: mockActivityLog,
-      errorMessage: 'Invalid field value',
       logger: mockLogger,
     });
   });
@@ -185,7 +183,6 @@ describe('withActivityLog', () => {
       forestServerClient: mockForestServerClient,
       request: mockRequest,
       activityLog: mockActivityLog,
-      errorMessage: 'string error',
       logger: mockLogger,
     });
   });
@@ -258,7 +255,6 @@ describe('withActivityLog', () => {
         forestServerClient: mockForestServerClient,
         request: mockRequest,
         activityLog: mockActivityLog,
-        errorMessage: 'Enhanced error message',
         logger: mockLogger,
       });
     });
@@ -282,7 +278,6 @@ describe('withActivityLog', () => {
         forestServerClient: mockForestServerClient,
         request: mockRequest,
         activityLog: mockActivityLog,
-        errorMessage: 'Original error',
         logger: mockLogger,
       });
     });
