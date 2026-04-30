@@ -22,6 +22,27 @@ import {
   extractErrorMessage,
 } from '../errors';
 
+// The agent-client HTTP layer deserializes JSON:API responses with camelCase keys.
+// Field names in the schema and in GetRecordQuery.fields use the original format (e.g. snake_case).
+// This function restores the original field names so callers can look up values by schema fieldName.
+function restoreFieldNames(
+  values: Record<string, unknown>,
+  originalFieldNames: string[] | undefined,
+): Record<string, unknown> {
+  if (!originalFieldNames?.length) return values;
+
+  const camelToOriginal: Record<string, string> = {};
+
+  for (const name of originalFieldNames) {
+    const camelName = name.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+    camelToOriginal[camelName] = name;
+  }
+
+  return Object.fromEntries(
+    Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]),
+  );
+}
+
 function buildPkFilter(
   primaryKeyFields: string[],
   id: Array<string | number>,
@@ -72,7 +93,7 @@ export default class AgentClientAgentPort implements AgentPort {
         throw new RecordNotFoundError(collection, id.join('|'));
       }
 
-      return { collectionName: collection, recordId: id, values: records[0] };
+      return { collectionName: collection, recordId: id, values: restoreFieldNames(records[0], fields) };
     });
   }
 

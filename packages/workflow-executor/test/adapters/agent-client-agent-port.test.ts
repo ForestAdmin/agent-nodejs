@@ -164,6 +164,19 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
+    it('should restore snake_case field names when agent returns camelCase keys', async () => {
+      // The agent-client HTTP layer deserializes JSON:API responses with camelCase keys.
+      // restoreFieldNames must map them back to the original snake_case names.
+      mockCollection.list.mockResolvedValue([{ cardNumber: '4111', isActive: true }]);
+
+      const result = await port.getRecord(
+        { collection: 'users', id: [42], fields: ['card_number', 'is_active'] },
+        user,
+      );
+
+      expect(result.values).toEqual({ card_number: '4111', is_active: true });
+    });
+
     it('should not pass fields to list when fields is undefined', async () => {
       mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
 
