@@ -75,7 +75,15 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
   }
 
   async postSchema(options: HttpOptions, schema: object): Promise<void> {
-    await ServerUtils.query(options, 'post', '/forest/apimaps', {}, schema);
+    const schemaPublicationTimeout = 30_000;
+    await ServerUtils.query(
+      options,
+      'post',
+      '/forest/apimaps',
+      {},
+      schema,
+      schemaPublicationTimeout,
+    );
   }
 
   async checkSchemaHash(options: HttpOptions, hash: string): Promise<{ sendSchema: boolean }> {
