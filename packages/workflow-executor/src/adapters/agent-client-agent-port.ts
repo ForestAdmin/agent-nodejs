@@ -59,13 +59,6 @@ function buildPkFilter(
   };
 }
 
-function extractRecordId(
-  primaryKeyFields: string[],
-  record: Record<string, unknown>,
-): Array<string | number> {
-  return primaryKeyFields.map(field => record[field] as string | number);
-}
-
 export default class AgentClientAgentPort implements AgentPort {
   private readonly agentUrl: string;
   private readonly authSecret: string;
@@ -140,7 +133,7 @@ export default class AgentClientAgentPort implements AgentPort {
 
         return {
           collectionName: relatedSchema.collectionName,
-          recordId: extractRecordId(relatedSchema.primaryKeyFields, restored),
+          recordId: relatedSchema.primaryKeyFields.map(f => restored[f] as string | number),
           values: restored,
         };
       });
