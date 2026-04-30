@@ -24,7 +24,7 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     this.executorUrl = new URL(options.workflowExecutorUrl.replace(/\/+$/, ''));
   }
 
-  private static readonly AGENT_PREFIX = '/_internal/workflow-executions';
+  private static readonly AGENT_PREFIX = 'forest/_internal/workflow-executions';
   private static readonly EXECUTOR_PREFIX = '/runs';
 
   setupRoutes(router: KoaRouter): void {
