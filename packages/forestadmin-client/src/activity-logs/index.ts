@@ -95,12 +95,9 @@ export default class ActivityLogsService {
   }
 
   async updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void> {
-    const { forestServerToken, activityLog, status, errorMessage } = params;
+    const { forestServerToken, activityLog, status } = params;
 
-    const body = {
-      status,
-      ...(errorMessage && { errorMessage }),
-    };
+    const body = { status };
 
     await this.forestAdminServerInterface.updateActivityLogStatus(
       this.getHttpOptions(forestServerToken),

@@ -78,7 +78,6 @@ export default async function withActivityLog<T>(options: WithActivityLogOptions
       forestServerClient,
       request,
       activityLog,
-      errorMessage,
       logger,
     });
 

@@ -255,7 +255,6 @@ export interface UpdateActivityLogStatusParams {
   forestServerToken: string;
   activityLog: ActivityLogResponse;
   status: 'completed' | 'failed';
-  errorMessage?: string;
 }
 
 /**

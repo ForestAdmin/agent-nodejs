@@ -288,7 +288,6 @@ describe('markActivityLogAsFailed', () => {
       forestServerClient: mockForestServerClient,
       request,
       activityLog,
-      errorMessage: 'Something went wrong',
       logger: mockLogger,
     });
 
@@ -323,7 +322,6 @@ describe('markActivityLogAsFailed', () => {
       forestServerClient: mockForestServerClient,
       request,
       activityLog,
-      errorMessage: 'Something went wrong',
       logger: mockLogger,
     });
 
@@ -357,7 +355,6 @@ describe('markActivityLogAsFailed', () => {
       forestServerClient: mockForestServerClient,
       request,
       activityLog,
-      errorMessage: 'Something went wrong',
       logger: mockLogger,
     });
 
@@ -387,7 +384,6 @@ describe('markActivityLogAsFailed', () => {
       forestServerClient: mockForestServerClient,
       request,
       activityLog,
-      errorMessage: 'Something went wrong',
       logger: mockLogger,
     });
 
@@ -445,7 +441,6 @@ describe('markActivityLogAsSucceeded', () => {
       forestServerToken: 'test-forest-token',
       activityLog,
       status: 'completed',
-      errorMessage: undefined,
     });
 
     jest.useRealTimers();
