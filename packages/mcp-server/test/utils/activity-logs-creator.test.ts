@@ -445,5 +445,4 @@ describe('markActivityLogAsSucceeded', () => {
 
     jest.useRealTimers();
   });
-
 });
