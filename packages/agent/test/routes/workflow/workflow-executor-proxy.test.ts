@@ -233,8 +233,8 @@ describe('WorkflowExecutorProxyRoute', () => {
       const context = createMockContext({
         customProperties: { params: { runId: 'run-123' } },
       });
-      Object.defineProperty(context, 'url', {
-        value: '/_internal/workflow-executions/run-123?foo=bar&page=2',
+      Object.defineProperty(context, 'querystring', {
+        value: 'foo=bar&page=2',
       });
 
       await (route as unknown as { handleProxy: (ctx: unknown) => Promise<void> }).handleProxy(

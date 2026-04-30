@@ -24,19 +24,16 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     this.executorUrl = new URL(options.workflowExecutorUrl.replace(/\/+$/, ''));
   }
 
-  private static readonly AGENT_PREFIX = '/_internal/workflow-executions';
-  private static readonly EXECUTOR_PREFIX = '/runs';
-
   setupRoutes(router: KoaRouter): void {
     router.get('/_internal/workflow-executions/:runId', this.handleProxy.bind(this));
     router.post('/_internal/workflow-executions/:runId/trigger', this.handleProxy.bind(this));
   }
 
   private async handleProxy(context: Context): Promise<void> {
-    const executorRelativeUrl = context.url.replace(
-      WorkflowExecutorProxyRoute.AGENT_PREFIX,
-      WorkflowExecutorProxyRoute.EXECUTOR_PREFIX,
-    );
+    const { runId } = context.params;
+    const isTrigger = context.method === 'POST';
+    const qs = context.querystring ? `?${context.querystring}` : '';
+    const executorRelativeUrl = isTrigger ? `/runs/${runId}/trigger${qs}` : `/runs/${runId}${qs}`;
     const targetUrl = new URL(executorRelativeUrl, this.executorUrl);
 
     const forwardedHeaders: ForwardedHeaders = {
