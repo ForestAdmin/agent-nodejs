@@ -102,7 +102,11 @@ export default class AgentClientAgentPort implements AgentPort {
         .collection(collection)
         .update<Record<string, unknown>>(id, values);
 
-      return { collectionName: collection, recordId: id, values: updatedRecord };
+      return {
+        collectionName: collection,
+        recordId: id,
+        values: restoreFieldNames(updatedRecord, Object.keys(values)),
+      };
     });
   }
 

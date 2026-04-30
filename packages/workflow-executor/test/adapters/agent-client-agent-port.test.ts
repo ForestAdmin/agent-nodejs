@@ -233,6 +233,17 @@ describe('AgentClientAgentPort', () => {
 
       expect(mockCollection.update).toHaveBeenCalledWith([1, 2], { status: 'done' });
     });
+
+    it('should restore snake_case field names when agent returns camelCase keys', async () => {
+      mockCollection.update.mockResolvedValue({ cardNumber: '4111', isActive: true });
+
+      const result = await port.updateRecord(
+        { collection: 'users', id: [42], values: { card_number: '4111', is_active: true } },
+        user,
+      );
+
+      expect(result.values).toEqual({ card_number: '4111', is_active: true });
+    });
   });
 
   describe('getRelatedData', () => {
