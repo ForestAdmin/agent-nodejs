@@ -50,9 +50,9 @@ function buildZodSchemaForPrimitive(type: string, enumValues?: string[]): z.ZodT
         return val;
       }, z.boolean());
     case 'Date':
-      return z.string().datetime().describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
+      return z.iso.datetime().describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
     case 'Dateonly':
-      return z.string().date().describe('ISO 8601 date, e.g. 2024-06-01');
+      return z.iso.date().describe('ISO 8601 date, e.g. 2024-06-01');
     case 'Number':
       return z.coerce.number();
     case 'Enum':

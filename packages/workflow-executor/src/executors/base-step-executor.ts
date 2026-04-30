@@ -6,19 +6,19 @@ import type {
   StepExecutionResult,
 } from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
-import type { BaseMessage, StructuredToolInterface } from '@forestadmin/ai-proxy';
+import type {
+  BaseMessage,
+  DynamicStructuredTool,
+  StructuredToolInterface,
+} from '@forestadmin/ai-proxy';
 
-import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
-import { z } from 'zod';
+import { SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
-  InvalidAIResponseError,
   MalformedToolCallError,
   MissingToolCallError,
-  NoRecordsError,
   StepStateError,
   StepTimeoutError,
   WorkflowExecutorError,
@@ -196,13 +196,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     }
   }
 
-  protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
-    return (
-      schema.fields.find(f => f.displayName === name) ??
-      schema.fields.find(f => f.fieldName === name)
-    );
-  }
-
   protected abstract buildOutcomeResult(outcome: {
     status: StepStatus;
     error?: string;
@@ -339,87 +332,5 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     tool: DynamicStructuredTool,
   ): Promise<T> {
     return (await this.invokeWithTools<T>(messages, [tool])).args;
-  }
-
-  protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
-    const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = stepExecutions.flatMap(e => {
-      if (
-        e.type === 'load-related-record' &&
-        e.executionResult !== undefined &&
-        'record' in e.executionResult
-      ) {
-        return [e.executionResult.record];
-      }
-
-      return [];
-    });
-
-    return [this.context.baseRecordRef, ...relatedRecords];
-  }
-
-  protected async selectRecordRef(
-    records: RecordRef[],
-    prompt: string | undefined,
-  ): Promise<RecordRef> {
-    if (records.length === 0) throw new NoRecordsError();
-    if (records.length === 1) return records[0];
-
-    const identifiers = await Promise.all(records.map(r => this.toRecordIdentifier(r)));
-    const identifierTuple = identifiers as [string, ...string[]];
-
-    const tool = new DynamicStructuredTool({
-      name: 'select-record',
-      description: 'Select the most relevant record for this workflow step.',
-      schema: z.object({
-        recordIdentifier: z.enum(identifierTuple),
-      }),
-      func: undefined,
-    });
-
-    const messages = [
-      this.buildContextMessage(),
-      ...(await this.buildPreviousStepsMessages()),
-      new SystemMessage(
-        'You are an AI agent selecting the most relevant record for a workflow step.\n' +
-          'Choose the record whose collection best matches the user request.\n' +
-          'Pay attention to the collection name of each record.',
-      ),
-      new HumanMessage(prompt ?? 'Select the most relevant record.'),
-    ];
-
-    const { recordIdentifier } = await this.invokeWithTool<{ recordIdentifier: string }>(
-      messages,
-      tool,
-    );
-
-    const selectedIndex = identifiers.indexOf(recordIdentifier);
-
-    if (selectedIndex === -1) {
-      throw new InvalidAIResponseError(
-        `AI selected record "${recordIdentifier}" which does not match any available record`,
-      );
-    }
-
-    return records[selectedIndex];
-  }
-
-  protected async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    const cached = this.context.schemaCache.get(collectionName);
-    if (cached) return cached;
-
-    const schema = await this.context.workflowPort.getCollectionSchema(
-      collectionName,
-      this.context.runId,
-    );
-    this.context.schemaCache.set(collectionName, schema);
-
-    return schema;
-  }
-
-  protected async toRecordIdentifier(record: RecordRef): Promise<string> {
-    const schema = await this.getCollectionSchema(record.collectionName);
-
-    return `Step ${record.stepIndex} - ${schema.collectionDisplayName} #${record.recordId}`;
   }
 }

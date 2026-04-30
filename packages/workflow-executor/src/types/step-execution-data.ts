@@ -6,8 +6,11 @@ import type { RecordRef } from './validated/collection';
 
 interface BaseStepExecutionData {
   stepIndex: number;
-  // Write-ahead log for mutating executors (update-record, trigger-action, mcp).
-  // 'executing': side effect may have fired; 'done': completed, safe to replay via buildOutcomeResult.
+}
+
+// Extended by executors that write a side effect (update-record, trigger-action, mcp).
+// Write-ahead log: 'executing' = side effect may have fired; 'done' = completed, safe to replay.
+interface MutatingStepExecutionData extends BaseStepExecutionData {
   idempotencyPhase?: 'executing' | 'done';
 }
 
@@ -47,7 +50,7 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Update Record --
 
-export interface UpdateRecordStepExecutionData extends BaseStepExecutionData {
+export interface UpdateRecordStepExecutionData extends MutatingStepExecutionData {
   type: 'update-record';
   executionParams?: FieldRef & { value: unknown };
   // User confirmed → values returned by updateRecord. User rejected → skipped.
@@ -70,7 +73,7 @@ export interface RelationRef {
   displayName: string;
 }
 
-export interface TriggerRecordActionStepExecutionData extends BaseStepExecutionData {
+export interface TriggerRecordActionStepExecutionData extends MutatingStepExecutionData {
   type: 'trigger-action';
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
@@ -92,7 +95,7 @@ export interface McpToolCall extends McpToolRef {
   input: Record<string, unknown>;
 }
 
-export interface McpStepExecutionData extends BaseStepExecutionData {
+export interface McpStepExecutionData extends MutatingStepExecutionData {
   type: 'mcp';
   executionParams?: McpToolCall;
   executionResult?:
