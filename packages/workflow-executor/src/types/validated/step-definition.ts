@@ -22,97 +22,79 @@ const baseRecordFields = {
   automaticExecution: z.boolean().optional(),
 };
 
-export const ConditionStepDefinitionSchema = z
-  .object({
-    ...baseFields,
-    type: z.literal(StepType.Condition),
-    options: z.array(z.string()).min(2),
-  })
-  .strict();
+export const ConditionStepDefinitionSchema = z.object({
+  ...baseFields,
+  type: z.literal(StepType.Condition),
+  options: z.array(z.string()).min(2),
+});
 export type ConditionStepDefinition = z.infer<typeof ConditionStepDefinitionSchema>;
 
-export const ReadRecordStepDefinitionSchema = z
-  .object({
-    ...baseRecordFields,
-    type: z.literal(StepType.ReadRecord),
-    preRecordedArgs: z
-      .object({
-        selectedRecordStepIndex: z.number().int().optional(),
-        /** Display names of the fields to read */
-        fieldDisplayNames: z.array(z.string()).optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
+export const ReadRecordStepDefinitionSchema = z.object({
+  ...baseRecordFields,
+  type: z.literal(StepType.ReadRecord),
+  preRecordedArgs: z
+    .object({
+      selectedRecordStepIndex: z.number().int().optional(),
+      /** Display names of the fields to read */
+      fieldDisplayNames: z.array(z.string()).optional(),
+    })
+    .optional(),
+});
 export type ReadRecordStepDefinition = z.infer<typeof ReadRecordStepDefinitionSchema>;
 
-export const UpdateRecordStepDefinitionSchema = z
-  .object({
-    ...baseRecordFields,
-    type: z.literal(StepType.UpdateRecord),
-    preRecordedArgs: z
-      .object({
-        selectedRecordStepIndex: z.number().int().optional(),
-        /** Display name of the field to update */
-        fieldDisplayName: z.string().optional(),
-        value: z.unknown().optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
+export const UpdateRecordStepDefinitionSchema = z.object({
+  ...baseRecordFields,
+  type: z.literal(StepType.UpdateRecord),
+  preRecordedArgs: z
+    .object({
+      selectedRecordStepIndex: z.number().int().optional(),
+      /** Display name of the field to update */
+      fieldDisplayName: z.string().optional(),
+      value: z.unknown().optional(),
+    })
+    .optional(),
+});
 export type UpdateRecordStepDefinition = z.infer<typeof UpdateRecordStepDefinitionSchema>;
 
-export const TriggerActionStepDefinitionSchema = z
-  .object({
-    ...baseRecordFields,
-    type: z.literal(StepType.TriggerAction),
-    preRecordedArgs: z
-      .object({
-        selectedRecordStepIndex: z.number().int().optional(),
-        /** Display name of the action to trigger */
-        actionDisplayName: z.string().optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
+export const TriggerActionStepDefinitionSchema = z.object({
+  ...baseRecordFields,
+  type: z.literal(StepType.TriggerAction),
+  preRecordedArgs: z
+    .object({
+      selectedRecordStepIndex: z.number().int().optional(),
+      /** Display name of the action to trigger */
+      actionDisplayName: z.string().optional(),
+    })
+    .optional(),
+});
 export type TriggerActionStepDefinition = z.infer<typeof TriggerActionStepDefinitionSchema>;
 
-export const LoadRelatedRecordStepDefinitionSchema = z
-  .object({
-    ...baseRecordFields,
-    type: z.literal(StepType.LoadRelatedRecord),
-    preRecordedArgs: z
-      .object({
-        selectedRecordStepIndex: z.number().int().optional(),
-        /** Display name of the relation to follow */
-        relationDisplayName: z.string().optional(),
-        selectedRecordIndex: z.number().int().optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
+export const LoadRelatedRecordStepDefinitionSchema = z.object({
+  ...baseRecordFields,
+  type: z.literal(StepType.LoadRelatedRecord),
+  preRecordedArgs: z
+    .object({
+      selectedRecordStepIndex: z.number().int().optional(),
+      /** Display name of the relation to follow */
+      relationDisplayName: z.string().optional(),
+      selectedRecordIndex: z.number().int().optional(),
+    })
+    .optional(),
+});
 export type LoadRelatedRecordStepDefinition = z.infer<typeof LoadRelatedRecordStepDefinitionSchema>;
 
-export const McpStepDefinitionSchema = z
-  .object({
-    ...baseFields,
-    type: z.literal(StepType.Mcp),
-    mcpServerId: z.string().optional(),
-    automaticExecution: z.boolean().optional(),
-  })
-  .strict();
+export const McpStepDefinitionSchema = z.object({
+  ...baseFields,
+  type: z.literal(StepType.Mcp),
+  mcpServerId: z.string().optional(),
+  automaticExecution: z.boolean().optional(),
+});
 export type McpStepDefinition = z.infer<typeof McpStepDefinitionSchema>;
 
-export const GuidanceStepDefinitionSchema = z
-  .object({
-    ...baseFields,
-    type: z.literal(StepType.Guidance),
-  })
-  .strict();
+export const GuidanceStepDefinitionSchema = z.object({
+  ...baseFields,
+  type: z.literal(StepType.Guidance),
+});
 export type GuidanceStepDefinition = z.infer<typeof GuidanceStepDefinitionSchema>;
 
 export const RecordStepDefinitionSchema = z.discriminatedUnion('type', [

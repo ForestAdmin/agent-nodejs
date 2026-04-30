@@ -138,6 +138,28 @@ describe('toAvailableStepExecution', () => {
     expect(result?.stepIndex).toBe(2);
   });
 
+  it('should strip unknown server keys (e.g. automaticExecution) from guidance step without throwing', () => {
+    const run = makeRun({
+      workflowHistory: [
+        makeStepHistory({
+          stepDefinition: {
+            type: 'task',
+            taskType: 'guideline',
+            title: 'guidance',
+            prompt: 'follow the guide',
+            automaticExecution: true,
+            outgoing: { stepId: 'next', buttonText: null },
+          },
+        }),
+      ],
+    });
+
+    const result = toAvailableStepExecution(run);
+
+    expect(result?.stepDefinition).toEqual({ type: StepType.Guidance, prompt: 'follow the guide' });
+    expect(result?.stepDefinition).not.toHaveProperty('automaticExecution');
+  });
+
   describe('previousSteps', () => {
     it('should include done steps preceding the available step', () => {
       const run = makeRun({
