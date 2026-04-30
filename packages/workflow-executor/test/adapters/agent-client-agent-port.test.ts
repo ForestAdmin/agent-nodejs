@@ -355,6 +355,51 @@ describe('AgentClientAgentPort', () => {
         expect.not.objectContaining({ fields: expect.anything() }),
       );
     });
+
+    it('should restore snake_case field names in recordId and values when agent returns camelCase keys', async () => {
+      const cache = new SchemaCache();
+      cache.set('users', {
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'posts',
+            displayName: 'Posts',
+            isRelationship: true,
+            relatedCollectionName: 'posts',
+          },
+        ],
+        actions: [],
+      });
+      cache.set('posts', {
+        collectionName: 'posts',
+        collectionDisplayName: 'Posts',
+        primaryKeyFields: ['post_id'],
+        fields: [],
+        actions: [],
+      });
+      const localPort = new AgentClientAgentPort({
+        agentUrl: 'http://agent',
+        authSecret: 'secret',
+        schemaCache: cache,
+      });
+      mockRelation.list.mockResolvedValue([{ postId: 99, createdAt: '2024-01-01' }]);
+
+      const result = await localPort.getRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'posts',
+          limit: null,
+          fields: ['post_id', 'created_at'],
+        },
+        user,
+      );
+
+      expect(result[0].recordId).toEqual([99]);
+      expect(result[0].values).toEqual({ post_id: 99, created_at: '2024-01-01' });
+    });
   });
 
   describe('executeAction', () => {

@@ -38,9 +38,7 @@ function restoreFieldNames(
     camelToOriginal[camelName] = name;
   }
 
-  return Object.fromEntries(
-    Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]),
-  );
+  return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));
 }
 
 function buildPkFilter(
@@ -93,7 +91,11 @@ export default class AgentClientAgentPort implements AgentPort {
         throw new RecordNotFoundError(collection, id.join('|'));
       }
 
-      return { collectionName: collection, recordId: id, values: restoreFieldNames(records[0], fields) };
+      return {
+        collectionName: collection,
+        recordId: id,
+        values: restoreFieldNames(records[0], fields),
+      };
     });
   }
 
@@ -130,11 +132,18 @@ export default class AgentClientAgentPort implements AgentPort {
           ...(fields?.length && { fields }),
         });
 
-      return records.map(record => ({
-        collectionName: relatedSchema.collectionName,
-        recordId: extractRecordId(relatedSchema.primaryKeyFields, record),
-        values: record,
-      }));
+      return records.map(record => {
+        const restored = restoreFieldNames(record, [
+          ...relatedSchema.primaryKeyFields,
+          ...(fields ?? []),
+        ]);
+
+        return {
+          collectionName: relatedSchema.collectionName,
+          recordId: extractRecordId(relatedSchema.primaryKeyFields, restored),
+          values: restored,
+        };
+      });
     });
   }
 
