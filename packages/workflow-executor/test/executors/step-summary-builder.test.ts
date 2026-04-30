@@ -267,7 +267,10 @@ describe('StepSummaryBuilder', () => {
 
     describe('manually handled steps', () => {
       it('signals manually handled update-record when pendingData exists and idempotencyPhase is undefined', () => {
-        const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status to active' };
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          prompt: 'Set status to active',
+        };
         const outcome: StepOutcome = {
           type: 'record',
           stepId: 'update-1',
