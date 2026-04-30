@@ -15,6 +15,23 @@ export default class StepSummaryBuilder {
     const lines = [header, `  Prompt: ${prompt}`];
 
     if (execution !== undefined) {
+      // Detect "handled manually": executor proposed via pendingData (Branch C / awaiting-input)
+      // but the user completed the step on the frontend without going through the trigger endpoint.
+      // idempotencyPhase === undefined means the side effect never started (not 'executing' or 'done').
+      if (
+        stepOutcome.status === 'success' &&
+        'pendingData' in execution &&
+        execution.pendingData !== undefined &&
+        execution.idempotencyPhase === undefined
+      ) {
+        lines.push(`  Proposed: ${JSON.stringify(execution.pendingData)}`);
+        lines.push(
+          `  Note: the user handled this step manually — the actual outcome may differ from the proposal above.`,
+        );
+
+        return lines.join('\n');
+      }
+
       // Try custom formatting — if it fires, it owns the entire output section (no Input: line)
       const customLine = execution.executionResult
         ? StepExecutionFormatters.format(execution)

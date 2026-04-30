@@ -265,6 +265,100 @@ describe('StepSummaryBuilder', () => {
       expect(result).not.toContain('Loaded:');
     });
 
+    describe('manually handled steps', () => {
+      it('signals manually handled update-record when pendingData exists and idempotencyPhase is undefined', () => {
+        const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status to active' };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).toContain('Proposed:');
+        expect(result).toContain('"displayName":"Status"');
+        expect(result).toContain('handled this step manually');
+        expect(result).not.toContain('Pending:');
+        expect(result).not.toContain('Output:');
+      });
+
+      it('signals manually handled trigger-action when pendingData exists and idempotencyPhase is undefined', () => {
+        const step: StepDefinition = {
+          type: StepType.TriggerAction,
+          prompt: 'Archive the customer',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'trigger-action',
+          stepIndex: 0,
+          pendingData: { displayName: 'Archive Customer', name: 'archive' },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).toContain('Proposed:');
+        expect(result).toContain('"displayName":"Archive Customer"');
+        expect(result).toContain('handled this step manually');
+      });
+
+      it('does NOT signal manually handled when idempotencyPhase is done (executor completed it)', () => {
+        const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status' };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          idempotencyPhase: 'done',
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          executionResult: { updatedValues: { status: 'active' } },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+      });
+
+      it('does NOT signal manually handled when status is awaiting-input (still pending)', () => {
+        const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status' };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'awaiting-input',
+        };
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+        expect(result).toContain('Pending:');
+      });
+    });
+
     it('shows "(no prompt)" when step has no prompt', () => {
       const step: StepDefinition = { type: StepType.Condition, options: ['A', 'B'] };
       const outcome = makeConditionOutcome('cond-1', 0);
