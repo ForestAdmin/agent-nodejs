@@ -1,6 +1,27 @@
 import patchBodySchemas from '../../src/http/pending-data-validators';
 
 describe('patchBodySchemas', () => {
+  describe('guidance', () => {
+    const schema = patchBodySchemas['guidance'];
+    if (!schema) throw new Error('guidance schema not registered');
+
+    it('accepts { userInput: "text" }', () => {
+      expect(schema.parse({ userInput: 'some text' })).toEqual({ userInput: 'some text' });
+    });
+
+    it('accepts {} (userInput absent — user submitted without input)', () => {
+      expect(schema.parse({})).toEqual({});
+    });
+
+    it('accepts { userInput: "" } (empty string)', () => {
+      expect(schema.parse({ userInput: '' })).toEqual({ userInput: '' });
+    });
+
+    it('rejects unknown fields (strict schema)', () => {
+      expect(() => schema.parse({ userInput: 'text', extra: 'leak' })).toThrow();
+    });
+  });
+
   describe('trigger-action', () => {
     const schema = patchBodySchemas['trigger-action'];
     if (!schema) throw new Error('trigger-action schema not registered');

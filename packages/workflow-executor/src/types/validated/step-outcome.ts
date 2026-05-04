@@ -58,7 +58,7 @@ export const GuidanceStepOutcomeSchema = z
   .object({
     ...baseOutcomeFields,
     type: z.literal('guidance'),
-    status: BaseStepStatusSchema,
+    status: RecordStepStatusSchema,
   })
   .strict();
 export type GuidanceStepOutcome = z.infer<typeof GuidanceStepOutcomeSchema>;

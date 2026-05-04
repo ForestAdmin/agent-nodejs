@@ -43,7 +43,7 @@ const patchBodySchemas: Partial<Record<StepExecutionData['type'], z.ZodTypeAny>>
 
   guidance: z
     .object({
-      userInput: z.string().min(1),
+      userInput: z.string().optional(),
     })
     .strict(),
 

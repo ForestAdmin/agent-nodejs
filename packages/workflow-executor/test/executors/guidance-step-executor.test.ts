@@ -82,7 +82,7 @@ describe('GuidanceStepExecutor', () => {
     });
   });
 
-  it('returns error outcome when incomingPendingData is undefined', async () => {
+  it('returns awaiting-input when incomingPendingData is absent', async () => {
     const runStore = makeMockRunStore();
 
     const executor = new GuidanceStepExecutor(makeContext({ runStore }));
@@ -90,12 +90,11 @@ describe('GuidanceStepExecutor', () => {
 
     const outcome = result.stepOutcome as GuidanceStepOutcome;
     expect(outcome.type).toBe('guidance');
-    expect(outcome.status).toBe('error');
-    expect(outcome.error).toBe('An unexpected error occurred while processing this step.');
+    expect(outcome.status).toBe('awaiting-input');
     expect(runStore.saveStepExecution).not.toHaveBeenCalled();
   });
 
-  it('returns error outcome when incomingPendingData has empty userInput', async () => {
+  it('saves empty string and returns success when userInput is empty', async () => {
     const runStore = makeMockRunStore();
 
     const executor = new GuidanceStepExecutor(
@@ -105,12 +104,15 @@ describe('GuidanceStepExecutor', () => {
 
     const outcome = result.stepOutcome as GuidanceStepOutcome;
     expect(outcome.type).toBe('guidance');
-    expect(outcome.status).toBe('error');
-    expect(outcome.error).toBe('An unexpected error occurred while processing this step.');
-    expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    expect(outcome.status).toBe('success');
+    expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+      type: 'guidance',
+      stepIndex: 0,
+      executionResult: { userInput: '' },
+    });
   });
 
-  it('returns error outcome when incomingPendingData has no userInput field', async () => {
+  it('saves empty string and returns success when userInput is absent', async () => {
     const runStore = makeMockRunStore();
 
     const executor = new GuidanceStepExecutor(makeContext({ runStore, incomingPendingData: {} }));
@@ -118,7 +120,11 @@ describe('GuidanceStepExecutor', () => {
 
     const outcome = result.stepOutcome as GuidanceStepOutcome;
     expect(outcome.type).toBe('guidance');
-    expect(outcome.status).toBe('error');
-    expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    expect(outcome.status).toBe('success');
+    expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+      type: 'guidance',
+      stepIndex: 0,
+      executionResult: { userInput: '' },
+    });
   });
 });

@@ -36,7 +36,7 @@ export default class StepExecutionFormatters {
   }
 
   private static formatGuidance(execution: GuidanceStepExecutionData): string | null {
-    if (!execution.executionResult) return null;
+    if (!execution.executionResult?.userInput) return null;
 
     return `  The user provided the following input: "${execution.executionResult.userInput}"`;
   }

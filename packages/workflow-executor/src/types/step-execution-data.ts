@@ -137,7 +137,7 @@ export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionDat
 export interface GuidanceStepExecutionData extends BaseStepExecutionData {
   type: 'guidance';
   pendingData?: { userInput?: string };
-  executionResult?: { userInput: string };
+  executionResult?: { userInput?: string };
 }
 
 // -- Union --

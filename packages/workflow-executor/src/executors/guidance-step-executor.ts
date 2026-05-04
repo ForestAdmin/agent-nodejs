@@ -1,6 +1,6 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type { GuidanceStepDefinition } from '../types/validated/step-definition';
-import type { BaseStepStatus } from '../types/validated/step-outcome';
+import type { RecordStepStatus } from '../types/validated/step-outcome';
 
 import { StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
@@ -11,7 +11,7 @@ export default class GuidanceStepExecutor extends BaseStepExecutor<GuidanceStepD
     const { incomingPendingData } = this.context;
 
     if (!incomingPendingData) {
-      throw new StepStateError('Guidance step triggered without pending data');
+      return this.buildOutcomeResult({ status: 'awaiting-input' });
     }
 
     const parsed = patchBodySchemas.guidance.safeParse(incomingPendingData);
@@ -22,19 +22,19 @@ export default class GuidanceStepExecutor extends BaseStepExecutor<GuidanceStepD
       );
     }
 
-    const { userInput } = parsed.data as { userInput: string };
+    const { userInput } = parsed.data as { userInput?: string };
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'guidance',
       stepIndex: this.context.stepIndex,
-      executionResult: { userInput },
+      executionResult: { userInput: userInput ?? '' },
     });
 
     return this.buildOutcomeResult({ status: 'success' });
   }
 
   protected buildOutcomeResult(outcome: {
-    status: BaseStepStatus;
+    status: RecordStepStatus;
     error?: string;
   }): StepExecutionResult {
     return {
