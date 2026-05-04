@@ -2,7 +2,7 @@ import patchBodySchemas from '../../src/http/pending-data-validators';
 
 describe('patchBodySchemas', () => {
   describe('guidance', () => {
-    const schema = patchBodySchemas['guidance'];
+    const schema = patchBodySchemas.guidance;
     if (!schema) throw new Error('guidance schema not registered');
 
     it('accepts { userInput: "text" }', () => {
