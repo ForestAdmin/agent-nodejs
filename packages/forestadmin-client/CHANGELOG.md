@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.39.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.4...@forestadmin/forestadmin-client@1.39.5) (2026-04-30)
+
+
+### Bug Fixes
+
+* **activity-logs:** remove errorMessage from updateActivityLogStatus ([#1576](https://github.com/ForestAdmin/agent-nodejs/issues/1576)) ([19585fc](https://github.com/ForestAdmin/agent-nodejs/commit/19585fcda32250f46962d744ee3b258206a3e8aa))
+
 ## @forestadmin/forestadmin-client [1.39.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.3...@forestadmin/forestadmin-client@1.39.4) (2026-04-24)
 
 

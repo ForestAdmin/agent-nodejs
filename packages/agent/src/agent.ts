@@ -82,13 +82,19 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Start the agent.
    */
   async start(): Promise<void> {
-    const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
+    try {
+      const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
 
-    await this.options.forestAdminClient.subscribeToServerEvents();
-    this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
+      await this.options.forestAdminClient.subscribeToServerEvents();
+      this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-    this.setMcpCallback(mcpHttpCallback ?? null);
-    await this.mount(router);
+      this.setMcpCallback(mcpHttpCallback ?? null);
+      await this.mount(router);
+    } catch (error) {
+      const { message } = error as Error;
+      this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
+      throw error;
+    }
   }
 
   /**

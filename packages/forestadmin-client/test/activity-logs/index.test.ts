@@ -291,7 +291,7 @@ describe('ActivityLogsService', () => {
       );
     });
 
-    it('should update activity log status to failed with error message', async () => {
+    it('should update activity log status to failed', async () => {
       mockForestAdminServerInterface.updateActivityLogStatus.mockResolvedValue(undefined);
 
       const service = new ActivityLogsService(mockForestAdminServerInterface, options);
@@ -301,14 +301,13 @@ describe('ActivityLogsService', () => {
         forestServerToken: 'test-token',
         activityLog,
         status: 'failed',
-        errorMessage: 'Something went wrong',
       });
 
       expect(mockForestAdminServerInterface.updateActivityLogStatus).toHaveBeenCalledWith(
         { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
         'idx-456',
         'log-123',
-        { status: 'failed', errorMessage: 'Something went wrong' },
+        { status: 'failed' },
       );
     });
 

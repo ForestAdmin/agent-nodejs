@@ -74,7 +74,6 @@ interface UpdateActivityLogOptions {
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
   status: 'completed' | 'failed';
-  errorMessage?: string;
   logger: Logger;
 }
 
@@ -120,19 +119,17 @@ interface MarkActivityLogAsFailedOptions {
   forestServerClient: ForestServerClient;
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   activityLog: ActivityLogResponse;
-  errorMessage: string;
   logger: Logger;
 }
 
 export function markActivityLogAsFailed(options: MarkActivityLogAsFailedOptions): void {
-  const { forestServerClient, request, activityLog, errorMessage, logger } = options;
+  const { forestServerClient, request, activityLog, logger } = options;
   // Fire-and-forget: don't block error response on activity log update
   updateActivityLogStatus({
     forestServerClient,
     request,
     activityLog,
     status: 'failed',
-    errorMessage,
     logger,
   }).catch(error => {
     logger('Error', `Unexpected error updating activity log to 'failed': ${error}`);
