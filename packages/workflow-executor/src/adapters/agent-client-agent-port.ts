@@ -34,7 +34,7 @@ function restoreFieldNames(
   const camelToOriginal: Record<string, string> = {};
 
   for (const name of originalFieldNames) {
-    const camelName = name.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+    const camelName = name.replace(/_([a-zA-Z0-9])/g, (_, c: string) => c.toUpperCase());
     camelToOriginal[camelName] = name;
   }
 
