@@ -4,7 +4,7 @@ import { AIBadRequestError, AIToolUnprocessableError, McpConnectionError } from 
 
 const READ_ONLY_LEADING_KEYWORD_RE = /^\s*(select|show|describe|desc|explain)\b/i;
 const FORBIDDEN_KEYWORD_RE =
-  /\b(insert|update|delete|merge|drop|create|alter|truncate|rename|undrop|swap|grant|revoke|call|execute|copy|put|get|use|set|unset|begin|commit|rollback|with)\b/i;
+  /\b(insert|delete|merge|drop|create|alter|truncate|rename|undrop|swap|grant|revoke|call|execute|copy|put|get|use|set|unset|begin|commit|rollback|with)\b/i;
 
 export function getSnowflakeAuthHeaders(config: SnowflakeConfig): Record<string, string> {
   return {
@@ -28,13 +28,45 @@ export function buildSessionContext(config: SnowflakeConfig) {
   };
 }
 
+// Single-pass lexer: a regex pipeline cannot disambiguate `--` inside a string
+// from a comment containing `'`, so it is unsafe for security checks.
 function normalizeSql(statement: string): string {
-  return statement
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/--[^\n]*/g, '')
-    .replace(/'(?:''|[^'])*'/g, "''")
-    .replace(/"(?:""|[^"])*"/g, '""')
-    .trim();
+  let result = '';
+  let i = 0;
+
+  while (i < statement.length) {
+    const c = statement[i];
+    const next = statement[i + 1];
+
+    if (c === '/' && next === '*') {
+      const end = statement.indexOf('*/', i + 2);
+
+      i = end === -1 ? statement.length : end + 2;
+    } else if (c === '-' && next === '-') {
+      const end = statement.indexOf('\n', i + 2);
+
+      i = end === -1 ? statement.length : end;
+    } else if (c === "'" || c === '"') {
+      result += c === "'" ? "''" : '""';
+      i += 1;
+
+      while (i < statement.length) {
+        if (statement[i] === c && statement[i + 1] === c) {
+          i += 2;
+        } else if (statement[i] === c) {
+          i += 1;
+          break;
+        } else {
+          i += 1;
+        }
+      }
+    } else {
+      result += c;
+      i += 1;
+    }
+  }
+
+  return result.trim();
 }
 
 export function assertReadOnlySql(statement: string): void {

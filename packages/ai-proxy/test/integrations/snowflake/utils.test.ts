@@ -105,6 +105,8 @@ describe('snowflake/utils', () => {
       'EXPLAIN INSERT INTO t VALUES (1)',
       'SELECT 1 -- ;\nDROP TABLE t',
       'SELECT 1 /* */ DROP TABLE t',
+      "SELECT '--' DELETE FROM users",
+      "SELECT '/*' DROP TABLE t",
     ])('should reject hidden write keyword in: %s', statement => {
       expect(() => assertReadOnlySql(statement)).toThrow(AIBadRequestError);
       expect(() => assertReadOnlySql(statement)).toThrow(
