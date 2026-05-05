@@ -390,6 +390,58 @@ describe('toAvailableStepExecution', () => {
       expect(result?.stepId).toBe('s0');
       expect(result?.previousSteps).toHaveLength(0);
     });
+
+    it.each([
+      [
+        'start-sub-workflow',
+        {
+          type: 'start-sub-workflow',
+          title: 't',
+          prompt: 'p',
+          outgoing: { stepId: 'x', buttonText: null },
+          workflowId: 'wf-2',
+        },
+      ],
+      [
+        'close-sub-workflow',
+        {
+          type: 'close-sub-workflow',
+          outgoing: { stepId: 'x', buttonText: null },
+          parentWorkflowId: null,
+        },
+      ],
+    ])('should silently skip %s steps in history and not throw', (_, subWorkflowStep) => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            stepDefinition: subWorkflowStep as never,
+          }),
+          makeStepHistory({
+            stepName: 's1',
+            stepIndex: 1,
+            done: true,
+            context: { status: 'success' },
+            stepDefinition: {
+              type: 'task',
+              taskType: 'guideline',
+              title: 't',
+              prompt: 'p',
+              outgoing: { stepId: 'x', buttonText: null },
+            },
+          }),
+          makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
+        ],
+      });
+
+      const result = toAvailableStepExecution(run);
+
+      expect(result?.stepId).toBe('s2');
+      expect(result?.previousSteps).toHaveLength(1);
+      expect(result?.previousSteps[0].stepDefinition.type).toBe(StepType.Guidance);
+    });
   });
 
   describe('user mapping', () => {

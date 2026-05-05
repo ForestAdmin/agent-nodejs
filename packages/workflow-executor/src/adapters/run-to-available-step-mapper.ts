@@ -14,7 +14,11 @@ import type {
 import { z } from 'zod';
 
 import toStepDefinition from './step-definition-mapper';
-import { DomainValidationError, InvalidStepDefinitionError } from '../errors';
+import {
+  DomainValidationError,
+  InvalidStepDefinitionError,
+  UnsupportedStepTypeError,
+} from '../errors';
 import {
   type AvailableStepExecution,
   AvailableStepExecutionSchema,
@@ -71,16 +75,25 @@ function toStepOutcome(s: ServerStepHistory): StepOutcome {
   return { type: 'record', ...baseFromCtx, status } satisfies RecordStepOutcome;
 }
 
+function tryMapStep(s: ServerStepHistory): Step | null {
+  try {
+    return { stepDefinition: toStepDefinition(s.stepDefinition), stepOutcome: toStepOutcome(s) };
+  } catch (err) {
+    // Sub-workflow navigation steps (start-sub-workflow, close-sub-workflow) are not
+    // meaningful for AI context — skip them rather than failing the whole run.
+    if (err instanceof UnsupportedStepTypeError) return null;
+    throw err;
+  }
+}
+
 function toPreviousSteps(
   history: ServerStepHistory[],
   pendingStepIndex: number,
 ): ReadonlyArray<Step> {
   return history
     .filter(s => s.done && s.stepIndex < pendingStepIndex)
-    .map(s => ({
-      stepDefinition: toStepDefinition(s.stepDefinition),
-      stepOutcome: toStepOutcome(s),
-    }));
+    .map(s => tryMapStep(s))
+    .filter((s): s is Step => s !== null);
 }
 
 function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
