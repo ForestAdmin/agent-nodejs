@@ -235,14 +235,13 @@ describe('Agent', () => {
         // Make the next getDataSource call hang so the first restart is still
         // in progress when the second one is triggered.
         let releaseFirstRestart: () => void = () => {};
-        jest
-          .mocked(DataSourceCustomizer.prototype.getDataSource)
-          .mockImplementationOnce(
-            () =>
-              new Promise(resolve => {
-                releaseFirstRestart = () => resolve(factories.dataSource.build());
-              }),
-          );
+
+        jest.mocked(DataSourceCustomizer.prototype.getDataSource).mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              releaseFirstRestart = () => resolve(factories.dataSource.build());
+            }),
+        );
 
         const firstRestart = agent.restart();
         const secondRestart = agent.restart();

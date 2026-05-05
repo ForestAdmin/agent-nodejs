@@ -123,13 +123,15 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     this.isRestarting = true;
 
-    // We force sending schema when restarting
-    const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
+    try {
+      // We force sending schema when restarting
+      const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
 
-    this.setMcpCallback(mcpHttpCallback ?? null);
-    await this.remount(router);
-
-    this.isRestarting = false;
+      this.setMcpCallback(mcpHttpCallback ?? null);
+      await this.remount(router);
+    } finally {
+      this.isRestarting = false;
+    }
   }
 
   /**
