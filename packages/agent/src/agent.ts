@@ -50,6 +50,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private mcpEnabled = false;
   private mcpEnabledTools?: ToolName[];
 
+  private isRestarting = false;
+
   /**
    * Create a new Agent Builder.
    * If any options are missing, the default will be applied:
@@ -111,11 +113,23 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Restart the agent at runtime (remount routes).
    */
   async restart(): Promise<void> {
+    if (this.isRestarting) {
+      this.options.logger('Debug', 'Agent is already restarting. Do nothing.');
+
+      return;
+    }
+
+    this.options.logger('Info', `Agent is restarting...`);
+
+    this.isRestarting = true;
+
     // We force sending schema when restarting
     const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
 
     this.setMcpCallback(mcpHttpCallback ?? null);
     await this.remount(router);
+
+    this.isRestarting = false;
   }
 
   /**
