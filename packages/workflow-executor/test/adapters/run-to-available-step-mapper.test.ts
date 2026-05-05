@@ -410,6 +410,17 @@ describe('toAvailableStepExecution', () => {
           parentWorkflowId: null,
         },
       ],
+      ['end', { type: 'end', title: 'End' }],
+      [
+        'escalation',
+        {
+          type: 'escalation',
+          title: 'Escalation',
+          prompt: 'p',
+          outgoing: { stepId: 'x', buttonText: null },
+          inboxId: null,
+        },
+      ],
     ])('should silently skip %s steps in history and not throw', (_, subWorkflowStep) => {
       const run = makeRun({
         workflowHistory: [
@@ -441,6 +452,28 @@ describe('toAvailableStepExecution', () => {
       expect(result?.stepId).toBe('s2');
       expect(result?.previousSteps).toHaveLength(1);
       expect(result?.previousSteps[0].stepDefinition.type).toBe(StepType.Guidance);
+    });
+
+    it('should propagate InvalidStepDefinitionError thrown by a done history step with unknown taskType', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            stepDefinition: {
+              type: 'task',
+              taskType: 'unknown-future-type' as never,
+              title: 't',
+              prompt: 'p',
+              outgoing: { stepId: 'x', buttonText: null },
+            },
+          }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
     });
   });
 
