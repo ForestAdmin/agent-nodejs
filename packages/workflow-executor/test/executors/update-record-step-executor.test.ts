@@ -111,9 +111,7 @@ function makeContext(
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
     model: makeMockModel({
-      fieldName: 'Status',
-      value: 'active',
-      reasoning: 'User requested status change',
+      input: { fieldName: 'Status', value: 'active', reasoning: 'User requested status change' },
     }).model,
     agentPort: makeMockAgentPort(),
     workflowPort: makeMockWorkflowPort(),
@@ -148,9 +146,7 @@ describe('UpdateRecordStepExecutor', () => {
       const updatedValues = { status: 'active', name: 'John Doe' };
       const agentPort = makeMockAgentPort(updatedValues);
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'User requested status change',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'User requested status change' },
       });
       const runStore = makeMockRunStore();
       const context = makeContext({
@@ -187,9 +183,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('without automaticExecution: awaiting-input (Branch C)', () => {
     it('saves execution and returns awaiting-input', async () => {
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'User requested status change',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'User requested status change' },
       });
       const runStore = makeMockRunStore();
       const context = makeContext({
@@ -399,7 +393,13 @@ describe('UpdateRecordStepExecutor', () => {
           tool_calls: [
             {
               name: 'update-record-field',
-              args: { fieldName: 'Order Status', value: 'shipped', reasoning: 'Mark as shipped' },
+              args: {
+                input: {
+                  fieldName: 'Order Status',
+                  value: 'shipped',
+                  reasoning: 'Mark as shipped',
+                },
+              },
               id: 'call_2',
             },
           ],
@@ -461,9 +461,7 @@ describe('UpdateRecordStepExecutor', () => {
         fields: [{ fieldName: 'orders', displayName: 'Orders', isRelationship: true, type: null }],
       });
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'test',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
       });
       const runStore = makeMockRunStore();
       const workflowPort = makeMockWorkflowPort({ customers: schema });
@@ -484,9 +482,7 @@ describe('UpdateRecordStepExecutor', () => {
     it('returns error when field is not found during automaticExecution (Branch B)', async () => {
       // AI returns a display name that doesn't match any field in the schema
       const mockModel = makeMockModel({
-        fieldName: 'NonExistentField',
-        value: 'test',
-        reasoning: 'test',
+        input: { fieldName: 'NonExistentField', value: 'test', reasoning: 'test' },
       });
       const context = makeContext({
         model: mockModel.model,
@@ -506,9 +502,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('relationship fields excluded from update tool', () => {
     it('excludes relationship fields from the tool schema', async () => {
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'test',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
       });
       const context = makeContext({ model: mockModel.model });
       const executor = new UpdateRecordStepExecutor(context);
@@ -521,15 +515,19 @@ describe('UpdateRecordStepExecutor', () => {
       expect(tool.name).toBe('update-record-field');
 
       // Each non-relationship field is a literal in the union — exact displayName required
-      expect(tool.schema.parse({ fieldName: 'Email', value: 'x', reasoning: 'r' })).toBeTruthy();
-      expect(tool.schema.parse({ fieldName: 'Status', value: 'x', reasoning: 'r' })).toBeTruthy();
       expect(
-        tool.schema.parse({ fieldName: 'Full Name', value: 'x', reasoning: 'r' }),
+        tool.schema.parse({ input: { fieldName: 'Email', value: 'x', reasoning: 'r' } }),
+      ).toBeTruthy();
+      expect(
+        tool.schema.parse({ input: { fieldName: 'Status', value: 'x', reasoning: 'r' } }),
+      ).toBeTruthy();
+      expect(
+        tool.schema.parse({ input: { fieldName: 'Full Name', value: 'x', reasoning: 'r' } }),
       ).toBeTruthy();
 
       // Relationship display name rejected — no union variant has fieldName 'Orders'
       expect(() =>
-        tool.schema.parse({ fieldName: 'Orders', value: 'x', reasoning: 'r' }),
+        tool.schema.parse({ input: { fieldName: 'Orders', value: 'x', reasoning: 'r' } }),
       ).toThrow();
     });
   });
@@ -590,9 +588,7 @@ describe('UpdateRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(new StepStateError('Record locked'));
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'test',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
       });
       const runStore = makeMockRunStore();
       const context = makeContext({
@@ -653,9 +649,7 @@ describe('UpdateRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(new Error('Connection refused'));
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'test',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
       });
       const context = makeContext({
         model: mockModel.model,
@@ -699,9 +693,7 @@ describe('UpdateRecordStepExecutor', () => {
         new AgentPortError('updateRecord', new Error('DB connection lost')),
       );
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'test',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
       });
       const context = makeContext({
         model: mockModel.model,
@@ -744,7 +736,9 @@ describe('UpdateRecordStepExecutor', () => {
     it('resolves update when AI returns raw fieldName instead of displayName', async () => {
       const agentPort = makeMockAgentPort();
       // AI returns 'status' (fieldName) instead of 'Status' (displayName)
-      const mockModel = makeMockModel({ fieldName: 'status', value: 'active', reasoning: 'test' });
+      const mockModel = makeMockModel({
+        input: { fieldName: 'status', value: 'active', reasoning: 'test' },
+      });
       const context = makeContext({
         model: mockModel.model,
         agentPort,
@@ -846,9 +840,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('default prompt', () => {
     it('uses default prompt when step.prompt is undefined', async () => {
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'test',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
       });
       const context = makeContext({
         model: mockModel.model,
@@ -867,9 +859,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('previous steps context', () => {
     it('includes previous steps summary in update-field messages', async () => {
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'test',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
@@ -960,7 +950,9 @@ describe('UpdateRecordStepExecutor', () => {
     });
 
     it('falls back to AI when preRecordedArgs has no fieldDisplayName', async () => {
-      const mockModel = makeMockModel({ fieldName: 'Status', value: 'active', reasoning: 'r' });
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Status', value: 'active', reasoning: 'r' },
+      });
       const context = makeContext({
         model: mockModel.model,
         stepDefinition: makeStep({
@@ -1033,9 +1025,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('buildUpdateFieldTool — type-specific schemas', () => {
     async function getToolSchema(fields: CollectionSchema['fields']) {
       const mockModel = makeMockModel({
-        fieldName: fields[0].displayName,
-        value: null,
-        reasoning: 'r',
+        input: { fieldName: fields[0].displayName, value: null, reasoning: 'r' },
       });
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema({ fields }),
@@ -1053,10 +1043,18 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'active', displayName: 'Active', isRelationship: false, type: 'Boolean' },
       ]);
 
-      expect(schema.parse({ fieldName: 'Active', value: true, reasoning: 'r' }).value).toBe(true);
-      expect(schema.parse({ fieldName: 'Active', value: 'true', reasoning: 'r' }).value).toBe(true);
-      expect(schema.parse({ fieldName: 'Active', value: false, reasoning: 'r' }).value).toBe(false);
-      expect(() => schema.parse({ fieldName: 'Active', value: 'maybe', reasoning: 'r' })).toThrow();
+      expect(
+        schema.parse({ input: { fieldName: 'Active', value: true, reasoning: 'r' } }).input.value,
+      ).toBe(true);
+      expect(
+        schema.parse({ input: { fieldName: 'Active', value: 'true', reasoning: 'r' } }).input.value,
+      ).toBe(true);
+      expect(
+        schema.parse({ input: { fieldName: 'Active', value: false, reasoning: 'r' } }).input.value,
+      ).toBe(false);
+      expect(() =>
+        schema.parse({ input: { fieldName: 'Active', value: 'maybe', reasoning: 'r' } }),
+      ).toThrow();
     });
 
     it('Date: accepts ISO 8601 datetime, rejects date-only string', async () => {
@@ -1065,14 +1063,15 @@ describe('UpdateRecordStepExecutor', () => {
       ]);
 
       expect(
-        schema.parse({ fieldName: 'Created At', value: '2024-06-01T00:00:00Z', reasoning: 'r' })
-          .value,
+        schema.parse({
+          input: { fieldName: 'Created At', value: '2024-06-01T00:00:00Z', reasoning: 'r' },
+        }).input.value,
       ).toBe('2024-06-01T00:00:00Z');
       expect(() =>
-        schema.parse({ fieldName: 'Created At', value: '2024-06-01', reasoning: 'r' }),
+        schema.parse({ input: { fieldName: 'Created At', value: '2024-06-01', reasoning: 'r' } }),
       ).toThrow();
       expect(() =>
-        schema.parse({ fieldName: 'Created At', value: 'not-a-date', reasoning: 'r' }),
+        schema.parse({ input: { fieldName: 'Created At', value: 'not-a-date', reasoning: 'r' } }),
       ).toThrow();
     });
 
@@ -1087,14 +1086,17 @@ describe('UpdateRecordStepExecutor', () => {
       ]);
 
       expect(
-        schema.parse({ fieldName: 'Birth Date', value: '2024-06-01', reasoning: 'r' }).value,
+        schema.parse({ input: { fieldName: 'Birth Date', value: '2024-06-01', reasoning: 'r' } })
+          .input.value,
       ).toBe('2024-06-01');
       expect(() =>
-        schema.parse({ fieldName: 'Birth Date', value: 'not-a-date', reasoning: 'r' }),
+        schema.parse({ input: { fieldName: 'Birth Date', value: 'not-a-date', reasoning: 'r' } }),
       ).toThrow();
       // datetime string must be rejected — Dateonly only accepts date-only format
       expect(() =>
-        schema.parse({ fieldName: 'Birth Date', value: '2024-06-01T00:00:00Z', reasoning: 'r' }),
+        schema.parse({
+          input: { fieldName: 'Birth Date', value: '2024-06-01T00:00:00Z', reasoning: 'r' },
+        }),
       ).toThrow();
     });
 
@@ -1103,10 +1105,14 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' },
       ]);
 
-      expect(schema.parse({ fieldName: 'Age', value: 42, reasoning: 'r' }).value).toBe(42);
-      expect(schema.parse({ fieldName: 'Age', value: '42', reasoning: 'r' }).value).toBe(42);
+      expect(
+        schema.parse({ input: { fieldName: 'Age', value: 42, reasoning: 'r' } }).input.value,
+      ).toBe(42);
+      expect(
+        schema.parse({ input: { fieldName: 'Age', value: '42', reasoning: 'r' } }).input.value,
+      ).toBe(42);
       expect(() =>
-        schema.parse({ fieldName: 'Age', value: 'not-a-number', reasoning: 'r' }),
+        schema.parse({ input: { fieldName: 'Age', value: 'not-a-number', reasoning: 'r' } }),
       ).toThrow();
     });
 
@@ -1121,11 +1127,12 @@ describe('UpdateRecordStepExecutor', () => {
         },
       ]);
 
-      expect(schema.parse({ fieldName: 'Status', value: 'active', reasoning: 'r' }).value).toBe(
-        'active',
-      );
+      expect(
+        schema.parse({ input: { fieldName: 'Status', value: 'active', reasoning: 'r' } }).input
+          .value,
+      ).toBe('active');
       expect(() =>
-        schema.parse({ fieldName: 'Status', value: 'unknown', reasoning: 'r' }),
+        schema.parse({ input: { fieldName: 'Status', value: 'unknown', reasoning: 'r' } }),
       ).toThrow();
     });
 
@@ -1140,8 +1147,12 @@ describe('UpdateRecordStepExecutor', () => {
         },
       ]);
 
-      expect(schema.parse({ fieldName: 'Flag', value: 'only', reasoning: 'r' }).value).toBe('only');
-      expect(() => schema.parse({ fieldName: 'Flag', value: 'other', reasoning: 'r' })).toThrow();
+      expect(
+        schema.parse({ input: { fieldName: 'Flag', value: 'only', reasoning: 'r' } }).input.value,
+      ).toBe('only');
+      expect(() =>
+        schema.parse({ input: { fieldName: 'Flag', value: 'other', reasoning: 'r' } }),
+      ).toThrow();
     });
 
     it('Enum with no enumValues: falls back to any string', async () => {
@@ -1155,9 +1166,10 @@ describe('UpdateRecordStepExecutor', () => {
         },
       ]);
 
-      expect(schema.parse({ fieldName: 'Tag', value: 'anything', reasoning: 'r' }).value).toBe(
-        'anything',
-      );
+      expect(
+        schema.parse({ input: { fieldName: 'Tag', value: 'anything', reasoning: 'r' } }).input
+          .value,
+      ).toBe('anything');
     });
 
     it('Json: accepts valid JSON string, rejects non-JSON', async () => {
@@ -1166,10 +1178,11 @@ describe('UpdateRecordStepExecutor', () => {
       ]);
 
       expect(
-        schema.parse({ fieldName: 'Metadata', value: '{"key":"val"}', reasoning: 'r' }).value,
+        schema.parse({ input: { fieldName: 'Metadata', value: '{"key":"val"}', reasoning: 'r' } })
+          .input.value,
       ).toBe('{"key":"val"}');
       expect(() =>
-        schema.parse({ fieldName: 'Metadata', value: 'not json', reasoning: 'r' }),
+        schema.parse({ input: { fieldName: 'Metadata', value: 'not json', reasoning: 'r' } }),
       ).toThrow();
     });
 
@@ -1179,9 +1192,12 @@ describe('UpdateRecordStepExecutor', () => {
       ]);
 
       expect(
-        schema.parse({ fieldName: 'Location', value: [-0.5, 44.8], reasoning: 'r' }).value,
+        schema.parse({ input: { fieldName: 'Location', value: [-0.5, 44.8], reasoning: 'r' } })
+          .input.value,
       ).toEqual([-0.5, 44.8]);
-      expect(() => schema.parse({ fieldName: 'Location', value: [1], reasoning: 'r' })).toThrow();
+      expect(() =>
+        schema.parse({ input: { fieldName: 'Location', value: [1], reasoning: 'r' } }),
+      ).toThrow();
     });
 
     it('String/Uuid/Time/File (default): accepts any string', async () => {
@@ -1192,9 +1208,10 @@ describe('UpdateRecordStepExecutor', () => {
       );
 
       for (const schema of schemas) {
-        expect(schema.parse({ fieldName: 'F', value: 'anything', reasoning: 'r' }).value).toBe(
-          'anything',
-        );
+        expect(
+          schema.parse({ input: { fieldName: 'F', value: 'anything', reasoning: 'r' } }).input
+            .value,
+        ).toBe('anything');
       }
     });
 
@@ -1210,13 +1227,13 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(
         schema.parse({
-          fieldName: 'Attachments',
-          value: ['file1.pdf', 'file2.pdf'],
-          reasoning: 'r',
-        }).value,
+          input: { fieldName: 'Attachments', value: ['file1.pdf', 'file2.pdf'], reasoning: 'r' },
+        }).input.value,
       ).toEqual(['file1.pdf', 'file2.pdf']);
       expect(() =>
-        schema.parse({ fieldName: 'Attachments', value: 'not-an-array', reasoning: 'r' }),
+        schema.parse({
+          input: { fieldName: 'Attachments', value: 'not-an-array', reasoning: 'r' },
+        }),
       ).toThrow();
     });
 
@@ -1225,7 +1242,9 @@ describe('UpdateRecordStepExecutor', () => {
         { fieldName: 'name', displayName: 'Name', isRelationship: false, type: 'String' },
       ]);
 
-      expect(schema.parse({ fieldName: 'Name', value: null, reasoning: 'r' }).value).toBeNull();
+      expect(
+        schema.parse({ input: { fieldName: 'Name', value: null, reasoning: 'r' } }).input.value,
+      ).toBeNull();
     });
 
     it('type [[String]] (nested array): treats as array of JSON strings', async () => {
@@ -1239,10 +1258,12 @@ describe('UpdateRecordStepExecutor', () => {
       ]);
 
       expect(
-        schema.parse({ fieldName: 'Data', value: ['{"a":1}', '{"b":2}'], reasoning: 'r' }).value,
+        schema.parse({
+          input: { fieldName: 'Data', value: ['{"a":1}', '{"b":2}'], reasoning: 'r' },
+        }).input.value,
       ).toEqual(['{"a":1}', '{"b":2}']);
       expect(() =>
-        schema.parse({ fieldName: 'Data', value: ['not json'], reasoning: 'r' }),
+        schema.parse({ input: { fieldName: 'Data', value: ['not json'], reasoning: 'r' } }),
       ).toThrow();
     });
   });
@@ -1336,9 +1357,7 @@ describe('UpdateRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort(updatedValues);
       const runStore = makeMockRunStore();
       const mockModel = makeMockModel({
-        fieldName: 'Status',
-        value: 'active',
-        reasoning: 'test',
+        input: { fieldName: 'Status', value: 'active', reasoning: 'test' },
       });
       const context = makeContext({
         model: mockModel.model,

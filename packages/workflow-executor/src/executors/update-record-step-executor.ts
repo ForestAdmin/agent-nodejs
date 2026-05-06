@@ -252,10 +252,11 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       new HumanMessage(`**Request**: ${prompt ?? 'Update the relevant field.'}`),
     ];
 
-    return this.invokeWithTool<{ fieldName: string; value: unknown; reasoning: string }>(
-      messages,
-      tool,
-    );
+    const { input } = await this.invokeWithTool<{
+      input: { fieldName: string; value: unknown; reasoning: string };
+    }>(messages, tool);
+
+    return input;
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -279,18 +280,15 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       }),
     ) as FieldObject[];
 
-    const unionSchema =
+    const inputSchema =
       fieldObjects.length === 1
         ? fieldObjects[0]
-        : z.discriminatedUnion(
-            'fieldName',
-            fieldObjects as [FieldObject, FieldObject, ...FieldObject[]],
-          );
+        : z.union(fieldObjects as [FieldObject, FieldObject, ...FieldObject[]]);
 
     return new DynamicStructuredTool({
       name: 'update-record-field',
       description: 'Update a field on the selected record.',
-      schema: unionSchema,
+      schema: z.object({ input: inputSchema }),
       func: undefined,
     });
   }
