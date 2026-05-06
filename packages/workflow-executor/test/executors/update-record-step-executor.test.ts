@@ -1266,6 +1266,33 @@ describe('UpdateRecordStepExecutor', () => {
         schema.parse({ input: { fieldName: 'Data', value: ['not json'], reasoning: 'r' } }),
       ).toThrow();
     });
+
+    it('root schema is ZodObject (not union) — satisfies OpenAI type:object requirement', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
+        { fieldName: 'name', displayName: 'Name', isRelationship: false, type: 'String' },
+      ]);
+
+      expect(schema.constructor.name).toBe('ZodObject');
+    });
+
+    it('multi-field: both variants accepted under input wrapper, flat payload rejected', async () => {
+      const schema = await getToolSchema([
+        { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
+        { fieldName: 'count', displayName: 'Count', isRelationship: false, type: 'Number' },
+      ]);
+
+      expect(
+        schema.parse({ input: { fieldName: 'Status', value: 'active', reasoning: 'r' } }).input
+          .value,
+      ).toBe('active');
+      expect(
+        schema.parse({ input: { fieldName: 'Count', value: '5', reasoning: 'r' } }).input.value,
+      ).toBe(5);
+      expect(() =>
+        schema.parse({ fieldName: 'Status', value: 'active', reasoning: 'r' }),
+      ).toThrow();
+    });
   });
 
   describe('patchAndReloadPendingData validation', () => {
