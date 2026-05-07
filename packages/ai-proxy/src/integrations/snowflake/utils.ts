@@ -4,7 +4,19 @@ import { AIBadRequestError, AIToolUnprocessableError, McpConnectionError } from 
 
 const READ_ONLY_LEADING_KEYWORD_RE = /^\s*(select|show|describe|desc|explain)\b/i;
 const FORBIDDEN_KEYWORD_RE =
-  /\b(insert|delete|merge|drop|create|alter|truncate|rename|undrop|swap|grant|revoke|call|execute|copy|put|get|use|set|unset|begin|commit|rollback|with)\b/i;
+  /\b(insert|update|delete|merge|drop|create|alter|truncate|rename|undrop|swap|grant|revoke|call|execute|copy|put|get|use|set|unset|begin|commit|rollback|with)\b/i;
+// Snowflake account identifiers are alphanumeric segments optionally separated by `.` or `-`
+// (org-account or locator.region.cloud). Anything else could redirect URL building to an
+// attacker-controlled host (e.g. `attack.com#` makes `#` start the URL fragment).
+const ACCOUNT_IDENTIFIER_RE = /^[A-Za-z0-9_-]{1,128}(\.[A-Za-z0-9_-]{1,128}){0,3}$/;
+
+export function assertValidAccountIdentifier(accountIdentifier: string): void {
+  if (typeof accountIdentifier !== 'string' || !ACCOUNT_IDENTIFIER_RE.test(accountIdentifier)) {
+    throw new AIBadRequestError(
+      `Invalid Snowflake account identifier: ${JSON.stringify(accountIdentifier)}`,
+    );
+  }
+}
 
 export function getSnowflakeAuthHeaders(config: SnowflakeConfig): Record<string, string> {
   return {
@@ -15,7 +27,9 @@ export function getSnowflakeAuthHeaders(config: SnowflakeConfig): Record<string,
   };
 }
 
-export function getSnowflakeValidationBaseUrl(accountIdentifier: string): string {
+export function getSnowflakeBaseUrl(accountIdentifier: string): string {
+  assertValidAccountIdentifier(accountIdentifier);
+
   return `https://${accountIdentifier}.snowflakecomputing.com`;
 }
 
@@ -122,7 +136,7 @@ export async function assertResponseOk(response: Response, action: string) {
 }
 
 export async function validateSnowflakeConfig(config: SnowflakeConfig) {
-  const baseUrl = getSnowflakeValidationBaseUrl(config.accountIdentifier);
+  const baseUrl = getSnowflakeBaseUrl(config.accountIdentifier);
   const headers = getSnowflakeAuthHeaders(config);
   const body = {
     statement: 'SELECT 1',

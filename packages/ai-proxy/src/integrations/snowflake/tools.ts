@@ -4,7 +4,7 @@ import ServerRemoteTool from '../../server-remote-tool';
 import createCortexAnalystTool from './tools/cortex-analyst';
 import createCortexSearchTool from './tools/cortex-search';
 import createExecuteQueryTool from './tools/execute-query';
-import { getSnowflakeAuthHeaders } from './utils';
+import { getSnowflakeAuthHeaders, getSnowflakeBaseUrl } from './utils';
 
 export interface SnowflakeConfig {
   accountIdentifier: string;
@@ -15,13 +15,9 @@ export interface SnowflakeConfig {
   defaultRole?: string;
 }
 
-export function buildSnowflakeBaseUrl(config: SnowflakeConfig): string {
-  return `https://${config.accountIdentifier}.snowflakecomputing.com`;
-}
-
 export default function getSnowflakeTools(config: SnowflakeConfig): RemoteTool[] {
   const headers = getSnowflakeAuthHeaders(config);
-  const baseUrl = buildSnowflakeBaseUrl(config);
+  const baseUrl = getSnowflakeBaseUrl(config.accountIdentifier);
 
   return [
     createCortexSearchTool(headers, baseUrl),

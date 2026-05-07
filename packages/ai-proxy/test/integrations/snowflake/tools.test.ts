@@ -1,7 +1,4 @@
-import getSnowflakeTools, {
-  buildSnowflakeBaseUrl,
-  type SnowflakeConfig,
-} from '../../../src/integrations/snowflake/tools';
+import getSnowflakeTools, { type SnowflakeConfig } from '../../../src/integrations/snowflake/tools';
 import ServerRemoteTool from '../../../src/server-remote-tool';
 
 describe('getSnowflakeTools', () => {
@@ -9,12 +6,6 @@ describe('getSnowflakeTools', () => {
     accountIdentifier: 'my-account',
     programmaticAccessToken: 'pat-secret',
   };
-
-  describe('buildSnowflakeBaseUrl', () => {
-    it('should compose the URL from the account identifier', () => {
-      expect(buildSnowflakeBaseUrl(config)).toBe('https://my-account.snowflakecomputing.com');
-    });
-  });
 
   it('should return 3 tools wrapped in ServerRemoteTool', () => {
     const tools = getSnowflakeTools(config);

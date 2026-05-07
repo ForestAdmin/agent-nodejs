@@ -2,9 +2,10 @@ import { AIBadRequestError, McpConnectionError } from '../../../src/errors';
 import {
   assertReadOnlySql,
   assertResponseOk,
+  assertValidAccountIdentifier,
   buildSessionContext,
   getSnowflakeAuthHeaders,
-  getSnowflakeValidationBaseUrl,
+  getSnowflakeBaseUrl,
   validateSnowflakeConfig,
 } from '../../../src/integrations/snowflake/utils';
 
@@ -25,11 +26,65 @@ describe('snowflake/utils', () => {
     });
   });
 
-  describe('getSnowflakeValidationBaseUrl', () => {
-    it('should build the validation URL from the account identifier only', () => {
-      expect(getSnowflakeValidationBaseUrl('my-account')).toBe(
-        'https://my-account.snowflakecomputing.com',
+  describe('getSnowflakeBaseUrl', () => {
+    it('should build the URL from the account identifier', () => {
+      expect(getSnowflakeBaseUrl('my-account')).toBe('https://my-account.snowflakecomputing.com');
+    });
+
+    it.each(['attack.com#', 'attack.com/', 'attack.com:8080', 'attack.com?x=1'])(
+      'should reject injection attempt: %s',
+      identifier => {
+        expect(() => getSnowflakeBaseUrl(identifier)).toThrow(AIBadRequestError);
+      },
+    );
+  });
+
+  describe('assertValidAccountIdentifier', () => {
+    it.each([
+      'xy12345',
+      'XY12345',
+      'myorg-myaccount',
+      'my_org-my_account',
+      'xy12345.us-east-1.aws',
+      'xy12345.us-east-1.gcp',
+      'xy12345.eu-west-1.azure',
+    ])('should accept valid identifier: %s', identifier => {
+      expect(() => assertValidAccountIdentifier(identifier)).not.toThrow();
+    });
+
+    it.each([
+      '',
+      'attack.com#',
+      'attack.com/',
+      'attack.com:8080',
+      'attack.com?x=1',
+      'attack.com\\foo',
+      'attack.com foo',
+      'attack.com\nfoo',
+      'attack.com@evil.com',
+      'a..b',
+      '.leading-dot',
+      'trailing-dot.',
+      'a.b.c.d.e',
+    ])('should reject invalid identifier: %j', identifier => {
+      expect(() => assertValidAccountIdentifier(identifier)).toThrow(AIBadRequestError);
+      expect(() => assertValidAccountIdentifier(identifier)).toThrow(
+        /Invalid Snowflake account identifier/,
       );
+    });
+
+    it('should reject non-string input', () => {
+      expect(() => assertValidAccountIdentifier(undefined as unknown as string)).toThrow(
+        AIBadRequestError,
+      );
+      expect(() => assertValidAccountIdentifier(123 as unknown as string)).toThrow(
+        AIBadRequestError,
+      );
+    });
+
+    it('should reject identifier exceeding the per-segment length cap', () => {
+      const tooLong = 'a'.repeat(129);
+      expect(() => assertValidAccountIdentifier(tooLong)).toThrow(AIBadRequestError);
     });
   });
 

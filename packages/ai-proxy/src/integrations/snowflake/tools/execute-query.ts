@@ -14,7 +14,7 @@ export default function createExecuteQueryTool(
     name: 'snowflake_execute_query',
     description:
       'Execute a read-only SQL query on Snowflake and return the results. ' +
-      'Only SELECT, WITH, SHOW, DESCRIBE, and EXPLAIN statements are allowed. ' +
+      'Only SELECT, SHOW, DESCRIBE, and EXPLAIN statements are allowed. ' +
       'Multiple statements are not permitted.',
     schema: z.object({
       statement: z.string().min(1).describe('The read-only SQL statement to execute'),
