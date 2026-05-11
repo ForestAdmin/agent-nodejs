@@ -354,9 +354,7 @@ describe('workflow execution (integration)', () => {
 
   it('update-record: awaiting-input → confirm → success', async () => {
     const model = createMockModel({
-      fieldName: 'Status',
-      value: 'active',
-      reasoning: 'update status',
+      input: { fieldName: 'Status', value: 'active', reasoning: 'update status' },
     });
 
     const step = buildPendingStep({
@@ -716,9 +714,7 @@ describe('workflow execution (integration)', () => {
 
   it('skip step (userConfirmed: false) → success without executing action', async () => {
     const model = createMockModel({
-      fieldName: 'Status',
-      value: 'active',
-      reasoning: 'update status',
+      input: { fieldName: 'Status', value: 'active', reasoning: 'update status' },
     });
 
     const step = buildPendingStep({
