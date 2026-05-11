@@ -5,11 +5,13 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import { AIBadRequestError } from './errors';
 import getKolarTools, { type KolarConfig } from './integrations/kolar/tools';
 import { validateKolarConfig } from './integrations/kolar/utils';
+import getSnowflakeTools, { type SnowflakeConfig } from './integrations/snowflake/tools';
+import { validateSnowflakeConfig } from './integrations/snowflake/utils';
 import getZendeskTools, { type ZendeskConfig } from './integrations/zendesk/tools';
 import { validateZendeskConfig } from './integrations/zendesk/utils';
 
-export type CustomConfig = ZendeskConfig | KolarConfig;
-export type ForestIntegrationName = 'Zendesk' | 'Kolar';
+export type CustomConfig = ZendeskConfig | KolarConfig | SnowflakeConfig;
+export type ForestIntegrationName = 'Zendesk' | 'Kolar' | 'Snowflake';
 
 export interface ForestIntegrationConfig {
   integrationName: ForestIntegrationName;
@@ -45,6 +47,9 @@ export default class ForestIntegrationClient implements ToolProvider {
         case 'Kolar':
           tools.push(...getKolarTools(config as KolarConfig));
           break;
+        case 'Snowflake':
+          tools.push(...getSnowflakeTools(config as SnowflakeConfig));
+          break;
         default:
           this.logger?.('Warn', `Unsupported integration: ${integrationName}`);
       }
@@ -61,6 +66,8 @@ export default class ForestIntegrationClient implements ToolProvider {
             return validateZendeskConfig(config as ZendeskConfig);
           case 'Kolar':
             return validateKolarConfig(config as KolarConfig);
+          case 'Snowflake':
+            return validateSnowflakeConfig(config as SnowflakeConfig);
           default:
             throw new AIBadRequestError(`Unsupported integration: ${integrationName}`);
         }
