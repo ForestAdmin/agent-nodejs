@@ -7,7 +7,7 @@ import type { ReadRecordStepDefinition } from '../types/validated/step-definitio
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { NoReadableFieldsError, NoResolvedFieldsError, RecordNotFoundError } from '../errors';
+import { NoReadableFieldsError, NoResolvedFieldsError } from '../errors';
 import RecordStepExecutor from './record-step-executor';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
@@ -49,9 +49,6 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
     if (resolvedFieldNames.length === 0) {
       throw new NoResolvedFieldsError(selectedDisplayNames);
     }
-
-    // TODO: remove — intentional failure to test error handling from the front
-    throw new RecordNotFoundError(selectedRecordRef.collectionName, String(selectedRecordRef.recordId[0]));
 
     const recordData = await this.agentPort.getRecord(
       {
