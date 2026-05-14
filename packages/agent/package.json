@@ -32,7 +32,7 @@
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
     "superagent": "^10.3.0",
-    "uuid": "11.0.2"
+    "uuid": "11.1.1"
   },
   "files": [
     "dist/**/*.js",
