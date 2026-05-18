@@ -1,3 +1,32 @@
+## @forestadmin/agent [1.78.11](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.10...@forestadmin/agent@1.78.11) (2026-05-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.7
+* **@forestadmin/mcp-server:** upgraded to 1.11.9
+
+## @forestadmin/agent [1.78.10](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.9...@forestadmin/agent@1.78.10) (2026-05-05)
+
+
+### Bug Fixes
+
+* **agent:** avoid concurent restart lead to an empty schema sending ([#1577](https://github.com/ForestAdmin/agent-nodejs/issues/1577)) ([8a74465](https://github.com/ForestAdmin/agent-nodejs/commit/8a74465adf3f1774fa169e1509e2fb2676466611))
+
+## @forestadmin/agent [1.78.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.8...@forestadmin/agent@1.78.9) (2026-05-05)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.39.6
+* **@forestadmin/mcp-server:** upgraded to 1.11.8
+
 ## @forestadmin/agent [1.78.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.7...@forestadmin/agent@1.78.8) (2026-04-30)
 
 

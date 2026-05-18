@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/forestadmin-client",
-  "version": "1.39.5",
+  "version": "1.39.7",
   "main": "dist/index.js",
   "license": "GPL-3.0",
   "publishConfig": {
@@ -31,7 +31,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/ai-proxy": "1.8.0",
+    "@forestadmin/ai-proxy": "1.9.0",
     "@forestadmin/datasource-toolkit": "1.53.1",
     "@types/json-api-serializer": "^2.6.3",
     "@types/jsonwebtoken": "^9.0.1",
