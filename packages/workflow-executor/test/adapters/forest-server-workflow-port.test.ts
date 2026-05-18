@@ -734,7 +734,7 @@ describe('ForestServerWorkflowPort', () => {
   describe('getMcpServerConfigs', () => {
     it('returns the Record<string, ToolConfig> map verbatim from the orchestrator', async () => {
       const configs = {
-        'data-gouv': { url: 'https://mcp.example.com', type: 'http', headers: {} },
+        'mcp-server-1': { url: 'https://mcp.example.com', type: 'http', headers: {} },
       };
       mockQuery.mockResolvedValue(configs);
 

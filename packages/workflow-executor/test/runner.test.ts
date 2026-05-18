@@ -1163,7 +1163,7 @@ describe('MCP lazy loading (via once thunk)', () => {
       auth: { forestServerToken: 'test-forest-token' },
     });
     const realConfigs = {
-      'data-gouv': { url: 'https://mcp.example.com', type: 'http' as const, headers: {} },
+      'mcp-server-1': { url: 'https://mcp.example.com', type: 'http' as const, headers: {} },
     };
     workflowPort.getMcpServerConfigs.mockResolvedValue(realConfigs);
 
