@@ -94,41 +94,18 @@ describe('toAvailableStepExecution', () => {
     expect(result?.baseRecordRef.recordId).toEqual(['rec-abc']);
   });
 
-  it('should return null when all steps are done', () => {
-    const run = makeRun({
-      workflowHistory: [
-        makeStepHistory({ stepIndex: 0, done: true }),
-        makeStepHistory({ stepIndex: 1, done: true }),
-      ],
-    });
-
-    expect(toAvailableStepExecution(run)).toBeNull();
-  });
-
-  it('should return null when all steps are done or cancelled', () => {
-    const run = makeRun({
-      workflowHistory: [
-        makeStepHistory({ stepIndex: 0, done: true }),
-        makeStepHistory({ stepIndex: 1, done: false, cancelled: true }),
-      ],
-    });
-
-    expect(toAvailableStepExecution(run)).toBeNull();
-  });
-
   it('should return null when workflowHistory is empty', () => {
     const run = makeRun({ workflowHistory: [] });
 
     expect(toAvailableStepExecution(run)).toBeNull();
   });
 
-  it('should pick the first non-done, non-cancelled step as pending', () => {
+  it('picks the last step — orchestrator is the source of truth for which step to execute', () => {
     const run = makeRun({
       workflowHistory: [
         makeStepHistory({ stepName: 's0', stepIndex: 0, done: true }),
-        makeStepHistory({ stepName: 's1', stepIndex: 1, done: false, cancelled: true }),
+        makeStepHistory({ stepName: 's1', stepIndex: 1, done: true }),
         makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
-        makeStepHistory({ stepName: 's3', stepIndex: 3, done: false }),
       ],
     });
 
@@ -136,33 +113,6 @@ describe('toAvailableStepExecution', () => {
 
     expect(result?.stepId).toBe('s2');
     expect(result?.stepIndex).toBe(2);
-  });
-
-  it('errored step (done:false + context.error) is skipped — next pending step is returned', () => {
-    // Scenario: back changed errored steps to done:false so the front can offer Continue/Revise.
-    // The executor must skip the errored step and pick the next pending one.
-    const run = makeRun({
-      workflowHistory: [
-        makeStepHistory({ stepName: 's0', stepIndex: 0, done: false, context: { error: 'boom' } }),
-        makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
-      ],
-    });
-
-    const result = toAvailableStepExecution(run);
-
-    expect(result?.stepId).toBe('s1');
-    expect(result?.stepIndex).toBe(1);
-  });
-
-  it('returns null when the only non-done step is errored', () => {
-    const run = makeRun({
-      workflowHistory: [
-        makeStepHistory({ stepIndex: 0, done: true }),
-        makeStepHistory({ stepIndex: 1, done: false, context: { error: 'failed' } }),
-      ],
-    });
-
-    expect(toAvailableStepExecution(run)).toBeNull();
   });
 
   it('should strip unknown server keys (e.g. automaticExecution) from guidance step without throwing', () => {
@@ -404,18 +354,19 @@ describe('toAvailableStepExecution', () => {
       });
     });
 
-    it('should not include done steps that are after the available step', () => {
+    it('should not include the pending step itself in previousSteps', () => {
       const run = makeRun({
         workflowHistory: [
-          makeStepHistory({ stepName: 's0', stepIndex: 0, done: false }),
-          makeStepHistory({ stepName: 's1', stepIndex: 1, done: true }),
+          makeStepHistory({ stepName: 's0', stepIndex: 0, done: true }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
         ],
       });
 
       const result = toAvailableStepExecution(run);
 
-      expect(result?.stepId).toBe('s0');
-      expect(result?.previousSteps).toHaveLength(0);
+      expect(result?.stepId).toBe('s1');
+      expect(result?.previousSteps).toHaveLength(1);
+      expect(result?.previousSteps[0].stepOutcome.stepId).toBe('s0');
     });
 
     it.each([
