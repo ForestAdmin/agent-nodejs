@@ -137,7 +137,7 @@ export default function toAvailableStepExecution(
   }
 
   const pending = run.workflowHistory.at(-1) ?? null;
-  if (!pending) return null;
+  if (!pending || pending.done) return null;
 
   const result = {
     runId: String(run.id),
