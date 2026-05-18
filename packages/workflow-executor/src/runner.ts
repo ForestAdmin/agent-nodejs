@@ -4,12 +4,7 @@ import type { AgentPort } from './ports/agent-port';
 import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
-import type {
-  AvailableRunDispatch,
-  MalformedRunInfo,
-  McpConfiguration,
-  WorkflowPort,
-} from './ports/workflow-port';
+import type { AvailableRunDispatch, MalformedRunInfo, WorkflowPort } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
 import type { AvailableStepExecution, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
@@ -262,14 +257,9 @@ export default class Runner {
 
   private async fetchRemoteTools(): Promise<RemoteTool[]> {
     const configs = await this.config.workflowPort.getMcpServerConfigs();
-    if (configs.length === 0) return [];
+    if (Object.keys(configs).length === 0) return [];
 
-    const mergedConfig: McpConfiguration = {
-      ...configs[0],
-      configs: Object.assign({}, ...configs.map(c => c.configs)),
-    };
-
-    return this.config.aiModelPort.loadRemoteTools(mergedConfig);
+    return this.config.aiModelPort.loadRemoteTools({ configs });
   }
 
   private executeStep(

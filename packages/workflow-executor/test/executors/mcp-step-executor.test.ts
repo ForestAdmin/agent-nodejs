@@ -61,7 +61,7 @@ function makeMockWorkflowPort(): WorkflowPort {
       fields: [],
       actions: [],
     }),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }

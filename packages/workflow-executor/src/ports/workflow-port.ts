@@ -3,9 +3,9 @@
 import type { AvailableStepExecution, StepUser } from '../types/execution-context';
 import type { CollectionSchema } from '../types/validated/collection';
 import type { StepOutcome } from '../types/validated/step-outcome';
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
+import type { McpConfiguration, McpServers } from '@forestadmin/ai-proxy';
 
-export type { McpConfiguration };
+export type { McpConfiguration, McpServers };
 
 export interface MalformedRunInfo {
   runId: string;
@@ -39,6 +39,8 @@ export interface WorkflowPort {
     stepOutcome: StepOutcome,
   ): Promise<AvailableRunDispatch | null>;
   getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema>;
-  getMcpServerConfigs(): Promise<McpConfiguration[]>;
+  // The orchestrator's GET /liana/mcp-server-configs-with-details returns a
+  // Record<string, ToolConfig> map keyed by server name — not an array.
+  getMcpServerConfigs(): Promise<McpServers>;
   hasRunAccess(runId: string, user: StepUser): Promise<boolean>;
 }
