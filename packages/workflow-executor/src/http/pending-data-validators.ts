@@ -31,12 +31,17 @@ const loadRelatedRecordPatchSchema = z
     // processing the confirmation.
     name: z.string().optional(),
     // User may override the AI-selected record; must be non-empty when provided.
+    // Required when overriding the relation name — the original record ID belongs to a
+    // different collection and cannot be reused for the new relation.
     selectedRecordId: z
       .array(z.union([z.string(), z.number()]))
       .min(1)
       .optional(),
   })
-  .strict();
+  .strict()
+  .refine(data => !data.name || data.selectedRecordId !== undefined, {
+    message: 'selectedRecordId is required when overriding the relation name',
+  });
 // relatedCollectionName, displayName and suggestedFields are NOT accepted — internal executor data.
 
 const guidancePatchSchema = z
