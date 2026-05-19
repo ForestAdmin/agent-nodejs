@@ -149,28 +149,20 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const isString = (v: unknown): v is string => typeof v === 'string';
-    const isRecordId = (v: unknown): v is Array<string | number> =>
-      Array.isArray(v) && v.every(e => typeof e === 'string' || typeof e === 'number');
+    const name = userConfirmation?.name ?? pendingData.name;
+    const selectedRecordId = userConfirmation?.selectedRecordId ?? pendingData.selectedRecordId;
 
-    const name = isString(userConfirmation?.name) ? userConfirmation.name : pendingData.name;
-    const displayName = isString(userConfirmation?.displayName)
-      ? userConfirmation.displayName
-      : pendingData.displayName;
-    const selectedRecordId = isRecordId(userConfirmation?.selectedRecordId)
-      ? userConfirmation.selectedRecordId
-      : pendingData.selectedRecordId;
-
-    // Re-derive relatedCollectionName because the user may have swapped the relation.
+    // Re-derive relatedCollectionName and displayName because the user may have swapped the relation.
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const field = schema.fields.find(f => f.fieldName === name);
-    const relatedCollectionName = field?.relatedCollectionName;
 
-    if (!relatedCollectionName) {
+    if (!field?.relatedCollectionName) {
       throw new StepStateError(
         `Step at index ${this.context.stepIndex} could not resolve relatedCollectionName for relation "${name}"`,
       );
     }
+
+    const { displayName, relatedCollectionName } = field;
 
     const record: RecordRef = {
       collectionName: relatedCollectionName,

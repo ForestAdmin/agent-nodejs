@@ -203,8 +203,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  // Keeps `pendingData` immutable; mirrors `userConfirmed` only because
-  // `handleConfirmationFlow` reads the gate from there.
+  // Preserves the AI suggestion in pendingData: only userConfirmed is mirrored there because
+  // handleConfirmationFlow gates on it. The full parsed PATCH body is stored in userConfirmation.
   protected async patchAndReloadPendingData<TExec extends WithPendingData>(
     pendingData?: unknown,
   ): Promise<TExec | undefined> {
@@ -235,7 +235,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
           ? { userConfirmed: patchBody.userConfirmed }
           : {}),
       },
-      userConfirmation: patchBody,
+      userConfirmation: patchBody as TExec['userConfirmation'],
     };
 
     await this.context.runStore.saveStepExecution(this.context.runId, updated);

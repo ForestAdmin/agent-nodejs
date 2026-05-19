@@ -1,6 +1,12 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
 import type { RecordRef } from './validated/collection';
+import type {
+  LoadRelatedRecordConfirmation,
+  McpConfirmation,
+  TriggerActionConfirmation,
+  UpdateRecordConfirmation,
+} from '../http/pending-data-validators';
 
 // -- Base --
 
@@ -16,8 +22,8 @@ interface MutatingStepExecutionData extends BaseStepExecutionData {
 
 // Parsed PATCH body kept beside `pendingData` so executors can read the user's
 // final input without overwriting the AI suggestion.
-export interface WithUserConfirmation {
-  userConfirmation?: Record<string, unknown>;
+export interface WithUserConfirmation<T extends Record<string, unknown> = Record<string, unknown>> {
+  userConfirmation?: T;
 }
 
 // -- Condition --
@@ -58,7 +64,7 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 export interface UpdateRecordStepExecutionData
   extends MutatingStepExecutionData,
-    WithUserConfirmation {
+    WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
   executionParams?: FieldRef & { value: unknown };
   // User confirmed → values returned by updateRecord. User rejected → skipped.
@@ -83,7 +89,7 @@ export interface RelationRef {
 
 export interface TriggerRecordActionStepExecutionData
   extends MutatingStepExecutionData,
-    WithUserConfirmation {
+    WithUserConfirmation<TriggerActionConfirmation> {
   type: 'trigger-action';
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
@@ -103,7 +109,7 @@ export interface McpToolCall extends McpToolRef {
   input: Record<string, unknown>;
 }
 
-export interface McpStepExecutionData extends MutatingStepExecutionData {
+export interface McpStepExecutionData extends MutatingStepExecutionData, WithUserConfirmation<McpConfirmation> {
   type: 'mcp';
   executionParams?: McpToolCall;
   executionResult?:
@@ -133,7 +139,7 @@ export interface LoadRelatedRecordPendingData extends RelationRef {
 
 export interface LoadRelatedRecordStepExecutionData
   extends BaseStepExecutionData,
-    WithUserConfirmation {
+    WithUserConfirmation<LoadRelatedRecordConfirmation> {
   type: 'load-related-record';
   pendingData?: LoadRelatedRecordPendingData;
   selectedRecordRef: RecordRef;

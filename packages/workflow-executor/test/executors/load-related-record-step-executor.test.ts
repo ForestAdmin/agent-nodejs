@@ -894,7 +894,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         incomingPendingData: {
           userConfirmed: true,
           name: 'address',
-          displayName: 'Address',
           selectedRecordId: [7],
         },
       });
