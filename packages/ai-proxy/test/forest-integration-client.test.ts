@@ -204,13 +204,11 @@ describe('ForestIntegrationClient', () => {
           integrationName: 'Zendesk',
           config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
           isForestConnector: true,
-        } as any,
+        },
       ]);
 
       await client.loadTools();
 
-      // The exact signature shape (positional vs. options bag) is an implementation
-      // detail of the production change; the test pins down that id reaches the factory.
       expect(getZendeskTools).toHaveBeenCalledWith(
         expect.objectContaining({ subdomain: 'test' }),
         'forest-zendesk-42',
@@ -224,7 +222,7 @@ describe('ForestIntegrationClient', () => {
           integrationName: 'Kolar',
           config: { apiKey: 'key' },
           isForestConnector: true,
-        } as any,
+        },
       ]);
 
       await client.loadTools();
@@ -242,7 +240,7 @@ describe('ForestIntegrationClient', () => {
           integrationName: 'Snowflake',
           config: { accountIdentifier: 'a', programmaticAccessToken: 'tok' },
           isForestConnector: true,
-        } as any,
+        },
       ]);
 
       await client.loadTools();
@@ -250,6 +248,23 @@ describe('ForestIntegrationClient', () => {
       expect(getSnowflakeTools).toHaveBeenCalledWith(
         expect.objectContaining({ accountIdentifier: 'a' }),
         'forest-snowflake-99',
+      );
+    });
+
+    it('passes undefined to the factory when the config entry has no id', async () => {
+      const client = new ForestIntegrationClient([
+        {
+          integrationName: 'Zendesk',
+          config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
+          isForestConnector: true,
+        },
+      ]);
+
+      await client.loadTools();
+
+      expect(getZendeskTools).toHaveBeenCalledWith(
+        expect.objectContaining({ subdomain: 'test' }),
+        undefined,
       );
     });
   });

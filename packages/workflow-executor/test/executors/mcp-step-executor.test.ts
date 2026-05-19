@@ -442,8 +442,6 @@ describe('McpStepExecutor', () => {
 
   describe('mcpServerId filter (matches by tool.id, not tool.sourceId)', () => {
     it('passes only tools whose id matches step.mcpServerId to the AI', async () => {
-      // Both tools share sourceId='zendesk' (e.g. same integration server name) but carry
-      // distinct stable DB ids — proves the filter goes through id, not sourceId.
       const toolA = new MockRemoteTool({ name: 'tool_a', sourceId: 'zendesk', id: 'id-A' });
       const toolB = new MockRemoteTool({ name: 'tool_b', sourceId: 'zendesk', id: 'id-B' });
       const invokeFn = jest.fn().mockResolvedValue('ok');
@@ -473,8 +471,6 @@ describe('McpStepExecutor', () => {
     });
 
     it('does not match by sourceId — server-name collisions must not leak tools across configs', async () => {
-      // mcpServerId='server-B' should NOT match a tool that merely has sourceId='server-B' but
-      // a different DB id; only tool.id is authoritative.
       const tool = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-B', id: 'id-99' });
       const context = makeContext({
         stepDefinition: makeStep({ mcpServerId: 'server-B' }),
@@ -505,8 +501,6 @@ describe('McpStepExecutor', () => {
     });
 
     it('resolves a Forest-connector-backed tool when its id is threaded through', async () => {
-      // Simulates a Forest connector entry (e.g. Zendesk) where ForestIntegrationConfig.id
-      // has been propagated all the way to RemoteTool.id by the ai-proxy construction site.
       const invokeFn = jest.fn().mockResolvedValue('done');
       const forestTool = new MockRemoteTool({
         name: 'zendesk_get_tickets',

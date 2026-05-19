@@ -14,7 +14,7 @@ export type CustomConfig = ZendeskConfig | KolarConfig | SnowflakeConfig;
 export type ForestIntegrationName = 'Zendesk' | 'Kolar' | 'Snowflake';
 
 export interface ForestIntegrationConfig {
-  id: string;
+  id?: string;
   integrationName: ForestIntegrationName;
   config: CustomConfig;
   isForestConnector: true;

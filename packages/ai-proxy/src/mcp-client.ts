@@ -8,9 +8,6 @@ import McpServerRemoteTool from './mcp-server-remote-tool';
 
 export type McpServers = MultiServerMCPClient['config']['mcpServers'];
 
-// Base orchestrator entry shape from `@langchain/mcp-adapters`, widened with the optional
-// stable DB `id` exposed by Forest Admin's orchestrator. The id flows down to RemoteTool
-// so the workflow executor can match a step's `mcpServerId` against the config record.
 export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string] & {
   id?: string;
 };

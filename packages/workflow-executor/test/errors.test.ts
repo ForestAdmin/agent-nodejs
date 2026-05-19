@@ -89,7 +89,6 @@ describe('NoMcpToolsError', () => {
     const err = new Ctor('id-missing', []);
 
     expect(err.message).toMatch(/id-missing/);
-    // Should not produce undefined/null/[object Object] artefacts in the message.
     expect(err.message).not.toMatch(/undefined|null|\[object/i);
   });
 

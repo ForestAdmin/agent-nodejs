@@ -89,9 +89,6 @@ describe('McpClient', () => {
           schema: undefined,
           responseFormat: 'content',
         });
-        // Each config entry carries the stable DB id surfaced by the orchestrator.
-        // The McpClient must thread that id through to RemoteTool.id so the executor
-        // can match workflow steps against it.
         const configWithId = {
           configs: {
             slack: {
