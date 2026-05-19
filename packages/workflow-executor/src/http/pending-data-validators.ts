@@ -29,7 +29,7 @@ const loadRelatedRecordPatchSchema = z
     // User may intentionally switch to a different relation than the one the AI selected.
     // The executor re-derives relatedCollectionName and displayName from FieldSchema when
     // processing the confirmation.
-    name: z.string().optional(),
+    name: z.string().min(1).optional(),
     // User may override the AI-selected record; must be non-empty when provided.
     // Required when overriding the relation name — the original record ID belongs to a
     // different collection and cannot be reused for the new relation.
@@ -39,7 +39,7 @@ const loadRelatedRecordPatchSchema = z
       .optional(),
   })
   .strict()
-  .refine(data => !data.name || data.selectedRecordId !== undefined, {
+  .refine(data => data.name === undefined || data.selectedRecordId !== undefined, {
     message: 'selectedRecordId is required when overriding the relation name',
   });
 // relatedCollectionName, displayName and suggestedFields are NOT accepted — internal executor data.

@@ -92,6 +92,10 @@ describe('patchBodySchemas', () => {
       );
     });
 
+    it('rejects empty string name — empty string is not a valid relation name', () => {
+      expect(() => schema.parse({ userConfirmed: true, name: '' })).toThrow();
+    });
+
     it('rejects unknown fields (strict schema)', () => {
       expect(() => schema.parse({ userConfirmed: true, extra: 'leak' })).toThrow();
     });
