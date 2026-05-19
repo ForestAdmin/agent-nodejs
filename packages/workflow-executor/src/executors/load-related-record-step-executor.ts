@@ -139,21 +139,29 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.persistAndReturn(record, target, undefined);
   }
 
-  // Branch A: builds RecordRef from pendingData.selectedRecordId without a new getRelatedData call.
-  // Re-derives relatedCollectionName so a user-overridden relation name is handled correctly.
+  // Branch A: builds RecordRef from the user-confirmed selection without a new getRelatedData call.
   private async resolveFromSelection(
     execution: LoadRelatedRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, pendingData } = execution;
+    const { selectedRecordRef, pendingData, userConfirmation } = execution;
 
     if (!pendingData) {
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const { name, displayName, selectedRecordId } = pendingData;
+    const isString = (v: unknown): v is string => typeof v === 'string';
+    const isRecordId = (v: unknown): v is Array<string | number> =>
+      Array.isArray(v) && v.every(e => typeof e === 'string' || typeof e === 'number');
 
-    // Re-derive relatedCollectionName from schema using the (possibly updated) relation name.
-    // `name` is always a fieldName (set from field.fieldName in buildTarget) — search directly.
+    const name = isString(userConfirmation?.name) ? userConfirmation.name : pendingData.name;
+    const displayName = isString(userConfirmation?.displayName)
+      ? userConfirmation.displayName
+      : pendingData.displayName;
+    const selectedRecordId = isRecordId(userConfirmation?.selectedRecordId)
+      ? userConfirmation.selectedRecordId
+      : pendingData.selectedRecordId;
+
+    // Re-derive relatedCollectionName because the user may have swapped the relation.
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const field = schema.fields.find(f => f.fieldName === name);
     const relatedCollectionName = field?.relatedCollectionName;

@@ -828,6 +828,101 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
+  describe('confirmation with user override of selectedRecordId (Branch A)', () => {
+    it('preserves AI suggestion in pendingData and writes user choice to executionParams', async () => {
+      // Persisted state: AI suggested record [99], awaiting confirmation.
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
+        },
+      });
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      // User confirms with a different record id: [42].
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: true, selectedRecordId: [42] },
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+
+      // Final persisted execution must keep AI suggestion in pendingData
+      // and use the user-overridden record id in executionResult.
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          type: 'load-related-record',
+          pendingData: expect.objectContaining({
+            displayName: 'Order',
+            name: 'order',
+            selectedRecordId: [99], // AI suggestion preserved
+            userConfirmed: true,
+          }),
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('confirmation with user override of relation name (Branch A)', () => {
+    it('re-derives relatedCollectionName when the user switches to a different relation', async () => {
+      // AI suggested "order" (→ orders collection). User switches to "address" (→ addresses).
+      const execution = makePendingExecution({
+        pendingData: {
+          displayName: 'Order',
+          name: 'order',
+          selectedRecordId: [99],
+          suggestedFields: [],
+        },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        runStore,
+        incomingPendingData: {
+          userConfirmed: true,
+          name: 'address',
+          displayName: 'Address',
+          selectedRecordId: [7],
+        },
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          // AI suggestion preserved on pendingData
+          pendingData: expect.objectContaining({
+            name: 'order',
+            displayName: 'Order',
+            selectedRecordId: [99],
+          }),
+          // User-overridden relation resolves to the addresses collection
+          executionParams: { name: 'address', displayName: 'Address' },
+          executionResult: expect.objectContaining({
+            relation: { name: 'address', displayName: 'Address' },
+            record: expect.objectContaining({ collectionName: 'addresses', recordId: [7] }),
+          }),
+        }),
+      );
+    });
+  });
+
   describe('resolveFromSelection — relatedCollectionName resolution (Branch A)', () => {
     it('derives relatedCollectionName from schema when confirmed', async () => {
       const schema = makeCollectionSchema({

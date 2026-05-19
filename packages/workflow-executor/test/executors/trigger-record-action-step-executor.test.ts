@@ -252,6 +252,9 @@ describe('TriggerRecordActionStepExecutor', () => {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
           userConfirmed: true,
+        },
+        userConfirmation: {
+          userConfirmed: true,
           actionResult: { success: 'ok', html: '<p>Email queued</p>' },
         },
         selectedRecordRef: makeRecordRef(),
@@ -283,7 +286,6 @@ describe('TriggerRecordActionStepExecutor', () => {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
             userConfirmed: true,
-            actionResult: { success: 'ok', html: '<p>Email queued</p>' },
           },
         }),
       );
@@ -297,6 +299,9 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
+        },
+        userConfirmation: {
           userConfirmed: true,
           actionResult: null,
         },
@@ -950,6 +955,9 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+          userConfirmed: true,
+        },
+        userConfirmation: {
           userConfirmed: true,
           actionResult: { success: 'ok' },
         },

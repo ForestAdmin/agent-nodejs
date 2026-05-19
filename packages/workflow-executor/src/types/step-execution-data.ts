@@ -14,6 +14,12 @@ interface MutatingStepExecutionData extends BaseStepExecutionData {
   idempotencyPhase?: 'executing' | 'done';
 }
 
+// Parsed PATCH body kept beside `pendingData` so executors can read the user's
+// final input without overwriting the AI suggestion.
+export interface WithUserConfirmation {
+  userConfirmation?: Record<string, unknown>;
+}
+
 // -- Condition --
 
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
@@ -50,7 +56,9 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Update Record --
 
-export interface UpdateRecordStepExecutionData extends MutatingStepExecutionData {
+export interface UpdateRecordStepExecutionData
+  extends MutatingStepExecutionData,
+    WithUserConfirmation {
   type: 'update-record';
   executionParams?: FieldRef & { value: unknown };
   // User confirmed → values returned by updateRecord. User rejected → skipped.
@@ -73,13 +81,13 @@ export interface RelationRef {
   displayName: string;
 }
 
-export interface TriggerRecordActionStepExecutionData extends MutatingStepExecutionData {
+export interface TriggerRecordActionStepExecutionData
+  extends MutatingStepExecutionData,
+    WithUserConfirmation {
   type: 'trigger-action';
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
-  // When userConfirmed=true, actionResult is required: the frontend executes the action and
-  // posts the result back (the executor never re-executes on confirmation).
-  pendingData?: ActionRef & { userConfirmed?: boolean; actionResult?: unknown };
+  pendingData?: ActionRef & { userConfirmed?: boolean };
   selectedRecordRef: RecordRef;
 }
 
@@ -123,7 +131,9 @@ export interface LoadRelatedRecordPendingData extends RelationRef {
   userConfirmed?: boolean;
 }
 
-export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
+export interface LoadRelatedRecordStepExecutionData
+  extends BaseStepExecutionData,
+    WithUserConfirmation {
   type: 'load-related-record';
   pendingData?: LoadRelatedRecordPendingData;
   selectedRecordRef: RecordRef;

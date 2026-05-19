@@ -256,6 +256,131 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
+  describe('confirmation with user override (Branch A)', () => {
+    it('preserves AI suggestion in pendingData and writes user value to executionParams', async () => {
+      // Persisted state: AI proposed 'inactive', awaiting confirmation.
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'inactive',
+        },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      // User confirms with a different value: 'active'.
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: true, value: 'active' },
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      // updateRecord must be called with the user-confirmed value.
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ id: 1 }),
+      );
+
+      // Final persisted execution must keep AI suggestion in pendingData
+      // and the user value in executionParams.
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          type: 'update-record',
+          pendingData: expect.objectContaining({
+            displayName: 'Status',
+            name: 'status',
+            value: 'inactive', // AI suggestion preserved
+            userConfirmed: true,
+          }),
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          executionResult: { updatedValues },
+        }),
+      );
+    });
+  });
+
+  describe('accept-via-PATCH without value override (Branch A)', () => {
+    it('falls back to pendingData.value when userConfirmation has no value key', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: true },
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ id: 1 }),
+      );
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          userConfirmation: { userConfirmed: true },
+        }),
+      );
+    });
+  });
+
+  describe('rejection via PATCH with userConfirmation set (Branch A)', () => {
+    it('skips the update and ignores any value in userConfirmation', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'inactive' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: false, value: 'active' },
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          executionResult: { skipped: true },
+          pendingData: expect.objectContaining({
+            value: 'inactive',
+            userConfirmed: false,
+          }),
+        }),
+      );
+    });
+  });
+
   describe('confirmation rejected (Branch A)', () => {
     it('skips the update when user rejects', async () => {
       const agentPort = makeMockAgentPort();

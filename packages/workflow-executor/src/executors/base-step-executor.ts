@@ -5,7 +5,7 @@ import type {
   IStepExecutor,
   StepExecutionResult,
 } from '../types/execution-context';
-import type { StepExecutionData } from '../types/step-execution-data';
+import type { StepExecutionData, WithUserConfirmation } from '../types/step-execution-data';
 import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
@@ -27,7 +27,9 @@ import {
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
-type WithPendingData = StepExecutionData & { pendingData?: object };
+type WithPendingData = StepExecutionData & { pendingData?: object } & WithUserConfirmation;
+
+type PatchBody = Record<string, unknown> & { userConfirmed?: boolean };
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
   implements IStepExecutor
@@ -201,36 +203,44 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
+  // Keeps `pendingData` immutable; mirrors `userConfirmed` only because
+  // `handleConfirmationFlow` reads the gate from there.
   protected async patchAndReloadPendingData<TExec extends WithPendingData>(
     pendingData?: unknown,
   ): Promise<TExec | undefined> {
     const { type } = this.context.stepDefinition;
     const execution = await this.findPendingExecution<TExec>(type);
 
-    if (pendingData !== undefined && execution) {
-      const schema = patchBodySchemas[execution.type]!;
-      const parsed = schema.safeParse(pendingData);
+    if (!execution) return undefined;
 
-      if (!parsed.success) {
-        throw new StepStateError(
-          `Invalid pending data: ${parsed.error.issues.map(i => i.message).join(', ')}`,
-        );
-      }
+    if (pendingData === undefined) return execution;
 
-      const updated = {
-        ...execution,
-        pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
-      } as TExec;
+    const schema = patchBodySchemas[execution.type]!;
+    const parsed = schema.safeParse(pendingData);
 
-      await this.context.runStore.saveStepExecution(
-        this.context.runId,
-        updated as StepExecutionData,
+    if (!parsed.success) {
+      throw new StepStateError(
+        `Invalid pending data: ${parsed.error.issues.map(i => i.message).join(', ')}`,
       );
-
-      return updated;
     }
 
-    return execution;
+    const patchBody = parsed.data as PatchBody;
+
+    // Last-write-wins: spread-merging would leak stale keys from prior PATCHes.
+    const updated: TExec = {
+      ...execution,
+      pendingData: {
+        ...execution.pendingData,
+        ...(patchBody.userConfirmed !== undefined
+          ? { userConfirmed: patchBody.userConfirmed }
+          : {}),
+      },
+      userConfirmation: patchBody,
+    };
+
+    await this.context.runStore.saveStepExecution(this.context.runId, updated);
+
+    return updated;
   }
 
   // userConfirmed branches: undefined → re-emit awaiting-input (PATCH not yet called);
