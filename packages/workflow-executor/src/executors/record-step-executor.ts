@@ -77,6 +77,11 @@ export default abstract class RecordStepExecutor<
   }
 
   protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
+    // The tool definition sent to the LLM is built from z.literal(displayName) — the JSON
+    // Schema does constrain fieldName to exact values. However, invokeWithTool returns
+    // toolCall.args as-is without re-running Zod validation on the response, so the LLM can
+    // silently ignore the constraint and return a formatting variation (e.g. "first_name"
+    // instead of "firstname"). The normalized fallback catches these cosmetic mismatches.
     const normalizeFieldName = (s: string) => s.toLowerCase().replace(/[\s_-]/g, '');
     const normalized = normalizeFieldName(name);
 
