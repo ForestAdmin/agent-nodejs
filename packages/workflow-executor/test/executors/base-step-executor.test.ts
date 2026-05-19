@@ -453,6 +453,39 @@ describe('BaseStepExecutor', () => {
         process.off('unhandledRejection', unhandled);
       }
     }, 5_000);
+
+    it('does not log when execPromise rejects before the timeout fires', async () => {
+      class ImmediateFailExecutor extends BaseStepExecutor {
+        protected async doExecute(): Promise<StepExecutionResult> {
+          throw new Error('normal step error');
+        }
+
+        protected buildOutcomeResult(outcome: {
+          status: BaseStepStatus;
+          error?: string;
+        }): StepExecutionResult {
+          return {
+            stepOutcome: {
+              type: 'record',
+              stepId: this.context.stepId,
+              stepIndex: this.context.stepIndex,
+              status: outcome.status,
+              ...(outcome.error !== undefined && { error: outcome.error }),
+            },
+          };
+        }
+      }
+
+      const logger = makeMockLogger();
+      const executor = new ImmediateFailExecutor(makeContext({ stepTimeoutMs: 5_000, logger }));
+
+      await executor.execute();
+
+      expect(logger.info).not.toHaveBeenCalledWith(
+        'Step work rejected after timeout — result discarded',
+        expect.anything(),
+      );
+    });
   });
 
   describe('activity log lifecycle', () => {
