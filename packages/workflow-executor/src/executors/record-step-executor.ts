@@ -77,9 +77,14 @@ export default abstract class RecordStepExecutor<
   }
 
   protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
+    const normalizeFieldName = (s: string) => s.toLowerCase().replace(/[\s_-]/g, '');
+    const normalized = normalizeFieldName(name);
+
     return (
       schema.fields.find(f => f.displayName === name) ??
-      schema.fields.find(f => f.fieldName === name)
+      schema.fields.find(f => f.fieldName === name) ??
+      schema.fields.find(f => normalizeFieldName(f.displayName) === normalized) ??
+      schema.fields.find(f => normalizeFieldName(f.fieldName) === normalized)
     );
   }
 
