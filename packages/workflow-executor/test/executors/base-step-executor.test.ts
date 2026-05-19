@@ -455,29 +455,11 @@ describe('BaseStepExecutor', () => {
     }, 5_000);
 
     it('does not log when execPromise rejects before the timeout fires', async () => {
-      class ImmediateFailExecutor extends BaseStepExecutor {
-        protected async doExecute(): Promise<StepExecutionResult> {
-          throw new Error('normal step error');
-        }
-
-        protected buildOutcomeResult(outcome: {
-          status: BaseStepStatus;
-          error?: string;
-        }): StepExecutionResult {
-          return {
-            stepOutcome: {
-              type: 'record',
-              stepId: this.context.stepId,
-              stepIndex: this.context.stepIndex,
-              status: outcome.status,
-              ...(outcome.error !== undefined && { error: outcome.error }),
-            },
-          };
-        }
-      }
-
       const logger = makeMockLogger();
-      const executor = new ImmediateFailExecutor(makeContext({ stepTimeoutMs: 5_000, logger }));
+      const executor = new TestableExecutor(
+        makeContext({ stepTimeoutMs: 5_000, logger }),
+        new Error('normal step error'),
+      );
 
       await executor.execute();
 
