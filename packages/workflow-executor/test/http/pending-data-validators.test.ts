@@ -81,9 +81,9 @@ describe('patchBodySchemas', () => {
     });
 
     it('accepts confirmation with both name and selectedRecordId (relation override)', () => {
-      expect(
-        schema.parse({ userConfirmed: true, name: 'address', selectedRecordId: [7] }),
-      ).toEqual({ userConfirmed: true, name: 'address', selectedRecordId: [7] });
+      expect(schema.parse({ userConfirmed: true, name: 'address', selectedRecordId: [7] })).toEqual(
+        { userConfirmed: true, name: 'address', selectedRecordId: [7] },
+      );
     });
 
     it('rejects name override without selectedRecordId — original record ID belongs to a different collection', () => {

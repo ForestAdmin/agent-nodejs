@@ -109,7 +109,9 @@ export interface McpToolCall extends McpToolRef {
   input: Record<string, unknown>;
 }
 
-export interface McpStepExecutionData extends MutatingStepExecutionData, WithUserConfirmation<McpConfirmation> {
+export interface McpStepExecutionData
+  extends MutatingStepExecutionData,
+    WithUserConfirmation<McpConfirmation> {
   type: 'mcp';
   executionParams?: McpToolCall;
   executionResult?:
