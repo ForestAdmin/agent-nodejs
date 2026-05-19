@@ -558,9 +558,6 @@ describe('McpStepExecutor', () => {
     });
 
     it('keeps the user-facing error message generic regardless of the misconfigured id', async () => {
-      // Technical-message enrichment is covered in errors.test.ts by exercising the
-      // NoMcpToolsError constructor directly; here we lock down the dual-message
-      // contract: no internal id leaks into the user-facing message.
       const tool = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A', id: 'id-A' });
       const context = makeContext({ stepDefinition: makeStep({ mcpServerId: 'id-B' }) });
       const executor = new McpStepExecutor(context, [tool]);
@@ -569,6 +566,27 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
       expect(result.stepOutcome.error).not.toMatch(/id-B/);
+    });
+
+    it('logs the technical message with the requested id and loaded ids when filter misses', async () => {
+      const logger = { info: jest.fn(), error: jest.fn() };
+      const toolA = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A', id: 'id-A' });
+      const toolB = new MockRemoteTool({ name: 'tool_b', sourceId: 'server-B', id: 'id-B' });
+      const context = makeContext({
+        logger,
+        stepDefinition: makeStep({ mcpServerId: 'id-missing' }),
+      });
+      const executor = new McpStepExecutor(context, [toolA, toolB]);
+
+      await executor.execute();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringMatching(/id-missing/),
+        expect.objectContaining({
+          requestedMcpServerId: 'id-missing',
+          loadedIds: expect.arrayContaining(['id-A', 'id-B']),
+        }),
+      );
     });
   });
 

@@ -235,7 +235,15 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
 
     if (tools.length === 0) {
       const loadedIds = this.remoteTools.map(t => t.id).filter((value): value is string => !!value);
-      throw new NoMcpToolsError(mcpServerId, loadedIds);
+      const error = new NoMcpToolsError(mcpServerId, loadedIds);
+      this.context.logger.error(error.message, {
+        runId: this.context.runId,
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        requestedMcpServerId: mcpServerId,
+        loadedIds,
+      });
+      throw error;
     }
 
     return tools;
