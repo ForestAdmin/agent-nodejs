@@ -1,4 +1,5 @@
 import type { McpConfiguration } from '../src';
+import type RemoteTool from '../src/remote-tool';
 
 import { tool } from '@langchain/core/tools';
 
@@ -77,6 +78,54 @@ describe('McpClient', () => {
         const tools = await mcpClient.loadTools();
 
         expect(tools.length).toEqual(0);
+      });
+    });
+
+    describe('id threaded from config entry into McpServerRemoteTool', () => {
+      it('sets RemoteTool.id from the config entry id alongside sourceId from the map key', async () => {
+        const tool1 = tool(() => {}, {
+          name: 'tool1',
+          description: 'description1',
+          schema: undefined,
+          responseFormat: 'content',
+        });
+        // Each config entry carries the stable DB id surfaced by the orchestrator.
+        // The McpClient must thread that id through to RemoteTool.id so the executor
+        // can match workflow steps against it.
+        const configWithId = {
+          configs: {
+            slack: {
+              transport: 'stdio' as const,
+              command: 'npx',
+              args: ['-y', '@modelcontextprotocol/server-slack'],
+              env: {},
+              id: 'config-id-42',
+            },
+          },
+        } as unknown as McpConfiguration;
+        const mcpClient = new McpClient(configWithId);
+        getToolsMock.mockResolvedValue([tool1]);
+
+        const tools = await mcpClient.loadTools();
+
+        expect(tools).toHaveLength(1);
+        expect(tools[0].sourceId).toBe('slack');
+        expect((tools[0] as RemoteTool & { id?: string }).id).toBe('config-id-42');
+      });
+
+      it('leaves RemoteTool.id undefined when the config entry has no id (legacy / unenriched payload)', async () => {
+        const tool1 = tool(() => {}, {
+          name: 'tool1',
+          description: 'description1',
+          schema: undefined,
+          responseFormat: 'content',
+        });
+        const mcpClient = new McpClient(aConfig);
+        getToolsMock.mockResolvedValue([tool1]);
+
+        const tools = await mcpClient.loadTools();
+
+        expect((tools[0] as RemoteTool & { id?: string }).id).toBeUndefined();
       });
     });
 
@@ -396,6 +445,7 @@ describe('McpClient', () => {
       const configs = {
         server1: { type: 'http' as const, url: 'https://server1.com' },
         zendesk: {
+          id: '1',
           isForestConnector: true as const,
           integrationName: 'Zendesk' as const,
           config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },

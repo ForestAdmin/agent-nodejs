@@ -16,7 +16,7 @@ import { StepType } from '../../src/types/validated/step-definition';
 // ---------------------------------------------------------------------------
 
 class MockRemoteTool extends RemoteTool {
-  constructor(options: { name: string; sourceId?: string; invoke?: jest.Mock }) {
+  constructor(options: { name: string; sourceId?: string; id?: string; invoke?: jest.Mock }) {
     const invokeFn = options.invoke ?? jest.fn().mockResolvedValue('tool-result');
     super({
       tool: {
@@ -27,7 +27,8 @@ class MockRemoteTool extends RemoteTool {
       } as unknown as RemoteTool['base'],
       sourceId: options.sourceId ?? 'mcp-server-1',
       sourceType: 'mcp',
-    });
+      id: options.id,
+    } as ConstructorParameters<typeof RemoteTool>[0] & { id?: string });
   }
 }
 
@@ -439,14 +440,17 @@ describe('McpStepExecutor', () => {
     });
   });
 
-  describe('mcpServerId filter', () => {
-    it('passes only tools from the specified server to the AI', async () => {
-      const toolA = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A' });
-      const toolB = new MockRemoteTool({ name: 'tool_b', sourceId: 'server-B' });
+  describe('mcpServerId filter (matches by tool.id, not tool.sourceId)', () => {
+    it('passes only tools whose id matches step.mcpServerId to the AI', async () => {
+      // Both tools share sourceId='zendesk' (e.g. same integration server name) but carry
+      // distinct stable DB ids — proves the filter goes through id, not sourceId.
+      const toolA = new MockRemoteTool({ name: 'tool_a', sourceId: 'zendesk', id: 'id-A' });
+      const toolB = new MockRemoteTool({ name: 'tool_b', sourceId: 'zendesk', id: 'id-B' });
       const invokeFn = jest.fn().mockResolvedValue('ok');
       const toolB2 = new MockRemoteTool({
         name: 'tool_b2',
-        sourceId: 'server-B',
+        sourceId: 'zendesk',
+        id: 'id-B',
         invoke: invokeFn,
       });
 
@@ -455,18 +459,77 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ mcpServerId: 'server-B', automaticExecution: true }),
+        stepDefinition: makeStep({ mcpServerId: 'id-B', automaticExecution: true }),
       });
       const executor = new McpStepExecutor(context, [toolA, toolB, toolB2]);
 
       await executor.execute();
 
-      // bindTools should only receive server-B tools
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
       const boundNames = boundTools.map(t => t.name);
       expect(boundNames).not.toContain('tool_a');
       expect(boundNames).toContain('tool_b');
       expect(boundNames).toContain('tool_b2');
+    });
+
+    it('does not match by sourceId — server-name collisions must not leak tools across configs', async () => {
+      // mcpServerId='server-B' should NOT match a tool that merely has sourceId='server-B' but
+      // a different DB id; only tool.id is authoritative.
+      const tool = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-B', id: 'id-99' });
+      const context = makeContext({
+        stepDefinition: makeStep({ mcpServerId: 'server-B' }),
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
+    });
+
+    it('returns all tools (no filter) when step.mcpServerId is absent', async () => {
+      const toolA = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A', id: 'id-A' });
+      const toolB = new MockRemoteTool({ name: 'tool_b', sourceId: 'server-B', id: 'id-B' });
+      const { model, bindTools } = makeMockModel('tool_a', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new McpStepExecutor(context, [toolA, toolB]);
+
+      await executor.execute();
+
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      const boundNames = boundTools.map(t => t.name);
+      expect(boundNames).toEqual(expect.arrayContaining(['tool_a', 'tool_b']));
+    });
+
+    it('resolves a Forest-connector-backed tool when its id is threaded through', async () => {
+      // Simulates a Forest connector entry (e.g. Zendesk) where ForestIntegrationConfig.id
+      // has been propagated all the way to RemoteTool.id by the ai-proxy construction site.
+      const invokeFn = jest.fn().mockResolvedValue('done');
+      const forestTool = new MockRemoteTool({
+        name: 'zendesk_get_tickets',
+        sourceId: 'zendesk',
+        id: 'forest-connector-42',
+        invoke: invokeFn,
+      });
+      const { model, bindTools } = makeMockModel('zendesk_get_tickets', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({
+          mcpServerId: 'forest-connector-42',
+          automaticExecution: true,
+        }),
+      });
+      const executor = new McpStepExecutor(context, [forestTool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      expect(boundTools.map(t => t.name)).toEqual(['zendesk_get_tickets']);
+      expect(invokeFn).toHaveBeenCalled();
     });
   });
 
@@ -482,9 +545,9 @@ describe('McpStepExecutor', () => {
     });
 
     it('returns error when mcpServerId filter yields no tools', async () => {
-      const tool = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A' });
+      const tool = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A', id: 'id-A' });
       const context = makeContext({
-        stepDefinition: makeStep({ mcpServerId: 'server-B' }),
+        stepDefinition: makeStep({ mcpServerId: 'id-B' }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -492,6 +555,20 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
+    });
+
+    it('keeps the user-facing error message generic regardless of the misconfigured id', async () => {
+      // Technical-message enrichment is covered in errors.test.ts by exercising the
+      // NoMcpToolsError constructor directly; here we lock down the dual-message
+      // contract: no internal id leaks into the user-facing message.
+      const tool = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A', id: 'id-A' });
+      const context = makeContext({ stepDefinition: makeStep({ mcpServerId: 'id-B' }) });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
+      expect(result.stepOutcome.error).not.toMatch(/id-B/);
     });
   });
 

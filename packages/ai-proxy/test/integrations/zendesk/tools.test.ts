@@ -28,4 +28,28 @@ describe('getZendeskTools', () => {
       'zendesk_update_ticket',
     ]);
   });
+
+  describe('id propagation', () => {
+    it('sets RemoteTool.id on every produced tool when id is provided', () => {
+      const tools = (
+        getZendeskTools as unknown as (
+          cfg: typeof config,
+          id?: string,
+        ) => ReturnType<typeof getZendeskTools>
+      )(config, 'forest-zendesk-42');
+
+      expect(tools).not.toHaveLength(0);
+      tools.forEach(tool => {
+        expect((tool as ServerRemoteTool & { id?: string }).id).toBe('forest-zendesk-42');
+      });
+    });
+
+    it('leaves RemoteTool.id undefined when no id is provided (backwards-compatible call site)', () => {
+      const tools = getZendeskTools(config);
+
+      tools.forEach(tool => {
+        expect((tool as ServerRemoteTool & { id?: string }).id).toBeUndefined();
+      });
+    });
+  });
 });

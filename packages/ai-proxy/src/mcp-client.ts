@@ -8,14 +8,20 @@ import McpServerRemoteTool from './mcp-server-remote-tool';
 
 export type McpServers = MultiServerMCPClient['config']['mcpServers'];
 
-export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string];
+// Base orchestrator entry shape from `@langchain/mcp-adapters`, widened with the optional
+// stable DB `id` exposed by Forest Admin's orchestrator. The id flows down to RemoteTool
+// so the workflow executor can match a step's `mcpServerId` against the config record.
+export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string] & {
+  id?: string;
+};
 
 export type McpConfiguration = {
-  configs: McpServers;
+  configs: Record<string, McpServerConfig>;
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
 
 export default class McpClient implements ToolProvider {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
+  private readonly idsByServerName: Record<string, string | undefined> = {};
   private readonly logger?: Logger;
 
   constructor(config: McpConfiguration, logger?: Logger) {
@@ -23,8 +29,10 @@ export default class McpClient implements ToolProvider {
     // split the config into several clients to be more resilient
     // if a mcp server is down, the others will still work
     Object.entries(config.configs).forEach(([name, serverConfig]) => {
+      const { id, ...rest } = serverConfig as McpServerConfig & Record<string, unknown>;
+      this.idsByServerName[name] = id;
       this.mcpClients[name] = new MultiServerMCPClient({
-        mcpServers: { [name]: serverConfig },
+        mcpServers: { [name]: rest as McpServerConfig },
         ...config,
       });
     });
@@ -39,7 +47,8 @@ export default class McpClient implements ToolProvider {
         try {
           const loadedTools = (await client.getTools()) ?? [];
           const extendedTools = loadedTools.map(
-            tool => new McpServerRemoteTool({ tool, sourceId: name }),
+            tool =>
+              new McpServerRemoteTool({ tool, sourceId: name, id: this.idsByServerName[name] }),
           );
           tools.push(...extendedTools);
         } catch (error) {

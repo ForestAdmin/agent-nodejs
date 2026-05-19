@@ -224,13 +224,19 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     );
   }
 
-  /** Returns tools filtered by mcpServerId (if specified). Throws NoMcpToolsError if empty. */
+  // Match the workflow step's mcpServerId against the stable DB id carried on each tool —
+  // not the display-oriented sourceId — so server-name collisions cannot leak tools across
+  // configs and the same id selects both regular MCP entries and Forest-connector entries.
   private getFilteredTools(): RemoteTool[] {
     const { mcpServerId } = this.context.stepDefinition;
     const tools = mcpServerId
-      ? this.remoteTools.filter(t => t.sourceId === mcpServerId)
+      ? this.remoteTools.filter(t => t.id === mcpServerId)
       : [...this.remoteTools];
-    if (tools.length === 0) throw new NoMcpToolsError();
+
+    if (tools.length === 0) {
+      const loadedIds = this.remoteTools.map(t => t.id).filter((value): value is string => !!value);
+      throw new NoMcpToolsError(mcpServerId, loadedIds);
+    }
 
     return tools;
   }

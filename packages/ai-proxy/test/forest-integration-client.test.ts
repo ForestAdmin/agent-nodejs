@@ -1,6 +1,9 @@
 import ForestIntegrationClient from '../src/forest-integration-client';
+import getKolarTools from '../src/integrations/kolar/tools';
 import { validateKolarConfig } from '../src/integrations/kolar/utils';
+import getSnowflakeTools from '../src/integrations/snowflake/tools';
 import { validateSnowflakeConfig } from '../src/integrations/snowflake/utils';
+import getZendeskTools from '../src/integrations/zendesk/tools';
 import { validateZendeskConfig } from '../src/integrations/zendesk/utils';
 
 const mockZendeskTools = [{ name: 'zendesk_get_tickets' }, { name: 'zendesk_get_ticket' }];
@@ -37,6 +40,7 @@ describe('ForestIntegrationClient', () => {
     it('should load zendesk tools when integration is zendesk', async () => {
       const client = new ForestIntegrationClient([
         {
+          id: '1',
           integrationName: 'Zendesk',
           config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
           isForestConnector: true,
@@ -52,7 +56,7 @@ describe('ForestIntegrationClient', () => {
       const logger = jest.fn();
       const client = new ForestIntegrationClient(
         // @ts-expect-error Testing unsupported integration
-        [{ integrationName: 'unknown', config: {} as any, isForestConnector: true }],
+        [{ id: '1', integrationName: 'unknown', config: {} as any, isForestConnector: true }],
         logger,
       );
 
@@ -64,6 +68,7 @@ describe('ForestIntegrationClient', () => {
     it('should load kolar tools when integration is Kolar', async () => {
       const client = new ForestIntegrationClient([
         {
+          id: '1',
           integrationName: 'Kolar',
           config: { apiKey: 'key' },
           isForestConnector: true,
@@ -78,6 +83,7 @@ describe('ForestIntegrationClient', () => {
     it('should load snowflake tools when integration is Snowflake', async () => {
       const client = new ForestIntegrationClient([
         {
+          id: '1',
           integrationName: 'Snowflake',
           config: {
             accountIdentifier: 'a',
@@ -101,11 +107,13 @@ describe('ForestIntegrationClient', () => {
     it('should load tools from multiple configs', async () => {
       const client = new ForestIntegrationClient([
         {
+          id: '1',
           integrationName: 'Zendesk',
           config: { subdomain: 'a', email: 'a@b.com', apiToken: 'tok' },
           isForestConnector: true,
         },
         {
+          id: '2',
           integrationName: 'Zendesk',
           config: { subdomain: 'b', email: 'c@d.com', apiToken: 'tok2' },
           isForestConnector: true,
@@ -122,7 +130,7 @@ describe('ForestIntegrationClient', () => {
     it('should call validateZendeskConfig for Zendesk integration', async () => {
       const zendeskConfig = { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' };
       const client = new ForestIntegrationClient([
-        { integrationName: 'Zendesk', config: zendeskConfig, isForestConnector: true },
+        { id: '1', integrationName: 'Zendesk', config: zendeskConfig, isForestConnector: true },
       ]);
 
       await client.checkConnection();
@@ -133,6 +141,7 @@ describe('ForestIntegrationClient', () => {
     it('should return true on success', async () => {
       const client = new ForestIntegrationClient([
         {
+          id: '1',
           integrationName: 'Zendesk',
           config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
           isForestConnector: true,
@@ -147,7 +156,7 @@ describe('ForestIntegrationClient', () => {
     it('should call validateKolarConfig for Kolar integration', async () => {
       const kolarConfig = { apiKey: 'key' };
       const client = new ForestIntegrationClient([
-        { integrationName: 'Kolar', config: kolarConfig, isForestConnector: true },
+        { id: '1', integrationName: 'Kolar', config: kolarConfig, isForestConnector: true },
       ]);
 
       await client.checkConnection();
@@ -161,7 +170,7 @@ describe('ForestIntegrationClient', () => {
         programmaticAccessToken: 'tok',
       };
       const client = new ForestIntegrationClient([
-        { integrationName: 'Snowflake', config: snowflakeConfig, isForestConnector: true },
+        { id: '1', integrationName: 'Snowflake', config: snowflakeConfig, isForestConnector: true },
       ]);
 
       await client.checkConnection();
@@ -172,12 +181,10 @@ describe('ForestIntegrationClient', () => {
     it('should throw for unsupported integration', async () => {
       const client = new ForestIntegrationClient([
         // @ts-expect-error Testing unsupported integration
-        { integrationName: 'Unknown', config: {}, isForestConnector: true },
+        { id: '1', integrationName: 'Unknown', config: {}, isForestConnector: true },
       ]);
 
-      await expect(client.checkConnection()).rejects.toThrow(
-        'Unsupported integration: Unknown',
-      );
+      await expect(client.checkConnection()).rejects.toThrow('Unsupported integration: Unknown');
     });
   });
 
@@ -186,6 +193,64 @@ describe('ForestIntegrationClient', () => {
       const client = new ForestIntegrationClient([]);
 
       await expect(client.dispose()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('id threaded from ForestIntegrationConfig into integration tool factories', () => {
+    it('passes the config id to getZendeskTools so produced tools can be matched by step.mcpServerId', async () => {
+      const client = new ForestIntegrationClient([
+        {
+          id: 'forest-zendesk-42',
+          integrationName: 'Zendesk',
+          config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
+          isForestConnector: true,
+        } as any,
+      ]);
+
+      await client.loadTools();
+
+      // The exact signature shape (positional vs. options bag) is an implementation
+      // detail of the production change; the test pins down that id reaches the factory.
+      expect(getZendeskTools).toHaveBeenCalledWith(
+        expect.objectContaining({ subdomain: 'test' }),
+        'forest-zendesk-42',
+      );
+    });
+
+    it('passes the config id to getKolarTools', async () => {
+      const client = new ForestIntegrationClient([
+        {
+          id: 'forest-kolar-7',
+          integrationName: 'Kolar',
+          config: { apiKey: 'key' },
+          isForestConnector: true,
+        } as any,
+      ]);
+
+      await client.loadTools();
+
+      expect(getKolarTools).toHaveBeenCalledWith(
+        expect.objectContaining({ apiKey: 'key' }),
+        'forest-kolar-7',
+      );
+    });
+
+    it('passes the config id to getSnowflakeTools', async () => {
+      const client = new ForestIntegrationClient([
+        {
+          id: 'forest-snowflake-99',
+          integrationName: 'Snowflake',
+          config: { accountIdentifier: 'a', programmaticAccessToken: 'tok' },
+          isForestConnector: true,
+        } as any,
+      ]);
+
+      await client.loadTools();
+
+      expect(getSnowflakeTools).toHaveBeenCalledWith(
+        expect.objectContaining({ accountIdentifier: 'a' }),
+        'forest-snowflake-99',
+      );
     });
   });
 });

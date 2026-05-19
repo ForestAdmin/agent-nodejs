@@ -26,4 +26,28 @@ describe('getKolarTools', () => {
       'kolar_get_screening_result',
     ]);
   });
+
+  describe('id propagation', () => {
+    it('sets RemoteTool.id on every produced tool when id is provided', () => {
+      const tools = (
+        getKolarTools as unknown as (
+          cfg: typeof config,
+          id?: string,
+        ) => ReturnType<typeof getKolarTools>
+      )(config, 'forest-kolar-7');
+
+      expect(tools).not.toHaveLength(0);
+      tools.forEach(tool => {
+        expect((tool as ServerRemoteTool & { id?: string }).id).toBe('forest-kolar-7');
+      });
+    });
+
+    it('leaves RemoteTool.id undefined when no id is provided (backwards-compatible call site)', () => {
+      const tools = getKolarTools(config);
+
+      tools.forEach(tool => {
+        expect((tool as ServerRemoteTool & { id?: string }).id).toBeUndefined();
+      });
+    });
+  });
 });

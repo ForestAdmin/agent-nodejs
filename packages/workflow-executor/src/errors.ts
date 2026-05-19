@@ -203,8 +203,13 @@ export class StepTimeoutError extends WorkflowExecutorError {
 }
 
 export class NoMcpToolsError extends WorkflowExecutorError {
-  constructor() {
-    super('No MCP tools available', 'No tools are available to execute this step.');
+  constructor(requestedId?: string, loadedIds?: readonly string[]) {
+    const technical = requestedId
+      ? `No MCP tools available for mcpServerId="${requestedId}". Loaded MCP config ids: [${(
+          loadedIds ?? []
+        ).join(', ')}]`
+      : 'No MCP tools available';
+    super(technical, 'No tools are available to execute this step.');
   }
 }
 

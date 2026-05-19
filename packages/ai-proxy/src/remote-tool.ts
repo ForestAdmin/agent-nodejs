@@ -4,15 +4,21 @@ export default abstract class RemoteTool<ToolType = unknown> {
   base: StructuredToolInterface<ToolType>;
   sourceId: string;
   sourceType: string;
+  // Stable DB id of the originating config entry. Distinct from `sourceId`, which is the
+  // human-readable server/integration name. Use `id` for cross-system references (e.g.
+  // matching a workflow step's mcpServerId to its config); use `sourceId` for display.
+  id?: string;
 
   constructor(options: {
     tool: StructuredToolInterface<ToolType>;
     sourceId?: string;
     sourceType?: string;
+    id?: string;
   }) {
     this.base = options.tool;
     this.sourceId = options.sourceId;
     this.sourceType = options.sourceType;
+    this.id = options.id;
   }
 
   get sanitizedName() {
