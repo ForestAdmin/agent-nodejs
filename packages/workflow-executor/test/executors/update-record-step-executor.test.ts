@@ -499,6 +499,37 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
+  describe('resolveFieldName fuzzy matching', () => {
+    it.each([
+      ['snake_case variant', 'full_name', 'Full Name', 'name'],
+      ['camelCase variant', 'fullName', 'Full Name', 'name'],
+      ['lowercase no separator', 'fullname', 'Full Name', 'name'],
+      ['hyphen variant', 'full-name', 'Full Name', 'name'],
+    ])(
+      'resolves field when LLM returns %s (%s)',
+      async (_label, aiReturnedName, _displayName, expectedFieldName) => {
+        const agentPort = makeMockAgentPort();
+        const mockModel = makeMockModel({
+          input: { fieldName: aiReturnedName, value: 'John Doe', reasoning: 'test' },
+        });
+        const context = makeContext({
+          model: mockModel.model,
+          agentPort,
+          stepDefinition: makeStep({ automaticExecution: true }),
+        });
+        const executor = new UpdateRecordStepExecutor(context);
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ values: { [expectedFieldName]: 'John Doe' } }),
+          expect.anything(),
+        );
+      },
+    );
+  });
+
   describe('relationship fields excluded from update tool', () => {
     it('excludes relationship fields from the tool schema', async () => {
       const mockModel = makeMockModel({
