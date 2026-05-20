@@ -4,6 +4,8 @@ export default abstract class RemoteTool<ToolType = unknown> {
   base: StructuredToolInterface<ToolType>;
   sourceId: string;
   sourceType: string;
+  // Shared across McpServerRemoteTool and ServerRemoteTool because the orchestrator
+  // stores Forest connectors alongside user MCP servers in the same ai_mcp_configs table.
   mcpServerId?: string;
 
   constructor(options: {
