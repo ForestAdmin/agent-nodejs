@@ -7,6 +7,7 @@ export { createAiProvider } from './create-ai-provider';
 export { default as ProviderDispatcher } from './provider-dispatcher';
 
 export {
+  FOREST_INTEGRATION_NAMES,
   ForestIntegrationConfig,
   CustomConfig,
   ForestIntegrationName,
