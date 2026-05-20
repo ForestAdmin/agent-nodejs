@@ -18,7 +18,7 @@ export type McpConfiguration = {
 
 export default class McpClient implements ToolProvider {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
-  private readonly idsByServerName: Record<string, string | undefined> = {};
+  private readonly mcpServerIdsByName: Record<string, string | undefined> = {};
   private readonly logger?: Logger;
 
   constructor(config: McpConfiguration, logger?: Logger) {
@@ -26,8 +26,9 @@ export default class McpClient implements ToolProvider {
     // split the config into several clients to be more resilient
     // if a mcp server is down, the others will still work
     Object.entries(config.configs).forEach(([name, serverConfig]) => {
-      const { id, ...rest } = serverConfig as McpServerConfig & Record<string, unknown>;
-      this.idsByServerName[name] = id;
+      const { id: mcpServerId, ...rest } = serverConfig as McpServerConfig &
+        Record<string, unknown>;
+      this.mcpServerIdsByName[name] = mcpServerId;
       this.mcpClients[name] = new MultiServerMCPClient({
         mcpServers: { [name]: rest as McpServerConfig },
         ...config,
@@ -48,7 +49,7 @@ export default class McpClient implements ToolProvider {
               new McpServerRemoteTool({
                 tool,
                 sourceId: name,
-                mcpServerId: this.idsByServerName[name],
+                mcpServerId: this.mcpServerIdsByName[name],
               }),
           );
           tools.push(...extendedTools);

@@ -40,16 +40,16 @@ export default class ForestIntegrationClient implements ToolProvider {
   async loadTools(): Promise<RemoteTool[]> {
     const tools: RemoteTool[] = [];
 
-    this.configs.forEach(({ id, integrationName, config }) => {
+    this.configs.forEach(({ id: mcpServerId, integrationName, config }) => {
       switch (integrationName) {
         case 'Zendesk':
-          tools.push(...getZendeskTools(config as ZendeskConfig, id));
+          tools.push(...getZendeskTools(config as ZendeskConfig, mcpServerId));
           break;
         case 'Kolar':
-          tools.push(...getKolarTools(config as KolarConfig, id));
+          tools.push(...getKolarTools(config as KolarConfig, mcpServerId));
           break;
         case 'Snowflake':
-          tools.push(...getSnowflakeTools(config as SnowflakeConfig, id));
+          tools.push(...getSnowflakeTools(config as SnowflakeConfig, mcpServerId));
           break;
         default:
           this.logger?.('Warn', `Unsupported integration: ${integrationName}`);
