@@ -528,6 +528,31 @@ describe('UpdateRecordStepExecutor', () => {
         );
       },
     );
+
+    it('returns undefined (field not found) when two fields normalize to the same string', async () => {
+      // { displayName: "Full Name", fieldName: "fullname" } and
+      // { displayName: "FullName", fieldName: "full_name" } both normalize to "fullname".
+      // Returning either one would be a silent wrong pick — undefined is safer.
+      const ambiguousSchema = makeCollectionSchema({
+        fields: [
+          { fieldName: 'fullname', displayName: 'Full Name', isRelationship: false, type: 'String' },
+          { fieldName: 'full_name', displayName: 'FullName', isRelationship: false, type: 'String' },
+        ],
+      });
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Full-Name', value: 'John', reasoning: 'test' },
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        workflowPort: makeMockWorkflowPort({ customers: ambiguousSchema }),
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
   });
 
   describe('relationship fields excluded from update tool', () => {

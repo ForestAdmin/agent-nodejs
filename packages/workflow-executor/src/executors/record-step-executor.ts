@@ -84,12 +84,18 @@ export default abstract class RecordStepExecutor<
     const normalizeFieldName = (s: string) => s.toLowerCase().replace(/[\s_-]/g, '');
     const normalized = normalizeFieldName(name);
 
-    return (
+    const exact =
       schema.fields.find(f => f.displayName === name) ??
-      schema.fields.find(f => f.fieldName === name) ??
-      schema.fields.find(f => normalizeFieldName(f.displayName) === normalized) ??
-      schema.fields.find(f => normalizeFieldName(f.fieldName) === normalized)
+      schema.fields.find(f => f.fieldName === name);
+    if (exact) return exact;
+
+    const fuzzy = schema.fields.filter(
+      f =>
+        normalizeFieldName(f.displayName) === normalized ||
+        normalizeFieldName(f.fieldName) === normalized,
     );
+
+    return fuzzy.length === 1 ? fuzzy[0] : undefined;
   }
 
   private async toRecordIdentifier(record: RecordRef): Promise<string> {
