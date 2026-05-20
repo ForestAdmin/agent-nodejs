@@ -454,7 +454,7 @@ describe('BaseStepExecutor', () => {
       }
     }, 5_000);
 
-    it('does not log when execPromise rejects before the timeout fires', async () => {
+    it('does not log discard message when step rejects before timeout', async () => {
       const logger = makeMockLogger();
       const executor = new TestableExecutor(
         makeContext({ stepTimeoutMs: 5_000, logger }),

@@ -173,14 +173,11 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     if (!timeoutMs || timeoutMs <= 0) return this.doExecute();
 
     let timer: NodeJS.Timeout | undefined;
-    let timeoutFired = false;
+    let hasTimeoutFired = false;
     const execPromise = this.doExecute();
 
-    // .catch() prevents UnhandledPromiseRejection when execPromise rejects after the timeout has
-    // already won the race. Only log when timeoutFired — a rejection before the timeout propagates
-    // normally through the race and needs no log here.
     execPromise.catch(err => {
-      if (!timeoutFired) return;
+      if (!hasTimeoutFired) return;
       this.context.logger.info('Step work rejected after timeout — result discarded', {
         runId: this.context.runId,
         stepId: this.context.stepId,
@@ -194,7 +191,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         execPromise,
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => {
-            timeoutFired = true;
+            hasTimeoutFired = true;
             reject(new StepTimeoutError(timeoutMs));
           }, timeoutMs);
         }),
