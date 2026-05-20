@@ -535,8 +535,18 @@ describe('UpdateRecordStepExecutor', () => {
       // Returning either one would be a silent wrong pick — undefined is safer.
       const ambiguousSchema = makeCollectionSchema({
         fields: [
-          { fieldName: 'fullname', displayName: 'Full Name', isRelationship: false, type: 'String' },
-          { fieldName: 'full_name', displayName: 'FullName', isRelationship: false, type: 'String' },
+          {
+            fieldName: 'fullname',
+            displayName: 'Full Name',
+            isRelationship: false,
+            type: 'String',
+          },
+          {
+            fieldName: 'full_name',
+            displayName: 'FullName',
+            isRelationship: false,
+            type: 'String',
+          },
         ],
       });
       const mockModel = makeMockModel({
