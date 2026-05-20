@@ -77,20 +77,25 @@ export default abstract class RecordStepExecutor<
   }
 
   protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
-    // The tool definition sent to the LLM is built from z.literal(displayName) — the JSON
-    // Schema does constrain fieldName to exact values. However, invokeWithTool returns
-    // toolCall.args as-is without re-running Zod validation on the response, so the LLM can
-    // silently ignore the constraint and return a formatting variation (e.g. "first_name"
-    // instead of "firstname"). The normalized fallback catches these cosmetic mismatches.
+    // LLMs occasionally return formatting variants of field names (e.g. "first_name" for
+    // "firstname", "full-name" for "Full Name") even though the tool schema declares them
+    // as literals. Fall back to a normalized comparison so a cosmetic variation doesn't
+    // fail an otherwise correct step.
     const normalizeFieldName = (s: string) => s.toLowerCase().replace(/[\s_-]/g, '');
     const normalized = normalizeFieldName(name);
 
-    return (
+    const exact =
       schema.fields.find(f => f.displayName === name) ??
-      schema.fields.find(f => f.fieldName === name) ??
-      schema.fields.find(f => normalizeFieldName(f.displayName) === normalized) ??
-      schema.fields.find(f => normalizeFieldName(f.fieldName) === normalized)
+      schema.fields.find(f => f.fieldName === name);
+    if (exact) return exact;
+
+    const fuzzy = schema.fields.filter(
+      f =>
+        normalizeFieldName(f.displayName) === normalized ||
+        normalizeFieldName(f.fieldName) === normalized,
     );
+
+    return fuzzy.length === 1 ? fuzzy[0] : undefined;
   }
 
   private async toRecordIdentifier(record: RecordRef): Promise<string> {
