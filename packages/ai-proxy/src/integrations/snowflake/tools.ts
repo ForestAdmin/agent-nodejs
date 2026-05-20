@@ -15,7 +15,10 @@ export interface SnowflakeConfig {
   defaultRole?: string;
 }
 
-export default function getSnowflakeTools(config: SnowflakeConfig, id?: string): RemoteTool[] {
+export default function getSnowflakeTools(
+  config: SnowflakeConfig,
+  mcpServerId?: string,
+): RemoteTool[] {
   const headers = getSnowflakeAuthHeaders(config);
   const baseUrl = getSnowflakeBaseUrl(config.accountIdentifier);
 
@@ -27,7 +30,7 @@ export default function getSnowflakeTools(config: SnowflakeConfig, id?: string):
     tool =>
       new ServerRemoteTool({
         sourceId: 'snowflake',
-        id,
+        mcpServerId,
         tool,
       }),
   );

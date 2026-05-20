@@ -29,26 +29,21 @@ describe('getZendeskTools', () => {
     ]);
   });
 
-  describe('id propagation', () => {
-    it('sets RemoteTool.id on every produced tool when id is provided', () => {
-      const tools = (
-        getZendeskTools as unknown as (
-          cfg: typeof config,
-          id?: string,
-        ) => ReturnType<typeof getZendeskTools>
-      )(config, 'forest-zendesk-42');
+  describe('mcpServerId propagation', () => {
+    it('sets RemoteTool.mcpServerId on every produced tool when mcpServerId is provided', () => {
+      const tools = getZendeskTools(config, 'forest-zendesk-42');
 
       expect(tools).not.toHaveLength(0);
       tools.forEach(tool => {
-        expect((tool as ServerRemoteTool & { id?: string }).id).toBe('forest-zendesk-42');
+        expect(tool.mcpServerId).toBe('forest-zendesk-42');
       });
     });
 
-    it('leaves RemoteTool.id undefined when no id is provided (backwards-compatible call site)', () => {
+    it('leaves RemoteTool.mcpServerId undefined when no mcpServerId is provided', () => {
       const tools = getZendeskTools(config);
 
       tools.forEach(tool => {
-        expect((tool as ServerRemoteTool & { id?: string }).id).toBeUndefined();
+        expect(tool.mcpServerId).toBeUndefined();
       });
     });
   });

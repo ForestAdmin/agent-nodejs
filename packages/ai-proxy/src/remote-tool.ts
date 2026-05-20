@@ -4,18 +4,18 @@ export default abstract class RemoteTool<ToolType = unknown> {
   base: StructuredToolInterface<ToolType>;
   sourceId: string;
   sourceType: string;
-  id?: string;
+  mcpServerId?: string;
 
   constructor(options: {
     tool: StructuredToolInterface<ToolType>;
     sourceId?: string;
     sourceType?: string;
-    id?: string;
+    mcpServerId?: string;
   }) {
     this.base = options.tool;
     this.sourceId = options.sourceId;
     this.sourceType = options.sourceType;
-    this.id = options.id;
+    this.mcpServerId = options.mcpServerId;
   }
 
   get sanitizedName() {

@@ -27,26 +27,21 @@ describe('getKolarTools', () => {
     ]);
   });
 
-  describe('id propagation', () => {
-    it('sets RemoteTool.id on every produced tool when id is provided', () => {
-      const tools = (
-        getKolarTools as unknown as (
-          cfg: typeof config,
-          id?: string,
-        ) => ReturnType<typeof getKolarTools>
-      )(config, 'forest-kolar-7');
+  describe('mcpServerId propagation', () => {
+    it('sets RemoteTool.mcpServerId on every produced tool when mcpServerId is provided', () => {
+      const tools = getKolarTools(config, 'forest-kolar-7');
 
       expect(tools).not.toHaveLength(0);
       tools.forEach(tool => {
-        expect((tool as ServerRemoteTool & { id?: string }).id).toBe('forest-kolar-7');
+        expect(tool.mcpServerId).toBe('forest-kolar-7');
       });
     });
 
-    it('leaves RemoteTool.id undefined when no id is provided (backwards-compatible call site)', () => {
+    it('leaves RemoteTool.mcpServerId undefined when no mcpServerId is provided', () => {
       const tools = getKolarTools(config);
 
       tools.forEach(tool => {
-        expect((tool as ServerRemoteTool & { id?: string }).id).toBeUndefined();
+        expect(tool.mcpServerId).toBeUndefined();
       });
     });
   });

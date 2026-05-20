@@ -196,7 +196,7 @@ describe('ForestIntegrationClient', () => {
     });
   });
 
-  describe('id threaded from ForestIntegrationConfig into integration tool factories', () => {
+  describe('ForestIntegrationConfig.id is threaded as mcpServerId into integration tool factories', () => {
     it('passes the config id to getZendeskTools so produced tools can be matched by step.mcpServerId', async () => {
       const client = new ForestIntegrationClient([
         {

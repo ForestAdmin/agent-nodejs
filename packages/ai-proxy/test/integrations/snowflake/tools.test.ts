@@ -29,26 +29,21 @@ describe('getSnowflakeTools', () => {
     ]);
   });
 
-  describe('id propagation', () => {
-    it('sets RemoteTool.id on every produced tool when id is provided', () => {
-      const tools = (
-        getSnowflakeTools as unknown as (
-          cfg: SnowflakeConfig,
-          id?: string,
-        ) => ReturnType<typeof getSnowflakeTools>
-      )(config, 'forest-snowflake-99');
+  describe('mcpServerId propagation', () => {
+    it('sets RemoteTool.mcpServerId on every produced tool when mcpServerId is provided', () => {
+      const tools = getSnowflakeTools(config, 'forest-snowflake-99');
 
       expect(tools).not.toHaveLength(0);
       tools.forEach(tool => {
-        expect((tool as ServerRemoteTool & { id?: string }).id).toBe('forest-snowflake-99');
+        expect(tool.mcpServerId).toBe('forest-snowflake-99');
       });
     });
 
-    it('leaves RemoteTool.id undefined when no id is provided (backwards-compatible call site)', () => {
+    it('leaves RemoteTool.mcpServerId undefined when no mcpServerId is provided', () => {
       const tools = getSnowflakeTools(config);
 
       tools.forEach(tool => {
-        expect((tool as ServerRemoteTool & { id?: string }).id).toBeUndefined();
+        expect(tool.mcpServerId).toBeUndefined();
       });
     });
   });

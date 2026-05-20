@@ -45,7 +45,11 @@ export default class McpClient implements ToolProvider {
           const loadedTools = (await client.getTools()) ?? [];
           const extendedTools = loadedTools.map(
             tool =>
-              new McpServerRemoteTool({ tool, sourceId: name, id: this.idsByServerName[name] }),
+              new McpServerRemoteTool({
+                tool,
+                sourceId: name,
+                mcpServerId: this.idsByServerName[name],
+              }),
           );
           tools.push(...extendedTools);
         } catch (error) {

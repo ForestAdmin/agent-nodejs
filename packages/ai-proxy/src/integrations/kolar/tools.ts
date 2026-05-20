@@ -11,7 +11,7 @@ export interface KolarConfig {
   apiKey: string;
 }
 
-export default function getKolarTools(config: KolarConfig, id?: string): RemoteTool[] {
+export default function getKolarTools(config: KolarConfig, mcpServerId?: string): RemoteTool[] {
   const { baseUrl, headers } = getKolarConfig(config);
 
   return [
@@ -23,7 +23,7 @@ export default function getKolarTools(config: KolarConfig, id?: string): RemoteT
     tool =>
       new ServerRemoteTool({
         sourceId: 'kolar',
-        id,
+        mcpServerId,
         tool,
       }),
   );

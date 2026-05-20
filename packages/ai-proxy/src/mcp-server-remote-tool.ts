@@ -6,7 +6,7 @@ export default class McpServerRemoteTool<ToolType = unknown> extends RemoteTool 
   constructor(options: {
     tool: StructuredToolInterface<ToolType>;
     sourceId?: string;
-    id?: string;
+    mcpServerId?: string;
   }) {
     super({ ...options, sourceType: 'mcp-server' });
   }

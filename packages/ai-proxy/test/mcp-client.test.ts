@@ -1,5 +1,4 @@
 import type { McpConfiguration } from '../src';
-import type RemoteTool from '../src/remote-tool';
 
 import { tool } from '@langchain/core/tools';
 
@@ -81,8 +80,8 @@ describe('McpClient', () => {
       });
     });
 
-    describe('id threaded from config entry into McpServerRemoteTool', () => {
-      it('sets RemoteTool.id from the config entry id alongside sourceId from the map key', async () => {
+    describe('mcpServerId threaded from config entry into McpServerRemoteTool', () => {
+      it('sets RemoteTool.mcpServerId from the config entry id alongside sourceId from the map key', async () => {
         const tool1 = tool(() => {}, {
           name: 'tool1',
           description: 'description1',
@@ -107,10 +106,10 @@ describe('McpClient', () => {
 
         expect(tools).toHaveLength(1);
         expect(tools[0].sourceId).toBe('slack');
-        expect((tools[0] as RemoteTool & { id?: string }).id).toBe('config-id-42');
+        expect(tools[0].mcpServerId).toBe('config-id-42');
       });
 
-      it('leaves RemoteTool.id undefined when the config entry has no id (legacy / unenriched payload)', async () => {
+      it('leaves RemoteTool.mcpServerId undefined when the config entry has no id (legacy / unenriched payload)', async () => {
         const tool1 = tool(() => {}, {
           name: 'tool1',
           description: 'description1',
@@ -122,7 +121,7 @@ describe('McpClient', () => {
 
         const tools = await mcpClient.loadTools();
 
-        expect((tools[0] as RemoteTool & { id?: string }).id).toBeUndefined();
+        expect(tools[0].mcpServerId).toBeUndefined();
       });
     });
 
