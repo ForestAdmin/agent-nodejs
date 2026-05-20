@@ -15,7 +15,7 @@ export interface ZendeskConfig {
   apiToken: string;
 }
 
-export default function getZendeskTools(config: ZendeskConfig): RemoteTool[] {
+export default function getZendeskTools(config: ZendeskConfig, mcpServerId?: string): RemoteTool[] {
   const { baseUrl, headers } = getZendeskConfig(config);
 
   return [
@@ -29,6 +29,7 @@ export default function getZendeskTools(config: ZendeskConfig): RemoteTool[] {
     tool =>
       new ServerRemoteTool({
         sourceId: 'zendesk',
+        mcpServerId,
         tool,
       }),
   );

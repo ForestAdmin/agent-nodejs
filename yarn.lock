@@ -1851,21 +1851,6 @@
     jsonapi-serializer "^3.6.9"
     superagent "^10.3.0"
 
-"@forestadmin/ai-proxy@1.8.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@forestadmin/ai-proxy/-/ai-proxy-1.8.0.tgz#fac92da48c852484e4d18693388bf08918b41ef9"
-  integrity sha512-UrKM5hfo7WQAjVBJTspKNjixReVEsge2cVHBs1swcD/0sZlLBQHz7+wNE0YTuTFWOC0cSAKQz0UuKd0769Yciw==
-  dependencies:
-    "@forestadmin/agent-toolkit" "1.2.0"
-    "@forestadmin/datasource-toolkit" "1.53.1"
-    "@langchain/anthropic" "1.3.17"
-    "@langchain/community" "^1.1.19"
-    "@langchain/core" "1.1.15"
-    "@langchain/langgraph" "^1.1.0"
-    "@langchain/mcp-adapters" "1.1.1"
-    "@langchain/openai" "1.2.5"
-    zod "^4.3.5"
-
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"

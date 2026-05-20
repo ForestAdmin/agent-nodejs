@@ -45,7 +45,7 @@ function createMockWorkflowPort(): jest.Mocked<WorkflowPort> {
     getAvailableRun: jest.fn(),
     updateStepExecution: jest.fn().mockResolvedValue(null),
     getCollectionSchema: jest.fn(),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }
@@ -1150,7 +1150,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
   });
 
-  it('calls fetchRemoteTools once for an McpTask step', async () => {
+  it('wraps the orchestrator Record-shape configs as { configs } and calls loadRemoteTools once', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({
@@ -1162,8 +1162,10 @@ describe('MCP lazy loading (via once thunk)', () => {
       step,
       auth: { forestServerToken: 'test-forest-token' },
     });
-    // Provide a non-empty config so fetchRemoteTools actually calls loadRemoteTools
-    workflowPort.getMcpServerConfigs.mockResolvedValue([{ configs: {} }] as never);
+    const realConfigs = {
+      'mcp-server-1': { url: 'https://mcp.example.com', type: 'http' as const, headers: {} },
+    };
+    workflowPort.getMcpServerConfigs.mockResolvedValue(realConfigs);
 
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
@@ -1172,6 +1174,36 @@ describe('MCP lazy loading (via once thunk)', () => {
 
     expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
     expect(aiClient.loadRemoteTools).toHaveBeenCalledTimes(1);
+    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({ configs: realConfigs });
+  });
+
+  it('skips loadRemoteTools when the orchestrator returns an empty Record', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-mcp-1',
+      stepType: StepType.Mcp,
+    });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    workflowPort.getMcpServerConfigs.mockResolvedValue({});
+
+    runner = new Runner(
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
+    expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
+    // Distinguish the short-circuit from a regression that throws before reaching the guard:
+    // the step must actually have executed and reported a success outcome.
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ status: 'success' }),
+    );
   });
 });
 
