@@ -28,4 +28,23 @@ describe('getZendeskTools', () => {
       'zendesk_update_ticket',
     ]);
   });
+
+  describe('mcpServerId propagation', () => {
+    it('sets RemoteTool.mcpServerId on every produced tool when mcpServerId is provided', () => {
+      const tools = getZendeskTools(config, 'forest-zendesk-42');
+
+      expect(tools).not.toHaveLength(0);
+      tools.forEach(tool => {
+        expect(tool.mcpServerId).toBe('forest-zendesk-42');
+      });
+    });
+
+    it('leaves RemoteTool.mcpServerId undefined when no mcpServerId is provided', () => {
+      const tools = getZendeskTools(config);
+
+      tools.forEach(tool => {
+        expect(tool.mcpServerId).toBeUndefined();
+      });
+    });
+  });
 });

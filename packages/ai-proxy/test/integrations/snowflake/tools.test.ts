@@ -28,4 +28,23 @@ describe('getSnowflakeTools', () => {
       'snowflake_execute_query',
     ]);
   });
+
+  describe('mcpServerId propagation', () => {
+    it('sets RemoteTool.mcpServerId on every produced tool when mcpServerId is provided', () => {
+      const tools = getSnowflakeTools(config, 'forest-snowflake-99');
+
+      expect(tools).not.toHaveLength(0);
+      tools.forEach(tool => {
+        expect(tool.mcpServerId).toBe('forest-snowflake-99');
+      });
+    });
+
+    it('leaves RemoteTool.mcpServerId undefined when no mcpServerId is provided', () => {
+      const tools = getSnowflakeTools(config);
+
+      tools.forEach(tool => {
+        expect(tool.mcpServerId).toBeUndefined();
+      });
+    });
+  });
 });
