@@ -173,9 +173,11 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     if (!timeoutMs || timeoutMs <= 0) return this.doExecute();
 
     let timer: NodeJS.Timeout | undefined;
+    let hasTimeoutFired = false;
     const execPromise = this.doExecute();
 
     execPromise.catch(err => {
+      if (!hasTimeoutFired) return;
       this.context.logger.info('Step work rejected after timeout — result discarded', {
         runId: this.context.runId,
         stepId: this.context.stepId,
@@ -188,7 +190,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       return await Promise.race([
         execPromise,
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new StepTimeoutError(timeoutMs)), timeoutMs);
+          timer = setTimeout(() => {
+            hasTimeoutFired = true;
+            reject(new StepTimeoutError(timeoutMs));
+          }, timeoutMs);
         }),
       ]);
     } finally {

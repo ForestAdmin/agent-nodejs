@@ -453,6 +453,21 @@ describe('BaseStepExecutor', () => {
         process.off('unhandledRejection', unhandled);
       }
     }, 5_000);
+
+    it('does not log discard message when step rejects before timeout', async () => {
+      const logger = makeMockLogger();
+      const executor = new TestableExecutor(
+        makeContext({ stepTimeoutMs: 5_000, logger }),
+        new Error('normal step error'),
+      );
+
+      await executor.execute();
+
+      expect(logger.info).not.toHaveBeenCalledWith(
+        'Step work rejected after timeout — result discarded',
+        expect.anything(),
+      );
+    });
   });
 
   describe('activity log lifecycle', () => {
