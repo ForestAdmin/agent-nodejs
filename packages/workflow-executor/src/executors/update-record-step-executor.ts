@@ -7,7 +7,6 @@ import type { UpdateRecordStepDefinition } from '../types/validated/step-definit
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import {
   FieldNotFoundError,
   InvalidPreRecordedArgsError,
@@ -15,6 +14,7 @@ import {
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
 Select the field to update and provide the new value.
@@ -125,11 +125,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
   protected async doExecute(): Promise<StepExecutionResult> {
     this.warnIfUnsupportedExecutionType(
-      [
-        ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
-        ServerStepExecutionTypeEnum.FullyAutomated,
-      ],
-      ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
+      StepExecutionMode.AutomatedWithConfirmation,
     );
 
     // Branch A -- Re-entry after pending execution found in RunStore
@@ -190,11 +187,11 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     };
 
     // Branch B -- fully automated execution
-    if (step.executionType === ServerStepExecutionTypeEnum.FullyAutomated) {
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
       return this.resolveAndUpdate(target);
     }
 
-    // Branch C -- Awaiting confirmation (also covers Manual fallback)
+    // Branch C -- Awaiting confirmation
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,

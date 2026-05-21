@@ -7,7 +7,6 @@ import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-de
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import {
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
@@ -17,6 +16,7 @@ import {
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
 Select the relation to follow.
@@ -50,11 +50,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   protected async doExecute(): Promise<StepExecutionResult> {
     this.warnIfUnsupportedExecutionType(
-      [
-        ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
-        ServerStepExecutionTypeEnum.FullyAutomated,
-      ],
-      ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
+      StepExecutionMode.AutomatedWithConfirmation,
     );
 
     // Branch A -- Re-entry after pending execution found in RunStore
@@ -88,11 +85,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const target = this.buildTarget(schema, args.relationName, selectedRecordRef);
 
     // Branch B -- fully automated execution
-    if (step.executionType === ServerStepExecutionTypeEnum.FullyAutomated) {
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
       return this.resolveAndLoadAutomatic(target);
     }
 
-    // Branch C -- pre-fetch candidates, await user confirmation (also covers Manual fallback)
+    // Branch C -- pre-fetch candidates, await user confirmation
     return this.saveAndAwaitInput(target);
   }
 

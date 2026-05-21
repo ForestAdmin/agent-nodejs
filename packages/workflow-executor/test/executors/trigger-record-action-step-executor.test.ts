@@ -6,11 +6,10 @@ import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { TriggerActionStepDefinition } from '../../src/types/validated/step-definition';
 
-import { ServerStepExecutionTypeEnum } from '../../src/adapters/server-types';
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
   overrides: Partial<TriggerActionStepDefinition> = {},
@@ -158,7 +157,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -229,7 +228,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
         }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
@@ -479,7 +478,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -550,7 +549,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -580,7 +579,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -612,7 +611,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -634,7 +633,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         logger,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -662,7 +661,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -692,7 +691,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         workflowPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -799,7 +798,7 @@ describe('TriggerRecordActionStepExecutor', () => {
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
       const context = makeContext({
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -819,7 +818,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const workflowPort = makeMockWorkflowPort();
       const context = makeContext({
         workflowPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -933,7 +932,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       });
       const context = makeContext({
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -1051,7 +1050,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { actionDisplayName: 'Send Welcome Email' },
         }),
       });
@@ -1089,7 +1088,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const mockModel = makeMockModel({ actionName: 'Send Welcome Email', reasoning: 'r' });
       const context = makeContext({
         model: mockModel.model,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -1169,7 +1168,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 

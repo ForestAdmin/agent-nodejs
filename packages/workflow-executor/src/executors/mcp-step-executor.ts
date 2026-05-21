@@ -8,7 +8,6 @@ import type { RemoteTool } from '@forestadmin/ai-proxy';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import {
   McpToolInvocationError,
   McpToolNotFoundError,
@@ -16,6 +15,7 @@ import {
   StepStateError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
 Select the most appropriate tool and fill in its parameters precisely.
@@ -71,11 +71,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
 
   protected async doExecute(): Promise<StepExecutionResult> {
     this.warnIfUnsupportedExecutionType(
-      [
-        ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
-        ServerStepExecutionTypeEnum.FullyAutomated,
-      ],
-      ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
+      StepExecutionMode.AutomatedWithConfirmation,
     );
 
     // Branch A -- Re-entry after pending execution found in RunStore
@@ -96,12 +93,12 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     if (!selectedTool) throw new McpToolNotFoundError(toolName);
     const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
 
-    if (this.context.stepDefinition.executionType === ServerStepExecutionTypeEnum.FullyAutomated) {
+    if (this.context.stepDefinition.executionType === StepExecutionMode.FullyAutomated) {
       // Branch B -- direct execution
       return this.executeToolAndPersist(target);
     }
 
-    // Branch C -- Awaiting confirmation (also covers Manual fallback)
+    // Branch C -- Awaiting confirmation
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'mcp',
       stepIndex: this.context.stepIndex,

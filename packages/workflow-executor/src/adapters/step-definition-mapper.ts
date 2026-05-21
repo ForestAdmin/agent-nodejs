@@ -1,5 +1,4 @@
 import type {
-  ServerStepExecutionTypeEnum,
   ServerTaskTypeEnum,
   ServerWorkflowCondition,
   ServerWorkflowStep,
@@ -7,8 +6,9 @@ import type {
 } from './server-types';
 import type { ConditionStepDefinition, StepDefinition } from '../types/validated/step-definition';
 
+import { ServerStepExecutionTypeEnum } from './server-types';
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../errors';
-import { StepType } from '../types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../types/validated/step-definition';
 
 const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskTypeEnum, StepType> = {
   'get-data': StepType.ReadRecord,
@@ -19,6 +19,19 @@ const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskTypeEnum, StepType> = {
   guideline: StepType.Guidance,
 };
 
+const EXECUTION_TYPE_TO_MODE: Record<ServerStepExecutionTypeEnum, StepExecutionMode> = {
+  [ServerStepExecutionTypeEnum.Manual]: StepExecutionMode.Manual,
+  [ServerStepExecutionTypeEnum.AutomatedWithConfirmation]:
+    StepExecutionMode.AutomatedWithConfirmation,
+  [ServerStepExecutionTypeEnum.FullyAutomated]: StepExecutionMode.FullyAutomated,
+};
+
+function toStepExecutionMode(
+  executionType: ServerStepExecutionTypeEnum | undefined,
+): StepExecutionMode | undefined {
+  return executionType === undefined ? undefined : EXECUTION_TYPE_TO_MODE[executionType];
+}
+
 function mapTask(task: ServerWorkflowTask): StepDefinition {
   const stepType = TASK_TYPE_TO_STEP_TYPE[task.taskType];
 
@@ -26,10 +39,9 @@ function mapTask(task: ServerWorkflowTask): StepDefinition {
     throw new InvalidStepDefinitionError(`Unknown taskType: "${task.taskType}"`);
   }
 
-  const base: { prompt: string; executionType?: ServerStepExecutionTypeEnum } = {
-    prompt: task.prompt,
-  };
-  if (task.executionType !== undefined) base.executionType = task.executionType;
+  const executionType = toStepExecutionMode(task.executionType);
+  const base: { prompt: string; executionType?: StepExecutionMode } = { prompt: task.prompt };
+  if (executionType !== undefined) base.executionType = executionType;
 
   switch (stepType) {
     case StepType.Mcp:
@@ -64,11 +76,13 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
     );
   }
 
+  const executionType = toStepExecutionMode(condition.executionType);
+
   return {
     type: StepType.Condition,
     prompt: condition.prompt,
     options,
-    ...(condition.executionType !== undefined && { executionType: condition.executionType }),
+    ...(executionType !== undefined && { executionType }),
   };
 }
 

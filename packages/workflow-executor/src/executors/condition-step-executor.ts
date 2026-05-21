@@ -5,10 +5,10 @@ import type { ConditionStepOutcome } from '../types/validated/step-outcome';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import { StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import patchBodySchemas from '../http/pending-data-validators';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 interface GatewayToolArgs {
   option: string | null;
@@ -61,15 +61,15 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
   protected async doExecute(): Promise<StepExecutionResult> {
     this.warnIfUnsupportedExecutionType(
-      [ServerStepExecutionTypeEnum.Manual, ServerStepExecutionTypeEnum.FullyAutomated],
-      ServerStepExecutionTypeEnum.FullyAutomated,
+      [StepExecutionMode.Manual, StepExecutionMode.FullyAutomated],
+      StepExecutionMode.FullyAutomated,
     );
 
     const { stepDefinition: step, incomingPendingData } = this.context;
 
     // Manual mode: the user picks the option from the frontend. Wait for their input
     // without ever calling the AI.
-    const isManual = step.executionType === ServerStepExecutionTypeEnum.Manual;
+    const isManual = step.executionType === StepExecutionMode.Manual;
 
     if (isManual && incomingPendingData === undefined) {
       return this.buildOutcomeResult({ status: 'awaiting-input' });

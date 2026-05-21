@@ -4,11 +4,10 @@ import type { RecordRef } from '../../src/types/validated/collection';
 import type { ConditionStepDefinition } from '../../src/types/validated/step-definition';
 import type { ConditionStepOutcome } from '../../src/types/validated/step-outcome';
 
-import { ServerStepExecutionTypeEnum } from '../../src/adapters/server-types';
 import { RunStorePortError } from '../../src/errors';
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {
@@ -396,7 +395,7 @@ describe('ConditionStepExecutor', () => {
         makeContext({
           model: mockModel.model,
           runStore,
-          stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.Manual }),
+          stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
         }),
       );
 
@@ -415,7 +414,7 @@ describe('ConditionStepExecutor', () => {
         makeContext({
           model: mockModel.model,
           runStore,
-          stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.Manual }),
+          stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
           incomingPendingData: { selectedOption: 'Approve' },
         }),
       );
@@ -441,7 +440,7 @@ describe('ConditionStepExecutor', () => {
         makeContext({
           model: mockModel.model,
           runStore,
-          stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.Manual }),
+          stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
           incomingPendingData: { selectedOption: 'Maybe' },
         }),
       );

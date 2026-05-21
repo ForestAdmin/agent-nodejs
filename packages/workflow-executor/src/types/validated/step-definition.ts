@@ -2,8 +2,6 @@
 
 import { z } from 'zod';
 
-import { ServerStepExecutionTypeEnum } from '../../adapters/server-types';
-
 export enum StepType {
   Condition = 'condition',
   ReadRecord = 'read-record',
@@ -14,10 +12,21 @@ export enum StepType {
   Guidance = 'guidance',
 }
 
+/**
+ * Domain enum for how a step is executed. Decoupled from the server contract
+ * (`ServerStepExecutionTypeEnum`) — `step-definition-mapper.ts` is the single translation point.
+ */
+export enum StepExecutionMode {
+  Manual = 'manual',
+  AutomatedWithConfirmation = 'automated-with-confirmation',
+  FullyAutomated = 'fully-automated',
+}
+
 const baseFields = {
   prompt: z.string().optional(),
   aiConfigName: z.string().optional(),
-  executionType: z.enum(ServerStepExecutionTypeEnum).optional(),
+  // Use z.enum(EnumObject), not z.nativeEnum — the latter is deprecated in zod 4.
+  executionType: z.enum(StepExecutionMode).optional(),
 };
 
 export const ConditionStepDefinitionSchema = z.object({

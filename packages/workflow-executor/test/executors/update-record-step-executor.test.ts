@@ -6,11 +6,10 @@ import type { UpdateRecordStepExecutionData } from '../../src/types/step-executi
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-definition';
 
-import { ServerStepExecutionTypeEnum } from '../../src/adapters/server-types';
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<UpdateRecordStepDefinition> = {}): UpdateRecordStepDefinition {
   return {
@@ -154,7 +153,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -487,7 +486,7 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const context = makeContext({
         model: mockModel.model,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -516,7 +515,7 @@ describe('UpdateRecordStepExecutor', () => {
         const context = makeContext({
           model: mockModel.model,
           agentPort,
-          stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
         });
         const executor = new UpdateRecordStepExecutor(context);
 
@@ -556,7 +555,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         workflowPort: makeMockWorkflowPort({ customers: ambiguousSchema }),
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -662,7 +661,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -721,7 +720,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -766,7 +765,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         logger,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -786,7 +785,7 @@ describe('UpdateRecordStepExecutor', () => {
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
       const context = makeContext({
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -811,7 +810,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -830,7 +829,7 @@ describe('UpdateRecordStepExecutor', () => {
       const workflowPort = makeMockWorkflowPort();
       const context = makeContext({
         workflowPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -895,7 +894,7 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const context = makeContext({
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -984,7 +983,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldDisplayName: 'Status', value: 'active' },
         }),
       });
@@ -1025,7 +1024,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { selectedRecordStepIndex: 0 },
         }),
       });
@@ -1039,7 +1038,7 @@ describe('UpdateRecordStepExecutor', () => {
     it('returns error when fieldDisplayName is provided without value', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldDisplayName: 'Status' },
         }),
       });
@@ -1053,7 +1052,7 @@ describe('UpdateRecordStepExecutor', () => {
     it('returns error when value is provided without fieldDisplayName', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { value: 'active' },
         }),
       });
@@ -1075,7 +1074,7 @@ describe('UpdateRecordStepExecutor', () => {
         runStore,
         workflowPort,
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldDisplayName: 'Age', value: 42 },
         }),
       });
@@ -1459,7 +1458,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 

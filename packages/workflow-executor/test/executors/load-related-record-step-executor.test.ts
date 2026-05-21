@@ -6,11 +6,10 @@ import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-ex
 import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/validated/collection';
 import type { LoadRelatedRecordStepDefinition } from '../../src/types/validated/step-definition';
 
-import { ServerStepExecutionTypeEnum } from '../../src/adapters/server-types';
 import { AgentPortError, RunStorePortError } from '../../src/errors';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
   overrides: Partial<LoadRelatedRecordStepDefinition> = {},
@@ -184,7 +183,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -283,7 +282,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           customers: hasManySchema,
           addresses: addressSchema,
         }),
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -361,7 +360,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -404,7 +403,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema }),
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -470,7 +469,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -529,7 +528,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -565,7 +564,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasOneSchema }),
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1090,7 +1089,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1122,7 +1121,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema }),
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1163,7 +1162,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runId: 'run-1',
         stepIndex: 0,
         runStore,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1220,7 +1219,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1293,7 +1292,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1323,7 +1322,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         logger,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1438,7 +1437,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
       const context = makeContext({
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1585,7 +1584,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         workflowPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1604,7 +1603,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const workflowPort = makeMockWorkflowPort();
       const context = makeContext({
         workflowPort,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1716,7 +1715,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         runStore,
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Order' },
         }),
       });
@@ -1749,7 +1748,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         agentPort: makeMockAgentPort(relatedData),
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 1 },
         }),
       });
@@ -1787,7 +1786,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort: makeMockAgentPort(relatedData),
         stepDefinition: makeStep({
-          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 99 },
         }),
       });
@@ -1802,7 +1801,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const { model, bindTools } = makeMockModel({ relationName: 'Orders', reasoning: 'r' });
       const context = makeContext({
         model,
-        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 

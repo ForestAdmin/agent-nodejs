@@ -7,7 +7,6 @@ import type { TriggerActionStepDefinition } from '../types/validated/step-defini
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import {
   ActionNotFoundError,
   NoActionsError,
@@ -15,6 +14,7 @@ import {
   UnsupportedActionFormError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
 Select the action to trigger.
@@ -32,7 +32,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
     // Skip when the frontend executes the action itself (non fully-automated mode).
     // The front logs on its side via the standard agent activity flow.
-    if (this.context.stepDefinition.executionType !== ServerStepExecutionTypeEnum.FullyAutomated) {
+    if (this.context.stepDefinition.executionType !== StepExecutionMode.FullyAutomated) {
       return null;
     }
 
@@ -63,11 +63,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
   protected async doExecute(): Promise<StepExecutionResult> {
     this.warnIfUnsupportedExecutionType(
-      [
-        ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
-        ServerStepExecutionTypeEnum.FullyAutomated,
-      ],
-      ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
+      StepExecutionMode.AutomatedWithConfirmation,
     );
 
     // Branch A -- Re-entry after pending execution found in RunStore
@@ -125,7 +122,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     // Branch B -- fully automated: executor runs the action itself, so it cannot
     // handle forms (no UI to fill them). Reject form-bearing actions here. When the
     // frontend is in the loop (Branch C), it handles the form natively so no check.
-    if (step.executionType === ServerStepExecutionTypeEnum.FullyAutomated) {
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
       const { hasForm } = await this.agentPort.getActionFormInfo(
         {
           collection: selectedRecordRef.collectionName,
@@ -139,8 +136,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       return this.executeOnExecutor(target);
     }
 
-    // Branch C -- Awaiting confirmation (frontend executes the action, including forms).
-    // Also covers Manual fallback.
+    // Branch C -- Awaiting confirmation (frontend executes the action, including forms)
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,

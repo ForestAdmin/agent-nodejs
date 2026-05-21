@@ -1,4 +1,3 @@
-import type { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type {
@@ -7,7 +6,7 @@ import type {
   StepExecutionResult,
 } from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { StepDefinition } from '../types/validated/step-definition';
+import type { StepDefinition, StepExecutionMode } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
   BaseMessage,
@@ -129,7 +128,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return Promise.resolve(null);
   }
 
-  // TODO: What is this method ? why does it always return null ?
   // Return null when the frontend performs the action (e.g. TriggerAction without
   // executionType=FullyAutomated) — the front logs on its side. Override when the
   // executor itself calls the agent.
@@ -142,8 +140,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   // misconfiguration so it can be caught in workflow design rather than at runtime.
   // No-op when the configured type is supported or undefined (legacy workflows).
   protected warnIfUnsupportedExecutionType(
-    supported: ServerStepExecutionTypeEnum[],
-    fallback: ServerStepExecutionTypeEnum,
+    supported: StepExecutionMode[],
+    fallback: StepExecutionMode,
   ): void {
     const { executionType } = this.context.stepDefinition;
     if (executionType === undefined || supported.includes(executionType)) return;
