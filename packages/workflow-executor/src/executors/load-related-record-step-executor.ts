@@ -49,6 +49,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
+    this.warnIfUnsupportedExecutionType(
+      [
+        ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+        ServerStepExecutionTypeEnum.FullyAutomated,
+      ],
+      ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+    );
+
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<LoadRelatedRecordStepExecutionData>(
       this.context.incomingPendingData,

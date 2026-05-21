@@ -49,7 +49,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),

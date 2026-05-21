@@ -130,7 +130,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -676,7 +676,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.getRecord throws an infra error', async () => {
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const agentPort = makeMockAgentPort();
       // Prod adapter normalizes infra errors into AgentPortError — simulate here.
       (agentPort.getRecord as jest.Mock).mockRejectedValue(

@@ -115,7 +115,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -243,7 +243,7 @@ describe('McpStepExecutor', () => {
           tool_calls: [{ name: 'send_notification', args: { message: 'Hi' }, id: 'call_1' }],
         })
         .mockResolvedValueOnce({ tool_calls: [] });
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
@@ -331,7 +331,7 @@ describe('McpStepExecutor', () => {
 
     it('returns error when saveStepExecution fails (Branch C)', async () => {
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         saveStepExecution: jest
           .fn()
@@ -600,7 +600,7 @@ describe('McpStepExecutor', () => {
     });
 
     it('logs the technical message with the requested mcpServerId and loaded mcpServerIds when filter misses', async () => {
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const toolA = new MockRemoteTool({
         name: 'tool_a',
         sourceId: 'server-A',
@@ -667,7 +667,7 @@ describe('McpStepExecutor', () => {
         invoke: invokeFn,
       });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         saveStepExecution: jest
           .fn()
@@ -708,7 +708,7 @@ describe('McpStepExecutor', () => {
           userConfirmed: true,
         },
       };
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest
@@ -823,7 +823,7 @@ describe('McpStepExecutor', () => {
         invoke: invokeFn,
       });
       const { model } = makeMockModel('send_notification', {});
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const context = makeContext({
         model,
         stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
@@ -1033,6 +1033,68 @@ describe('McpStepExecutor', () => {
         idempotencyPhase: 'done',
         executionResult: { success: true, toolResult: 'tool-result' },
       });
+    });
+  });
+
+  describe('executionType=Manual (unsupported)', () => {
+    it('logs a warning and falls back to the AutomatedWithConfirmation flow', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        logger,
+        runStore,
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.Manual }),
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Step received executionType=manual but does not support it'),
+        expect.objectContaining({
+          runId: 'run-1',
+          stepId: 'mcp-1',
+          stepIndex: 0,
+          stepType: StepType.Mcp,
+          supportedExecutionTypes: [
+            ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+            ServerStepExecutionTypeEnum.FullyAutomated,
+          ],
+        }),
+      );
+      // Falls back to the awaiting-input branch — no tool execution.
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+    });
+
+    it('does not warn when executionType is undefined', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const context = makeContext({ model, logger, stepDefinition: makeStep() });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      await executor.execute();
+
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when executionType is FullyAutomated', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const context = makeContext({
+        model,
+        logger,
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      await executor.execute();
+
+      expect(logger.warn).not.toHaveBeenCalled();
     });
   });
 });

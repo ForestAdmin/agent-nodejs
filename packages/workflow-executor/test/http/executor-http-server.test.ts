@@ -40,7 +40,7 @@ function createServer(
   overrides: {
     runner?: Runner;
     workflowPort?: WorkflowPort;
-    logger?: { info: jest.Mock; error: jest.Mock };
+    logger?: { info: jest.Mock; warn: jest.Mock; error: jest.Mock };
   } = {},
 ) {
   return new ExecutorHttpServer({
@@ -247,7 +247,7 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('returns 503 when hasRunAccess throws', async () => {
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const workflowPort = createMockWorkflowPort({
         hasRunAccess: jest.fn().mockRejectedValue(new Error('orchestrator down')),
       });

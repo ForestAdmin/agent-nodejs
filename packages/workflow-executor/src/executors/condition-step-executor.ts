@@ -60,6 +60,11 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
+    this.warnIfUnsupportedExecutionType(
+      [ServerStepExecutionTypeEnum.Manual, ServerStepExecutionTypeEnum.FullyAutomated],
+      ServerStepExecutionTypeEnum.FullyAutomated,
+    );
+
     const { stepDefinition: step, incomingPendingData } = this.context;
 
     // Manual mode: the user picks the option from the frontend. Wait for their input

@@ -7,6 +7,7 @@ import type { ReadRecordStepDefinition } from '../types/validated/step-definitio
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
+import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import { NoReadableFieldsError, NoResolvedFieldsError } from '../errors';
 import RecordStepExecutor from './record-step-executor';
 
@@ -30,6 +31,11 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
+    this.warnIfUnsupportedExecutionType(
+      [ServerStepExecutionTypeEnum.FullyAutomated],
+      ServerStepExecutionTypeEnum.FullyAutomated,
+    );
+
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
     const records = await this.getAvailableRecordRefs();

@@ -2,12 +2,18 @@ import type { StepExecutionResult } from '../types/execution-context';
 import type { GuidanceStepDefinition } from '../types/validated/step-definition';
 import type { RecordStepStatus } from '../types/validated/step-outcome';
 
+import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import { StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import patchBodySchemas from '../http/pending-data-validators';
 
 export default class GuidanceStepExecutor extends BaseStepExecutor<GuidanceStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
+    this.warnIfUnsupportedExecutionType(
+      [ServerStepExecutionTypeEnum.Manual],
+      ServerStepExecutionTypeEnum.Manual,
+    );
+
     const { incomingPendingData } = this.context;
 
     if (!incomingPendingData) {

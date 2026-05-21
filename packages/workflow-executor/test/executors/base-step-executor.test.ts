@@ -88,7 +88,7 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 }
 
 function makeMockLogger(): Logger {
-  return { info: jest.fn(), error: jest.fn() };
+  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
 function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {

@@ -4,6 +4,7 @@ import withRetry from '../../src/adapters/with-retry';
 
 const makeLogger = (): jest.Mocked<Logger> => ({
   info: jest.fn(),
+  warn: jest.fn(),
   error: jest.fn(),
 });
 

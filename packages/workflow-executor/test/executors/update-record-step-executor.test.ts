@@ -130,7 +130,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -754,7 +754,7 @@ describe('UpdateRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.updateRecord throws an infra error', async () => {
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(
         new AgentPortError('updateRecord', new Error('DB connection lost')),

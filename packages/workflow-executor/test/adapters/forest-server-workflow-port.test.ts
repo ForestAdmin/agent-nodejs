@@ -314,7 +314,7 @@ describe('ForestServerWorkflowPort', () => {
     });
 
     it('logs and skips when the mapping throws a non-WorkflowExecutorError', async () => {
-      const logger = { error: jest.fn(), info: jest.fn() };
+      const logger = { error: jest.fn(), warn: jest.fn(), info: jest.fn() };
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
       // Simulate a non-domain error by passing a run whose workflowHistory will
       // blow up a pure JS operation inside the mapper (missing `find` on non-array).
