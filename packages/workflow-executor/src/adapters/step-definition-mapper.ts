@@ -68,6 +68,7 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
     type: StepType.Condition,
     prompt: condition.prompt,
     options,
+    ...(condition.executionType !== undefined && { executionType: condition.executionType }),
   };
 }
 

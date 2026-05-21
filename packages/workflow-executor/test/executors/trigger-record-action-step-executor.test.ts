@@ -6,6 +6,7 @@ import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { TriggerActionStepDefinition } from '../../src/types/validated/step-definition';
 
+import { ServerStepExecutionTypeEnum } from '../../src/adapters/server-types';
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -144,7 +145,7 @@ function makeContext(
 }
 
 describe('TriggerRecordActionStepExecutor', () => {
-  describe('automaticExecution: trigger direct (Branch B)', () => {
+  describe('executionType=FullyAutomated: trigger direct (Branch B)', () => {
     it('triggers the action and returns success', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ message: 'Email sent' });
@@ -157,7 +158,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -187,7 +188,7 @@ describe('TriggerRecordActionStepExecutor', () => {
     });
   });
 
-  describe('without automaticExecution: awaiting-input (Branch C)', () => {
+  describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {
     it('saves pendingAction and returns awaiting-input', async () => {
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
@@ -227,7 +228,9 @@ describe('TriggerRecordActionStepExecutor', () => {
       });
       const context = makeContext({
         model: mockModel.model,
-        stepDefinition: makeStep({ automaticExecution: false }),
+        stepDefinition: makeStep({
+          executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+        }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -464,7 +467,7 @@ describe('TriggerRecordActionStepExecutor', () => {
   });
 
   describe('UnsupportedActionFormError (form detection)', () => {
-    it('throws when the action has a form and automaticExecution is true', async () => {
+    it('throws when the action has a form and executionType is FullyAutomated', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionFormInfo as jest.Mock).mockResolvedValue({ hasForm: true });
       const mockModel = makeMockModel({
@@ -476,7 +479,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -496,7 +499,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('supports form-bearing actions when automaticExecution is false (frontend handles the form)', async () => {
+    it('supports form-bearing actions when executionType is not FullyAutomated (frontend handles the form)', async () => {
       const agentPort = makeMockAgentPort();
       // hasForm would return true if called — but it should not be called in this branch.
       (agentPort.getActionFormInfo as jest.Mock).mockResolvedValue({ hasForm: true });
@@ -547,7 +550,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -577,7 +580,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -609,7 +612,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -631,7 +634,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         logger,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -659,7 +662,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -689,7 +692,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -795,7 +798,9 @@ describe('TriggerRecordActionStepExecutor', () => {
 
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
-      const context = makeContext({ stepDefinition: makeStep({ automaticExecution: true }) });
+      const context = makeContext({
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
+      });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();
@@ -814,7 +819,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const workflowPort = makeMockWorkflowPort();
       const context = makeContext({
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -928,7 +933,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       });
       const context = makeContext({
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -1046,7 +1051,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
           preRecordedArgs: { actionDisplayName: 'Send Welcome Email' },
         }),
       });
@@ -1062,7 +1067,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('still goes through awaiting-input when automaticExecution is false', async () => {
+    it('still goes through awaiting-input when executionType is not FullyAutomated', async () => {
       const mockModel = makeMockModel();
       const runStore = makeMockRunStore();
       const context = makeContext({
@@ -1084,7 +1089,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const mockModel = makeMockModel({ actionName: 'Send Welcome Email', reasoning: 'r' });
       const context = makeContext({
         model: mockModel.model,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 
@@ -1164,7 +1169,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 

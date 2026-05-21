@@ -6,6 +6,7 @@ import type { McpStepDefinition } from '../../src/types/validated/step-definitio
 
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
+import { ServerStepExecutionTypeEnum } from '../../src/adapters/server-types';
 import { RunStorePortError, StepStateError } from '../../src/errors';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -124,7 +125,7 @@ function makeContext(
 // ---------------------------------------------------------------------------
 
 describe('McpStepExecutor', () => {
-  describe('automaticExecution: direct execution (Branch B)', () => {
+  describe('executionType=FullyAutomated: direct execution (Branch B)', () => {
     it('invokes the tool and returns success', async () => {
       const invokeFn = jest.fn().mockResolvedValue({ result: 'notification sent' });
       const tool = new MockRemoteTool({
@@ -139,7 +140,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -189,7 +190,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -241,7 +242,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
         logger,
       });
       const executor = new McpStepExecutor(context, [tool]);
@@ -276,7 +277,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -297,7 +298,7 @@ describe('McpStepExecutor', () => {
     });
   });
 
-  describe('without automaticExecution: awaiting-input (Branch C)', () => {
+  describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {
     it('saves pendingData and returns awaiting-input', async () => {
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
       const runStore = makeMockRunStore();
@@ -455,7 +456,10 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ mcpServerId: 'server-B', automaticExecution: true }),
+        stepDefinition: makeStep({
+          mcpServerId: 'server-B',
+          executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+        }),
       });
       const executor = new McpStepExecutor(context, [toolA, toolB, toolB2]);
 
@@ -542,7 +546,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
         logger,
       });
       const executor = new McpStepExecutor(context, [tool]);
@@ -601,7 +605,7 @@ describe('McpStepExecutor', () => {
       const { model } = makeMockModel('send_notification', {});
       const context = makeContext({
         model,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -667,7 +671,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore: mockRunStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -692,7 +696,7 @@ describe('McpStepExecutor', () => {
       const logger = { info: jest.fn(), error: jest.fn() };
       const context = makeContext({
         model,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
         logger,
       });
       const executor = new McpStepExecutor(context, [tool]);
@@ -879,7 +883,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
