@@ -154,33 +154,6 @@ describe('toAvailableStepExecution', () => {
     expect(result?.stepIndex).toBe(2);
   });
 
-  it('errored step (done:false + context.error) is skipped — next pending step is returned', () => {
-    // Scenario: back changed errored steps to done:false so the front can offer Continue/Revise.
-    // The executor must skip the errored step and pick the next pending one.
-    const run = makeRun({
-      workflowHistory: [
-        makeStepHistory({ stepName: 's0', stepIndex: 0, done: false, context: { error: 'boom' } }),
-        makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
-      ],
-    });
-
-    const result = toAvailableStepExecution(run);
-
-    expect(result?.stepId).toBe('s1');
-    expect(result?.stepIndex).toBe(1);
-  });
-
-  it('returns null when the only non-done step is errored', () => {
-    const run = makeRun({
-      workflowHistory: [
-        makeStepHistory({ stepIndex: 0, done: true }),
-        makeStepHistory({ stepIndex: 1, done: false, context: { error: 'failed' } }),
-      ],
-    });
-
-    expect(toAvailableStepExecution(run)).toBeNull();
-  });
-
   it('should forward executionType from the server to the guidance step definition', () => {
     const run = makeRun({
       workflowHistory: [

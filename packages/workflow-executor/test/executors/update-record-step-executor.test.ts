@@ -516,7 +516,7 @@ describe('UpdateRecordStepExecutor', () => {
         const context = makeContext({
           model: mockModel.model,
           agentPort,
-          stepDefinition: makeStep({ automaticExecution: true }),
+          stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
         });
         const executor = new UpdateRecordStepExecutor(context);
 
@@ -556,7 +556,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         workflowPort: makeMockWorkflowPort({ customers: ambiguousSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: ServerStepExecutionTypeEnum.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
