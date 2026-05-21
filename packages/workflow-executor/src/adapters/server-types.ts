@@ -13,61 +13,103 @@ export interface ServerWorkflowTransition {
   answer?: string;
 }
 
-export type ServerTaskType =
-  | 'guideline'
-  | 'trigger-action'
-  | 'get-data'
-  | 'update-data'
-  | 'load-related-record'
-  | 'mcp-server';
-
-export interface ServerWorkflowTask {
-  type: 'task';
-  taskType: ServerTaskType;
-  isSubTask?: boolean;
-  title: string;
-  prompt: string;
-  allowedTools?: string[];
-  mcpServerId?: string;
-  automaticExecution?: boolean;
-  automaticCompletion?: boolean;
-  outgoing: ServerWorkflowTransition;
+export enum ServerStepTypeEnum {
+  Task = 'task',
+  Condition = 'condition',
+  End = 'end',
+  Escalation = 'escalation',
+  StartSubWorkflow = 'start-sub-workflow',
+  CloseSubWorkflow = 'close-sub-workflow',
 }
 
-export interface ServerWorkflowCondition {
-  type: 'condition';
-  title: string;
-  prompt: string;
-  outgoing: ServerWorkflowTransition[];
-  automaticExecution?: boolean;
+export enum ServerTaskTypeEnum {
+  Guideline = 'guideline',
+  TriggerAction = 'trigger-action',
+  GetData = 'get-data',
+  UpdateData = 'update-data',
+  LoadRelatedRecord = 'load-related-record',
+  McpServer = 'mcp-server',
 }
 
-export interface ServerWorkflowEnd {
-  type: 'end';
+export enum ServerStepExecutionTypeEnum {
+  Manual = 'manual',
+  AutomatedWithConfirmation = 'automated-with-confirmation',
+  FullyAutomated = 'fully-automated',
+}
+
+interface ServerWorkflowStepBase {
+  type: ServerStepTypeEnum;
   title: string;
   prompt?: string;
+  executionType: ServerStepExecutionTypeEnum;
+  automaticCompletion: boolean;
+  outgoing: ServerWorkflowTransition[];
 }
 
-export interface ServerWorkflowEscalation {
-  type: 'escalation';
-  title: string;
+export interface ServerWorkflowTaskBase extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.Task;
+  taskType: ServerTaskTypeEnum;
+  isSubTask?: boolean;
   prompt: string;
-  outgoing: ServerWorkflowTransition;
+  outgoing: [ServerWorkflowTransition];
+}
+
+export interface ServerWorkflowTaskGuideline extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.Guideline;
+  completionType: 'simple' | 'user-input';
+  inputType?: 'free-text';
+  automaticCompletion: false;
+}
+
+export interface ServerWorkflowTaskSimple extends ServerWorkflowTaskBase {
+  taskType:
+    | ServerTaskTypeEnum.GetData
+    | ServerTaskTypeEnum.UpdateData
+    | ServerTaskTypeEnum.TriggerAction
+    | ServerTaskTypeEnum.LoadRelatedRecord;
+}
+
+export interface ServerWorkflowTaskMcpServer extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.McpServer;
+  mcpServerId: string;
+}
+
+export type ServerWorkflowTask =
+  | ServerWorkflowTaskGuideline
+  | ServerWorkflowTaskSimple
+  | ServerWorkflowTaskMcpServer;
+
+export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.End;
+  executionType: ServerStepExecutionTypeEnum.Manual;
+  automaticCompletion: false;
+  outgoing: [];
+}
+
+export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.Condition;
+  prompt: string;
+  automaticCompletion: false;
+}
+
+export interface ServerWorkflowEscalation extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.Escalation;
+  prompt: string;
+  outgoing: [ServerWorkflowTransition];
   inboxId: string | null;
 }
 
-export interface ServerStartSubWorkflow {
-  type: 'start-sub-workflow';
-  title: string;
-  prompt: string;
-  outgoing: ServerWorkflowTransition;
+export interface ServerStartSubWorkflow extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.StartSubWorkflow;
+  executionType: ServerStepExecutionTypeEnum.Manual;
+  outgoing: [ServerWorkflowTransition];
   workflowId: string;
 }
 
-export interface ServerCloseSubWorkflow {
-  type: 'close-sub-workflow';
-  title?: string;
-  outgoing: ServerWorkflowTransition;
+export interface ServerCloseSubWorkflow extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.CloseSubWorkflow;
+  executionType: ServerStepExecutionTypeEnum.Manual;
+  outgoing: [ServerWorkflowTransition];
   parentWorkflowId: string | null;
 }
 

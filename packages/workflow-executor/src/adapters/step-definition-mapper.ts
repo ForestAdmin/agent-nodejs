@@ -1,5 +1,6 @@
 import type {
-  ServerTaskType,
+  ServerStepExecutionTypeEnum,
+  ServerTaskTypeEnum,
   ServerWorkflowCondition,
   ServerWorkflowStep,
   ServerWorkflowTask,
@@ -9,7 +10,7 @@ import type { ConditionStepDefinition, StepDefinition } from '../types/validated
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../errors';
 import { StepType } from '../types/validated/step-definition';
 
-const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskType, StepType> = {
+const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskTypeEnum, StepType> = {
   'get-data': StepType.ReadRecord,
   'update-data': StepType.UpdateRecord,
   'trigger-action': StepType.TriggerAction,
@@ -25,15 +26,17 @@ function mapTask(task: ServerWorkflowTask): StepDefinition {
     throw new InvalidStepDefinitionError(`Unknown taskType: "${task.taskType}"`);
   }
 
-  const base: { prompt: string; automaticExecution?: boolean } = { prompt: task.prompt };
-  if (task.automaticExecution !== undefined) base.automaticExecution = task.automaticExecution;
+  const base: { prompt: string; executionType?: ServerStepExecutionTypeEnum } = {
+    prompt: task.prompt,
+  };
+  if (task.executionType !== undefined) base.executionType = task.executionType;
 
   switch (stepType) {
     case StepType.Mcp:
       return {
         ...base,
         type: StepType.Mcp,
-        ...(task.mcpServerId !== undefined && { mcpServerId: task.mcpServerId }),
+        ...('mcpServerId' in task && { mcpServerId: task.mcpServerId }),
       };
     case StepType.Guidance:
       return { ...base, type: StepType.Guidance };

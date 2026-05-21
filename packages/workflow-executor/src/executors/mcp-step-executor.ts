@@ -8,6 +8,7 @@ import type { RemoteTool } from '@forestadmin/ai-proxy';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
+import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import {
   McpToolInvocationError,
   McpToolNotFoundError,
@@ -87,12 +88,12 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     if (!selectedTool) throw new McpToolNotFoundError(toolName);
     const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
 
-    if (this.context.stepDefinition.automaticExecution) {
+    if (this.context.stepDefinition.executionType === ServerStepExecutionTypeEnum.FullyAutomated) {
       // Branch B -- direct execution
       return this.executeToolAndPersist(target);
     }
 
-    // Branch C -- Awaiting confirmation
+    // Branch C -- Awaiting confirmation (also covers Manual fallback)
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'mcp',
       stepIndex: this.context.stepIndex,

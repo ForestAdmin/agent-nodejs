@@ -7,6 +7,7 @@ import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-de
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
+import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import {
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
@@ -78,12 +79,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       : await this.selectRelation(schema, step.prompt);
     const target = this.buildTarget(schema, args.relationName, selectedRecordRef);
 
-    // Branch B -- automaticExecution
-    if (step.automaticExecution) {
+    // Branch B -- fully automated execution
+    if (step.executionType === ServerStepExecutionTypeEnum.FullyAutomated) {
       return this.resolveAndLoadAutomatic(target);
     }
 
-    // Branch C -- pre-fetch candidates, await user confirmation
+    // Branch C -- pre-fetch candidates, await user confirmation (also covers Manual fallback)
     return this.saveAndAwaitInput(target);
   }
 
@@ -228,7 +229,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return { relatedData, bestIndex, suggestedFields };
   }
 
-  /** HasMany + automaticExecution: fetch top 50, then AI calls to select the best record. */
+  /** HasMany + fully automated execution: fetch top 50, then AI calls to select the best record. */
   private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordRef> {
     const { relatedData, bestIndex } = await this.selectBestFromRelatedData(target, 50);
 

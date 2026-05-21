@@ -7,6 +7,7 @@ import type { UpdateRecordStepDefinition } from '../types/validated/step-definit
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
+import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import {
   FieldNotFoundError,
   InvalidPreRecordedArgsError,
@@ -180,12 +181,12 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       value: args.value,
     };
 
-    // Branch B -- automaticExecution
-    if (step.automaticExecution) {
+    // Branch B -- fully automated execution
+    if (step.executionType === ServerStepExecutionTypeEnum.FullyAutomated) {
       return this.resolveAndUpdate(target);
     }
 
-    // Branch C -- Awaiting confirmation
+    // Branch C -- Awaiting confirmation (also covers Manual fallback)
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'update-record',
       stepIndex: this.context.stepIndex,

@@ -2,6 +2,8 @@
 
 import { z } from 'zod';
 
+import { ServerStepExecutionTypeEnum } from '../../adapters/server-types';
+
 export enum StepType {
   Condition = 'condition',
   ReadRecord = 'read-record',
@@ -15,11 +17,7 @@ export enum StepType {
 const baseFields = {
   prompt: z.string().optional(),
   aiConfigName: z.string().optional(),
-};
-
-const baseRecordFields = {
-  ...baseFields,
-  automaticExecution: z.boolean().optional(),
+  executionType: z.enum(ServerStepExecutionTypeEnum).optional(),
 };
 
 export const ConditionStepDefinitionSchema = z.object({
@@ -30,7 +28,7 @@ export const ConditionStepDefinitionSchema = z.object({
 export type ConditionStepDefinition = z.infer<typeof ConditionStepDefinitionSchema>;
 
 export const ReadRecordStepDefinitionSchema = z.object({
-  ...baseRecordFields,
+  ...baseFields,
   type: z.literal(StepType.ReadRecord),
   preRecordedArgs: z
     .object({
@@ -43,7 +41,7 @@ export const ReadRecordStepDefinitionSchema = z.object({
 export type ReadRecordStepDefinition = z.infer<typeof ReadRecordStepDefinitionSchema>;
 
 export const UpdateRecordStepDefinitionSchema = z.object({
-  ...baseRecordFields,
+  ...baseFields,
   type: z.literal(StepType.UpdateRecord),
   preRecordedArgs: z
     .object({
@@ -57,7 +55,7 @@ export const UpdateRecordStepDefinitionSchema = z.object({
 export type UpdateRecordStepDefinition = z.infer<typeof UpdateRecordStepDefinitionSchema>;
 
 export const TriggerActionStepDefinitionSchema = z.object({
-  ...baseRecordFields,
+  ...baseFields,
   type: z.literal(StepType.TriggerAction),
   preRecordedArgs: z
     .object({
@@ -70,7 +68,7 @@ export const TriggerActionStepDefinitionSchema = z.object({
 export type TriggerActionStepDefinition = z.infer<typeof TriggerActionStepDefinitionSchema>;
 
 export const LoadRelatedRecordStepDefinitionSchema = z.object({
-  ...baseRecordFields,
+  ...baseFields,
   type: z.literal(StepType.LoadRelatedRecord),
   preRecordedArgs: z
     .object({
@@ -87,7 +85,6 @@ export const McpStepDefinitionSchema = z.object({
   ...baseFields,
   type: z.literal(StepType.Mcp),
   mcpServerId: z.string().optional(),
-  automaticExecution: z.boolean().optional(),
 });
 export type McpStepDefinition = z.infer<typeof McpStepDefinitionSchema>;
 

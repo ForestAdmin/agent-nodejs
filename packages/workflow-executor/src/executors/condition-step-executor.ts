@@ -1,10 +1,11 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type { ConditionStepDefinition } from '../types/validated/step-definition';
-import type { BaseStepStatus } from '../types/validated/step-outcome';
+import type { ConditionStepOutcome } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
+import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import { StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import patchBodySchemas from '../http/pending-data-validators';
@@ -44,7 +45,7 @@ const GATEWAY_SYSTEM_PROMPT = `You are an AI agent selecting the correct option 
 
 export default class ConditionStepExecutor extends BaseStepExecutor<ConditionStepDefinition> {
   protected buildOutcomeResult(outcome: {
-    status: BaseStepStatus;
+    status: ConditionStepOutcome['status'];
     error?: string;
     selectedOption?: string;
   }): StepExecutionResult {
@@ -60,6 +61,14 @@ export default class ConditionStepExecutor extends BaseStepExecutor<ConditionSte
 
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step, incomingPendingData } = this.context;
+
+    // Manual mode: the user picks the option from the frontend. Wait for their input
+    // without ever calling the AI.
+    const isManual = step.executionType === ServerStepExecutionTypeEnum.Manual;
+
+    if (isManual && incomingPendingData === undefined) {
+      return this.buildOutcomeResult({ status: 'awaiting-input' });
+    }
 
     const { selectedOption, reasoning } =
       incomingPendingData !== undefined

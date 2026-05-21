@@ -128,8 +128,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return Promise.resolve(null);
   }
 
-  // Return null when the frontend performs the action (e.g. TriggerAction with automaticExecution=false)
-  // — the front logs on its side. Override when the executor itself calls the agent.
+  // TODO: What is this method ? why does it always return null ?
+  // Return null when the frontend performs the action (e.g. TriggerAction without
+  // executionType=FullyAutomated) — the front logs on its side. Override when the
+  // executor itself calls the agent.
   protected buildActivityLogArgs(): CreateActivityLogArgs | null {
     return null;
   }

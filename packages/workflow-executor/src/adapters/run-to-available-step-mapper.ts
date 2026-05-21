@@ -49,7 +49,7 @@ function toStepOutcome(s: ServerStepHistory): StepOutcome {
   };
 
   if (outcomeType === 'condition') {
-    const status: ConditionStepOutcome['status'] = ctx.status === 'error' ? 'error' : 'success';
+    const status: ConditionStepOutcome['status'] = toRecordStatus(ctx.status);
     const selectedOption = typeof ctx.selectedOption === 'string' ? ctx.selectedOption : undefined;
 
     return {

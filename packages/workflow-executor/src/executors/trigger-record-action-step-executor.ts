@@ -7,6 +7,7 @@ import type { TriggerActionStepDefinition } from '../types/validated/step-defini
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
+import { ServerStepExecutionTypeEnum } from '../adapters/server-types';
 import {
   ActionNotFoundError,
   NoActionsError,
@@ -29,9 +30,11 @@ interface ActionTarget extends ActionRef {
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
   protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    // Skip when the frontend executes the action itself (non-automatic mode).
+    // Skip when the frontend executes the action itself (non fully-automated mode).
     // The front logs on its side via the standard agent activity flow.
-    if (this.context.stepDefinition.automaticExecution !== true) return null;
+    if (this.context.stepDefinition.executionType !== ServerStepExecutionTypeEnum.FullyAutomated) {
+      return null;
+    }
 
     return {
       renderingId: this.context.user.renderingId,
@@ -111,10 +114,10 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const name = this.resolveActionName(schema, args.actionName);
     const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
 
-    // Branch B -- automaticExecution: executor runs the action itself, so it cannot
+    // Branch B -- fully automated: executor runs the action itself, so it cannot
     // handle forms (no UI to fill them). Reject form-bearing actions here. When the
     // frontend is in the loop (Branch C), it handles the form natively so no check.
-    if (step.automaticExecution) {
+    if (step.executionType === ServerStepExecutionTypeEnum.FullyAutomated) {
       const { hasForm } = await this.agentPort.getActionFormInfo(
         {
           collection: selectedRecordRef.collectionName,
@@ -128,7 +131,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       return this.executeOnExecutor(target);
     }
 
-    // Branch C -- Awaiting confirmation (frontend executes the action, including forms)
+    // Branch C -- Awaiting confirmation (frontend executes the action, including forms).
+    // Also covers Manual fallback.
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
