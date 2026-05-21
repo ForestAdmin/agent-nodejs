@@ -747,8 +747,10 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('getMcpServerConfigs', () => {
-    it('fetches mcp server configs', async () => {
-      const configs = [{ name: 'mcp-1' }];
+    it('returns the Record<string, ToolConfig> map verbatim from the orchestrator', async () => {
+      const configs = {
+        'mcp-server-1': { url: 'https://mcp.example.com', type: 'http', headers: {} },
+      };
       mockQuery.mockResolvedValue(configs);
 
       const result = await port.getMcpServerConfigs();
@@ -759,6 +761,14 @@ describe('ForestServerWorkflowPort', () => {
         '/liana/mcp-server-configs-with-details',
       );
       expect(result).toEqual(configs);
+    });
+
+    it('returns an empty Record when the orchestrator has no MCP servers configured', async () => {
+      mockQuery.mockResolvedValue({});
+
+      const result = await port.getMcpServerConfigs();
+
+      expect(result).toEqual({});
     });
   });
 

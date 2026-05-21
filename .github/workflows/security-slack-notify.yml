@@ -1,0 +1,27 @@
+# Notify #tech_all on Slack when a security PR is opened.
+# Mentions @first_level_support so the team can prioritize review.
+#
+# Thin caller workflow — all logic lives in forestadmin/.github
+
+name: Notify Slack on security PR
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    if: "github.event.label.name == ':lock: security'"
+    uses: forestadmin/.github/.github/workflows/notify-slack-security-pr.yml@main
+    with:
+      slack_channel_id: GAZF5Q5RV
+      slack_usergroup_id: S09SUAY74TD
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_url: ${{ github.event.pull_request.html_url }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+      repo: ${{ github.repository }}
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

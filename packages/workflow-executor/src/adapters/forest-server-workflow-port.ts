@@ -4,7 +4,7 @@ import type {
   AvailableRunDispatch,
   AvailableRunsBatch,
   MalformedRunInfo,
-  McpConfiguration,
+  McpServers,
   WorkflowPort,
 } from '../ports/workflow-port';
 import type { StepUser } from '../types/execution-context';
@@ -131,7 +131,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     run: ServerHydratedWorkflowRun,
     err: WorkflowExecutorError,
   ): MalformedRunInfo {
-    const pending = run.workflowHistory.find(s => !s.done && !s.cancelled && !s.context?.error);
+    const pending = run.workflowHistory.at(-1) ?? null;
 
     return {
       runId: String(run.id),
@@ -203,10 +203,10 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     );
   }
 
-  async getMcpServerConfigs(): Promise<McpConfiguration[]> {
+  async getMcpServerConfigs(): Promise<McpServers> {
     return this.callPort(
       'getMcpServerConfigs',
-      () => ServerUtils.query<McpConfiguration[]>(this.options, 'get', ROUTES.mcpServerConfigs),
+      () => ServerUtils.query<McpServers>(this.options, 'get', ROUTES.mcpServerConfigs),
       { retry: true },
     );
   }

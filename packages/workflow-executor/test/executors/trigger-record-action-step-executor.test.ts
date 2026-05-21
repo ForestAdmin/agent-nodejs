@@ -88,7 +88,7 @@ function makeMockWorkflowPort(
           schemasByCollection[name] ?? makeCollectionSchema({ collectionName: name }),
         ),
       ),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }

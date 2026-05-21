@@ -225,13 +225,26 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     );
   }
 
-  /** Returns tools filtered by mcpServerId (if specified). Throws NoMcpToolsError if empty. */
   private getFilteredTools(): RemoteTool[] {
     const { mcpServerId } = this.context.stepDefinition;
     const tools = mcpServerId
-      ? this.remoteTools.filter(t => t.sourceId === mcpServerId)
+      ? this.remoteTools.filter(t => t.mcpServerId === mcpServerId)
       : [...this.remoteTools];
-    if (tools.length === 0) throw new NoMcpToolsError();
+
+    if (tools.length === 0) {
+      const loadedMcpServerIds = this.remoteTools
+        .map(t => t.mcpServerId)
+        .filter((value): value is string => !!value);
+      const error = new NoMcpToolsError(mcpServerId, loadedMcpServerIds);
+      this.context.logger.error(error.message, {
+        runId: this.context.runId,
+        stepId: this.context.stepId,
+        stepIndex: this.context.stepIndex,
+        requestedMcpServerId: mcpServerId,
+        loadedMcpServerIds,
+      });
+      throw error;
+    }
 
     return tools;
   }

@@ -139,7 +139,7 @@ function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): jest.Moc
     getAvailableRun: jest.fn().mockResolvedValue(null),
     updateStepExecution: jest.fn().mockResolvedValue(null),
     getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
     ...overrides,
   } as jest.Mocked<WorkflowPort>;
@@ -573,9 +573,7 @@ describe('workflow execution (integration)', () => {
       getAvailableRun: jest
         .fn()
         .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
-      getMcpServerConfigs: jest
-        .fn()
-        .mockResolvedValue([{ type: 'sse', configs: { 'mcp-1': { url: 'http://fake' } } }]),
+      getMcpServerConfigs: jest.fn().mockResolvedValue({ 'mcp-1': { url: 'http://fake' } }),
     });
 
     const { server, runStore } = createIntegrationSetup({

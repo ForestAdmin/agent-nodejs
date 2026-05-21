@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.8.0...@forestadmin/ai-proxy@1.9.0) (2026-05-11)
+
+
+### Features
+
+* **ai-proxy:** add Snowflake integration with PAT authentication ([#1573](https://github.com/ForestAdmin/agent-nodejs/issues/1573)) ([573e5fd](https://github.com/ForestAdmin/agent-nodejs/commit/573e5fdd19af4260cf5820507b83305184af1144))
+
 # @forestadmin/ai-proxy [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.7.4...@forestadmin/ai-proxy@1.8.0) (2026-04-21)
 
 

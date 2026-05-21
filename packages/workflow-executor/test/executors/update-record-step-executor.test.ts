@@ -86,7 +86,7 @@ function makeMockWorkflowPort(
           schemasByCollection[name] ?? makeCollectionSchema({ collectionName: name }),
         ),
       ),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }
@@ -497,6 +497,72 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         "The AI selected a field that doesn't exist on this record. Try rephrasing the step's prompt.",
       );
+    });
+  });
+
+  describe('resolveFieldName fuzzy matching', () => {
+    it.each([
+      ['snake_case variant', 'full_name', 'Full Name', 'name'],
+      ['camelCase variant', 'fullName', 'Full Name', 'name'],
+      ['lowercase no separator', 'fullname', 'Full Name', 'name'],
+      ['hyphen variant', 'full-name', 'Full Name', 'name'],
+    ])(
+      'resolves field when LLM returns %s (%s)',
+      async (_label, aiReturnedName, _displayName, expectedFieldName) => {
+        const agentPort = makeMockAgentPort();
+        const mockModel = makeMockModel({
+          input: { fieldName: aiReturnedName, value: 'John Doe', reasoning: 'test' },
+        });
+        const context = makeContext({
+          model: mockModel.model,
+          agentPort,
+          stepDefinition: makeStep({ automaticExecution: true }),
+        });
+        const executor = new UpdateRecordStepExecutor(context);
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ values: { [expectedFieldName]: 'John Doe' } }),
+          expect.anything(),
+        );
+      },
+    );
+
+    it('returns undefined (field not found) when two fields normalize to the same string', async () => {
+      // { displayName: "Full Name", fieldName: "fullname" } and
+      // { displayName: "FullName", fieldName: "full_name" } both normalize to "fullname".
+      // Returning either one would be a silent wrong pick — undefined is safer.
+      const ambiguousSchema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'fullname',
+            displayName: 'Full Name',
+            isRelationship: false,
+            type: 'String',
+          },
+          {
+            fieldName: 'full_name',
+            displayName: 'FullName',
+            isRelationship: false,
+            type: 'String',
+          },
+        ],
+      });
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Full-Name', value: 'John', reasoning: 'test' },
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        workflowPort: makeMockWorkflowPort({ customers: ambiguousSchema }),
+        stepDefinition: makeStep({ automaticExecution: true }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 

@@ -91,7 +91,7 @@ describe('ForestHttpApi', () => {
   });
 
   describe('postSchema', () => {
-    it('should call the right endpoint with schema', async () => {
+    it('should call the right endpoint with schema and a 30s timeout', async () => {
       const schema = { data: [], meta: { schemaFileHash: 'abc123' } };
 
       await new ForestHttpApi().postSchema(options, schema);
@@ -102,6 +102,7 @@ describe('ForestHttpApi', () => {
         '/forest/apimaps',
         {},
         schema,
+        30_000,
       );
     });
   });

@@ -1,3 +1,20 @@
+## @forestadmin/forestadmin-client [1.39.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.6...@forestadmin/forestadmin-client@1.39.7) (2026-05-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.9.0
+
+## @forestadmin/forestadmin-client [1.39.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.5...@forestadmin/forestadmin-client@1.39.6) (2026-05-05)
+
+
+### Bug Fixes
+
+* **schema:** increase default schema publication timeout ([#1575](https://github.com/ForestAdmin/agent-nodejs/issues/1575)) ([e6a7363](https://github.com/ForestAdmin/agent-nodejs/commit/e6a7363ca29f1049852b79e8734fe1d7094a8be1))
+
 ## @forestadmin/forestadmin-client [1.39.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.4...@forestadmin/forestadmin-client@1.39.5) (2026-04-30)
 
 
