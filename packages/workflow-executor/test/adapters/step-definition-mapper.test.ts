@@ -16,9 +16,17 @@ import {
 } from '../../src/adapters/server-types';
 import toStepDefinition from '../../src/adapters/step-definition-mapper';
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../../src/errors';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 const defaultTransition: ServerWorkflowTransition = { stepId: 'next', buttonText: null };
+
+const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+
+beforeEach(() => {
+  logger.info.mockClear();
+  logger.warn.mockClear();
+  logger.error.mockClear();
+});
 
 function makeTask(
   overrides: Partial<ServerWorkflowTask> & {
@@ -45,7 +53,7 @@ function makeCondition(
     type: ServerStepTypeEnum.Condition,
     title: 'Test condition',
     prompt: 'Choose one',
-    executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+    executionType: ServerStepExecutionTypeEnum.FullyAutomated,
     automaticCompletion: false,
     outgoing,
     ...overrides,
@@ -57,7 +65,7 @@ describe('toStepDefinition', () => {
     it('should map task with get-data taskType to read-record', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.GetData, prompt: 'read it' });
 
-      expect(toStepDefinition(task)).toEqual({
+      expect(toStepDefinition(task, logger)).toEqual({
         type: StepType.ReadRecord,
         prompt: 'read it',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -67,7 +75,7 @@ describe('toStepDefinition', () => {
     it('should map task with update-data taskType to update-record', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.UpdateData, prompt: 'update it' });
 
-      expect(toStepDefinition(task)).toEqual({
+      expect(toStepDefinition(task, logger)).toEqual({
         type: StepType.UpdateRecord,
         prompt: 'update it',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -77,7 +85,7 @@ describe('toStepDefinition', () => {
     it('should map task with trigger-action taskType to trigger-action', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.TriggerAction, prompt: 'trigger it' });
 
-      expect(toStepDefinition(task)).toEqual({
+      expect(toStepDefinition(task, logger)).toEqual({
         type: StepType.TriggerAction,
         prompt: 'trigger it',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -90,7 +98,7 @@ describe('toStepDefinition', () => {
         prompt: 'load it',
       });
 
-      expect(toStepDefinition(task)).toEqual({
+      expect(toStepDefinition(task, logger)).toEqual({
         type: StepType.LoadRelatedRecord,
         prompt: 'load it',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -104,7 +112,7 @@ describe('toStepDefinition', () => {
         mcpServerId: 'mcp-abc',
       });
 
-      expect(toStepDefinition(task)).toEqual({
+      expect(toStepDefinition(task, logger)).toEqual({
         type: StepType.Mcp,
         prompt: 'run mcp',
         mcpServerId: 'mcp-abc',
@@ -115,7 +123,7 @@ describe('toStepDefinition', () => {
     it('should map task with mcp-server taskType without mcpServerId', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.McpServer, prompt: 'run mcp' });
 
-      expect(toStepDefinition(task)).toEqual({
+      expect(toStepDefinition(task, logger)).toEqual({
         type: StepType.Mcp,
         prompt: 'run mcp',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -123,12 +131,16 @@ describe('toStepDefinition', () => {
     });
 
     it('should map task with guideline taskType to guidance', () => {
-      const task = makeTask({ taskType: ServerTaskTypeEnum.Guideline, prompt: 'guide them' });
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.Guideline,
+        prompt: 'guide them',
+        executionType: ServerStepExecutionTypeEnum.Manual,
+      });
 
-      expect(toStepDefinition(task)).toEqual({
+      expect(toStepDefinition(task, logger)).toEqual({
         type: StepType.Guidance,
         prompt: 'guide them',
-        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+        executionType: StepExecutionMode.Manual,
       });
     });
 
@@ -138,7 +150,7 @@ describe('toStepDefinition', () => {
         executionType: ServerStepExecutionTypeEnum.FullyAutomated,
       });
 
-      expect(toStepDefinition(task)).toMatchObject({
+      expect(toStepDefinition(task, logger)).toMatchObject({
         executionType: ServerStepExecutionTypeEnum.FullyAutomated,
       });
     });
@@ -149,20 +161,35 @@ describe('toStepDefinition', () => {
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
 
-      expect(toStepDefinition(task)).toMatchObject({
+      expect(toStepDefinition(task, logger)).toMatchObject({
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
     });
 
-    it('should preserve executionType=manual', () => {
+    it('should normalize unsupported executionType=manual on read-record to its fallback and warn', () => {
       const task = makeTask({
         taskType: ServerTaskTypeEnum.GetData,
         executionType: ServerStepExecutionTypeEnum.Manual,
       });
 
-      expect(toStepDefinition(task)).toMatchObject({
-        executionType: ServerStepExecutionTypeEnum.Manual,
+      expect(toStepDefinition(task, logger)).toMatchObject({
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
       });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('unsupported executionType=manual'),
+        expect.objectContaining({ stepType: StepType.ReadRecord }),
+      );
+    });
+
+    it('should not warn when executionType is supported', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.GetData,
+        executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+      });
+
+      toStepDefinition(task, logger);
+
+      expect(logger.warn).not.toHaveBeenCalled();
     });
 
     it('should omit executionType when undefined on the server step', () => {
@@ -170,14 +197,14 @@ describe('toStepDefinition', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.GetData });
       delete (task as { executionType?: unknown }).executionType;
 
-      expect(toStepDefinition(task)).not.toHaveProperty('executionType');
+      expect(toStepDefinition(task, logger)).not.toHaveProperty('executionType');
     });
 
     it('should throw InvalidStepDefinitionError for unknown taskType', () => {
       const task = makeTask({ taskType: 'unknown-task' as ServerTaskTypeEnum });
 
-      expect(() => toStepDefinition(task)).toThrow(InvalidStepDefinitionError);
-      expect(() => toStepDefinition(task)).toThrow('Unknown taskType: "unknown-task"');
+      expect(() => toStepDefinition(task, logger)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(task, logger)).toThrow('Unknown taskType: "unknown-task"');
     });
   });
 
@@ -188,11 +215,11 @@ describe('toStepDefinition', () => {
         { stepId: 's2', buttonText: null, answer: 'No' },
       ]);
 
-      expect(toStepDefinition(condition)).toEqual({
+      expect(toStepDefinition(condition, logger)).toEqual({
         type: StepType.Condition,
         prompt: 'Choose one',
         options: ['Yes', 'No'],
-        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+        executionType: StepExecutionMode.FullyAutomated,
       });
     });
 
@@ -202,11 +229,11 @@ describe('toStepDefinition', () => {
         { stepId: 's2', buttonText: 'Reject' },
       ]);
 
-      expect(toStepDefinition(condition)).toEqual({
+      expect(toStepDefinition(condition, logger)).toEqual({
         type: StepType.Condition,
         prompt: 'Choose one',
         options: ['Approve', 'Reject'],
-        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+        executionType: StepExecutionMode.FullyAutomated,
       });
     });
 
@@ -216,7 +243,7 @@ describe('toStepDefinition', () => {
         { stepId: 's2', buttonText: 'Btn2', answer: 'Answer2' },
       ]);
 
-      expect(toStepDefinition(condition)).toMatchObject({
+      expect(toStepDefinition(condition, logger)).toMatchObject({
         options: ['Answer1', 'Answer2'],
       });
     });
@@ -230,7 +257,7 @@ describe('toStepDefinition', () => {
         { executionType: ServerStepExecutionTypeEnum.Manual },
       );
 
-      expect(toStepDefinition(condition)).toMatchObject({
+      expect(toStepDefinition(condition, logger)).toMatchObject({
         executionType: ServerStepExecutionTypeEnum.Manual,
       });
     });
@@ -238,8 +265,8 @@ describe('toStepDefinition', () => {
     it('should throw InvalidStepDefinitionError when fewer than 2 options', () => {
       const condition = makeCondition([{ stepId: 's1', buttonText: 'Only' }]);
 
-      expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
-      expect(() => toStepDefinition(condition)).toThrow(
+      expect(() => toStepDefinition(condition, logger)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(condition, logger)).toThrow(
         'Condition step requires at least 2 options, got 1',
       );
     });
@@ -247,7 +274,7 @@ describe('toStepDefinition', () => {
     it('should throw InvalidStepDefinitionError when outgoing is empty', () => {
       const condition = makeCondition([]);
 
-      expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(condition, logger)).toThrow(InvalidStepDefinitionError);
     });
 
     it('should filter out transitions with no answer and no buttonText', () => {
@@ -257,7 +284,7 @@ describe('toStepDefinition', () => {
         { stepId: 's3', buttonText: null, answer: 'AlsoValid' },
       ]);
 
-      expect(toStepDefinition(condition)).toMatchObject({
+      expect(toStepDefinition(condition, logger)).toMatchObject({
         options: ['Valid', 'AlsoValid'],
       });
     });
@@ -274,8 +301,8 @@ describe('toStepDefinition', () => {
         outgoing: [],
       };
 
-      expect(() => toStepDefinition(step)).toThrow(UnsupportedStepTypeError);
-      expect(() => toStepDefinition(step)).toThrow(
+      expect(() => toStepDefinition(step, logger)).toThrow(UnsupportedStepTypeError);
+      expect(() => toStepDefinition(step, logger)).toThrow(
         'Step type "end" is not supported by the executor',
       );
     });
@@ -291,7 +318,7 @@ describe('toStepDefinition', () => {
         inboxId: null,
       };
 
-      expect(() => toStepDefinition(step)).toThrow(UnsupportedStepTypeError);
+      expect(() => toStepDefinition(step, logger)).toThrow(UnsupportedStepTypeError);
     });
 
     it('should throw UnsupportedStepTypeError for start-sub-workflow', () => {
@@ -305,7 +332,7 @@ describe('toStepDefinition', () => {
         workflowId: 'sub-wf',
       };
 
-      expect(() => toStepDefinition(step)).toThrow(UnsupportedStepTypeError);
+      expect(() => toStepDefinition(step, logger)).toThrow(UnsupportedStepTypeError);
     });
 
     it('should throw UnsupportedStepTypeError for close-sub-workflow', () => {
@@ -318,7 +345,7 @@ describe('toStepDefinition', () => {
         parentWorkflowId: null,
       };
 
-      expect(() => toStepDefinition(step)).toThrow(UnsupportedStepTypeError);
+      expect(() => toStepDefinition(step, logger)).toThrow(UnsupportedStepTypeError);
     });
   });
 
@@ -326,8 +353,8 @@ describe('toStepDefinition', () => {
     it('should throw InvalidStepDefinitionError for unknown type', () => {
       const step = { type: 'mystery', title: 'x' } as unknown as ServerWorkflowStep;
 
-      expect(() => toStepDefinition(step)).toThrow(InvalidStepDefinitionError);
-      expect(() => toStepDefinition(step)).toThrow('Unknown server step type: "mystery"');
+      expect(() => toStepDefinition(step, logger)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(step, logger)).toThrow('Unknown server step type: "mystery"');
     });
   });
 });

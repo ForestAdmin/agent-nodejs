@@ -5,12 +5,9 @@ import type { RecordStepStatus } from '../types/validated/step-outcome';
 import { StepStateError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import patchBodySchemas from '../http/pending-data-validators';
-import { StepExecutionMode } from '../types/validated/step-definition';
 
 export default class GuidanceStepExecutor extends BaseStepExecutor<GuidanceStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
-    this.warnIfUnsupportedExecutionType([StepExecutionMode.Manual], StepExecutionMode.Manual);
-
     const { incomingPendingData } = this.context;
 
     if (!incomingPendingData) {

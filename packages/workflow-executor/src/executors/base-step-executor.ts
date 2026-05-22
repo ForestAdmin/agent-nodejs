@@ -6,7 +6,7 @@ import type {
   StepExecutionResult,
 } from '../types/execution-context';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { StepDefinition, StepExecutionMode } from '../types/validated/step-definition';
+import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
   BaseMessage,
@@ -133,29 +133,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   // executor itself calls the agent.
   protected buildActivityLogArgs(): CreateActivityLogArgs | null {
     return null;
-  }
-
-  // Called by each executor with the executionTypes it supports and the fallback to use
-  // when the step's configured type is not in the supported list. The warning surfaces the
-  // misconfiguration so it can be caught in workflow design rather than at runtime.
-  // No-op when the configured type is supported or undefined (legacy workflows).
-  protected warnIfUnsupportedExecutionType(
-    supported: StepExecutionMode[],
-    fallback: StepExecutionMode,
-  ): void {
-    const { executionType } = this.context.stepDefinition;
-    if (executionType === undefined || supported.includes(executionType)) return;
-
-    this.context.logger.warn(
-      `Step received executionType=${executionType} but does not support it; falling back to ${fallback}`,
-      {
-        runId: this.context.runId,
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        stepType: this.context.stepDefinition.type,
-        supportedExecutionTypes: supported,
-      },
-    );
   }
 
   private async runWithActivityLog(): Promise<StepExecutionResult> {

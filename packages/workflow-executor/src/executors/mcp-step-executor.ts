@@ -70,11 +70,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
-    this.warnIfUnsupportedExecutionType(
-      [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
-      StepExecutionMode.AutomatedWithConfirmation,
-    );
-
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<McpStepExecutionData>(
       this.context.incomingPendingData,

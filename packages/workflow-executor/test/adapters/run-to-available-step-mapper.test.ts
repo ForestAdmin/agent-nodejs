@@ -17,6 +17,14 @@ import {
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
 import { StepType } from '../../src/types/validated/step-definition';
 
+const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+
+beforeEach(() => {
+  logger.info.mockClear();
+  logger.warn.mockClear();
+  logger.error.mockClear();
+});
+
 function makeTaskStepDef(
   overrides: Partial<ServerWorkflowTask> & {
     taskType?: ServerTaskTypeEnum | string;
@@ -41,7 +49,7 @@ function makeConditionStepDef(
     type: ServerStepTypeEnum.Condition,
     title: 'Decide',
     prompt: 'p',
-    executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+    executionType: ServerStepExecutionTypeEnum.FullyAutomated,
     automaticCompletion: false,
     outgoing: [
       { stepId: 'a', buttonText: null, answer: 'Yes' },
@@ -95,7 +103,7 @@ describe('toAvailableStepExecution', () => {
   it('should map a run with a available step to a AvailableStepExecution', () => {
     const run = makeRun();
 
-    const result = toAvailableStepExecution(run);
+    const result = toAvailableStepExecution(run, logger);
 
     expect(result).toEqual({
       runId: '42',
@@ -120,7 +128,7 @@ describe('toAvailableStepExecution', () => {
   it('should stringify the numeric run id', () => {
     const run = makeRun({ id: 999 });
 
-    const result = toAvailableStepExecution(run);
+    const result = toAvailableStepExecution(run, logger);
 
     expect(result?.runId).toBe('999');
   });
@@ -128,7 +136,7 @@ describe('toAvailableStepExecution', () => {
   it('should wrap selectedRecordId in an array for baseRecordRef', () => {
     const run = makeRun({ selectedRecordId: 'rec-abc' });
 
-    const result = toAvailableStepExecution(run);
+    const result = toAvailableStepExecution(run, logger);
 
     expect(result?.baseRecordRef.recordId).toEqual(['rec-abc']);
   });
@@ -136,7 +144,7 @@ describe('toAvailableStepExecution', () => {
   it('should return null when workflowHistory is empty', () => {
     const run = makeRun({ workflowHistory: [] });
 
-    expect(toAvailableStepExecution(run)).toBeNull();
+    expect(toAvailableStepExecution(run, logger)).toBeNull();
   });
 
   it('picks the last step — orchestrator is the source of truth for which step to execute', () => {
@@ -148,7 +156,7 @@ describe('toAvailableStepExecution', () => {
       ],
     });
 
-    const result = toAvailableStepExecution(run);
+    const result = toAvailableStepExecution(run, logger);
 
     expect(result?.stepId).toBe('s2');
     expect(result?.stepIndex).toBe(2);
@@ -162,18 +170,18 @@ describe('toAvailableStepExecution', () => {
             taskType: ServerTaskTypeEnum.Guideline,
             title: 'guidance',
             prompt: 'follow the guide',
-            executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+            executionType: ServerStepExecutionTypeEnum.Manual,
           }),
         }),
       ],
     });
 
-    const result = toAvailableStepExecution(run);
+    const result = toAvailableStepExecution(run, logger);
 
     expect(result?.stepDefinition).toEqual({
       type: StepType.Guidance,
       prompt: 'follow the guide',
-      executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+      executionType: ServerStepExecutionTypeEnum.Manual,
     });
   });
 
@@ -202,7 +210,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.previousSteps).toHaveLength(2);
       expect(result?.previousSteps[1].stepOutcome).toEqual({
@@ -231,7 +239,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'record',
@@ -258,7 +266,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('aiReasoning');
       expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('clientData');
@@ -277,7 +285,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'record',
@@ -306,7 +314,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'guidance',
@@ -334,7 +342,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'guidance',
@@ -364,7 +372,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'mcp',
@@ -382,7 +390,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.stepId).toBe('s1');
       expect(result?.previousSteps).toHaveLength(1);
@@ -458,7 +466,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.stepId).toBe('s2');
       expect(result?.previousSteps).toHaveLength(1);
@@ -481,7 +489,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run, logger)).toThrow(InvalidStepDefinitionError);
     });
   });
 
@@ -501,7 +509,7 @@ describe('toAvailableStepExecution', () => {
       };
       const run = makeRun({ userProfile: profile });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.user).toEqual({
         id: 5,
@@ -537,8 +545,8 @@ describe('toAvailableStepExecution', () => {
         },
       });
 
-      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
-      expect(() => toAvailableStepExecution(run)).toThrow(/renderingId/);
+      expect(() => toAvailableStepExecution(run, logger)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run, logger)).toThrow(/renderingId/);
     });
 
     it('should accept renderingId = 0 (valid finite number)', () => {
@@ -557,7 +565,7 @@ describe('toAvailableStepExecution', () => {
         },
       });
 
-      const result = toAvailableStepExecution(run);
+      const result = toAvailableStepExecution(run, logger);
 
       expect(result?.user.renderingId).toBe(0);
     });
@@ -567,8 +575,8 @@ describe('toAvailableStepExecution', () => {
     it('should throw InvalidStepDefinitionError when collectionName is null', () => {
       const run = makeRun({ collectionName: null });
 
-      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
-      expect(() => toAvailableStepExecution(run)).toThrow(
+      expect(() => toAvailableStepExecution(run, logger)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run, logger)).toThrow(
         'Run 42 has no collectionName — cannot build baseRecordRef',
       );
     });
@@ -576,8 +584,8 @@ describe('toAvailableStepExecution', () => {
     it('should throw InvalidStepDefinitionError when collectionId is empty', () => {
       const run = makeRun({ collectionId: '' });
 
-      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
-      expect(() => toAvailableStepExecution(run)).toThrow(
+      expect(() => toAvailableStepExecution(run, logger)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run, logger)).toThrow(
         'Run 42 has no collectionId — cannot build baseRecordRef',
       );
     });
@@ -597,7 +605,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      expect(() => toAvailableStepExecution(run)).toThrow();
+      expect(() => toAvailableStepExecution(run, logger)).toThrow();
     });
 
     it('should throw DomainValidationError when the mapper output violates a zod invariant (empty stepId)', () => {
@@ -610,7 +618,7 @@ describe('toAvailableStepExecution', () => {
       let caught: unknown;
 
       try {
-        toAvailableStepExecution(run);
+        toAvailableStepExecution(run, logger);
       } catch (err) {
         caught = err;
       }
@@ -638,7 +646,7 @@ describe('toAvailableStepExecution', () => {
         },
       });
 
-      expect(() => toAvailableStepExecution(run)).toThrow(DomainValidationError);
+      expect(() => toAvailableStepExecution(run, logger)).toThrow(DomainValidationError);
     });
 
     it('should structure DomainValidationError.issues as { path, message } objects', () => {

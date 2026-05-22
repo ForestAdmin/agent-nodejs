@@ -124,11 +124,6 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
-    this.warnIfUnsupportedExecutionType(
-      [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
-      StepExecutionMode.AutomatedWithConfirmation,
-    );
-
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<UpdateRecordStepExecutionData>(
       this.context.incomingPendingData,

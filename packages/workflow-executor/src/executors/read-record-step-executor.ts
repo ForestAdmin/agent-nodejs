@@ -9,7 +9,6 @@ import { z } from 'zod';
 
 import { NoReadableFieldsError, NoResolvedFieldsError } from '../errors';
 import RecordStepExecutor from './record-step-executor';
-import { StepExecutionMode } from '../types/validated/step-definition';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
@@ -31,11 +30,6 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
-    this.warnIfUnsupportedExecutionType(
-      [StepExecutionMode.FullyAutomated],
-      StepExecutionMode.FullyAutomated,
-    );
-
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
     const records = await this.getAvailableRecordRefs();

@@ -3,6 +3,7 @@ import type {
   ServerStepHistory,
   ServerUserProfile,
 } from './server-types';
+import type { Logger } from '../ports/logger-port';
 import type {
   ConditionStepOutcome,
   GuidanceStepOutcome,
@@ -37,8 +38,8 @@ function toRecordStatus(ctxStatus: unknown): RecordStepOutcome['status'] {
 // `context` may come from the executor (our StepOutcome, stored verbatim) or the legacy frontend
 // (free-form). We whitelist known fields per type to avoid leaking legacy ones back to the
 // orchestrator and to enforce the discriminated-union shape.
-function toStepOutcome(s: ServerStepHistory): StepOutcome {
-  const stepDef = toStepDefinition(s.stepDefinition);
+function toStepOutcome(s: ServerStepHistory, logger: Logger): StepOutcome {
+  const stepDef = toStepDefinition(s.stepDefinition, logger);
   const outcomeType = stepTypeToOutcomeType(stepDef.type);
   const ctx = (s.context ?? {}) as Record<string, unknown>;
 
@@ -75,9 +76,12 @@ function toStepOutcome(s: ServerStepHistory): StepOutcome {
   return { type: 'record', ...baseFromCtx, status } satisfies RecordStepOutcome;
 }
 
-function tryMapStep(s: ServerStepHistory): Step | null {
+function tryMapStep(s: ServerStepHistory, logger: Logger): Step | null {
   try {
-    return { stepDefinition: toStepDefinition(s.stepDefinition), stepOutcome: toStepOutcome(s) };
+    return {
+      stepDefinition: toStepDefinition(s.stepDefinition, logger),
+      stepOutcome: toStepOutcome(s, logger),
+    };
   } catch (err) {
     // Sub-workflow navigation steps (start-sub-workflow, close-sub-workflow) are not
     // meaningful for AI context — skip them rather than failing the whole run.
@@ -89,10 +93,11 @@ function tryMapStep(s: ServerStepHistory): Step | null {
 function toPreviousSteps(
   history: ServerStepHistory[],
   pendingStepIndex: number,
+  logger: Logger,
 ): ReadonlyArray<Step> {
   return history
     .filter(s => s.done && s.stepIndex < pendingStepIndex)
-    .map(s => tryMapStep(s))
+    .map(s => tryMapStep(s, logger))
     .filter((s): s is Step => s !== null);
 }
 
@@ -123,6 +128,7 @@ function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
 // userProfile) or an unmappable step definition.
 export default function toAvailableStepExecution(
   run: ServerHydratedWorkflowRun,
+  logger: Logger,
 ): AvailableStepExecution | null {
   if (!run.collectionName) {
     throw new InvalidStepDefinitionError(
@@ -149,8 +155,8 @@ export default function toAvailableStepExecution(
       recordId: [run.selectedRecordId],
       stepIndex: 0,
     },
-    stepDefinition: toStepDefinition(pending.stepDefinition),
-    previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex),
+    stepDefinition: toStepDefinition(pending.stepDefinition, logger),
+    previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex, logger),
     user: toStepUser(run.id, run.userProfile),
   };
 

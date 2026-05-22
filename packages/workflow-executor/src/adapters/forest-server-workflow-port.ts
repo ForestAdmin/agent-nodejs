@@ -121,7 +121,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
       );
     }
 
-    const step = toAvailableStepExecution(run);
+    const step = toAvailableStepExecution(run, this.logger);
     if (!step) return null;
 
     return { step, auth: { forestServerToken: token } };

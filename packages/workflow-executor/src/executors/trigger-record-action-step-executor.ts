@@ -62,11 +62,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
-    this.warnIfUnsupportedExecutionType(
-      [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
-      StepExecutionMode.AutomatedWithConfirmation,
-    );
-
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<TriggerRecordActionStepExecutionData>(
       this.context.incomingPendingData,
