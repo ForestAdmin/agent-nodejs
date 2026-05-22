@@ -256,6 +256,21 @@ describe('BaseStepExecutor', () => {
         );
       });
 
+      it('includes stepType in cache-replay log', async () => {
+        class CachedExecutor extends TestableExecutor {
+          override checkIdempotency() {
+            return Promise.resolve(this.buildOutcomeResult({ status: 'success' }));
+          }
+        }
+        const logger = makeMockLogger();
+        const executor = new CachedExecutor(makeContext({ logger }));
+        await executor.execute();
+        expect(logger.info).toHaveBeenCalledWith(
+          'Step execution completed (replayed from cache)',
+          expect.objectContaining({ stepType: StepType.Condition }),
+        );
+      });
+
       it('includes stack trace in log context', async () => {
         const logger = makeMockLogger();
         const err = new Error('db connection refused');
@@ -285,7 +300,7 @@ describe('BaseStepExecutor', () => {
         );
       });
 
-      it('omits cause from log when error has no cause', async () => {
+      it('sets cause to undefined in log when error has no cause', async () => {
         const logger = makeMockLogger();
         const executor = new TestableExecutor(makeContext({ logger }), new Error('no cause'));
         await executor.execute();
@@ -317,6 +332,7 @@ describe('BaseStepExecutor', () => {
         expect.objectContaining({
           cause: 'db timeout',
           stack: cause.stack,
+          stepType: StepType.Condition,
         }),
       );
     });
@@ -479,6 +495,7 @@ describe('BaseStepExecutor', () => {
           expect.objectContaining({
             runId: 'run-1',
             stepId: 'step-0',
+            stepType: StepType.Condition,
             error: 'late agent failure',
           }),
         );
