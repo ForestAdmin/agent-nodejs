@@ -85,7 +85,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         if (error.cause !== undefined) {
           this.context.logger.error(error.message, {
             ...this.logCtx,
-            cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
+            cause: extractErrorMessage(error.cause),
             stack: error.cause instanceof Error ? error.cause.stack : undefined,
           });
         }
@@ -97,7 +97,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       this.context.logger.error('Unexpected error during step execution', {
         ...this.logCtx,
         error: extractErrorMessage(error),
-        cause: errorCause instanceof Error ? errorCause.message : undefined,
+        cause: errorCause !== undefined ? extractErrorMessage(errorCause) : undefined,
         stack: error instanceof Error ? error.stack : undefined,
       });
 
