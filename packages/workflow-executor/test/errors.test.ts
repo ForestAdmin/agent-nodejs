@@ -47,7 +47,11 @@ describe('extractErrorMessage', () => {
     expect(extractErrorMessage('plain string')).toBe('plain string');
     expect(extractErrorMessage(42)).toBe('42');
     expect(extractErrorMessage(null)).toBe('null');
-    expect(extractErrorMessage(undefined)).toBe('undefined');
+  });
+
+  it('returns undefined when called with undefined', () => {
+    expect(extractErrorMessage(undefined)).toBeUndefined();
+    expect(extractErrorMessage()).toBeUndefined();
   });
 
   it('ignores a non-Error .parent (Sequelize-like shape but wrong type)', () => {

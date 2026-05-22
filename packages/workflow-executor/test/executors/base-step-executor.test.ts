@@ -242,6 +242,20 @@ describe('BaseStepExecutor', () => {
         );
       });
 
+      it('includes stepType in info logs for started and completed steps', async () => {
+        const logger = makeMockLogger();
+        const executor = new TestableExecutor(makeContext({ logger }));
+        await executor.execute();
+        expect(logger.info).toHaveBeenCalledWith(
+          'Step execution started',
+          expect.objectContaining({ stepType: StepType.Condition }),
+        );
+        expect(logger.info).toHaveBeenCalledWith(
+          'Step execution completed',
+          expect.objectContaining({ stepType: StepType.Condition }),
+        );
+      });
+
       it('includes stack trace in log context', async () => {
         const logger = makeMockLogger();
         const err = new Error('db connection refused');
@@ -268,6 +282,26 @@ describe('BaseStepExecutor', () => {
         expect(logger.error).toHaveBeenCalledWith(
           'Unexpected error during step execution',
           expect.objectContaining({ cause: 'root cause' }),
+        );
+      });
+
+      it('omits cause from log when error has no cause', async () => {
+        const logger = makeMockLogger();
+        const executor = new TestableExecutor(makeContext({ logger }), new Error('no cause'));
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({ cause: undefined }),
+        );
+      });
+
+      it('includes stepType in log context', async () => {
+        const logger = makeMockLogger();
+        const executor = new TestableExecutor(makeContext({ logger }), new Error('boom'));
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({ stepType: StepType.Condition }),
         );
       });
     });
