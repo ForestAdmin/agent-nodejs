@@ -10,7 +10,8 @@ export function causeMessage(error: unknown): string | undefined {
 
 // Cascades through err.message → err.parent.message (Sequelize) → err.cause.message → err.name,
 // so wrapped infra errors (SequelizeConnectionRefusedError has an empty .message) don't log as empty.
-export function extractErrorMessage(err: unknown): string {
+export function extractErrorMessage(err?: unknown): string | undefined {
+  if (err === undefined) return undefined;
   if (!(err instanceof Error)) return String(err);
   if (err.message) return err.message;
 
