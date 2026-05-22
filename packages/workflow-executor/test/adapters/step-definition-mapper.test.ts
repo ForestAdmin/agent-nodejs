@@ -157,7 +157,7 @@ describe('toStepDefinition', () => {
 
     it('should preserve executionType=automated-with-confirmation', () => {
       const task = makeTask({
-        taskType: ServerTaskTypeEnum.GetData,
+        taskType: ServerTaskTypeEnum.UpdateData,
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
 
@@ -166,10 +166,13 @@ describe('toStepDefinition', () => {
       });
     });
 
+    // Casts through `as` because the orchestrator types forbid this combination — the runtime
+    // normalization is a defensive safety net for wire data the server should not emit.
     it('should normalize unsupported executionType=manual on read-record to its fallback and warn', () => {
       const task = makeTask({
         taskType: ServerTaskTypeEnum.GetData,
-        executionType: ServerStepExecutionTypeEnum.Manual,
+        executionType:
+          ServerStepExecutionTypeEnum.Manual as ServerStepExecutionTypeEnum.FullyAutomated,
       });
 
       expect(toStepDefinition(task, logger)).toMatchObject({

@@ -56,27 +56,52 @@ export interface ServerWorkflowTaskBase extends ServerWorkflowStepBase {
 
 export interface ServerWorkflowTaskGuideline extends ServerWorkflowTaskBase {
   taskType: ServerTaskTypeEnum.Guideline;
+  executionType: ServerStepExecutionTypeEnum.Manual;
   completionType: 'simple' | 'user-input';
   inputType?: 'free-text';
   automaticCompletion: false;
 }
 
-export interface ServerWorkflowTaskSimple extends ServerWorkflowTaskBase {
-  taskType:
-    | ServerTaskTypeEnum.GetData
-    | ServerTaskTypeEnum.UpdateData
-    | ServerTaskTypeEnum.TriggerAction
-    | ServerTaskTypeEnum.LoadRelatedRecord;
+interface ServerWorkflowTaskGetData extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.GetData;
+  executionType: ServerStepExecutionTypeEnum.FullyAutomated;
+}
+
+interface ServerWorkflowTaskUpdateData extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.UpdateData;
+  executionType:
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+}
+
+interface ServerWorkflowTaskTriggerAction extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.TriggerAction;
+  executionType:
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+}
+
+interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.LoadRelatedRecord;
+  executionType:
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
 }
 
 export interface ServerWorkflowTaskMcpServer extends ServerWorkflowTaskBase {
   taskType: ServerTaskTypeEnum.McpServer;
+  executionType:
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
   mcpServerId: string;
 }
 
 export type ServerWorkflowTask =
   | ServerWorkflowTaskGuideline
-  | ServerWorkflowTaskSimple
+  | ServerWorkflowTaskGetData
+  | ServerWorkflowTaskUpdateData
+  | ServerWorkflowTaskTriggerAction
+  | ServerWorkflowTaskLoadRelatedRecord
   | ServerWorkflowTaskMcpServer;
 
 export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
@@ -88,6 +113,7 @@ export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
 
 export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Condition;
+  executionType: ServerStepExecutionTypeEnum.Manual | ServerStepExecutionTypeEnum.FullyAutomated;
   prompt: string;
   automaticCompletion: false;
 }

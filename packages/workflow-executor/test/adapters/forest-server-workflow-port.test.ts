@@ -20,7 +20,7 @@ function makeConditionStepDef(
     type: ServerStepTypeEnum.Condition,
     title: 'Decide',
     prompt: 'pick one',
-    executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+    executionType: ServerStepExecutionTypeEnum.FullyAutomated,
     automaticCompletion: false,
     outgoing: [
       { stepId: 'next-a', buttonText: 'A', answer: 'Yes' },
