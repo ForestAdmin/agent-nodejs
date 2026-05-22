@@ -41,11 +41,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     this.agentPort = context.agentPort;
   }
 
-  private get logCtx() {
-    const { runId, stepId, stepIndex, stepDefinition } = this.context;
-    return { runId, stepId, stepIndex, stepType: stepDefinition.type };
-  }
-
   async execute(): Promise<StepExecutionResult> {
     const { baseRecordRef } = this.context;
 
@@ -326,5 +321,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     tool: DynamicStructuredTool,
   ): Promise<T> {
     return (await this.invokeWithTools<T>(messages, [tool])).args;
+  }
+
+  private get logCtx() {
+    const { runId, stepId, stepIndex, stepDefinition } = this.context;
+    return { runId, stepId, stepIndex, stepType: stepDefinition.type };
   }
 }
