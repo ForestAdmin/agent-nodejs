@@ -41,15 +41,16 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     this.agentPort = context.agentPort;
   }
 
+  private get logCtx() {
+    const { runId, stepId, stepIndex, stepDefinition } = this.context;
+    return { runId, stepId, stepIndex, stepType: stepDefinition.type };
+  }
+
   async execute(): Promise<StepExecutionResult> {
-    const { runId, stepId, stepIndex, stepDefinition, baseRecordRef } = this.context;
-    const stepType = stepDefinition.type;
+    const { baseRecordRef } = this.context;
 
     this.context.logger.info('Step execution started', {
-      runId,
-      stepId,
-      stepIndex,
-      stepType,
+      ...this.logCtx,
       collection: baseRecordRef.collectionName,
     });
 
@@ -60,10 +61,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
       if (cached) {
         this.context.logger.info('Step execution completed (replayed from cache)', {
-          runId,
-          stepId,
-          stepIndex,
-          stepType,
+          ...this.logCtx,
           status: cached.stepOutcome.status,
         });
 
@@ -73,10 +71,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       const result = await this.runWithActivityLog();
 
       this.context.logger.info('Step execution completed', {
-        runId,
-        stepId,
-        stepIndex,
-        stepType,
+        ...this.logCtx,
         status: result.stepOutcome.status,
       });
 
@@ -84,10 +79,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     } catch (error) {
       if (error instanceof StepTimeoutError) {
         this.context.logger.error(error.message, {
-          runId,
-          stepId,
-          stepIndex,
-          stepType,
+          ...this.logCtx,
           timeoutMs: this.context.stepTimeoutMs,
         });
 
@@ -97,10 +89,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       if (error instanceof WorkflowExecutorError) {
         if (error.cause !== undefined) {
           this.context.logger.error(error.message, {
-            runId,
-            stepId,
-            stepIndex,
-            stepType,
+            ...this.logCtx,
             cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
             stack: error.cause instanceof Error ? error.cause.stack : undefined,
           });
@@ -111,10 +100,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
       const { cause: errorCause } = error as { cause?: unknown };
       this.context.logger.error('Unexpected error during step execution', {
-        runId,
-        stepId,
-        stepIndex,
-        stepType,
+        ...this.logCtx,
         error: extractErrorMessage(error),
         cause: errorCause instanceof Error ? errorCause.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
@@ -184,9 +170,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     execPromise.catch(err => {
       if (!hasTimeoutFired) return;
       this.context.logger.info('Step work rejected after timeout — result discarded', {
-        runId: this.context.runId,
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
+        ...this.logCtx,
         error: extractErrorMessage(err),
       });
     });
