@@ -43,12 +43,13 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   async execute(): Promise<StepExecutionResult> {
     const { runId, stepId, stepIndex, stepDefinition, baseRecordRef } = this.context;
+    const stepType = stepDefinition.type;
 
     this.context.logger.info('Step execution started', {
       runId,
       stepId,
       stepIndex,
-      stepType: stepDefinition.type,
+      stepType,
       collection: baseRecordRef.collectionName,
     });
 
@@ -62,6 +63,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
           runId,
           stepId,
           stepIndex,
+          stepType,
           status: cached.stepOutcome.status,
         });
 
@@ -74,6 +76,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         runId,
         stepId,
         stepIndex,
+        stepType,
         status: result.stepOutcome.status,
       });
 
@@ -81,10 +84,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     } catch (error) {
       if (error instanceof StepTimeoutError) {
         this.context.logger.error(error.message, {
-          runId: this.context.runId,
-          stepId: this.context.stepId,
-          stepIndex: this.context.stepIndex,
-          stepType: this.context.stepDefinition.type,
+          runId,
+          stepId,
+          stepIndex,
+          stepType,
           timeoutMs: this.context.stepTimeoutMs,
         });
 
@@ -94,9 +97,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       if (error instanceof WorkflowExecutorError) {
         if (error.cause !== undefined) {
           this.context.logger.error(error.message, {
-            runId: this.context.runId,
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
+            runId,
+            stepId,
+            stepIndex,
+            stepType,
             cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
             stack: error.cause instanceof Error ? error.cause.stack : undefined,
           });
@@ -107,9 +111,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
       const { cause: errorCause } = error as { cause?: unknown };
       this.context.logger.error('Unexpected error during step execution', {
-        runId: this.context.runId,
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
+        runId,
+        stepId,
+        stepIndex,
+        stepType,
         error: extractErrorMessage(error),
         cause: errorCause instanceof Error ? errorCause.message : undefined,
         stack: error instanceof Error ? error.stack : undefined,
