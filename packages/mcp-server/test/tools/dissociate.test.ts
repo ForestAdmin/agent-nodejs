@@ -21,7 +21,11 @@ describe('declareDissociateTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: { shape: Record<string, unknown> };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,16 +66,16 @@ describe('declareDissociateTool', () => {
     it('should define correct input schema', () => {
       declareDissociateTool(mcpServer, mockForestServerClient, mockLogger);
 
-      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('relationName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('parentRecordId');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('targetRecordIds');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('relationName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('parentRecordId');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('targetRecordIds');
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
       declareDissociateTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'posts']);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;

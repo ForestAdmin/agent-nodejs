@@ -21,7 +21,11 @@ describe('declareUpdateTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: { shape: Record<string, unknown> };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,15 +66,15 @@ describe('declareUpdateTool', () => {
     it('should define correct input schema', () => {
       declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
 
-      expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('recordId');
-      expect(registeredToolConfig.inputSchema).toHaveProperty('attributes');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('collectionName');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('recordId');
+      expect(registeredToolConfig.inputSchema.shape).toHaveProperty('attributes');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
       declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options?: string[]; parse: (value: unknown) => unknown }
       >;
@@ -81,7 +85,7 @@ describe('declareUpdateTool', () => {
     it('should use enum type for collectionName when collection names provided', () => {
       declareUpdateTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'products']);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { options: string[]; parse: (value: unknown) => unknown }
       >;
@@ -93,7 +97,7 @@ describe('declareUpdateTool', () => {
     it('should accept both string and number for recordId', () => {
       declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
 
-      const schema = registeredToolConfig.inputSchema as Record<
+      const schema = registeredToolConfig.inputSchema.shape as Record<
         string,
         { parse: (value: unknown) => unknown }
       >;
@@ -234,7 +238,7 @@ describe('declareUpdateTool', () => {
         const attributes = { name: 'Updated', age: 31 };
         const attributesAsString = JSON.stringify(attributes);
 
-        const inputSchema = registeredToolConfig.inputSchema as Record<
+        const inputSchema = registeredToolConfig.inputSchema.shape as Record<
           string,
           { parse: (value: unknown) => unknown }
         >;
