@@ -158,8 +158,6 @@ export interface GuidanceStepExecutionData extends BaseStepExecutionData {
   executionResult?: { userInput?: string };
 }
 
-// -- Unions --
-
 export type ConfirmableStepExecutionData =
   | UpdateRecordStepExecutionData
   | TriggerRecordActionStepExecutionData
