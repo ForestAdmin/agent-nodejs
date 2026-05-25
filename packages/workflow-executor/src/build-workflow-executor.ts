@@ -69,11 +69,15 @@ function buildCommonDependencies(options: ExecutorOptions) {
     );
   }
 
-  const aiModelPort = forceAiError
-    ? new AlwaysErrorAiModelPort()
-    : options.aiConfigurations?.length
-      ? new AiClientAdapter(options.aiConfigurations)
-      : new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
+  let aiModelPort;
+
+  if (forceAiError) {
+    aiModelPort = new AlwaysErrorAiModelPort();
+  } else if (options.aiConfigurations?.length) {
+    aiModelPort = new AiClientAdapter(options.aiConfigurations);
+  } else {
+    aiModelPort = new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
+  }
 
   const schemaCache = new SchemaCache();
 

@@ -1,5 +1,5 @@
 import type { AiModelPort } from '../ports/ai-model-port';
-import type { McpConfiguration, RemoteTool } from '@forestadmin/ai-proxy';
+import type { RemoteTool } from '@forestadmin/ai-proxy';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 import { AiModelPortError } from '../errors';
@@ -18,7 +18,7 @@ export default class AlwaysErrorAiModelPort implements AiModelPort {
     } as unknown as BaseChatModel;
   }
 
-  loadRemoteTools(_config: McpConfiguration): Promise<RemoteTool[]> {
+  loadRemoteTools(): Promise<RemoteTool[]> {
     return Promise.resolve([]);
   }
 
