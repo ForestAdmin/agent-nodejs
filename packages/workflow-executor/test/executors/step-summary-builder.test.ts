@@ -449,7 +449,7 @@ describe('StepSummaryBuilder', () => {
       it('does NOT signal manually handled for load-related-record success (executionResult present, no idempotencyPhase)', () => {
         const step: StepDefinition = {
           type: StepType.LoadRelatedRecord,
-          executionType: StepExecutionMode.Manual,
+          executionType: StepExecutionMode.FullyAutomated,
           prompt: 'Load the address',
         };
         const outcome: StepOutcome = {

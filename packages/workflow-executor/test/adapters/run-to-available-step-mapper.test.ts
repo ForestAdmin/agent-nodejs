@@ -103,7 +103,7 @@ describe('toAvailableStepExecution', () => {
   it('should map a run with a available step to a AvailableStepExecution', () => {
     const run = makeRun();
 
-    const result = toAvailableStepExecution(run, logger);
+    const result = toAvailableStepExecution(run);
 
     expect(result).toEqual({
       runId: '42',
@@ -128,7 +128,7 @@ describe('toAvailableStepExecution', () => {
   it('should stringify the numeric run id', () => {
     const run = makeRun({ id: 999 });
 
-    const result = toAvailableStepExecution(run, logger);
+    const result = toAvailableStepExecution(run);
 
     expect(result?.runId).toBe('999');
   });
@@ -136,7 +136,7 @@ describe('toAvailableStepExecution', () => {
   it('should wrap selectedRecordId in an array for baseRecordRef', () => {
     const run = makeRun({ selectedRecordId: 'rec-abc' });
 
-    const result = toAvailableStepExecution(run, logger);
+    const result = toAvailableStepExecution(run);
 
     expect(result?.baseRecordRef.recordId).toEqual(['rec-abc']);
   });
@@ -144,7 +144,7 @@ describe('toAvailableStepExecution', () => {
   it('should return null when workflowHistory is empty', () => {
     const run = makeRun({ workflowHistory: [] });
 
-    expect(toAvailableStepExecution(run, logger)).toBeNull();
+    expect(toAvailableStepExecution(run)).toBeNull();
   });
 
   it('picks the last step — orchestrator is the source of truth for which step to execute', () => {
@@ -156,7 +156,7 @@ describe('toAvailableStepExecution', () => {
       ],
     });
 
-    const result = toAvailableStepExecution(run, logger);
+    const result = toAvailableStepExecution(run);
 
     expect(result?.stepId).toBe('s2');
     expect(result?.stepIndex).toBe(2);
@@ -176,7 +176,7 @@ describe('toAvailableStepExecution', () => {
       ],
     });
 
-    const result = toAvailableStepExecution(run, logger);
+    const result = toAvailableStepExecution(run);
 
     expect(result?.stepDefinition).toEqual({
       type: StepType.Guidance,
@@ -210,7 +210,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps).toHaveLength(2);
       expect(result?.previousSteps[1].stepOutcome).toEqual({
@@ -239,7 +239,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'record',
@@ -266,7 +266,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('aiReasoning');
       expect(result?.previousSteps[0].stepOutcome).not.toHaveProperty('clientData');
@@ -285,7 +285,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'record',
@@ -314,7 +314,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'guidance',
@@ -342,7 +342,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'guidance',
@@ -372,7 +372,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.previousSteps[0].stepOutcome).toEqual({
         type: 'mcp',
@@ -390,7 +390,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.stepId).toBe('s1');
       expect(result?.previousSteps).toHaveLength(1);
@@ -466,7 +466,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.stepId).toBe('s2');
       expect(result?.previousSteps).toHaveLength(1);
@@ -489,7 +489,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      expect(() => toAvailableStepExecution(run, logger)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
     });
   });
 
@@ -509,7 +509,7 @@ describe('toAvailableStepExecution', () => {
       };
       const run = makeRun({ userProfile: profile });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.user).toEqual({
         id: 5,
@@ -545,8 +545,8 @@ describe('toAvailableStepExecution', () => {
         },
       });
 
-      expect(() => toAvailableStepExecution(run, logger)).toThrow(InvalidStepDefinitionError);
-      expect(() => toAvailableStepExecution(run, logger)).toThrow(/renderingId/);
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(/renderingId/);
     });
 
     it('should accept renderingId = 0 (valid finite number)', () => {
@@ -565,7 +565,7 @@ describe('toAvailableStepExecution', () => {
         },
       });
 
-      const result = toAvailableStepExecution(run, logger);
+      const result = toAvailableStepExecution(run);
 
       expect(result?.user.renderingId).toBe(0);
     });
@@ -575,8 +575,8 @@ describe('toAvailableStepExecution', () => {
     it('should throw InvalidStepDefinitionError when collectionName is null', () => {
       const run = makeRun({ collectionName: null });
 
-      expect(() => toAvailableStepExecution(run, logger)).toThrow(InvalidStepDefinitionError);
-      expect(() => toAvailableStepExecution(run, logger)).toThrow(
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(
         'Run 42 has no collectionName — cannot build baseRecordRef',
       );
     });
@@ -584,8 +584,8 @@ describe('toAvailableStepExecution', () => {
     it('should throw InvalidStepDefinitionError when collectionId is empty', () => {
       const run = makeRun({ collectionId: '' });
 
-      expect(() => toAvailableStepExecution(run, logger)).toThrow(InvalidStepDefinitionError);
-      expect(() => toAvailableStepExecution(run, logger)).toThrow(
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(
         'Run 42 has no collectionId — cannot build baseRecordRef',
       );
     });
@@ -605,7 +605,7 @@ describe('toAvailableStepExecution', () => {
         ],
       });
 
-      expect(() => toAvailableStepExecution(run, logger)).toThrow();
+      expect(() => toAvailableStepExecution(run)).toThrow();
     });
 
     it('should throw DomainValidationError when the mapper output violates a zod invariant (empty stepId)', () => {
@@ -618,7 +618,7 @@ describe('toAvailableStepExecution', () => {
       let caught: unknown;
 
       try {
-        toAvailableStepExecution(run, logger);
+        toAvailableStepExecution(run);
       } catch (err) {
         caught = err;
       }
@@ -646,7 +646,7 @@ describe('toAvailableStepExecution', () => {
         },
       });
 
-      expect(() => toAvailableStepExecution(run, logger)).toThrow(DomainValidationError);
+      expect(() => toAvailableStepExecution(run)).toThrow(DomainValidationError);
     });
 
     it('should structure DomainValidationError.issues as { path, message } objects', () => {

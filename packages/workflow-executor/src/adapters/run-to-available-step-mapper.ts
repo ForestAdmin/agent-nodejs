@@ -3,7 +3,6 @@ import type {
   ServerStepHistory,
   ServerUserProfile,
 } from './server-types';
-import type { Logger } from '../ports/logger-port';
 import type {
   ConditionStepOutcome,
   GuidanceStepOutcome,
@@ -38,8 +37,8 @@ function toRecordStatus(ctxStatus: unknown): RecordStepOutcome['status'] {
 // `context` may come from the executor (our StepOutcome, stored verbatim) or the legacy frontend
 // (free-form). We whitelist known fields per type to avoid leaking legacy ones back to the
 // orchestrator and to enforce the discriminated-union shape.
-function toStepOutcome(s: ServerStepHistory, logger?: Logger): StepOutcome {
-  const stepDef = toStepDefinition(s.stepDefinition, logger);
+function toStepOutcome(s: ServerStepHistory): StepOutcome {
+  const stepDef = toStepDefinition(s.stepDefinition);
   const outcomeType = stepTypeToOutcomeType(stepDef.type);
   const ctx = (s.context ?? {}) as Record<string, unknown>;
 
@@ -127,7 +126,6 @@ function toStepUser(runId: number, profile: ServerUserProfile): StepUser {
 // userProfile) or an unmappable step definition.
 export default function toAvailableStepExecution(
   run: ServerHydratedWorkflowRun,
-  logger: Logger,
 ): AvailableStepExecution | null {
   if (!run.collectionName) {
     throw new InvalidStepDefinitionError(
@@ -154,7 +152,7 @@ export default function toAvailableStepExecution(
       recordId: [run.selectedRecordId],
       stepIndex: 0,
     },
-    stepDefinition: toStepDefinition(pending.stepDefinition, logger),
+    stepDefinition: toStepDefinition(pending.stepDefinition),
     previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex),
     user: toStepUser(run.id, run.userProfile),
   };

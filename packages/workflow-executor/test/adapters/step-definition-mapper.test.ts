@@ -20,14 +20,6 @@ import { StepExecutionMode, StepType } from '../../src/types/validated/step-defi
 
 const defaultTransition: ServerWorkflowTransition = { stepId: 'next', buttonText: null };
 
-const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
-
-beforeEach(() => {
-  logger.info.mockClear();
-  logger.warn.mockClear();
-  logger.error.mockClear();
-});
-
 function makeTask(
   overrides: Partial<ServerWorkflowTask> & {
     taskType?: ServerTaskTypeEnum | string;
@@ -65,7 +57,7 @@ describe('toStepDefinition', () => {
     it('should map task with get-data taskType to read-record', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.GetData, prompt: 'read it' });
 
-      expect(toStepDefinition(task, logger)).toEqual({
+      expect(toStepDefinition(task)).toEqual({
         type: StepType.ReadRecord,
         prompt: 'read it',
         executionType: ServerStepExecutionTypeEnum.FullyAutomated,
@@ -75,7 +67,7 @@ describe('toStepDefinition', () => {
     it('should map task with update-data taskType to update-record', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.UpdateData, prompt: 'update it' });
 
-      expect(toStepDefinition(task, logger)).toEqual({
+      expect(toStepDefinition(task)).toEqual({
         type: StepType.UpdateRecord,
         prompt: 'update it',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -85,7 +77,7 @@ describe('toStepDefinition', () => {
     it('should map task with trigger-action taskType to trigger-action', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.TriggerAction, prompt: 'trigger it' });
 
-      expect(toStepDefinition(task, logger)).toEqual({
+      expect(toStepDefinition(task)).toEqual({
         type: StepType.TriggerAction,
         prompt: 'trigger it',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -98,7 +90,7 @@ describe('toStepDefinition', () => {
         prompt: 'load it',
       });
 
-      expect(toStepDefinition(task, logger)).toEqual({
+      expect(toStepDefinition(task)).toEqual({
         type: StepType.LoadRelatedRecord,
         prompt: 'load it',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -112,7 +104,7 @@ describe('toStepDefinition', () => {
         mcpServerId: 'mcp-abc',
       });
 
-      expect(toStepDefinition(task, logger)).toEqual({
+      expect(toStepDefinition(task)).toEqual({
         type: StepType.Mcp,
         prompt: 'run mcp',
         mcpServerId: 'mcp-abc',
@@ -123,7 +115,7 @@ describe('toStepDefinition', () => {
     it('should map task with mcp-server taskType without mcpServerId', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.McpServer, prompt: 'run mcp' });
 
-      expect(toStepDefinition(task, logger)).toEqual({
+      expect(toStepDefinition(task)).toEqual({
         type: StepType.Mcp,
         prompt: 'run mcp',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
@@ -137,7 +129,7 @@ describe('toStepDefinition', () => {
         executionType: ServerStepExecutionTypeEnum.Manual,
       });
 
-      expect(toStepDefinition(task, logger)).toEqual({
+      expect(toStepDefinition(task)).toEqual({
         type: StepType.Guidance,
         prompt: 'guide them',
         executionType: StepExecutionMode.Manual,
@@ -150,7 +142,7 @@ describe('toStepDefinition', () => {
         executionType: ServerStepExecutionTypeEnum.FullyAutomated,
       });
 
-      expect(toStepDefinition(task, logger)).toMatchObject({
+      expect(toStepDefinition(task)).toMatchObject({
         executionType: ServerStepExecutionTypeEnum.FullyAutomated,
       });
     });
@@ -161,38 +153,23 @@ describe('toStepDefinition', () => {
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
 
-      expect(toStepDefinition(task, logger)).toMatchObject({
+      expect(toStepDefinition(task)).toMatchObject({
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
     });
 
     // Casts through `as` because the orchestrator types forbid this combination — the runtime
     // normalization is a defensive safety net for wire data the server should not emit.
-    it('should normalize unsupported executionType=manual on read-record to its fallback and warn', () => {
+    it('should silently fall back to default when executionType is unsupported for the step type', () => {
       const task = makeTask({
         taskType: ServerTaskTypeEnum.GetData,
         executionType:
           ServerStepExecutionTypeEnum.Manual as ServerStepExecutionTypeEnum.FullyAutomated,
       });
 
-      expect(toStepDefinition(task, logger)).toMatchObject({
+      expect(toStepDefinition(task)).toMatchObject({
         executionType: StepExecutionMode.FullyAutomated,
       });
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('unsupported executionType=manual'),
-        expect.objectContaining({ stepType: StepType.ReadRecord }),
-      );
-    });
-
-    it('should not warn when executionType is supported', () => {
-      const task = makeTask({
-        taskType: ServerTaskTypeEnum.GetData,
-        executionType: ServerStepExecutionTypeEnum.FullyAutomated,
-      });
-
-      toStepDefinition(task, logger);
-
-      expect(logger.warn).not.toHaveBeenCalled();
     });
 
     it('should fallback to default executionType when undefined on the server step', () => {
@@ -200,7 +177,7 @@ describe('toStepDefinition', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.GetData });
       delete (task as { executionType?: unknown }).executionType;
 
-      expect(toStepDefinition(task, logger)).toMatchObject({
+      expect(toStepDefinition(task)).toMatchObject({
         executionType: StepExecutionMode.FullyAutomated,
       });
     });
@@ -208,8 +185,8 @@ describe('toStepDefinition', () => {
     it('should throw InvalidStepDefinitionError for unknown taskType', () => {
       const task = makeTask({ taskType: 'unknown-task' as ServerTaskTypeEnum });
 
-      expect(() => toStepDefinition(task, logger)).toThrow(InvalidStepDefinitionError);
-      expect(() => toStepDefinition(task, logger)).toThrow('Unknown taskType: "unknown-task"');
+      expect(() => toStepDefinition(task)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(task)).toThrow('Unknown taskType: "unknown-task"');
     });
   });
 
@@ -220,7 +197,7 @@ describe('toStepDefinition', () => {
         { stepId: 's2', buttonText: null, answer: 'No' },
       ]);
 
-      expect(toStepDefinition(condition, logger)).toEqual({
+      expect(toStepDefinition(condition)).toEqual({
         type: StepType.Condition,
         prompt: 'Choose one',
         options: ['Yes', 'No'],
@@ -234,7 +211,7 @@ describe('toStepDefinition', () => {
         { stepId: 's2', buttonText: 'Reject' },
       ]);
 
-      expect(toStepDefinition(condition, logger)).toEqual({
+      expect(toStepDefinition(condition)).toEqual({
         type: StepType.Condition,
         prompt: 'Choose one',
         options: ['Approve', 'Reject'],
@@ -248,7 +225,7 @@ describe('toStepDefinition', () => {
         { stepId: 's2', buttonText: 'Btn2', answer: 'Answer2' },
       ]);
 
-      expect(toStepDefinition(condition, logger)).toMatchObject({
+      expect(toStepDefinition(condition)).toMatchObject({
         options: ['Answer1', 'Answer2'],
       });
     });
@@ -262,7 +239,7 @@ describe('toStepDefinition', () => {
         { executionType: ServerStepExecutionTypeEnum.Manual },
       );
 
-      expect(toStepDefinition(condition, logger)).toMatchObject({
+      expect(toStepDefinition(condition)).toMatchObject({
         executionType: ServerStepExecutionTypeEnum.Manual,
       });
     });
@@ -270,8 +247,8 @@ describe('toStepDefinition', () => {
     it('should throw InvalidStepDefinitionError when fewer than 2 options', () => {
       const condition = makeCondition([{ stepId: 's1', buttonText: 'Only' }]);
 
-      expect(() => toStepDefinition(condition, logger)).toThrow(InvalidStepDefinitionError);
-      expect(() => toStepDefinition(condition, logger)).toThrow(
+      expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(condition)).toThrow(
         'Condition step requires at least 2 options, got 1',
       );
     });
@@ -279,7 +256,7 @@ describe('toStepDefinition', () => {
     it('should throw InvalidStepDefinitionError when outgoing is empty', () => {
       const condition = makeCondition([]);
 
-      expect(() => toStepDefinition(condition, logger)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(condition)).toThrow(InvalidStepDefinitionError);
     });
 
     it('should filter out transitions with no answer and no buttonText', () => {
@@ -289,7 +266,7 @@ describe('toStepDefinition', () => {
         { stepId: 's3', buttonText: null, answer: 'AlsoValid' },
       ]);
 
-      expect(toStepDefinition(condition, logger)).toMatchObject({
+      expect(toStepDefinition(condition)).toMatchObject({
         options: ['Valid', 'AlsoValid'],
       });
     });
@@ -306,8 +283,8 @@ describe('toStepDefinition', () => {
         outgoing: [],
       };
 
-      expect(() => toStepDefinition(step, logger)).toThrow(UnsupportedStepTypeError);
-      expect(() => toStepDefinition(step, logger)).toThrow(
+      expect(() => toStepDefinition(step)).toThrow(UnsupportedStepTypeError);
+      expect(() => toStepDefinition(step)).toThrow(
         'Step type "end" is not supported by the executor',
       );
     });
@@ -323,7 +300,7 @@ describe('toStepDefinition', () => {
         inboxId: null,
       };
 
-      expect(() => toStepDefinition(step, logger)).toThrow(UnsupportedStepTypeError);
+      expect(() => toStepDefinition(step)).toThrow(UnsupportedStepTypeError);
     });
 
     it('should throw UnsupportedStepTypeError for start-sub-workflow', () => {
@@ -337,7 +314,7 @@ describe('toStepDefinition', () => {
         workflowId: 'sub-wf',
       };
 
-      expect(() => toStepDefinition(step, logger)).toThrow(UnsupportedStepTypeError);
+      expect(() => toStepDefinition(step)).toThrow(UnsupportedStepTypeError);
     });
 
     it('should throw UnsupportedStepTypeError for close-sub-workflow', () => {
@@ -350,7 +327,7 @@ describe('toStepDefinition', () => {
         parentWorkflowId: null,
       };
 
-      expect(() => toStepDefinition(step, logger)).toThrow(UnsupportedStepTypeError);
+      expect(() => toStepDefinition(step)).toThrow(UnsupportedStepTypeError);
     });
   });
 
@@ -358,8 +335,8 @@ describe('toStepDefinition', () => {
     it('should throw InvalidStepDefinitionError for unknown type', () => {
       const step = { type: 'mystery', title: 'x' } as unknown as ServerWorkflowStep;
 
-      expect(() => toStepDefinition(step, logger)).toThrow(InvalidStepDefinitionError);
-      expect(() => toStepDefinition(step, logger)).toThrow('Unknown server step type: "mystery"');
+      expect(() => toStepDefinition(step)).toThrow(InvalidStepDefinitionError);
+      expect(() => toStepDefinition(step)).toThrow('Unknown server step type: "mystery"');
     });
   });
 });
