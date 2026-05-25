@@ -492,7 +492,7 @@ describe('BaseStepExecutor', () => {
           setTimeout(resolve, 1_100);
         });
 
-        expect(logger.info).toHaveBeenCalledWith(
+        expect(logger.warn).toHaveBeenCalledWith(
           'Step work rejected after timeout — result discarded',
           expect.objectContaining({
             runId: 'run-1',
@@ -516,7 +516,7 @@ describe('BaseStepExecutor', () => {
 
       await executor.execute();
 
-      expect(logger.info).not.toHaveBeenCalledWith(
+      expect(logger.warn).not.toHaveBeenCalledWith(
         'Step work rejected after timeout — result discarded',
         expect.anything(),
       );

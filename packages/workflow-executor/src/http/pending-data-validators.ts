@@ -56,9 +56,16 @@ export type UpdateRecordConfirmation = z.infer<typeof updateRecordPatchSchema>;
 export type TriggerActionConfirmation = z.infer<typeof triggerActionPatchSchema>;
 export type McpConfirmation = z.infer<typeof mcpPatchSchema>;
 export type LoadRelatedRecordConfirmation = z.infer<typeof loadRelatedRecordPatchSchema>;
-export type GuidanceConfirmation = z.infer<typeof guidancePatchSchema>;
 
-const patchBodySchemas: Partial<Record<string, z.ZodTypeAny>> = {
+type PatchableStepType =
+  | 'update-record'
+  | 'trigger-action'
+  | 'mcp'
+  | 'load-related-record'
+  | 'guidance'
+  | 'condition';
+
+const patchBodySchemas: Partial<Record<PatchableStepType, z.ZodTypeAny>> = {
   'update-record': updateRecordPatchSchema,
   'trigger-action': triggerActionPatchSchema,
   mcp: mcpPatchSchema,

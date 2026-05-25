@@ -167,7 +167,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
     execPromise.catch(err => {
       if (!hasTimeoutFired) return;
-      this.context.logger.info('Step work rejected after timeout — result discarded', {
+      this.context.logger.warn('Step work rejected after timeout — result discarded', {
         ...this.logCtx,
         error: extractErrorMessage(err),
       });
@@ -215,7 +215,14 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
     if (pendingData === undefined) return execution;
 
-    const schema = patchBodySchemas[execution.type]!;
+    const schema = patchBodySchemas[execution.type];
+
+    if (!schema) {
+      throw new StepStateError(
+        `No pending-data validator registered for step type "${execution.type}"`,
+      );
+    }
+
     const parsed = schema.safeParse(pendingData);
 
     if (!parsed.success) {
