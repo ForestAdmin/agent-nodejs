@@ -788,14 +788,19 @@ describe('BaseStepExecutor', () => {
   describe('patchAndReloadPendingData', () => {
     class PatchingExecutor extends BaseStepExecutor {
       async callPatchAndReload(pendingData?: unknown) {
-        return (this as unknown as { patchAndReloadPendingData(d?: unknown): Promise<unknown> }).patchAndReloadPendingData(pendingData);
+        return (
+          this as unknown as { patchAndReloadPendingData(d?: unknown): Promise<unknown> }
+        ).patchAndReloadPendingData(pendingData);
       }
 
       protected async doExecute(): Promise<StepExecutionResult> {
         return this.buildOutcomeResult({ status: 'success' });
       }
 
-      protected buildOutcomeResult(outcome: { status: BaseStepStatus; error?: string }): StepExecutionResult {
+      protected buildOutcomeResult(outcome: {
+        status: BaseStepStatus;
+        error?: string;
+      }): StepExecutionResult {
         return {
           stepOutcome: {
             type: 'record',

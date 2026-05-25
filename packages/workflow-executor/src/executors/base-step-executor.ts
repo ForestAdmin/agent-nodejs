@@ -5,10 +5,7 @@ import type {
   IStepExecutor,
   StepExecutionResult,
 } from '../types/execution-context';
-import type {
-  ConfirmableStepExecutionData,
-  StepExecutionData,
-} from '../types/step-execution-data';
+import type { ConfirmableStepExecutionData, StepExecutionData } from '../types/step-execution-data';
 import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
