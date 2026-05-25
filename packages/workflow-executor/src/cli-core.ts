@@ -1,10 +1,5 @@
 /* eslint-disable no-console */
 
-import type {
-  DatabaseExecutorOptions,
-  ExecutorOptions,
-  WorkflowExecutor,
-} from './build-workflow-executor';
 import type { Logger } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 
@@ -12,6 +7,12 @@ import { z } from 'zod';
 
 import ConsoleLogger from './adapters/console-logger';
 import PrettyLogger from './adapters/pretty-logger';
+import {
+  DEFAULT_POLLING_INTERVAL_MS,
+  type DatabaseExecutorOptions,
+  type ExecutorOptions,
+  type WorkflowExecutor,
+} from './build-workflow-executor';
 import { ConfigurationError, extractErrorMessage } from './errors';
 
 const POSITIVE_INT = z.coerce.number().int().positive();
@@ -182,7 +183,7 @@ Required environment variables:
 Optional environment variables:
   HTTP_PORT              Default: 3400
   FOREST_SERVER_URL      Default: https://api.forestadmin.com
-  POLLING_INTERVAL_MS    Default: 5000
+  POLLING_INTERVAL_MS    Default: ${DEFAULT_POLLING_INTERVAL_MS}
   STOP_TIMEOUT_MS        Default: 30000
   STEP_TIMEOUT_MS        Max duration of a step in ms (default: 300000 = 5 minutes)
   MAX_CHAIN_DEPTH        Max steps auto-executed per run before yielding (default: 50)
@@ -212,7 +213,7 @@ export function logStartup(logger: Logger, config: CliConfig): void {
     forestServerUrl: opts.forestServerUrl ?? 'https://api.forestadmin.com',
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,
-    pollingIntervalMs: opts.pollingIntervalMs ?? 5000,
+    pollingIntervalMs: opts.pollingIntervalMs,
     aiConfig: aiLabel,
   });
 }

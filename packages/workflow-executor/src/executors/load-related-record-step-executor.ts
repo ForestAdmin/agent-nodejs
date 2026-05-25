@@ -16,6 +16,7 @@ import {
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
 Select the relation to follow.
@@ -78,8 +79,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       : await this.selectRelation(schema, step.prompt);
     const target = this.buildTarget(schema, args.relationName, selectedRecordRef);
 
-    // Branch B -- automaticExecution
-    if (step.automaticExecution) {
+    // Branch B -- fully automated execution
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
       return this.resolveAndLoadAutomatic(target);
     }
 
@@ -228,7 +229,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return { relatedData, bestIndex, suggestedFields };
   }
 
-  /** HasMany + automaticExecution: fetch top 50, then AI calls to select the best record. */
+  /** HasMany + fully automated execution: fetch top 50, then AI calls to select the best record. */
   private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordRef> {
     const { relatedData, bestIndex } = await this.selectBestFromRelatedData(target, 50);
 

@@ -5,6 +5,10 @@ export default class ConsoleLogger implements Logger {
     console.error(JSON.stringify({ message, timestamp: new Date().toISOString(), ...context }));
   }
 
+  warn(message: string, context: Record<string, unknown>): void {
+    console.warn(JSON.stringify({ message, timestamp: new Date().toISOString(), ...context }));
+  }
+
   info(message: string, context: Record<string, unknown>): void {
     console.info(JSON.stringify({ message, timestamp: new Date().toISOString(), ...context }));
   }

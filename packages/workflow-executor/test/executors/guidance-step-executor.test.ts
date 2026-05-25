@@ -6,7 +6,7 @@ import type { GuidanceStepOutcome } from '../../src/types/validated/step-outcome
 
 import GuidanceStepExecutor from '../../src/executors/guidance-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
   return {
@@ -31,7 +31,7 @@ function makeContext(
       recordId: [1],
       stepIndex: 0,
     } as RecordRef,
-    stepDefinition: { type: StepType.Guidance },
+    stepDefinition: { type: StepType.Guidance, executionType: StepExecutionMode.Manual },
     model: {} as ExecutionContext['model'],
     agentPort: {} as ExecutionContext['agentPort'],
     workflowPort: {} as ExecutionContext['workflowPort'],
@@ -49,7 +49,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),

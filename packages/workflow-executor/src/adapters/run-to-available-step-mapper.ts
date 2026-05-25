@@ -49,7 +49,7 @@ function toStepOutcome(s: ServerStepHistory): StepOutcome {
   };
 
   if (outcomeType === 'condition') {
-    const status: ConditionStepOutcome['status'] = ctx.status === 'error' ? 'error' : 'success';
+    const status: ConditionStepOutcome['status'] = toRecordStatus(ctx.status);
     const selectedOption = typeof ctx.selectedOption === 'string' ? ctx.selectedOption : undefined;
 
     return {
@@ -77,7 +77,10 @@ function toStepOutcome(s: ServerStepHistory): StepOutcome {
 
 function tryMapStep(s: ServerStepHistory): Step | null {
   try {
-    return { stepDefinition: toStepDefinition(s.stepDefinition), stepOutcome: toStepOutcome(s) };
+    return {
+      stepDefinition: toStepDefinition(s.stepDefinition),
+      stepOutcome: toStepOutcome(s),
+    };
   } catch (err) {
     // Sub-workflow navigation steps (start-sub-workflow, close-sub-workflow) are not
     // meaningful for AI context — skip them rather than failing the whole run.

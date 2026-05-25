@@ -7,11 +7,12 @@ import type { ConditionStepOutcome } from '../../src/types/validated/step-outcom
 import { RunStorePortError } from '../../src/errors';
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {
     type: StepType.Condition,
+    executionType: StepExecutionMode.FullyAutomated,
     options: ['Approve', 'Reject'],
     prompt: 'Should we approve this?',
     ...overrides,
@@ -71,7 +72,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -203,6 +204,7 @@ describe('ConditionStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.FullyAutomated,
               options: ['Yes', 'No'],
               prompt: 'Previous question',
             },
@@ -376,6 +378,72 @@ describe('ConditionStepExecutor', () => {
           model: mockModel.model,
           runStore,
           incomingPendingData: { selectedOption: 'Approve', extraField: 'x' },
+        }),
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('executionType=Manual', () => {
+    it('returns awaiting-input without calling AI or saving when no incomingPendingData', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const executor = new ConditionStepExecutor(
+        makeContext({
+          model: mockModel.model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
+        }),
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(mockModel.invoke).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('persists the user-selected option without calling AI when incomingPendingData is provided', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const executor = new ConditionStepExecutor(
+        makeContext({
+          model: mockModel.model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
+          incomingPendingData: { selectedOption: 'Approve' },
+        }),
+      );
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect((result.stepOutcome as ConditionStepOutcome).selectedOption).toBe('Approve');
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(mockModel.invoke).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith('run-1', {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: { answer: 'Approve', reasoning: 'Selected by user' },
+        executionResult: { answer: 'Approve' },
+      });
+    });
+
+    it('rejects an option not in step.options even in Manual mode', async () => {
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const executor = new ConditionStepExecutor(
+        makeContext({
+          model: mockModel.model,
+          runStore,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
+          incomingPendingData: { selectedOption: 'Maybe' },
         }),
       );
 

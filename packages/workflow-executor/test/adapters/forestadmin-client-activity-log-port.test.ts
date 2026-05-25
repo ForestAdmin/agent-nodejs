@@ -5,7 +5,7 @@ import ForestadminClientActivityLogPort from '../../src/adapters/forestadmin-cli
 import { ActivityLogCreationError } from '../../src/errors';
 
 function makeLogger() {
-  return { info: jest.fn(), error: jest.fn() };
+  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
 function makeService(): jest.Mocked<ActivityLogsServiceInterface> {

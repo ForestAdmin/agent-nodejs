@@ -15,6 +15,7 @@ import {
   StepStateError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
 Select the most appropriate tool and fill in its parameters precisely.
@@ -87,7 +88,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     if (!selectedTool) throw new McpToolNotFoundError(toolName);
     const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
 
-    if (this.context.stepDefinition.automaticExecution) {
+    if (this.context.stepDefinition.executionType === StepExecutionMode.FullyAutomated) {
       // Branch B -- direct execution
       return this.executeToolAndPersist(target);
     }

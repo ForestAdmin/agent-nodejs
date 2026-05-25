@@ -2,26 +2,69 @@ import type {
   ServerHydratedWorkflowRun,
   ServerStepHistory,
   ServerUserProfile,
+  ServerWorkflowCondition,
+  ServerWorkflowTask,
 } from '../../src/adapters/server-types';
 
 import { z } from 'zod';
 
 import toAvailableStepExecution from '../../src/adapters/run-to-available-step-mapper';
+import {
+  ServerStepExecutionTypeEnum,
+  ServerStepTypeEnum,
+  ServerTaskTypeEnum,
+} from '../../src/adapters/server-types';
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
 import { StepType } from '../../src/types/validated/step-definition';
+
+const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+
+beforeEach(() => {
+  logger.info.mockClear();
+  logger.warn.mockClear();
+  logger.error.mockClear();
+});
+
+function makeTaskStepDef(
+  overrides: Partial<ServerWorkflowTask> & {
+    taskType?: ServerTaskTypeEnum | string;
+  } = {},
+): ServerWorkflowTask {
+  return {
+    type: ServerStepTypeEnum.Task,
+    taskType: ServerTaskTypeEnum.GetData,
+    title: 'Task',
+    prompt: 'prompt',
+    executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+    automaticCompletion: false,
+    outgoing: [{ stepId: 'next', buttonText: null }],
+    ...overrides,
+  } as ServerWorkflowTask;
+}
+
+function makeConditionStepDef(
+  overrides: Partial<ServerWorkflowCondition> = {},
+): ServerWorkflowCondition {
+  return {
+    type: ServerStepTypeEnum.Condition,
+    title: 'Decide',
+    prompt: 'p',
+    executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+    automaticCompletion: false,
+    outgoing: [
+      { stepId: 'a', buttonText: null, answer: 'Yes' },
+      { stepId: 'b', buttonText: null, answer: 'No' },
+    ],
+    ...overrides,
+  };
+}
 
 function makeStepHistory(overrides: Partial<ServerStepHistory> = {}): ServerStepHistory {
   return {
     stepName: 'step-a',
     stepIndex: 0,
     done: false,
-    stepDefinition: {
-      type: 'task',
-      taskType: 'get-data',
-      title: 'Task',
-      prompt: 'prompt',
-      outgoing: { stepId: 'next', buttonText: null },
-    },
+    stepDefinition: makeTaskStepDef(),
     ...overrides,
   };
 }
@@ -72,7 +115,11 @@ describe('toAvailableStepExecution', () => {
         recordId: ['123'],
         stepIndex: 0,
       },
-      stepDefinition: { type: StepType.ReadRecord, prompt: 'prompt' },
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        prompt: 'prompt',
+        executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+      },
       previousSteps: [],
       user: expect.objectContaining({ id: 7, email: 'alban@forestadmin.com' }),
     });
@@ -115,26 +162,27 @@ describe('toAvailableStepExecution', () => {
     expect(result?.stepIndex).toBe(2);
   });
 
-  it('should strip unknown server keys (e.g. automaticExecution) from guidance step without throwing', () => {
+  it('should forward executionType from the server to the guidance step definition', () => {
     const run = makeRun({
       workflowHistory: [
         makeStepHistory({
-          stepDefinition: {
-            type: 'task',
-            taskType: 'guideline',
+          stepDefinition: makeTaskStepDef({
+            taskType: ServerTaskTypeEnum.Guideline,
             title: 'guidance',
             prompt: 'follow the guide',
-            automaticExecution: true,
-            outgoing: { stepId: 'next', buttonText: null },
-          },
+            executionType: ServerStepExecutionTypeEnum.Manual,
+          }),
         }),
       ],
     });
 
     const result = toAvailableStepExecution(run);
 
-    expect(result?.stepDefinition).toEqual({ type: StepType.Guidance, prompt: 'follow the guide' });
-    expect(result?.stepDefinition).not.toHaveProperty('automaticExecution');
+    expect(result?.stepDefinition).toEqual({
+      type: StepType.Guidance,
+      prompt: 'follow the guide',
+      executionType: ServerStepExecutionTypeEnum.Manual,
+    });
   });
 
   describe('previousSteps', () => {
@@ -146,28 +194,17 @@ describe('toAvailableStepExecution', () => {
             stepIndex: 0,
             done: true,
             context: { status: 'success' },
-            stepDefinition: {
-              type: 'task',
-              taskType: 'update-data',
+            stepDefinition: makeTaskStepDef({
+              taskType: ServerTaskTypeEnum.UpdateData,
               title: 't',
-              prompt: 'p',
-              outgoing: { stepId: 'x', buttonText: null },
-            },
+            }),
           }),
           makeStepHistory({
             stepName: 's1',
             stepIndex: 1,
             done: true,
             context: { status: 'success', selectedOption: 'Yes' },
-            stepDefinition: {
-              type: 'condition',
-              title: 'c',
-              prompt: 'p',
-              outgoing: [
-                { stepId: 'a', buttonText: null, answer: 'Yes' },
-                { stepId: 'b', buttonText: null, answer: 'No' },
-              ],
-            },
+            stepDefinition: makeConditionStepDef({ title: 'c' }),
           }),
           makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
         ],
@@ -193,13 +230,10 @@ describe('toAvailableStepExecution', () => {
             stepIndex: 0,
             done: true,
             context: { legacyData: 'from-frontend' },
-            stepDefinition: {
-              type: 'task',
-              taskType: 'update-data',
+            stepDefinition: makeTaskStepDef({
+              taskType: ServerTaskTypeEnum.UpdateData,
               title: 't',
-              prompt: 'p',
-              outgoing: { stepId: 'x', buttonText: null },
-            },
+            }),
           }),
           makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
         ],
@@ -270,13 +304,11 @@ describe('toAvailableStepExecution', () => {
             stepIndex: 0,
             done: true,
             context: { status: 'success' },
-            stepDefinition: {
-              type: 'task',
-              taskType: 'guideline',
+            stepDefinition: makeTaskStepDef({
+              taskType: ServerTaskTypeEnum.Guideline,
               title: 'Guide',
               prompt: 'Please review',
-              outgoing: { stepId: 'next', buttonText: null },
-            },
+            }),
           }),
           makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
         ],
@@ -300,13 +332,11 @@ describe('toAvailableStepExecution', () => {
             stepIndex: 0,
             done: true,
             context: { status: 'error', error: 'Guide failed' },
-            stepDefinition: {
-              type: 'task',
-              taskType: 'guideline',
+            stepDefinition: makeTaskStepDef({
+              taskType: ServerTaskTypeEnum.Guideline,
               title: 'Guide',
               prompt: 'Please review',
-              outgoing: { stepId: 'next', buttonText: null },
-            },
+            }),
           }),
           makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
         ],
@@ -331,14 +361,12 @@ describe('toAvailableStepExecution', () => {
             stepIndex: 0,
             done: true,
             context: { status: 'success' },
-            stepDefinition: {
-              type: 'task',
-              taskType: 'mcp-server',
+            stepDefinition: makeTaskStepDef({
+              taskType: ServerTaskTypeEnum.McpServer,
               title: 'MCP',
               prompt: 'Run tool',
               mcpServerId: 'srv-1',
-              outgoing: { stepId: 'next', buttonText: null },
-            },
+            }),
           }),
           makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
         ],
@@ -373,29 +401,45 @@ describe('toAvailableStepExecution', () => {
       [
         'start-sub-workflow',
         {
-          type: 'start-sub-workflow',
+          type: ServerStepTypeEnum.StartSubWorkflow,
           title: 't',
           prompt: 'p',
-          outgoing: { stepId: 'x', buttonText: null },
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          automaticCompletion: false,
+          outgoing: [{ stepId: 'x', buttonText: null }],
           workflowId: 'wf-2',
         },
       ],
       [
         'close-sub-workflow',
         {
-          type: 'close-sub-workflow',
-          outgoing: { stepId: 'x', buttonText: null },
+          type: ServerStepTypeEnum.CloseSubWorkflow,
+          title: 'Close',
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          automaticCompletion: false,
+          outgoing: [{ stepId: 'x', buttonText: null }],
           parentWorkflowId: null,
         },
       ],
-      ['end', { type: 'end', title: 'End' }],
+      [
+        'end',
+        {
+          type: ServerStepTypeEnum.End,
+          title: 'End',
+          executionType: ServerStepExecutionTypeEnum.Manual,
+          automaticCompletion: false,
+          outgoing: [],
+        },
+      ],
       [
         'escalation',
         {
-          type: 'escalation',
+          type: ServerStepTypeEnum.Escalation,
           title: 'Escalation',
           prompt: 'p',
-          outgoing: { stepId: 'x', buttonText: null },
+          executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+          automaticCompletion: false,
+          outgoing: [{ stepId: 'x', buttonText: null }],
           inboxId: null,
         },
       ],
@@ -413,13 +457,10 @@ describe('toAvailableStepExecution', () => {
             stepIndex: 1,
             done: true,
             context: { status: 'success' },
-            stepDefinition: {
-              type: 'task',
-              taskType: 'guideline',
+            stepDefinition: makeTaskStepDef({
+              taskType: ServerTaskTypeEnum.Guideline,
               title: 't',
-              prompt: 'p',
-              outgoing: { stepId: 'x', buttonText: null },
-            },
+            }),
           }),
           makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
         ],
@@ -439,13 +480,10 @@ describe('toAvailableStepExecution', () => {
             stepName: 's0',
             stepIndex: 0,
             done: true,
-            stepDefinition: {
-              type: 'task',
-              taskType: 'unknown-future-type' as never,
+            stepDefinition: makeTaskStepDef({
+              taskType: 'unknown-future-type' as ServerTaskTypeEnum,
               title: 't',
-              prompt: 'p',
-              outgoing: { stepId: 'x', buttonText: null },
-            },
+            }),
           }),
           makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
         ],
@@ -554,7 +592,17 @@ describe('toAvailableStepExecution', () => {
 
     it('should propagate mapper errors from toStepDefinition', () => {
       const run = makeRun({
-        workflowHistory: [makeStepHistory({ stepDefinition: { type: 'end', title: 'End' } })],
+        workflowHistory: [
+          makeStepHistory({
+            stepDefinition: {
+              type: ServerStepTypeEnum.End,
+              title: 'End',
+              executionType: ServerStepExecutionTypeEnum.Manual,
+              automaticCompletion: false,
+              outgoing: [],
+            },
+          }),
+        ],
       });
 
       expect(() => toAvailableStepExecution(run)).toThrow();

@@ -19,7 +19,7 @@ import {
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
 class TestableExecutor extends BaseStepExecutor {
@@ -66,6 +66,7 @@ function makeHistoryEntry(
   return {
     stepDefinition: {
       type: StepType.Condition,
+      executionType: StepExecutionMode.Manual,
       options: ['A', 'B'],
       prompt: overrides.prompt ?? 'Pick one',
     },
@@ -88,7 +89,7 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 }
 
 function makeMockLogger(): Logger {
-  return { info: jest.fn(), error: jest.fn() };
+  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
 function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
@@ -112,6 +113,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     } as RecordRef,
     stepDefinition: {
       type: StepType.Condition,
+      executionType: StepExecutionMode.Manual,
       options: ['A', 'B'],
       prompt: 'Pick one',
     },

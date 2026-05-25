@@ -14,6 +14,7 @@ import {
   UnsupportedActionFormError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
 Select the action to trigger.
@@ -29,9 +30,11 @@ interface ActionTarget extends ActionRef {
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
   protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    // Skip when the frontend executes the action itself (non-automatic mode).
+    // Skip when the frontend executes the action itself (non fully-automated mode).
     // The front logs on its side via the standard agent activity flow.
-    if (this.context.stepDefinition.automaticExecution !== true) return null;
+    if (this.context.stepDefinition.executionType !== StepExecutionMode.FullyAutomated) {
+      return null;
+    }
 
     return {
       renderingId: this.context.user.renderingId,
@@ -111,10 +114,10 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const name = this.resolveActionName(schema, args.actionName);
     const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
 
-    // Branch B -- automaticExecution: executor runs the action itself, so it cannot
+    // Branch B -- fully automated: executor runs the action itself, so it cannot
     // handle forms (no UI to fill them). Reject form-bearing actions here. When the
     // frontend is in the loop (Branch C), it handles the form natively so no check.
-    if (step.automaticExecution) {
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
       const { hasForm } = await this.agentPort.getActionFormInfo(
         {
           collection: selectedRecordRef.collectionName,

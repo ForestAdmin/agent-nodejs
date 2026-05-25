@@ -25,7 +25,7 @@ import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-act
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
-import { StepType } from '../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -59,7 +59,7 @@ function createMockAiClient() {
 }
 
 function createMockLogger(): jest.Mocked<Required<Logger>> {
-  return { info: jest.fn(), error: jest.fn() };
+  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
 const VALID_ENV_SECRET = 'a'.repeat(64);
@@ -118,19 +118,24 @@ function createRunnerConfig(
 
 function makeStepDefinition(stepType: StepType): StepDefinition {
   if (stepType === StepType.Condition) {
-    return { type: StepType.Condition, options: ['opt1', 'opt2'] };
+    return {
+      type: StepType.Condition,
+      options: ['opt1', 'opt2'],
+      executionType: StepExecutionMode.Manual,
+    };
   }
 
   if (stepType === StepType.Mcp) {
-    return { type: StepType.Mcp };
+    return { type: StepType.Mcp, executionType: StepExecutionMode.AutomatedWithConfirmation };
   }
 
   if (stepType === StepType.Guidance) {
-    return { type: StepType.Guidance };
+    return { type: StepType.Guidance, executionType: StepExecutionMode.Manual };
   }
 
   return {
     type: stepType as Exclude<StepType, StepType.Condition | StepType.Mcp | StepType.Guidance>,
+    executionType: StepExecutionMode.FullyAutomated,
   };
 }
 
@@ -1220,7 +1225,7 @@ describe('StepExecutorFactory.create — factory', () => {
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
     schemaCache: new SchemaCache(),
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
   });
 
   const makeRunLogger = () => ({
@@ -1343,7 +1348,7 @@ describe('StepExecutorFactory.create — factory', () => {
     const rootCause = new Error('root cause');
     const error = new Error('wrapper');
     (error as Error & { cause: Error }).cause = rootCause;
-    const logger = { info: jest.fn(), error: jest.fn() };
+    const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
     const contextConfig: StepContextConfig = {
       ...makeContextConfig(),
       aiModelPort: {
@@ -1365,7 +1370,7 @@ describe('StepExecutorFactory.create — factory', () => {
   it('logs cause as undefined when construction error cause is not an Error instance', async () => {
     const error = new Error('wrapper');
     (error as Error & { cause: string }).cause = 'plain string';
-    const logger = { info: jest.fn(), error: jest.fn() };
+    const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
     const contextConfig: StepContextConfig = {
       ...makeContextConfig(),
       aiModelPort: {

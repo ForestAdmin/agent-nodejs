@@ -117,10 +117,12 @@ describe('buildInMemoryExecutor', () => {
     });
   });
 
-  it('passes pollingIntervalMs with default value of 5000', () => {
+  it('passes pollingIntervalMs with default value of 30000', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ pollingIntervalMs: 5000 }));
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ pollingIntervalMs: 30000 }),
+    );
   });
 
   it('passes custom pollingIntervalMs', () => {

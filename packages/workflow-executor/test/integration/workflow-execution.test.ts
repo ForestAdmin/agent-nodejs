@@ -13,7 +13,7 @@ import ExecutorHttpServer from '../../src/http/executor-http-server';
 import Runner from '../../src/runner';
 import SchemaCache from '../../src/schema-cache';
 import InMemoryStore from '../../src/stores/in-memory-store';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -313,6 +313,7 @@ describe('workflow execution (integration)', () => {
     const step = buildPendingStep({
       stepDefinition: {
         type: StepType.Condition,
+        executionType: StepExecutionMode.FullyAutomated,
         options: ['Yes', 'No'],
         prompt: 'Is the customer active?',
       },
@@ -358,7 +359,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.UpdateRecord, prompt: 'Update the status' },
+      stepDefinition: {
+        type: StepType.UpdateRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Update the status',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -417,7 +422,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.TriggerAction, prompt: 'Send the email' },
+      stepDefinition: {
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Send the email',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -475,7 +484,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.LoadRelatedRecord, prompt: 'Load the order' },
+      stepDefinition: {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Load the order',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -566,7 +579,11 @@ describe('workflow execution (integration)', () => {
     (aiClient.loadRemoteTools as jest.Mock).mockResolvedValue([fakeRemoteTool]);
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.Mcp, prompt: 'Send a notification' },
+      stepDefinition: {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Send a notification',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -617,7 +634,11 @@ describe('workflow execution (integration)', () => {
 
   it('user mismatch → HTTP 403', async () => {
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.ReadRecord, prompt: 'Read email' },
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Read email',
+      },
       user: { ...STEP_USER, id: 1 },
     });
 
@@ -649,7 +670,11 @@ describe('workflow execution (integration)', () => {
 
   it('GET /runs/:runId returns step data after trigger', async () => {
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer email' },
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Read the customer email',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -716,7 +741,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.UpdateRecord, prompt: 'Update the status' },
+      stepDefinition: {
+        type: StepType.UpdateRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Update the status',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -762,7 +791,11 @@ describe('workflow execution (integration)', () => {
     const model = createMockModel({ fieldNames: ['Email'] });
 
     const pendingStep = buildPendingStep({
-      stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer email' },
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Read the customer email',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({

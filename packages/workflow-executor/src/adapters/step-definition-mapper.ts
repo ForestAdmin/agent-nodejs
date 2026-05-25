@@ -1,5 +1,5 @@
 import type {
-  ServerTaskType,
+  ServerTaskTypeEnum,
   ServerWorkflowCondition,
   ServerWorkflowStep,
   ServerWorkflowTask,
@@ -7,9 +7,18 @@ import type {
 import type { ConditionStepDefinition, StepDefinition } from '../types/validated/step-definition';
 
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../errors';
-import { StepType } from '../types/validated/step-definition';
+import {
+  ConditionStepDefinitionSchema,
+  GuidanceStepDefinitionSchema,
+  LoadRelatedRecordStepDefinitionSchema,
+  McpStepDefinitionSchema,
+  ReadRecordStepDefinitionSchema,
+  StepType,
+  TriggerActionStepDefinitionSchema,
+  UpdateRecordStepDefinitionSchema,
+} from '../types/validated/step-definition';
 
-const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskType, StepType> = {
+const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskTypeEnum, StepType> = {
   'get-data': StepType.ReadRecord,
   'update-data': StepType.UpdateRecord,
   'trigger-action': StepType.TriggerAction,
@@ -25,26 +34,30 @@ function mapTask(task: ServerWorkflowTask): StepDefinition {
     throw new InvalidStepDefinitionError(`Unknown taskType: "${task.taskType}"`);
   }
 
-  const base: { prompt: string; automaticExecution?: boolean } = { prompt: task.prompt };
-  if (task.automaticExecution !== undefined) base.automaticExecution = task.automaticExecution;
+  // executionType is passed through as-is; each schema's .default().catch() handles
+  // missing or unsupported values without requiring an explicit mapping here.
+  const base = { prompt: task.prompt, executionType: task.executionType };
 
   switch (stepType) {
     case StepType.Mcp:
-      return {
+      return McpStepDefinitionSchema.parse({
         ...base,
         type: StepType.Mcp,
-        ...(task.mcpServerId !== undefined && { mcpServerId: task.mcpServerId }),
-      };
+        ...('mcpServerId' in task && { mcpServerId: task.mcpServerId }),
+      });
     case StepType.Guidance:
-      return { ...base, type: StepType.Guidance };
+      return GuidanceStepDefinitionSchema.parse({ ...base, type: StepType.Guidance });
     case StepType.ReadRecord:
-      return { ...base, type: StepType.ReadRecord };
+      return ReadRecordStepDefinitionSchema.parse({ ...base, type: StepType.ReadRecord });
     case StepType.UpdateRecord:
-      return { ...base, type: StepType.UpdateRecord };
+      return UpdateRecordStepDefinitionSchema.parse({ ...base, type: StepType.UpdateRecord });
     case StepType.TriggerAction:
-      return { ...base, type: StepType.TriggerAction };
+      return TriggerActionStepDefinitionSchema.parse({ ...base, type: StepType.TriggerAction });
     case StepType.LoadRelatedRecord:
-      return { ...base, type: StepType.LoadRelatedRecord };
+      return LoadRelatedRecordStepDefinitionSchema.parse({
+        ...base,
+        type: StepType.LoadRelatedRecord,
+      });
     default:
       throw new InvalidStepDefinitionError(`Unmapped step type: "${stepType}"`);
   }
@@ -61,11 +74,12 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
     );
   }
 
-  return {
+  return ConditionStepDefinitionSchema.parse({
     type: StepType.Condition,
     prompt: condition.prompt,
+    executionType: condition.executionType,
     options,
-  };
+  });
 }
 
 // Server uses `type:'task' + taskType` for non-condition steps and `outgoing[]` for conditions;

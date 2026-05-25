@@ -1,5 +1,6 @@
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 
+import { RunStorePortError, StepStateError } from '../../src/errors';
 import InMemoryStore from '../../src/stores/in-memory-store';
 
 function makeStepExecution(overrides: Partial<StepExecutionData> = {}): StepExecutionData {
@@ -77,5 +78,22 @@ describe('InMemoryStore', () => {
 
     expect(await store.getStepExecutions('run-1')).toEqual([step1]);
     expect(await store.getStepExecutions('run-2')).toEqual([step2]);
+  });
+
+  it('wraps unexpected errors in RunStorePortError', async () => {
+    jest.spyOn((store as any).data, 'get').mockImplementation(() => {
+      throw new Error('unexpected internal error');
+    });
+
+    await expect(store.getStepExecutions('run-1')).rejects.toBeInstanceOf(RunStorePortError);
+  });
+
+  it('re-throws WorkflowExecutorError directly without wrapping', async () => {
+    const domainError = new StepStateError('bad state');
+    jest.spyOn((store as any).data, 'get').mockImplementation(() => {
+      throw domainError;
+    });
+
+    await expect(store.getStepExecutions('run-1')).rejects.toBe(domainError);
   });
 });

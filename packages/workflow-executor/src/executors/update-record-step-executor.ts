@@ -14,6 +14,7 @@ import {
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
 Select the field to update and provide the new value.
@@ -180,8 +181,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       value: args.value,
     };
 
-    // Branch B -- automaticExecution
-    if (step.automaticExecution) {
+    // Branch B -- fully automated execution
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
       return this.resolveAndUpdate(target);
     }
 

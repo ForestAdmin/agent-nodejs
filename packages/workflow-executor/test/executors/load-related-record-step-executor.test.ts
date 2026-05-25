@@ -9,13 +9,14 @@ import type { LoadRelatedRecordStepDefinition } from '../../src/types/validated/
 import { AgentPortError, RunStorePortError } from '../../src/errors';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
   overrides: Partial<LoadRelatedRecordStepDefinition> = {},
 ): LoadRelatedRecordStepDefinition {
   return {
     type: StepType.LoadRelatedRecord,
+    executionType: StepExecutionMode.AutomatedWithConfirmation,
     prompt: 'Load the related order for this customer',
     ...overrides,
   };
@@ -144,7 +145,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -174,7 +175,7 @@ function makePendingExecution(
 }
 
 describe('LoadRelatedRecordStepExecutor', () => {
-  describe('automaticExecution: BelongsTo — load direct (Branch B)', () => {
+  describe('executionType=FullyAutomated: BelongsTo — load direct (Branch B)', () => {
     it('fetches 1 related record and returns success', async () => {
       const agentPort = makeMockAgentPort();
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'User requested order' });
@@ -183,7 +184,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -216,7 +217,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('automaticExecution: HasMany — 2 AI calls (Branch B)', () => {
+  describe('executionType=FullyAutomated: HasMany — 2 AI calls (Branch B)', () => {
     it('runs selectRelevantFields + selectBestRecord to pick the best candidate', async () => {
       const hasManySchema = makeCollectionSchema({
         fields: [
@@ -282,7 +283,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           customers: hasManySchema,
           addresses: addressSchema,
         }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -360,7 +361,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -403,7 +404,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -469,7 +470,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -528,7 +529,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -542,7 +543,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('automaticExecution: HasOne — load direct (Branch B)', () => {
+  describe('executionType=FullyAutomated: HasOne — load direct (Branch B)', () => {
     it('fetches 1 related record (same path as BelongsTo) and returns success', async () => {
       const hasOneSchema = makeCollectionSchema({
         fields: [
@@ -564,7 +565,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasOneSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -587,7 +588,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('without automaticExecution: awaiting-input (Branch C)', () => {
+  describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {
     it('saves AI suggestion in pendingData and returns awaiting-input (single record — no field/record AI calls)', async () => {
       const agentPort = makeMockAgentPort(); // returns 1 record: orders #99
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'User requested order' });
@@ -1089,7 +1090,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1121,7 +1122,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1162,7 +1163,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runId: 'run-1',
         stepIndex: 0,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1219,7 +1220,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1292,7 +1293,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1312,7 +1313,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.getRelatedData throws an infra error', async () => {
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(
         new AgentPortError('getRelatedData', new Error('DB connection lost')),
@@ -1322,7 +1323,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         logger,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1436,7 +1437,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
-      const context = makeContext({ stepDefinition: makeStep({ automaticExecution: true }) });
+      const context = makeContext({
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -1469,6 +1472,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },
@@ -1582,7 +1586,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1601,7 +1605,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const workflowPort = makeMockWorkflowPort();
       const context = makeContext({
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1713,7 +1717,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         runStore,
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Order' },
         }),
       });
@@ -1746,7 +1750,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         agentPort: makeMockAgentPort(relatedData),
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 1 },
         }),
       });
@@ -1784,7 +1788,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort: makeMockAgentPort(relatedData),
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 99 },
         }),
       });
@@ -1799,7 +1803,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const { model, bindTools } = makeMockModel({ relationName: 'Orders', reasoning: 'r' });
       const context = makeContext({
         model,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
