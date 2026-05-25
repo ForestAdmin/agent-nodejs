@@ -38,7 +38,7 @@ function toRecordStatus(ctxStatus: unknown): RecordStepOutcome['status'] {
 // `context` may come from the executor (our StepOutcome, stored verbatim) or the legacy frontend
 // (free-form). We whitelist known fields per type to avoid leaking legacy ones back to the
 // orchestrator and to enforce the discriminated-union shape.
-function toStepOutcome(s: ServerStepHistory, logger: Logger): StepOutcome {
+function toStepOutcome(s: ServerStepHistory, logger?: Logger): StepOutcome {
   const stepDef = toStepDefinition(s.stepDefinition, logger);
   const outcomeType = stepTypeToOutcomeType(stepDef.type);
   const ctx = (s.context ?? {}) as Record<string, unknown>;
@@ -76,11 +76,11 @@ function toStepOutcome(s: ServerStepHistory, logger: Logger): StepOutcome {
   return { type: 'record', ...baseFromCtx, status } satisfies RecordStepOutcome;
 }
 
-function tryMapStep(s: ServerStepHistory, logger: Logger): Step | null {
+function tryMapStep(s: ServerStepHistory): Step | null {
   try {
     return {
-      stepDefinition: toStepDefinition(s.stepDefinition, logger),
-      stepOutcome: toStepOutcome(s, logger),
+      stepDefinition: toStepDefinition(s.stepDefinition),
+      stepOutcome: toStepOutcome(s),
     };
   } catch (err) {
     // Sub-workflow navigation steps (start-sub-workflow, close-sub-workflow) are not
@@ -93,11 +93,10 @@ function tryMapStep(s: ServerStepHistory, logger: Logger): Step | null {
 function toPreviousSteps(
   history: ServerStepHistory[],
   pendingStepIndex: number,
-  logger: Logger,
 ): ReadonlyArray<Step> {
   return history
     .filter(s => s.done && s.stepIndex < pendingStepIndex)
-    .map(s => tryMapStep(s, logger))
+    .map(s => tryMapStep(s))
     .filter((s): s is Step => s !== null);
 }
 
@@ -156,7 +155,7 @@ export default function toAvailableStepExecution(
       stepIndex: 0,
     },
     stepDefinition: toStepDefinition(pending.stepDefinition, logger),
-    previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex, logger),
+    previousSteps: toPreviousSteps(run.workflowHistory, pending.stepIndex),
     user: toStepUser(run.id, run.userProfile),
   };
 

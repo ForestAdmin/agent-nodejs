@@ -9,11 +9,43 @@ import type { ConditionStepDefinition, StepDefinition } from '../types/validated
 
 import { ServerStepExecutionTypeEnum } from './server-types';
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../errors';
-import {
-  SUPPORTED_EXECUTION_MODES,
-  StepExecutionMode,
+import { StepExecutionMode, StepType } from '../types/validated/step-definition';
+
+// Declares which execution modes are valid per step type and the fallback to use otherwise.
+// Enforced at the adapter boundary so executors can assume the configured mode is supported.
+const SUPPORTED_EXECUTION_MODES: Record<
   StepType,
-} from '../types/validated/step-definition';
+  { supported: readonly StepExecutionMode[]; fallback: StepExecutionMode }
+> = {
+  [StepType.Condition]: {
+    supported: [StepExecutionMode.Manual, StepExecutionMode.FullyAutomated],
+    fallback: StepExecutionMode.FullyAutomated,
+  },
+  [StepType.ReadRecord]: {
+    supported: [StepExecutionMode.FullyAutomated],
+    fallback: StepExecutionMode.FullyAutomated,
+  },
+  [StepType.UpdateRecord]: {
+    supported: [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
+    fallback: StepExecutionMode.AutomatedWithConfirmation,
+  },
+  [StepType.TriggerAction]: {
+    supported: [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
+    fallback: StepExecutionMode.AutomatedWithConfirmation,
+  },
+  [StepType.LoadRelatedRecord]: {
+    supported: [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
+    fallback: StepExecutionMode.AutomatedWithConfirmation,
+  },
+  [StepType.Mcp]: {
+    supported: [StepExecutionMode.AutomatedWithConfirmation, StepExecutionMode.FullyAutomated],
+    fallback: StepExecutionMode.AutomatedWithConfirmation,
+  },
+  [StepType.Guidance]: {
+    supported: [StepExecutionMode.Manual],
+    fallback: StepExecutionMode.Manual,
+  },
+};
 
 const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskTypeEnum, StepType> = {
   'get-data': StepType.ReadRecord,
@@ -34,7 +66,7 @@ const EXECUTION_TYPE_TO_MODE: Record<ServerStepExecutionTypeEnum, StepExecutionM
 function toStepExecutionMode(
   executionType: ServerStepExecutionTypeEnum | undefined,
 ): StepExecutionMode | undefined {
-  return executionType === undefined ? undefined : EXECUTION_TYPE_TO_MODE[executionType];
+  return EXECUTION_TYPE_TO_MODE[executionType] ?? null;
 }
 
 // Substitutes the step type's fallback when the configured mode is not supported, logging a
@@ -43,13 +75,13 @@ function toStepExecutionMode(
 function normalizeExecutionType(
   stepType: StepType,
   executionType: StepExecutionMode | undefined,
-  logger: Logger,
+  logger?: Logger,
 ): StepExecutionMode | undefined {
   if (executionType === undefined) return undefined;
   const { supported, fallback } = SUPPORTED_EXECUTION_MODES[stepType];
   if (supported.includes(executionType)) return executionType;
 
-  logger.warn(
+  logger?.warn(
     `Step type "${stepType}" received unsupported executionType=${executionType}; falling back to ${fallback}`,
     { stepType, configuredExecutionType: executionType, supportedExecutionTypes: supported },
   );
@@ -57,7 +89,7 @@ function normalizeExecutionType(
   return fallback;
 }
 
-function mapTask(task: ServerWorkflowTask, logger: Logger): StepDefinition {
+function mapTask(task: ServerWorkflowTask, logger?: Logger): StepDefinition {
   const stepType = TASK_TYPE_TO_STEP_TYPE[task.taskType];
 
   if (!stepType) {
@@ -69,8 +101,10 @@ function mapTask(task: ServerWorkflowTask, logger: Logger): StepDefinition {
     toStepExecutionMode(task.executionType),
     logger,
   );
-  const base: { prompt: string; executionType?: StepExecutionMode } = { prompt: task.prompt };
-  if (executionType !== undefined) base.executionType = executionType;
+  const base: { prompt: string; executionType: StepExecutionMode } = {
+    prompt: task.prompt,
+    executionType,
+  };
 
   switch (stepType) {
     case StepType.Mcp:
@@ -94,7 +128,10 @@ function mapTask(task: ServerWorkflowTask, logger: Logger): StepDefinition {
   }
 }
 
-function mapCondition(condition: ServerWorkflowCondition, logger: Logger): ConditionStepDefinition {
+function mapCondition(
+  condition: ServerWorkflowCondition,
+  logger?: Logger,
+): ConditionStepDefinition {
   const options = condition.outgoing
     .map(t => t.answer ?? t.buttonText)
     .filter((v): v is string => typeof v === 'string' && v.length > 0);
@@ -124,7 +161,7 @@ function mapCondition(condition: ServerWorkflowCondition, logger: Logger): Condi
 // (end/escalation/sub-workflow) throw UnsupportedStepTypeError.
 export default function toStepDefinition(
   serverStep: ServerWorkflowStep,
-  logger: Logger,
+  logger?: Logger,
 ): StepDefinition {
   switch (serverStep.type) {
     case 'task':

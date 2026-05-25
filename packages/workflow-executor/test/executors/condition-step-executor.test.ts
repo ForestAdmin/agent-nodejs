@@ -12,6 +12,7 @@ import { StepExecutionMode, StepType } from '../../src/types/validated/step-defi
 function makeStep(overrides: Partial<ConditionStepDefinition> = {}): ConditionStepDefinition {
   return {
     type: StepType.Condition,
+    executionType: StepExecutionMode.FullyAutomated,
     options: ['Approve', 'Reject'],
     prompt: 'Should we approve this?',
     ...overrides,
@@ -203,6 +204,7 @@ describe('ConditionStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.FullyAutomated,
               options: ['Yes', 'No'],
               prompt: 'Previous question',
             },
