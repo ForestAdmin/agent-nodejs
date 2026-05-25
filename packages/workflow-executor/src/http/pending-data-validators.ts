@@ -42,8 +42,6 @@ const loadRelatedRecordPatchSchema = z
   .refine(data => data.name === undefined || data.selectedRecordId !== undefined, {
     message: 'selectedRecordId is required when overriding the relation name',
   });
-// relatedCollectionName, displayName and suggestedFields are NOT accepted — internal executor data.
-
 const guidancePatchSchema = z
   .object({
     userInput: z.string().optional(),
