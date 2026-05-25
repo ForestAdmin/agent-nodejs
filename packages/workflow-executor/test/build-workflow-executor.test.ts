@@ -121,15 +121,20 @@ describe('buildInMemoryExecutor', () => {
   it('creates AlwaysErrorAiModelPort when forceAiError is true', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const AlwaysErrorAiModelPort = require('../src/adapters/always-error-ai-model-port').default;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const AiClientAdapter = require('../src/adapters/ai-client-adapter').default;
 
     buildInMemoryExecutor({ ...BASE_OPTIONS, forceAiError: true });
 
     expect(AlwaysErrorAiModelPort).toHaveBeenCalledTimes(1);
+    expect(AiClientAdapter).not.toHaveBeenCalled();
   });
 
   it('ignores forceAiError in production (NODE_ENV=production)', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const AlwaysErrorAiModelPort = require('../src/adapters/always-error-ai-model-port').default;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const AiClientAdapter = require('../src/adapters/ai-client-adapter').default;
     const original = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
 
@@ -137,6 +142,7 @@ describe('buildInMemoryExecutor', () => {
       buildInMemoryExecutor({ ...BASE_OPTIONS, forceAiError: true });
 
       expect(AlwaysErrorAiModelPort).not.toHaveBeenCalled();
+      expect(AiClientAdapter).toHaveBeenCalledWith(BASE_OPTIONS.aiConfigurations);
     } finally {
       process.env.NODE_ENV = original;
     }

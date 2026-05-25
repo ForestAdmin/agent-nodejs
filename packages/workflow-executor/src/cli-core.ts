@@ -206,9 +206,15 @@ export function printVersion(): void {
 
 export function logStartup(logger: Logger, config: CliConfig): void {
   const { executorOptions: opts, mode } = config;
-  const aiLabel = opts.aiConfigurations?.length
-    ? `local (${opts.aiConfigurations[0].provider} / ${opts.aiConfigurations[0].model})`
-    : 'server fallback';
+  let aiLabel: string;
+
+  if (opts.forceAiError) {
+    aiLabel = 'forced-error (dev only)';
+  } else if (opts.aiConfigurations?.length) {
+    aiLabel = `local (${opts.aiConfigurations[0].provider} / ${opts.aiConfigurations[0].model})`;
+  } else {
+    aiLabel = 'server fallback';
+  }
 
   logger.info('Workflow executor starting', {
     mode,

@@ -67,6 +67,8 @@ function buildCommonDependencies(options: ExecutorOptions) {
       'FORCE_AI_ERROR is enabled — AI calls will always fail. Do not use in production.',
       {},
     );
+  } else if (options.forceAiError && process.env.NODE_ENV === 'production') {
+    logger.info('FORCE_AI_ERROR is set but ignored in production.', {});
   }
 
   let aiModelPort;

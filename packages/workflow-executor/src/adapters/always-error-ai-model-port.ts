@@ -1,11 +1,11 @@
 import type { AiModelPort } from '../ports/ai-model-port';
-import type { RemoteTool } from '@forestadmin/ai-proxy';
+import type { McpConfiguration, RemoteTool } from '@forestadmin/ai-proxy';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 import { AiModelPortError } from '../errors';
 
 // Dev-only adapter: every AI call throws immediately so devs can reproduce AI error paths
-// without a real AI service. Activated via WORKFLOW_EXECUTOR_FORCE_AI_ERROR=true.
+// without a real AI service. Activated via FORCE_AI_ERROR=true.
 export default class AlwaysErrorAiModelPort implements AiModelPort {
   getModel(): BaseChatModel {
     return {
@@ -18,7 +18,8 @@ export default class AlwaysErrorAiModelPort implements AiModelPort {
     } as unknown as BaseChatModel;
   }
 
-  loadRemoteTools(): Promise<RemoteTool[]> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  loadRemoteTools(_config: McpConfiguration): Promise<RemoteTool[]> {
     return Promise.resolve([]);
   }
 

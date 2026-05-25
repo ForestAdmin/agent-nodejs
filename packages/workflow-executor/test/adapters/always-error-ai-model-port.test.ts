@@ -28,7 +28,7 @@ describe('AlwaysErrorAiModelPort', () => {
 
   describe('loadRemoteTools', () => {
     it('returns an empty array', async () => {
-      await expect(port.loadRemoteTools()).resolves.toEqual([]);
+      await expect(port.loadRemoteTools({} as never)).resolves.toEqual([]);
     });
   });
 
