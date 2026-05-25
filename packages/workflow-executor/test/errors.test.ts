@@ -1,4 +1,10 @@
-import { NoMcpToolsError, extractErrorMessage } from '../src/errors';
+import {
+  AiModelPortError,
+  InvalidPendingDataError,
+  NoMcpToolsError,
+  PendingDataNotFoundError,
+  extractErrorMessage,
+} from '../src/errors';
 
 describe('extractErrorMessage', () => {
   it('returns err.message when non-empty', () => {
@@ -96,5 +102,65 @@ describe('NoMcpToolsError', () => {
 
     expect(err.userMessage).toBe('No tools are available to execute this step.');
     expect(err.userMessage).not.toMatch(/id-missing|id-A|id-B/);
+  });
+});
+
+describe('AiModelPortError', () => {
+  it('includes the operation and Error cause message in the technical message', () => {
+    const err = new AiModelPortError('invoke', new Error('timeout'));
+
+    expect(err.message).toMatch(/invoke/);
+    expect(err.message).toMatch(/timeout/);
+  });
+
+  it('converts non-Error causes to string in the technical message', () => {
+    const err = new AiModelPortError('invoke', 'network failure');
+
+    expect(err.message).toMatch(/network failure/);
+  });
+
+  it('exposes a generic user-facing message', () => {
+    const err = new AiModelPortError('invoke', new Error('timeout'));
+
+    expect(err.userMessage).toBe(
+      'The AI service is unavailable. Please try again or contact your administrator.',
+    );
+  });
+
+  it('stores the original cause', () => {
+    const cause = new Error('root cause');
+    const err = new AiModelPortError('invoke', cause);
+
+    expect(err.cause).toBe(cause);
+  });
+});
+
+describe('PendingDataNotFoundError', () => {
+  it('includes the runId and stepIndex in the message', () => {
+    const err = new PendingDataNotFoundError('run-42', 3);
+
+    expect(err.message).toMatch(/run-42/);
+    expect(err.message).toMatch(/3/);
+  });
+
+  it('sets name to PendingDataNotFoundError', () => {
+    const err = new PendingDataNotFoundError('run-1', 0);
+
+    expect(err.name).toBe('PendingDataNotFoundError');
+  });
+});
+
+describe('InvalidPendingDataError', () => {
+  it('stores the provided validation issues', () => {
+    const issues = [{ path: ['field'], message: 'required', code: 'invalid_type' }];
+    const err = new InvalidPendingDataError(issues);
+
+    expect(err.issues).toBe(issues);
+  });
+
+  it('exposes a generic user-facing message', () => {
+    const err = new InvalidPendingDataError([]);
+
+    expect(err.userMessage).toBe('The request body is invalid.');
   });
 });
