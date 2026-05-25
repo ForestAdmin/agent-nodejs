@@ -8,11 +8,12 @@ import type { ReadRecordStepDefinition } from '../../src/types/validated/step-de
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ReadRecordStepDefinition> = {}): ReadRecordStepDefinition {
   return {
     type: StepType.ReadRecord,
+    executionType: StepExecutionMode.FullyAutomated,
     prompt: 'Read the customer email',
     ...overrides,
   };
@@ -803,6 +804,7 @@ describe('ReadRecordStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },

@@ -118,7 +118,7 @@ describe('toAvailableStepExecution', () => {
       stepDefinition: {
         type: StepType.ReadRecord,
         prompt: 'prompt',
-        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+        executionType: ServerStepExecutionTypeEnum.FullyAutomated,
       },
       previousSteps: [],
       user: expect.objectContaining({ id: 7, email: 'alban@forestadmin.com' }),

@@ -8,6 +8,8 @@ import type { AvailableStepExecution } from '../src/types/execution-context';
 import type { StepDefinition } from '../src/types/validated/step-definition';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
+import { exec } from 'child_process';
+
 import {
   ConfigurationError,
   MalformedRunError,
@@ -25,7 +27,7 @@ import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-act
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
-import { StepType } from '../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -118,19 +120,24 @@ function createRunnerConfig(
 
 function makeStepDefinition(stepType: StepType): StepDefinition {
   if (stepType === StepType.Condition) {
-    return { type: StepType.Condition, options: ['opt1', 'opt2'] };
+    return {
+      type: StepType.Condition,
+      options: ['opt1', 'opt2'],
+      executionType: StepExecutionMode.Manual,
+    };
   }
 
   if (stepType === StepType.Mcp) {
-    return { type: StepType.Mcp };
+    return { type: StepType.Mcp, executionType: StepExecutionMode.AutomatedWithConfirmation };
   }
 
   if (stepType === StepType.Guidance) {
-    return { type: StepType.Guidance };
+    return { type: StepType.Guidance, executionType: StepExecutionMode.Manual };
   }
 
   return {
     type: stepType as Exclude<StepType, StepType.Condition | StepType.Mcp | StepType.Guidance>,
+    executionType: StepExecutionMode.FullyAutomated,
   };
 }
 

@@ -68,7 +68,7 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(task, logger)).toEqual({
         type: StepType.ReadRecord,
         prompt: 'read it',
-        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+        executionType: ServerStepExecutionTypeEnum.FullyAutomated,
       });
     });
 
@@ -176,7 +176,7 @@ describe('toStepDefinition', () => {
       });
 
       expect(toStepDefinition(task, logger)).toMatchObject({
-        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        executionType: StepExecutionMode.FullyAutomated,
       });
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('unsupported executionType=manual'),
@@ -195,12 +195,14 @@ describe('toStepDefinition', () => {
       expect(logger.warn).not.toHaveBeenCalled();
     });
 
-    it('should omit executionType when undefined on the server step', () => {
+    it('should fallback to default executionType when undefined on the server step', () => {
       // Strip executionType so the mapper does not forward it (real-world legacy step).
       const task = makeTask({ taskType: ServerTaskTypeEnum.GetData });
       delete (task as { executionType?: unknown }).executionType;
 
-      expect(toStepDefinition(task, logger)).not.toHaveProperty('executionType');
+      expect(toStepDefinition(task, logger)).toMatchObject({
+        executionType: StepExecutionMode.FullyAutomated,
+      });
     });
 
     it('should throw InvalidStepDefinitionError for unknown taskType', () => {

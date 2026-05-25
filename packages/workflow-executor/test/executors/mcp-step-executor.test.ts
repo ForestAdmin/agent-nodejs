@@ -41,6 +41,7 @@ function makeStep(overrides: Partial<McpStepDefinition> = {}): McpStepDefinition
   return {
     type: StepType.Mcp,
     prompt: 'Send a notification to the user',
+    executionType: StepExecutionMode.AutomatedWithConfirmation,
     ...overrides,
   };
 }
@@ -921,6 +922,7 @@ describe('McpStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we send a notification?',
             },

@@ -14,6 +14,7 @@ import { StepExecutionMode, StepType } from '../../src/types/validated/step-defi
 function makeStep(overrides: Partial<UpdateRecordStepDefinition> = {}): UpdateRecordStepDefinition {
   return {
     type: StepType.UpdateRecord,
+    executionType: StepExecutionMode.AutomatedWithConfirmation,
     prompt: 'Set the customer status to active',
     ...overrides,
   };
@@ -945,6 +946,7 @@ describe('UpdateRecordStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },

@@ -65,7 +65,7 @@ const EXECUTION_TYPE_TO_MODE: Record<ServerStepExecutionTypeEnum, StepExecutionM
 
 function toStepExecutionMode(
   executionType: ServerStepExecutionTypeEnum | undefined,
-): StepExecutionMode | undefined {
+): StepExecutionMode | null {
   return EXECUTION_TYPE_TO_MODE[executionType] ?? null;
 }
 
@@ -74,11 +74,12 @@ function toStepExecutionMode(
 // already treat undefined as the fallback.
 function normalizeExecutionType(
   stepType: StepType,
-  executionType: StepExecutionMode | undefined,
+  executionType: StepExecutionMode | null,
   logger?: Logger,
-): StepExecutionMode | undefined {
-  if (executionType === undefined) return undefined;
+): StepExecutionMode {
   const { supported, fallback } = SUPPORTED_EXECUTION_MODES[stepType];
+  if (!executionType) return fallback;
+
   if (supported.includes(executionType)) return executionType;
 
   logger?.warn(

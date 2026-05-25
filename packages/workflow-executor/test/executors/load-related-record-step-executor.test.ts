@@ -16,6 +16,7 @@ function makeStep(
 ): LoadRelatedRecordStepDefinition {
   return {
     type: StepType.LoadRelatedRecord,
+    executionType: StepExecutionMode.AutomatedWithConfirmation,
     prompt: 'Load the related order for this customer',
     ...overrides,
   };
@@ -1471,6 +1472,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },

@@ -16,6 +16,7 @@ function makeStep(
 ): TriggerActionStepDefinition {
   return {
     type: StepType.TriggerAction,
+    executionType: StepExecutionMode.AutomatedWithConfirmation,
     prompt: 'Send a welcome email to the customer',
     ...overrides,
   };
@@ -1012,6 +1013,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.FullyAutomated,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },
