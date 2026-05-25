@@ -5,7 +5,10 @@ import type {
   IStepExecutor,
   StepExecutionResult,
 } from '../types/execution-context';
-import type { StepExecutionData, WithUserConfirmation } from '../types/step-execution-data';
+import type {
+  ConfirmableStepExecutionData,
+  StepExecutionData,
+} from '../types/step-execution-data';
 import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
@@ -26,10 +29,6 @@ import {
 } from '../errors';
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
-
-type WithPendingData = StepExecutionData & { pendingData?: object } & WithUserConfirmation;
-
-type PatchBody = Record<string, unknown> & { userConfirmed?: boolean };
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
   implements IStepExecutor
@@ -193,7 +192,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     error?: string;
   }): StepExecutionResult;
 
-  protected async findPendingExecution<TExec extends WithPendingData>(
+  protected async findPendingExecution<TExec extends ConfirmableStepExecutionData>(
     type: string,
   ): Promise<TExec | undefined> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
@@ -205,7 +204,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   // Preserves the AI suggestion in pendingData: only userConfirmed is mirrored there because
   // handleConfirmationFlow gates on it. The full parsed PATCH body is stored in userConfirmation.
-  protected async patchAndReloadPendingData<TExec extends WithPendingData>(
+  protected async patchAndReloadPendingData<TExec extends ConfirmableStepExecutionData>(
     pendingData?: unknown,
   ): Promise<TExec | undefined> {
     const { type } = this.context.stepDefinition;
@@ -231,18 +230,18 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       );
     }
 
-    const patchBody = parsed.data as PatchBody;
+    const userConfirmation = parsed.data as TExec['userConfirmation'];
 
     // Last-write-wins: spread-merging would leak stale keys from prior PATCHes.
     const updated: TExec = {
       ...execution,
       pendingData: {
         ...execution.pendingData,
-        ...(patchBody.userConfirmed !== undefined
-          ? { userConfirmed: patchBody.userConfirmed }
+        ...(userConfirmation?.userConfirmed !== undefined
+          ? { userConfirmed: userConfirmation.userConfirmed }
           : {}),
       },
-      userConfirmation: patchBody as TExec['userConfirmation'],
+      userConfirmation,
     };
 
     await this.context.runStore.saveStepExecution(this.context.runId, updated);
@@ -252,7 +251,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   // userConfirmed branches: undefined → re-emit awaiting-input (PATCH not yet called);
   // false → save as skipped + success outcome; true → resolveAndExecute.
-  protected async handleConfirmationFlow<TExec extends WithPendingData>(
+  protected async handleConfirmationFlow<TExec extends ConfirmableStepExecutionData>(
     execution: TExec,
     resolveAndExecute: (execution: TExec) => Promise<StepExecutionResult>,
   ): Promise<StepExecutionResult> {
