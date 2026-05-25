@@ -228,12 +228,12 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   private getFilteredTools(): RemoteTool[] {
     const { mcpServerId } = this.context.stepDefinition;
     const tools = mcpServerId
-      ? this.remoteTools.filter(t => t.mcpServerId === mcpServerId)
+      ? this.remoteTools.filter(t => t.sourceId === mcpServerId)
       : [...this.remoteTools];
 
     if (tools.length === 0) {
       const loadedMcpServerIds = this.remoteTools
-        .map(t => t.mcpServerId)
+        .map(t => t.sourceId)
         .filter((value): value is string => !!value);
       const error = new NoMcpToolsError(mcpServerId, loadedMcpServerIds);
       this.context.logger.error(error.message, {

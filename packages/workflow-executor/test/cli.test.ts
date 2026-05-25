@@ -393,6 +393,26 @@ describe('runCli', () => {
     expect(output).toContain('Workflow executor ready');
   });
 
+  it('logs aiConfig as "forced-error (dev only)" when FORCE_AI_ERROR=true', async () => {
+    const { factories } = makeFactories();
+    await runCli(['--json'], { ...baseEnv, FORCE_AI_ERROR: 'true' }, factories);
+
+    const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    expect(output).toContain('forced-error (dev only)');
+  });
+
+  it('logs aiConfig with provider/model when aiConfigurations are set', async () => {
+    const { factories } = makeFactories();
+    await runCli(
+      ['--json'],
+      { ...baseEnv, AI_PROVIDER: 'openai', AI_MODEL: 'gpt-4o', AI_API_KEY: 'sk-x' },
+      factories,
+    );
+
+    const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    expect(output).toContain('local (openai / gpt-4o)');
+  });
+
   it('logs a structured error when executor.start() fails and rethrows', async () => {
     const failingExecutor = {
       start: jest.fn().mockRejectedValue(new Error('db unreachable')),
