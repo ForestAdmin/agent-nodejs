@@ -60,7 +60,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     logger,
   });
 
-  const { forceAiError } = options;
+  const forceAiError = options.forceAiError && process.env.NODE_ENV !== 'production';
 
   if (forceAiError) {
     logger.warn(
