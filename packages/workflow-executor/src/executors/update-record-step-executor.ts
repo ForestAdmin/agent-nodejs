@@ -132,14 +132,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     if (pending) {
       return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
         const { selectedRecordRef, pendingData, userConfirmation } = exec;
-        const userValue =
-          userConfirmation && 'value' in userConfirmation
-            ? userConfirmation.value
-            : (pendingData as { value: unknown })?.value;
         const target: UpdateTarget = {
           selectedRecordRef,
-          ...(pendingData as FieldRef),
-          value: userValue,
+          ...pendingData!,
+          value: userConfirmation?.value ?? pendingData!.value,
         };
 
         return this.resolveAndUpdate(target, exec);
