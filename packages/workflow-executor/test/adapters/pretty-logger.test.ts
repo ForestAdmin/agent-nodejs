@@ -64,4 +64,19 @@ describe('PrettyLogger', () => {
       expect(output).toMatch(/^\d{2}:\d{2}:\d{2} error Poll cycle failed error="timeout"$/);
     });
   });
+
+  describe('warn', () => {
+    it('prints on console.warn with "warn" level', () => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      logger.warn('rate limit approaching', { remaining: 5 });
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(infoSpy).not.toHaveBeenCalled();
+      const output = stripAnsi(warnSpy.mock.calls[0][0] as string);
+      expect(output).toMatch(/^\d{2}:\d{2}:\d{2} warn {2}rate limit approaching remaining=5$/);
+
+      warnSpy.mockRestore();
+    });
+  });
 });
