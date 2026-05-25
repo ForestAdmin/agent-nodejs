@@ -63,7 +63,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
   const forceAiError = options.forceAiError && process.env.NODE_ENV !== 'production';
 
   if (forceAiError) {
-    logger.warn(
+    logger.info(
       'FORCE_AI_ERROR is enabled — AI calls will always fail. Do not use in production.',
       {},
     );

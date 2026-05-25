@@ -218,6 +218,18 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.aiConfigurations).toBeUndefined();
   });
 
+  it('sets forceAiError when FORCE_AI_ERROR=true', () => {
+    const config = readEnvConfig({ ...baseEnv, FORCE_AI_ERROR: 'true' }, args);
+
+    expect(config.executorOptions.forceAiError).toBe(true);
+  });
+
+  it('omits forceAiError when FORCE_AI_ERROR is not set', () => {
+    const config = readEnvConfig(baseEnv, args);
+
+    expect(config.executorOptions.forceAiError).toBeUndefined();
+  });
+
   it('throws when AI config is partially set', () => {
     expect(() =>
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'anthropic', AI_MODEL: 'claude' }, args),

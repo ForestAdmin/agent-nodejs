@@ -12,6 +12,7 @@ jest.mock('../src/adapters/agent-client-agent-port');
 jest.mock('../src/adapters/forest-server-workflow-port');
 jest.mock('../src/http/executor-http-server');
 jest.mock('../src/adapters/ai-client-adapter');
+jest.mock('../src/adapters/always-error-ai-model-port');
 jest.mock('@langchain/openai', () => ({ ChatOpenAI: jest.fn() }));
 jest.mock('../src/adapters/server-ai-adapter');
 jest.mock('sequelize', () => ({
@@ -115,6 +116,30 @@ describe('buildInMemoryExecutor', () => {
       forestServerUrl: 'https://api.forestadmin.com',
       envSecret: BASE_OPTIONS.envSecret,
     });
+  });
+
+  it('creates AlwaysErrorAiModelPort when forceAiError is true', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const AlwaysErrorAiModelPort = require('../src/adapters/always-error-ai-model-port').default;
+
+    buildInMemoryExecutor({ ...BASE_OPTIONS, forceAiError: true });
+
+    expect(AlwaysErrorAiModelPort).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores forceAiError in production (NODE_ENV=production)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const AlwaysErrorAiModelPort = require('../src/adapters/always-error-ai-model-port').default;
+    const original = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    try {
+      buildInMemoryExecutor({ ...BASE_OPTIONS, forceAiError: true });
+
+      expect(AlwaysErrorAiModelPort).not.toHaveBeenCalled();
+    } finally {
+      process.env.NODE_ENV = original;
+    }
   });
 
   it('passes pollingIntervalMs with default value of 30000', () => {
