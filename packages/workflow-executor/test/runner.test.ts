@@ -8,8 +8,6 @@ import type { AvailableStepExecution } from '../src/types/execution-context';
 import type { StepDefinition } from '../src/types/validated/step-definition';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
-import { exec } from 'child_process';
-
 import {
   ConfigurationError,
   MalformedRunError,
