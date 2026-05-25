@@ -8,6 +8,7 @@ import { Sequelize } from 'sequelize';
 
 import AgentClientAgentPort from './adapters/agent-client-agent-port';
 import AiClientAdapter from './adapters/ai-client-adapter';
+import AlwaysErrorAiModelPort from './adapters/always-error-ai-model-port';
 import ConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
@@ -42,6 +43,8 @@ export interface ExecutorOptions {
   stepTimeoutMs?: number;
   // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
   maxChainDepth?: number;
+  // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
+  forceAiError?: boolean;
 }
 
 export type DatabaseExecutorOptions = ExecutorOptions &
@@ -57,9 +60,20 @@ function buildCommonDependencies(options: ExecutorOptions) {
     logger,
   });
 
-  const aiModelPort = options.aiConfigurations?.length
-    ? new AiClientAdapter(options.aiConfigurations)
-    : new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
+  const { forceAiError } = options;
+
+  if (forceAiError) {
+    logger.warn(
+      'FORCE_AI_ERROR is enabled — AI calls will always fail. Do not use in production.',
+      {},
+    );
+  }
+
+  const aiModelPort = forceAiError
+    ? new AlwaysErrorAiModelPort()
+    : options.aiConfigurations?.length
+      ? new AiClientAdapter(options.aiConfigurations)
+      : new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
 
   const schemaCache = new SchemaCache();
 
