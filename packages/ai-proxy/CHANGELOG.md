@@ -1,3 +1,17 @@
+## @forestadmin/ai-proxy [1.10.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.10.0...@forestadmin/ai-proxy@1.10.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* **ai-proxy:** re-export FOREST_INTEGRATION_NAMES from package index [PRD-375] ([#1589](https://github.com/ForestAdmin/agent-nodejs/issues/1589)) ([909d050](https://github.com/ForestAdmin/agent-nodejs/commit/909d050e77b7df2a84dbda6dc93ebf559d6f2a6c))
+
+# @forestadmin/ai-proxy [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.9.0...@forestadmin/ai-proxy@1.10.0) (2026-05-20)
+
+
+### Features
+
+* **ai-proxy:** export FOREST_INTEGRATION_NAMES as runtime const [PRD-375] ([#1588](https://github.com/ForestAdmin/agent-nodejs/issues/1588)) ([89f4f64](https://github.com/ForestAdmin/agent-nodejs/commit/89f4f643ba8b773bce362b6212c9249268dcdf59))
+
 # @forestadmin/ai-proxy [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.8.0...@forestadmin/ai-proxy@1.9.0) (2026-05-11)
 
 
