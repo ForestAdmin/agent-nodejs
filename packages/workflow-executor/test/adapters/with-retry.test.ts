@@ -114,6 +114,17 @@ describe('withRetry', () => {
     expect(fn).toHaveBeenCalledTimes(4);
   });
 
+  it('retries on status 404 (eventual consistency)', async () => {
+    const logger = makeLogger();
+    const fn = jest.fn().mockRejectedValueOnce(makeHttpError(404)).mockResolvedValueOnce('ok');
+
+    const promise = withRetry('test', fn, { logger });
+    await jest.advanceTimersByTimeAsync(100);
+
+    await expect(promise).resolves.toBe('ok');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
   it('throws immediately on non-retryable errors (4xx)', async () => {
     const logger = makeLogger();
     const fn = jest.fn().mockRejectedValue(makeHttpError(400));
@@ -129,46 +140,5 @@ describe('withRetry', () => {
 
     await expect(withRetry('test', fn, { logger })).rejects.toThrow('plain error');
     expect(fn).toHaveBeenCalledTimes(1);
-  });
-
-  it('throws immediately on 404 without retry404 flag', async () => {
-    const logger = makeLogger();
-    const fn = jest.fn().mockRejectedValue(makeHttpError(404));
-
-    await expect(withRetry('test', fn, { logger })).rejects.toMatchObject({ status: 404 });
-    expect(fn).toHaveBeenCalledTimes(1);
-    expect(logger.info).not.toHaveBeenCalled();
-  });
-
-  it('retries on 404 when retry404: true', async () => {
-    const logger = makeLogger();
-    const fn = jest
-      .fn()
-      .mockRejectedValueOnce(makeHttpError(404))
-      .mockRejectedValueOnce(makeHttpError(404))
-      .mockRejectedValueOnce(makeHttpError(404))
-      .mockRejectedValueOnce(makeHttpError(404));
-
-    let caught: unknown;
-    const promise = withRetry('test', fn, { logger, retry404: true }).catch(err => {
-      caught = err;
-    });
-    await jest.advanceTimersByTimeAsync(100 + 500 + 2000);
-    await promise;
-
-    expect(fn).toHaveBeenCalledTimes(4);
-    expect((caught as { status: number }).status).toBe(404);
-    expect(logger.info).toHaveBeenCalledTimes(3);
-  });
-
-  it('succeeds on 2nd attempt when retry404: true', async () => {
-    const logger = makeLogger();
-    const fn = jest.fn().mockRejectedValueOnce(makeHttpError(404)).mockResolvedValueOnce('ok');
-
-    const promise = withRetry('test', fn, { logger, retry404: true });
-    await jest.advanceTimersByTimeAsync(100);
-
-    await expect(promise).resolves.toBe('ok');
-    expect(fn).toHaveBeenCalledTimes(2);
   });
 });

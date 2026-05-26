@@ -63,7 +63,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
               activityLog: { id: handle.id, attributes: { index: handle.index } },
               status: 'completed',
             }),
-          { logger: this.logger, retry404: true },
+          { logger: this.logger },
         );
       } catch (err) {
         this.logger.error('Activity log markSucceeded failed', {
@@ -85,7 +85,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
               activityLog: { id: handle.id, attributes: { index: handle.index } },
               status: 'failed',
             }),
-          { logger: this.logger, retry404: true },
+          { logger: this.logger },
         );
       } catch (err) {
         this.logger.error('Activity log markFailed failed', {
