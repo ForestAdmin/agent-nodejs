@@ -10,8 +10,8 @@ import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
+import serializeStepForWire from './step-serializer';
 import ConsoleLogger from '../adapters/console-logger';
-import { serializeStepForWire } from './step-serializer';
 import {
   RunNotFoundError,
   UserMismatchError,

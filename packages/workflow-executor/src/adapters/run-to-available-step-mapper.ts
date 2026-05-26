@@ -3,8 +3,6 @@ import type {
   ServerStepHistory,
   ServerUserProfile,
 } from './server-types';
-
-import { deserializeRecordId } from './record-id-serializer';
 import type {
   ConditionStepOutcome,
   GuidanceStepOutcome,
@@ -15,6 +13,7 @@ import type {
 
 import { z } from 'zod';
 
+import { deserializeRecordId } from './record-id-serializer';
 import toStepDefinition from './step-definition-mapper';
 import {
   DomainValidationError,
