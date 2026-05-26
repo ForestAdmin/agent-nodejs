@@ -1,6 +1,6 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
-import type { FieldRef, UpdateRecordStepExecutionData } from '../types/step-execution-data';
+import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../types/validated/step-definition';
 
@@ -91,9 +91,8 @@ function buildZodSchemaForField(field: FieldSchema): z.ZodTypeAny {
   return buildZodSchemaForPrimitive(type as string, enumValues);
 }
 
-interface UpdateTarget extends FieldRef {
+interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
-  value: unknown;
 }
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {

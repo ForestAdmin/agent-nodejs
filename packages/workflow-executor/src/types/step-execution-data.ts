@@ -41,6 +41,8 @@ export interface FieldRef {
   displayName: string;
 }
 
+export type FieldWithValue = FieldRef & { value: unknown };
+
 // -- Read Record --
 
 export interface FieldReadSuccess extends FieldRef {
@@ -66,10 +68,10 @@ export interface UpdateRecordStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
-  executionParams?: FieldRef & { value: unknown };
+  executionParams?: FieldWithValue;
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  pendingData?: FieldRef & { value: unknown };
+  pendingData?: FieldWithValue;
   selectedRecordRef: RecordRef;
 }
 
