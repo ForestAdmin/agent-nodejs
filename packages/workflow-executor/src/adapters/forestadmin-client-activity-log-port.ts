@@ -42,7 +42,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
 
       return { id: response.id, index: response.attributes.index };
     } catch (cause) {
-      this.logger.error('Activity log creation failed', {
+      this.logger.error('Failed to create activity log', {
         action: args.action,
         collectionId: args.collectionId,
         status: (cause as { status?: number }).status,
