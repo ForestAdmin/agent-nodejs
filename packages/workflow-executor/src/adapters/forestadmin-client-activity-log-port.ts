@@ -66,7 +66,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           { logger: this.logger },
         );
       } catch (err) {
-        this.logger.error('Activity log markSucceeded failed', {
+        this.logger.error('Failed to mark activity log as succeeded', {
           handleId: handle.id,
           error: extractErrorMessage(err),
         });
@@ -88,7 +88,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           { logger: this.logger },
         );
       } catch (err) {
-        this.logger.error('Activity log markFailed failed', {
+        this.logger.error('Failed to mark activity log as failed', {
           handleId: handle.id,
           stepErrorMessage: errorMessage,
           error: extractErrorMessage(err),
