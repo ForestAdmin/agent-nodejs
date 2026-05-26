@@ -369,8 +369,8 @@ describe('McpStepExecutor', () => {
           name: 'send_notification',
           sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -396,7 +396,6 @@ describe('McpStepExecutor', () => {
             name: 'send_notification',
             sourceId: 'mcp-server-1',
             input: { message: 'Hello' },
-            userConfirmed: true,
           },
         }),
       );
@@ -418,8 +417,8 @@ describe('McpStepExecutor', () => {
           name: 'send_notification',
           sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -439,7 +438,6 @@ describe('McpStepExecutor', () => {
             name: 'send_notification',
             sourceId: 'mcp-server-1',
             input: { message: 'Hello' },
-            userConfirmed: false,
           },
         }),
       );
@@ -638,8 +636,8 @@ describe('McpStepExecutor', () => {
           name: 'deleted_tool',
           sourceId: 'mcp-server-1',
           input: {},
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       };
       const tool = new MockRemoteTool({ name: 'other_tool', sourceId: 'mcp-server-1' });
       const runStore = makeMockRunStore({
@@ -705,8 +703,8 @@ describe('McpStepExecutor', () => {
           name: 'send_notification',
           sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       };
       const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({

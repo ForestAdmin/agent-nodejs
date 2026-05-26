@@ -69,7 +69,7 @@ export interface UpdateRecordStepExecutionData
   executionParams?: FieldRef & { value: unknown };
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  pendingData?: FieldRef & { value: unknown; userConfirmed?: boolean };
+  pendingData?: FieldRef & { value: unknown };
   selectedRecordRef: RecordRef;
 }
 
@@ -93,7 +93,7 @@ export interface TriggerRecordActionStepExecutionData
   type: 'trigger-action';
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
-  pendingData?: ActionRef & { userConfirmed?: boolean };
+  pendingData?: ActionRef;
   selectedRecordRef: RecordRef;
 }
 
@@ -117,7 +117,7 @@ export interface McpStepExecutionData
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
     | { skipped: true };
-  pendingData?: McpToolCall & { userConfirmed?: boolean };
+  pendingData?: McpToolCall;
 }
 
 // -- Generic AI Task (fallback for untyped steps) --
@@ -136,7 +136,6 @@ export interface LoadRelatedRecordPendingData extends RelationRef {
   suggestedFields?: string[];
   // AI-selected initially; can be overridden by the frontend via PATCH .../pending-data.
   selectedRecordId: Array<string | number>;
-  userConfirmed?: boolean;
 }
 
 export interface LoadRelatedRecordStepExecutionData

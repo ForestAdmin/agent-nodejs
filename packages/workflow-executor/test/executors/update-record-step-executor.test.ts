@@ -222,8 +222,8 @@ describe('UpdateRecordStepExecutor', () => {
           displayName: 'Status',
           name: 'status',
           value: 'active',
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -249,7 +249,6 @@ describe('UpdateRecordStepExecutor', () => {
             displayName: 'Status',
             name: 'status',
             value: 'active',
-            userConfirmed: true,
           },
         }),
       );
@@ -300,7 +299,6 @@ describe('UpdateRecordStepExecutor', () => {
             displayName: 'Status',
             name: 'status',
             value: 'inactive', // AI suggestion preserved
-            userConfirmed: true,
           }),
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
@@ -374,7 +372,6 @@ describe('UpdateRecordStepExecutor', () => {
           executionResult: { skipped: true },
           pendingData: expect.objectContaining({
             value: 'inactive',
-            userConfirmed: false,
           }),
         }),
       );
@@ -391,8 +388,8 @@ describe('UpdateRecordStepExecutor', () => {
           displayName: 'Status',
           name: 'status',
           value: 'active',
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -413,7 +410,6 @@ describe('UpdateRecordStepExecutor', () => {
             displayName: 'Status',
             name: 'status',
             value: 'active',
-            userConfirmed: false,
           },
         }),
       );
@@ -814,8 +810,8 @@ describe('UpdateRecordStepExecutor', () => {
           displayName: 'Status',
           name: 'status',
           value: 'active',
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -864,8 +860,8 @@ describe('UpdateRecordStepExecutor', () => {
           displayName: 'Status',
           name: 'status',
           value: 'active',
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -986,8 +982,8 @@ describe('UpdateRecordStepExecutor', () => {
           displayName: 'Status',
           name: 'status',
           value: 'active',
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({

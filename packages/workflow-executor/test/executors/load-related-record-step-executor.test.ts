@@ -766,8 +766,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -804,8 +804,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [42],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -865,7 +865,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Order',
             name: 'order',
             selectedRecordId: [99], // AI suggestion preserved
-            userConfirmed: true,
           }),
           executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
@@ -941,8 +940,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -982,8 +981,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1027,8 +1026,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'address',
           suggestedFields: [],
           selectedRecordId: [77],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1058,8 +1057,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1086,8 +1085,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1110,9 +1109,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('trigger before PATCH (Branch A)', () => {
-    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
+    it('re-emits awaiting-input when userConfirmation is not yet set', async () => {
       const agentPort = makeMockAgentPort();
-      const execution = makePendingExecution(); // pendingData has no userConfirmed
+      const execution = makePendingExecution(); // userConfirmation not yet set
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
@@ -1274,8 +1273,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1645,8 +1644,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),

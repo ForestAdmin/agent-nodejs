@@ -199,8 +199,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  // Preserves the AI suggestion in pendingData: only userConfirmed is mirrored there because
-  // handleConfirmationFlow gates on it. The full parsed PATCH body is stored in userConfirmation.
   protected async patchAndReloadPendingData<TExec extends ConfirmableStepExecutionData>(
     pendingData?: unknown,
   ): Promise<TExec | undefined> {
@@ -229,15 +227,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
     const userConfirmation = parsed.data as TExec['userConfirmation'];
 
-    // Last-write-wins: spread-merging would leak stale keys from prior PATCHes.
     const updated: TExec = {
       ...execution,
-      pendingData: {
-        ...execution.pendingData,
-        ...(userConfirmation?.userConfirmed !== undefined
-          ? { userConfirmed: userConfirmation.userConfirmed }
-          : {}),
-      },
       userConfirmation,
     };
 
@@ -256,7 +247,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const { userConfirmed } = execution.pendingData as { userConfirmed?: boolean };
+    const { userConfirmed } = execution.userConfirmation ?? {};
 
     if (userConfirmed === undefined) {
       return this.buildOutcomeResult({ status: 'awaiting-input' });
