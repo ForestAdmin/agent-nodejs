@@ -237,7 +237,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return updated;
   }
 
-  // userConfirmed branches: undefined → re-emit awaiting-input (PATCH not yet called);
+  // userConfirmed branches: undefined → re-emit awaiting-input (POST not yet called);
   // false → save as skipped + success outcome; true → resolveAndExecute.
   protected async handleConfirmationFlow<TExec extends ConfirmableStepExecutionData>(
     execution: TExec,

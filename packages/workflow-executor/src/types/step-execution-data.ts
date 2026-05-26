@@ -20,7 +20,7 @@ interface MutatingStepExecutionData extends BaseStepExecutionData {
   idempotencyPhase?: 'executing' | 'done';
 }
 
-// Validated PATCH body stored alongside `pendingData` (AI suggestion) so executors
+// Validated POST body stored alongside `pendingData` (AI suggestion) so executors
 // can read user input without overwriting the AI suggestion.
 export interface WithUserConfirmation<T extends Record<string, unknown> = Record<string, unknown>> {
   userConfirmation?: T;
