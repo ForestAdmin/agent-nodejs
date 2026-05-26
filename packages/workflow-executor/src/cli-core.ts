@@ -213,7 +213,7 @@ export function logStartup(logger: Logger, config: CliConfig): void {
     forestServerUrl: opts.forestServerUrl ?? 'https://api.forestadmin.com',
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,
-    pollingIntervalMs: opts.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,
+    pollingIntervalMs: opts.pollingIntervalMs,
     aiConfig: aiLabel,
   });
 }
