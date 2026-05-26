@@ -11,6 +11,7 @@ import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
 import ConsoleLogger from '../adapters/console-logger';
+import { serializeStepForWire } from './step-serializer';
 import {
   RunNotFoundError,
   UserMismatchError,
@@ -160,7 +161,7 @@ export default class ExecutorHttpServer {
 
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
     const steps = await this.options.runner.getRunStepExecutions(ctx.params.runId);
-    ctx.body = { steps };
+    ctx.body = { steps: steps.map(serializeStepForWire) };
   }
 
   private async handleTrigger(ctx: Koa.Context): Promise<void> {

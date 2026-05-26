@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { deserializeRecordId } from '../adapters/record-id-serializer';
+
 // Per-step-type schemas for the userConfirmation payload sent by the front via
 // POST /runs/:runId/trigger. Validated into `execution.userConfirmation`; schemas
 // use .strict() to reject unknown fields.
@@ -39,13 +41,10 @@ const loadRelatedRecordPatchSchema = z
     // orchestrator); the executor re-derives displayName + relatedCollectionName from
     // the live schema when processing the confirmation.
     fieldName: z.string().min(1).optional(),
-    // User may override the AI-selected record; must be non-empty when provided.
-    // Required when confirming with a relation override — the original record ID
-    // belongs to a different collection and cannot be reused for the new relation.
-    selectedRecordId: z
-      .array(z.union([z.string(), z.number()]))
-      .min(1)
-      .optional(),
+    // User may override the AI-selected record; pipe-separated string (e.g. 'id1|id2'),
+    // deserialized to an id array. Required when confirming with a relation override —
+    // the original record ID belongs to a different collection and cannot be reused.
+    selectedRecordId: z.string().min(1).transform(deserializeRecordId).optional(),
   })
   .strict()
   .refine(

@@ -133,12 +133,20 @@ describe('toAvailableStepExecution', () => {
     expect(result?.runId).toBe('999');
   });
 
-  it('should wrap selectedRecordId in an array for baseRecordRef', () => {
+  it('should deserialize selectedRecordId into an array for baseRecordRef', () => {
     const run = makeRun({ selectedRecordId: 'rec-abc' });
 
     const result = toAvailableStepExecution(run);
 
     expect(result?.baseRecordRef.recordId).toEqual(['rec-abc']);
+  });
+
+  it('splits a pipe-separated selectedRecordId into a multi-element recordId array', () => {
+    const run = makeRun({ selectedRecordId: 'pk1|pk2' });
+
+    const result = toAvailableStepExecution(run);
+
+    expect(result?.baseRecordRef.recordId).toEqual(['pk1', 'pk2']);
   });
 
   it('should return null when workflowHistory is empty', () => {

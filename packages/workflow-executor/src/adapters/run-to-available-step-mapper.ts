@@ -3,6 +3,8 @@ import type {
   ServerStepHistory,
   ServerUserProfile,
 } from './server-types';
+
+import { deserializeRecordId } from './record-id-serializer';
 import type {
   ConditionStepOutcome,
   GuidanceStepOutcome,
@@ -149,7 +151,7 @@ export default function toAvailableStepExecution(
     collectionId: run.collectionId,
     baseRecordRef: {
       collectionName: run.collectionName,
-      recordId: [run.selectedRecordId],
+      recordId: deserializeRecordId(run.selectedRecordId),
       stepIndex: 0,
     },
     stepDefinition: toStepDefinition(pending.stepDefinition),

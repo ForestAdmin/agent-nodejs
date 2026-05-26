@@ -315,6 +315,72 @@ describe('ExecutorHttpServer', () => {
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
+
+    it('serializes selectedRecordRef.recordId to pipe-separated string', async () => {
+      const steps = [
+        {
+          type: 'update-record' as const,
+          stepIndex: 1,
+          selectedRecordRef: { collectionName: 'orders', recordId: ['pk1', 'pk2'], stepIndex: 0 },
+        },
+      ];
+      const runner = createMockRunner({
+        getRunStepExecutions: jest.fn().mockResolvedValue(steps),
+      });
+
+      const response = await request(createServer({ runner }).callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${signToken({ id: 1 })}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.steps[0].selectedRecordRef.recordId).toBe('pk1|pk2');
+    });
+
+    it('serializes load-related-record pendingData.selectedRecordId and executionResult.record.recordId', async () => {
+      const steps = [
+        {
+          type: 'load-related-record' as const,
+          stepIndex: 2,
+          selectedRecordRef: { collectionName: 'customers', recordId: ['c1'], stepIndex: 0 },
+          pendingData: {
+            name: 'orders',
+            displayName: 'Orders',
+            selectedRecordId: ['o1', 'o2'],
+          },
+          executionResult: {
+            relation: { name: 'orders', displayName: 'Orders' },
+            record: { collectionName: 'orders', recordId: ['o1', 'o2'], stepIndex: 2 },
+          },
+        },
+      ];
+      const runner = createMockRunner({
+        getRunStepExecutions: jest.fn().mockResolvedValue(steps),
+      });
+
+      const response = await request(createServer({ runner }).callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${signToken({ id: 1 })}`);
+
+      expect(response.status).toBe(200);
+      const step = response.body.steps[0];
+      expect(step.selectedRecordRef.recordId).toBe('c1');
+      expect(step.pendingData.selectedRecordId).toBe('o1|o2');
+      expect(step.executionResult.record.recordId).toBe('o1|o2');
+    });
+
+    it('passes through steps without selectedRecordRef unchanged', async () => {
+      const steps = [{ type: 'condition' as const, stepIndex: 0 }];
+      const runner = createMockRunner({
+        getRunStepExecutions: jest.fn().mockResolvedValue(steps),
+      });
+
+      const response = await request(createServer({ runner }).callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${signToken({ id: 1 })}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ steps });
+    });
   });
 
   describe('POST /runs/:runId/trigger', () => {
