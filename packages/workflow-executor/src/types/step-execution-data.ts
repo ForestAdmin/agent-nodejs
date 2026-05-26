@@ -20,8 +20,8 @@ interface MutatingStepExecutionData extends BaseStepExecutionData {
   idempotencyPhase?: 'executing' | 'done';
 }
 
-// Parsed PATCH body kept beside `pendingData` so executors can read the user's
-// final input without overwriting the AI suggestion.
+// Validated PATCH body stored alongside `pendingData` (AI suggestion) so executors
+// can read user input without overwriting the AI suggestion.
 export interface WithUserConfirmation<T extends Record<string, unknown> = Record<string, unknown>> {
   userConfirmation?: T;
 }
@@ -134,7 +134,7 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 export interface LoadRelatedRecordPendingData extends RelationRef {
   // undefined when not computed (record has no non-relation fields).
   suggestedFields?: string[];
-  // AI-selected initially; can be overridden by the frontend via PATCH .../pending-data.
+  // AI-selected initially; frontend can override via userConfirmation.selectedRecordId.
   selectedRecordId: Array<string | number>;
 }
 

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-// Per-step-type schemas for the `pendingData` payload sent by the front via
-// POST /runs/:runId/trigger. Consumed by step executors to validate `incomingPendingData`
-// before applying user confirmation or override. Schemas use .strict() to reject unknown fields.
+// Per-step-type schemas for the userConfirmation payload sent by the front via
+// POST /runs/:runId/trigger. Validated into `execution.userConfirmation`; schemas
+// use .strict() to reject unknown fields.
 
 const updateRecordPatchSchema = z
   .object({
