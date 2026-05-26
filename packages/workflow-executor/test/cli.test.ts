@@ -218,6 +218,24 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.aiConfigurations).toBeUndefined();
   });
 
+  it('sets forceAiError when FORCE_AI_ERROR=true', () => {
+    const config = readEnvConfig({ ...baseEnv, FORCE_AI_ERROR: 'true' }, args);
+
+    expect(config.executorOptions.forceAiError).toBe(true);
+  });
+
+  it('omits forceAiError when FORCE_AI_ERROR is not set', () => {
+    const config = readEnvConfig(baseEnv, args);
+
+    expect(config.executorOptions.forceAiError).toBeUndefined();
+  });
+
+  it('omits forceAiError when FORCE_AI_ERROR=false', () => {
+    const config = readEnvConfig({ ...baseEnv, FORCE_AI_ERROR: 'false' }, args);
+
+    expect(config.executorOptions.forceAiError).toBeUndefined();
+  });
+
   it('throws when AI config is partially set', () => {
     expect(() =>
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'anthropic', AI_MODEL: 'claude' }, args),
@@ -373,6 +391,26 @@ describe('runCli', () => {
     const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
     expect(output).toContain('Workflow executor starting');
     expect(output).toContain('Workflow executor ready');
+  });
+
+  it('logs aiConfig as "forced-error (dev only)" when FORCE_AI_ERROR=true', async () => {
+    const { factories } = makeFactories();
+    await runCli(['--json'], { ...baseEnv, FORCE_AI_ERROR: 'true' }, factories);
+
+    const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    expect(output).toContain('forced-error (dev only)');
+  });
+
+  it('logs aiConfig with provider/model when aiConfigurations are set', async () => {
+    const { factories } = makeFactories();
+    await runCli(
+      ['--json'],
+      { ...baseEnv, AI_PROVIDER: 'openai', AI_MODEL: 'gpt-4o', AI_API_KEY: 'sk-x' },
+      factories,
+    );
+
+    const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    expect(output).toContain('local (openai / gpt-4o)');
   });
 
   it('logs a structured error when executor.start() fails and rethrows', async () => {

@@ -153,6 +153,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     stepTimeoutMs: parsePositiveIntEnv('STEP_TIMEOUT_MS', env.STEP_TIMEOUT_MS),
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
     ...(aiConfigurations && { aiConfigurations }),
+    ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
   };
 
   return {
@@ -188,6 +189,7 @@ Optional environment variables:
   STEP_TIMEOUT_MS        Max duration of a step in ms (default: 300000 = 5 minutes)
   MAX_CHAIN_DEPTH        Max steps auto-executed per run before yielding (default: 50)
   NO_COLOR               Set to any value to disable ANSI colors in pretty logs
+  FORCE_AI_ERROR         Set to "true" to make every AI call fail (dev only, to test error paths)
 
 AI configuration (all-or-nothing — falls back to server AI if any is missing):
   AI_PROVIDER            'anthropic' | 'openai'
@@ -204,9 +206,15 @@ export function printVersion(): void {
 
 export function logStartup(logger: Logger, config: CliConfig): void {
   const { executorOptions: opts, mode } = config;
-  const aiLabel = opts.aiConfigurations?.length
-    ? `local (${opts.aiConfigurations[0].provider} / ${opts.aiConfigurations[0].model})`
-    : 'server fallback';
+  let aiLabel: string;
+
+  if (opts.forceAiError) {
+    aiLabel = 'forced-error (dev only)';
+  } else if (opts.aiConfigurations?.length) {
+    aiLabel = `local (${opts.aiConfigurations[0].provider} / ${opts.aiConfigurations[0].model})`;
+  } else {
+    aiLabel = 'server fallback';
+  }
 
   logger.info('Workflow executor starting', {
     mode,
