@@ -307,7 +307,6 @@ interface LoadRelatedRecordPendingData {
   userConfirmed:      boolean;
   name?:              string;                 // override relation
   selectedRecordId?:  Array<string | number>; // min 1 element
-  // displayName is NOT accepted — derived from FieldSchema after resolving name.
 }
 ```
 
