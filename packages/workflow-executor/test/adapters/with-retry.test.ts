@@ -123,6 +123,10 @@ describe('withRetry', () => {
 
     await expect(promise).resolves.toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
+    expect(logger.info).toHaveBeenCalledWith(
+      '"test" failed, retrying',
+      expect.objectContaining({ attempt: 1, status: 404 }),
+    );
   });
 
   it('throws immediately on non-retryable errors (4xx)', async () => {
