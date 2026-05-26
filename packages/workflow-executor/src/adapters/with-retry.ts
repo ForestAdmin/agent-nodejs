@@ -31,7 +31,7 @@ export default async function withRetry<T>(
     } catch (err) {
       lastError = err;
       if (!isRetryable(err) || attempt === RETRY_DELAYS_MS.length) throw err;
-      logger.error(`"${label}" failed, retrying`, {
+      logger.warn(`"${label}" failed, retrying`, {
         attempt: attempt + 1,
         status: (err as { status?: number }).status,
         error: extractErrorMessage(err),

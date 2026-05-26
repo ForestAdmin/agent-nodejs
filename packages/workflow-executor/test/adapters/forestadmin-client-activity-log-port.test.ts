@@ -77,7 +77,7 @@ describe('ForestadminClientActivityLogPort', () => {
 
       expect(handle).toEqual({ id: 'log-2', index: '1' });
       expect(service.createActivityLog).toHaveBeenCalledTimes(2);
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('createPending'),
         expect.objectContaining({ attempt: 1 }),
       );
