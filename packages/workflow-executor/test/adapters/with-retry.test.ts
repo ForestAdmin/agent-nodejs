@@ -32,7 +32,7 @@ describe('withRetry', () => {
 
     expect(result).toBe('ok');
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it('retries on retryable HTTP status codes (503)', async () => {
@@ -44,7 +44,7 @@ describe('withRetry', () => {
 
     await expect(promise).resolves.toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
-    expect(logger.info).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       '"test" failed, retrying',
       expect.objectContaining({ attempt: 1 }),
     );
@@ -123,7 +123,7 @@ describe('withRetry', () => {
 
     await expect(promise).resolves.toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
-    expect(logger.info).toHaveBeenCalledWith(
+    expect(logger.error).toHaveBeenCalledWith(
       '"test" failed, retrying',
       expect.objectContaining({ attempt: 1, status: 404 }),
     );
@@ -135,7 +135,7 @@ describe('withRetry', () => {
 
     await expect(withRetry('test', fn, { logger })).rejects.toMatchObject({ status: 400 });
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it('throws immediately on errors with no status', async () => {
