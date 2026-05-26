@@ -12,6 +12,7 @@ import type { StepOutcome } from './types/validated/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
+import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_MS } from './defaults';
 import {
   MalformedRunError,
   RunNotFoundError,
@@ -25,11 +26,6 @@ import { stepTypeToOutcomeType } from './types/validated/step-outcome';
 import validateSecrets from './validate-secrets';
 
 export type RunnerState = 'idle' | 'running' | 'draining' | 'stopped';
-
-// Default cap on auto-chained steps per entry (initial step + chained). High enough to cover
-// realistic auto workflows; low enough to fail loud if a workflow misbehaves.
-const DEFAULT_MAX_CHAIN_DEPTH = 50;
-const DEFAULT_STOP_TIMEOUT_MS = 30_000;
 
 export interface RunnerConfig {
   agentPort: AgentPort;

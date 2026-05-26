@@ -13,15 +13,17 @@ import ConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
+import {
+  DEFAULT_FOREST_SERVER_URL,
+  DEFAULT_POLLING_INTERVAL_MS,
+  DEFAULT_STEP_TIMEOUT_MS,
+} from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
 import DatabaseStore from './stores/database-store';
 import InMemoryStore from './stores/in-memory-store';
 
-const DEFAULT_FOREST_SERVER_URL = 'https://api.forestadmin.com';
-export const DEFAULT_POLLING_INTERVAL_MS = 30000;
-const DEFAULT_STEP_TIMEOUT_MS = 5 * 60_000;
 const FORCE_EXIT_DELAY_MS = 5000;
 
 export interface WorkflowExecutor {
