@@ -11,16 +11,18 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-function isRetryable(err: unknown): boolean {
+function isRetryable(err: unknown, retry404: boolean): boolean {
   const { status } = err as { status?: number };
+  if (typeof status !== 'number') return false;
+  if (retry404 && status === 404) return true;
 
-  return typeof status === 'number' && RETRYABLE_STATUS.has(status);
+  return RETRYABLE_STATUS.has(status);
 }
 
 export default async function withRetry<T>(
   label: string,
   fn: () => Promise<T>,
-  { logger }: { logger: Logger },
+  { logger, retry404 = false }: { logger: Logger; retry404?: boolean },
 ): Promise<T> {
   let lastError: unknown;
 
@@ -30,7 +32,7 @@ export default async function withRetry<T>(
       return await fn();
     } catch (err) {
       lastError = err;
-      if (!isRetryable(err) || attempt === RETRY_DELAYS_MS.length) throw err;
+      if (!isRetryable(err, retry404) || attempt === RETRY_DELAYS_MS.length) throw err;
       logger.info(`"${label}" failed, retrying`, {
         attempt: attempt + 1,
         error: extractErrorMessage(err),

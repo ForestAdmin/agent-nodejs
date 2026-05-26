@@ -183,9 +183,22 @@ describe('ForestadminClientActivityLogPort', () => {
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('markSucceeded failed'),
+        'Activity log markSucceeded failed',
         expect.objectContaining({ handleId: 'log-1' }),
       );
+    });
+
+    it('retries on 404 — eventual consistency: record may not be visible yet on the read path', async () => {
+      const service = makeService();
+      service.updateActivityLogStatus
+        .mockRejectedValueOnce(makeHttpError(404))
+        .mockResolvedValueOnce(undefined);
+      const port = makePort(service);
+
+      const promise = port.markSucceeded({ id: 'log-1', index: '0' });
+      await jest.advanceTimersByTimeAsync(100);
+      await expect(promise).resolves.toBeUndefined();
+      expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -222,12 +235,25 @@ describe('ForestadminClientActivityLogPort', () => {
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('markFailed failed'),
+        'Activity log markFailed failed',
         expect.objectContaining({
           handleId: 'log-1',
           stepErrorMessage: 'step-error-msg',
         }),
       );
+    });
+
+    it('retries on 404 — eventual consistency: record may not be visible yet on the read path', async () => {
+      const service = makeService();
+      service.updateActivityLogStatus
+        .mockRejectedValueOnce(makeHttpError(404))
+        .mockResolvedValueOnce(undefined);
+      const port = makePort(service);
+
+      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'boom');
+      await jest.advanceTimersByTimeAsync(100);
+      await expect(promise).resolves.toBeUndefined();
+      expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
     });
   });
 
