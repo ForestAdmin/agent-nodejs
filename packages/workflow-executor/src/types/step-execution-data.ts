@@ -1,6 +1,12 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
 import type { RecordRef } from './validated/collection';
+import type {
+  LoadRelatedRecordConfirmation,
+  McpConfirmation,
+  TriggerActionConfirmation,
+  UpdateRecordConfirmation,
+} from '../http/pending-data-validators';
 
 // -- Base --
 
@@ -12,6 +18,12 @@ interface BaseStepExecutionData {
 // Write-ahead log: 'executing' = side effect may have fired; 'done' = completed, safe to replay.
 interface MutatingStepExecutionData extends BaseStepExecutionData {
   idempotencyPhase?: 'executing' | 'done';
+}
+
+// Validated POST body stored alongside `pendingData` (AI suggestion) so executors
+// can read user input without overwriting the AI suggestion.
+export interface WithUserConfirmation<T extends Record<string, unknown> = Record<string, unknown>> {
+  userConfirmation?: T;
 }
 
 // -- Condition --
@@ -28,6 +40,8 @@ export interface FieldRef {
   name: string;
   displayName: string;
 }
+
+export type FieldWithValue = FieldRef & { value: unknown };
 
 // -- Read Record --
 
@@ -50,12 +64,14 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Update Record --
 
-export interface UpdateRecordStepExecutionData extends MutatingStepExecutionData {
+export interface UpdateRecordStepExecutionData
+  extends MutatingStepExecutionData,
+    WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
-  executionParams?: FieldRef & { value: unknown };
+  executionParams?: FieldWithValue;
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  pendingData?: FieldRef & { value: unknown; userConfirmed?: boolean };
+  pendingData?: FieldWithValue;
   selectedRecordRef: RecordRef;
 }
 
@@ -73,13 +89,13 @@ export interface RelationRef {
   displayName: string;
 }
 
-export interface TriggerRecordActionStepExecutionData extends MutatingStepExecutionData {
+export interface TriggerRecordActionStepExecutionData
+  extends MutatingStepExecutionData,
+    WithUserConfirmation<TriggerActionConfirmation> {
   type: 'trigger-action';
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
-  // When userConfirmed=true, actionResult is required: the frontend executes the action and
-  // posts the result back (the executor never re-executes on confirmation).
-  pendingData?: ActionRef & { userConfirmed?: boolean; actionResult?: unknown };
+  pendingData?: ActionRef;
   selectedRecordRef: RecordRef;
 }
 
@@ -95,13 +111,15 @@ export interface McpToolCall extends McpToolRef {
   input: Record<string, unknown>;
 }
 
-export interface McpStepExecutionData extends MutatingStepExecutionData {
+export interface McpStepExecutionData
+  extends MutatingStepExecutionData,
+    WithUserConfirmation<McpConfirmation> {
   type: 'mcp';
   executionParams?: McpToolCall;
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
     | { skipped: true };
-  pendingData?: McpToolCall & { userConfirmed?: boolean };
+  pendingData?: McpToolCall;
 }
 
 // -- Generic AI Task (fallback for untyped steps) --
@@ -118,12 +136,13 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 export interface LoadRelatedRecordPendingData extends RelationRef {
   // undefined when not computed (record has no non-relation fields).
   suggestedFields?: string[];
-  // AI-selected initially; can be overridden by the frontend via PATCH .../pending-data.
+  // AI-selected initially; frontend can override via userConfirmation.selectedRecordId.
   selectedRecordId: Array<string | number>;
-  userConfirmed?: boolean;
 }
 
-export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
+export interface LoadRelatedRecordStepExecutionData
+  extends BaseStepExecutionData,
+    WithUserConfirmation<LoadRelatedRecordConfirmation> {
   type: 'load-related-record';
   pendingData?: LoadRelatedRecordPendingData;
   selectedRecordRef: RecordRef;
@@ -140,7 +159,11 @@ export interface GuidanceStepExecutionData extends BaseStepExecutionData {
   executionResult?: { userInput?: string };
 }
 
-// -- Union --
+export type ConfirmableStepExecutionData =
+  | UpdateRecordStepExecutionData
+  | TriggerRecordActionStepExecutionData
+  | McpStepExecutionData
+  | LoadRelatedRecordStepExecutionData;
 
 export type StepExecutionData =
   | ConditionStepExecutionData

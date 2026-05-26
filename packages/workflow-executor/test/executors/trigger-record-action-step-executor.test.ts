@@ -251,6 +251,8 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+        },
+        userConfirmation: {
           userConfirmed: true,
           actionResult: { success: 'ok', html: '<p>Email queued</p>' },
         },
@@ -282,8 +284,6 @@ describe('TriggerRecordActionStepExecutor', () => {
           pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
-            userConfirmed: true,
-            actionResult: { success: 'ok', html: '<p>Email queued</p>' },
           },
         }),
       );
@@ -297,6 +297,8 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+        },
+        userConfirmation: {
           userConfirmed: true,
           actionResult: null,
         },
@@ -328,8 +330,8 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -358,8 +360,8 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -379,7 +381,6 @@ describe('TriggerRecordActionStepExecutor', () => {
           pendingData: {
             displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
-            userConfirmed: false,
           },
         }),
       );
@@ -899,8 +900,8 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -950,6 +951,8 @@ describe('TriggerRecordActionStepExecutor', () => {
         pendingData: {
           displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
+        },
+        userConfirmation: {
           userConfirmed: true,
           actionResult: { success: 'ok' },
         },

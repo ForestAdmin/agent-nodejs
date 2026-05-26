@@ -139,30 +139,30 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.persistAndReturn(record, target, undefined);
   }
 
-  // Branch A: builds RecordRef from pendingData.selectedRecordId without a new getRelatedData call.
-  // Re-derives relatedCollectionName so a user-overridden relation name is handled correctly.
+  // Branch A: builds RecordRef from the user-confirmed selection without a new getRelatedData call.
   private async resolveFromSelection(
     execution: LoadRelatedRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, pendingData } = execution;
+    const { selectedRecordRef, pendingData, userConfirmation } = execution;
 
     if (!pendingData) {
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const { name, displayName, selectedRecordId } = pendingData;
+    const name = userConfirmation?.name ?? pendingData.name;
+    const selectedRecordId = userConfirmation?.selectedRecordId ?? pendingData.selectedRecordId;
 
-    // Re-derive relatedCollectionName from schema using the (possibly updated) relation name.
-    // `name` is always a fieldName (set from field.fieldName in buildTarget) — search directly.
+    // Re-derive relatedCollectionName and displayName because the user may have swapped the relation.
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const field = schema.fields.find(f => f.fieldName === name);
-    const relatedCollectionName = field?.relatedCollectionName;
 
-    if (!relatedCollectionName) {
+    if (!field?.relatedCollectionName) {
       throw new StepStateError(
         `Step at index ${this.context.stepIndex} could not resolve relatedCollectionName for relation "${name}"`,
       );
     }
+
+    const { displayName, relatedCollectionName } = field;
 
     const record: RecordRef = {
       collectionName: relatedCollectionName,

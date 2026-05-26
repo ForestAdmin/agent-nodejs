@@ -5,7 +5,7 @@ import type {
   IStepExecutor,
   StepExecutionResult,
 } from '../types/execution-context';
-import type { StepExecutionData } from '../types/step-execution-data';
+import type { ConfirmableStepExecutionData, StepExecutionData } from '../types/step-execution-data';
 import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
@@ -26,8 +26,6 @@ import {
 } from '../errors';
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
-
-type WithPendingData = StepExecutionData & { pendingData?: object };
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
   implements IStepExecutor
@@ -165,7 +163,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
     execPromise.catch(err => {
       if (!hasTimeoutFired) return;
-      this.context.logger.info('Step work rejected after timeout — result discarded', {
+      this.context.logger.warn('Step work rejected after timeout — result discarded', {
         ...this.logCtx,
         error: extractErrorMessage(err),
       });
@@ -191,7 +189,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     error?: string;
   }): StepExecutionResult;
 
-  protected async findPendingExecution<TExec extends WithPendingData>(
+  protected async findPendingExecution<TExec extends ConfirmableStepExecutionData>(
     type: string,
   ): Promise<TExec | undefined> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
@@ -201,41 +199,47 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  protected async patchAndReloadPendingData<TExec extends WithPendingData>(
+  protected async patchAndReloadPendingData<TExec extends ConfirmableStepExecutionData>(
     pendingData?: unknown,
   ): Promise<TExec | undefined> {
     const { type } = this.context.stepDefinition;
     const execution = await this.findPendingExecution<TExec>(type);
 
-    if (pendingData !== undefined && execution) {
-      const schema = patchBodySchemas[execution.type]!;
-      const parsed = schema.safeParse(pendingData);
+    if (!execution) return undefined;
 
-      if (!parsed.success) {
-        throw new StepStateError(
-          `Invalid pending data: ${parsed.error.issues.map(i => i.message).join(', ')}`,
-        );
-      }
+    if (pendingData === undefined) return execution;
 
-      const updated = {
-        ...execution,
-        pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
-      } as TExec;
+    const schema = patchBodySchemas[execution.type];
 
-      await this.context.runStore.saveStepExecution(
-        this.context.runId,
-        updated as StepExecutionData,
+    if (!schema) {
+      throw new StepStateError(
+        `No pending-data validator registered for step type "${execution.type}"`,
       );
-
-      return updated;
     }
 
-    return execution;
+    const parsed = schema.safeParse(pendingData);
+
+    if (!parsed.success) {
+      throw new StepStateError(
+        `Invalid pending data: ${parsed.error.issues.map(i => i.message).join(', ')}`,
+      );
+    }
+
+    const userConfirmation = parsed.data as TExec['userConfirmation'];
+
+    const updated: TExec = {
+      ...execution,
+      userConfirmation,
+    };
+
+    await this.context.runStore.saveStepExecution(this.context.runId, updated);
+
+    return updated;
   }
 
-  // userConfirmed branches: undefined → re-emit awaiting-input (PATCH not yet called);
+  // userConfirmed branches: undefined → re-emit awaiting-input (POST not yet called);
   // false → save as skipped + success outcome; true → resolveAndExecute.
-  protected async handleConfirmationFlow<TExec extends WithPendingData>(
+  protected async handleConfirmationFlow<TExec extends ConfirmableStepExecutionData>(
     execution: TExec,
     resolveAndExecute: (execution: TExec) => Promise<StepExecutionResult>,
   ): Promise<StepExecutionResult> {
@@ -243,7 +247,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const { userConfirmed } = execution.pendingData as { userConfirmed?: boolean };
+    const { userConfirmed } = execution.userConfirmation ?? {};
 
     if (userConfirmed === undefined) {
       return this.buildOutcomeResult({ status: 'awaiting-input' });

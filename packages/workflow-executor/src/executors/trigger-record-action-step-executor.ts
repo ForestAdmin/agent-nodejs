@@ -71,11 +71,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       return this.handleConfirmationFlow<TriggerRecordActionStepExecutionData>(
         pending,
         async exec => {
-          const { selectedRecordRef, pendingData } = exec;
+          const { selectedRecordRef, pendingData, userConfirmation } = exec;
 
           // The frontend executes the action itself and posts the result back.
           // A confirmed step without actionResult is a broken frontend contract.
-          if (!pendingData || !('actionResult' in pendingData)) {
+          if (!pendingData || !userConfirmation || !('actionResult' in userConfirmation)) {
             throw new StepStateError(
               `Frontend confirmed action but did not provide actionResult ` +
                 `(run "${this.context.runId}", step ${this.context.stepIndex})`,
@@ -88,7 +88,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
             name: pendingData.name,
           };
 
-          return this.saveFrontendResult(target, pendingData.actionResult, exec);
+          return this.saveFrontendResult(target, userConfirmation.actionResult, exec);
         },
       );
     }

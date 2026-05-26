@@ -64,4 +64,40 @@ describe('patchBodySchemas', () => {
       expect(() => schema.parse({ userConfirmed: 'yes' })).toThrow();
     });
   });
+
+  describe('load-related-record', () => {
+    const schema = patchBodySchemas['load-related-record'];
+    if (!schema) throw new Error('load-related-record schema not registered');
+
+    it('accepts confirmation with no overrides', () => {
+      expect(schema.parse({ userConfirmed: true })).toEqual({ userConfirmed: true });
+    });
+
+    it('accepts confirmation with selectedRecordId override only', () => {
+      expect(schema.parse({ userConfirmed: true, selectedRecordId: [42] })).toEqual({
+        userConfirmed: true,
+        selectedRecordId: [42],
+      });
+    });
+
+    it('accepts confirmation with both name and selectedRecordId (relation override)', () => {
+      expect(schema.parse({ userConfirmed: true, name: 'address', selectedRecordId: [7] })).toEqual(
+        { userConfirmed: true, name: 'address', selectedRecordId: [7] },
+      );
+    });
+
+    it('rejects name override without selectedRecordId — original record ID belongs to a different collection', () => {
+      expect(() => schema.parse({ userConfirmed: true, name: 'address' })).toThrow(
+        'selectedRecordId is required when overriding the relation name',
+      );
+    });
+
+    it('rejects empty string name — empty string is not a valid relation name', () => {
+      expect(() => schema.parse({ userConfirmed: true, name: '' })).toThrow();
+    });
+
+    it('rejects unknown fields (strict schema)', () => {
+      expect(() => schema.parse({ userConfirmed: true, extra: 'leak' })).toThrow();
+    });
+  });
 });

@@ -15,6 +15,7 @@ import {
   MissingToolCallError,
   NoRecordsError,
   RunStorePortError,
+  StepStateError,
   WorkflowExecutorError,
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
@@ -492,7 +493,7 @@ describe('BaseStepExecutor', () => {
           setTimeout(resolve, 1_100);
         });
 
-        expect(logger.info).toHaveBeenCalledWith(
+        expect(logger.warn).toHaveBeenCalledWith(
           'Step work rejected after timeout — result discarded',
           expect.objectContaining({
             runId: 'run-1',
@@ -516,7 +517,7 @@ describe('BaseStepExecutor', () => {
 
       await executor.execute();
 
-      expect(logger.info).not.toHaveBeenCalledWith(
+      expect(logger.warn).not.toHaveBeenCalledWith(
         'Step work rejected after timeout — result discarded',
         expect.anything(),
       );
@@ -780,6 +781,54 @@ describe('BaseStepExecutor', () => {
       );
       await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
         'AI returned a malformed tool call for "unknown": Something broke',
+      );
+    });
+  });
+
+  describe('patchAndReloadPendingData', () => {
+    class PatchingExecutor extends BaseStepExecutor {
+      async callPatchAndReload(pendingData?: unknown) {
+        return (
+          this as unknown as { patchAndReloadPendingData(d?: unknown): Promise<unknown> }
+        ).patchAndReloadPendingData(pendingData);
+      }
+
+      protected async doExecute(): Promise<StepExecutionResult> {
+        return this.buildOutcomeResult({ status: 'success' });
+      }
+
+      protected buildOutcomeResult(outcome: {
+        status: BaseStepStatus;
+        error?: string;
+      }): StepExecutionResult {
+        return {
+          stepOutcome: {
+            type: 'record',
+            stepId: this.context.stepId,
+            stepIndex: this.context.stepIndex,
+            status: outcome.status,
+          },
+        };
+      }
+    }
+
+    it('throws StepStateError when no schema is registered for the step type', async () => {
+      const runStore = makeMockRunStore([
+        { type: 'read-record', stepIndex: 0 } as unknown as StepExecutionData,
+      ]);
+      const executor = new PatchingExecutor(
+        makeContext({
+          runStore,
+          stepDefinition: {
+            type: StepType.ReadRecord,
+            executionType: StepExecutionMode.FullyAutomated,
+          },
+        }),
+      );
+
+      await expect(executor.callPatchAndReload({ someField: 'x' })).rejects.toThrow(StepStateError);
+      await expect(executor.callPatchAndReload({ someField: 'x' })).rejects.toThrow(
+        'No pending-data validator registered for step type "read-record"',
       );
     });
   });
