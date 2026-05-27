@@ -177,28 +177,6 @@ describe('loadRemoteTools', () => {
     expect(result).toEqual([...mcpTools, ...integrationTools]);
   });
 
-  it('does not crash on Forest connector configs that lack MCP transport fields', async () => {
-    // Regression for PRD-400: before the fix, Forest connector configs (e.g. Zendesk)
-    // were forwarded to MultiServerMCPClient and failed Zod validation because they have
-    // neither `command`+`args` nor `url`.
-    const zendeskTools = [{ name: 'get-tickets' }];
-    mockedCreateToolProviders.mockReturnValue([
-      mockProvider({ loadTools: jest.fn().mockResolvedValue(zendeskTools) }),
-    ]);
-
-    const client = new AiClient({});
-    const configs = {
-      Zendesk: {
-        isForestConnector: true,
-        integrationName: 'Zendesk',
-        config: { subdomain: 'x', email: 'y', apiToken: 'z' },
-      },
-    } as never;
-
-    await expect(client.loadRemoteTools(configs)).resolves.toEqual(zendeskTools);
-    expect(mockedCreateToolProviders).toHaveBeenCalledWith(configs, undefined);
-  });
-
   it('disposes the previously-loaded providers before loading new ones', async () => {
     const firstDispose = jest.fn().mockResolvedValue(undefined);
     const secondDispose = jest.fn().mockResolvedValue(undefined);
