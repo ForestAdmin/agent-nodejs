@@ -7,7 +7,7 @@ import { z } from 'zod';
 const updateRecordPatchSchema = z
   .object({
     userConfirmed: z.boolean(),
-    value: z.string().optional(), // user may override the AI-proposed value
+    value: z.union([z.string(), z.number()]).optional(), // user may override the AI-proposed value
   })
   .strict();
 

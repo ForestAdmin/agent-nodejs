@@ -22,6 +22,63 @@ describe('patchBodySchemas', () => {
     });
   });
 
+  describe('update-record', () => {
+    const schema = patchBodySchemas['update-record'];
+    if (!schema) throw new Error('update-record schema not registered');
+
+    it('accepts { userConfirmed: true } without value (AI-proposed value kept)', () => {
+      expect(schema.parse({ userConfirmed: true })).toEqual({ userConfirmed: true });
+    });
+
+    it('accepts string value override', () => {
+      expect(schema.parse({ userConfirmed: true, value: 'new' })).toEqual({
+        userConfirmed: true,
+        value: 'new',
+      });
+    });
+
+    it('accepts number value override', () => {
+      expect(schema.parse({ userConfirmed: true, value: 42 })).toEqual({
+        userConfirmed: true,
+        value: 42,
+      });
+    });
+
+    it('accepts empty string value', () => {
+      expect(schema.parse({ userConfirmed: true, value: '' })).toEqual({
+        userConfirmed: true,
+        value: '',
+      });
+    });
+
+    it('accepts zero value', () => {
+      expect(schema.parse({ userConfirmed: true, value: 0 })).toEqual({
+        userConfirmed: true,
+        value: 0,
+      });
+    });
+
+    it('rejects boolean value', () => {
+      expect(() => schema.parse({ userConfirmed: true, value: true })).toThrow();
+    });
+
+    it('rejects null value', () => {
+      expect(() => schema.parse({ userConfirmed: true, value: null })).toThrow();
+    });
+
+    it('rejects object value', () => {
+      expect(() => schema.parse({ userConfirmed: true, value: { foo: 'bar' } })).toThrow();
+    });
+
+    it('rejects missing userConfirmed', () => {
+      expect(() => schema.parse({ value: 'x' })).toThrow();
+    });
+
+    it('rejects unknown fields (strict schema)', () => {
+      expect(() => schema.parse({ userConfirmed: true, value: 'x', extra: 'leak' })).toThrow();
+    });
+  });
+
   describe('trigger-action', () => {
     const schema = patchBodySchemas['trigger-action'];
     if (!schema) throw new Error('trigger-action schema not registered');
