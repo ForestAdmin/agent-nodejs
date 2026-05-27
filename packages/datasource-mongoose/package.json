@@ -20,7 +20,7 @@
     "luxon": "^3.2.1"
   },
   "devDependencies": {
-    "mongoose": "8.21.0"
+    "mongoose": "8.22.1"
   },
   "peerDependencies": {
     "mongoose": "6.x || 7.x || 8.x"
