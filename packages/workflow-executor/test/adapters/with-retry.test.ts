@@ -32,7 +32,7 @@ describe('withRetry', () => {
 
     expect(result).toBe('ok');
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   it('retries on retryable HTTP status codes (503)', async () => {
@@ -44,7 +44,7 @@ describe('withRetry', () => {
 
     await expect(promise).resolves.toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
-    expect(logger.info).toHaveBeenCalledWith(
+    expect(logger.warn).toHaveBeenCalledWith(
       '"test" failed, retrying',
       expect.objectContaining({ attempt: 1 }),
     );
@@ -114,13 +114,37 @@ describe('withRetry', () => {
     expect(fn).toHaveBeenCalledTimes(4);
   });
 
+  it('retries on status 404 when extraRetryStatuses includes 404', async () => {
+    const logger = makeLogger();
+    const fn = jest.fn().mockRejectedValueOnce(makeHttpError(404)).mockResolvedValueOnce('ok');
+
+    const promise = withRetry('test', fn, { logger, extraRetryStatuses: [404] });
+    await jest.advanceTimersByTimeAsync(100);
+
+    await expect(promise).resolves.toBe('ok');
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(
+      '"test" failed, retrying',
+      expect.objectContaining({ attempt: 1, status: 404 }),
+    );
+  });
+
+  it('throws immediately on 404 without extraRetryStatuses', async () => {
+    const logger = makeLogger();
+    const fn = jest.fn().mockRejectedValue(makeHttpError(404));
+
+    await expect(withRetry('test', fn, { logger })).rejects.toMatchObject({ status: 404 });
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
   it('throws immediately on non-retryable errors (4xx)', async () => {
     const logger = makeLogger();
     const fn = jest.fn().mockRejectedValue(makeHttpError(400));
 
     await expect(withRetry('test', fn, { logger })).rejects.toMatchObject({ status: 400 });
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   it('throws immediately on errors with no status', async () => {

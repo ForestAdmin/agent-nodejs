@@ -42,7 +42,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
 
       return { id: response.id, index: response.attributes.index };
     } catch (cause) {
-      this.logger.error('Activity log creation failed', {
+      this.logger.error('Failed to create activity log', {
         action: args.action,
         collectionId: args.collectionId,
         status: (cause as { status?: number }).status,
@@ -63,10 +63,10 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
               activityLog: { id: handle.id, attributes: { index: handle.index } },
               status: 'completed',
             }),
-          { logger: this.logger },
+          { logger: this.logger, extraRetryStatuses: [404] },
         );
       } catch (err) {
-        this.logger.error('Activity log markSucceeded failed after retries', {
+        this.logger.error('Failed to mark activity log as succeeded', {
           handleId: handle.id,
           error: extractErrorMessage(err),
         });
@@ -85,10 +85,10 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
               activityLog: { id: handle.id, attributes: { index: handle.index } },
               status: 'failed',
             }),
-          { logger: this.logger },
+          { logger: this.logger, extraRetryStatuses: [404] },
         );
       } catch (err) {
-        this.logger.error('Activity log markFailed failed after retries', {
+        this.logger.error('Failed to mark activity log as failed', {
           handleId: handle.id,
           stepErrorMessage: errorMessage,
           error: extractErrorMessage(err),
