@@ -1841,16 +1841,6 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent-client@1.5.6":
-  version "1.5.6"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent-client/-/agent-client-1.5.6.tgz#9a3360d335239699d7ab0fdbcf13d8b59c44b815"
-  integrity sha512-B9spcP2wEvnZxIDJbPzW+Q/+yalp97wDX9owSWVT6YLJTjjQwaFwLD5l18/VO0iAtR3WYEdzkhXax5mUXeNp3A==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.53.1"
-    "@forestadmin/forestadmin-client" "1.39.5"
-    jsonapi-serializer "^3.6.9"
-    superagent "^10.3.0"
-
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
@@ -1884,18 +1874,6 @@
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
-
-"@forestadmin/forestadmin-client@1.39.5":
-  version "1.39.5"
-  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.39.5.tgz#4475ba282f337c52022ce7a65c1a003c8798ef64"
-  integrity sha512-EkVQmFXBQgOymPTKVewyAzgiBh9ReR/UdbHtpBaObCkOqqUPvLBV+ecywjeodnxHj5BPfEKteTrcMb4oRtjvqA==
-  dependencies:
-    eventsource "2.0.2"
-    json-api-serializer "^2.6.6"
-    jsonwebtoken "^9.0.3"
-    object-hash "^3.0.0"
-    openid-client "^5.7.1"
-    superagent "^10.3.0"
 
 "@gar/promisify@^1.0.1":
   version "1.1.3"
