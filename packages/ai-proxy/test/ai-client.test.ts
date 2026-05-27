@@ -1,17 +1,26 @@
+import type { ToolProvider } from '../src/tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 import { AIModelNotSupportedError, AINotConfiguredError, AiClient } from '../src';
-import McpClient from '../src/mcp-client';
+import { createToolProviders } from '../src/tool-provider-factory';
 
-jest.mock('../src/mcp-client', () => {
-  return jest.fn().mockImplementation(() => ({
+jest.mock('../src/tool-provider-factory', () => ({
+  createToolProviders: jest.fn().mockReturnValue([]),
+}));
+
+const mockedCreateToolProviders = createToolProviders as jest.MockedFunction<
+  typeof createToolProviders
+>;
+
+function mockProvider(overrides: Partial<ToolProvider> = {}): ToolProvider {
+  return {
     loadTools: jest.fn().mockResolvedValue([]),
-    dispose: jest.fn(),
-  }));
-});
-
-const MockedMcpClient = McpClient as jest.MockedClass<typeof McpClient>;
+    checkConnection: jest.fn().mockResolvedValue(true as const),
+    dispose: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
 
 const createBaseChatModelMock = jest.fn().mockReturnValue({} as BaseChatModel);
 jest.mock('../src/create-base-chat-model', () => ({
@@ -149,162 +158,109 @@ describe('loadRemoteTools', () => {
     jest.clearAllMocks();
   });
 
-  it('creates an McpClient and returns loaded tools', async () => {
-    const fakeTools = [{ name: 'tool1' }];
-    jest.mocked(McpClient).mockImplementation(
-      () =>
-        ({
-          loadTools: jest.fn().mockResolvedValue(fakeTools),
-          dispose: jest.fn(),
-        } as unknown as McpClient),
-    );
+  it('delegates to createToolProviders and returns the flattened tools', async () => {
+    const mcpTools = [{ name: 'mcp-tool' }];
+    const integrationTools = [{ name: 'zendesk-tool' }];
+    mockedCreateToolProviders.mockReturnValue([
+      mockProvider({ loadTools: jest.fn().mockResolvedValue(mcpTools) }),
+      mockProvider({ loadTools: jest.fn().mockResolvedValue(integrationTools) }),
+    ]);
 
     const client = new AiClient({});
-    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+    const configs = {
+      'mcp-1': { url: 'http://example.com' },
+    } as never;
 
-    const result = await client.loadRemoteTools(mcpConfig);
+    const result = await client.loadRemoteTools(configs);
 
-    expect(MockedMcpClient).toHaveBeenCalledWith(mcpConfig, undefined);
-    expect(result).toBe(fakeTools);
+    expect(mockedCreateToolProviders).toHaveBeenCalledWith(configs, undefined);
+    expect(result).toEqual([...mcpTools, ...integrationTools]);
   });
 
-  it('closes previous client before creating a new one', async () => {
-    const disposeMock1 = jest.fn();
-    const disposeMock2 = jest.fn();
-
-    jest
-      .mocked(McpClient)
-      .mockImplementationOnce(
-        () =>
-          ({
-            loadTools: jest.fn().mockResolvedValue([]),
-            dispose: disposeMock1,
-          } as unknown as McpClient),
-      )
-      .mockImplementationOnce(
-        () =>
-          ({
-            loadTools: jest.fn().mockResolvedValue([]),
-            dispose: disposeMock2,
-          } as unknown as McpClient),
-      );
+  it('does not crash on Forest connector configs that lack MCP transport fields', async () => {
+    // Regression for PRD-400: before the fix, Forest connector configs (e.g. Zendesk)
+    // were forwarded to MultiServerMCPClient and failed Zod validation because they have
+    // neither `command`+`args` nor `url`.
+    const zendeskTools = [{ name: 'get-tickets' }];
+    mockedCreateToolProviders.mockReturnValue([
+      mockProvider({ loadTools: jest.fn().mockResolvedValue(zendeskTools) }),
+    ]);
 
     const client = new AiClient({});
-    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+    const configs = {
+      Zendesk: {
+        isForestConnector: true,
+        integrationName: 'Zendesk',
+        config: { subdomain: 'x', email: 'y', apiToken: 'z' },
+      },
+    } as never;
 
-    await client.loadRemoteTools(mcpConfig);
-    await client.loadRemoteTools(mcpConfig);
-
-    expect(disposeMock1).toHaveBeenCalledTimes(1);
-    expect(MockedMcpClient).toHaveBeenCalledTimes(2);
+    await expect(client.loadRemoteTools(configs)).resolves.toEqual(zendeskTools);
+    expect(mockedCreateToolProviders).toHaveBeenCalledWith(configs, undefined);
   });
 
-  it('passes the logger to McpClient', async () => {
-    const customLogger: Logger = jest.fn();
-    jest.mocked(McpClient).mockImplementation(
-      () =>
-        ({
-          loadTools: jest.fn().mockResolvedValue([]),
-          dispose: jest.fn(),
-        } as unknown as McpClient),
-    );
+  it('disposes the previously-loaded providers before loading new ones', async () => {
+    const firstDispose = jest.fn().mockResolvedValue(undefined);
+    const secondDispose = jest.fn().mockResolvedValue(undefined);
 
-    const client = new AiClient({ logger: customLogger });
-    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+    mockedCreateToolProviders
+      .mockReturnValueOnce([mockProvider({ dispose: firstDispose })])
+      .mockReturnValueOnce([mockProvider({ dispose: secondDispose })]);
 
-    await client.loadRemoteTools(mcpConfig);
+    const client = new AiClient({});
+    await client.loadRemoteTools({});
+    await client.loadRemoteTools({});
 
-    expect(MockedMcpClient).toHaveBeenCalledWith(mcpConfig, customLogger);
+    expect(firstDispose).toHaveBeenCalledTimes(1);
+    expect(secondDispose).not.toHaveBeenCalled();
+    expect(mockedCreateToolProviders).toHaveBeenCalledTimes(2);
   });
 
-  it('still creates a new client when closing the previous one fails', async () => {
-    const mockLogger = jest.fn();
+  it('passes the logger to createToolProviders', async () => {
+    const logger: Logger = jest.fn();
+    mockedCreateToolProviders.mockReturnValue([]);
+
+    const client = new AiClient({ logger });
+    await client.loadRemoteTools({});
+
+    expect(mockedCreateToolProviders).toHaveBeenCalledWith({}, logger);
+  });
+
+  it('logs and continues when disposing a previous provider fails', async () => {
+    const logger: Logger = jest.fn();
     const closeError = new Error('Close failed');
-    const fakeTools = [{ name: 'tool1' }];
 
-    jest
-      .mocked(McpClient)
-      .mockImplementationOnce(
-        () =>
-          ({
-            loadTools: jest.fn().mockResolvedValue([]),
-            dispose: jest.fn().mockRejectedValue(closeError),
-          } as unknown as McpClient),
-      )
-      .mockImplementationOnce(
-        () =>
-          ({
-            loadTools: jest.fn().mockResolvedValue(fakeTools),
-            dispose: jest.fn(),
-          } as unknown as McpClient),
-      );
+    mockedCreateToolProviders
+      .mockReturnValueOnce([mockProvider({ dispose: jest.fn().mockRejectedValue(closeError) })])
+      .mockReturnValueOnce([
+        mockProvider({ loadTools: jest.fn().mockResolvedValue([{ name: 'next' }]) }),
+      ]);
 
-    const client = new AiClient({ logger: mockLogger });
-    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+    const client = new AiClient({ logger });
+    await client.loadRemoteTools({});
+    const result = await client.loadRemoteTools({});
 
-    await client.loadRemoteTools(mcpConfig);
-    const result = await client.loadRemoteTools(mcpConfig);
-
-    expect(result).toBe(fakeTools);
-    expect(MockedMcpClient).toHaveBeenCalledTimes(2);
-    expect(mockLogger).toHaveBeenCalledWith(
+    expect(result).toEqual([{ name: 'next' }]);
+    expect(logger).toHaveBeenCalledWith(
       'Error',
-      'Error closing previous MCP connection',
+      'Error closing previous remote tool connection',
       closeError,
     );
   });
 
-  it('wraps non-Error thrown values when closing previous client fails', async () => {
-    const mockLogger = jest.fn();
-
-    jest
-      .mocked(McpClient)
-      .mockImplementationOnce(
-        () =>
-          ({
-            loadTools: jest.fn().mockResolvedValue([]),
-            dispose: jest.fn().mockRejectedValue('string error'),
-          } as unknown as McpClient),
-      )
-      .mockImplementationOnce(
-        () =>
-          ({
-            loadTools: jest.fn().mockResolvedValue([]),
-            dispose: jest.fn(),
-          } as unknown as McpClient),
-      );
-
-    const client = new AiClient({ logger: mockLogger });
-    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
-
-    await client.loadRemoteTools(mcpConfig);
-    await client.loadRemoteTools(mcpConfig);
-
-    expect(mockLogger).toHaveBeenCalledWith(
-      'Error',
-      'Error closing previous MCP connection',
-      expect.objectContaining({ message: 'string error' }),
-    );
-  });
-
-  it('does not store mcpClient reference when loadTools fails', async () => {
-    const loadToolsError = new Error('loadTools failed');
-
-    jest.mocked(McpClient).mockImplementation(
-      () =>
-        ({
-          loadTools: jest.fn().mockRejectedValue(loadToolsError),
-          dispose: jest.fn(),
-        } as unknown as McpClient),
-    );
+  it('does not retain providers when loadTools fails', async () => {
+    const dispose = jest.fn().mockResolvedValue(undefined);
+    const loadError = new Error('loadTools failed');
+    mockedCreateToolProviders.mockReturnValue([
+      mockProvider({ loadTools: jest.fn().mockRejectedValue(loadError), dispose }),
+    ]);
 
     const client = new AiClient({});
-    const mcpConfig = { configs: { server1: { command: 'test', args: [] } } };
+    await expect(client.loadRemoteTools({})).rejects.toThrow(loadError);
 
-    await expect(client.loadRemoteTools(mcpConfig)).rejects.toThrow(loadToolsError);
-
-    // dispose should be a no-op since mcpClient was never stored
+    // closeConnections must be a no-op since providers were never stored.
     await expect(client.closeConnections()).resolves.toBeUndefined();
+    expect(dispose).not.toHaveBeenCalled();
   });
 });
 
@@ -313,95 +269,79 @@ describe('closeConnections', () => {
     jest.clearAllMocks();
   });
 
-  it('closes the McpClient', async () => {
-    const disposeMock = jest.fn();
-    jest.mocked(McpClient).mockImplementation(
-      () =>
-        ({
-          loadTools: jest.fn().mockResolvedValue([]),
-          dispose: disposeMock,
-        } as unknown as McpClient),
-    );
+  it('disposes every stored provider', async () => {
+    const firstDispose = jest.fn().mockResolvedValue(undefined);
+    const secondDispose = jest.fn().mockResolvedValue(undefined);
+    mockedCreateToolProviders.mockReturnValue([
+      mockProvider({ dispose: firstDispose }),
+      mockProvider({ dispose: secondDispose }),
+    ]);
 
     const client = new AiClient({});
-    await client.loadRemoteTools({ configs: { server1: { command: 'test', args: [] } } });
+    await client.loadRemoteTools({});
 
     await client.closeConnections();
 
-    expect(disposeMock).toHaveBeenCalledTimes(1);
+    expect(firstDispose).toHaveBeenCalledTimes(1);
+    expect(secondDispose).toHaveBeenCalledTimes(1);
   });
 
-  it('is a no-op when no McpClient exists', async () => {
+  it('is a no-op when no providers have been loaded', async () => {
     const client = new AiClient({});
 
     await expect(client.closeConnections()).resolves.toBeUndefined();
   });
 
-  it('logs error and clears reference when dispose throws', async () => {
-    const mockLogger = jest.fn();
+  it('logs and clears the reference when dispose throws', async () => {
+    const logger: Logger = jest.fn();
     const closeError = new Error('close failed');
-    jest.mocked(McpClient).mockImplementation(
-      () =>
-        ({
-          loadTools: jest.fn().mockResolvedValue([]),
-          dispose: jest.fn().mockRejectedValue(closeError),
-        } as unknown as McpClient),
-    );
+    const dispose = jest.fn().mockRejectedValue(closeError);
+    mockedCreateToolProviders.mockReturnValue([mockProvider({ dispose })]);
 
-    const client = new AiClient({ logger: mockLogger });
-    await client.loadRemoteTools({ configs: { server1: { command: 'test', args: [] } } });
+    const client = new AiClient({ logger });
+    await client.loadRemoteTools({});
 
-    // Should not throw — error is caught and logged
     await client.closeConnections();
 
-    expect(mockLogger).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
       'Error',
-      'Error during MCP connection cleanup',
+      'Error during remote tool connection cleanup',
       closeError,
     );
 
-    // Second call should be a no-op (reference cleared in finally block)
+    // Second call is a no-op because the reference was cleared.
     await expect(client.closeConnections()).resolves.toBeUndefined();
+    expect(dispose).toHaveBeenCalledTimes(1);
   });
 
-  it('wraps non-Error thrown values during cleanup', async () => {
-    const mockLogger = jest.fn();
-    jest.mocked(McpClient).mockImplementation(
-      () =>
-        ({
-          loadTools: jest.fn().mockResolvedValue([]),
-          dispose: jest.fn().mockRejectedValue('string error'),
-        } as unknown as McpClient),
-    );
+  it('wraps non-Error rejections during cleanup', async () => {
+    const logger: Logger = jest.fn();
+    mockedCreateToolProviders.mockReturnValue([
+      mockProvider({ dispose: jest.fn().mockRejectedValue('string error') }),
+    ]);
 
-    const client = new AiClient({ logger: mockLogger });
-    await client.loadRemoteTools({ configs: { server1: { command: 'test', args: [] } } });
+    const client = new AiClient({ logger });
+    await client.loadRemoteTools({});
 
     await client.closeConnections();
 
-    expect(mockLogger).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
       'Error',
-      'Error during MCP connection cleanup',
+      'Error during remote tool connection cleanup',
       expect.objectContaining({ message: 'string error' }),
     );
   });
 
   it('is safe to call twice', async () => {
-    const disposeMock = jest.fn();
-    jest.mocked(McpClient).mockImplementation(
-      () =>
-        ({
-          loadTools: jest.fn().mockResolvedValue([]),
-          dispose: disposeMock,
-        } as unknown as McpClient),
-    );
+    const dispose = jest.fn().mockResolvedValue(undefined);
+    mockedCreateToolProviders.mockReturnValue([mockProvider({ dispose })]);
 
     const client = new AiClient({});
-    await client.loadRemoteTools({ configs: { server1: { command: 'test', args: [] } } });
+    await client.loadRemoteTools({});
 
     await client.closeConnections();
     await client.closeConnections();
 
-    expect(disposeMock).toHaveBeenCalledTimes(1);
+    expect(dispose).toHaveBeenCalledTimes(1);
   });
 });

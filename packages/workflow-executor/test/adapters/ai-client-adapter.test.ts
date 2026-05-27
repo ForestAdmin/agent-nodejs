@@ -37,11 +37,11 @@ describe('AiClientAdapter', () => {
 
   it('delegates loadRemoteTools to AiClient', async () => {
     const adapter = new AiClientAdapter([]);
-    const config = { configs: {} };
+    const configs = {};
 
-    await adapter.loadRemoteTools(config);
+    await adapter.loadRemoteTools(configs);
 
-    expect(mockLoadRemoteTools).toHaveBeenCalledWith(config);
+    expect(mockLoadRemoteTools).toHaveBeenCalledWith(configs);
   });
 
   it('delegates closeConnections to AiClient', async () => {

@@ -4,12 +4,12 @@ import type {
   AvailableRunDispatch,
   AvailableRunsBatch,
   MalformedRunInfo,
-  McpServers,
   WorkflowPort,
 } from '../ports/workflow-port';
 import type { StepUser } from '../types/execution-context';
 import type { CollectionSchema } from '../types/validated/collection';
 import type { StepOutcome } from '../types/validated/step-outcome';
+import type { ToolConfig } from '@forestadmin/ai-proxy';
 import type { HttpOptions } from '@forestadmin/forestadmin-client';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
@@ -203,10 +203,11 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     );
   }
 
-  async getMcpServerConfigs(): Promise<McpServers> {
+  async getMcpServerConfigs(): Promise<Record<string, ToolConfig>> {
     return this.callPort(
       'getMcpServerConfigs',
-      () => ServerUtils.query<McpServers>(this.options, 'get', ROUTES.mcpServerConfigs),
+      () =>
+        ServerUtils.query<Record<string, ToolConfig>>(this.options, 'get', ROUTES.mcpServerConfigs),
       { retry: true },
     );
   }

@@ -255,7 +255,7 @@ export default class Runner {
     const configs = await this.config.workflowPort.getMcpServerConfigs();
     if (Object.keys(configs).length === 0) return [];
 
-    return this.config.aiModelPort.loadRemoteTools({ configs });
+    return this.config.aiModelPort.loadRemoteTools(configs);
   }
 
   private executeStep(
