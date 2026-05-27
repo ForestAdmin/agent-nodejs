@@ -80,13 +80,11 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       }
 
       if (error instanceof WorkflowExecutorError) {
-        if (error.cause !== undefined) {
-          this.context.logger.error(error.message, {
-            ...this.logCtx,
-            cause: extractErrorMessage(error.cause),
-            stack: error.cause instanceof Error ? error.cause.stack : undefined,
-          });
-        }
+        this.context.logger.error(error.message, {
+          ...this.logCtx,
+          cause: extractErrorMessage(error.cause),
+          stack: error.cause instanceof Error ? error.cause.stack : undefined,
+        });
 
         return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
       }

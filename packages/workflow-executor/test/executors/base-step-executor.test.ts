@@ -340,11 +340,15 @@ describe('BaseStepExecutor', () => {
       );
     });
 
-    it('does not log when WorkflowExecutorError has no cause', async () => {
+    it('logs error.message even when WorkflowExecutorError has no cause', async () => {
       const logger = makeMockLogger();
-      const executor = new TestableExecutor(makeContext({ logger }), new MissingToolCallError());
+      const err = new MissingToolCallError();
+      const executor = new TestableExecutor(makeContext({ logger }), err);
       await executor.execute();
-      expect(logger.error).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        err.message,
+        expect.not.objectContaining({ cause: expect.anything() }),
+      );
     });
   });
 
