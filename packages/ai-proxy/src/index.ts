@@ -8,6 +8,7 @@ export { createBaseChatModel } from './create-base-chat-model';
 export { default as ProviderDispatcher } from './provider-dispatcher';
 
 export {
+  FOREST_INTEGRATION_NAMES,
   ForestIntegrationConfig,
   CustomConfig,
   ForestIntegrationName,

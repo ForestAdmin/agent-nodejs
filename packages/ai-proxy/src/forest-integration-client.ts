@@ -11,7 +11,8 @@ import getZendeskTools, { type ZendeskConfig } from './integrations/zendesk/tool
 import { validateZendeskConfig } from './integrations/zendesk/utils';
 
 export type CustomConfig = ZendeskConfig | KolarConfig | SnowflakeConfig;
-export type ForestIntegrationName = 'Zendesk' | 'Kolar' | 'Snowflake';
+export const FOREST_INTEGRATION_NAMES = ['Zendesk', 'Kolar', 'Snowflake'] as const;
+export type ForestIntegrationName = (typeof FOREST_INTEGRATION_NAMES)[number];
 
 export interface ForestIntegrationConfig {
   id?: string;
