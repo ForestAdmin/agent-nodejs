@@ -97,17 +97,15 @@ describe('ForestadminClientActivityLogPort', () => {
       expect(service.createActivityLog).toHaveBeenCalledTimes(4);
     });
 
-    it('retries on 404 — same global policy as markSucceeded/markFailed, accepted tradeoff for simplicity', async () => {
+    it('throws immediately on 404 — not retriable for createPending (unlike markSucceeded/markFailed)', async () => {
       const service = makeService();
-      service.createActivityLog
-        .mockRejectedValueOnce(makeHttpError(404))
-        .mockResolvedValueOnce({ id: 'log-404', attributes: { index: '0' } });
+      service.createActivityLog.mockRejectedValueOnce(makeHttpError(404));
       const port = makePort(service);
 
-      const promise = port.createPending({ renderingId: 5, action: 'update', type: 'write' });
-      await jest.advanceTimersByTimeAsync(100);
-      await expect(promise).resolves.toEqual({ id: 'log-404', index: '0' });
-      expect(service.createActivityLog).toHaveBeenCalledTimes(2);
+      await expect(
+        port.createPending({ renderingId: 5, action: 'update', type: 'write' }),
+      ).rejects.toBeInstanceOf(ActivityLogCreationError);
+      expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
 
     it('does not retry on 401 (not a transient error)', async () => {

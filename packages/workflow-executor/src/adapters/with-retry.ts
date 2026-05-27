@@ -3,7 +3,7 @@ import type { Logger } from '../ports/logger-port';
 import { extractErrorMessage } from '../errors';
 
 const RETRY_DELAYS_MS = [100, 500, 2_000];
-const RETRYABLE_STATUS = new Set([404, 408, 429, 500, 502, 503, 504]);
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
@@ -11,16 +11,17 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-function isRetryable(err: unknown): boolean {
+function isRetryable(err: unknown, extra: number[]): boolean {
   const { status } = err as { status?: number };
+  if (typeof status !== 'number') return false;
 
-  return typeof status === 'number' && RETRYABLE_STATUS.has(status);
+  return RETRYABLE_STATUS.has(status) || extra.includes(status);
 }
 
 export default async function withRetry<T>(
   label: string,
   fn: () => Promise<T>,
-  { logger }: { logger: Logger },
+  { logger, extraRetryStatuses = [] }: { logger: Logger; extraRetryStatuses?: number[] },
 ): Promise<T> {
   let lastError: unknown;
 
@@ -30,7 +31,7 @@ export default async function withRetry<T>(
       return await fn();
     } catch (err) {
       lastError = err;
-      if (!isRetryable(err) || attempt === RETRY_DELAYS_MS.length) throw err;
+      if (!isRetryable(err, extraRetryStatuses) || attempt === RETRY_DELAYS_MS.length) throw err;
       logger.warn(`"${label}" failed, retrying`, {
         attempt: attempt + 1,
         status: (err as { status?: number }).status,
