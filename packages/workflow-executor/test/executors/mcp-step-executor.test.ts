@@ -1033,4 +1033,36 @@ describe('McpStepExecutor', () => {
       });
     });
   });
+
+  describe('activity log', () => {
+    it('creates activity log with collectionId, renderingId, action, type and mcpServerId as label', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        model,
+        collectionId: 'col-1',
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          mcpServerId: 'my-mcp-server',
+        }),
+        activityLogPort,
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      await executor.execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'action',
+        type: 'write',
+        collectionId: 'col-1',
+        label: 'my-mcp-server',
+      });
+    });
+  });
 });
