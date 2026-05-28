@@ -247,38 +247,27 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('getRelatedData', () => {
-    it('should return RecordData[] with recordId extracted from PK fields', async () => {
-      mockRelation.list.mockResolvedValue([
+    // Contract: this port is now a thin HTTP adapter for related-data lists. It returns the
+    // raw rows from agent-client (camelCase keys, no PK extraction, no collectionName).
+    // Schema resolution and the row → RecordData mapping happen in the executor — that's
+    // where the related collection's schema can be fetched on demand via the workflow port.
+    it('returns raw rows from agent-client untouched', async () => {
+      const rows = [
         { id: 10, title: 'Post A' },
         { id: 11, title: 'Post B' },
-      ]);
+      ];
+      mockRelation.list.mockResolvedValue(rows);
 
       const result = await port.getRelatedData(
-        {
-          collection: 'users',
-          id: [42],
-          relation: 'posts',
-          limit: null,
-        },
+        { collection: 'users', id: [42], relation: 'posts', limit: null },
         user,
       );
 
       expect(mockCollection.relation).toHaveBeenCalledWith('posts', [42]);
-      expect(result).toEqual([
-        {
-          collectionName: 'posts',
-          recordId: [10],
-          values: { id: 10, title: 'Post A' },
-        },
-        {
-          collectionName: 'posts',
-          recordId: [11],
-          values: { id: 11, title: 'Post B' },
-        },
-      ]);
+      expect(result).toEqual(rows);
     });
 
-    it('should apply pagination when limit is a number', async () => {
+    it('applies pagination when limit is a number', async () => {
       mockRelation.list.mockResolvedValue([{ id: 10, title: 'Post A' }]);
 
       await port.getRelatedData(
@@ -291,7 +280,7 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('should not apply pagination when limit is null', async () => {
+    it('does not apply pagination when limit is null', async () => {
       mockRelation.list.mockResolvedValue([]);
 
       await port.getRelatedData(
@@ -302,50 +291,22 @@ describe('AgentClientAgentPort', () => {
       expect(mockRelation.list).toHaveBeenCalledWith({});
     });
 
-    it('should fallback to relationName when no CollectionSchema exists', async () => {
-      mockRelation.list.mockResolvedValue([{ id: 1 }]);
-
-      const result = await port.getRelatedData(
-        {
-          collection: 'users',
-          id: [42],
-          relation: 'unknownRelation',
-          limit: null,
-        },
-        user,
-      );
-
-      expect(result[0].collectionName).toBe('unknownRelation');
-      expect(result[0].recordId).toEqual([1]);
-    });
-
-    it('should return an empty array when no related data exists', async () => {
+    it('returns an empty array when no related data exists', async () => {
       mockRelation.list.mockResolvedValue([]);
 
       expect(
         await port.getRelatedData(
-          {
-            collection: 'users',
-            id: [42],
-            relation: 'posts',
-            limit: null,
-          },
+          { collection: 'users', id: [42], relation: 'posts', limit: null },
           user,
         ),
       ).toEqual([]);
     });
 
-    it('should forward fields to the list call when provided', async () => {
+    it('forwards fields to the list call when provided', async () => {
       mockRelation.list.mockResolvedValue([{ id: 10, title: 'Post A' }]);
 
       await port.getRelatedData(
-        {
-          collection: 'users',
-          id: [42],
-          relation: 'posts',
-          limit: null,
-          fields: ['title'],
-        },
+        { collection: 'users', id: [42], relation: 'posts', limit: null, fields: ['title'] },
         user,
       );
 
@@ -354,7 +315,7 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('should omit fields from the list call when not provided', async () => {
+    it('omits fields from the list call when not provided', async () => {
       mockRelation.list.mockResolvedValue([{ id: 10 }]);
 
       await port.getRelatedData(
@@ -367,49 +328,27 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('should restore snake_case field names in recordId and values when agent returns camelCase keys', async () => {
+    it('does not consult the schema cache for the related collection', async () => {
+      // No 'posts' entry in the cache — the port must still succeed. The fallback
+      // warn-and-default-to-["id"] used to live here; that logic now belongs to the
+      // executor, which routes through getCollectionSchema (cache + workflow port).
       const cache = new SchemaCache();
-      cache.set('users', {
-        collectionName: 'users',
-        collectionDisplayName: 'Users',
-        primaryKeyFields: ['id'],
-        fields: [
-          {
-            fieldName: 'posts',
-            displayName: 'Posts',
-            isRelationship: true,
-            relatedCollectionName: 'posts',
-          },
-        ],
-        actions: [],
-      });
-      cache.set('posts', {
-        collectionName: 'posts',
-        collectionDisplayName: 'Posts',
-        primaryKeyFields: ['post_id'],
-        fields: [],
-        actions: [],
-      });
       const localPort = new AgentClientAgentPort({
         agentUrl: 'http://agent',
         authSecret: 'secret',
         schemaCache: cache,
       });
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
       mockRelation.list.mockResolvedValue([{ postId: 99, createdAt: '2024-01-01' }]);
 
       const result = await localPort.getRelatedData(
-        {
-          collection: 'users',
-          id: [42],
-          relation: 'posts',
-          limit: null,
-          fields: ['post_id', 'created_at'],
-        },
+        { collection: 'users', id: [42], relation: 'posts', limit: null },
         user,
       );
 
-      expect(result[0].recordId).toEqual([99]);
-      expect(result[0].values).toEqual({ post_id: 99, created_at: '2024-01-01' });
+      expect(result).toEqual([{ postId: 99, createdAt: '2024-01-01' }]);
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
     });
   });
 

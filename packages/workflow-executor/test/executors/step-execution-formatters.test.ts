@@ -38,9 +38,10 @@ describe('StepExecutionFormatters', () => {
           stepIndex: 1,
           selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
           pendingData: {
-            displayName: 'Address',
-            name: 'address',
-            selectedRecordId: [1],
+            availableFields: [{ name: 'address', displayName: 'Address' }],
+            suggestedField: { name: 'address', displayName: 'Address' },
+            availableRecordIds: [{ recordId: [1], referenceFieldValue: null }],
+            suggestedRecord: { recordId: [1], referenceFieldValue: null },
           },
         };
 

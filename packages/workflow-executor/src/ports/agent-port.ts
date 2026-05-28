@@ -25,7 +25,9 @@ export type GetActionFormInfoQuery = { collection: string; action: string; id: I
 export interface AgentPort {
   getRecord(query: GetRecordQuery, user: StepUser): Promise<RecordData>;
   updateRecord(query: UpdateRecordQuery, user: StepUser): Promise<RecordData>;
-  getRelatedData(query: GetRelatedDataQuery, user: StepUser): Promise<RecordData[]>;
+  // Returns raw rows from the agent (camelCase keys, no PK extraction). The caller is
+  // responsible for resolving the related collection's schema and mapping rows → RecordData.
+  getRelatedData(query: GetRelatedDataQuery, user: StepUser): Promise<Record<string, unknown>[]>;
   executeAction(query: ExecuteActionQuery, user: StepUser): Promise<unknown>;
   // Old Ruby agents with hooks.load=false return 404; agent-client falls back to the fields
   // passed via ActionEndpointsByCollection (populated from the orchestrator's schema).

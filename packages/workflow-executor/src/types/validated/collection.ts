@@ -42,6 +42,8 @@ export const FieldSchemaSchema = z
     relationType: z.enum(['BelongsTo', 'HasMany', 'HasOne', 'BelongsToMany']).optional(),
     /** Target collection name; only meaningful for relationship fields. */
     relatedCollectionName: z.string().optional(),
+    /** Primary key field name on the related collection; only meaningful for relationship fields. */
+    relatedPrimaryKey: z.string().optional(),
     /** Column type — null for relationship fields. */
     type: ColumnTypeSchema.nullable(),
     /** Allowed values for Enum fields. */
@@ -81,6 +83,9 @@ export const CollectionSchemaSchema = z
     // null when the rendering has no explicit displayName configured — normalized to collectionName.
     collectionDisplayName: z.string().nullable(),
     primaryKeyFields: z.array(z.string().min(1)).min(1),
+    // Layout-level "reference field" used to display a record (e.g. "name", "title").
+    // Null when the team didn't configure one; callers fall back to the primary key.
+    referenceField: z.string().nullable().optional(),
     fields: z.array(FieldSchemaSchema),
     actions: z.array(ActionSchemaSchema),
   })
