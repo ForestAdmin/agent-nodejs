@@ -23,7 +23,9 @@
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
-    "test": "jest"
+    "test": "jest",
+    "start": "tsx --env-file=.env src/cli.ts --pretty",
+    "start:in-memory": "tsx --env-file=.env src/cli.ts --pretty --in-memory"
   },
   "dependencies": {
     "@forestadmin/agent-client": "1.5.10",
