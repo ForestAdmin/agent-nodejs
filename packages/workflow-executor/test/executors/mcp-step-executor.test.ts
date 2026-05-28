@@ -938,10 +938,9 @@ describe('McpStepExecutor', () => {
       await executor.execute();
 
       const messages = modelInvoke.mock.calls[0][0];
-      // context + previous steps message + system prompt + human message = 4
-      expect(messages).toHaveLength(4);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('Should we send a notification?');
+      expect(messages[0].content).toContain('Should we send a notification?');
     });
   });
 

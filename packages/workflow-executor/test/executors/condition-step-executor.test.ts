@@ -156,11 +156,11 @@ describe('ConditionStepExecutor', () => {
       await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
-      expect(messages).toHaveLength(3);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('workflow gateway decision');
-      expect(messages[1].content).toContain('80% confident');
-      expect(messages[2].content).toBe('**Question**: Custom prompt for this step');
+      expect(messages[0].content).toContain('workflow gateway decision');
+      expect(messages[0].content).toContain('80% confident');
+      expect(messages[1].content).toBe('**Question**: Custom prompt for this step');
     });
 
     it('uses default question when step.prompt is undefined', async () => {
@@ -226,12 +226,12 @@ describe('ConditionStepExecutor', () => {
       await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
-      expect(messages).toHaveLength(4);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('Previous question');
-      expect(messages[1].content).toContain('"answer":"Yes"');
-      expect(messages[2].content).toContain('workflow gateway decision');
-      expect(messages[3].content).toContain('**Question**');
+      expect(messages[0].content).toContain('Previous question');
+      expect(messages[0].content).toContain('"answer":"Yes"');
+      expect(messages[0].content).toContain('workflow gateway decision');
+      expect(messages[1].content).toContain('**Question**');
     });
   });
 

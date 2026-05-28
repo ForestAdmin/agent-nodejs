@@ -1089,12 +1089,11 @@ describe('UpdateRecordStepExecutor', () => {
       await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
-      // context + previous steps summary + system prompt + collection info + human message = 5
-      expect(messages).toHaveLength(5);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('Should we proceed?');
-      expect(messages[1].content).toContain('"answer":"Yes"');
-      expect(messages[2].content).toContain('updating a field on a record');
+      expect(messages[0].content).toContain('Should we proceed?');
+      expect(messages[0].content).toContain('"answer":"Yes"');
+      expect(messages[0].content).toContain('updating a field on a record');
     });
   });
 

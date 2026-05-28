@@ -424,12 +424,11 @@ describe('ReadRecordStepExecutor', () => {
       const readTool = bindTools.mock.calls[1][0][0];
       expect(readTool.name).toBe('read-selected-record-fields');
 
-      // Record selection includes previous steps context + system prompt + user prompt
       const selectMessages = invoke.mock.calls[0][0];
-      expect(selectMessages).toHaveLength(3);
+      expect(selectMessages).toHaveLength(2);
       expect(selectMessages[0].content).toContain('Step executed by');
-      expect(selectMessages[1].content).toContain('selecting the most relevant record');
-      expect(selectMessages[2].content).toContain('Read the customer email');
+      expect(selectMessages[0].content).toContain('selecting the most relevant record');
+      expect(selectMessages[1].content).toContain('Read the customer email');
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -826,12 +825,11 @@ describe('ReadRecordStepExecutor', () => {
       await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
-      // context + previous steps summary + system prompt + collection info + human message = 5
-      expect(messages).toHaveLength(5);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('Should we proceed?');
-      expect(messages[1].content).toContain('"answer":"Yes"');
-      expect(messages[2].content).toContain('reading fields from a record');
+      expect(messages[0].content).toContain('Should we proceed?');
+      expect(messages[0].content).toContain('"answer":"Yes"');
+      expect(messages[0].content).toContain('reading fields from a record');
     });
   });
 
