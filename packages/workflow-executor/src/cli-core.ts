@@ -13,6 +13,7 @@ import {
   type WorkflowExecutor,
 } from './build-workflow-executor';
 import {
+  DEFAULT_AI_INVOKE_TIMEOUT_MS,
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_HTTP_PORT,
   DEFAULT_MAX_CHAIN_DEPTH,
@@ -158,6 +159,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     pollingIntervalMs: parsePositiveIntEnv('POLLING_INTERVAL_MS', env.POLLING_INTERVAL_MS),
     stopTimeoutMs: parsePositiveIntEnv('STOP_TIMEOUT_MS', env.STOP_TIMEOUT_MS),
     stepTimeoutMs: parsePositiveIntEnv('STEP_TIMEOUT_MS', env.STEP_TIMEOUT_MS),
+    aiInvokeTimeoutMs: parsePositiveIntEnv('AI_INVOKE_TIMEOUT_MS', env.AI_INVOKE_TIMEOUT_MS),
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
     ...(aiConfigurations && { aiConfigurations }),
     ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
@@ -194,6 +196,7 @@ Optional environment variables:
   POLLING_INTERVAL_MS    Default: ${DEFAULT_POLLING_INTERVAL_MS}
   STOP_TIMEOUT_MS        Default: ${DEFAULT_STOP_TIMEOUT_MS}
   STEP_TIMEOUT_MS        Max duration of a step in ms (default: ${DEFAULT_STEP_TIMEOUT_MS})
+  AI_INVOKE_TIMEOUT_MS   Max duration of a single AI provider invocation in ms (default: ${DEFAULT_AI_INVOKE_TIMEOUT_MS})
   MAX_CHAIN_DEPTH        Max steps auto-executed per run before yielding (default: ${DEFAULT_MAX_CHAIN_DEPTH})
   NO_COLOR               Set to any value to disable ANSI colors in pretty logs
   FORCE_AI_ERROR         Set to "true" to make every AI call fail (dev only, to test error paths)

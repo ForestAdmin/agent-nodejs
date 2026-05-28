@@ -42,6 +42,10 @@ export interface RunnerConfig {
   // On timeout the step reports status:error; the underlying work is not aborted (Promise.race
   // limitation). Late rejections are caught and logged; late resolutions are silently discarded.
   stepTimeoutMs?: number;
+  // Per-AI-invocation timeout (used by BaseStepExecutor.invokeWithTools). Aborts the underlying
+  // HTTP request via AbortSignal so a hanging provider is killed quickly, before stepTimeoutMs
+  // would fire. 0/undefined disables.
+  aiInvokeTimeoutMs?: number;
   // Max number of ADDITIONAL steps auto-chained via /update-step response before yielding to the
   // next poll cycle (counted after the initial step). 0 disables chaining entirely. Default 50.
   maxChainDepth?: number;
@@ -416,6 +420,7 @@ export default class Runner {
       schemaCache: this.config.schemaCache,
       logger: this.logger,
       stepTimeoutMs: this.config.stepTimeoutMs,
+      aiInvokeTimeoutMs: this.config.aiInvokeTimeoutMs,
     };
   }
 }

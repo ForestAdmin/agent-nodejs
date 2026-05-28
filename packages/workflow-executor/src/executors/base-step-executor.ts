@@ -17,6 +17,7 @@ import type {
 import { SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  AiInvokeTimeoutError,
   InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
@@ -328,9 +329,29 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   ): Promise<{ toolName: string; args: T }> {
     BaseStepExecutor.assertNoMidArraySystemMessages(messages);
     const modelWithTools = this.context.model.bindTools(tools, { tool_choice: 'any' });
-    const response = await modelWithTools.invoke(
-      BaseStepExecutor.mergeLeadingSystemMessages(messages),
-    );
+    const preparedMessages = BaseStepExecutor.mergeLeadingSystemMessages(messages);
+    const aiTimeoutMs = this.context.aiInvokeTimeoutMs;
+
+    let response;
+
+    if (!aiTimeoutMs || aiTimeoutMs <= 0) {
+      response = await modelWithTools.invoke(preparedMessages);
+    } else {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), aiTimeoutMs);
+
+      try {
+        response = await modelWithTools.invoke(preparedMessages, {
+          signal: controller.signal,
+        });
+      } catch (err) {
+        if (controller.signal.aborted) throw new AiInvokeTimeoutError(aiTimeoutMs);
+        throw err;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     const toolCall = response.tool_calls?.[0];
 
     if (toolCall !== undefined) {

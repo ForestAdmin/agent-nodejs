@@ -14,6 +14,7 @@ import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import {
+  DEFAULT_AI_INVOKE_TIMEOUT_MS,
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_POLLING_INTERVAL_MS,
   DEFAULT_STEP_TIMEOUT_MS,
@@ -43,6 +44,7 @@ export interface ExecutorOptions {
   logger?: Logger;
   stopTimeoutMs?: number;
   stepTimeoutMs?: number;
+  aiInvokeTimeoutMs?: number;
   // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
   maxChainDepth?: number;
   // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
@@ -112,6 +114,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     authSecret: options.authSecret,
     stopTimeoutMs: options.stopTimeoutMs,
     stepTimeoutMs: options.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS,
+    aiInvokeTimeoutMs: options.aiInvokeTimeoutMs ?? DEFAULT_AI_INVOKE_TIMEOUT_MS,
     maxChainDepth: options.maxChainDepth,
   };
 }

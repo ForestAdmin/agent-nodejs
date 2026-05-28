@@ -41,6 +41,7 @@ export interface StepContextConfig {
   schemaCache: SchemaCache;
   logger: Logger;
   stepTimeoutMs?: number;
+  aiInvokeTimeoutMs?: number;
 }
 
 export default class StepExecutorFactory {
@@ -135,6 +136,7 @@ export default class StepExecutorFactory {
       logger: cfg.logger,
       incomingPendingData,
       stepTimeoutMs: cfg.stepTimeoutMs,
+      aiInvokeTimeoutMs: cfg.aiInvokeTimeoutMs,
       activityLogPort,
     };
   }
