@@ -293,7 +293,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   private static mergeLeadingSystemMessages(messages: BaseMessage[]): BaseMessage[] {
     let i = 0;
-    while (i < messages.length && messages[i]._getType() === 'system') i += 1;
+    while (i < messages.length && messages[i] instanceof SystemMessage) i += 1;
     if (i <= 1) return messages;
 
     const merged = new SystemMessage(
@@ -310,7 +310,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     let seenNonSystem = false;
 
     for (const msg of messages) {
-      if (msg._getType() !== 'system') {
+      if (!(msg instanceof SystemMessage)) {
         seenNonSystem = true;
       } else if (seenNonSystem) {
         throw new Error(

@@ -8,7 +8,7 @@ import type { StepDefinition } from '../../src/types/validated/step-definition';
 import type { BaseStepStatus, StepOutcome } from '../../src/types/validated/step-outcome';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
-import { SystemMessage } from '@forestadmin/ai-proxy';
+import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
   MalformedToolCallError,
@@ -789,10 +789,6 @@ describe('BaseStepExecutor', () => {
     });
 
     describe('SystemMessage handling for Anthropic compat', () => {
-      const { HumanMessage } = jest.requireActual<typeof import('@forestadmin/ai-proxy')>(
-        '@forestadmin/ai-proxy',
-      );
-
       it('merges multiple leading SystemMessages into a single one', async () => {
         const { model, invoke } = makeMockModel({
           tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
