@@ -1366,7 +1366,6 @@ describe('MCP fetch scoping', () => {
       runId: 'run-1',
       stepId: 'step-mcp-1',
       stepType: StepType.Mcp,
-      // No mcpServerId on the step definition — preserves legacy behaviour.
     });
     workflowPort.getAvailableRun.mockResolvedValue({
       step,
