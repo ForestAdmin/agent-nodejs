@@ -82,7 +82,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
 
     // Branches B & C -- First call
-    const tools = this.getFilteredTools();
+    const tools = this.requireTools();
     const { toolName, args } = await this.selectTool(tools);
     const selectedTool = tools.find(t => t.base.name === toolName);
     if (!selectedTool) throw new McpToolNotFoundError(toolName);
@@ -107,7 +107,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     target: McpToolCall,
     existingExecution?: McpStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const tools = this.getFilteredTools();
+    const tools = this.requireTools();
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
@@ -225,27 +225,22 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     );
   }
 
-  private getFilteredTools(): RemoteTool[] {
-    const { mcpServerId } = this.context.stepDefinition;
-    const tools = mcpServerId
-      ? this.remoteTools.filter(t => t.mcpServerId === mcpServerId)
-      : [...this.remoteTools];
-
-    if (tools.length === 0) {
-      const loadedMcpServerIds = this.remoteTools
-        .map(t => t.mcpServerId)
-        .filter((value): value is string => !!value);
-      const error = new NoMcpToolsError(mcpServerId, loadedMcpServerIds);
+  // Tools are pre-scoped to step.mcpServerId by Runner.fetchRemoteTools (PRD-363) — the executor
+  // only has to assert non-empty. An empty list here means: the orchestrator returned no config
+  // matching the step's mcpServerId, OR every per-server connection failed inside loadRemoteTools.
+  private requireTools(): RemoteTool[] {
+    if (this.remoteTools.length === 0) {
+      const { mcpServerId } = this.context.stepDefinition;
+      const error = new NoMcpToolsError(mcpServerId, []);
       this.context.logger.error(error.message, {
         runId: this.context.runId,
         stepId: this.context.stepId,
         stepIndex: this.context.stepIndex,
         requestedMcpServerId: mcpServerId,
-        loadedMcpServerIds,
       });
       throw error;
     }
 
-    return tools;
+    return [...this.remoteTools];
   }
 }

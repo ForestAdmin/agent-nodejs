@@ -251,11 +251,17 @@ export default class Runner {
     }
   }
 
-  private async fetchRemoteTools(): Promise<RemoteTool[]> {
+  // Match by config.id, not by Record key: server names can collide across configs.
+  private async fetchRemoteTools(mcpServerId?: string): Promise<RemoteTool[]> {
     const configs = await this.config.workflowPort.getMcpServerConfigs();
-    if (Object.keys(configs).length === 0) return [];
 
-    return this.config.aiModelPort.loadRemoteTools(configs);
+    const scoped = mcpServerId
+      ? Object.fromEntries(Object.entries(configs).filter(([, cfg]) => cfg.id === mcpServerId))
+      : configs;
+
+    if (Object.keys(scoped).length === 0) return [];
+
+    return this.config.aiModelPort.loadRemoteTools(scoped);
   }
 
   private executeStep(
@@ -295,7 +301,7 @@ export default class Runner {
           currentStep,
           this.contextConfig,
           this.config.activityLogPortFactory.forRun(currentToken),
-          () => this.fetchRemoteTools(),
+          (mcpServerId?: string) => this.fetchRemoteTools(mcpServerId),
           currentIncomingData,
         );
         result = await executor.execute();
