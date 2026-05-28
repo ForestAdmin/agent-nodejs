@@ -591,9 +591,12 @@ describe('workflow execution (integration)', () => {
       getAvailableRun: jest
         .fn()
         .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
-      getMcpServerConfigs: jest
-        .fn()
-        .mockResolvedValue({ 'mcp-server-1': { id: 'mcp-1', url: 'http://fake' } }),
+      // Two configs but only one matches step.mcpServerId — the assertion below proves
+      // Runner.fetchRemoteTools actually scopes the Record before calling loadRemoteTools.
+      getMcpServerConfigs: jest.fn().mockResolvedValue({
+        'mcp-server-1': { id: 'mcp-1', url: 'http://fake' },
+        'mcp-server-2': { id: 'mcp-2', url: 'http://other' },
+      }),
     });
 
     const { server, runStore } = createIntegrationSetup({
@@ -629,6 +632,10 @@ describe('workflow execution (integration)', () => {
       'run-1',
       expect.objectContaining({ type: 'mcp', status: 'success' }),
     );
+    // Scoping must reach the AI port — only the matching server is forwarded, not the full map.
+    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({
+      'mcp-server-1': expect.objectContaining({ id: 'mcp-1' }),
+    });
   });
 
   // -------------------------------------------------------------------------

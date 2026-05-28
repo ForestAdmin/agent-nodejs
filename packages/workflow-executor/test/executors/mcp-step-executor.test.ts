@@ -505,7 +505,7 @@ describe('McpStepExecutor', () => {
       expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
     });
 
-    it('keeps the user-facing error message generic regardless of the misconfigured mcpServerId', async () => {
+    it('keeps the user-facing error message generic when no tools are available', async () => {
       const context = makeContext({ stepDefinition: makeStep({ mcpServerId: 'id-B' }) });
       const executor = new McpStepExecutor(context, []);
 
@@ -525,9 +525,15 @@ describe('McpStepExecutor', () => {
 
       await executor.execute();
 
+      // BaseStepExecutor catches NoMcpToolsError and logs error.message (which encodes the
+      // requested mcpServerId) along with the step correlation context.
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringMatching(/id-missing/),
-        expect.objectContaining({ requestedMcpServerId: 'id-missing' }),
+        'No MCP tools available for mcpServerId="id-missing"',
+        expect.objectContaining({
+          runId: expect.any(String),
+          stepId: expect.any(String),
+          stepIndex: expect.any(Number),
+        }),
       );
     });
   });

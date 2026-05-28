@@ -226,19 +226,12 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   }
 
   // Tools are pre-scoped to step.mcpServerId upstream; the executor only asserts non-empty.
-  // An empty list means either no config matched the step's mcpServerId, or every per-server
-  // connection failed at load time.
+  // An empty list means either no config matched the step's mcpServerId, or the per-server MCP
+  // connection failed at load time (McpClient swallows per-server load errors). The runner logs
+  // the diagnostic at the right layer; here we rely on BaseStepExecutor's catch-and-log.
   private requireTools(): RemoteTool[] {
     if (this.remoteTools.length === 0) {
-      const { mcpServerId } = this.context.stepDefinition;
-      const error = new NoMcpToolsError(mcpServerId, []);
-      this.context.logger.error(error.message, {
-        runId: this.context.runId,
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        requestedMcpServerId: mcpServerId,
-      });
-      throw error;
+      throw new NoMcpToolsError(this.context.stepDefinition.mcpServerId);
     }
 
     return [...this.remoteTools];

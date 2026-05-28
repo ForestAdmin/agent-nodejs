@@ -255,22 +255,59 @@ export default class Runner {
   private async fetchRemoteTools(mcpServerId?: string): Promise<RemoteTool[]> {
     const configs = await this.config.workflowPort.getMcpServerConfigs();
 
+    if (mcpServerId) {
+      // Configs without id cannot be matched against a defined mcpServerId. Surface them so a
+      // partial PRD-360 migration doesn't masquerade as "wrong target server" downstream.
+      const unidentifiedConfigNames = Object.entries(configs)
+        .filter(([, cfg]) => cfg.id === undefined)
+        .map(([name]) => name);
+
+      if (unidentifiedConfigNames.length > 0) {
+        this.logger.warn('MCP configs without id cannot be scoped — check orchestrator migration', {
+          requestedMcpServerId: mcpServerId,
+          unidentifiedConfigNames,
+        });
+      }
+    }
+
     const scoped = mcpServerId
       ? Object.fromEntries(Object.entries(configs).filter(([, cfg]) => cfg.id === mcpServerId))
       : configs;
 
-    // The orchestrator returned configs but none advertised the step's target server —
-    // surface distinctly from the "no configs at all" case.
-    if (mcpServerId && Object.keys(configs).length > 0 && Object.keys(scoped).length === 0) {
-      this.logger.warn('MCP step targets a server not advertised by the orchestrator', {
-        requestedMcpServerId: mcpServerId,
-        availableMcpServerIds: Object.values(configs).map(cfg => cfg.id),
-      });
+    if (mcpServerId && Object.keys(scoped).length === 0) {
+      const availableMcpServerIds = Object.values(configs)
+        .map(cfg => cfg.id)
+        .filter((id): id is string => Boolean(id));
+
+      // Distinguish "no configs at all" (deployment misconfig) from "configs exist but none
+      // match" (orchestrator/executor drift on server id) — both yield zero tools, but ops
+      // need to know which one to fix.
+      this.logger.warn(
+        Object.keys(configs).length === 0
+          ? 'MCP step targets a server but orchestrator returned no MCP configs'
+          : 'MCP step targets a server not advertised by the orchestrator',
+        { requestedMcpServerId: mcpServerId, availableMcpServerIds },
+      );
     }
 
     if (Object.keys(scoped).length === 0) return [];
 
-    return this.config.aiModelPort.loadRemoteTools(scoped);
+    const tools = await this.config.aiModelPort.loadRemoteTools(scoped);
+
+    // Partial-failure detection: McpClient swallows per-server load errors and returns whatever
+    // succeeded. Compare scoped keys to the tools' sourceIds so ops can tell "wrong config"
+    // from "MCP server down".
+    const loadedSourceIds = new Set(tools.map(t => t.sourceId));
+    const failedSourceIds = Object.keys(scoped).filter(name => !loadedSourceIds.has(name));
+
+    if (failedSourceIds.length > 0) {
+      this.logger.error('MCP servers failed to load tools', {
+        requestedMcpServerId: mcpServerId ?? null,
+        failedSourceIds,
+      });
+    }
+
+    return tools;
   }
 
   private executeStep(
