@@ -1212,11 +1212,7 @@ describe('MCP lazy loading (via once thunk)', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// PRD-363: MCP fetch scoping
-// ---------------------------------------------------------------------------
-
-describe('MCP fetch scoping (PRD-363)', () => {
+describe('MCP fetch scoping', () => {
   it('passes only the matching config to loadRemoteTools when step.mcpServerId is set', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
@@ -1314,9 +1310,7 @@ describe('MCP fetch scoping (PRD-363)', () => {
     expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
   });
 
-  // Branch A re-entry: the same run can be re-dispatched (chained or triggered after
-  // awaiting-input). Each dispatch must re-fetch tools scoped to its own step's mcpServerId.
-  it('scopes loadRemoteTools per dispatch on chained MCP steps (Branch A re-entry)', async () => {
+  it('re-scopes loadRemoteTools per dispatch when chained MCP steps target different servers', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const mcpDef = (id: string) =>
@@ -1337,7 +1331,7 @@ describe('MCP fetch scoping (PRD-363)', () => {
       stepId: 'step-1',
       stepIndex: 1,
       stepType: StepType.Mcp,
-      stepDefinition: mcpDef('id-A'),
+      stepDefinition: mcpDef('id-B'),
     });
     workflowPort.getAvailableRun.mockResolvedValueOnce({
       step: initial,
@@ -1361,7 +1355,7 @@ describe('MCP fetch scoping (PRD-363)', () => {
       'server-A': expect.objectContaining({ id: 'id-A' }),
     });
     expect(aiClient.loadRemoteTools).toHaveBeenNthCalledWith(2, {
-      'server-A': expect.objectContaining({ id: 'id-A' }),
+      'server-B': expect.objectContaining({ id: 'id-B' }),
     });
   });
 

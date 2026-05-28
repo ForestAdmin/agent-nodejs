@@ -225,9 +225,9 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     );
   }
 
-  // Tools are pre-scoped to step.mcpServerId by Runner.fetchRemoteTools (PRD-363) — the executor
-  // only has to assert non-empty. An empty list here means: the orchestrator returned no config
-  // matching the step's mcpServerId, OR every per-server connection failed inside loadRemoteTools.
+  // Tools are pre-scoped to step.mcpServerId upstream; the executor only asserts non-empty.
+  // An empty list means either no config matched the step's mcpServerId, or every per-server
+  // connection failed at load time.
   private requireTools(): RemoteTool[] {
     if (this.remoteTools.length === 0) {
       const { mcpServerId } = this.context.stepDefinition;

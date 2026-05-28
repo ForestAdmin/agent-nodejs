@@ -583,6 +583,7 @@ describe('workflow execution (integration)', () => {
         type: StepType.Mcp,
         executionType: StepExecutionMode.AutomatedWithConfirmation,
         prompt: 'Send a notification',
+        mcpServerId: 'mcp-1',
       },
     });
 
@@ -590,7 +591,9 @@ describe('workflow execution (integration)', () => {
       getAvailableRun: jest
         .fn()
         .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
-      getMcpServerConfigs: jest.fn().mockResolvedValue({ 'mcp-1': { url: 'http://fake' } }),
+      getMcpServerConfigs: jest
+        .fn()
+        .mockResolvedValue({ 'mcp-server-1': { id: 'mcp-1', url: 'http://fake' } }),
     });
 
     const { server, runStore } = createIntegrationSetup({

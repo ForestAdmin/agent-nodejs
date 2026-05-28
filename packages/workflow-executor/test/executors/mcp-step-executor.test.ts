@@ -444,13 +444,13 @@ describe('McpStepExecutor', () => {
     });
   });
 
-  // PRD-363: tool-list scoping is performed in Runner.fetchRemoteTools (filter by config.id).
-  // The executor consumes pre-scoped tools and only asserts non-empty; per-tool re-filtering
-  // would just be redundant defense-in-depth, so the tests below assert the simpler contract.
   describe('forwards all provided remoteTools to the AI', () => {
-    it('binds every tool it receives — scoping is the Runner-fetch contract, not the executor', async () => {
-      const toolA = new MockRemoteTool({ name: 'tool_a', mcpServerId: 'id-A' });
-      const toolB = new MockRemoteTool({ name: 'tool_b', mcpServerId: 'id-A' });
+    // Tools are pre-scoped upstream — the executor must not re-filter. Mixing divergent
+    // mcpServerId values in the input asserts the executor passes every tool through, even
+    // ones that wouldn't match the step's mcpServerId on their own.
+    it('binds every tool it receives, including ones whose mcpServerId differs from the step', async () => {
+      const matchingTool = new MockRemoteTool({ name: 'tool_a', mcpServerId: 'id-A' });
+      const offTargetTool = new MockRemoteTool({ name: 'tool_b', mcpServerId: 'id-B' });
       const { model, bindTools } = makeMockModel('tool_a', {});
       const context = makeContext({
         model,
@@ -459,7 +459,7 @@ describe('McpStepExecutor', () => {
           executionType: StepExecutionMode.FullyAutomated,
         }),
       });
-      const executor = new McpStepExecutor(context, [toolA, toolB]);
+      const executor = new McpStepExecutor(context, [matchingTool, offTargetTool]);
 
       await executor.execute();
 

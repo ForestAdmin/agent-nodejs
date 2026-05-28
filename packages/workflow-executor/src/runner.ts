@@ -259,6 +259,15 @@ export default class Runner {
       ? Object.fromEntries(Object.entries(configs).filter(([, cfg]) => cfg.id === mcpServerId))
       : configs;
 
+    // Disambiguate "no configs at all" from "configs returned but none matched" — the latter
+    // indicates the orchestrator did not advertise the server the step references.
+    if (mcpServerId && Object.keys(configs).length > 0 && Object.keys(scoped).length === 0) {
+      this.logger.warn('MCP step targets a server not advertised by the orchestrator', {
+        requestedMcpServerId: mcpServerId,
+        availableMcpServerIds: Object.values(configs).map(cfg => cfg.id),
+      });
+    }
+
     if (Object.keys(scoped).length === 0) return [];
 
     return this.config.aiModelPort.loadRemoteTools(scoped);
