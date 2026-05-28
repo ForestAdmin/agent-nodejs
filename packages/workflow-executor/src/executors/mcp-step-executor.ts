@@ -37,6 +37,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       renderingId: this.context.user.renderingId,
       action: 'action',
       type: 'write',
+      collectionId: this.context.collectionId,
       label: this.context.stepDefinition.mcpServerId,
     };
   }
