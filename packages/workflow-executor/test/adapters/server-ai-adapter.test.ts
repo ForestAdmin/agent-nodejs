@@ -68,7 +68,7 @@ describe('ServerAiAdapter', () => {
 
   describe('loadRemoteTools', () => {
     it('delegates to internal AiClient', async () => {
-      const result = await adapter.loadRemoteTools({ configs: {} });
+      const result = await adapter.loadRemoteTools({});
 
       expect(result).toEqual([]);
     });

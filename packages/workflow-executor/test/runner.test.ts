@@ -1155,7 +1155,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
   });
 
-  it('wraps the orchestrator Record-shape configs as { configs } and calls loadRemoteTools once', async () => {
+  it('passes the orchestrator Record-shape configs directly to loadRemoteTools', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({
@@ -1179,7 +1179,7 @@ describe('MCP lazy loading (via once thunk)', () => {
 
     expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
     expect(aiClient.loadRemoteTools).toHaveBeenCalledTimes(1);
-    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({ configs: realConfigs });
+    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith(realConfigs);
   });
 
   it('skips loadRemoteTools when the orchestrator returns an empty Record', async () => {

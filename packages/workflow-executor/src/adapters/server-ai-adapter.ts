@@ -1,5 +1,5 @@
 import type { AiModelPort } from '../ports/ai-model-port';
-import type { McpConfiguration, RemoteTool } from '@forestadmin/ai-proxy';
+import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 import { AiClient } from '@forestadmin/ai-proxy';
@@ -50,8 +50,8 @@ export default class ServerAiAdapter implements AiModelPort {
     }
   }
 
-  loadRemoteTools(config: McpConfiguration): Promise<RemoteTool[]> {
-    return this.callPort('loadRemoteTools', () => this.aiClient.loadRemoteTools(config));
+  loadRemoteTools(configs: Record<string, ToolConfig>): Promise<RemoteTool[]> {
+    return this.callPort('loadRemoteTools', () => this.aiClient.loadRemoteTools(configs));
   }
 
   closeConnections(): Promise<void> {
