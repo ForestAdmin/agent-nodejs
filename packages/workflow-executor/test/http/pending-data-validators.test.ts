@@ -155,24 +155,40 @@ describe('patchBodySchemas', () => {
       });
     });
 
-    it('accepts confirmation with both name and selectedRecordId (relation override)', () => {
-      expect(schema.parse({ userConfirmed: true, name: 'address', selectedRecordId: [7] })).toEqual(
-        { userConfirmed: true, name: 'address', selectedRecordId: [7] },
+    it('accepts confirmation with both fieldDisplayName and selectedRecordId (relation override)', () => {
+      expect(
+        schema.parse({
+          userConfirmed: true,
+          fieldDisplayName: 'Address',
+          selectedRecordId: [7],
+        }),
+      ).toEqual({ userConfirmed: true, fieldDisplayName: 'Address', selectedRecordId: [7] });
+    });
+
+    it('rejects fieldDisplayName override on confirm without selectedRecordId — original record ID belongs to a different collection', () => {
+      expect(() => schema.parse({ userConfirmed: true, fieldDisplayName: 'Address' })).toThrow(
+        'selectedRecordId is required when confirming with a relation override',
       );
     });
 
-    it('rejects name override without selectedRecordId — original record ID belongs to a different collection', () => {
-      expect(() => schema.parse({ userConfirmed: true, name: 'address' })).toThrow(
-        'selectedRecordId is required when overriding the relation name',
-      );
-    });
-
-    it('rejects empty string name — empty string is not a valid relation name', () => {
-      expect(() => schema.parse({ userConfirmed: true, name: '' })).toThrow();
+    it('rejects empty string fieldDisplayName — empty string is not a valid display name', () => {
+      expect(() => schema.parse({ userConfirmed: true, fieldDisplayName: '' })).toThrow();
     });
 
     it('rejects unknown fields (strict schema)', () => {
       expect(() => schema.parse({ userConfirmed: true, extra: 'leak' })).toThrow();
+    });
+
+    // Preview patch: fieldDisplayName alone, no userConfirmed. The executor uses this
+    // to re-list candidates for a different relation without finalizing the step.
+    it('accepts a preview patch — fieldDisplayName alone, no userConfirmed', () => {
+      expect(schema.parse({ fieldDisplayName: 'Address' })).toEqual({
+        fieldDisplayName: 'Address',
+      });
+    });
+
+    it('rejects an empty patch — must carry either userConfirmed or a fieldDisplayName preview', () => {
+      expect(() => schema.parse({})).toThrow();
     });
   });
 });

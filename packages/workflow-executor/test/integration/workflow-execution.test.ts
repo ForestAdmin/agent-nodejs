@@ -79,6 +79,7 @@ const COLLECTION_SCHEMA_WITH_RELATION: CollectionSchema = {
       isRelationship: true,
       relationType: 'BelongsTo',
       relatedCollectionName: 'orders',
+      relatedPrimaryKey: 'id',
     },
   ],
   actions: [],
@@ -503,9 +504,13 @@ describe('workflow execution (integration)', () => {
     });
 
     const agentPort = createMockAgentPort();
-    agentPort.getRelatedData.mockResolvedValue([
-      { collectionName: 'orders', recordId: [99], values: { id: 99, total: 100 } },
-    ]);
+    // BelongsTo → xToOne path: executor reads parent.values.<relation>.id from getRecord.
+    // The agent serializes the relation linkage's `id` from the foreign collection's PK.
+    agentPort.getRecord.mockResolvedValue({
+      collectionName: 'customers',
+      recordId: [42],
+      values: { order: { id: '99' } },
+    });
 
     const { server, runStore } = createIntegrationSetup({
       workflowPort,
@@ -547,7 +552,9 @@ describe('workflow execution (integration)', () => {
         type: 'load-related-record',
         executionResult: {
           relation: { name: 'order', displayName: 'Order' },
-          record: { collectionName: 'orders', recordId: [99], stepIndex: 0 },
+          // xToOne packs the related PK as a string via split('|') of the agent's
+          // serialized relation id.
+          record: { collectionName: 'orders', recordId: ['99'], stepIndex: 0 },
         },
       }),
     );

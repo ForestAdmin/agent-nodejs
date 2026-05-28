@@ -25,7 +25,7 @@ import {
 // The agent-client HTTP layer deserializes JSON:API responses with camelCase keys.
 // Field names in the schema and in GetRecordQuery.fields use the original format (e.g. snake_case).
 // This function restores the original field names so callers can look up values by schema fieldName.
-function restoreFieldNames(
+export function restoreFieldNames(
   values: Record<string, unknown>,
   originalFieldNames: string[] | undefined,
 ): Record<string, unknown> {
@@ -110,37 +110,24 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
+  // Returns raw rows as deserialized by agent-client (camelCase keys, no PK extraction).
+  // The caller resolves the related collection's schema and maps rows → RecordData; keeping
+  // schema-aware mapping out of the port avoids the silent fallback when the related
+  // collection isn't in the cache.
   async getRelatedData(
     { collection, id, relation, limit, fields }: GetRelatedDataQuery,
     user: StepUser,
-  ): Promise<RecordData[]> {
+  ): Promise<Record<string, unknown>[]> {
     return this.callAgent('getRelatedData', async () => {
       const client = this.createClient(user);
-      const parentSchema = this.resolveSchema(collection);
-      const relationField = parentSchema.fields.find(f => f.fieldName === relation);
-      const relatedCollectionName = relationField?.relatedCollectionName ?? relation;
-      const relatedSchema = this.resolveSchema(relatedCollectionName);
 
-      const records = await client
+      return client
         .collection(collection)
         .relation(relation, id)
         .list<Record<string, unknown>>({
           ...(limit !== null && { pagination: { size: limit, number: 1 } }),
           ...(fields?.length && { fields }),
         });
-
-      return records.map(record => {
-        const restored = restoreFieldNames(record, [
-          ...relatedSchema.primaryKeyFields,
-          ...(fields ?? []),
-        ]);
-
-        return {
-          collectionName: relatedSchema.collectionName,
-          recordId: relatedSchema.primaryKeyFields.map(f => restored[f] as string | number),
-          values: restored,
-        };
-      });
     });
   }
 

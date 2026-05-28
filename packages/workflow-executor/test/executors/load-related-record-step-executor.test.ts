@@ -22,6 +22,17 @@ function makeStep(
   };
 }
 
+// Wraps a raw recordId array into a LoadRelatedRecordCandidate for pendingData
+// fixtures and assertions. Tests that care about referenceFieldValue pass the
+// second argument; everything else gets `null`, which matches the executor's
+// behavior when the related collection has no referenceField configured.
+function cand(
+  recordId: Array<string | number>,
+  referenceFieldValue: string | null = null,
+): { recordId: Array<string | number>; referenceFieldValue: string | null } {
+  return { recordId, referenceFieldValue };
+}
+
 function makeRecordRef(overrides: Partial<RecordRef> = {}): RecordRef {
   return {
     collectionName: 'customers',
@@ -40,11 +51,45 @@ function makeRelatedRecordData(overrides: Partial<RecordData> = {}): RecordData 
   };
 }
 
-function makeMockAgentPort(relatedData: RecordData[] = [makeRelatedRecordData()]): AgentPort {
+/**
+ * The agent port now returns raw rows (no PK extraction). For test ergonomics we keep
+ * the RecordData[] shape in fixtures and translate here: each RecordData becomes a raw
+ * row by inlining the recordId under the PK field name (default 'id', or first
+ * primaryKeyField when provided) alongside its values.
+ */
+function toAgentRows(
+  records: RecordData[],
+  primaryKeyFields: string[] = ['id'],
+): Record<string, unknown>[] {
+  return records.map(r => {
+    const pkValues = Object.fromEntries(primaryKeyFields.map((field, i) => [field, r.recordId[i]]));
+
+    return { ...pkValues, ...r.values };
+  });
+}
+
+function makeMockAgentPort(
+  relatedData: RecordData[] = [makeRelatedRecordData()],
+  primaryKeyFields: string[] = ['id'],
+): AgentPort {
+  // xToOne path uses getRecord(parent, fields: ['<relation>@@@<pk>']) and reads
+  // parent.values[<relation>].id (jsonapi-serializer materializes the relationship
+  // linkage as a nested object on the parent). The mock reflects this contract by
+  // exposing the first relatedData[0]'s recordId joined with "|" under the relation
+  // name extracted from the @@@ projection. Tests can override per-call.
+  const getRecord = jest.fn(async ({ fields }: { fields?: string[] }) => {
+    const projection = fields?.[0];
+    const relationName = projection?.split('@@@')[0];
+    const packedId = relatedData[0]?.recordId.map(String).join('|');
+    const values = relationName && packedId ? { [relationName]: { id: packedId } } : {};
+
+    return { collectionName: 'parent', recordId: [], values };
+  });
+
   return {
-    getRecord: jest.fn(),
+    getRecord,
     updateRecord: jest.fn(),
-    getRelatedData: jest.fn().mockResolvedValue(relatedData),
+    getRelatedData: jest.fn().mockResolvedValue(toAgentRows(relatedData, primaryKeyFields)),
     executeAction: jest.fn(),
   } as unknown as AgentPort;
 }
@@ -63,6 +108,7 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
         isRelationship: true,
         relationType: 'BelongsTo',
         relatedCollectionName: 'orders',
+        relatedPrimaryKey: 'id',
       },
       {
         fieldName: 'address',
@@ -164,10 +210,13 @@ function makePendingExecution(
     type: 'load-related-record',
     stepIndex: 0,
     pendingData: {
-      displayName: 'Order',
-      name: 'order',
-      selectedRecordId: [99],
-      suggestedFields: ['status', 'amount'],
+      availableFields: [
+        { name: 'order', displayName: 'Order' },
+        { name: 'address', displayName: 'Address' },
+      ],
+      suggestedField: { name: 'order', displayName: 'Order' },
+      availableRecordIds: [cand([99])],
+      suggestedRecord: cand([99]),
     },
     selectedRecordRef: makeRecordRef(),
     ...overrides,
@@ -191,10 +240,12 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], relation: 'order', limit: 1 },
+      // BelongsTo: project the relation on the parent record; no /relationships call.
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['order@@@id'] },
         expect.objectContaining({ id: 1 }),
       );
+      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -204,7 +255,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           executionResult: expect.objectContaining({
             record: expect.objectContaining({
               collectionName: 'orders',
-              recordId: [99],
+              recordId: ['99'],
               stepIndex: 0,
             }),
           }),
@@ -227,6 +278,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Address',
             isRelationship: true,
             relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
           },
         ],
       });
@@ -319,6 +371,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Address',
             isRelationship: true,
             relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
           },
         ],
       });
@@ -552,6 +605,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Profile',
             isRelationship: true,
             relationType: 'HasOne',
+            relatedCollectionName: 'profiles',
+            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -572,16 +627,18 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // HasOne uses the same fetchFirstCandidate path as BelongsTo — limit: 1
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], relation: 'profile', limit: 1 },
+      // HasOne uses the same xToOne path as BelongsTo: project the relation on the
+      // parent and split the packed id. No /relationships call.
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['profile@@@id'] },
         expect.objectContaining({ id: 1 }),
       );
+      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
           executionResult: expect.objectContaining({
-            record: expect.objectContaining({ collectionName: 'profiles', recordId: [5] }),
+            record: expect.objectContaining({ collectionName: 'profiles', recordId: ['5'] }),
           }),
         }),
       );
@@ -599,11 +656,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], relation: 'order', limit: 50 },
+      // BelongsTo → xToOne path: project the relation on the parent. No /relationships call.
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['order@@@id'] },
         expect.objectContaining({ id: 1 }),
       );
-      // Single record → only select-relation AI call
+      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
+      // xToOne has exactly one candidate → only select-relation AI call (no field/record selection)
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -611,10 +670,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
           type: 'load-related-record',
           stepIndex: 0,
           pendingData: {
-            displayName: 'Order',
-            name: 'order',
-            selectedRecordId: [99],
-            suggestedFields: [],
+            availableFields: [
+              { name: 'order', displayName: 'Order' },
+              { name: 'address', displayName: 'Address' },
+            ],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            availableRecordIds: [cand(['99'])],
+            suggestedRecord: cand(['99']),
           },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
@@ -624,17 +686,19 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
+    // Uses HasMany ('Address') because BelongsTo/HasOne now short-circuit to a single
+    // xToOne candidate (no select-fields/select-record-by-content AI calls).
     it('runs field-selection + record-selection AI calls when multiple related records exist', async () => {
       const relatedData: RecordData[] = [
-        { collectionName: 'orders', recordId: [1], values: { status: 'pending' } },
-        { collectionName: 'orders', recordId: [2], values: { status: 'completed' } },
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
       ];
       const agentPort = makeMockAgentPort(relatedData);
 
-      const ordersSchema = makeCollectionSchema({
-        collectionName: 'orders',
-        collectionDisplayName: 'Orders',
-        fields: [{ fieldName: 'status', displayName: 'Status', isRelationship: false }],
+      const addressesSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
       });
 
       const invoke = jest
@@ -643,19 +707,19 @@ describe('LoadRelatedRecordStepExecutor', () => {
           tool_calls: [
             {
               name: 'select-relation',
-              args: { relationName: 'Order', reasoning: 'Load order' },
+              args: { relationName: 'Address', reasoning: 'Load address' },
               id: 'c1',
             },
           ],
         })
         .mockResolvedValueOnce({
-          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['Status'] }, id: 'c2' }],
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
         })
         .mockResolvedValueOnce({
           tool_calls: [
             {
               name: 'select-record-by-content',
-              args: { recordIndex: 1, reasoning: 'Completed is best' },
+              args: { recordIndex: 1, reasoning: 'Lyon is best' },
               id: 'c3',
             },
           ],
@@ -670,7 +734,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         workflowPort: makeMockWorkflowPort({
           customers: makeCollectionSchema(),
-          orders: ordersSchema,
+          addresses: addressesSchema,
         }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -683,25 +747,30 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           pendingData: {
-            displayName: 'Order',
-            name: 'order',
-            selectedRecordId: [2], // record at index 1
-            suggestedFields: ['status'],
+            availableFields: [
+              { name: 'order', displayName: 'Order' },
+              { name: 'address', displayName: 'Address' },
+            ],
+            suggestedField: { name: 'address', displayName: 'Address' },
+            availableRecordIds: [cand([1]), cand([2])],
+            suggestedRecord: cand([2]), // record at index 1
           },
         }),
       );
     });
 
+    // Uses HasMany ('Address') because BelongsTo/HasOne now short-circuit to a single
+    // xToOne candidate (no field/record AI selection).
     it('skips field-selection AI call when related collection has no non-relation fields', async () => {
       const relatedData: RecordData[] = [
-        { collectionName: 'orders', recordId: [1], values: {} },
-        { collectionName: 'orders', recordId: [2], values: {} },
+        { collectionName: 'addresses', recordId: [1], values: {} },
+        { collectionName: 'addresses', recordId: [2], values: {} },
       ];
       const agentPort = makeMockAgentPort(relatedData);
 
-      const ordersSchema = makeCollectionSchema({
-        collectionName: 'orders',
-        collectionDisplayName: 'Orders',
+      const addressesSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
         fields: [],
       });
 
@@ -711,7 +780,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           tool_calls: [
             {
               name: 'select-relation',
-              args: { relationName: 'Order', reasoning: 'Load order' },
+              args: { relationName: 'Address', reasoning: 'Load address' },
               id: 'c1',
             },
           ],
@@ -735,7 +804,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         workflowPort: makeMockWorkflowPort({
           customers: makeCollectionSchema(),
-          orders: ordersSchema,
+          addresses: addressesSchema,
         }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -749,8 +818,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           pendingData: expect.objectContaining({
-            selectedRecordId: [1],
-            suggestedFields: [],
+            suggestedRecord: cand([1]),
+            availableRecordIds: [cand([1]), cand([2])],
           }),
         }),
       );
@@ -758,14 +827,17 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('confirmation accepted (Branch A)', () => {
-    it('uses selectedRecordId from pendingData, no getRelatedData call', async () => {
+    it('uses suggestedRecord from pendingData, no getRelatedData call', async () => {
       const agentPort = makeMockAgentPort();
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          suggestedFields: ['status', 'amount'],
-          selectedRecordId: [99],
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
         },
         userConfirmation: { userConfirmed: true },
       });
@@ -788,22 +860,24 @@ describe('LoadRelatedRecordStepExecutor', () => {
             record: expect.objectContaining({ collectionName: 'orders', recordId: [99] }),
           }),
           pendingData: expect.objectContaining({
-            displayName: 'Order',
-            name: 'order',
-            selectedRecordId: [99],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            suggestedRecord: cand([99]),
           }),
         }),
       );
     });
 
-    it('uses selectedRecordId when the user overrides the AI suggestion', async () => {
+    it('uses suggestedRecord when the user does not override the AI suggestion', async () => {
       const agentPort = makeMockAgentPort();
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          suggestedFields: ['status', 'amount'],
-          selectedRecordId: [42],
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([42])],
+          suggestedRecord: cand([42]),
         },
         userConfirmation: { userConfirmed: true },
       });
@@ -829,14 +903,17 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('confirmation with user override of selectedRecordId (Branch A)', () => {
-    it('preserves AI suggestion in pendingData and writes user choice to executionParams', async () => {
+    it('preserves AI suggestion in pendingData and writes user choice to executionResult', async () => {
       // Persisted state: AI suggested record [99], awaiting confirmation.
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          selectedRecordId: [99],
-          suggestedFields: ['status', 'amount'],
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99]), cand([42])],
+          suggestedRecord: cand([99]),
         },
       });
       const agentPort = makeMockAgentPort();
@@ -862,9 +939,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'load-related-record',
           pendingData: expect.objectContaining({
-            displayName: 'Order',
-            name: 'order',
-            selectedRecordId: [99], // AI suggestion preserved
+            suggestedField: { name: 'order', displayName: 'Order' },
+            suggestedRecord: cand([99]), // AI suggestion preserved
           }),
           executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
@@ -874,15 +950,18 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('confirmation with user override of relation name (Branch A)', () => {
+  describe('confirmation with user override of relation (Branch A)', () => {
     it('re-derives relatedCollectionName when the user switches to a different relation', async () => {
-      // AI suggested "order" (→ orders collection). User switches to "address" (→ addresses).
+      // AI suggested "order" (→ orders collection). User switches to "Address" (→ addresses).
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          selectedRecordId: [99],
-          suggestedFields: [],
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
         },
       });
       const runStore = makeMockRunStore({
@@ -892,7 +971,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         incomingPendingData: {
           userConfirmed: true,
-          name: 'address',
+          fieldDisplayName: 'Address',
           selectedRecordId: [7],
         },
       });
@@ -906,9 +985,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           // AI suggestion preserved on pendingData
           pendingData: expect.objectContaining({
-            name: 'order',
-            displayName: 'Order',
-            selectedRecordId: [99],
+            suggestedField: { name: 'order', displayName: 'Order' },
+            suggestedRecord: cand([99]),
           }),
           // User-overridden relation resolves to the addresses collection
           executionParams: { name: 'address', displayName: 'Address' },
@@ -936,10 +1014,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          suggestedFields: [],
-          selectedRecordId: [99],
+          availableFields: [{ name: 'order', displayName: 'Order' }],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
         },
         userConfirmation: { userConfirmed: true },
       });
@@ -977,10 +1055,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          suggestedFields: [],
-          selectedRecordId: [99],
+          availableFields: [{ name: 'order', displayName: 'Order' }],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
         },
         userConfirmation: { userConfirmed: true },
       });
@@ -1000,7 +1078,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
-    it('uses overridden relation name from pendingData to derive relatedCollectionName', async () => {
+    it('uses overridden suggestedField from pendingData to derive relatedCollectionName', async () => {
       const schema = makeCollectionSchema({
         fields: [
           {
@@ -1019,13 +1097,17 @@ describe('LoadRelatedRecordStepExecutor', () => {
           },
         ],
       });
-      // User overrode AI's suggestion of 'order' to 'address' via PATCH
+      // Pending data already reflects 'address' as the suggested relation (e.g. user override
+      // was previously persisted, or the AI picked it directly).
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Address',
-          name: 'address',
-          suggestedFields: [],
-          selectedRecordId: [77],
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'address', displayName: 'Address' },
+          availableRecordIds: [cand([77])],
+          suggestedRecord: cand([77]),
         },
         userConfirmation: { userConfirmed: true },
       });
@@ -1053,10 +1135,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const execution = makePendingExecution({
         selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          suggestedFields: [],
-          selectedRecordId: [99],
+          availableFields: [{ name: 'order', displayName: 'Order' }],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
         },
         userConfirmation: { userConfirmed: true },
       });
@@ -1081,10 +1163,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          suggestedFields: ['status', 'amount'],
-          selectedRecordId: [99],
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
         },
         userConfirmation: { userConfirmed: false },
       });
@@ -1102,9 +1187,316 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: expect.objectContaining({ displayName: 'Order', name: 'order' }),
+          pendingData: expect.objectContaining({
+            suggestedField: { name: 'order', displayName: 'Order' },
+          }),
         }),
       );
+    });
+  });
+
+  // The frontend lets the user switch to a different relation before confirming. To
+  // populate the new relation's `availableRecordIds`, it POSTs a "preview" patch:
+  // `{ fieldDisplayName }` with no `userConfirmed`. The executor re-lists candidates,
+  // refreshes pendingData, clears userConfirmation, and stays awaiting-input.
+  describe('field-preview patch (Branch A — no confirm)', () => {
+    it('re-lists candidates for the new relation and stays awaiting-input', async () => {
+      const execution = makePendingExecution({
+        pendingData: {
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand(['99'])],
+          suggestedRecord: cand(['99']),
+        },
+      });
+      // User switched to Address (HasMany). The default mock returns the order fixture;
+      // override with address candidates so we can verify the new IDs land in pendingData.
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ]);
+      const addressesSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      // The schema-cache fetch for 'addresses' goes through the workflow port.
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        addresses: addressesSchema,
+      });
+      // With 2 candidates, selectBestFromRelatedData calls the AI for field + record
+      // selection. Wire those up so the preview can pick a suggestedRecord.
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c1' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 1, reasoning: 'Lyon' },
+              id: 'c2',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort,
+        incomingPendingData: { fieldDisplayName: 'Address' },
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+
+      // Two saves: one from patchAndReloadPendingData persisting userConfirmation,
+      // one from refreshCandidatesForField writing the new pendingData. The latter
+      // is the one the frontend reads.
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          type: 'load-related-record',
+          // userConfirmation cleared so the next bodyless trigger re-emits awaiting-input
+          // cleanly via handleConfirmationFlow (no stale fieldDisplayName ghost-confirms).
+          userConfirmation: undefined,
+          pendingData: expect.objectContaining({
+            // availableFields is immutable — only suggestedField + candidates change.
+            availableFields: [
+              { name: 'order', displayName: 'Order' },
+              { name: 'address', displayName: 'Address' },
+            ],
+            suggestedField: { name: 'address', displayName: 'Address' },
+            availableRecordIds: [cand([1]), cand([2])],
+            suggestedRecord: cand([2]), // AI's select-record-by-content pick
+          }),
+        }),
+      );
+    });
+
+    it('reruns xToOne candidate lookup when previewing a BelongsTo relation', async () => {
+      // Same setup but switching to Order (BelongsTo). Verifies the xToOne path is
+      // used inside refreshCandidatesForField — no AI calls, single candidate from
+      // the parent's projected relation linkage.
+      const execution = makePendingExecution({
+        pendingData: {
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'address', displayName: 'Address' },
+          availableRecordIds: [cand([1]), cand([2])],
+          suggestedRecord: cand([2]),
+        },
+      });
+      const agentPort = makeMockAgentPort(); // default: order recordId [99]
+      const workflowPort = makeMockWorkflowPort({ customers: makeCollectionSchema() });
+      const mockModel = makeMockModel({});
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort,
+        incomingPendingData: { fieldDisplayName: 'Order' },
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      // xToOne path goes through getRecord with `<relation>@@@<pk>` projection.
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['order@@@id'] },
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
+
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          userConfirmation: undefined,
+          pendingData: expect.objectContaining({
+            suggestedField: { name: 'order', displayName: 'Order' },
+            availableRecordIds: [cand(['99'])],
+            suggestedRecord: cand(['99']),
+          }),
+        }),
+      );
+    });
+
+    it('returns error when the previewed relation does not exist on the source collection', async () => {
+      const execution = makePendingExecution();
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { fieldDisplayName: 'NotAField' },
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+  });
+
+  // The related collection may have a layout-level `referenceField` (e.g. `name`,
+  // `title`) used to display records in the UI. When configured, candidate records
+  // in pendingData carry the resolved value so the awaiting-input dropdown can show
+  // human-readable labels instead of raw ids.
+  describe('referenceField propagation in pendingData (Branch C)', () => {
+    it('exposes referenceFieldValue from the related collection on each HasMany candidate', async () => {
+      // HasMany path: fetchRelatedData returns full rows; the executor reads
+      // values[referenceField] for each candidate.
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ];
+      const agentPort = makeMockAgentPort(relatedData);
+      const addressesSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        referenceField: 'city',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-relation',
+              args: { relationName: 'Address', reasoning: 'Load address' },
+              id: 'c1',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'Paris' },
+              id: 'c3',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: addressesSchema,
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      await executor.execute();
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toEqual([
+        { recordId: [1], referenceFieldValue: 'Paris' },
+        { recordId: [2], referenceFieldValue: 'Lyon' },
+      ]);
+      expect(saved.pendingData.suggestedRecord).toEqual({
+        recordId: [1],
+        referenceFieldValue: 'Paris',
+      });
+    });
+
+    it('projects and extracts the referenceField on the xToOne path', async () => {
+      // xToOne path: getRecord projects `<relation>@@@<pk>` AND `<relation>@@@<referenceField>`;
+      // the executor reads relation[referenceField] from the parent's nested relation linkage.
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        referenceField: 'reference',
+        fields: [{ fieldName: 'reference', displayName: 'Reference', isRelationship: false }],
+      });
+
+      const agentPort = makeMockAgentPort();
+      // Override getRecord to return the projected reference field alongside the id.
+      (agentPort.getRecord as jest.Mock).mockResolvedValue({
+        collectionName: 'customers',
+        recordId: [42],
+        values: { order: { id: '99', reference: 'ORD-2026-001' } },
+      });
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      await executor.execute();
+
+      // Verify the projection includes the reference field.
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['order@@@id', 'order@@@reference'] },
+        expect.objectContaining({ id: 1 }),
+      );
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.suggestedRecord).toEqual({
+        recordId: ['99'],
+        referenceFieldValue: 'ORD-2026-001',
+      });
+    });
+
+    it('falls back to null referenceFieldValue when the related collection has no referenceField configured', async () => {
+      // Default makeCollectionSchema doesn't set referenceField → executor skips the
+      // extra projection and writes null on every candidate.
+      const agentPort = makeMockAgentPort();
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, agentPort, runStore });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      await executor.execute();
+
+      // No reference-field projection — only the PK.
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['order@@@id'] },
+        expect.objectContaining({ id: 1 }),
+      );
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.suggestedRecord).toEqual({
+        recordId: ['99'],
+        referenceFieldValue: null,
+      });
     });
   });
 
@@ -1269,10 +1661,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
     it('returns error outcome when saveStepExecution fails after load (Branch A confirmed)', async () => {
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          suggestedFields: ['status', 'amount'],
-          selectedRecordId: [99],
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
         },
         userConfirmation: { userConfirmed: true },
       });
@@ -1303,6 +1698,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Order',
             isRelationship: true,
             relationType: 'BelongsTo',
+            relatedCollectionName: 'orders',
+            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -1379,10 +1776,12 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('infra error propagation', () => {
+    // Uses HasMany ('Address') because xToOne reads from the parent record via getRecord,
+    // not getRelatedData. The infra-error contract is the same for both port methods.
     it('returns error outcome for getRelatedData infrastructure errors (Branch B)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('Connection refused'));
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'test' });
       const context = makeContext({
         model: mockModel.model,
         agentPort,
@@ -1397,7 +1796,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     it('returns error outcome for getRelatedData infrastructure errors (Branch C)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('Connection refused'));
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'test' });
       const context = makeContext({ model: mockModel.model, agentPort });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1411,7 +1810,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(
         new AgentPortError('getRelatedData', new Error('DB connection lost')),
       );
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'test' });
       const context = makeContext({
         model: mockModel.model,
         agentPort,
@@ -1451,6 +1850,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Invoice',
             isRelationship: true,
             relationType: 'BelongsTo',
+            relatedCollectionName: 'invoices',
+            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -1518,9 +1919,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           pendingData: expect.objectContaining({
-            displayName: 'Invoice',
-            name: 'invoice',
-            selectedRecordId: [55],
+            suggestedField: { name: 'invoice', displayName: 'Invoice' },
+            // xToOne path packs the related PK as a string via split('|') of the
+            // agent's serialized relation id.
+            suggestedRecord: cand(['55']),
           }),
           selectedRecordRef: expect.objectContaining({ recordId: [99], collectionName: 'orders' }),
         }),
@@ -1639,10 +2041,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
     it('returns error outcome when saveStepExecution fails on user reject (Branch A)', async () => {
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
-          name: 'order',
-          suggestedFields: ['status', 'amount'],
-          selectedRecordId: [99],
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
         },
         userConfirmation: { userConfirmed: false },
       });
@@ -1670,6 +2075,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Order',
             isRelationship: true,
             relationType: 'BelongsTo',
+            relatedCollectionName: 'orders',
+            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -1685,17 +2092,30 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], relation: 'order', limit: 1 },
+      // BelongsTo → xToOne path: project the relation on the parent record.
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], fields: ['order@@@id'] },
         expect.objectContaining({ id: 1 }),
       );
+      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
     });
   });
 
   describe('schema caching', () => {
-    it('fetches getCollectionSchema once per collection even when called twice (Branch B)', async () => {
-      const workflowPort = makeMockWorkflowPort();
+    // Both xToOne and HasMany now fetch the related schema (xToOne reads
+    // relatedSchema.referenceField for the dropdown label projection). The test
+    // asserts each schema is fetched at most once per run.
+    it('fetches getCollectionSchema once per collection (parent + related, no duplicate fetches)', async () => {
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema(),
+        addresses: makeCollectionSchema({
+          collectionName: 'addresses',
+          collectionDisplayName: 'Addresses',
+        }),
+      });
+      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'Load address' });
       const context = makeContext({
+        model: mockModel.model,
         workflowPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
@@ -1703,7 +2123,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await executor.execute();
 
-      expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
+      // Parent (customers) and related (addresses) — fetched once each, no duplicates.
+      expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(2);
+      expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith('customers', 'run-1');
+      expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith('addresses', 'run-1');
     });
   });
 
@@ -1722,9 +2145,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
         stepIndex: 3,
         selectedRecordRef: makeRecordRef(),
         pendingData: {
-          displayName: 'Invoice',
-          name: 'invoice',
-          selectedRecordId: [55],
+          availableFields: [{ name: 'invoice', displayName: 'Invoice' }],
+          suggestedField: { name: 'invoice', displayName: 'Invoice' },
+          availableRecordIds: [cand([55])],
+          suggestedRecord: cand([55]),
         },
       };
 
@@ -1737,6 +2161,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Order',
             isRelationship: true,
             relationType: 'BelongsTo',
+            relatedCollectionName: 'orders',
+            relatedPrimaryKey: 'id',
           },
         ],
       });
