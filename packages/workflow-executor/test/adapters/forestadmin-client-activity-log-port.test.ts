@@ -78,7 +78,7 @@ describe('ForestadminClientActivityLogPort', () => {
       expect(handle).toEqual({ id: 'log-2', index: '1' });
       expect(service.createActivityLog).toHaveBeenCalledTimes(2);
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('createPending'),
+        expect.stringContaining('activity log create'),
         expect.objectContaining({ attempt: 1 }),
       );
     });
@@ -194,7 +194,7 @@ describe('ForestadminClientActivityLogPort', () => {
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to mark activity log as succeeded',
+        'activity log mark-as-completed failed',
         expect.objectContaining({ handleId: 'log-1' }),
       );
     });
@@ -246,7 +246,7 @@ describe('ForestadminClientActivityLogPort', () => {
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to mark activity log as failed',
+        'activity log mark-as-failed failed',
         expect.objectContaining({
           handleId: 'log-1',
           stepErrorMessage: 'step-error-msg',

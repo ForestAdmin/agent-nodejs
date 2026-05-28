@@ -24,7 +24,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
   async createPending(args: CreateActivityLogArgs): Promise<ActivityLogHandle> {
     try {
       const response = await withRetry(
-        'Activity log createPending',
+        'activity log create',
         () =>
           this.service.createActivityLog({
             forestServerToken: this.forestServerToken,
@@ -42,7 +42,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
 
       return { id: response.id, index: response.attributes.index };
     } catch (cause) {
-      this.logger.error('Failed to create activity log', {
+      this.logger.error('activity log create failed', {
         action: args.action,
         collectionId: args.collectionId,
         status: (cause as { status?: number }).status,
@@ -56,7 +56,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     return this.drainer.track(async () => {
       try {
         await withRetry(
-          'Activity log markSucceeded',
+          'activity log mark-as-completed',
           () =>
             this.service.updateActivityLogStatus({
               forestServerToken: this.forestServerToken,
@@ -66,7 +66,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           { logger: this.logger, extraRetryStatuses: [404] },
         );
       } catch (err) {
-        this.logger.error('Failed to mark activity log as succeeded', {
+        this.logger.error('activity log mark-as-completed failed', {
           handleId: handle.id,
           error: extractErrorMessage(err),
         });
@@ -78,7 +78,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     return this.drainer.track(async () => {
       try {
         await withRetry(
-          'Activity log markFailed',
+          'activity log mark-as-failed',
           () =>
             this.service.updateActivityLogStatus({
               forestServerToken: this.forestServerToken,
@@ -88,7 +88,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           { logger: this.logger, extraRetryStatuses: [404] },
         );
       } catch (err) {
-        this.logger.error('Failed to mark activity log as failed', {
+        this.logger.error('activity log mark-as-failed failed', {
           handleId: handle.id,
           stepErrorMessage: errorMessage,
           error: extractErrorMessage(err),
