@@ -11,6 +11,7 @@ import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
   NoRecordsError,
@@ -846,7 +847,10 @@ describe('BaseStepExecutor', () => {
         ];
 
         await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
-          /Invariant violation.*SystemMessage after a non-system message/,
+          InvalidAiRequestError,
+        );
+        await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
+          /SystemMessage at position 2 appears after a non-system message/,
         );
       });
     });

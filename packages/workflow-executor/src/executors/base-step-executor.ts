@@ -17,6 +17,7 @@ import type {
 import { SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
   StepStateError,
@@ -299,7 +300,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const merged = new SystemMessage(
       messages
         .slice(0, i)
-        .map(m => String(m.content))
+        .map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+        .filter(Boolean)
         .join('\n\n'),
     );
 
@@ -309,12 +311,12 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   private static assertNoMidArraySystemMessages(messages: BaseMessage[]): void {
     let seenNonSystem = false;
 
-    for (const msg of messages) {
-      if (!(msg instanceof SystemMessage)) {
+    for (let i = 0; i < messages.length; i += 1) {
+      if (!(messages[i] instanceof SystemMessage)) {
         seenNonSystem = true;
       } else if (seenNonSystem) {
-        throw new Error(
-          'Invariant violation: SystemMessage after a non-system message — Anthropic rejects this payload. Move all system context to the front of the messages array.',
+        throw new InvalidAiRequestError(
+          `SystemMessage at position ${i} appears after a non-system message — move all system context to the front of the messages array.`,
         );
       }
     }

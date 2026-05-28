@@ -86,6 +86,7 @@ export {
   NoRelationshipFieldsError,
   RelatedRecordNotFoundError,
   InvalidAIResponseError,
+  InvalidAiRequestError,
   RelationNotFoundError,
   FieldNotFoundError,
   ActionNotFoundError,
