@@ -17,6 +17,7 @@ import type {
 import { SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
   StepStateError,
@@ -291,12 +292,45 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return [new SystemMessage(summary)];
   }
 
+  private static mergeLeadingSystemMessages(messages: BaseMessage[]): BaseMessage[] {
+    let i = 0;
+    while (i < messages.length && messages[i] instanceof SystemMessage) i += 1;
+    if (i <= 1) return messages;
+
+    const merged = new SystemMessage(
+      messages
+        .slice(0, i)
+        .map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+        .filter(Boolean)
+        .join('\n\n'),
+    );
+
+    return [merged, ...messages.slice(i)];
+  }
+
+  private static assertNoMidArraySystemMessages(messages: BaseMessage[]): void {
+    let seenNonSystem = false;
+
+    for (let i = 0; i < messages.length; i += 1) {
+      if (!(messages[i] instanceof SystemMessage)) {
+        seenNonSystem = true;
+      } else if (seenNonSystem) {
+        throw new InvalidAiRequestError(
+          `SystemMessage at position ${i} appears after a non-system message — move all system context to the front of the messages array.`,
+        );
+      }
+    }
+  }
+
   protected async invokeWithTools<T = Record<string, unknown>>(
     messages: BaseMessage[],
     tools: StructuredToolInterface[],
   ): Promise<{ toolName: string; args: T }> {
+    BaseStepExecutor.assertNoMidArraySystemMessages(messages);
     const modelWithTools = this.context.model.bindTools(tools, { tool_choice: 'any' });
-    const response = await modelWithTools.invoke(messages);
+    const response = await modelWithTools.invoke(
+      BaseStepExecutor.mergeLeadingSystemMessages(messages),
+    );
     const toolCall = response.tool_calls?.[0];
 
     if (toolCall !== undefined) {

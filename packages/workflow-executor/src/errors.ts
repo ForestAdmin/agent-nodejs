@@ -150,6 +150,12 @@ export class InvalidAIResponseError extends WorkflowExecutorError {
   }
 }
 
+export class InvalidAiRequestError extends WorkflowExecutorError {
+  constructor(message: string) {
+    super(message, 'Step configuration error — please contact your administrator.');
+  }
+}
+
 export class RelationNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(

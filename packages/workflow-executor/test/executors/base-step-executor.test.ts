@@ -8,9 +8,10 @@ import type { StepDefinition } from '../../src/types/validated/step-definition';
 import type { BaseStepStatus, StepOutcome } from '../../src/types/validated/step-outcome';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
-import { SystemMessage } from '@forestadmin/ai-proxy';
+import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
   NoRecordsError,
@@ -786,6 +787,72 @@ describe('BaseStepExecutor', () => {
       await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
         'AI returned a malformed tool call for "unknown": Something broke',
       );
+    });
+
+    describe('SystemMessage handling for Anthropic compat', () => {
+      it('merges multiple leading SystemMessages into a single one', async () => {
+        const { model, invoke } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model }));
+        const messages = [
+          new SystemMessage('context'),
+          new SystemMessage('previous steps'),
+          new SystemMessage('step prompt'),
+          new HumanMessage('request'),
+        ];
+
+        await executor.invokeWithTool(messages, dummyTool);
+
+        const passedMessages = invoke.mock.calls[0][0] as BaseMessage[];
+        expect(passedMessages).toHaveLength(2);
+        expect(passedMessages[0]).toBeInstanceOf(SystemMessage);
+        expect(passedMessages[0].content).toBe('context\n\nprevious steps\n\nstep prompt');
+        expect(passedMessages[1]).toBeInstanceOf(HumanMessage);
+      });
+
+      it('leaves messages unchanged when only one leading SystemMessage', async () => {
+        const { model, invoke } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model }));
+        const messages = [new SystemMessage('only system'), new HumanMessage('request')];
+
+        await executor.invokeWithTool(messages, dummyTool);
+
+        expect(invoke).toHaveBeenCalledWith(messages);
+      });
+
+      it('leaves messages unchanged when there is no SystemMessage', async () => {
+        const { model, invoke } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model }));
+        const messages = [new HumanMessage('only human')];
+
+        await executor.invokeWithTool(messages, dummyTool);
+
+        expect(invoke).toHaveBeenCalledWith(messages);
+      });
+
+      it('throws when a SystemMessage appears after a non-system message', async () => {
+        const { model } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model }));
+        const messages = [
+          new SystemMessage('leading'),
+          new HumanMessage('request'),
+          new SystemMessage('mid-array (invalid for Anthropic)'),
+        ];
+
+        await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
+          InvalidAiRequestError,
+        );
+        await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
+          /SystemMessage at position 2 appears after a non-system message/,
+        );
+      });
     });
   });
 
