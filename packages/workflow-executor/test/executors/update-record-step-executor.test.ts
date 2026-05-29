@@ -1602,4 +1602,249 @@ describe('UpdateRecordStepExecutor', () => {
       });
     });
   });
+
+  describe('confirmation value coercion (Branch A)', () => {
+    // Build a confirmation execution targeting `field` with a given pendingData/userConfirmation value.
+    function makeCoercionContext(
+      field: CollectionSchema['fields'][number],
+      pendingValue: unknown,
+      userConfirmation: { userConfirmed: boolean; value?: unknown },
+      agentPort = makeMockAgentPort({ [field.fieldName]: pendingValue }),
+    ) {
+      const schema = makeCollectionSchema({ fields: [field] });
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: field.displayName, name: field.fieldName, value: pendingValue },
+        userConfirmation,
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: schema }),
+      });
+
+      return { executor: new UpdateRecordStepExecutor(context), agentPort };
+    }
+
+    const booleanField = {
+      fieldName: 'isActive',
+      displayName: 'Is Active',
+      isRelationship: false,
+      type: 'Boolean' as const,
+    };
+    const numberArrayField = {
+      fieldName: 'scores',
+      displayName: 'Scores',
+      isRelationship: false,
+      type: ['Number'] as ['Number'],
+    };
+    const stringArrayField = {
+      fieldName: 'tags',
+      displayName: 'Tags',
+      isRelationship: false,
+      type: ['String'] as ['String'],
+    };
+    const enumArrayField = {
+      fieldName: 'colors',
+      displayName: 'Colors',
+      isRelationship: false,
+      type: ['Enum'] as ['Enum'],
+      enumValues: ['red', 'green', 'blue'],
+    };
+
+    it('coerces a native boolean user override', async () => {
+      const { executor, agentPort } = makeCoercionContext(booleanField, null, {
+        userConfirmed: true,
+        value: true,
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: true } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('coerces "true"/"false" string overrides to booleans', async () => {
+      const t = makeCoercionContext(booleanField, null, { userConfirmed: true, value: 'true' });
+      await t.executor.execute();
+      expect(t.agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: true } },
+        expect.objectContaining({ id: 1 }),
+      );
+
+      const f = makeCoercionContext(booleanField, null, { userConfirmed: true, value: 'false' });
+      await f.executor.execute();
+      expect(f.agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: false } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('coerces a [Number] array of numeric strings to numbers', async () => {
+      const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
+        userConfirmed: true,
+        value: ['1', '2'],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { scores: [1, 2] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('keeps a native [Number] array unchanged', async () => {
+      const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
+        userConfirmed: true,
+        value: [1, 2],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { scores: [1, 2] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('keeps a [String] array unchanged', async () => {
+      const { executor, agentPort } = makeCoercionContext(stringArrayField, null, {
+        userConfirmed: true,
+        value: ['a', 'b'],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { tags: ['a', 'b'] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('accepts a valid [Enum] array', async () => {
+      const { executor, agentPort } = makeCoercionContext(enumArrayField, null, {
+        userConfirmed: true,
+        value: ['red', 'blue'],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { colors: ['red', 'blue'] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('coerces a numeric string to a number (non-regression)', async () => {
+      const numberField = {
+        fieldName: 'age',
+        displayName: 'Age',
+        isRelationship: false,
+        type: 'Number' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(numberField, null, {
+        userConfirmed: true,
+        value: '42',
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { age: 42 } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('leaves an ISO datetime string unchanged (non-regression)', async () => {
+      const dateField = {
+        fieldName: 'createdAt',
+        displayName: 'Created At',
+        isRelationship: false,
+        type: 'Date' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(dateField, null, {
+        userConfirmed: true,
+        value: '2026-05-28T00:00:00.000Z',
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { createdAt: '2026-05-28T00:00:00.000Z' } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('fails with a StepStateError on coercion mismatch without updating', async () => {
+      const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
+        userConfirmed: true,
+        value: ['abc'],
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('coerces the AI/preRecordedArg value when the user confirms without overriding', async () => {
+      // pendingData.value is a raw "true" string (e.g. from preRecordedArgs); no user override.
+      const { executor, agentPort } = makeCoercionContext(booleanField, 'true', {
+        userConfirmed: true,
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: true } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('passes a null override through without coercion (field clear)', async () => {
+      const { executor, agentPort } = makeCoercionContext(booleanField, true, {
+        userConfirmed: true,
+        value: null,
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: null } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('passes the value through unchanged when the field type is null (relationship)', async () => {
+      const nullTypeField = {
+        fieldName: 'orders',
+        displayName: 'Orders',
+        isRelationship: true,
+        type: null,
+      };
+      const opaque = { some: 'object' };
+      const { executor, agentPort } = makeCoercionContext(nullTypeField, null, {
+        userConfirmed: true,
+        value: opaque,
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { orders: opaque } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+  });
 });

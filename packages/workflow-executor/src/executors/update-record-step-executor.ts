@@ -91,6 +91,26 @@ function buildZodSchemaForField(field: FieldSchema): z.ZodTypeAny {
   return buildZodSchemaForPrimitive(type as string, enumValues);
 }
 
+// Coerce a user-overridden value to the field's native type before updating the record.
+// The HTTP schema accepts `unknown`, so the override may be a boolean or an array; this turns
+// it into the type the datasource expects, and throws a StepStateError on mismatch.
+function coerceFieldValue(fieldSchema: FieldSchema | undefined, value: unknown): unknown {
+  // No coercible primitive schema (field not found or relationship) → leave it as-is.
+  if (!fieldSchema || fieldSchema.type == null || value === null) return value;
+
+  const parsed = buildZodSchemaForField(fieldSchema).safeParse(value);
+
+  if (!parsed.success) {
+    throw new StepStateError(
+      `Invalid value for field "${fieldSchema.displayName}": ${parsed.error.issues
+        .map(issue => issue.message)
+        .join(', ')}`,
+    );
+  }
+
+  return parsed.data;
+}
+
 interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
 }
@@ -131,10 +151,17 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     if (pending) {
       return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
         const { selectedRecordRef, pendingData, userConfirmation } = exec;
+        // A user override of `null` (clearing the field) must win over the AI suggestion, so
+        // distinguish "no override" (undefined) from "override to null".
+        const rawValue =
+          userConfirmation?.value !== undefined ? userConfirmation.value : pendingData!.value;
+
         const target: UpdateTarget = {
           selectedRecordRef,
           ...pendingData!,
-          value: userConfirmation?.value ?? pendingData!.value,
+          // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
+          // it to the field's native type before updating. Idempotent on already-typed values.
+          value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue),
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -143,6 +170,19 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     // Branches B & C -- First call
     return this.handleFirstCall();
+  }
+
+  private async coerceOverride(
+    selectedRecordRef: RecordRef,
+    pendingData: FieldWithValue | undefined,
+    value: unknown,
+  ): Promise<unknown> {
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const fieldSchema =
+      this.findField(schema, pendingData?.name ?? '') ??
+      this.findField(schema, pendingData?.displayName ?? '');
+
+    return coerceFieldValue(fieldSchema, value);
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {

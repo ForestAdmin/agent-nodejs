@@ -58,16 +58,34 @@ describe('patchBodySchemas', () => {
       });
     });
 
-    it('rejects boolean value', () => {
-      expect(() => schema.parse({ userConfirmed: true, value: true })).toThrow();
+    // value is now z.unknown(): the HTTP schema no longer judges the business type.
+    // The update-record executor coerces/validates it field-aware (buildZodSchemaForField).
+    it('accepts boolean value (coerced field-aware downstream)', () => {
+      expect(schema.parse({ userConfirmed: true, value: true })).toEqual({
+        userConfirmed: true,
+        value: true,
+      });
     });
 
-    it('rejects null value', () => {
-      expect(() => schema.parse({ userConfirmed: true, value: null })).toThrow();
+    it('accepts array value (coerced field-aware downstream)', () => {
+      expect(schema.parse({ userConfirmed: true, value: [1, 2] })).toEqual({
+        userConfirmed: true,
+        value: [1, 2],
+      });
     });
 
-    it('rejects object value', () => {
-      expect(() => schema.parse({ userConfirmed: true, value: { foo: 'bar' } })).toThrow();
+    it('accepts null value', () => {
+      expect(schema.parse({ userConfirmed: true, value: null })).toEqual({
+        userConfirmed: true,
+        value: null,
+      });
+    });
+
+    it('accepts object value (coerced field-aware downstream)', () => {
+      expect(schema.parse({ userConfirmed: true, value: { foo: 'bar' } })).toEqual({
+        userConfirmed: true,
+        value: { foo: 'bar' },
+      });
     });
 
     it('rejects missing userConfirmed', () => {
