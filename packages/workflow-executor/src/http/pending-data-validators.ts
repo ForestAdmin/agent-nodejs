@@ -7,10 +7,6 @@ import { z } from 'zod';
 const updateRecordPatchSchema = z
   .object({
     userConfirmed: z.boolean(),
-    // User may override the AI-proposed value with any field type (boolean, array, etc.).
-    // The business type is validated/coerced field-aware in the update-record step executor
-    // (buildZodSchemaForField), so the HTTP schema stays a shape guard only — aligned with
-    // `actionResult` below.
     value: z.unknown().optional(),
   })
   .strict();
