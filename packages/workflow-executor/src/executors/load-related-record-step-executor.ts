@@ -303,7 +303,15 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       this.context.user,
     );
 
-    const relation = parent.values[target.name] as Record<string, unknown> | null | undefined;
+    // Restore field names from camelCase to original format (e.g., snake_case) so that
+    // relations with underscores in their names (e.g., `customer_order`) are correctly accessed.
+    const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
+    const restoredValues = restoreFieldNames(
+      parent.values,
+      sourceSchema.fields.map(f => f.fieldName),
+    );
+
+    const relation = restoredValues[target.name] as Record<string, unknown> | null | undefined;
     const packedId = relation?.id as string | undefined;
 
     if (!packedId) {
