@@ -66,13 +66,6 @@ describe('scopeConfigsToServer', () => {
 
     expect(scopeConfigsToServer(configs, 'id-missing')).toEqual({});
   });
-
-  it('skips entries with undefined id even when the requested id is undefined-like', () => {
-    const configs = { legacy: cfg(undefined), 'srv-a': cfg('id-A') };
-
-    // Undefined-id entries are never scoped in; the legacy fallback bypasses scoping entirely.
-    expect(scopeConfigsToServer(configs, 'id-A')).toEqual({ 'srv-a': cfg('id-A') });
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -80,17 +73,6 @@ describe('scopeConfigsToServer', () => {
 // ---------------------------------------------------------------------------
 
 describe('RemoteToolFetcher.fetch', () => {
-  it('passes the full Record to loadRemoteTools when mcpServerId is undefined (legacy)', async () => {
-    const configs = { 'srv-a': cfg('id-A'), 'srv-b': cfg('id-B') };
-    const { fetcher, aiModelPort } = makeFetcher({
-      workflowPort: { getMcpServerConfigs: jest.fn().mockResolvedValue(configs) },
-    });
-
-    await fetcher.fetch();
-
-    expect(aiModelPort.loadRemoteTools).toHaveBeenCalledWith(configs);
-  });
-
   it('passes only the matching config to loadRemoteTools when mcpServerId is set', async () => {
     const { fetcher, aiModelPort } = makeFetcher({
       workflowPort: {
@@ -116,39 +98,20 @@ describe('RemoteToolFetcher.fetch', () => {
     expect(aiModelPort.loadRemoteTools).not.toHaveBeenCalled();
   });
 
-  it('warns about unidentified configs before reporting the missing target server', async () => {
+  it('warns about the missing target with the list of advertised ids when no config matches', async () => {
     const { fetcher, logger } = makeFetcher({
       workflowPort: {
         getMcpServerConfigs: jest
           .fn()
-          .mockResolvedValue({ 'srv-a': cfg('id-A'), legacy: cfg(undefined) }),
+          .mockResolvedValue({ 'srv-a': cfg('id-A'), 'srv-b': cfg('id-B') }),
       },
     });
 
     await fetcher.fetch('id-missing');
 
     expect(logger.warn).toHaveBeenCalledWith(
-      'MCP configs without id cannot be scoped — check orchestrator migration',
-      { requestedMcpServerId: 'id-missing', unidentifiedConfigNames: ['legacy'] },
-    );
-    expect(logger.warn).toHaveBeenCalledWith(
       'MCP step targets a server not advertised by the orchestrator',
-      { requestedMcpServerId: 'id-missing', availableMcpServerIds: ['id-A'] },
-    );
-  });
-
-  it('does not warn about unidentified configs when no mcpServerId is set (legacy fallback)', async () => {
-    const { fetcher, logger } = makeFetcher({
-      workflowPort: {
-        getMcpServerConfigs: jest.fn().mockResolvedValue({ legacy: cfg(undefined) }),
-      },
-    });
-
-    await fetcher.fetch();
-
-    expect(logger.warn).not.toHaveBeenCalledWith(
-      'MCP configs without id cannot be scoped — check orchestrator migration',
-      expect.anything(),
+      { requestedMcpServerId: 'id-missing', availableMcpServerIds: ['id-A', 'id-B'] },
     );
   });
 
@@ -201,22 +164,6 @@ describe('RemoteToolFetcher.fetch', () => {
     });
   });
 
-  it('reports requestedMcpServerId as null in the partial-failure log for the legacy fallback', async () => {
-    const { fetcher, logger } = makeFetcher({
-      workflowPort: {
-        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
-      },
-      aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue([]) },
-    });
-
-    await fetcher.fetch();
-
-    expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
-      requestedMcpServerId: null,
-      failedConfigNames: ['srv-a'],
-    });
-  });
-
   it('does not log a partial-failure error when every scoped entry produced a tool', async () => {
     const { fetcher, logger } = makeFetcher({
       workflowPort: {
@@ -237,8 +184,9 @@ describe('RemoteToolFetcher.fetch', () => {
   // them as failed on the happy path.
   it('does not flag a Forest integration whose sourceId differs from the Record key', async () => {
     const forestConfig = {
+      id: 'id-zendesk',
       isForestConnector: true as const,
-      name: 'zendesk',
+      integrationName: 'Zendesk',
     } as unknown as ToolConfig;
     const { fetcher, logger } = makeFetcher({
       workflowPort: {
@@ -249,21 +197,22 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await fetcher.fetch();
+    await fetcher.fetch('id-zendesk');
 
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  it('flags only the MCP config when a Forest connector and a failed MCP entry coexist', async () => {
+  it('flags only the MCP config when a Forest connector and a failed MCP entry share the target id', async () => {
     const forestConfig = {
+      id: 'shared-id',
       isForestConnector: true as const,
-      name: 'zendesk',
+      integrationName: 'Zendesk',
     } as unknown as ToolConfig;
     const { fetcher, logger } = makeFetcher({
       workflowPort: {
         getMcpServerConfigs: jest.fn().mockResolvedValue({
           'zendesk-prod': forestConfig,
-          'srv-a': cfg('id-A'),
+          'srv-a': cfg('shared-id'),
         }),
       },
       aiModelPort: {
@@ -271,10 +220,10 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await fetcher.fetch();
+    await fetcher.fetch('shared-id');
 
     expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
-      requestedMcpServerId: null,
+      requestedMcpServerId: 'shared-id',
       failedConfigNames: ['srv-a'],
     });
   });

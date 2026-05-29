@@ -70,17 +70,11 @@ describe('extractErrorMessage', () => {
 });
 
 describe('NoMcpToolsError', () => {
-  it('produces a fully generic technical message when no mcpServerId was requested (no filter case)', () => {
-    const err = new NoMcpToolsError();
-
-    expect(err.message).toBe('No MCP tools available');
-    expect(err.userMessage).toBe('No tools are available to execute this step.');
-  });
-
-  it('includes the requested mcpServerId in the technical message when a filter was active', () => {
+  it('includes the requested mcpServerId in the technical message', () => {
     const err = new NoMcpToolsError('id-missing');
 
     expect(err.message).toBe('No MCP tools available for mcpServerId="id-missing"');
+    expect(err.userMessage).toBe('No tools are available to execute this step.');
   });
 
   it('keeps the user-facing message generic — no internal ids must leak', () => {

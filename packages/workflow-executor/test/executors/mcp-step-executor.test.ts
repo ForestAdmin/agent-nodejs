@@ -42,6 +42,7 @@ function makeStep(overrides: Partial<McpStepDefinition> = {}): McpStepDefinition
     type: StepType.Mcp,
     prompt: 'Send a notification to the user',
     executionType: StepExecutionMode.AutomatedWithConfirmation,
+    mcpServerId: 'default-mcp-id',
     ...overrides,
   };
 }

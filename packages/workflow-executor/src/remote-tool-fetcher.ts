@@ -24,14 +24,11 @@ export default class RemoteToolFetcher {
     this.logger = logger;
   }
 
-  async fetch(mcpServerId?: string): Promise<RemoteTool[]> {
+  async fetch(mcpServerId: string): Promise<RemoteTool[]> {
     const configs = await this.workflowPort.getMcpServerConfigs();
-    const scoped = mcpServerId ? scopeConfigsToServer(configs, mcpServerId) : configs;
+    const scoped = scopeConfigsToServer(configs, mcpServerId);
 
-    if (mcpServerId) {
-      this.warnUnidentifiedConfigs(configs, mcpServerId);
-      this.warnMissingTargetServer(configs, scoped, mcpServerId);
-    }
+    this.warnMissingTargetServer(configs, scoped, mcpServerId);
 
     if (Object.keys(scoped).length === 0) return [];
 
@@ -40,21 +37,6 @@ export default class RemoteToolFetcher {
     this.errorOnPartialLoadFailure(scoped, tools, mcpServerId);
 
     return tools;
-  }
-
-  // Configs without id cannot be matched against a defined mcpServerId. Surface them so a
-  // partial PRD-360 migration doesn't masquerade as "wrong target server" downstream.
-  private warnUnidentifiedConfigs(configs: Record<string, ToolConfig>, mcpServerId: string): void {
-    const unidentifiedConfigNames = Object.entries(configs)
-      .filter(([, cfg]) => cfg.id === undefined)
-      .map(([name]) => name);
-
-    if (unidentifiedConfigNames.length === 0) return;
-
-    this.logger.warn('MCP configs without id cannot be scoped — check orchestrator migration', {
-      requestedMcpServerId: mcpServerId,
-      unidentifiedConfigNames,
-    });
   }
 
   // Distinguish "no configs at all" (deployment misconfig) from "configs exist but none match"
@@ -87,7 +69,7 @@ export default class RemoteToolFetcher {
   private errorOnPartialLoadFailure(
     scoped: Record<string, ToolConfig>,
     tools: RemoteTool[],
-    mcpServerId: string | undefined,
+    mcpServerId: string,
   ): void {
     const loadedSourceIds = new Set(tools.map(t => t.sourceId));
     const failedConfigNames = Object.entries(scoped)
@@ -98,7 +80,7 @@ export default class RemoteToolFetcher {
     if (failedConfigNames.length === 0) return;
 
     this.logger.error('MCP servers failed to load tools', {
-      requestedMcpServerId: mcpServerId ?? null,
+      requestedMcpServerId: mcpServerId,
       failedConfigNames,
     });
   }

@@ -48,7 +48,7 @@ export default class StepExecutorFactory {
     step: AvailableStepExecution,
     contextConfig: StepContextConfig,
     activityLogPort: ActivityLogPort,
-    fetchRemoteTools: (mcpServerId?: string) => Promise<RemoteTool[]>,
+    fetchRemoteTools: (mcpServerId: string) => Promise<RemoteTool[]>,
     incomingPendingData?: unknown,
   ): Promise<IStepExecutor> {
     try {
