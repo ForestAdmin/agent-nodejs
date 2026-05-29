@@ -213,7 +213,7 @@ export class NoMcpToolsError extends WorkflowExecutorError {
   constructor(requestedMcpServerId: string) {
     super(
       `No MCP tools available for mcpServerId="${requestedMcpServerId}"`,
-      'No tools are available to execute this step.',
+      'Tools could not be loaded for the targeted server. Please try again, or contact your administrator if the problem persists.',
     );
   }
 }

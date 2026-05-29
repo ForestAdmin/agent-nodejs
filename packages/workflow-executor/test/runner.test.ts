@@ -1340,7 +1340,10 @@ describe('MCP fetch scoping', () => {
     );
   });
 
-  it('logs an error listing failed config names when loadRemoteTools returns fewer tools than scoped entries', async () => {
+  // The diagnostic must not short-circuit dispatch — the executor is still constructed (and
+  // will surface NoMcpToolsError downstream). Asserting on executeSpy.mock.instances bypasses
+  // the global execute() spy to confirm the executor saw the (empty) tool list.
+  it('logs partial-failure and still dispatches to the executor when the scoped server loaded zero tools', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const logger = createMockLogger();
@@ -1361,7 +1364,6 @@ describe('MCP fetch scoping', () => {
     workflowPort.getMcpServerConfigs.mockResolvedValue({
       'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
     });
-    // McpClient swallows per-server load errors — simulate the empty-result case here.
     aiClient.loadRemoteTools.mockResolvedValue([]);
 
     runner = new Runner(
@@ -1377,64 +1379,12 @@ describe('MCP fetch scoping', () => {
       requestedMcpServerId: 'id-A',
       failedConfigNames: ['server-A'],
     });
-  });
-
-  // Locks the sourceId-vs-key semantics of errorOnPartialLoadFailure end-to-end: only the
-  // failed MCP config is flagged while the survivor reaches the executor. The all-failed
-  // variant above can't lock this — it would route to NoMcpToolsError regardless of how the
-  // log builds its config list.
-  it('flags only the failed config and proceeds with the survivor on a genuine partial failure', async () => {
-    const workflowPort = createMockWorkflowPort();
-    const aiClient = createMockAiClient();
-    const logger = createMockLogger();
-    const step = makePendingStep({
-      runId: 'run-1',
-      stepId: 'step-mcp-1',
-      stepType: StepType.Mcp,
-      stepDefinition: {
-        type: StepType.Mcp,
-        executionType: StepExecutionMode.AutomatedWithConfirmation,
-        mcpServerId: 'id-A',
-      },
-    });
-    workflowPort.getAvailableRun.mockResolvedValue({
-      step,
-      auth: { forestServerToken: 'test-forest-token' },
-    });
-    workflowPort.getMcpServerConfigs.mockResolvedValue({
-      'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
-      'server-B': { id: 'id-A', url: 'https://b.example', type: 'http', headers: {} },
-    });
-    // McpClient swallows per-server load errors: 'server-A' loaded, 'server-B' is silently dropped.
-    const survivor = { sourceId: 'server-A', base: { name: 'tool-a' } };
-    aiClient.loadRemoteTools.mockResolvedValue([survivor] as unknown as Awaited<
-      ReturnType<AiModelPort['loadRemoteTools']>
-    >);
-
-    runner = new Runner(
-      createRunnerConfig({
-        workflowPort,
-        aiModelPort: aiClient as unknown as AiModelPort,
-        logger,
-      }),
-    );
-    await runner.triggerPoll('run-1');
-
-    // (1) The survivor's Record key is NOT flagged; only the dropped one is.
-    expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
-      requestedMcpServerId: 'id-A',
-      failedConfigNames: ['server-B'],
-    });
-    // (2) The McpStepExecutor was constructed with the survivor — proves "proceeds with the
-    //     survivor" end-to-end despite the partial failure. Asserting on the captured instance
-    //     bypasses the global execute() spy (which would otherwise hide which tools reached
-    //     the executor).
     expect(executeSpy).toHaveBeenCalledTimes(1);
     const executorInstance = executeSpy.mock.instances[0];
     expect(executorInstance).toBeInstanceOf(McpStepExecutor);
     expect(
       (executorInstance as unknown as { remoteTools: readonly unknown[] }).remoteTools,
-    ).toEqual([survivor]);
+    ).toEqual([]);
   });
 
   it('re-scopes loadRemoteTools per dispatch when chained MCP steps target different servers', async () => {

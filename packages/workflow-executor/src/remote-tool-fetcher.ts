@@ -3,8 +3,6 @@ import type { Logger } from './ports/logger-port';
 import type { WorkflowPort } from './ports/workflow-port';
 import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
-import { isForestIntegrationConfig } from '@forestadmin/ai-proxy';
-
 // Match by config.id, not by Record key: server names can collide across configs.
 export function scopeConfigsToServer(
   configs: Record<string, ToolConfig>,
@@ -62,20 +60,17 @@ export default class RemoteToolFetcher {
   }
 
   // Partial-failure detection: McpClient swallows per-server load errors and returns whatever
-  // succeeded. Compare scoped keys to the tools' sourceIds so ops can tell "wrong config" from
-  // "MCP server down". Only valid for MCP configs — Forest integrations carry a hardcoded
-  // sourceId (e.g. 'zendesk') that does not match the Record key, so any successfully-loaded
-  // Forest connector keyed otherwise would always be flagged as failed.
+  // succeeded. Match config.id against tool.mcpServerId — both providers populate it from the
+  // orchestrator's persisted id, so the check is uniform across MCP and Forest connectors.
   private errorOnPartialLoadFailure(
     scoped: Record<string, ToolConfig>,
     tools: RemoteTool[],
     mcpServerId: string,
   ): void {
-    const loadedSourceIds = new Set(tools.map(t => t.sourceId));
+    const loadedMcpServerIds = new Set(tools.map(t => t.mcpServerId));
     const failedConfigNames = Object.entries(scoped)
-      .filter(([, cfg]) => !isForestIntegrationConfig(cfg))
-      .map(([name]) => name)
-      .filter(name => !loadedSourceIds.has(name));
+      .filter(([, cfg]) => !loadedMcpServerIds.has(cfg.id))
+      .map(([name]) => name);
 
     if (failedConfigNames.length === 0) return;
 

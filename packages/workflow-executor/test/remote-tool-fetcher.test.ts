@@ -17,8 +17,8 @@ function createMockLogger(): jest.Mocked<Required<Logger>> {
   return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
-function makeRemoteTool(sourceId: string): RemoteTool {
-  return { sourceId } as unknown as RemoteTool;
+function makeRemoteTool(sourceId: string, mcpServerId?: string): RemoteTool {
+  return { sourceId, mcpServerId } as unknown as RemoteTool;
 }
 
 function makeFetcher(overrides?: {
@@ -144,33 +144,29 @@ describe('RemoteToolFetcher.fetch', () => {
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
-  it('logs an error listing failed config names when loadRemoteTools returns fewer tools than scoped entries', async () => {
+  it('flags the scoped MCP config when no tool was loaded for its id', async () => {
     const { fetcher, logger } = makeFetcher({
       workflowPort: {
-        getMcpServerConfigs: jest
-          .fn()
-          .mockResolvedValue({ 'srv-a': cfg('id-A'), 'srv-b': cfg('id-A') }),
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
       },
-      aiModelPort: {
-        loadRemoteTools: jest.fn().mockResolvedValue([makeRemoteTool('srv-a')]),
-      },
+      aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue([]) },
     });
 
     await fetcher.fetch('id-A');
 
     expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
       requestedMcpServerId: 'id-A',
-      failedConfigNames: ['srv-b'],
+      failedConfigNames: ['srv-a'],
     });
   });
 
-  it('does not log a partial-failure error when every scoped entry produced a tool', async () => {
+  it('does not log a partial-failure error when a tool carries the scoped config id', async () => {
     const { fetcher, logger } = makeFetcher({
       workflowPort: {
         getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
       },
       aiModelPort: {
-        loadRemoteTools: jest.fn().mockResolvedValue([makeRemoteTool('srv-a')]),
+        loadRemoteTools: jest.fn().mockResolvedValue([makeRemoteTool('srv-a', 'id-A')]),
       },
     });
 
@@ -179,10 +175,9 @@ describe('RemoteToolFetcher.fetch', () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  // Forest integrations set sourceId to a hardcoded literal ('zendesk', 'snowflake', ...) that
-  // does not necessarily match the Record key — a sourceId-vs-key comparison would always flag
-  // them as failed on the happy path.
-  it('does not flag a Forest integration whose sourceId differs from the Record key', async () => {
+  // Forest integrations carry a hardcoded sourceId (e.g. 'zendesk'); the partial-failure check
+  // discriminates on tool.mcpServerId, which both providers populate from the orchestrator id.
+  it('does not flag a Forest connector whose sourceId differs from the Record key', async () => {
     const forestConfig = {
       id: 'id-zendesk',
       isForestConnector: true as const,
@@ -193,7 +188,7 @@ describe('RemoteToolFetcher.fetch', () => {
         getMcpServerConfigs: jest.fn().mockResolvedValue({ 'zendesk-prod': forestConfig }),
       },
       aiModelPort: {
-        loadRemoteTools: jest.fn().mockResolvedValue([makeRemoteTool('zendesk')]),
+        loadRemoteTools: jest.fn().mockResolvedValue([makeRemoteTool('zendesk', 'id-zendesk')]),
       },
     });
 
@@ -202,39 +197,32 @@ describe('RemoteToolFetcher.fetch', () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  it('flags only the MCP config when a Forest connector and a failed MCP entry share the target id', async () => {
+  it('flags a Forest connector that fails to load entirely', async () => {
     const forestConfig = {
-      id: 'shared-id',
+      id: 'id-zendesk',
       isForestConnector: true as const,
       integrationName: 'Zendesk',
     } as unknown as ToolConfig;
     const { fetcher, logger } = makeFetcher({
       workflowPort: {
-        getMcpServerConfigs: jest.fn().mockResolvedValue({
-          'zendesk-prod': forestConfig,
-          'srv-a': cfg('shared-id'),
-        }),
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'zendesk-prod': forestConfig }),
       },
-      aiModelPort: {
-        loadRemoteTools: jest.fn().mockResolvedValue([makeRemoteTool('zendesk')]),
-      },
+      aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue([]) },
     });
 
-    await fetcher.fetch('shared-id');
+    await fetcher.fetch('id-zendesk');
 
     expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
-      requestedMcpServerId: 'shared-id',
-      failedConfigNames: ['srv-a'],
+      requestedMcpServerId: 'id-zendesk',
+      failedConfigNames: ['zendesk-prod'],
     });
   });
 
   it('returns the tools produced by loadRemoteTools verbatim', async () => {
-    const remoteTools = [makeRemoteTool('srv-a'), makeRemoteTool('srv-b')];
+    const remoteTools = [makeRemoteTool('srv-a', 'id-A')];
     const { fetcher } = makeFetcher({
       workflowPort: {
-        getMcpServerConfigs: jest
-          .fn()
-          .mockResolvedValue({ 'srv-a': cfg('id-A'), 'srv-b': cfg('id-A') }),
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
       },
       aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue(remoteTools) },
     });
@@ -242,5 +230,30 @@ describe('RemoteToolFetcher.fetch', () => {
     const result = await fetcher.fetch('id-A');
 
     expect(result).toBe(remoteTools);
+  });
+
+  it('propagates a rejection from loadRemoteTools without logging partial-failure', async () => {
+    const { fetcher, logger } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
+      },
+      aiModelPort: {
+        loadRemoteTools: jest.fn().mockRejectedValue(new Error('MCP unreachable')),
+      },
+    });
+
+    await expect(fetcher.fetch('id-A')).rejects.toThrow('MCP unreachable');
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('propagates a rejection from getMcpServerConfigs without calling loadRemoteTools', async () => {
+    const { fetcher, aiModelPort } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockRejectedValue(new Error('orchestrator down')),
+      },
+    });
+
+    await expect(fetcher.fetch('id-A')).rejects.toThrow('orchestrator down');
+    expect(aiModelPort.loadRemoteTools).not.toHaveBeenCalled();
   });
 });

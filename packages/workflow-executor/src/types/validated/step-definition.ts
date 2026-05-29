@@ -114,7 +114,7 @@ export const McpStepDefinitionSchema = z.object({
     .enum([AutomatedWithConfirmation, FullyAutomated])
     .default(AutomatedWithConfirmation)
     .catch(AutomatedWithConfirmation),
-  mcpServerId: z.string(),
+  mcpServerId: z.string().min(1),
 });
 export type McpStepDefinition = z.infer<typeof McpStepDefinitionSchema>;
 

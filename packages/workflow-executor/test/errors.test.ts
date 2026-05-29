@@ -74,13 +74,12 @@ describe('NoMcpToolsError', () => {
     const err = new NoMcpToolsError('id-missing');
 
     expect(err.message).toBe('No MCP tools available for mcpServerId="id-missing"');
-    expect(err.userMessage).toBe('No tools are available to execute this step.');
   });
 
-  it('keeps the user-facing message generic — no internal ids must leak', () => {
+  it('keeps the user-facing message free of internal ids', () => {
     const err = new NoMcpToolsError('id-missing');
 
-    expect(err.userMessage).toBe('No tools are available to execute this step.');
+    expect(err.userMessage).toMatch(/^Tools could not be loaded for the targeted server\./);
     expect(err.userMessage).not.toMatch(/id-missing/);
   });
 });

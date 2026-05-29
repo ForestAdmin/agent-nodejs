@@ -503,16 +503,20 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
+      expect(result.stepOutcome.error).toMatch(
+        /^Tools could not be loaded for the targeted server\./,
+      );
     });
 
-    it('keeps the user-facing error message generic when no tools are available', async () => {
+    it('keeps the user-facing error message free of internal ids', async () => {
       const context = makeContext({ stepDefinition: makeStep({ mcpServerId: 'id-B' }) });
       const executor = new McpStepExecutor(context, []);
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
+      expect(result.stepOutcome.error).toMatch(
+        /^Tools could not be loaded for the targeted server\./,
+      );
       expect(result.stepOutcome.error).not.toMatch(/id-B/);
     });
 
@@ -673,7 +677,7 @@ describe('McpStepExecutor', () => {
       await expect(executor.execute()).resolves.toMatchObject({
         stepOutcome: {
           status: 'error',
-          error: 'No tools are available to execute this step.',
+          error: expect.stringMatching(/^Tools could not be loaded for the targeted server\./),
         },
       });
     });
