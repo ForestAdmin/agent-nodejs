@@ -9,7 +9,6 @@ import type SchemaCache from './schema-cache';
 import type { AvailableStepExecution, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
-import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
 import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_MS } from './defaults';
@@ -22,6 +21,7 @@ import {
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import InFlightRunRegistry from './in-flight-run-registry';
+import RemoteToolFetcher from './remote-tool-fetcher';
 import { stepTypeToOutcomeType } from './types/validated/step-outcome';
 import validateSecrets from './validate-secrets';
 
@@ -52,11 +52,17 @@ export default class Runner {
   private pollingTimer: NodeJS.Timeout | null = null;
   private readonly inFlightRuns = new InFlightRunRegistry();
   private readonly logger: Logger;
+  private readonly remoteToolFetcher: RemoteToolFetcher;
   private _state: RunnerState = 'idle';
 
   constructor(config: RunnerConfig) {
     this.config = config;
     this.logger = config.logger ?? new ConsoleLogger();
+    this.remoteToolFetcher = new RemoteToolFetcher(
+      config.workflowPort,
+      config.aiModelPort,
+      this.logger,
+    );
   }
 
   get state(): RunnerState {
@@ -251,65 +257,6 @@ export default class Runner {
     }
   }
 
-  // Match by config.id, not by Record key: server names can collide across configs.
-  private async fetchRemoteTools(mcpServerId?: string): Promise<RemoteTool[]> {
-    const configs = await this.config.workflowPort.getMcpServerConfigs();
-
-    if (mcpServerId) {
-      // Configs without id cannot be matched against a defined mcpServerId. Surface them so a
-      // partial PRD-360 migration doesn't masquerade as "wrong target server" downstream.
-      const unidentifiedConfigNames = Object.entries(configs)
-        .filter(([, cfg]) => cfg.id === undefined)
-        .map(([name]) => name);
-
-      if (unidentifiedConfigNames.length > 0) {
-        this.logger.warn('MCP configs without id cannot be scoped — check orchestrator migration', {
-          requestedMcpServerId: mcpServerId,
-          unidentifiedConfigNames,
-        });
-      }
-    }
-
-    const scoped = mcpServerId
-      ? Object.fromEntries(Object.entries(configs).filter(([, cfg]) => cfg.id === mcpServerId))
-      : configs;
-
-    if (mcpServerId && Object.keys(scoped).length === 0) {
-      const availableMcpServerIds = Object.values(configs)
-        .map(cfg => cfg.id)
-        .filter((id): id is string => Boolean(id));
-
-      // Distinguish "no configs at all" (deployment misconfig) from "configs exist but none
-      // match" (orchestrator/executor drift on server id) — both yield zero tools, but ops
-      // need to know which one to fix.
-      this.logger.warn(
-        Object.keys(configs).length === 0
-          ? 'MCP step targets a server but orchestrator returned no MCP configs'
-          : 'MCP step targets a server not advertised by the orchestrator',
-        { requestedMcpServerId: mcpServerId, availableMcpServerIds },
-      );
-    }
-
-    if (Object.keys(scoped).length === 0) return [];
-
-    const tools = await this.config.aiModelPort.loadRemoteTools(scoped);
-
-    // Partial-failure detection: McpClient swallows per-server load errors and returns whatever
-    // succeeded. Compare scoped keys to the tools' sourceIds so ops can tell "wrong config"
-    // from "MCP server down".
-    const loadedSourceIds = new Set(tools.map(t => t.sourceId));
-    const failedSourceIds = Object.keys(scoped).filter(name => !loadedSourceIds.has(name));
-
-    if (failedSourceIds.length > 0) {
-      this.logger.error('MCP servers failed to load tools', {
-        requestedMcpServerId: mcpServerId ?? null,
-        failedSourceIds,
-      });
-    }
-
-    return tools;
-  }
-
   private executeStep(
     step: AvailableStepExecution,
     forestServerToken: string,
@@ -347,7 +294,7 @@ export default class Runner {
           currentStep,
           this.contextConfig,
           this.config.activityLogPortFactory.forRun(currentToken),
-          (mcpServerId?: string) => this.fetchRemoteTools(mcpServerId),
+          mcpServerId => this.remoteToolFetcher.fetch(mcpServerId),
           currentIncomingData,
         );
         result = await executor.execute();
