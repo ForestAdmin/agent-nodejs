@@ -699,9 +699,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           },
         ],
       });
-      const agentPort = makeMockAgentPort([
-        { collectionName: 'tags', recordId: [7], values: {} },
-      ]);
+      const agentPort = makeMockAgentPort([{ collectionName: 'tags', recordId: [7], values: {} }]);
       const mockModel = makeMockModel({ relationName: 'Tags', reasoning: 'Load tags' });
       const runStore = makeMockRunStore();
       const context = makeContext({
