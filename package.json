@@ -60,11 +60,9 @@
     "@hono/node-server": "^1.19.13",
     "langsmith": "^0.6.0",
     "lodash": "^4.18.0",
-    "**/@langchain/langgraph-sdk/uuid": "^13.0.1",
-    "**/socks/ip-address": "^10.1.1",
     "**/express-rate-limit/ip-address": "^10.1.1",
     "**/@aws-sdk/xml-builder/fast-xml-parser": "^5.7.0",
-    "**/@modelcontextprotocol/sdk/hono": "^4.12.18",
-    "**/ajv/fast-uri": "^3.1.2"
+    "**/@fastify/ajv-compiler/fast-uri": "^3.1.2",
+    "**/fast-json-stringify/fast-uri": "^3.1.2"
   }
 }
