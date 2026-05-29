@@ -266,6 +266,43 @@ describe('LoadRelatedRecordStepExecutor', () => {
         }),
       );
     });
+
+    // Guards against a schema-shape bug: the orchestrator always supplies
+    // `relatedPrimaryKey` for relationship fields, but if it ever lands missing,
+    // the xToOne path has no way to project `<relation>@@@<pk>` and must fail loud
+    // rather than silently mis-project.
+    it('returns error when relatedPrimaryKey is missing on the relation field', async () => {
+      const schemaWithoutPk = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'order',
+            displayName: 'Order',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'orders',
+            // relatedPrimaryKey intentionally omitted
+          },
+        ],
+      });
+      const agentPort = makeMockAgentPort();
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: schemaWithoutPk }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      // No agent call should reach the projection — the guard fires before getRecord.
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
   });
 
   describe('executionType=FullyAutomated: HasMany — 2 AI calls (Branch B)', () => {
@@ -642,6 +679,93 @@ describe('LoadRelatedRecordStepExecutor', () => {
           }),
         }),
       );
+    });
+  });
+
+  // BelongsToMany falls through to the same to-many candidate path as the default
+  // branch (neither xToOne nor HasMany). Routes through fetchFirstCandidate ->
+  // fetchCandidates -> getRelatedData with limit: 1, then picks the first row.
+  describe('executionType=FullyAutomated: BelongsToMany — load direct (Branch B)', () => {
+    it('fetches 1 related record via /relationships and returns success', async () => {
+      const belongsToManySchema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'tags',
+            displayName: 'Tags',
+            isRelationship: true,
+            relationType: 'BelongsToMany',
+            relatedCollectionName: 'tags',
+            relatedPrimaryKey: 'id',
+          },
+        ],
+      });
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'tags', recordId: [7], values: {} },
+      ]);
+      const mockModel = makeMockModel({ relationName: 'Tags', reasoning: 'Load tags' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: belongsToManySchema }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // To-many path: /relationships call with limit: 1, no parent-record projection.
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], relation: 'tags', limit: 1 },
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(agentPort.getRecord).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ collectionName: 'tags', recordId: [7] }),
+          }),
+        }),
+      );
+    });
+
+    // fetchCandidates throws RelatedRecordNotFoundError when the agent returns an
+    // empty list. Same user-facing message as the other empty-result paths.
+    it('returns error when getRelatedData returns an empty array', async () => {
+      const belongsToManySchema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'tags',
+            displayName: 'Tags',
+            isRelationship: true,
+            relationType: 'BelongsToMany',
+            relatedCollectionName: 'tags',
+            relatedPrimaryKey: 'id',
+          },
+        ],
+      });
+      const agentPort = makeMockAgentPort([]);
+      const mockModel = makeMockModel({ relationName: 'Tags', reasoning: 'Load tags' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: belongsToManySchema }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'The related record could not be found. It may have been deleted.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -1357,6 +1481,33 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+    });
+
+    // refreshCandidatesForField guards against a corrupted/partial execution where
+    // a preview patch lands but the persisted execution carries no pendingData.
+    // Twin of the "no pending data in confirmation flow" test for the resolve path.
+    it('returns error when execution exists but pendingData is absent', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 0,
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({
+        runStore,
+        incomingPendingData: { fieldDisplayName: 'Address' },
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
     });
   });
 
