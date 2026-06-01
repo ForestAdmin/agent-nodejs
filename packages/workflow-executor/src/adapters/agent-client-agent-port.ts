@@ -4,6 +4,7 @@ import type {
   GetActionFormInfoQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
+  GetSingleRelatedDataQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
 import type SchemaCache from '../schema-cache';
@@ -136,6 +137,42 @@ export default class AgentClientAgentPort implements AgentPort {
           values: restored,
         };
       });
+    });
+  }
+
+  // xToOne relations have no /relationships/<relation> route on the agent. We read the
+  // parent record with a `<relation>@@@<field>` projection and unpack the relation linkage
+  // jsonapi-serializer emits as a nested object on the parent (with the related PK packed
+  // under "id" when composite).
+  async getSingleRelatedData(
+    { collection, id, relation, relatedSchema, fields }: GetSingleRelatedDataQuery,
+    user: StepUser,
+  ): Promise<RecordData | null> {
+    return this.callAgent('getSingleRelatedData', async () => {
+      const projectedFields = Array.from(
+        new Set([...relatedSchema.primaryKeyFields, ...(fields ?? [])]),
+      );
+      const parent = await this.getRecord(
+        {
+          collection,
+          id,
+          fields: projectedFields.map(f => `${relation}@@@${f}`),
+        },
+        user,
+      );
+
+      const linkage = parent.values[relation] as Record<string, unknown> | null | undefined;
+      const packedId = linkage?.id as string | undefined;
+
+      if (!linkage || !packedId) return null;
+
+      const restored = restoreFieldNames(linkage, projectedFields);
+
+      return {
+        collectionName: relatedSchema.collectionName,
+        recordId: packedId.split('|'),
+        values: restored,
+      };
     });
   }
 

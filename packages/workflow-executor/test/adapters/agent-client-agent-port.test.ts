@@ -450,6 +450,187 @@ describe('AgentClientAgentPort', () => {
     });
   });
 
+  describe('getSingleRelatedData', () => {
+    // xToOne relations don't expose /relationships/<relation> on the agent. The port reads
+    // the parent record with a `<relation>@@@<field>` projection and unpacks the linkage
+    // that jsonapi-serializer emits as a nested object on the parent.
+    const ordersSchema = {
+      collectionName: 'orders',
+      collectionDisplayName: 'Orders',
+      primaryKeyFields: ['id'],
+      fields: [
+        { fieldName: 'id', displayName: 'id', isRelationship: false, type: 'Number' as const },
+        {
+          fieldName: 'reference',
+          displayName: 'Reference',
+          isRelationship: false,
+          type: 'String' as const,
+        },
+      ],
+      actions: [],
+    };
+
+    it('projects the related PK on the parent and unpacks the linkage as RecordData', async () => {
+      mockCollection.list.mockResolvedValue([{ order: { id: '99' } }]);
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: ordersSchema,
+        },
+        user,
+      );
+
+      expect(mockCollection.list).toHaveBeenCalledWith(
+        expect.objectContaining({ fields: ['order@@@id'] }),
+      );
+      expect(result).toEqual({
+        collectionName: 'orders',
+        recordId: ['99'],
+        values: { id: '99' },
+      });
+    });
+
+    it('adds extra projections for caller-supplied fields (e.g. referenceField)', async () => {
+      mockCollection.list.mockResolvedValue([{ order: { id: '99', reference: 'ORD-2026-001' } }]);
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: ordersSchema,
+          fields: ['reference'],
+        },
+        user,
+      );
+
+      expect(mockCollection.list).toHaveBeenCalledWith(
+        expect.objectContaining({ fields: ['order@@@id', 'order@@@reference'] }),
+      );
+      expect(result?.values).toEqual({ id: '99', reference: 'ORD-2026-001' });
+    });
+
+    it('deduplicates the PK if the caller passes it again in fields', async () => {
+      mockCollection.list.mockResolvedValue([{ order: { id: '99' } }]);
+
+      await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: ordersSchema,
+          fields: ['id'],
+        },
+        user,
+      );
+
+      expect(mockCollection.list).toHaveBeenCalledWith(
+        expect.objectContaining({ fields: ['order@@@id'] }),
+      );
+    });
+
+    // Regression: jsonapi-serializer emits the nested linkage with camelCased attribute
+    // keys (full_name → fullName). The adapter must restore those keys before returning
+    // values, otherwise snake_case referenceFields silently resolve to undefined upstream.
+    it('restores camelCased keys on the linkage when fields are snake_case', async () => {
+      const snakeSchema = {
+        ...ordersSchema,
+        fields: [
+          { fieldName: 'id', displayName: 'id', isRelationship: false, type: 'Number' as const },
+          {
+            fieldName: 'full_name',
+            displayName: 'Full name',
+            isRelationship: false,
+            type: 'String' as const,
+          },
+        ],
+      };
+      mockCollection.list.mockResolvedValue([{ order: { id: '99', fullName: 'John Doe' } }]);
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: snakeSchema,
+          fields: ['full_name'],
+        },
+        user,
+      );
+
+      expect(result?.values).toEqual({ id: '99', full_name: 'John Doe' });
+    });
+
+    it('splits composite PKs from the packed "id" linkage', async () => {
+      const compositeSchema = {
+        ...ordersSchema,
+        primaryKeyFields: ['tenantId', 'orderId'],
+        fields: [
+          {
+            fieldName: 'tenantId',
+            displayName: 'Tenant',
+            isRelationship: false,
+            type: 'String' as const,
+          },
+          {
+            fieldName: 'orderId',
+            displayName: 'Order',
+            isRelationship: false,
+            type: 'Number' as const,
+          },
+        ],
+      };
+      mockCollection.list.mockResolvedValue([{ order: { id: 'acme|7' } }]);
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: compositeSchema,
+        },
+        user,
+      );
+
+      expect(result?.recordId).toEqual(['acme', '7']);
+    });
+
+    it('returns null when the parent has no linkage to the xToOne relation', async () => {
+      mockCollection.list.mockResolvedValue([{ order: null }]);
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: ordersSchema,
+        },
+        user,
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when the linkage object is present but has no id', async () => {
+      mockCollection.list.mockResolvedValue([{ order: {} }]);
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: ordersSchema,
+        },
+        user,
+      );
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('executeAction', () => {
     it('should forward the RecordId array to agent-client and call execute', async () => {
       mockAction.execute.mockResolvedValue({ success: 'done' });

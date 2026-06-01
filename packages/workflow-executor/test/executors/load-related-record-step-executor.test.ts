@@ -52,24 +52,18 @@ function makeRelatedRecordData(overrides: Partial<RecordData> = {}): RecordData 
 }
 
 function makeMockAgentPort(relatedData: RecordData[] = [makeRelatedRecordData()]): AgentPort {
-  // xToOne path uses getRecord(parent, fields: ['<relation>@@@<pk>']) and reads
-  // parent.values[<relation>].id (jsonapi-serializer materializes the relationship
-  // linkage as a nested object on the parent). The mock reflects this contract by
-  // exposing the first relatedData[0]'s recordId joined with "|" under the relation
-  // name extracted from the @@@ projection. Tests can override per-call.
-  const getRecord = jest.fn(async ({ fields }: { fields?: string[] }) => {
-    const projection = fields?.[0];
-    const relationName = projection?.split('@@@')[0];
-    const packedId = relatedData[0]?.recordId.map(String).join('|');
-    const values = relationName && packedId ? { [relationName]: { id: packedId } } : {};
-
-    return { collectionName: 'parent', recordId: [], values };
-  });
+  // xToOne path uses getSingleRelatedData; mock returns the first relatedData entry shaped
+  // as a RecordData with the recordId stringified, mirroring the real adapter which packs
+  // composite ids via "|" and splits them back into strings. Tests can override per-call.
+  const first = relatedData[0];
+  const xToOneCandidate = first ? { ...first, recordId: first.recordId.map(String) } : null;
+  const getSingleRelatedData = jest.fn(async () => xToOneCandidate);
 
   return {
-    getRecord,
+    getRecord: jest.fn(),
     updateRecord: jest.fn(),
     getRelatedData: jest.fn().mockResolvedValue(relatedData),
+    getSingleRelatedData,
     executeAction: jest.fn(),
   } as unknown as AgentPort;
 }
@@ -220,9 +214,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // BelongsTo: project the relation on the parent record; no /relationships call.
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], fields: ['order@@@id'] },
+      // BelongsTo: port's xToOne method; no /relationships call.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'order',
+          relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
+        }),
         expect.objectContaining({ id: 1 }),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
@@ -245,43 +244,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
           }),
         }),
       );
-    });
-
-    // Guards against a schema-shape bug: the orchestrator always supplies
-    // `relatedPrimaryKey` for relationship fields, but if it ever lands missing,
-    // the xToOne path has no way to project `<relation>@@@<pk>` and must fail loud
-    // rather than silently mis-project.
-    it('returns error when relatedPrimaryKey is missing on the relation field', async () => {
-      const schemaWithoutPk = makeCollectionSchema({
-        fields: [
-          {
-            fieldName: 'order',
-            displayName: 'Order',
-            isRelationship: true,
-            relationType: 'BelongsTo',
-            relatedCollectionName: 'orders',
-            // relatedPrimaryKey intentionally omitted
-          },
-        ],
-      });
-      const agentPort = makeMockAgentPort();
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
-      const runStore = makeMockRunStore();
-      const context = makeContext({
-        model: mockModel.model,
-        agentPort,
-        runStore,
-        workflowPort: makeMockWorkflowPort({ customers: schemaWithoutPk }),
-        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
-      });
-      const executor = new LoadRelatedRecordStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      // No agent call should reach the projection — the guard fires before getRecord.
-      expect(agentPort.getRecord).not.toHaveBeenCalled();
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -650,10 +612,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // HasOne uses the same xToOne path as BelongsTo: project the relation on the
-      // parent and split the packed id. No /relationships call.
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], fields: ['profile@@@id'] },
+      // HasOne uses the same xToOne path as BelongsTo. No /relationships call.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'profile',
+          relatedSchema: expect.objectContaining({ collectionName: 'profiles' }),
+        }),
         expect.objectContaining({ id: 1 }),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
@@ -711,7 +677,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         }),
         expect.objectContaining({ id: 1 }),
       );
-      expect(agentPort.getRecord).not.toHaveBeenCalled();
+      expect(agentPort.getSingleRelatedData).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -770,9 +736,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      // BelongsTo → xToOne path: project the relation on the parent. No /relationships call.
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], fields: ['order@@@id'] },
+      // BelongsTo → xToOne path. No /relationships call.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'order',
+          relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
+        }),
         expect.objectContaining({ id: 1 }),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
@@ -1435,9 +1406,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      // xToOne path goes through getRecord with `<relation>@@@<pk>` projection.
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], fields: ['order@@@id'] },
+      // xToOne path goes through the port's getSingleRelatedData method.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'order',
+          relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
+        }),
         expect.objectContaining({ id: 1 }),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
@@ -1571,9 +1547,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
     });
 
-    it('projects and extracts the referenceField on the xToOne path', async () => {
-      // xToOne path: getRecord projects `<relation>@@@<pk>` AND `<relation>@@@<referenceField>`;
-      // the executor reads relation[referenceField] from the parent's nested relation linkage.
+    it('passes the referenceField to getSingleRelatedData and extracts its value from the result', async () => {
       const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
         collectionDisplayName: 'Orders',
@@ -1582,11 +1556,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
 
       const agentPort = makeMockAgentPort();
-      // Override getRecord to return the projected reference field alongside the id.
-      (agentPort.getRecord as jest.Mock).mockResolvedValue({
-        collectionName: 'customers',
-        recordId: [42],
-        values: { order: { id: '99', reference: 'ORD-2026-001' } },
+      (agentPort.getSingleRelatedData as jest.Mock).mockResolvedValue({
+        collectionName: 'orders',
+        recordId: ['99'],
+        values: { id: '99', reference: 'ORD-2026-001' },
       });
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
       const runStore = makeMockRunStore();
@@ -1603,9 +1576,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await executor.execute();
 
-      // Verify the projection includes the reference field.
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], fields: ['order@@@id', 'order@@@reference'] },
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'order',
+          fields: ['reference'],
+        }),
         expect.objectContaining({ id: 1 }),
       );
 
@@ -1616,50 +1593,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
     });
 
-    // Regression: jsonapi-serializer emits the nested relation linkage with camelCased
-    // attribute keys (full_name → fullName). The executor must restore those keys
-    // before reading values[referenceField], otherwise snake_case referenceFields
-    // silently resolve to undefined and the dropdown loses its label.
-    it('restores camelCased keys on the nested relation linkage when referenceField is snake_case', async () => {
-      const ordersSchema = makeCollectionSchema({
-        collectionName: 'orders',
-        collectionDisplayName: 'Orders',
-        referenceField: 'full_name',
-        fields: [{ fieldName: 'full_name', displayName: 'Full Name', isRelationship: false }],
-      });
-
-      const agentPort = makeMockAgentPort();
-      // Mock the real agent-client deserialization shape: camelCased keys.
-      (agentPort.getRecord as jest.Mock).mockResolvedValue({
-        collectionName: 'customers',
-        recordId: [42],
-        values: { order: { id: '99', fullName: 'John Doe' } },
-      });
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
-      const runStore = makeMockRunStore();
-      const context = makeContext({
-        model: mockModel.model,
-        agentPort,
-        runStore,
-        workflowPort: makeMockWorkflowPort({
-          customers: makeCollectionSchema(),
-          orders: ordersSchema,
-        }),
-      });
-      const executor = new LoadRelatedRecordStepExecutor(context);
-
-      await executor.execute();
-
-      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-      expect(saved.pendingData.suggestedRecord).toEqual({
-        recordId: ['99'],
-        referenceFieldValue: 'John Doe',
-      });
-    });
-
     it('falls back to null referenceFieldValue when the related collection has no referenceField configured', async () => {
-      // Default makeCollectionSchema doesn't set referenceField → executor skips the
-      // extra projection and writes null on every candidate.
+      // Default makeCollectionSchema doesn't set referenceField → executor omits `fields`
+      // when calling getSingleRelatedData and writes null on every candidate.
       const agentPort = makeMockAgentPort();
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
       const runStore = makeMockRunStore();
@@ -1668,9 +1604,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await executor.execute();
 
-      // No reference-field projection — only the PK.
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], fields: ['order@@@id'] },
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.not.objectContaining({ fields: expect.anything() }),
         expect.objectContaining({ id: 1 }),
       );
 
@@ -2274,9 +2209,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // BelongsTo → xToOne path: project the relation on the parent record.
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], fields: ['order@@@id'] },
+      // BelongsTo → xToOne path: port's getSingleRelatedData method.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'order',
+        }),
         expect.objectContaining({ id: 1 }),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();

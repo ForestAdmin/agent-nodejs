@@ -11,7 +11,6 @@ import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-de
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { restoreFieldNames } from '../adapters/agent-client-agent-port';
 import {
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
@@ -41,9 +40,6 @@ interface RelationTarget extends RelationRef {
   selectedRecordRef: RecordRef;
   relationType?: 'BelongsTo' | 'HasMany' | 'HasOne' | 'BelongsToMany';
   relatedCollectionName: string;
-  // Primary key field name on the related collection — supplied by the orchestrator's
-  // schema. Required for the xToOne projection syntax ('<relation>@@@<pk>').
-  computedKey?: string;
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
@@ -146,7 +142,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       name: field.fieldName,
       relationType: field.relationType,
       relatedCollectionName: field.relatedCollectionName ?? field.fieldName,
-      computedKey: field.relatedPrimaryKey,
     };
   }
 
@@ -246,45 +241,28 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   }
 
   private async fetchXToOneCandidate(target: RelationTarget): Promise<LoadRelatedRecordCandidate> {
-    if (!target.computedKey) {
-      throw new StepStateError(
-        `Cannot load xToOne relation "${target.name}" on collection ` +
-          `"${target.selectedRecordRef.collectionName}": missing relatedPrimaryKey in schema.`,
-      );
-    }
-
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
     const referenceField = relatedSchema.referenceField ?? null;
-    const fields = [`${target.name}@@@${target.computedKey}`];
 
-    if (referenceField && referenceField !== target.computedKey) {
-      fields.push(`${target.name}@@@${referenceField}`);
-    }
-
-    const parent = await this.agentPort.getRecord(
+    const candidate = await this.agentPort.getSingleRelatedData(
       {
         collection: target.selectedRecordRef.collectionName,
         id: target.selectedRecordRef.recordId,
-        fields,
+        relation: target.name,
+        relatedSchema,
+        ...(referenceField && { fields: [referenceField] }),
       },
       this.context.user,
     );
 
-    const relation = parent.values[target.name] as Record<string, unknown> | null | undefined;
-    const packedId = relation?.id as string | undefined;
-
-    if (!packedId) {
+    if (!candidate) {
       throw new RelatedRecordNotFoundError(target.selectedRecordRef.collectionName, target.name);
     }
 
-    const restoredRelation = referenceField
-      ? restoreFieldNames(relation as Record<string, unknown>, [target.computedKey, referenceField])
-      : (relation as Record<string, unknown>);
-
     return {
-      recordId: packedId.split('|'),
+      recordId: candidate.recordId,
       referenceFieldValue: referenceField
-        ? this.extractReferenceFieldValue(restoredRelation, referenceField)
+        ? this.extractReferenceFieldValue(candidate.values, referenceField)
         : null,
     };
   }

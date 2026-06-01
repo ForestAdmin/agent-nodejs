@@ -159,6 +159,7 @@ function createMockAgentPort(): jest.Mocked<AgentPort> {
       values: { id: 42, status: 'active' },
     }),
     getRelatedData: jest.fn().mockResolvedValue([]),
+    getSingleRelatedData: jest.fn().mockResolvedValue(null),
     executeAction: jest.fn().mockResolvedValue(undefined),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
     probe: jest.fn().mockResolvedValue(undefined),
@@ -504,12 +505,12 @@ describe('workflow execution (integration)', () => {
     });
 
     const agentPort = createMockAgentPort();
-    // BelongsTo → xToOne path: executor reads parent.values.<relation>.id from getRecord.
-    // The agent serializes the relation linkage's `id` from the foreign collection's PK.
-    agentPort.getRecord.mockResolvedValue({
-      collectionName: 'customers',
-      recordId: [42],
-      values: { order: { id: '99' } },
+    // BelongsTo → xToOne path: the port resolves the related record via getSingleRelatedData,
+    // which the adapter implements by projecting on the parent's record endpoint.
+    agentPort.getSingleRelatedData.mockResolvedValue({
+      collectionName: 'orders',
+      recordId: ['99'],
+      values: { id: '99' },
     });
 
     const { server, runStore } = createIntegrationSetup({
