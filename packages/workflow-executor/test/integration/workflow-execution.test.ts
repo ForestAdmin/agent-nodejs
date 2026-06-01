@@ -39,9 +39,9 @@ const COLLECTION_SCHEMA: CollectionSchema = {
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
-    { fieldName: 'id', displayName: 'Id', isRelationship: false },
-    { fieldName: 'email', displayName: 'Email', isRelationship: false },
-    { fieldName: 'name', displayName: 'Name', isRelationship: false },
+    { fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' },
+    { fieldName: 'email', displayName: 'Email', isRelationship: false, type: 'String' },
+    { fieldName: 'name', displayName: 'Name', isRelationship: false, type: 'String' },
   ],
   actions: [],
 };
@@ -51,8 +51,8 @@ const COLLECTION_SCHEMA_WITH_STATUS: CollectionSchema = {
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
-    { fieldName: 'id', displayName: 'Id', isRelationship: false },
-    { fieldName: 'status', displayName: 'Status', isRelationship: false },
+    { fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' },
+    { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
   ],
   actions: [],
 };
@@ -61,7 +61,7 @@ const COLLECTION_SCHEMA_WITH_ACTIONS: CollectionSchema = {
   collectionName: 'customers',
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
-  fields: [{ fieldName: 'id', displayName: 'Id', isRelationship: false }],
+  fields: [{ fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' }],
   actions: [
     { name: 'send_email', displayName: 'Send Email', endpoint: '/forest/actions/send-email' },
   ],
@@ -72,7 +72,7 @@ const COLLECTION_SCHEMA_WITH_RELATION: CollectionSchema = {
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
-    { fieldName: 'id', displayName: 'Id', isRelationship: false },
+    { fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' },
     {
       fieldName: 'order',
       displayName: 'Order',
@@ -89,8 +89,8 @@ const ORDERS_SCHEMA: CollectionSchema = {
   collectionDisplayName: 'Orders',
   primaryKeyFields: ['id'],
   fields: [
-    { fieldName: 'id', displayName: 'Id', isRelationship: false },
-    { fieldName: 'total', displayName: 'Total', isRelationship: false },
+    { fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' },
+    { fieldName: 'total', displayName: 'Total', isRelationship: false, type: 'Number' },
   ],
   actions: [],
 };

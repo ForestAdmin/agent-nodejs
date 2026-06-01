@@ -174,6 +174,16 @@ export class FieldNotFoundError extends WorkflowExecutorError {
   }
 }
 
+export class FieldTypeMissingError extends WorkflowExecutorError {
+  constructor(name: string, collectionName: string) {
+    super(
+      `Field "${name}" in collection "${collectionName}" has no column type`,
+      "This field can't be updated because its type is missing from the schema. " +
+        'Contact your administrator if the problem persists.',
+    );
+  }
+}
+
 export class ActionNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(

@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import {
   FieldNotFoundError,
+  FieldTypeMissingError,
   InvalidPreRecordedArgsError,
   NoWritableFieldsError,
   StepStateError,
@@ -74,8 +75,14 @@ function buildZodSchemaForPrimitive(type: string, enumValues?: string[]): z.ZodT
   }
 }
 
-function buildZodSchemaForField(field: FieldSchema): z.ZodTypeAny {
+function buildZodSchemaForField(field: FieldSchema, collectionName: string): z.ZodTypeAny {
   const { type, enumValues } = field;
+
+  // A writable (non-relationship) field with no column type is a malformed schema for this update:
+  // we'd otherwise fall through to z.string() and silently write the wrong type. Fail visibly.
+  if (type == null) {
+    throw new FieldTypeMissingError(field.displayName, collectionName);
+  }
 
   if (Array.isArray(type)) {
     // Nested array (e.g. [['String']]) → treat as opaque JSON.
@@ -94,11 +101,15 @@ function buildZodSchemaForField(field: FieldSchema): z.ZodTypeAny {
 // Coerce a user-overridden value to the field's native type before updating the record.
 // The HTTP schema accepts `unknown`, so the override may be a boolean or an array; this turns
 // it into the type the datasource expects, and throws a StepStateError on mismatch.
-function coerceFieldValue(fieldSchema: FieldSchema | undefined, value: unknown): unknown {
-  // No coercible primitive schema (field not found or relationship) → leave it as-is.
-  if (!fieldSchema || fieldSchema.type == null || value === null) return value;
+function coerceFieldValue(
+  fieldSchema: FieldSchema | undefined,
+  value: unknown,
+  collectionName: string,
+): unknown {
+  // Field not found, relationship (type intentionally null), or explicit null → nothing to coerce.
+  if (!fieldSchema || fieldSchema.isRelationship || value === null) return value;
 
-  const parsed = buildZodSchemaForField(fieldSchema).safeParse(value);
+  const parsed = buildZodSchemaForField(fieldSchema, collectionName).safeParse(value);
 
   if (!parsed.success) {
     throw new StepStateError(
@@ -182,7 +193,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       this.findField(schema, pendingData?.name ?? '') ??
       this.findField(schema, pendingData?.displayName ?? '');
 
-    return coerceFieldValue(fieldSchema, value);
+    return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName);
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
@@ -316,7 +327,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const fieldObjects = nonRelationFields.map(f =>
       z.object({
         fieldName: z.literal(f.displayName),
-        value: buildZodSchemaForField(f).nullable(),
+        value: buildZodSchemaForField(f, schema.collectionName).nullable(),
         reasoning: z.string().describe('Why this field and value were chosen'),
       }),
     ) as FieldObject[];

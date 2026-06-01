@@ -3,6 +3,11 @@
 import { z } from 'zod';
 
 // -- Schema types (structure of a collection — source: WorkflowPort) --
+//
+// These schemas (Field/Action/Collection) come from the orchestrator, which deploys independently
+// and evolves this contract over time. They intentionally omit `.strict()` so unknown keys are
+// stripped, not rejected, and require only structural fields — step-specific props are optional and
+// asserted at use-time by the consuming executor. Don't re-add `.strict()` here.
 
 // Mirrors PrimitiveTypes from @forestadmin/datasource-toolkit — kept local to avoid
 // adding a hard dependency on datasource-toolkit from the executor package.
@@ -33,8 +38,6 @@ const ColumnTypeSchema: z.ZodType<any> = z.lazy(() =>
   ]),
 );
 
-// Orchestrator collection schema: strip unknown keys (no `.strict()`) and keep only structural
-// fields required, so additive/step-specific drift doesn't fail steps that don't use it.
 export const FieldSchemaSchema = z.object({
   fieldName: z.string().min(1),
   displayName: z.string().min(1),

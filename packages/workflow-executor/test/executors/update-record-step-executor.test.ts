@@ -600,6 +600,36 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
+  describe('FieldTypeMissingError — writable field without a column type', () => {
+    it('fails the step instead of silently coercing the value to string (AI path)', async () => {
+      const agentPort = makeMockAgentPort();
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          // Non-relationship field with no `type` (orchestrator drift). Schema accepts it (resilience),
+          // but update-record must not build a string schema and write the wrong type silently.
+          fields: [{ fieldName: 'age', displayName: 'Age', isRelationship: false }],
+        }),
+      });
+      const mockModel = makeMockModel({ input: { fieldName: 'Age', value: '42', reasoning: 'r' } });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "This field can't be updated because its type is missing from the schema. " +
+          'Contact your administrator if the problem persists.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+  });
+
   describe('resolveFieldName failure', () => {
     it('returns error when field is not found during executionType=FullyAutomated (Branch B)', async () => {
       // AI returns a display name that doesn't match any field in the schema
@@ -1845,6 +1875,23 @@ describe('UpdateRecordStepExecutor', () => {
         { collection: 'customers', id: [42], values: { orders: opaque } },
         expect.objectContaining({ id: 1 }),
       );
+    });
+
+    it('fails the step when overriding a non-relationship field that has no type', async () => {
+      const typelessField = { fieldName: 'age', displayName: 'Age', isRelationship: false };
+      const { executor, agentPort } = makeCoercionContext(typelessField, null, {
+        userConfirmed: true,
+        value: '42',
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "This field can't be updated because its type is missing from the schema. " +
+          'Contact your administrator if the problem persists.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
   });
 });
