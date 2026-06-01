@@ -247,31 +247,127 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('getRelatedData', () => {
-    // Contract: this port is now a thin HTTP adapter for related-data lists. It returns the
-    // raw rows from agent-client (camelCase keys, no PK extraction, no collectionName).
-    // Schema resolution and the row → RecordData mapping happen in the executor — that's
-    // where the related collection's schema can be fetched on demand via the workflow port.
-    it('returns raw rows from agent-client untouched', async () => {
-      const rows = [
+    const postsSchema = {
+      collectionName: 'posts',
+      collectionDisplayName: 'Posts',
+      primaryKeyFields: ['id'],
+      fields: [
+        { fieldName: 'id', displayName: 'id', isRelationship: false, type: 'Number' as const },
+        {
+          fieldName: 'title',
+          displayName: 'title',
+          isRelationship: false,
+          type: 'String' as const,
+        },
+      ],
+      actions: [],
+    };
+
+    it('maps raw rows to RecordData using the supplied related schema', async () => {
+      mockRelation.list.mockResolvedValue([
         { id: 10, title: 'Post A' },
         { id: 11, title: 'Post B' },
-      ];
-      mockRelation.list.mockResolvedValue(rows);
+      ]);
 
       const result = await port.getRelatedData(
-        { collection: 'users', id: [42], relation: 'posts', limit: null },
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'posts',
+          relatedSchema: postsSchema,
+          limit: null,
+        },
         user,
       );
 
       expect(mockCollection.relation).toHaveBeenCalledWith('posts', [42]);
-      expect(result).toEqual(rows);
+      expect(result).toEqual([
+        { collectionName: 'posts', recordId: [10], values: { id: 10, title: 'Post A' } },
+        { collectionName: 'posts', recordId: [11], values: { id: 11, title: 'Post B' } },
+      ]);
+    });
+
+    it('restores snake_case field names from camelCase deserialized rows', async () => {
+      const snakeSchema = {
+        ...postsSchema,
+        primaryKeyFields: ['post_id'],
+        fields: [
+          {
+            fieldName: 'post_id',
+            displayName: 'Post id',
+            isRelationship: false,
+            type: 'Number' as const,
+          },
+          {
+            fieldName: 'created_at',
+            displayName: 'Created at',
+            isRelationship: false,
+            type: 'Date' as const,
+          },
+        ],
+      };
+      mockRelation.list.mockResolvedValue([{ postId: 99, createdAt: '2024-01-01' }]);
+
+      const result = await port.getRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'posts',
+          relatedSchema: snakeSchema,
+          limit: null,
+        },
+        user,
+      );
+
+      expect(result).toEqual([
+        {
+          collectionName: 'posts',
+          recordId: [99],
+          values: { post_id: 99, created_at: '2024-01-01' },
+        },
+      ]);
+    });
+
+    it('extracts composite primary keys in the order declared by the schema', async () => {
+      const compositeSchema = {
+        ...postsSchema,
+        primaryKeyFields: ['tenantId', 'postId'],
+        fields: [
+          {
+            fieldName: 'tenantId',
+            displayName: 'Tenant',
+            isRelationship: false,
+            type: 'String' as const,
+          },
+          {
+            fieldName: 'postId',
+            displayName: 'Post',
+            isRelationship: false,
+            type: 'Number' as const,
+          },
+        ],
+      };
+      mockRelation.list.mockResolvedValue([{ tenantId: 'acme', postId: 7 }]);
+
+      const result = await port.getRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'posts',
+          relatedSchema: compositeSchema,
+          limit: null,
+        },
+        user,
+      );
+
+      expect(result[0].recordId).toEqual(['acme', 7]);
     });
 
     it('applies pagination when limit is a number', async () => {
       mockRelation.list.mockResolvedValue([{ id: 10, title: 'Post A' }]);
 
       await port.getRelatedData(
-        { collection: 'users', id: [42], relation: 'posts', limit: 5 },
+        { collection: 'users', id: [42], relation: 'posts', relatedSchema: postsSchema, limit: 5 },
         user,
       );
 
@@ -284,7 +380,13 @@ describe('AgentClientAgentPort', () => {
       mockRelation.list.mockResolvedValue([]);
 
       await port.getRelatedData(
-        { collection: 'users', id: [42], relation: 'posts', limit: null },
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'posts',
+          relatedSchema: postsSchema,
+          limit: null,
+        },
         user,
       );
 
@@ -296,7 +398,13 @@ describe('AgentClientAgentPort', () => {
 
       expect(
         await port.getRelatedData(
-          { collection: 'users', id: [42], relation: 'posts', limit: null },
+          {
+            collection: 'users',
+            id: [42],
+            relation: 'posts',
+            relatedSchema: postsSchema,
+            limit: null,
+          },
           user,
         ),
       ).toEqual([]);
@@ -306,7 +414,14 @@ describe('AgentClientAgentPort', () => {
       mockRelation.list.mockResolvedValue([{ id: 10, title: 'Post A' }]);
 
       await port.getRelatedData(
-        { collection: 'users', id: [42], relation: 'posts', limit: null, fields: ['title'] },
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'posts',
+          relatedSchema: postsSchema,
+          limit: null,
+          fields: ['title'],
+        },
         user,
       );
 
@@ -319,36 +434,19 @@ describe('AgentClientAgentPort', () => {
       mockRelation.list.mockResolvedValue([{ id: 10 }]);
 
       await port.getRelatedData(
-        { collection: 'users', id: [42], relation: 'posts', limit: null },
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'posts',
+          relatedSchema: postsSchema,
+          limit: null,
+        },
         user,
       );
 
       expect(mockRelation.list).toHaveBeenCalledWith(
         expect.not.objectContaining({ fields: expect.anything() }),
       );
-    });
-
-    it('does not consult the schema cache for the related collection', async () => {
-      // No 'posts' entry in the cache — the port must still succeed. The fallback
-      // warn-and-default-to-["id"] used to live here; that logic now belongs to the
-      // executor, which routes through getCollectionSchema (cache + workflow port).
-      const cache = new SchemaCache();
-      const localPort = new AgentClientAgentPort({
-        agentUrl: 'http://agent',
-        authSecret: 'secret',
-        schemaCache: cache,
-      });
-      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      mockRelation.list.mockResolvedValue([{ postId: 99, createdAt: '2024-01-01' }]);
-
-      const result = await localPort.getRelatedData(
-        { collection: 'users', id: [42], relation: 'posts', limit: null },
-        user,
-      );
-
-      expect(result).toEqual([{ postId: 99, createdAt: '2024-01-01' }]);
-      expect(warn).not.toHaveBeenCalled();
-      warn.mockRestore();
     });
   });
 

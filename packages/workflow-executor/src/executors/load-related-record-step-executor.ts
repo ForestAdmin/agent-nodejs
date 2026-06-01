@@ -43,7 +43,7 @@ interface RelationTarget extends RelationRef {
   relatedCollectionName: string;
   // Primary key field name on the related collection — supplied by the orchestrator's
   // schema. Required for the xToOne projection syntax ('<relation>@@@<pk>').
-  relatedPrimaryKey?: string;
+  computedKey?: string;
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
@@ -64,13 +64,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     );
 
     if (pending) {
-      // Branch A-preview -- user switched relation without confirming: re-list candidates
-      // for the new relation, refresh pendingData, stay awaiting-input. Detected by a
-      // patch carrying `fieldDisplayName` but no `userConfirmed`.
       const conf = pending.userConfirmation;
 
-      if (conf?.userConfirmed === undefined && conf?.fieldDisplayName !== undefined) {
-        return this.refreshCandidatesForField(pending, conf.fieldDisplayName);
+      if (conf?.userConfirmed === undefined && conf?.fieldName !== undefined) {
+        return this.refreshCandidatesForField(pending, conf.fieldName);
       }
 
       return this.handleConfirmationFlow<LoadRelatedRecordStepExecutionData>(pending, async exec =>
@@ -82,20 +79,16 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.handleFirstCall();
   }
 
-  // Branch A-preview: refresh pendingData for a different relation. Reuses the same
-  // candidate collection used on the first call so xToOne / HasMany / BelongsToMany
-  // all stay consistent. The userConfirmation is cleared so a subsequent trigger
-  // without a body re-emits awaiting-input cleanly via handleConfirmationFlow.
   private async refreshCandidatesForField(
     execution: LoadRelatedRecordStepExecutionData,
-    fieldDisplayName: string,
+    fieldName: string,
   ): Promise<StepExecutionResult> {
     if (!execution.pendingData) {
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
     const schema = await this.getCollectionSchema(execution.selectedRecordRef.collectionName);
-    const target = this.buildTarget(schema, fieldDisplayName, execution.selectedRecordRef);
+    const target = this.buildTarget(schema, fieldName, execution.selectedRecordRef);
     const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -153,7 +146,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       name: field.fieldName,
       relationType: field.relationType,
       relatedCollectionName: field.relatedCollectionName ?? field.fieldName,
-      relatedPrimaryKey: field.relatedPrimaryKey,
+      computedKey: field.relatedPrimaryKey,
     };
   }
 
@@ -186,12 +179,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  // Branch C: collects the recordIds the frontend can present to the user, plus the
-  // AI's suggested pick. xToOne has exactly one candidate (no AI ranking needed);
-  // to-many goes through getRelatedData + the existing field/record AI selection.
-  // When the related collection has a layout-level `referenceField` configured, the
-  // candidates also carry its value so the frontend can display human-readable labels
-  // (e.g. "John Doe") instead of raw record ids.
   private async collectCandidateIds(target: RelationTarget): Promise<{
     availableRecordIds: LoadRelatedRecordCandidate[];
     suggestedRecord: LoadRelatedRecordCandidate;
@@ -209,10 +196,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const referenceField = relatedSchema.referenceField ?? null;
     const toCandidate = (r: RecordData): LoadRelatedRecordCandidate => ({
       recordId: r.recordId,
-      // `referenceField` is a fieldName on the related collection. fetchRelatedData
-      // has already restored field names from camelCase, so reading r.values[field]
-      // works for both `name` and `full_name` style identifiers. Coerce to string —
-      // the agent may return numbers/dates/etc. for display fields.
       referenceFieldValue: referenceField
         ? this.extractReferenceFieldValue(r.values, referenceField)
         : null,
@@ -240,9 +223,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.persistAndReturn(record, target, undefined);
   }
 
-  // Dispatches by relation type: xToOne reads the FK from the parent (no /relationships
-  // route exists on the agent for ManyToOne/OneToOne); HasMany uses AI selection; the
-  // remaining to-many shapes take the first /relationships result.
   private async fetchRecordForRelation(target: RelationTarget): Promise<RecordRef> {
     if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
       return this.fetchXToOneRecordRef(target);
@@ -255,14 +235,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.fetchFirstCandidate(target);
   }
 
-  // For ManyToOne/OneToOne: project the relation on the parent record. Forest projection
-  // syntax requires at least one related field per relation, so we project the related
-  // collection's primary key (`<relation>@@@<pk>`) and, when configured, also the
-  // reference field for display. The orchestrator supplies both names alongside the
-  // schema — no extra getCollectionSchema fetch needed here. The agent's JSON:API
-  // serializer fills the relationship's `data.id` with the *full* related primary key
-  // (packed with "|" for composite keys) regardless of which fields we project, so
-  // split('|') gives back the complete recordId.
   private async fetchXToOneRecordRef(target: RelationTarget): Promise<RecordRef> {
     const candidate = await this.fetchXToOneCandidate(target);
 
@@ -273,24 +245,19 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     };
   }
 
-  // Same projection logic as fetchXToOneRecordRef, but also extracts the related
-  // collection's reference-field value (when configured) so the frontend can render
-  // a human-readable label in the awaiting-input dropdown.
   private async fetchXToOneCandidate(target: RelationTarget): Promise<LoadRelatedRecordCandidate> {
-    if (!target.relatedPrimaryKey) {
+    if (!target.computedKey) {
       throw new StepStateError(
         `Cannot load xToOne relation "${target.name}" on collection ` +
           `"${target.selectedRecordRef.collectionName}": missing relatedPrimaryKey in schema.`,
       );
     }
 
-    // Resolve the related schema for the optional referenceField. Cached after the first
-    // lookup, so the extra fetch only pays once per related collection per run.
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
     const referenceField = relatedSchema.referenceField ?? null;
-    const fields = [`${target.name}@@@${target.relatedPrimaryKey}`];
+    const fields = [`${target.name}@@@${target.computedKey}`];
 
-    if (referenceField && referenceField !== target.relatedPrimaryKey) {
+    if (referenceField && referenceField !== target.computedKey) {
       fields.push(`${target.name}@@@${referenceField}`);
     }
 
@@ -310,10 +277,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new RelatedRecordNotFoundError(target.selectedRecordRef.collectionName, target.name);
     }
 
+    const restoredRelation = referenceField
+      ? restoreFieldNames(relation as Record<string, unknown>, [target.computedKey, referenceField])
+      : (relation as Record<string, unknown>);
+
     return {
       recordId: packedId.split('|'),
       referenceFieldValue: referenceField
-        ? this.extractReferenceFieldValue(relation as Record<string, unknown>, referenceField)
+        ? this.extractReferenceFieldValue(restoredRelation, referenceField)
         : null,
     };
   }
@@ -328,22 +299,17 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    // If the user switched relations, look up the chosen displayName in availableFields to
-    // recover its frozen technical name. Otherwise fall back to the AI's suggestion.
-    const relationRef = userConfirmation?.fieldDisplayName
-      ? pendingData.availableFields.find(f => f.displayName === userConfirmation.fieldDisplayName)
+    const relationRef = userConfirmation?.fieldName
+      ? pendingData.availableFields.find(f => f.name === userConfirmation.fieldName)
       : pendingData.suggestedField;
 
     if (!relationRef) {
       throw new StepStateError(
-        `Step at index ${this.context.stepIndex} could not resolve relation "${userConfirmation?.fieldDisplayName}" from available fields`,
+        `Step at index ${this.context.stepIndex} could not resolve relation "${userConfirmation?.fieldName}" from available fields`,
       );
     }
 
     const { name, displayName } = relationRef;
-    // suggestedRecord is a LoadRelatedRecordCandidate; only the recordId is needed here.
-    // The reference-field value is purely for display in awaiting-input and never persisted
-    // on the final RecordRef.
     const selectedRecordId =
       userConfirmation?.selectedRecordId ?? pendingData.suggestedRecord.recordId;
 
@@ -430,14 +396,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.toRecordRef(relatedData[bestIndex]);
   }
 
-  /** BelongsTo / HasOne: fetch 1 record and take it directly. */
   private async fetchFirstCandidate(target: RelationTarget): Promise<RecordRef> {
     const candidates = await this.fetchCandidates(target, 1);
 
     return candidates[0];
   }
 
-  // Throws RelatedRecordNotFoundError when the result is empty.
   private async fetchCandidates(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'relatedCollectionName'>,
     limit: number,
@@ -453,36 +417,21 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return relatedData.map(r => this.toRecordRef(r));
   }
 
-  // Calls the agent port and maps raw rows → RecordData using the related collection's schema.
-  // Schema is resolved by the caller so the cache is warmed via getCollectionSchema (which
-  // falls back to workflowPort), avoiding the silent ["id"] PK fallback the port used to do.
   private async fetchRelatedData(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
     relatedSchema: CollectionSchema,
     limit: number,
   ): Promise<RecordData[]> {
-    const rows = await this.agentPort.getRelatedData(
+    return this.agentPort.getRelatedData(
       {
         collection: target.selectedRecordRef.collectionName,
         id: target.selectedRecordRef.recordId,
         relation: target.name,
+        relatedSchema,
         limit,
       },
       this.context.user,
     );
-
-    return rows.map(row => {
-      const restored = restoreFieldNames(
-        row,
-        relatedSchema.fields.map(f => f.fieldName),
-      );
-
-      return {
-        collectionName: relatedSchema.collectionName,
-        recordId: relatedSchema.primaryKeyFields.map(f => restored[f] as string | number),
-        values: restored,
-      };
-    });
   }
 
   /** Persists the loaded record ref and returns a success outcome. */

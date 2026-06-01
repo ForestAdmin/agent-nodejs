@@ -76,17 +76,17 @@ export default abstract class RecordStepExecutor<
     return schema;
   }
 
-  protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
+  protected findField(schema: CollectionSchema, displayName: string): FieldSchema | undefined {
     // LLMs occasionally return formatting variants of field names (e.g. "first_name" for
     // "firstname", "full-name" for "Full Name") even though the tool schema declares them
     // as literals. Fall back to a normalized comparison so a cosmetic variation doesn't
     // fail an otherwise correct step.
     const normalizeFieldName = (s: string) => s.toLowerCase().replace(/[\s_-]/g, '');
-    const normalized = normalizeFieldName(name);
+    const normalized = normalizeFieldName(displayName);
 
     const exact =
-      schema.fields.find(f => f.displayName === name) ??
-      schema.fields.find(f => f.fieldName === name);
+      schema.fields.find(f => f.displayName === displayName) ??
+      schema.fields.find(f => f.fieldName === displayName);
     if (exact) return exact;
 
     const fuzzy = schema.fields.filter(

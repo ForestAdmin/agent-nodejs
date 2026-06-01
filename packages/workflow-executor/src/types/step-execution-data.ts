@@ -140,7 +140,7 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 // (configured but value missing) collapse to the same "fall back to id" rendering.
 export interface LoadRelatedRecordCandidate {
   recordId: Array<string | number>;
-  referenceFieldValue?: string | null;
+  referenceFieldValue: string | null;
 }
 
 export interface LoadRelatedRecordPendingData {

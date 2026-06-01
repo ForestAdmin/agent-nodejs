@@ -110,24 +110,32 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  // Returns raw rows as deserialized by agent-client (camelCase keys, no PK extraction).
-  // The caller resolves the related collection's schema and maps rows → RecordData; keeping
-  // schema-aware mapping out of the port avoids the silent fallback when the related
-  // collection isn't in the cache.
   async getRelatedData(
-    { collection, id, relation, limit, fields }: GetRelatedDataQuery,
+    { collection, id, relation, relatedSchema, limit, fields }: GetRelatedDataQuery,
     user: StepUser,
-  ): Promise<Record<string, unknown>[]> {
+  ): Promise<RecordData[]> {
     return this.callAgent('getRelatedData', async () => {
       const client = this.createClient(user);
-
-      return client
+      const rows = await client
         .collection(collection)
         .relation(relation, id)
         .list<Record<string, unknown>>({
           ...(limit !== null && { pagination: { size: limit, number: 1 } }),
           ...(fields?.length && { fields }),
         });
+
+      return rows.map(row => {
+        const restored = restoreFieldNames(
+          row,
+          relatedSchema.fields.map(f => f.fieldName),
+        );
+
+        return {
+          collectionName: relatedSchema.collectionName,
+          recordId: relatedSchema.primaryKeyFields.map(f => restored[f] as string | number),
+          values: restored,
+        };
+      });
     });
   }
 

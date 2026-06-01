@@ -51,27 +51,7 @@ function makeRelatedRecordData(overrides: Partial<RecordData> = {}): RecordData 
   };
 }
 
-/**
- * The agent port now returns raw rows (no PK extraction). For test ergonomics we keep
- * the RecordData[] shape in fixtures and translate here: each RecordData becomes a raw
- * row by inlining the recordId under the PK field name (default 'id', or first
- * primaryKeyField when provided) alongside its values.
- */
-function toAgentRows(
-  records: RecordData[],
-  primaryKeyFields: string[] = ['id'],
-): Record<string, unknown>[] {
-  return records.map(r => {
-    const pkValues = Object.fromEntries(primaryKeyFields.map((field, i) => [field, r.recordId[i]]));
-
-    return { ...pkValues, ...r.values };
-  });
-}
-
-function makeMockAgentPort(
-  relatedData: RecordData[] = [makeRelatedRecordData()],
-  primaryKeyFields: string[] = ['id'],
-): AgentPort {
+function makeMockAgentPort(relatedData: RecordData[] = [makeRelatedRecordData()]): AgentPort {
   // xToOne path uses getRecord(parent, fields: ['<relation>@@@<pk>']) and reads
   // parent.values[<relation>].id (jsonapi-serializer materializes the relationship
   // linkage as a nested object on the parent). The mock reflects this contract by
@@ -89,7 +69,7 @@ function makeMockAgentPort(
   return {
     getRecord,
     updateRecord: jest.fn(),
-    getRelatedData: jest.fn().mockResolvedValue(toAgentRows(relatedData, primaryKeyFields)),
+    getRelatedData: jest.fn().mockResolvedValue(relatedData),
     executeAction: jest.fn(),
   } as unknown as AgentPort;
 }
@@ -386,7 +366,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       // Fetches 50 candidates (HasMany)
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], relation: 'address', limit: 50 },
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'address',
+          limit: 50,
+          relatedSchema: expect.objectContaining({ collectionName: 'addresses' }),
+        }),
         expect.objectContaining({ id: 1 }),
       );
 
@@ -716,7 +702,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       // To-many path: /relationships call with limit: 1, no parent-record projection.
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], relation: 'tags', limit: 1 },
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'tags',
+          limit: 1,
+          relatedSchema: expect.objectContaining({ collectionName: 'tags' }),
+        }),
         expect.objectContaining({ id: 1 }),
       );
       expect(agentPort.getRecord).not.toHaveBeenCalled();
@@ -1093,7 +1085,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         incomingPendingData: {
           userConfirmed: true,
-          fieldDisplayName: 'Address',
+          fieldName: 'address',
           selectedRecordId: [7],
         },
       });
@@ -1319,7 +1311,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
   // The frontend lets the user switch to a different relation before confirming. To
   // populate the new relation's `availableRecordIds`, it POSTs a "preview" patch:
-  // `{ fieldDisplayName }` with no `userConfirmed`. The executor re-lists candidates,
+  // `{ fieldName }` with no `userConfirmed`. The executor re-lists candidates,
   // refreshes pendingData, clears userConfirmation, and stays awaiting-input.
   describe('field-preview patch (Branch A — no confirm)', () => {
     it('re-lists candidates for the new relation and stays awaiting-input', async () => {
@@ -1378,7 +1370,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort,
-        incomingPendingData: { fieldDisplayName: 'Address' },
+        incomingPendingData: { fieldName: 'address' },
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1394,7 +1386,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'load-related-record',
           // userConfirmation cleared so the next bodyless trigger re-emits awaiting-input
-          // cleanly via handleConfirmationFlow (no stale fieldDisplayName ghost-confirms).
+          // cleanly via handleConfirmationFlow (no stale fieldName ghost-confirms).
           userConfirmation: undefined,
           pendingData: expect.objectContaining({
             // availableFields is immutable — only suggestedField + candidates change.
@@ -1436,7 +1428,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort,
-        incomingPendingData: { fieldDisplayName: 'Order' },
+        incomingPendingData: { fieldName: 'order' },
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1472,7 +1464,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({
         agentPort,
         runStore,
-        incomingPendingData: { fieldDisplayName: 'NotAField' },
+        incomingPendingData: { fieldName: 'notAField' },
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1496,7 +1488,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
       const context = makeContext({
         runStore,
-        incomingPendingData: { fieldDisplayName: 'Address' },
+        incomingPendingData: { fieldName: 'address' },
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1621,6 +1613,47 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(saved.pendingData.suggestedRecord).toEqual({
         recordId: ['99'],
         referenceFieldValue: 'ORD-2026-001',
+      });
+    });
+
+    // Regression: jsonapi-serializer emits the nested relation linkage with camelCased
+    // attribute keys (full_name → fullName). The executor must restore those keys
+    // before reading values[referenceField], otherwise snake_case referenceFields
+    // silently resolve to undefined and the dropdown loses its label.
+    it('restores camelCased keys on the nested relation linkage when referenceField is snake_case', async () => {
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        referenceField: 'full_name',
+        fields: [{ fieldName: 'full_name', displayName: 'Full Name', isRelationship: false }],
+      });
+
+      const agentPort = makeMockAgentPort();
+      // Mock the real agent-client deserialization shape: camelCased keys.
+      (agentPort.getRecord as jest.Mock).mockResolvedValue({
+        collectionName: 'customers',
+        recordId: [42],
+        values: { order: { id: '99', fullName: 'John Doe' } },
+      });
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      await executor.execute();
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.suggestedRecord).toEqual({
+        recordId: ['99'],
+        referenceFieldValue: 'John Doe',
       });
     });
 

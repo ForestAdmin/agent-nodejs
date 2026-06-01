@@ -26,18 +26,19 @@ const mcpPatchSchema = z.object({ userConfirmed: z.boolean() }).strict();
 // Accepts two shapes:
 //   1. Confirmation patch: `userConfirmed: boolean` (+ optional overrides) — finalizes
 //      the step or skips it.
-//   2. Field-preview patch: `fieldDisplayName: string` alone, with `userConfirmed`
-//      omitted — asks the executor to re-list candidates for a different relation
-//      WITHOUT finalizing. The executor refreshes pendingData and stays awaiting-input.
+//   2. Field-preview patch: `fieldName: string` alone, with `userConfirmed` omitted —
+//      asks the executor to re-list candidates for a different relation WITHOUT
+//      finalizing. The executor refreshes pendingData and stays awaiting-input.
 //      Required when the frontend lets the user switch relations: the IDs originally
 //      stored under `availableRecordIds` belong to the AI-suggested relation only.
 const loadRelatedRecordPatchSchema = z
   .object({
     userConfirmed: z.boolean().optional(),
     // User may intentionally switch to a different relation than the one the AI selected.
-    // Sent as the displayName; the executor re-derives the technical fieldName and
-    // relatedCollectionName from the live schema when processing the confirmation.
-    fieldDisplayName: z.string().min(1).optional(),
+    // Sent as the technical fieldName (matches CollectionSchemaField.fieldName from the
+    // orchestrator); the executor re-derives displayName + relatedCollectionName from
+    // the live schema when processing the confirmation.
+    fieldName: z.string().min(1).optional(),
     // User may override the AI-selected record; must be non-empty when provided.
     // Required when confirming with a relation override — the original record ID
     // belongs to a different collection and cannot be reused for the new relation.
@@ -49,10 +50,10 @@ const loadRelatedRecordPatchSchema = z
   .strict()
   .refine(
     data => {
-      // Preview patch (no confirm): fieldDisplayName alone is sufficient.
-      if (data.userConfirmed === undefined) return data.fieldDisplayName !== undefined;
+      // Preview patch (no confirm): fieldName alone is sufficient.
+      if (data.userConfirmed === undefined) return data.fieldName !== undefined;
       // Confirm patch with relation override: selectedRecordId required.
-      if (data.fieldDisplayName !== undefined) return data.selectedRecordId !== undefined;
+      if (data.fieldName !== undefined) return data.selectedRecordId !== undefined;
 
       return true;
     },
