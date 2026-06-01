@@ -312,7 +312,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {
-    const nonRelationFields = schema.fields.filter(f => !f.isRelationship);
+    // Exclude type-less fields: they can't be coerced/written, so offering them to the AI would
+    // let a single drifted field fail the whole step. The override path still rejects an explicit
+    // type-less target via FieldTypeMissingError.
+    const nonRelationFields = schema.fields.filter(f => !f.isRelationship && f.type != null);
 
     if (nonRelationFields.length === 0) {
       throw new NoWritableFieldsError(schema.collectionName);

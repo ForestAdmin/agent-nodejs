@@ -600,17 +600,22 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
-  describe('FieldTypeMissingError — writable field without a column type', () => {
-    it('fails the step instead of silently coercing the value to string (AI path)', async () => {
-      const agentPort = makeMockAgentPort();
+  describe('type-less fields (orchestrator drift)', () => {
+    it('does not offer a type-less field to the AI, so it never blocks the whole step', async () => {
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
       const workflowPort = makeMockWorkflowPort({
         customers: makeCollectionSchema({
-          // Non-relationship field with no `type` (orchestrator drift). Schema accepts it (resilience),
-          // but update-record must not build a string schema and write the wrong type silently.
-          fields: [{ fieldName: 'age', displayName: 'Age', isRelationship: false }],
+          fields: [
+            { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
+            // Drifted field with no `type`: must be excluded from the AI choices, not fail the step.
+            { fieldName: 'age', displayName: 'Age', isRelationship: false },
+          ],
         }),
       });
-      const mockModel = makeMockModel({ input: { fieldName: 'Age', value: '42', reasoning: 'r' } });
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Status', value: 'active', reasoning: 'r' },
+      });
       const context = makeContext({
         model: mockModel.model,
         agentPort,
@@ -621,12 +626,31 @@ describe('UpdateRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('throws NoWritableFieldsError when every non-relationship field lacks a type', async () => {
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [{ fieldName: 'age', displayName: 'Age', isRelationship: false }],
+        }),
+      });
+      const context = makeContext({
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        "This field can't be updated because its type is missing from the schema. " +
-          'Contact your administrator if the problem persists.',
+        'This record type has no editable fields configured in Forest Admin.',
       );
-      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
   });
 
