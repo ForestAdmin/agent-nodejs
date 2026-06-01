@@ -132,26 +132,15 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 }
 
 // -- Load Related Record --
-
-// One row of `availableRecordIds`. `referenceFieldValue` is the layout-level reference
-// field (collection.displayFieldName on the orchestrator side) — when the related
-// collection has one configured and the agent returns a value, the frontend shows it
-// instead of the raw id. Both `null` (no reference field configured) and `undefined`
-// (configured but value missing) collapse to the same "fall back to id" rendering.
 export interface LoadRelatedRecordCandidate {
   recordId: Array<string | number>;
   referenceFieldValue: string | null;
 }
 
 export interface LoadRelatedRecordPendingData {
-  // All relation fields available on the source collection (name + displayName each).
   availableFields: RelationRef[];
-  // AI-selected relation from `availableFields`.
   suggestedField: RelationRef;
-  // First 50 records of `suggestedField` paired with their reference-field value.
   availableRecordIds: LoadRelatedRecordCandidate[];
-  // AI-selected record from `availableRecordIds`; frontend can override via
-  // userConfirmation.selectedRecordId.
   suggestedRecord: LoadRelatedRecordCandidate;
 }
 
@@ -162,7 +151,6 @@ export interface LoadRelatedRecordStepExecutionData
   pendingData?: LoadRelatedRecordPendingData;
   selectedRecordRef: RecordRef;
   executionParams?: RelationRef;
-  // Source is always selectedRecordRef, not repeated here (consistent with other step types).
   executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
 }
 
