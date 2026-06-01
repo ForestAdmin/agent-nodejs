@@ -1,0 +1,56 @@
+# Two workflow-executor instances behind an nginx round-robin gateway, sharing a
+# single Postgres run store (so the write-ahead idempotency log is shared across
+# instances). The store is YOUR existing local Postgres, reached via DATABASE_URL.
+#
+#   cp .env.executors.example .env.executors   # fill in secrets + DATABASE_URL
+#   docker compose --env-file .env.executors -f docker-compose.executors.yml up --build
+#
+# Point your agent at the gateway: workflowExecutorUrl: "http://localhost:3400".
+# Your agent must be running on the host (executors probe AGENT_URL on startup).
+#
+# DATABASE_URL must use host.docker.internal (NOT localhost) to reach a Postgres
+# running on your host, e.g. postgres://user:pass@host.docker.internal:5432/db
+
+name: workflow-executor-gateway
+
+x-executor-env: &executor-env
+  FOREST_ENV_SECRET: ${FOREST_ENV_SECRET}
+  FOREST_AUTH_SECRET: ${FOREST_AUTH_SECRET}
+  AGENT_URL: ${AGENT_URL:-http://host.docker.internal:3351}
+  FOREST_SERVER_URL: ${FOREST_SERVER_URL:-https://api.forestadmin.com}
+  DATABASE_URL: ${DATABASE_URL}
+  POLLING_INTERVAL_MS: ${POLLING_INTERVAL_MS:-5000}
+  HTTP_PORT: "3400"
+  NODE_TLS_REJECT_UNAUTHORIZED: 0
+
+x-executor-common: &executor-common
+  image: forest-workflow-executor:local
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  executor-1:
+    <<: *executor-common
+    build:
+      context: ../..
+      dockerfile: packages/workflow-executor/Dockerfile
+    environment: *executor-env
+
+  executor-2:
+    <<: *executor-common
+    environment: *executor-env
+    depends_on:
+      executor-1:
+        condition: service_started
+
+  gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "3400:3400"
+    volumes:
+      - ./assets/nginx-executor-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - executor-1
+      - executor-2

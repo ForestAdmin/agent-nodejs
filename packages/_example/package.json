@@ -50,7 +50,8 @@
     "start:with-executor:ai-error": "concurrently --kill-others --names 'agent,executor' \"yarn start\" \"bash -c 'set -a && source .env && AGENT_URL=\\$EXECUTOR_AGENT_URL && DATABASE_URL=\\$EXECUTOR_DATABASE_URL && FORCE_AI_ERROR=true && until curl -s \\$EXECUTOR_AGENT_URL >/dev/null 2>&1; do sleep 1; done && tsx watch ../workflow-executor/src/cli.ts --pretty'\"",
     "db:executor:up": "cd ../workflow-executor/example && docker compose up -d",
     "db:executor:down": "cd ../workflow-executor/example && docker compose down",
-    "db:executor:reset": "cd ../workflow-executor/example && docker compose down -v && docker compose up -d"
+    "db:executor:reset": "cd ../workflow-executor/example && docker compose down -v && docker compose up -d",
+    "executor:docker": "docker compose --env-file .env.executors -f docker-compose.executors.yml up"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
