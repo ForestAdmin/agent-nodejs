@@ -51,7 +51,7 @@
     "db:executor:up": "cd ../workflow-executor/example && docker compose up -d",
     "db:executor:down": "cd ../workflow-executor/example && docker compose down",
     "db:executor:reset": "cd ../workflow-executor/example && docker compose down -v && docker compose up -d",
-    "executor:docker": "docker compose --env-file .env.executors -f docker-compose.executors.yml up"
+    "executor:docker": "docker compose --env-file ../workflow-executor/example/.env.executors -f ../workflow-executor/example/docker-compose.executors.yml up"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",

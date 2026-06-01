@@ -50,7 +50,7 @@ services:
     ports:
       - "3400:3400"
     volumes:
-      - ./assets/nginx-executor-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx-executor-gateway.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - executor-1
       - executor-2
