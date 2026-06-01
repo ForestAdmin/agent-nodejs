@@ -126,7 +126,11 @@ function makeStepDefinition(stepType: StepType): StepDefinition {
   }
 
   if (stepType === StepType.Mcp) {
-    return { type: StepType.Mcp, executionType: StepExecutionMode.AutomatedWithConfirmation };
+    return {
+      type: StepType.Mcp,
+      executionType: StepExecutionMode.AutomatedWithConfirmation,
+      mcpServerId: 'default-mcp-id',
+    };
   }
 
   if (stepType === StepType.Guidance) {
@@ -1155,33 +1159,6 @@ describe('MCP lazy loading (via once thunk)', () => {
     expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
   });
 
-  it('passes the orchestrator Record-shape configs directly to loadRemoteTools', async () => {
-    const workflowPort = createMockWorkflowPort();
-    const aiClient = createMockAiClient();
-    const step = makePendingStep({
-      runId: 'run-1',
-      stepId: 'step-mcp-1',
-      stepType: StepType.Mcp,
-    });
-    workflowPort.getAvailableRun.mockResolvedValue({
-      step,
-      auth: { forestServerToken: 'test-forest-token' },
-    });
-    const realConfigs = {
-      'mcp-server-1': { url: 'https://mcp.example.com', type: 'http' as const, headers: {} },
-    };
-    workflowPort.getMcpServerConfigs.mockResolvedValue(realConfigs);
-
-    runner = new Runner(
-      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
-    );
-    await runner.triggerPoll('run-1');
-
-    expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
-    expect(aiClient.loadRemoteTools).toHaveBeenCalledTimes(1);
-    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith(realConfigs);
-  });
-
   it('skips loadRemoteTools when the orchestrator returns an empty Record', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
@@ -1209,6 +1186,254 @@ describe('MCP lazy loading (via once thunk)', () => {
       'run-1',
       expect.objectContaining({ status: 'success' }),
     );
+  });
+});
+
+describe('MCP fetch scoping', () => {
+  it('passes only the matching config to loadRemoteTools when step.mcpServerId is set', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-mcp-1',
+      stepType: StepType.Mcp,
+      stepDefinition: {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        mcpServerId: 'id-A',
+      },
+    });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    workflowPort.getMcpServerConfigs.mockResolvedValue({
+      'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
+      'server-B': { id: 'id-B', url: 'https://b.example', type: 'http', headers: {} },
+    });
+
+    runner = new Runner(
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(aiClient.loadRemoteTools).toHaveBeenCalledTimes(1);
+    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({
+      'server-A': expect.objectContaining({ id: 'id-A' }),
+    });
+  });
+
+  // Matching by Record key would let a renamed server collide with another config's id.
+  it('matches by config.id, not by the Record key (server name)', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-mcp-1',
+      stepType: StepType.Mcp,
+      stepDefinition: {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        // mcpServerId resembles a server name from another entry, but must match by id.
+        mcpServerId: 'server-A',
+      },
+    });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    workflowPort.getMcpServerConfigs.mockResolvedValue({
+      'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
+      'server-B': { id: 'server-A', url: 'https://b.example', type: 'http', headers: {} },
+    });
+
+    runner = new Runner(
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({
+      'server-B': expect.objectContaining({ id: 'server-A' }),
+    });
+  });
+
+  it('skips loadRemoteTools and warns with availableMcpServerIds when no config matches', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const logger = createMockLogger();
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-mcp-1',
+      stepType: StepType.Mcp,
+      stepDefinition: {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        mcpServerId: 'id-missing',
+      },
+    });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    workflowPort.getMcpServerConfigs.mockResolvedValue({
+      'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
+      'server-B': { id: 'id-B', url: 'https://b.example', type: 'http', headers: {} },
+    });
+
+    runner = new Runner(
+      createRunnerConfig({
+        workflowPort,
+        aiModelPort: aiClient as unknown as AiModelPort,
+        logger,
+      }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
+    expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'MCP step targets a server not advertised by the orchestrator',
+      {
+        requestedMcpServerId: 'id-missing',
+        availableMcpServerIds: expect.arrayContaining(['id-A', 'id-B']),
+      },
+    );
+  });
+
+  it('warns distinctly when orchestrator returns no MCP configs at all', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const logger = createMockLogger();
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-mcp-1',
+      stepType: StepType.Mcp,
+      stepDefinition: {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        mcpServerId: 'id-A',
+      },
+    });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    workflowPort.getMcpServerConfigs.mockResolvedValue({});
+
+    runner = new Runner(
+      createRunnerConfig({
+        workflowPort,
+        aiModelPort: aiClient as unknown as AiModelPort,
+        logger,
+      }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'MCP step targets a server but orchestrator returned no MCP configs',
+      { requestedMcpServerId: 'id-A', availableMcpServerIds: [] },
+    );
+    expect(logger.warn).not.toHaveBeenCalledWith(
+      'MCP step targets a server not advertised by the orchestrator',
+      expect.anything(),
+    );
+  });
+
+  // The diagnostic must not short-circuit dispatch — the executor is still constructed (and
+  // will surface NoMcpToolsError downstream). Asserting on executeSpy.mock.instances bypasses
+  // the global execute() spy to confirm the executor saw the (empty) tool list.
+  it('logs partial-failure and still dispatches to the executor when the scoped server loaded zero tools', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const logger = createMockLogger();
+    const step = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-mcp-1',
+      stepType: StepType.Mcp,
+      stepDefinition: {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        mcpServerId: 'id-A',
+      },
+    });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    workflowPort.getMcpServerConfigs.mockResolvedValue({
+      'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
+    });
+    aiClient.loadRemoteTools.mockResolvedValue([]);
+
+    runner = new Runner(
+      createRunnerConfig({
+        workflowPort,
+        aiModelPort: aiClient as unknown as AiModelPort,
+        logger,
+      }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
+      requestedMcpServerId: 'id-A',
+      failedConfigNames: ['server-A'],
+    });
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    const executorInstance = executeSpy.mock.instances[0];
+    expect(executorInstance).toBeInstanceOf(McpStepExecutor);
+    expect(
+      (executorInstance as unknown as { remoteTools: readonly unknown[] }).remoteTools,
+    ).toEqual([]);
+  });
+
+  it('re-scopes loadRemoteTools per dispatch when chained MCP steps target different servers', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const aiClient = createMockAiClient();
+    const mcpDef = (id: string) =>
+      ({
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        mcpServerId: id,
+      } as const);
+    const initial = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-0',
+      stepIndex: 0,
+      stepType: StepType.Mcp,
+      stepDefinition: mcpDef('id-A'),
+    });
+    const chained = makePendingStep({
+      runId: 'run-1',
+      stepId: 'step-1',
+      stepIndex: 1,
+      stepType: StepType.Mcp,
+      stepDefinition: mcpDef('id-B'),
+    });
+    workflowPort.getAvailableRun.mockResolvedValueOnce({
+      step: initial,
+      auth: { forestServerToken: 'token-0' },
+    });
+    workflowPort.updateStepExecution
+      .mockResolvedValueOnce({ step: chained, auth: { forestServerToken: 'token-1' } })
+      .mockResolvedValueOnce(null);
+    workflowPort.getMcpServerConfigs.mockResolvedValue({
+      'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
+      'server-B': { id: 'id-B', url: 'https://b.example', type: 'http', headers: {} },
+    });
+
+    runner = new Runner(
+      createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
+    );
+    await runner.triggerPoll('run-1');
+
+    expect(aiClient.loadRemoteTools).toHaveBeenCalledTimes(2);
+    expect(aiClient.loadRemoteTools).toHaveBeenNthCalledWith(1, {
+      'server-A': expect.objectContaining({ id: 'id-A' }),
+    });
+    expect(aiClient.loadRemoteTools).toHaveBeenNthCalledWith(2, {
+      'server-B': expect.objectContaining({ id: 'id-B' }),
+    });
   });
 });
 
@@ -1289,17 +1514,24 @@ describe('StepExecutorFactory.create — factory', () => {
     expect(executor).toBeInstanceOf(LoadRelatedRecordStepExecutor);
   });
 
-  it('dispatches McpTask steps to McpStepExecutor and calls loadTools', async () => {
-    const step = makePendingStep({ stepType: StepType.Mcp });
-    const loadTools = jest.fn().mockResolvedValue([]);
+  it('dispatches McpTask steps to McpStepExecutor and forwards step.mcpServerId to fetchRemoteTools', async () => {
+    const step = makePendingStep({
+      stepType: StepType.Mcp,
+      stepDefinition: {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        mcpServerId: 'srv-42',
+      },
+    });
+    const fetchRemoteTools = jest.fn().mockResolvedValue([]);
     const executor = await StepExecutorFactory.create(
       step,
       makeContextConfig(),
       makeRunLogger(),
-      loadTools,
+      fetchRemoteTools,
     );
     expect(executor).toBeInstanceOf(McpStepExecutor);
-    expect(loadTools).toHaveBeenCalledTimes(1);
+    expect(fetchRemoteTools).toHaveBeenCalledWith('srv-42');
   });
 
   it('dispatches Guidance steps to GuidanceStepExecutor', async () => {

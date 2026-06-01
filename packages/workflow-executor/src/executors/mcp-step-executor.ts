@@ -83,7 +83,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
 
     // Branches B & C -- First call
-    const tools = this.getFilteredTools();
+    const tools = this.requireTools();
     const { toolName, args } = await this.selectTool(tools);
     const selectedTool = tools.find(t => t.base.name === toolName);
     if (!selectedTool) throw new McpToolNotFoundError(toolName);
@@ -108,7 +108,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     target: McpToolCall,
     existingExecution?: McpStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const tools = this.getFilteredTools();
+    const tools = this.requireTools();
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
@@ -226,27 +226,15 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     );
   }
 
-  private getFilteredTools(): RemoteTool[] {
-    const { mcpServerId } = this.context.stepDefinition;
-    const tools = mcpServerId
-      ? this.remoteTools.filter(t => t.mcpServerId === mcpServerId)
-      : [...this.remoteTools];
-
-    if (tools.length === 0) {
-      const loadedMcpServerIds = this.remoteTools
-        .map(t => t.mcpServerId)
-        .filter((value): value is string => !!value);
-      const error = new NoMcpToolsError(mcpServerId, loadedMcpServerIds);
-      this.context.logger.error(error.message, {
-        runId: this.context.runId,
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
-        requestedMcpServerId: mcpServerId,
-        loadedMcpServerIds,
-      });
-      throw error;
+  // Tools are pre-scoped to step.mcpServerId upstream. An empty list means either no config
+  // matched, or the per-server connection failed at load time (McpClient swallows per-server
+  // errors). RemoteToolFetcher emits the diagnostic upstream; here we just surface the empty
+  // case as a domain error so BaseStepExecutor turns it into a step outcome.
+  private requireTools(): RemoteTool[] {
+    if (this.remoteTools.length === 0) {
+      throw new NoMcpToolsError(this.context.stepDefinition.mcpServerId);
     }
 
-    return tools;
+    return [...this.remoteTools];
   }
 }

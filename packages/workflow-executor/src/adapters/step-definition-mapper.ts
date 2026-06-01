@@ -1,11 +1,11 @@
 import type {
-  ServerTaskTypeEnum,
   ServerWorkflowCondition,
   ServerWorkflowStep,
   ServerWorkflowTask,
 } from './server-types';
 import type { ConditionStepDefinition, StepDefinition } from '../types/validated/step-definition';
 
+import { ServerTaskTypeEnum } from './server-types';
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../errors';
 import {
   ConditionStepDefinitionSchema,
@@ -18,48 +18,35 @@ import {
   UpdateRecordStepDefinitionSchema,
 } from '../types/validated/step-definition';
 
-const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskTypeEnum, StepType> = {
-  'get-data': StepType.ReadRecord,
-  'update-data': StepType.UpdateRecord,
-  'trigger-action': StepType.TriggerAction,
-  'load-related-record': StepType.LoadRelatedRecord,
-  'mcp-server': StepType.Mcp,
-  guideline: StepType.Guidance,
-};
-
 function mapTask(task: ServerWorkflowTask): StepDefinition {
-  const stepType = TASK_TYPE_TO_STEP_TYPE[task.taskType];
-
-  if (!stepType) {
-    throw new InvalidStepDefinitionError(`Unknown taskType: "${task.taskType}"`);
-  }
-
   // executionType is passed through as-is; each schema's .default().catch() handles
   // missing or unsupported values without requiring an explicit mapping here.
   const base = { prompt: task.prompt, executionType: task.executionType };
 
-  switch (stepType) {
-    case StepType.Mcp:
+  switch (task.taskType) {
+    case ServerTaskTypeEnum.McpServer:
       return McpStepDefinitionSchema.parse({
         ...base,
         type: StepType.Mcp,
-        ...('mcpServerId' in task && { mcpServerId: task.mcpServerId }),
+        mcpServerId: task.mcpServerId,
       });
-    case StepType.Guidance:
+    case ServerTaskTypeEnum.Guideline:
       return GuidanceStepDefinitionSchema.parse({ ...base, type: StepType.Guidance });
-    case StepType.ReadRecord:
+    case ServerTaskTypeEnum.GetData:
       return ReadRecordStepDefinitionSchema.parse({ ...base, type: StepType.ReadRecord });
-    case StepType.UpdateRecord:
+    case ServerTaskTypeEnum.UpdateData:
       return UpdateRecordStepDefinitionSchema.parse({ ...base, type: StepType.UpdateRecord });
-    case StepType.TriggerAction:
+    case ServerTaskTypeEnum.TriggerAction:
       return TriggerActionStepDefinitionSchema.parse({ ...base, type: StepType.TriggerAction });
-    case StepType.LoadRelatedRecord:
+    case ServerTaskTypeEnum.LoadRelatedRecord:
       return LoadRelatedRecordStepDefinitionSchema.parse({
         ...base,
         type: StepType.LoadRelatedRecord,
       });
     default:
-      throw new InvalidStepDefinitionError(`Unmapped step type: "${stepType}"`);
+      throw new InvalidStepDefinitionError(
+        `Unknown taskType: "${(task as { taskType: string }).taskType}"`,
+      );
   }
 }
 

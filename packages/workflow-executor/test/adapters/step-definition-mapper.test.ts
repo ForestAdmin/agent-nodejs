@@ -112,14 +112,10 @@ describe('toStepDefinition', () => {
       });
     });
 
-    it('should map task with mcp-server taskType without mcpServerId', () => {
+    it('rejects an mcp-server task missing mcpServerId at the zod boundary', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.McpServer, prompt: 'run mcp' });
 
-      expect(toStepDefinition(task)).toEqual({
-        type: StepType.Mcp,
-        prompt: 'run mcp',
-        executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
-      });
+      expect(() => toStepDefinition(task)).toThrow();
     });
 
     it('should map task with guideline taskType to guidance', () => {

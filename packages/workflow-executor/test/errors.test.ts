@@ -70,38 +70,17 @@ describe('extractErrorMessage', () => {
 });
 
 describe('NoMcpToolsError', () => {
-  it('produces a fully generic technical message when no mcpServerId was requested (no filter case)', () => {
-    const err = new NoMcpToolsError();
+  it('includes the requested mcpServerId in the technical message', () => {
+    const err = new NoMcpToolsError('id-missing');
 
-    expect(err.message).toBe('No MCP tools available');
-    expect(err.userMessage).toBe('No tools are available to execute this step.');
+    expect(err.message).toBe('No MCP tools available for mcpServerId="id-missing"');
   });
 
-  it('includes the requested mcpServerId in the technical message when a filter was active', () => {
-    const err = new NoMcpToolsError('id-missing', ['id-A', 'id-B']);
+  it('keeps the user-facing message free of internal ids', () => {
+    const err = new NoMcpToolsError('id-missing');
 
-    expect(err.message).toMatch(/id-missing/);
-  });
-
-  it('lists the loaded mcpServerIds in the technical message so misconfigurations are diagnosable', () => {
-    const err = new NoMcpToolsError('id-missing', ['id-A', 'id-B']);
-
-    expect(err.message).toMatch(/id-A/);
-    expect(err.message).toMatch(/id-B/);
-  });
-
-  it('handles an empty loaded-id list without producing a malformed message', () => {
-    const err = new NoMcpToolsError('id-missing', []);
-
-    expect(err.message).toMatch(/id-missing/);
-    expect(err.message).not.toMatch(/undefined|null|\[object/i);
-  });
-
-  it('keeps the user-facing message generic — no internal ids must leak', () => {
-    const err = new NoMcpToolsError('id-missing', ['id-A', 'id-B']);
-
-    expect(err.userMessage).toBe('No tools are available to execute this step.');
-    expect(err.userMessage).not.toMatch(/id-missing|id-A|id-B/);
+    expect(err.userMessage).toMatch(/^Tools could not be loaded for the targeted server\./);
+    expect(err.userMessage).not.toMatch(/id-missing/);
   });
 });
 

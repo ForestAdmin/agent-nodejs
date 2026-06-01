@@ -9,7 +9,6 @@ import type SchemaCache from './schema-cache';
 import type { AvailableStepExecution, StepExecutionResult } from './types/execution-context';
 import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
-import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import ConsoleLogger from './adapters/console-logger';
 import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_MS } from './defaults';
@@ -22,6 +21,7 @@ import {
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
 import InFlightRunRegistry from './in-flight-run-registry';
+import RemoteToolFetcher from './remote-tool-fetcher';
 import { stepTypeToOutcomeType } from './types/validated/step-outcome';
 import validateSecrets from './validate-secrets';
 
@@ -52,11 +52,17 @@ export default class Runner {
   private pollingTimer: NodeJS.Timeout | null = null;
   private readonly inFlightRuns = new InFlightRunRegistry();
   private readonly logger: Logger;
+  private readonly remoteToolFetcher: RemoteToolFetcher;
   private _state: RunnerState = 'idle';
 
   constructor(config: RunnerConfig) {
     this.config = config;
     this.logger = config.logger ?? new ConsoleLogger();
+    this.remoteToolFetcher = new RemoteToolFetcher(
+      config.workflowPort,
+      config.aiModelPort,
+      this.logger,
+    );
   }
 
   get state(): RunnerState {
@@ -251,13 +257,6 @@ export default class Runner {
     }
   }
 
-  private async fetchRemoteTools(): Promise<RemoteTool[]> {
-    const configs = await this.config.workflowPort.getMcpServerConfigs();
-    if (Object.keys(configs).length === 0) return [];
-
-    return this.config.aiModelPort.loadRemoteTools(configs);
-  }
-
   private executeStep(
     step: AvailableStepExecution,
     forestServerToken: string,
@@ -295,7 +294,7 @@ export default class Runner {
           currentStep,
           this.contextConfig,
           this.config.activityLogPortFactory.forRun(currentToken),
-          () => this.fetchRemoteTools(),
+          mcpServerId => this.remoteToolFetcher.fetch(mcpServerId),
           currentIncomingData,
         );
         result = await executor.execute();

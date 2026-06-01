@@ -48,7 +48,7 @@ export default class StepExecutorFactory {
     step: AvailableStepExecution,
     contextConfig: StepContextConfig,
     activityLogPort: ActivityLogPort,
-    loadTools: () => Promise<RemoteTool[]>,
+    fetchRemoteTools: (mcpServerId: string) => Promise<RemoteTool[]>,
     incomingPendingData?: unknown,
   ): Promise<IStepExecutor> {
     try {
@@ -76,11 +76,16 @@ export default class StepExecutorFactory {
           return new LoadRelatedRecordStepExecutor(
             context as ExecutionContext<LoadRelatedRecordStepDefinition>,
           );
-        case StepType.Mcp:
+
+        case StepType.Mcp: {
+          const mcpContext = context as ExecutionContext<McpStepDefinition>;
+
           return new McpStepExecutor(
-            context as ExecutionContext<McpStepDefinition>,
-            await loadTools(),
+            mcpContext,
+            await fetchRemoteTools(mcpContext.stepDefinition.mcpServerId),
           );
+        }
+
         case StepType.Guidance:
           return new GuidanceStepExecutor(context as ExecutionContext<GuidanceStepDefinition>);
         default:
