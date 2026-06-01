@@ -87,15 +87,29 @@ describe('RemoteToolFetcher.fetch', () => {
     expect(aiModelPort.loadRemoteTools).toHaveBeenCalledWith({ 'srv-a': cfg('id-A') });
   });
 
-  it('returns an empty array and skips loadRemoteTools when the scoped Record is empty', async () => {
+  it('returns no tools and an undefined serverName, skipping loadRemoteTools, when the scoped Record is empty', async () => {
     const { fetcher, aiModelPort } = makeFetcher({
       workflowPort: { getMcpServerConfigs: jest.fn().mockResolvedValue({}) },
     });
 
-    const tools = await fetcher.fetch('id-A');
+    const result = await fetcher.fetch('id-A');
 
-    expect(tools).toEqual([]);
+    expect(result).toEqual({ tools: [], serverName: undefined });
     expect(aiModelPort.loadRemoteTools).not.toHaveBeenCalled();
+  });
+
+  it('resolves serverName from the scoped Record key', async () => {
+    const remoteTools = [makeRemoteTool('srv-a', 'id-A')];
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue(remoteTools) },
+    });
+
+    const result = await fetcher.fetch('id-A');
+
+    expect(result).toEqual({ tools: remoteTools, serverName: 'srv-a' });
   });
 
   it('warns about the missing target with the list of advertised ids when no config matches', async () => {
@@ -111,7 +125,11 @@ describe('RemoteToolFetcher.fetch', () => {
 
     expect(logger.warn).toHaveBeenCalledWith(
       'MCP step targets a server not advertised by the orchestrator',
-      { requestedMcpServerId: 'id-missing', availableMcpServerIds: ['id-A', 'id-B'] },
+      {
+        requestedMcpServerId: 'id-missing',
+        mcpServerName: undefined,
+        availableMcpServerIds: ['id-A', 'id-B'],
+      },
     );
   });
 
@@ -124,7 +142,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     expect(logger.warn).toHaveBeenCalledWith(
       'MCP step targets a server but orchestrator returned no MCP configs',
-      { requestedMcpServerId: 'id-A', availableMcpServerIds: [] },
+      { requestedMcpServerId: 'id-A', mcpServerName: undefined, availableMcpServerIds: [] },
     );
     expect(logger.warn).not.toHaveBeenCalledWith(
       'MCP step targets a server not advertised by the orchestrator',
@@ -156,6 +174,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
       requestedMcpServerId: 'id-A',
+      mcpServerName: 'srv-a',
       failedConfigNames: ['srv-a'],
     });
   });
@@ -214,6 +233,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
       requestedMcpServerId: 'id-zendesk',
+      mcpServerName: 'zendesk-prod',
       failedConfigNames: ['zendesk-prod'],
     });
   });
@@ -229,7 +249,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     const result = await fetcher.fetch('id-A');
 
-    expect(result).toBe(remoteTools);
+    expect(result.tools).toBe(remoteTools);
   });
 
   it('propagates a rejection from loadRemoteTools without logging partial-failure', async () => {

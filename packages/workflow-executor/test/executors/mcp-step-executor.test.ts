@@ -981,4 +981,54 @@ describe('McpStepExecutor', () => {
       });
     });
   });
+
+  describe('log context', () => {
+    it('includes mcpServerId and mcpServerName in the start and completion log lines', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const context = makeContext({
+        model,
+        logger,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          mcpServerId: 'my-mcp-server',
+        }),
+      });
+      const executor = new McpStepExecutor(context, [tool], 'Production Slack');
+
+      await executor.execute();
+
+      expect(logger.info).toHaveBeenCalledWith(
+        'Step execution started',
+        expect.objectContaining({
+          mcpServerId: 'my-mcp-server',
+          mcpServerName: 'Production Slack',
+        }),
+      );
+      expect(logger.info).toHaveBeenCalledWith(
+        'Step execution completed',
+        expect.objectContaining({
+          mcpServerId: 'my-mcp-server',
+          mcpServerName: 'Production Slack',
+        }),
+      );
+    });
+
+    it('logs mcpServerName as undefined when no server name was resolved', async () => {
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const context = makeContext({
+        logger,
+        stepDefinition: makeStep({ mcpServerId: 'id-missing' }),
+      });
+      const executor = new McpStepExecutor(context, []);
+
+      await executor.execute();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'No MCP tools available for mcpServerId="id-missing"',
+        expect.objectContaining({ mcpServerId: 'id-missing', mcpServerName: undefined }),
+      );
+    });
+  });
 });

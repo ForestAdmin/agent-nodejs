@@ -360,9 +360,20 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return (await this.invokeWithTools<T>(messages, [tool])).args;
   }
 
+  // Overridden by executors that carry type-specific log identifiers (e.g. McpStepExecutor).
+  protected getExtraLogContext(): Record<string, unknown> {
+    return {};
+  }
+
   private get logCtx() {
     const { runId, stepId, stepIndex, stepDefinition } = this.context;
 
-    return { runId, stepId, stepIndex, stepType: stepDefinition.type };
+    return {
+      runId,
+      stepId,
+      stepIndex,
+      stepType: stepDefinition.type,
+      ...this.getExtraLogContext(),
+    };
   }
 }
