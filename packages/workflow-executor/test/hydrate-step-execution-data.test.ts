@@ -440,6 +440,27 @@ describe('makeSchemaGetter', () => {
     results.forEach(r => expect(r).toMatchObject({ collectionName: 'customers' }));
   });
 
+  it('de-duplicates across independent getters sharing one cache (global, no stampede)', async () => {
+    // Two separate getters (e.g. two concurrent reads / two runs of one rendering) over the SAME
+    // cache must still collapse to a single fetch while one is in flight.
+    const cache = new SchemaCache();
+    let resolveFetch: (s: CollectionSchema) => void = () => undefined;
+    const deferred = new Promise<CollectionSchema>(resolve => {
+      resolveFetch = resolve;
+    });
+    const getCollectionSchema = jest.fn().mockReturnValue(deferred);
+    const workflowPort = { getCollectionSchema } as unknown as WorkflowPort;
+
+    const getterA = makeSchemaGetter(cache, workflowPort, 'run-1', 1);
+    const getterB = makeSchemaGetter(cache, workflowPort, 'run-2', 1); // same rendering, different getter
+
+    const all = Promise.all([getterA('customers'), getterB('customers')]);
+    resolveFetch(makeSchema());
+    await all;
+
+    expect(getCollectionSchema).toHaveBeenCalledTimes(1);
+  });
+
   it('clears the in-flight entry so a failed fetch can be retried', async () => {
     const cache = new SchemaCache();
     const getCollectionSchema = jest

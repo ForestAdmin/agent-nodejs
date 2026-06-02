@@ -16,37 +16,18 @@ import { extractErrorMessage } from './errors';
 export type SchemaGetter = (collectionName: string) => Promise<CollectionSchema>;
 
 // runId scopes the server fetch (it resolves the run's rendering); renderingId scopes the cache so
-// entries are never shared across renderings of one environment.
+// entries are never shared across renderings of one environment. Fetch de-duplication and caching
+// live in SchemaCache.getOrFetch, so concurrent callers share one fetch regardless of getter.
 export function makeSchemaGetter(
   schemaCache: SchemaCache,
   workflowPort: WorkflowPort,
   runId: string,
   renderingId: number,
 ): SchemaGetter {
-  // De-duplicates concurrent fetches for the same collection within a single read (e.g. the
-  // Promise.all over a run's steps): the first miss starts the fetch, the rest share its promise.
-  const inFlight = new Map<string, Promise<CollectionSchema>>();
-
-  return (collectionName: string) => {
-    const cached = schemaCache.get(renderingId, collectionName);
-    if (cached) return Promise.resolve(cached);
-
-    const pending = inFlight.get(collectionName);
-    if (pending) return pending;
-
-    const promise = workflowPort
-      .getCollectionSchema(collectionName, runId)
-      .then(schema => {
-        schemaCache.set(renderingId, collectionName, schema);
-
-        return schema;
-      })
-      .finally(() => inFlight.delete(collectionName));
-
-    inFlight.set(collectionName, promise);
-
-    return promise;
-  };
+  return (collectionName: string) =>
+    schemaCache.getOrFetch(renderingId, collectionName, () =>
+      workflowPort.getCollectionSchema(collectionName, runId),
+    );
 }
 
 function fieldDisplayName(schema: CollectionSchema | null, name: string): string {
