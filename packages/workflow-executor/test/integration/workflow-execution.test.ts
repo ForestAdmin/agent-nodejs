@@ -79,7 +79,6 @@ const COLLECTION_SCHEMA_WITH_RELATION: CollectionSchema = {
       isRelationship: true,
       relationType: 'BelongsTo',
       relatedCollectionName: 'orders',
-      relatedPrimaryKey: 'id',
     },
   ],
   actions: [],

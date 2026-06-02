@@ -565,6 +565,32 @@ describe('AgentClientAgentPort', () => {
       expect(result?.values).toEqual({ id: '99', full_name: 'John Doe' });
     });
 
+    // Regression: the relation NAME itself can be snake_case (billing_address). jsonapi-serializer
+    // emits the linkage under the camelCased key (billingAddress), so looking it up by the raw
+    // name returned null and the relation never loaded.
+    it('finds the linkage when the relation name is snake_case', async () => {
+      mockCollection.list.mockResolvedValue([{ billingAddress: { id: '7|2' } }]);
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'billing_address',
+          relatedSchema: { ...ordersSchema, collectionName: 'addresses' },
+        },
+        user,
+      );
+
+      expect(mockCollection.list).toHaveBeenCalledWith(
+        expect.objectContaining({ fields: ['billing_address@@@id'] }),
+      );
+      expect(result).toEqual({
+        collectionName: 'addresses',
+        recordId: ['7', '2'],
+        values: { id: '7|2' },
+      });
+    });
+
     it('splits composite PKs from the packed "id" linkage', async () => {
       const compositeSchema = {
         ...ordersSchema,

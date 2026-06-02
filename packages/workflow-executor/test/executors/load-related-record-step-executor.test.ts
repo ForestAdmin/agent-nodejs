@@ -82,7 +82,6 @@ function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): Collec
         isRelationship: true,
         relationType: 'BelongsTo',
         relatedCollectionName: 'orders',
-        relatedPrimaryKey: 'id',
       },
       {
         fieldName: 'address',
@@ -419,6 +418,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Address',
             isRelationship: true,
             relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
           },
         ],
       });
@@ -461,6 +461,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Address',
             isRelationship: true,
             relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
           },
         ],
       });
@@ -529,6 +530,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Address',
             isRelationship: true,
             relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
           },
         ],
       });
@@ -591,7 +593,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             isRelationship: true,
             relationType: 'HasOne',
             relatedCollectionName: 'profiles',
-            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -647,7 +648,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             isRelationship: true,
             relationType: 'BelongsToMany',
             relatedCollectionName: 'tags',
-            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -699,7 +699,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             isRelationship: true,
             relationType: 'BelongsToMany',
             relatedCollectionName: 'tags',
-            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -909,6 +908,56 @@ describe('LoadRelatedRecordStepExecutor', () => {
         }),
       );
     });
+
+    // When the xToOne relation has no linked record, the step still awaits input with an empty
+    // candidate list (no suggestedRecord) — the user can switch relation. It is NOT an error.
+    it('returns awaiting-input with an empty candidate list when the xToOne relation has no linked record', async () => {
+      const agentPort = makeMockAgentPort([]); // getSingleRelatedData → null
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, agentPort, runStore });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls[0][1];
+      expect(saved.pendingData.availableRecordIds).toEqual([]);
+      expect(saved.pendingData.suggestedRecord).toBeUndefined();
+    });
+
+    it('returns awaiting-input with an empty candidate list when the to-many relation has no records', async () => {
+      const agentPort = makeMockAgentPort([]); // getRelatedData → []
+      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'Load address' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            fields: [
+              {
+                fieldName: 'address',
+                displayName: 'Address',
+                isRelationship: true,
+                relationType: 'HasMany',
+                relatedCollectionName: 'addresses',
+              },
+            ],
+          }),
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls[0][1];
+      expect(saved.pendingData.availableRecordIds).toEqual([]);
+      expect(saved.pendingData.suggestedRecord).toBeUndefined();
+      expect(agentPort.getRelatedData).toHaveBeenCalled();
+    });
   });
 
   describe('confirmation accepted (Branch A)', () => {
@@ -983,6 +1032,34 @@ describe('LoadRelatedRecordStepExecutor', () => {
             record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
           }),
         }),
+      );
+    });
+
+    // Confirming while the candidate list is empty (no suggestedRecord, no override) leaves
+    // nothing to load → error. The front is expected to prevent this by offering a relation switch.
+    it('returns error when confirming an empty candidate list with no selection', async () => {
+      const execution = makePendingExecution({
+        pendingData: {
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [],
+        },
+        userConfirmation: { userConfirmed: true },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ agentPort: makeMockAgentPort(), runStore });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'The related record could not be found. It may have been deleted.',
       );
     });
   });
@@ -1578,6 +1655,48 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
     });
 
+    it('exposes a null referenceFieldValue when a HasMany candidate has no value for the reference field', async () => {
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { city: null } },
+      ];
+      const agentPort = makeMockAgentPort(relatedData);
+      const addressesSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        referenceField: 'city',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'Load address' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            fields: [
+              {
+                fieldName: 'address',
+                displayName: 'Address',
+                isRelationship: true,
+                relationType: 'HasMany',
+                relatedCollectionName: 'addresses',
+              },
+            ],
+          }),
+          addresses: addressesSchema,
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      await executor.execute();
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toEqual([
+        { recordId: [1], referenceFieldValue: null },
+      ]);
+    });
+
     it('passes the referenceField to getSingleRelatedData and extracts its value from the result', async () => {
       const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
@@ -1714,6 +1833,40 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
+  describe('StepStateError on malformed schema', () => {
+    // A relationship field with no relatedCollectionName can't be followed — throw rather than
+    // silently falling back to the field name (which would 404 later as a bogus collection).
+    it('returns error when the selected relation has no relatedCollectionName', async () => {
+      const schema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'order',
+            displayName: 'Order',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+          },
+        ],
+      });
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: schema }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
   describe('RelatedRecordNotFoundError', () => {
     it('returns error when BelongsTo getRelatedData returns empty array (Branch B)', async () => {
       const agentPort = makeMockAgentPort([]);
@@ -1744,6 +1897,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             displayName: 'Address',
             isRelationship: true,
             relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
           },
         ],
       });
@@ -1757,22 +1911,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema }),
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
-      const executor = new LoadRelatedRecordStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'The related record could not be found. It may have been deleted.',
-      );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
-    });
-
-    it('returns error when getRelatedData returns empty array (Branch C)', async () => {
-      const agentPort = makeMockAgentPort([]);
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
-      const runStore = makeMockRunStore();
-      const context = makeContext({ model: mockModel.model, agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -1847,7 +1985,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             isRelationship: true,
             relationType: 'BelongsTo',
             relatedCollectionName: 'orders',
-            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -1999,7 +2136,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             isRelationship: true,
             relationType: 'BelongsTo',
             relatedCollectionName: 'invoices',
-            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -2224,7 +2360,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             isRelationship: true,
             relationType: 'BelongsTo',
             relatedCollectionName: 'orders',
-            relatedPrimaryKey: 'id',
           },
         ],
       });
@@ -2314,7 +2449,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             isRelationship: true,
             relationType: 'BelongsTo',
             relatedCollectionName: 'orders',
-            relatedPrimaryKey: 'id',
           },
         ],
       });

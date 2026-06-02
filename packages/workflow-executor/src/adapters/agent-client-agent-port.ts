@@ -23,6 +23,10 @@ import {
   extractErrorMessage,
 } from '../errors';
 
+function toCamelCase(name: string): string {
+  return name.replace(/_([a-zA-Z0-9])/g, (_, c: string) => c.toUpperCase());
+}
+
 // The agent-client HTTP layer deserializes JSON:API responses with camelCase keys.
 // Field names in the schema and in GetRecordQuery.fields use the original format (e.g. snake_case).
 // This function restores the original field names so callers can look up values by schema fieldName.
@@ -35,8 +39,7 @@ function restoreFieldNames(
   const camelToOriginal: Record<string, string> = {};
 
   for (const name of originalFieldNames) {
-    const camelName = name.replace(/_([a-zA-Z0-9])/g, (_, c: string) => c.toUpperCase());
-    camelToOriginal[camelName] = name;
+    camelToOriginal[toCamelCase(name)] = name;
   }
 
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));
@@ -164,7 +167,11 @@ export default class AgentClientAgentPort implements AgentPort {
         user,
       );
 
-      const linkage = parent.values[relation] as Record<string, unknown> | null | undefined;
+      // agent-client camelCases relation keys; look the linkage up under the camelCased name.
+      const linkage = parent.values[toCamelCase(relation)] as
+        | Record<string, unknown>
+        | null
+        | undefined;
       const packedId = linkage?.id as string | undefined;
 
       if (!linkage || !packedId) return null;

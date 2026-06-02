@@ -141,7 +141,8 @@ export interface LoadRelatedRecordPendingData {
   availableFields: RelationRef[];
   suggestedField: RelationRef;
   availableRecordIds: LoadRelatedRecordCandidate[];
-  suggestedRecord: LoadRelatedRecordCandidate;
+  // Absent when the relation has no linked record(s): the list is empty and there's nothing to suggest.
+  suggestedRecord?: LoadRelatedRecordCandidate;
 }
 
 export interface LoadRelatedRecordStepExecutionData
