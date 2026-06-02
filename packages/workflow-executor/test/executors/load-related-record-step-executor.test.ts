@@ -1163,6 +1163,37 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
+    it('returns error when the confirmed relation is not in availableFields (stale/renamed)', async () => {
+      const agentPort = makeMockAgentPort();
+      const execution = makePendingExecution({
+        pendingData: {
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand([99])],
+          suggestedRecord: cand([99]),
+        },
+        // Frontend confirms a relation that no longer exists in availableFields.
+        userConfirmation: { userConfirmed: true, fieldName: 'ghost', selectedRecordId: [7] },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ agentPort, runStore });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(agentPort.getRelatedData).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
     it('uses overridden suggestedField from pendingData to derive relatedCollectionName', async () => {
       const schema = makeCollectionSchema({
         fields: [

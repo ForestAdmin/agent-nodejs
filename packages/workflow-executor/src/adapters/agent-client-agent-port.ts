@@ -26,7 +26,7 @@ import {
 // The agent-client HTTP layer deserializes JSON:API responses with camelCase keys.
 // Field names in the schema and in GetRecordQuery.fields use the original format (e.g. snake_case).
 // This function restores the original field names so callers can look up values by schema fieldName.
-export function restoreFieldNames(
+function restoreFieldNames(
   values: Record<string, unknown>,
   originalFieldNames: string[] | undefined,
 ): Record<string, unknown> {
