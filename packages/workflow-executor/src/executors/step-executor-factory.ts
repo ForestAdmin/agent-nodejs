@@ -79,11 +79,11 @@ export default class StepExecutorFactory {
 
         case StepType.Mcp: {
           const mcpContext = context as ExecutionContext<McpStepDefinition>;
-          const { tools, serverName } = await fetchRemoteTools(
+          const { tools, mcpServerName } = await fetchRemoteTools(
             mcpContext.stepDefinition.mcpServerId,
           );
 
-          return new McpStepExecutor(mcpContext, tools, serverName);
+          return new McpStepExecutor(mcpContext, tools, mcpServerName);
         }
 
         case StepType.Guidance:

@@ -87,18 +87,18 @@ describe('RemoteToolFetcher.fetch', () => {
     expect(aiModelPort.loadRemoteTools).toHaveBeenCalledWith({ 'srv-a': cfg('id-A') });
   });
 
-  it('returns no tools and an undefined serverName, skipping loadRemoteTools, when the scoped Record is empty', async () => {
+  it('returns no tools and an undefined mcpServerName, skipping loadRemoteTools, when the scoped Record is empty', async () => {
     const { fetcher, aiModelPort } = makeFetcher({
       workflowPort: { getMcpServerConfigs: jest.fn().mockResolvedValue({}) },
     });
 
     const result = await fetcher.fetch('id-A');
 
-    expect(result).toEqual({ tools: [], serverName: undefined });
+    expect(result).toEqual({ tools: [], mcpServerName: undefined });
     expect(aiModelPort.loadRemoteTools).not.toHaveBeenCalled();
   });
 
-  it('resolves serverName from the scoped Record key', async () => {
+  it('resolves mcpServerName from the scoped Record key', async () => {
     const remoteTools = [makeRemoteTool('srv-a', 'id-A')];
     const { fetcher } = makeFetcher({
       workflowPort: {
@@ -109,7 +109,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     const result = await fetcher.fetch('id-A');
 
-    expect(result).toEqual({ tools: remoteTools, serverName: 'srv-a' });
+    expect(result).toEqual({ tools: remoteTools, mcpServerName: 'srv-a' });
   });
 
   it('warns about the missing target with the list of advertised ids when no config matches', async () => {

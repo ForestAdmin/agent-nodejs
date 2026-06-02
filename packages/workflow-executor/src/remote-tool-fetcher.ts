@@ -13,7 +13,7 @@ export function scopeConfigsToServer(
 
 export interface FetchRemoteToolsResult {
   tools: RemoteTool[];
-  serverName?: string;
+  mcpServerName?: string;
 }
 
 export default class RemoteToolFetcher {
@@ -30,17 +30,17 @@ export default class RemoteToolFetcher {
   async fetch(mcpServerId: string): Promise<FetchRemoteToolsResult> {
     const configs = await this.workflowPort.getMcpServerConfigs();
     const scoped = scopeConfigsToServer(configs, mcpServerId);
-    const [serverName] = Object.keys(scoped);
+    const [mcpServerName] = Object.keys(scoped);
 
-    this.warnMissingTargetServer(configs, scoped, mcpServerId, serverName);
+    this.warnMissingTargetServer(configs, scoped, mcpServerId, mcpServerName);
 
-    if (Object.keys(scoped).length === 0) return { tools: [], serverName };
+    if (Object.keys(scoped).length === 0) return { tools: [], mcpServerName };
 
     const tools = await this.aiModelPort.loadRemoteTools(scoped);
 
-    this.errorOnPartialLoadFailure(scoped, tools, mcpServerId, serverName);
+    this.errorOnPartialLoadFailure(scoped, tools, mcpServerId, mcpServerName);
 
-    return { tools, serverName };
+    return { tools, mcpServerName };
   }
 
   // Distinguish "no configs at all" (deployment misconfig) from "configs exist but none match"
@@ -50,7 +50,7 @@ export default class RemoteToolFetcher {
     configs: Record<string, ToolConfig>,
     scoped: Record<string, ToolConfig>,
     mcpServerId: string,
-    serverName: string | undefined,
+    mcpServerName: string | undefined,
   ): void {
     if (Object.keys(scoped).length > 0) return;
 
@@ -62,7 +62,7 @@ export default class RemoteToolFetcher {
       Object.keys(configs).length === 0
         ? 'MCP step targets a server but orchestrator returned no MCP configs'
         : 'MCP step targets a server not advertised by the orchestrator',
-      { requestedMcpServerId: mcpServerId, mcpServerName: serverName, availableMcpServerIds },
+      { requestedMcpServerId: mcpServerId, mcpServerName, availableMcpServerIds },
     );
   }
 
@@ -73,7 +73,7 @@ export default class RemoteToolFetcher {
     scoped: Record<string, ToolConfig>,
     tools: RemoteTool[],
     mcpServerId: string,
-    serverName: string | undefined,
+    mcpServerName: string | undefined,
   ): void {
     const loadedMcpServerIds = new Set(tools.map(t => t.mcpServerId));
     const failedConfigNames = Object.entries(scoped)
@@ -84,7 +84,7 @@ export default class RemoteToolFetcher {
 
     this.logger.error('MCP servers failed to load tools', {
       requestedMcpServerId: mcpServerId,
-      mcpServerName: serverName,
+      mcpServerName,
       failedConfigNames,
     });
   }

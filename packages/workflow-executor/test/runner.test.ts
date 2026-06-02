@@ -1527,7 +1527,7 @@ describe('StepExecutorFactory.create — factory', () => {
     });
     const fetchRemoteTools = jest
       .fn()
-      .mockResolvedValue({ tools: [], serverName: 'Production Slack' });
+      .mockResolvedValue({ tools: [], mcpServerName: 'Production Slack' });
     const executor = await StepExecutorFactory.create(
       step,
       makeContextConfig(),
@@ -1536,7 +1536,11 @@ describe('StepExecutorFactory.create — factory', () => {
     );
     expect(executor).toBeInstanceOf(McpStepExecutor);
     expect(fetchRemoteTools).toHaveBeenCalledWith('srv-42');
-    expect((executor as unknown as { serverName?: string }).serverName).toBe('Production Slack');
+    expect(
+      (
+        executor as unknown as { getExtraLogContext(): Record<string, unknown> }
+      ).getExtraLogContext(),
+    ).toEqual({ mcpServerId: 'srv-42', mcpServerName: 'Production Slack' });
   });
 
   it('dispatches Guidance steps to GuidanceStepExecutor', async () => {
