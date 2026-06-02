@@ -2,14 +2,17 @@
 # single Postgres run store (so the write-ahead idempotency log is shared across
 # instances). The store is YOUR existing local Postgres, reached via DATABASE_URL.
 #
-#   cp .env.executors.example .env.executors   # fill in secrets + DATABASE_URL
-#   docker compose --env-file .env.executors -f docker-compose.executors.yml up --build
+# Config comes entirely from packages/_example/.env — there is nothing to edit here.
+# Run it via the example package script, which sources that .env, remaps
+# EXECUTOR_AGENT_URL/EXECUTOR_DATABASE_URL -> AGENT_URL/DATABASE_URL and rewrites
+# localhost -> host.docker.internal so the containers can reach your host:
+#
+#   yarn workspace workflow-executor-example executors[:build]
+#   # or, with the agent, from packages/_example:
+#   yarn start:with-executor:multiple-instance[:build]
 #
 # Point your agent at the gateway: workflowExecutorUrl: "http://localhost:3400".
 # Your agent must be running on the host (executors probe AGENT_URL on startup).
-#
-# DATABASE_URL must use host.docker.internal (NOT localhost) to reach a Postgres
-# running on your host, e.g. postgres://user:pass@host.docker.internal:5432/db
 
 name: workflow-executor-gateway
 
@@ -28,12 +31,20 @@ x-executor-common: &executor-common
   restart: unless-stopped
   extra_hosts:
     - "host.docker.internal:host-gateway"
+    # Forest local-dev domains resolve to 127.0.0.1 via the host's /etc/hosts (the orchestrator
+    # runs on the host). Inside containers 127.0.0.1 is the container itself, so map them to the
+    # host. Inert for non-dev setups (prod api.forestadmin.com is unaffected).
+    - "api.development.forestadmin.com:host-gateway"
+    - "app.development.forestadmin.com:host-gateway"
+    - "static.development.forestadmin.com:host-gateway"
 
 services:
   executor-1:
     <<: *executor-common
     build:
-      context: ../..
+      # Repo root (relative to this compose file): the Dockerfile does `COPY . .` over the
+      # whole monorepo, so the build context must be the root, not packages/.
+      context: ../../..
       dockerfile: packages/workflow-executor/Dockerfile
     environment: *executor-env
 

@@ -51,7 +51,8 @@
     "db:executor:up": "cd ../workflow-executor/example && docker compose up -d",
     "db:executor:down": "cd ../workflow-executor/example && docker compose down",
     "db:executor:reset": "cd ../workflow-executor/example && docker compose down -v && docker compose up -d",
-    "executor:docker": "docker compose --env-file ../workflow-executor/example/.env.executors -f ../workflow-executor/example/docker-compose.executors.yml up"
+    "start:with-executor:multiple-instance": "concurrently --kill-others --names 'agent,executors' \"yarn start\" \"bash scripts/start-docker-executors.sh executors\"",
+    "start:with-executor:multiple-instance:build": "concurrently --kill-others --names 'agent,executors' \"yarn start\" \"bash scripts/start-docker-executors.sh executors:build\""
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
