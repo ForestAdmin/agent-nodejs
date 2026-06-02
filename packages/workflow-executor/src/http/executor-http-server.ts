@@ -159,7 +159,17 @@ export default class ExecutorHttpServer {
   }
 
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
-    const { renderingId } = ctx.state.user as StepUser;
+    const rawRenderingId = (ctx.state.user as { renderingId?: unknown })?.renderingId;
+    const renderingId =
+      typeof rawRenderingId === 'number' ? rawRenderingId : Number(rawRenderingId);
+
+    if (!Number.isFinite(renderingId)) {
+      ctx.status = 400;
+      ctx.body = { error: 'Missing or invalid renderingId in token' };
+
+      return;
+    }
+
     const steps = await this.options.runner.getRunStepExecutions(ctx.params.runId, renderingId);
     ctx.body = { steps };
   }

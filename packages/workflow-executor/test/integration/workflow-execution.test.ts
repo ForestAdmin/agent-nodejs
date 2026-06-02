@@ -696,7 +696,7 @@ describe('workflow execution (integration)', () => {
     const { server, runStore } = createIntegrationSetup({ workflowPort });
     await runStore.init();
 
-    const token = signToken({ id: STEP_USER.id });
+    const token = signToken({ id: STEP_USER.id, renderingId: STEP_USER.renderingId });
 
     // Trigger the step first
     await request(server.callback)
