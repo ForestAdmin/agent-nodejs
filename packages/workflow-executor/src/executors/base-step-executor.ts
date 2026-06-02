@@ -331,25 +331,27 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const modelWithTools = this.context.model.bindTools(tools, { tool_choice: 'any' });
     const preparedMessages = BaseStepExecutor.mergeLeadingSystemMessages(messages);
     const aiTimeoutMs = this.context.aiInvokeTimeoutMs;
+    const timeoutEnabled = Boolean(aiTimeoutMs && aiTimeoutMs > 0);
 
     let response;
 
-    if (!aiTimeoutMs || aiTimeoutMs <= 0) {
-      response = await modelWithTools.invoke(preparedMessages);
-    } else {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), aiTimeoutMs);
+    try {
+      // LangChain turns the `timeout` call option into an AbortSignal (AbortSignal.timeout) and
+      // forwards it down to the underlying HTTP request, so a hanging provider is actually
+      // cancelled — not merely raced. 0/undefined leaves the call un-timed.
+      response = timeoutEnabled
+        ? await modelWithTools.invoke(preparedMessages, { timeout: aiTimeoutMs })
+        : await modelWithTools.invoke(preparedMessages);
+    } catch (err) {
+      // On timeout the abort surfaces as TimeoutError (from AbortSignal.timeout) or AbortError.
+      // No other abort source exists on this path, so map either to our user-facing error.
+      const name = (err as { name?: string } | undefined)?.name;
 
-      try {
-        response = await modelWithTools.invoke(preparedMessages, {
-          signal: controller.signal,
-        });
-      } catch (err) {
-        if (controller.signal.aborted) throw new AiInvokeTimeoutError(aiTimeoutMs);
-        throw err;
-      } finally {
-        clearTimeout(timer);
+      if (timeoutEnabled && (name === 'TimeoutError' || name === 'AbortError')) {
+        throw new AiInvokeTimeoutError(aiTimeoutMs as number);
       }
+
+      throw err;
     }
 
     const toolCall = response.tool_calls?.[0];

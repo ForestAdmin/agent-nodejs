@@ -857,19 +857,10 @@ describe('BaseStepExecutor', () => {
     });
 
     describe('AI invoke timeout', () => {
-      // Mocks a model.invoke that never resolves on its own but rejects with AbortError
-      // when its received AbortSignal fires — mimics LangChain's behavior on signal.abort().
-      function makeHangingModel() {
-        const invoke = jest.fn().mockImplementation(
-          (_messages, opts) =>
-            new Promise((_resolve, reject) => {
-              opts?.signal?.addEventListener('abort', () => {
-                const err = new Error('Aborted');
-                err.name = 'AbortError';
-                reject(err);
-              });
-            }),
-        );
+      // Builds a model whose invoke rejects with the given error — mimics LangChain surfacing the
+      // abort it raises when the `timeout` call option fires (AbortSignal.timeout).
+      function makeRejectingModel(error: unknown) {
+        const invoke = jest.fn().mockRejectedValue(error);
 
         return {
           model: {
@@ -879,27 +870,29 @@ describe('BaseStepExecutor', () => {
         };
       }
 
-      it('throws AiInvokeTimeoutError when model.invoke hangs beyond aiInvokeTimeoutMs', async () => {
-        jest.useFakeTimers();
+      it('maps a TimeoutError from invoke to AiInvokeTimeoutError', async () => {
+        const timeoutErr = Object.assign(new Error('Aborted'), { name: 'TimeoutError' });
+        const { model } = makeRejectingModel(timeoutErr);
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 100 }));
 
-        try {
-          const { model } = makeHangingModel();
-          const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 100 }));
-          const promise = executor.invokeWithTool(dummyMessages, dummyTool);
-          // Attach catch synchronously so a late rejection (after advanceTimersByTime) doesn't
-          // produce an unhandled rejection warning.
-          const caught = promise.catch(err => err);
-          jest.advanceTimersByTime(150);
-          const err = await caught;
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
 
-          expect(err).toBeInstanceOf(AiInvokeTimeoutError);
-          expect((err as Error).message).toContain('100ms');
-        } finally {
-          jest.useRealTimers();
-        }
+        expect(err).toBeInstanceOf(AiInvokeTimeoutError);
+        expect((err as Error).message).toContain('100ms');
       });
 
-      it('passes the AbortSignal as the second arg to model.invoke', async () => {
+      it('maps an AbortError from invoke to AiInvokeTimeoutError', async () => {
+        const abortErr = Object.assign(new Error('Aborted'), { name: 'AbortError' });
+        const { model } = makeRejectingModel(abortErr);
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 100 }));
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).toBeInstanceOf(AiInvokeTimeoutError);
+        expect((err as Error).message).toContain('100ms');
+      });
+
+      it('passes { timeout: aiInvokeTimeoutMs } as the second arg to model.invoke', async () => {
         const { model, invoke } = makeMockModel({
           tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
         });
@@ -907,10 +900,7 @@ describe('BaseStepExecutor', () => {
 
         await executor.invokeWithTool(dummyMessages, dummyTool);
 
-        expect(invoke).toHaveBeenCalledWith(
-          expect.any(Array),
-          expect.objectContaining({ signal: expect.any(AbortSignal) }),
-        );
+        expect(invoke).toHaveBeenCalledWith(expect.any(Array), { timeout: 5_000 });
       });
 
       it('does not pass any options to model.invoke when aiInvokeTimeoutMs is unset', async () => {
@@ -925,41 +915,30 @@ describe('BaseStepExecutor', () => {
         expect(invoke.mock.calls[0]).toHaveLength(1);
       });
 
-      it('treats aiInvokeTimeoutMs <= 0 as disabled', async () => {
-        const { model, invoke } = makeMockModel({
-          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
-        });
+      it('treats aiInvokeTimeoutMs <= 0 as disabled (no options, abort not mapped)', async () => {
+        const abortErr = Object.assign(new Error('Aborted'), { name: 'AbortError' });
+        const invoke = jest
+          .fn()
+          .mockResolvedValueOnce({ tool_calls: [{ name: 'tool', args: {}, id: 'c1' }] })
+          .mockRejectedValueOnce(abortErr);
+        const model = {
+          bindTools: jest.fn().mockReturnValue({ invoke }),
+        } as unknown as ExecutionContext['model'];
         const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 0 }));
 
         await executor.invokeWithTool(dummyMessages, dummyTool);
-
         expect(invoke.mock.calls[0]).toHaveLength(1);
+
+        // With the timeout disabled, an abort is not ours to translate — it bubbles up untouched.
+        await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toBe(abortErr);
       });
 
       it('rethrows non-abort errors without wrapping them', async () => {
         const apiError = Object.assign(new Error('OpenAI 503'), { status: 503, name: 'APIError' });
-        const invoke = jest.fn().mockRejectedValue(apiError);
-        const model = {
-          bindTools: jest.fn().mockReturnValue({ invoke }),
-        } as unknown as ExecutionContext['model'];
+        const { model } = makeRejectingModel(apiError);
         const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 5_000 }));
 
         await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toBe(apiError);
-      });
-
-      it('clears the timer after a successful invoke (no unref leak)', async () => {
-        const { model } = makeMockModel({
-          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
-        });
-        const clearSpy = jest.spyOn(global, 'clearTimeout');
-        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 5_000 }));
-
-        try {
-          await executor.invokeWithTool(dummyMessages, dummyTool);
-          expect(clearSpy).toHaveBeenCalled();
-        } finally {
-          clearSpy.mockRestore();
-        }
       });
     });
   });
