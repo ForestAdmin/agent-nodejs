@@ -164,7 +164,6 @@ function makePendingExecution(
     type: 'load-related-record',
     stepIndex: 0,
     pendingData: {
-      displayName: 'Order',
       name: 'order',
       selectedRecordId: [99],
       suggestedFields: ['status', 'amount'],
@@ -200,7 +199,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'load-related-record',
           stepIndex: 0,
-          executionParams: { displayName: 'Order', name: 'order' },
+          executionParams: { name: 'order' },
           executionResult: expect.objectContaining({
             record: expect.objectContaining({
               collectionName: 'orders',
@@ -611,7 +610,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
           type: 'load-related-record',
           stepIndex: 0,
           pendingData: {
-            displayName: 'Order',
             name: 'order',
             selectedRecordId: [99],
             suggestedFields: [],
@@ -683,7 +681,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           pendingData: {
-            displayName: 'Order',
             name: 'order',
             selectedRecordId: [2], // record at index 1
             suggestedFields: ['status'],
@@ -762,7 +759,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
@@ -783,12 +779,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           type: 'load-related-record',
-          executionParams: { displayName: 'Order', name: 'order' },
+          executionParams: { name: 'order' },
           executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'orders', recordId: [99] }),
           }),
           pendingData: expect.objectContaining({
-            displayName: 'Order',
             name: 'order',
             selectedRecordId: [99],
           }),
@@ -800,7 +795,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [42],
@@ -833,7 +827,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // Persisted state: AI suggested record [99], awaiting confirmation.
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           selectedRecordId: [99],
           suggestedFields: ['status', 'amount'],
@@ -862,7 +855,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'load-related-record',
           pendingData: expect.objectContaining({
-            displayName: 'Order',
             name: 'order',
             selectedRecordId: [99], // AI suggestion preserved
           }),
@@ -879,7 +871,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // AI suggested "order" (→ orders collection). User switches to "address" (→ addresses).
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           selectedRecordId: [99],
           suggestedFields: [],
@@ -907,13 +898,12 @@ describe('LoadRelatedRecordStepExecutor', () => {
           // AI suggestion preserved on pendingData
           pendingData: expect.objectContaining({
             name: 'order',
-            displayName: 'Order',
             selectedRecordId: [99],
           }),
           // User-overridden relation resolves to the addresses collection
-          executionParams: { name: 'address', displayName: 'Address' },
+          executionParams: { name: 'address' },
           executionResult: expect.objectContaining({
-            relation: { name: 'address', displayName: 'Address' },
+            relation: { name: 'address' },
             record: expect.objectContaining({ collectionName: 'addresses', recordId: [7] }),
           }),
         }),
@@ -936,7 +926,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
@@ -977,7 +966,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
@@ -1022,7 +1010,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // User overrode AI's suggestion of 'order' to 'address' via PATCH
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Address',
           name: 'address',
           suggestedFields: [],
           selectedRecordId: [77],
@@ -1053,7 +1040,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const execution = makePendingExecution({
         selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
@@ -1081,7 +1067,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort();
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
@@ -1102,7 +1087,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: { skipped: true },
-          pendingData: expect.objectContaining({ displayName: 'Order', name: 'order' }),
+          pendingData: expect.objectContaining({ name: 'order' }),
         }),
       );
     });
@@ -1269,7 +1254,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
     it('returns error outcome when saveStepExecution fails after load (Branch A confirmed)', async () => {
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
@@ -1489,7 +1473,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             type: 'load-related-record',
             stepIndex: 2,
             executionResult: {
-              relation: { name: 'order', displayName: 'Order' },
+              relation: { name: 'order' },
               record: relatedRecord,
             },
             selectedRecordRef: makeRecordRef(),
@@ -1518,7 +1502,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           pendingData: expect.objectContaining({
-            displayName: 'Invoice',
             name: 'invoice',
             selectedRecordId: [55],
           }),
@@ -1639,7 +1622,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
     it('returns error outcome when saveStepExecution fails on user reject (Branch A)', async () => {
       const execution = makePendingExecution({
         pendingData: {
-          displayName: 'Order',
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
@@ -1722,7 +1704,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         stepIndex: 3,
         selectedRecordRef: makeRecordRef(),
         pendingData: {
-          displayName: 'Invoice',
           name: 'invoice',
           selectedRecordId: [55],
         },
@@ -1772,7 +1753,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             type: 'load-related-record',
             stepIndex: 2,
             executionResult: {
-              relation: { name: 'order', displayName: 'Order' },
+              relation: { name: 'order' },
               record: completedRecord,
             },
             selectedRecordRef: makeRecordRef(),

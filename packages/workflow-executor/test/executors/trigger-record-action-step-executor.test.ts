@@ -175,7 +175,6 @@ describe('TriggerRecordActionStepExecutor', () => {
           type: 'trigger-action',
           stepIndex: 0,
           executionParams: {
-            displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
           executionResult: { success: true, actionResult: { message: 'Email sent' } },
@@ -210,7 +209,6 @@ describe('TriggerRecordActionStepExecutor', () => {
           type: 'trigger-action',
           stepIndex: 0,
           pendingData: {
-            displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
           selectedRecordRef: expect.objectContaining({
@@ -249,7 +247,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         type: 'trigger-action',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
         userConfirmation: {
@@ -274,7 +271,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         expect.objectContaining({
           type: 'trigger-action',
           executionParams: {
-            displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
           executionResult: {
@@ -282,7 +278,6 @@ describe('TriggerRecordActionStepExecutor', () => {
             actionResult: { success: 'ok', html: '<p>Email queued</p>' },
           },
           pendingData: {
-            displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
         }),
@@ -295,7 +290,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         type: 'trigger-action',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
         userConfirmation: {
@@ -328,7 +322,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         type: 'trigger-action',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
         userConfirmation: { userConfirmed: true },
@@ -358,7 +351,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         type: 'trigger-action',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
         userConfirmation: { userConfirmed: false },
@@ -379,7 +371,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         expect.objectContaining({
           executionResult: { skipped: true },
           pendingData: {
-            displayName: 'Send Welcome Email',
             name: 'send-welcome-email',
           },
         }),
@@ -408,7 +399,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           {
             type: 'trigger-action',
             stepIndex: 5,
-            pendingData: { displayName: 'Send Welcome Email' },
+            pendingData: { name: 'send-welcome-email' },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -526,7 +517,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           type: 'trigger-action',
-          pendingData: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+          pendingData: { name: 'send-welcome-email' },
         }),
       );
     });
@@ -758,7 +749,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             type: 'load-related-record',
             stepIndex: 2,
             executionResult: {
-              relation: { name: 'order', displayName: 'Order' },
+              relation: { name: 'order' },
               record: relatedRecord,
             },
             selectedRecordRef: makeRecordRef(),
@@ -787,7 +778,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          pendingData: { displayName: 'Cancel Order', name: 'cancel-order' },
+          pendingData: { name: 'cancel-order' },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
             collectionName: 'orders',
@@ -898,7 +889,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         type: 'trigger-action',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
         userConfirmation: { userConfirmed: false },
@@ -949,7 +939,6 @@ describe('TriggerRecordActionStepExecutor', () => {
         type: 'trigger-action',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Send Welcome Email',
           name: 'send-welcome-email',
         },
         userConfirmation: {
@@ -1113,7 +1102,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       const doneExecution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
-        executionParams: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+        executionParams: { name: 'send-welcome-email' },
         executionResult: { success: true, actionResult: undefined },
         selectedRecordRef: makeRecordRef(),
         idempotencyPhase: 'done',

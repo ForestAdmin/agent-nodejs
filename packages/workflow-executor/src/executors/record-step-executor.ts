@@ -1,3 +1,4 @@
+import type { SchemaGetter } from '../hydrate-step-execution-data';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { StepDefinition } from '../types/validated/step-definition';
@@ -7,11 +8,14 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import { InvalidAIResponseError, InvalidPreRecordedArgsError, NoRecordsError } from '../errors';
+import { makeSchemaGetter } from '../hydrate-step-execution-data';
 import BaseStepExecutor from './base-step-executor';
 
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
 > extends BaseStepExecutor<TStep> {
+  private schemaGetter?: SchemaGetter;
+
   protected buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
@@ -64,16 +68,14 @@ export default abstract class RecordStepExecutor<
   }
 
   protected async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    const cached = this.context.schemaCache.get(collectionName);
-    if (cached) return cached;
-
-    const schema = await this.context.workflowPort.getCollectionSchema(
-      collectionName,
+    this.schemaGetter ??= makeSchemaGetter(
+      this.context.schemaCache,
+      this.context.workflowPort,
       this.context.runId,
+      this.context.user.renderingId,
     );
-    this.context.schemaCache.set(collectionName, schema);
 
-    return schema;
+    return this.schemaGetter(collectionName);
   }
 
   protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {

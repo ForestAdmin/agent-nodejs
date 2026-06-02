@@ -1,4 +1,4 @@
-import type { StepExecutionData } from '../../types/step-execution-data';
+import type { HydratedStepExecutionData } from '../../types/step-execution-data';
 import type { StepDefinition } from '../../types/validated/step-definition';
 import type { StepOutcome } from '../../types/validated/step-outcome';
 
@@ -8,7 +8,7 @@ export default class StepSummaryBuilder {
   static build(
     step: StepDefinition,
     stepOutcome: StepOutcome,
-    execution: StepExecutionData | undefined,
+    execution: HydratedStepExecutionData | undefined,
   ): string {
     const prompt = step.prompt ?? '(no prompt)';
     const header = `Step "${stepOutcome.stepId}" (index ${stepOutcome.stepIndex}):`;

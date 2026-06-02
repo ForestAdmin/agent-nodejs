@@ -36,9 +36,10 @@ export interface ConditionStepExecutionData extends BaseStepExecutionData {
 
 // -- Shared --
 
+// Persisted refs hold the technical name only; displayName is re-derived from the schema at read
+// time (see hydrate-step-execution-data.ts).
 export interface FieldRef {
   name: string;
-  displayName: string;
 }
 
 export type FieldWithValue = FieldRef & { value: unknown };
@@ -79,14 +80,12 @@ export interface UpdateRecordStepExecutionData
 
 export interface ActionRef {
   name: string;
-  displayName: string;
 }
 
 // Intentionally separate from ActionRef/FieldRef: expected to gain relation-specific
 // fields (e.g. relationType) in a future iteration.
 export interface RelationRef {
   name: string;
-  displayName: string;
 }
 
 export interface TriggerRecordActionStepExecutionData
@@ -176,3 +175,57 @@ export type StepExecutionData =
   | GuidanceStepExecutionData;
 
 export type ExecutedStepExecutionData = StepExecutionData;
+
+// -- Hydrated view (displayName re-derived from the schema at read time) --
+
+export interface DisplayedFieldRef extends FieldRef {
+  displayName: string;
+}
+
+export interface DisplayedActionRef extends ActionRef {
+  displayName: string;
+}
+
+export interface DisplayedRelationRef extends RelationRef {
+  displayName: string;
+}
+
+export type DisplayedFieldReadResult = FieldReadResult & { displayName: string };
+
+export interface DisplayedReadRecordStepExecutionData
+  extends Omit<ReadRecordStepExecutionData, 'executionParams' | 'executionResult'> {
+  executionParams: { fields: DisplayedFieldRef[] };
+  executionResult: { fields: DisplayedFieldReadResult[] };
+}
+
+export interface DisplayedUpdateRecordStepExecutionData
+  extends Omit<UpdateRecordStepExecutionData, 'executionParams' | 'pendingData'> {
+  executionParams?: DisplayedFieldRef & { value: unknown };
+  pendingData?: DisplayedFieldRef & { value: unknown };
+}
+
+export interface DisplayedTriggerRecordActionStepExecutionData
+  extends Omit<TriggerRecordActionStepExecutionData, 'executionParams' | 'pendingData'> {
+  executionParams?: DisplayedActionRef;
+  pendingData?: DisplayedActionRef;
+}
+
+export interface DisplayedLoadRelatedRecordStepExecutionData
+  extends Omit<
+    LoadRelatedRecordStepExecutionData,
+    'executionParams' | 'executionResult' | 'pendingData'
+  > {
+  pendingData?: LoadRelatedRecordPendingData & { displayName: string };
+  executionParams?: DisplayedRelationRef;
+  executionResult?: { relation: DisplayedRelationRef; record: RecordRef } | { skipped: true };
+}
+
+export type HydratedStepExecutionData =
+  | ConditionStepExecutionData
+  | DisplayedReadRecordStepExecutionData
+  | DisplayedUpdateRecordStepExecutionData
+  | DisplayedTriggerRecordActionStepExecutionData
+  | RecordStepExecutionData
+  | DisplayedLoadRelatedRecordStepExecutionData
+  | McpStepExecutionData
+  | GuidanceStepExecutionData;

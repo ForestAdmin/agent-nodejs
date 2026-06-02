@@ -293,7 +293,7 @@ describe('workflow execution (integration)', () => {
         type: 'read-record',
         stepIndex: 0,
         executionResult: {
-          fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
+          fields: [{ value: 'john@example.com', name: 'email' }],
         },
       }),
     );
@@ -546,7 +546,7 @@ describe('workflow execution (integration)', () => {
       expect.objectContaining({
         type: 'load-related-record',
         executionResult: {
-          relation: { name: 'order', displayName: 'Order' },
+          relation: { name: 'order' },
           record: { collectionName: 'orders', recordId: [99], stepIndex: 0 },
         },
       }),
@@ -696,7 +696,7 @@ describe('workflow execution (integration)', () => {
     const { server, runStore } = createIntegrationSetup({ workflowPort });
     await runStore.init();
 
-    const token = signToken({ id: STEP_USER.id });
+    const token = signToken({ id: STEP_USER.id, renderingId: STEP_USER.renderingId });
 
     // Trigger the step first
     await request(server.callback)

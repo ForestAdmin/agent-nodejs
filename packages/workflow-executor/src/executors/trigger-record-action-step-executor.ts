@@ -84,7 +84,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
           const target: ActionTarget = {
             selectedRecordRef,
-            displayName: pendingData.displayName,
             name: pendingData.name,
           };
 
@@ -112,7 +111,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       ? { actionName: preRecordedArgs.actionDisplayName }
       : await this.selectAction(schema, step.prompt);
     const name = this.resolveActionName(schema, args.actionName);
-    const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
+    const target: ActionTarget = { selectedRecordRef, name };
 
     // Branch B -- fully automated: executor runs the action itself, so it cannot
     // handle forms (no UI to fill them). Reject form-bearing actions here. When the
@@ -126,7 +125,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         },
         this.context.user,
       );
-      if (hasForm) throw new UnsupportedActionFormError(target.displayName);
+      if (hasForm) throw new UnsupportedActionFormError(args.actionName);
 
       return this.executeOnExecutor(target);
     }
@@ -135,7 +134,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      pendingData: { displayName: target.displayName, name: target.name },
+      pendingData: { name: target.name },
       selectedRecordRef: target.selectedRecordRef,
     });
 
@@ -144,7 +143,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
   /** Branch B — executor runs the action via agentPort, then persists the result. */
   private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name } = target;
+    const { selectedRecordRef, name } = target;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
@@ -165,7 +164,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name },
+      executionParams: { name },
       executionResult: { success: true, actionResult },
       selectedRecordRef,
       idempotencyPhase: 'done',
@@ -180,13 +179,13 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     actionResult: unknown,
     existingExecution: TriggerRecordActionStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name } = target;
+    const { selectedRecordRef, name } = target;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...existingExecution,
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name },
+      executionParams: { name },
       executionResult: { success: true, actionResult },
       selectedRecordRef,
     });

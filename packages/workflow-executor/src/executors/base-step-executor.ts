@@ -26,6 +26,7 @@ import {
   extractErrorMessage,
 } from '../errors';
 import patchBodySchemas from '../http/pending-data-validators';
+import hydrateStepExecutionData, { makeSchemaGetter } from '../hydrate-step-execution-data';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
@@ -281,15 +282,24 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     if (!this.context.previousSteps.length) return [];
 
     const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const summary = this.context.previousSteps
-      .map(({ stepDefinition, stepOutcome }) => {
+    const getSchema = makeSchemaGetter(
+      this.context.schemaCache,
+      this.context.workflowPort,
+      this.context.runId,
+      this.context.user.renderingId,
+    );
+    const summaries = await Promise.all(
+      this.context.previousSteps.map(async ({ stepDefinition, stepOutcome }) => {
         const execution = allStepExecutions.find(e => e.stepIndex === stepOutcome.stepIndex);
+        const hydrated = execution
+          ? await hydrateStepExecutionData(execution, getSchema, this.context.logger)
+          : undefined;
 
-        return StepSummaryBuilder.build(stepDefinition, stepOutcome, execution);
-      })
-      .join('\n\n');
+        return StepSummaryBuilder.build(stepDefinition, stepOutcome, hydrated);
+      }),
+    );
 
-    return [new SystemMessage(summary)];
+    return [new SystemMessage(summaries.join('\n\n'))];
   }
 
   private static mergeLeadingSystemMessages(messages: BaseMessage[]): BaseMessage[] {

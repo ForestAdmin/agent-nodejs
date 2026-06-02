@@ -7,7 +7,7 @@ import type { RunStore } from './ports/run-store';
 import type { AvailableRunDispatch, MalformedRunInfo, WorkflowPort } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
 import type { AvailableStepExecution, StepExecutionResult } from './types/execution-context';
-import type { StepExecutionData } from './types/step-execution-data';
+import type { HydratedStepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
 
 import ConsoleLogger from './adapters/console-logger';
@@ -20,6 +20,7 @@ import {
   extractErrorMessage,
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
+import hydrateStepExecutionData, { makeSchemaGetter } from './hydrate-step-execution-data';
 import InFlightRunRegistry from './in-flight-run-registry';
 import RemoteToolFetcher from './remote-tool-fetcher';
 import { stepTypeToOutcomeType } from './types/validated/step-outcome';
@@ -152,8 +153,21 @@ export default class Runner {
     }
   }
 
-  async getRunStepExecutions(runId: string): Promise<StepExecutionData[]> {
-    return this.config.runStore.getStepExecutions(runId);
+  async getRunStepExecutions(
+    runId: string,
+    renderingId: number,
+  ): Promise<HydratedStepExecutionData[]> {
+    const executions = await this.config.runStore.getStepExecutions(runId);
+    const getSchema = makeSchemaGetter(
+      this.config.schemaCache,
+      this.config.workflowPort,
+      runId,
+      renderingId,
+    );
+
+    return Promise.all(
+      executions.map(execution => hydrateStepExecutionData(execution, getSchema, this.logger)),
+    );
   }
 
   async triggerPoll(

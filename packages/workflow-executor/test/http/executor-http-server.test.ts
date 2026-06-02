@@ -105,7 +105,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should accept valid token in Authorization header', async () => {
       const server = createServer();
-      const token = signToken({ id: 1 });
+      const token = signToken({ id: 1, renderingId: 7 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -116,7 +116,7 @@ describe('ExecutorHttpServer', () => {
 
     it('should accept valid token in forest_session_token cookie', async () => {
       const server = createServer();
-      const token = signToken({ id: 1 });
+      const token = signToken({ id: 1, renderingId: 7 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -217,7 +217,7 @@ describe('ExecutorHttpServer', () => {
     it('calls hasRunAccess with the correct runId and decoded user', async () => {
       const workflowPort = createMockWorkflowPort();
       const server = createServer({ workflowPort });
-      const token = signToken({ id: 1 });
+      const token = signToken({ id: 1, renderingId: 7 });
 
       const response = await request(server.callback)
         .get('/runs/run-42')
@@ -233,7 +233,7 @@ describe('ExecutorHttpServer', () => {
     it('calls hasRunAccess with decoded user from cookie token', async () => {
       const workflowPort = createMockWorkflowPort();
       const server = createServer({ workflowPort });
-      const token = signToken({ id: 1 });
+      const token = signToken({ id: 1, renderingId: 7 });
 
       const response = await request(server.callback)
         .get('/runs/run-cookie')
@@ -289,7 +289,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 1 });
+      const token = signToken({ id: 1, renderingId: 7 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -297,7 +297,8 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ steps });
-      expect(runner.getRunStepExecutions).toHaveBeenCalledWith('run-1');
+      // Schema hydration is scoped to the requesting user's rendering.
+      expect(runner.getRunStepExecutions).toHaveBeenCalledWith('run-1', 7);
     });
 
     it('should return 500 when getRunStepExecutions rejects', async () => {
@@ -306,7 +307,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 1 });
+      const token = signToken({ id: 1, renderingId: 7 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -314,6 +315,20 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
+    it('should return 400 when the token has no renderingId', async () => {
+      const runner = createMockRunner();
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 }); // no renderingId
+
+      const response = await request(server.callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Missing or invalid renderingId in token' });
+      expect(runner.getRunStepExecutions).not.toHaveBeenCalled();
     });
   });
 

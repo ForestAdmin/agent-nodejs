@@ -170,7 +170,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          executionParams: { name: 'status', value: 'active' },
           executionResult: { updatedValues },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
@@ -201,7 +201,7 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: { name: 'status', value: 'active' },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -219,7 +219,6 @@ describe('UpdateRecordStepExecutor', () => {
         type: 'update-record',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Status',
           name: 'status',
           value: 'active',
         },
@@ -243,10 +242,9 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           type: 'update-record',
-          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          executionParams: { name: 'status', value: 'active' },
           executionResult: { updatedValues },
           pendingData: {
-            displayName: 'Status',
             name: 'status',
             value: 'active',
           },
@@ -262,7 +260,6 @@ describe('UpdateRecordStepExecutor', () => {
         type: 'update-record',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Status',
           name: 'status',
           value: 'inactive',
         },
@@ -296,11 +293,10 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           pendingData: expect.objectContaining({
-            displayName: 'Status',
             name: 'status',
             value: 'inactive', // AI suggestion preserved
           }),
-          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          executionParams: { name: 'status', value: 'active' },
           executionResult: { updatedValues },
         }),
       );
@@ -312,7 +308,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        pendingData: { name: 'status', value: 'active' },
         selectedRecordRef: makeRecordRef(),
       };
       const updatedValues = { status: 'active' };
@@ -336,7 +332,7 @@ describe('UpdateRecordStepExecutor', () => {
       const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(finalSave).toEqual(
         expect.objectContaining({
-          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          executionParams: { name: 'status', value: 'active' },
           userConfirmation: { userConfirmed: true },
         }),
       );
@@ -348,7 +344,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: 'Status', name: 'status', value: 'inactive' },
+        pendingData: { name: 'status', value: 'inactive' },
         selectedRecordRef: makeRecordRef(),
       };
       const agentPort = makeMockAgentPort();
@@ -385,7 +381,6 @@ describe('UpdateRecordStepExecutor', () => {
         type: 'update-record',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Status',
           name: 'status',
           value: 'active',
         },
@@ -407,7 +402,6 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           executionResult: { skipped: true },
           pendingData: {
-            displayName: 'Status',
             name: 'status',
             value: 'active',
           },
@@ -437,7 +431,7 @@ describe('UpdateRecordStepExecutor', () => {
           {
             type: 'update-record',
             stepIndex: 5,
-            pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+            pendingData: { name: 'status', value: 'active' },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -535,7 +529,7 @@ describe('UpdateRecordStepExecutor', () => {
             type: 'load-related-record',
             stepIndex: 2,
             executionResult: {
-              relation: { name: 'order', displayName: 'Order' },
+              relation: { name: 'order' },
               record: relatedRecord,
             },
             selectedRecordRef: makeRecordRef(),
@@ -564,7 +558,6 @@ describe('UpdateRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           pendingData: {
-            displayName: 'Order Status',
             name: 'status',
             value: 'shipped',
           },
@@ -861,7 +854,6 @@ describe('UpdateRecordStepExecutor', () => {
         type: 'update-record',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Status',
           name: 'status',
           value: 'active',
         },
@@ -911,7 +903,6 @@ describe('UpdateRecordStepExecutor', () => {
         type: 'update-record',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Status',
           name: 'status',
           value: 'active',
         },
@@ -1033,7 +1024,6 @@ describe('UpdateRecordStepExecutor', () => {
         type: 'update-record',
         stepIndex: 0,
         pendingData: {
-          displayName: 'Status',
           name: 'status',
           value: 'active',
         },
@@ -1546,7 +1536,7 @@ describe('UpdateRecordStepExecutor', () => {
           {
             type: 'update-record',
             stepIndex: 0,
-            pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+            pendingData: { name: 'status', value: 'active' },
             selectedRecordRef: makeRecordRef(),
           },
         ]),
@@ -1575,7 +1565,7 @@ describe('UpdateRecordStepExecutor', () => {
       const doneExecution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+        executionParams: { name: 'status', value: 'active' },
         executionResult: { updatedValues: { status: 'active' } },
         selectedRecordRef: makeRecordRef(),
         idempotencyPhase: 'done',
@@ -1669,7 +1659,7 @@ describe('UpdateRecordStepExecutor', () => {
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
-        pendingData: { displayName: field.displayName, name: field.fieldName, value: pendingValue },
+        pendingData: { name: field.fieldName, value: pendingValue },
         userConfirmation,
         selectedRecordRef: makeRecordRef(),
       };

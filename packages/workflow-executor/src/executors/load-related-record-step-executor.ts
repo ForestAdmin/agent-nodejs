@@ -101,7 +101,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     return {
       selectedRecordRef,
-      displayName: field.displayName,
       name: field.fieldName,
       relationType: field.relationType,
     };
@@ -110,7 +109,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   // Branch C: AI suggests the best candidate, then awaits user confirmation. Save errors
   // propagate directly — the relation-load hasn't run yet, so the step can be safely retried.
   private async saveAndAwaitInput(target: RelationTarget): Promise<StepExecutionResult> {
-    const { selectedRecordRef, name, displayName } = target;
+    const { selectedRecordRef, name } = target;
 
     const { relatedData, bestIndex, suggestedFields } = await this.selectBestFromRelatedData(
       target,
@@ -122,7 +121,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
-      pendingData: { displayName, name, suggestedFields, selectedRecordId },
+      pendingData: { name, suggestedFields, selectedRecordId },
       selectedRecordRef,
     });
 
@@ -152,7 +151,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const name = userConfirmation?.name ?? pendingData.name;
     const selectedRecordId = userConfirmation?.selectedRecordId ?? pendingData.selectedRecordId;
 
-    // Re-derive relatedCollectionName and displayName because the user may have swapped the relation.
+    // Re-derive relatedCollectionName because the user may have swapped the relation.
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const field = schema.fields.find(f => f.fieldName === name);
 
@@ -162,7 +161,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       );
     }
 
-    const { displayName, relatedCollectionName } = field;
+    const { relatedCollectionName } = field;
 
     const record: RecordRef = {
       collectionName: relatedCollectionName,
@@ -170,7 +169,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       stepIndex: this.context.stepIndex,
     };
 
-    return this.persistAndReturn(record, { selectedRecordRef, name, displayName }, execution);
+    return this.persistAndReturn(record, { selectedRecordRef, name }, execution);
   }
 
   private async selectBestFromRelatedData(
@@ -269,17 +268,17 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   /** Persists the loaded record ref and returns a success outcome. */
   private async persistAndReturn(
     record: RecordRef,
-    target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
+    target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
     existingExecution: LoadRelatedRecordStepExecutionData | undefined,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, name, displayName } = target;
+    const { selectedRecordRef, name } = target;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...existingExecution,
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name },
-      executionResult: { relation: { name, displayName }, record },
+      executionParams: { name },
+      executionResult: { relation: { name }, record },
       selectedRecordRef,
     });
 
