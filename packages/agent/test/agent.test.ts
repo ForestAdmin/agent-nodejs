@@ -223,6 +223,68 @@ describe('Agent', () => {
 
       expect(DataSourceCustomizer.prototype.use).toHaveBeenCalledTimes(2);
     });
+
+    describe('when a restart is already in progress', () => {
+      test('should ignore concurrent restart calls and not rebuild routes again', async () => {
+        const mockLogger = jest.fn();
+        const agent = new Agent({ ...options, logger: mockLogger });
+
+        await agent.start();
+        jest.clearAllMocks();
+
+        // Make the next getDataSource call hang so the first restart is still
+        // in progress when the second one is triggered.
+        let releaseFirstRestart: () => void = () => {};
+
+        jest.mocked(DataSourceCustomizer.prototype.getDataSource).mockImplementationOnce(
+          () =>
+            new Promise(resolve => {
+              releaseFirstRestart = () => resolve(factories.dataSource.build());
+            }),
+        );
+
+        const firstRestart = agent.restart();
+        const secondRestart = agent.restart();
+
+        releaseFirstRestart();
+        await Promise.all([firstRestart, secondRestart]);
+
+        expect(DataSourceCustomizer.prototype.getDataSource).toHaveBeenCalledTimes(1);
+        expect(mockSetupRoute).toHaveBeenCalledTimes(1);
+        expect(mockBootstrap).toHaveBeenCalledTimes(1);
+        expect(mockMakeRoutes).toHaveBeenCalledTimes(1);
+        expect(mockLogger).toHaveBeenCalledWith(
+          'Debug',
+          'Agent is already restarting. Do nothing.',
+        );
+      });
+
+      test('should allow a new restart once the previous one has finished', async () => {
+        const agent = new Agent(options);
+
+        await agent.start();
+        jest.clearAllMocks();
+
+        await agent.restart();
+        await agent.restart();
+
+        expect(DataSourceCustomizer.prototype.getDataSource).toHaveBeenCalledTimes(2);
+        expect(mockSetupRoute).toHaveBeenCalledTimes(2);
+        expect(mockBootstrap).toHaveBeenCalledTimes(2);
+      });
+
+      test('should log that the agent is restarting on each accepted restart', async () => {
+        const mockLogger = jest.fn();
+        const agent = new Agent({ ...options, logger: mockLogger });
+
+        await agent.start();
+        mockLogger.mockClear();
+
+        await agent.restart();
+
+        expect(mockLogger).toHaveBeenCalledWith('Info', 'Agent is restarting...');
+      });
+    });
   });
 
   describe('Production', () => {

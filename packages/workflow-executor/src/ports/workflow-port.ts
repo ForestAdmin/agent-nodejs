@@ -3,9 +3,7 @@
 import type { AvailableStepExecution, StepUser } from '../types/execution-context';
 import type { CollectionSchema } from '../types/validated/collection';
 import type { StepOutcome } from '../types/validated/step-outcome';
-import type { McpConfiguration } from '@forestadmin/ai-proxy';
-
-export type { McpConfiguration };
+import type { ToolConfig } from '@forestadmin/ai-proxy';
 
 export interface MalformedRunInfo {
   runId: string;
@@ -39,6 +37,6 @@ export interface WorkflowPort {
     stepOutcome: StepOutcome,
   ): Promise<AvailableRunDispatch | null>;
   getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema>;
-  getMcpServerConfigs(): Promise<McpConfiguration[]>;
+  getMcpServerConfigs(): Promise<Record<string, ToolConfig>>;
   hasRunAccess(runId: string, user: StepUser): Promise<boolean>;
 }

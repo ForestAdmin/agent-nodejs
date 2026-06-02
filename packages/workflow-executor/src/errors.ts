@@ -10,7 +10,8 @@ export function causeMessage(error: unknown): string | undefined {
 
 // Cascades through err.message → err.parent.message (Sequelize) → err.cause.message → err.name,
 // so wrapped infra errors (SequelizeConnectionRefusedError has an empty .message) don't log as empty.
-export function extractErrorMessage(err: unknown): string {
+export function extractErrorMessage(err?: unknown): string | undefined {
+  if (err === undefined) return undefined;
   if (!(err instanceof Error)) return String(err);
   if (err.message) return err.message;
 
@@ -149,6 +150,12 @@ export class InvalidAIResponseError extends WorkflowExecutorError {
   }
 }
 
+export class InvalidAiRequestError extends WorkflowExecutorError {
+  constructor(message: string) {
+    super(message, 'Step configuration error — please contact your administrator.');
+  }
+}
+
 export class RelationNotFoundError extends WorkflowExecutorError {
   constructor(name: string, collectionName: string) {
     super(
@@ -163,6 +170,16 @@ export class FieldNotFoundError extends WorkflowExecutorError {
     super(
       `Field "${name}" not found in collection "${collectionName}"`,
       "The AI selected a field that doesn't exist on this record. Try rephrasing the step's prompt.",
+    );
+  }
+}
+
+export class FieldTypeMissingError extends WorkflowExecutorError {
+  constructor(name: string, collectionName: string) {
+    super(
+      `Field "${name}" in collection "${collectionName}" has no column type`,
+      "This field can't be updated because its type is missing from the schema. " +
+        'Contact your administrator if the problem persists.',
     );
   }
 }
@@ -203,8 +220,11 @@ export class StepTimeoutError extends WorkflowExecutorError {
 }
 
 export class NoMcpToolsError extends WorkflowExecutorError {
-  constructor() {
-    super('No MCP tools available', 'No tools are available to execute this step.');
+  constructor(requestedMcpServerId: string) {
+    super(
+      `No MCP tools available for mcpServerId="${requestedMcpServerId}"`,
+      'Tools could not be loaded for the targeted server. Please try again, or contact your administrator if the problem persists.',
+    );
   }
 }
 

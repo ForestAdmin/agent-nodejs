@@ -9,14 +9,19 @@ import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 import { RunStorePortError, StepStateError } from '../../src/errors';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 class MockRemoteTool extends RemoteTool {
-  constructor(options: { name: string; sourceId?: string; invoke?: jest.Mock }) {
+  constructor(options: {
+    name: string;
+    sourceId?: string;
+    mcpServerId?: string;
+    invoke?: jest.Mock;
+  }) {
     const invokeFn = options.invoke ?? jest.fn().mockResolvedValue('tool-result');
     super({
       tool: {
@@ -27,6 +32,7 @@ class MockRemoteTool extends RemoteTool {
       } as unknown as RemoteTool['base'],
       sourceId: options.sourceId ?? 'mcp-server-1',
       sourceType: 'mcp',
+      mcpServerId: options.mcpServerId,
     });
   }
 }
@@ -35,6 +41,8 @@ function makeStep(overrides: Partial<McpStepDefinition> = {}): McpStepDefinition
   return {
     type: StepType.Mcp,
     prompt: 'Send a notification to the user',
+    executionType: StepExecutionMode.AutomatedWithConfirmation,
+    mcpServerId: 'default-mcp-id',
     ...overrides,
   };
 }
@@ -61,7 +69,7 @@ function makeMockWorkflowPort(): WorkflowPort {
       fields: [],
       actions: [],
     }),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }
@@ -108,7 +116,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -124,7 +132,7 @@ function makeContext(
 // ---------------------------------------------------------------------------
 
 describe('McpStepExecutor', () => {
-  describe('automaticExecution: direct execution (Branch B)', () => {
+  describe('executionType=FullyAutomated: direct execution (Branch B)', () => {
     it('invokes the tool and returns success', async () => {
       const invokeFn = jest.fn().mockResolvedValue({ result: 'notification sent' });
       const tool = new MockRemoteTool({
@@ -139,7 +147,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -189,7 +197,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -236,12 +244,12 @@ describe('McpStepExecutor', () => {
           tool_calls: [{ name: 'send_notification', args: { message: 'Hi' }, id: 'call_1' }],
         })
         .mockResolvedValueOnce({ tool_calls: [] });
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
         logger,
       });
       const executor = new McpStepExecutor(context, [tool]);
@@ -276,7 +284,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -297,7 +305,7 @@ describe('McpStepExecutor', () => {
     });
   });
 
-  describe('without automaticExecution: awaiting-input (Branch C)', () => {
+  describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {
     it('saves pendingData and returns awaiting-input', async () => {
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
       const runStore = makeMockRunStore();
@@ -324,7 +332,7 @@ describe('McpStepExecutor', () => {
 
     it('returns error when saveStepExecution fails (Branch C)', async () => {
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         saveStepExecution: jest
           .fn()
@@ -362,8 +370,8 @@ describe('McpStepExecutor', () => {
           name: 'send_notification',
           sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -389,7 +397,6 @@ describe('McpStepExecutor', () => {
             name: 'send_notification',
             sourceId: 'mcp-server-1',
             input: { message: 'Hello' },
-            userConfirmed: true,
           },
         }),
       );
@@ -411,8 +418,8 @@ describe('McpStepExecutor', () => {
           name: 'send_notification',
           sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
       };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -432,41 +439,59 @@ describe('McpStepExecutor', () => {
             name: 'send_notification',
             sourceId: 'mcp-server-1',
             input: { message: 'Hello' },
-            userConfirmed: false,
           },
         }),
       );
     });
   });
 
-  describe('mcpServerId filter', () => {
-    it('passes only tools from the specified server to the AI', async () => {
-      const toolA = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A' });
-      const toolB = new MockRemoteTool({ name: 'tool_b', sourceId: 'server-B' });
-      const invokeFn = jest.fn().mockResolvedValue('ok');
-      const toolB2 = new MockRemoteTool({
-        name: 'tool_b2',
-        sourceId: 'server-B',
-        invoke: invokeFn,
-      });
-
-      const { model, bindTools } = makeMockModel('tool_b', {});
-      const runStore = makeMockRunStore();
+  describe('forwards all provided remoteTools to the AI', () => {
+    // Tools are pre-scoped upstream — the executor must not re-filter. Mixing divergent
+    // mcpServerId values in the input asserts the executor passes every tool through, even
+    // ones that wouldn't match the step's mcpServerId on their own.
+    it('binds every tool it receives, including ones whose mcpServerId differs from the step', async () => {
+      const matchingTool = new MockRemoteTool({ name: 'tool_a', mcpServerId: 'id-A' });
+      const offTargetTool = new MockRemoteTool({ name: 'tool_b', mcpServerId: 'id-B' });
+      const { model, bindTools } = makeMockModel('tool_a', {});
       const context = makeContext({
         model,
-        runStore,
-        stepDefinition: makeStep({ mcpServerId: 'server-B', automaticExecution: true }),
+        stepDefinition: makeStep({
+          mcpServerId: 'id-A',
+          executionType: StepExecutionMode.FullyAutomated,
+        }),
       });
-      const executor = new McpStepExecutor(context, [toolA, toolB, toolB2]);
+      const executor = new McpStepExecutor(context, [matchingTool, offTargetTool]);
 
       await executor.execute();
 
-      // bindTools should only receive server-B tools
       const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
-      const boundNames = boundTools.map(t => t.name);
-      expect(boundNames).not.toContain('tool_a');
-      expect(boundNames).toContain('tool_b');
-      expect(boundNames).toContain('tool_b2');
+      expect(boundTools.map(t => t.name)).toEqual(expect.arrayContaining(['tool_a', 'tool_b']));
+    });
+
+    it('resolves a Forest-connector-backed tool end-to-end', async () => {
+      const invokeFn = jest.fn().mockResolvedValue('done');
+      const forestTool = new MockRemoteTool({
+        name: 'zendesk_get_tickets',
+        sourceId: 'zendesk',
+        mcpServerId: 'forest-connector-42',
+        invoke: invokeFn,
+      });
+      const { model, bindTools } = makeMockModel('zendesk_get_tickets', {});
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({
+          mcpServerId: 'forest-connector-42',
+          executionType: StepExecutionMode.FullyAutomated,
+        }),
+      });
+      const executor = new McpStepExecutor(context, [forestTool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ name: string }>;
+      expect(boundTools.map(t => t.name)).toEqual(['zendesk_get_tickets']);
+      expect(invokeFn).toHaveBeenCalled();
     });
   });
 
@@ -478,20 +503,43 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
+      expect(result.stepOutcome.error).toMatch(
+        /^Tools could not be loaded for the targeted server\./,
+      );
     });
 
-    it('returns error when mcpServerId filter yields no tools', async () => {
-      const tool = new MockRemoteTool({ name: 'tool_a', sourceId: 'server-A' });
-      const context = makeContext({
-        stepDefinition: makeStep({ mcpServerId: 'server-B' }),
-      });
-      const executor = new McpStepExecutor(context, [tool]);
+    it('keeps the user-facing error message free of internal ids', async () => {
+      const context = makeContext({ stepDefinition: makeStep({ mcpServerId: 'id-B' }) });
+      const executor = new McpStepExecutor(context, []);
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe('No tools are available to execute this step.');
+      expect(result.stepOutcome.error).toMatch(
+        /^Tools could not be loaded for the targeted server\./,
+      );
+      expect(result.stepOutcome.error).not.toMatch(/id-B/);
+    });
+
+    it('logs the technical message with the requested mcpServerId when tools are empty', async () => {
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const context = makeContext({
+        logger,
+        stepDefinition: makeStep({ mcpServerId: 'id-missing' }),
+      });
+      const executor = new McpStepExecutor(context, []);
+
+      await executor.execute();
+
+      // BaseStepExecutor catches NoMcpToolsError and logs error.message (which encodes the
+      // requested mcpServerId) along with the step correlation context.
+      expect(logger.error).toHaveBeenCalledWith(
+        'No MCP tools available for mcpServerId="id-missing"',
+        expect.objectContaining({
+          runId: expect.any(String),
+          stepId: expect.any(String),
+          stepIndex: expect.any(Number),
+        }),
+      );
     });
   });
 
@@ -504,8 +552,8 @@ describe('McpStepExecutor', () => {
           name: 'deleted_tool',
           sourceId: 'mcp-server-1',
           input: {},
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       };
       const tool = new MockRemoteTool({ name: 'other_tool', sourceId: 'mcp-server-1' });
       const runStore = makeMockRunStore({
@@ -533,7 +581,7 @@ describe('McpStepExecutor', () => {
         invoke: invokeFn,
       });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         saveStepExecution: jest
           .fn()
@@ -542,7 +590,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
         logger,
       });
       const executor = new McpStepExecutor(context, [tool]);
@@ -571,10 +619,10 @@ describe('McpStepExecutor', () => {
           name: 'send_notification',
           sourceId: 'mcp-server-1',
           input: { message: 'Hello' },
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       };
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest
@@ -601,7 +649,7 @@ describe('McpStepExecutor', () => {
       const { model } = makeMockModel('send_notification', {});
       const context = makeContext({
         model,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -629,7 +677,7 @@ describe('McpStepExecutor', () => {
       await expect(executor.execute()).resolves.toMatchObject({
         stepOutcome: {
           status: 'error',
-          error: 'No tools are available to execute this step.',
+          error: expect.stringMatching(/^Tools could not be loaded for the targeted server\./),
         },
       });
     });
@@ -667,7 +715,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore: mockRunStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -689,10 +737,10 @@ describe('McpStepExecutor', () => {
         invoke: invokeFn,
       });
       const { model } = makeMockModel('send_notification', {});
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const context = makeContext({
         model,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
         logger,
       });
       const executor = new McpStepExecutor(context, [tool]);
@@ -788,6 +836,7 @@ describe('McpStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we send a notification?',
             },
@@ -805,10 +854,9 @@ describe('McpStepExecutor', () => {
       await executor.execute();
 
       const messages = modelInvoke.mock.calls[0][0];
-      // context + previous steps message + system prompt + human message = 4
-      expect(messages).toHaveLength(4);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('Should we send a notification?');
+      expect(messages[0].content).toContain('Should we send a notification?');
     });
   });
 
@@ -879,7 +927,7 @@ describe('McpStepExecutor', () => {
       const context = makeContext({
         model,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new McpStepExecutor(context, [tool]);
 
@@ -899,6 +947,88 @@ describe('McpStepExecutor', () => {
         idempotencyPhase: 'done',
         executionResult: { success: true, toolResult: 'tool-result' },
       });
+    });
+  });
+
+  describe('activity log', () => {
+    it('creates activity log with collectionId, renderingId, action, type and mcpServerId as label', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        model,
+        collectionId: 'col-1',
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          mcpServerId: 'my-mcp-server',
+        }),
+        activityLogPort,
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      await executor.execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'action',
+        type: 'write',
+        collectionId: 'col-1',
+        label: 'my-mcp-server',
+      });
+    });
+  });
+
+  describe('log context', () => {
+    it('includes mcpServerId and mcpServerName in the start and completion log lines', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const context = makeContext({
+        model,
+        logger,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          mcpServerId: 'my-mcp-server',
+        }),
+      });
+      const executor = new McpStepExecutor(context, [tool], 'Production Slack');
+
+      await executor.execute();
+
+      expect(logger.info).toHaveBeenCalledWith(
+        'Step execution started',
+        expect.objectContaining({
+          mcpServerId: 'my-mcp-server',
+          mcpServerName: 'Production Slack',
+        }),
+      );
+      expect(logger.info).toHaveBeenCalledWith(
+        'Step execution completed',
+        expect.objectContaining({
+          mcpServerId: 'my-mcp-server',
+          mcpServerName: 'Production Slack',
+        }),
+      );
+    });
+
+    it('logs mcpServerName as undefined when no server name was resolved', async () => {
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const context = makeContext({
+        logger,
+        stepDefinition: makeStep({ mcpServerId: 'id-missing' }),
+      });
+      const executor = new McpStepExecutor(context, []);
+
+      await executor.execute();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'No MCP tools available for mcpServerId="id-missing"',
+        expect.objectContaining({ mcpServerId: 'id-missing', mcpServerName: undefined }),
+      );
     });
   });
 });

@@ -1,6 +1,6 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
-import type { FieldRef, UpdateRecordStepExecutionData } from '../types/step-execution-data';
+import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../types/validated/step-definition';
 
@@ -9,11 +9,13 @@ import { z } from 'zod';
 
 import {
   FieldNotFoundError,
+  FieldTypeMissingError,
   InvalidPreRecordedArgsError,
   NoWritableFieldsError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
 Select the field to update and provide the new value.
@@ -73,8 +75,14 @@ function buildZodSchemaForPrimitive(type: string, enumValues?: string[]): z.ZodT
   }
 }
 
-function buildZodSchemaForField(field: FieldSchema): z.ZodTypeAny {
+function buildZodSchemaForField(field: FieldSchema, collectionName: string): z.ZodTypeAny {
   const { type, enumValues } = field;
+
+  // A writable (non-relationship) field with no column type is a malformed schema for this update:
+  // we'd otherwise fall through to z.string() and silently write the wrong type. Fail visibly.
+  if (type == null) {
+    throw new FieldTypeMissingError(field.displayName, collectionName);
+  }
 
   if (Array.isArray(type)) {
     // Nested array (e.g. [['String']]) → treat as opaque JSON.
@@ -90,9 +98,32 @@ function buildZodSchemaForField(field: FieldSchema): z.ZodTypeAny {
   return buildZodSchemaForPrimitive(type as string, enumValues);
 }
 
-interface UpdateTarget extends FieldRef {
+// Coerce a user-overridden value to the field's native type before updating the record.
+// The HTTP schema accepts `unknown`, so the override may be a boolean or an array; this turns
+// it into the type the datasource expects, and throws a StepStateError on mismatch.
+function coerceFieldValue(
+  fieldSchema: FieldSchema | undefined,
+  value: unknown,
+  collectionName: string,
+): unknown {
+  // Field not found, relationship (type intentionally null), or explicit null → nothing to coerce.
+  if (!fieldSchema || fieldSchema.isRelationship || value === null) return value;
+
+  const parsed = buildZodSchemaForField(fieldSchema, collectionName).safeParse(value);
+
+  if (!parsed.success) {
+    throw new StepStateError(
+      `Invalid value for field "${fieldSchema.displayName}": ${parsed.error.issues
+        .map(issue => issue.message)
+        .join(', ')}`,
+    );
+  }
+
+  return parsed.data;
+}
+
+interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
-  value: unknown;
 }
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
@@ -130,10 +161,18 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     if (pending) {
       return this.handleConfirmationFlow<UpdateRecordStepExecutionData>(pending, async exec => {
-        const { selectedRecordRef, pendingData } = exec;
+        const { selectedRecordRef, pendingData, userConfirmation } = exec;
+        // A user override of `null` (clearing the field) must win over the AI suggestion, so
+        // distinguish "no override" (undefined) from "override to null".
+        const rawValue =
+          userConfirmation?.value !== undefined ? userConfirmation.value : pendingData!.value;
+
         const target: UpdateTarget = {
           selectedRecordRef,
-          ...(pendingData as FieldRef & { value: unknown }),
+          ...pendingData!,
+          // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
+          // it to the field's native type before updating. Idempotent on already-typed values.
+          value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue),
         };
 
         return this.resolveAndUpdate(target, exec);
@@ -142,6 +181,17 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
 
     // Branches B & C -- First call
     return this.handleFirstCall();
+  }
+
+  private async coerceOverride(
+    selectedRecordRef: RecordRef,
+    pendingData: FieldWithValue | undefined,
+    value: unknown,
+  ): Promise<unknown> {
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const fieldSchema = this.findField(schema, pendingData?.name ?? '');
+
+    return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName);
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
@@ -179,8 +229,8 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       value: args.value,
     };
 
-    // Branch B -- automaticExecution
-    if (step.automaticExecution) {
+    // Branch B -- fully automated execution
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
       return this.resolveAndUpdate(target);
     }
 
@@ -258,7 +308,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {
-    const nonRelationFields = schema.fields.filter(f => !f.isRelationship);
+    // Exclude type-less fields: they can't be coerced/written, so offering them to the AI would
+    // let a single drifted field fail the whole step. The override path still rejects an explicit
+    // type-less target via FieldTypeMissingError.
+    const nonRelationFields = schema.fields.filter(f => !f.isRelationship && f.type != null);
 
     if (nonRelationFields.length === 0) {
       throw new NoWritableFieldsError(schema.collectionName);
@@ -273,7 +326,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const fieldObjects = nonRelationFields.map(f =>
       z.object({
         fieldName: z.literal(f.displayName),
-        value: buildZodSchemaForField(f).nullable(),
+        value: buildZodSchemaForField(f, schema.collectionName).nullable(),
         reasoning: z.string().describe('Why this field and value were chosen'),
       }),
     ) as FieldObject[];

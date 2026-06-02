@@ -13,61 +13,129 @@ export interface ServerWorkflowTransition {
   answer?: string;
 }
 
-export type ServerTaskType =
-  | 'guideline'
-  | 'trigger-action'
-  | 'get-data'
-  | 'update-data'
-  | 'load-related-record'
-  | 'mcp-server';
-
-export interface ServerWorkflowTask {
-  type: 'task';
-  taskType: ServerTaskType;
-  isSubTask?: boolean;
-  title: string;
-  prompt: string;
-  allowedTools?: string[];
-  mcpServerId?: string;
-  automaticExecution?: boolean;
-  automaticCompletion?: boolean;
-  outgoing: ServerWorkflowTransition;
+export enum ServerStepTypeEnum {
+  Task = 'task',
+  Condition = 'condition',
+  End = 'end',
+  Escalation = 'escalation',
+  StartSubWorkflow = 'start-sub-workflow',
+  CloseSubWorkflow = 'close-sub-workflow',
 }
 
-export interface ServerWorkflowCondition {
-  type: 'condition';
-  title: string;
-  prompt: string;
-  outgoing: ServerWorkflowTransition[];
-  automaticExecution?: boolean;
+export enum ServerTaskTypeEnum {
+  Guideline = 'guideline',
+  TriggerAction = 'trigger-action',
+  GetData = 'get-data',
+  UpdateData = 'update-data',
+  LoadRelatedRecord = 'load-related-record',
+  McpServer = 'mcp-server',
 }
 
-export interface ServerWorkflowEnd {
-  type: 'end';
+export enum ServerStepExecutionTypeEnum {
+  Manual = 'manual',
+  AutomatedWithConfirmation = 'automated-with-confirmation',
+  FullyAutomated = 'fully-automated',
+}
+
+interface ServerWorkflowStepBase {
+  type: ServerStepTypeEnum;
   title: string;
   prompt?: string;
+  executionType: ServerStepExecutionTypeEnum;
+  automaticCompletion: boolean;
+  outgoing: ServerWorkflowTransition[];
 }
 
-export interface ServerWorkflowEscalation {
-  type: 'escalation';
-  title: string;
+export interface ServerWorkflowTaskBase extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.Task;
+  taskType: ServerTaskTypeEnum;
+  isSubTask?: boolean;
   prompt: string;
-  outgoing: ServerWorkflowTransition;
+  outgoing: [ServerWorkflowTransition];
+}
+
+export interface ServerWorkflowTaskGuideline extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.Guideline;
+  executionType: ServerStepExecutionTypeEnum.Manual;
+  completionType: 'simple' | 'user-input';
+  inputType?: 'free-text';
+  automaticCompletion: false;
+}
+
+interface ServerWorkflowTaskGetData extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.GetData;
+  executionType: ServerStepExecutionTypeEnum.FullyAutomated;
+}
+
+interface ServerWorkflowTaskUpdateData extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.UpdateData;
+  executionType:
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+}
+
+interface ServerWorkflowTaskTriggerAction extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.TriggerAction;
+  executionType:
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+}
+
+interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.LoadRelatedRecord;
+  executionType:
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+}
+
+export interface ServerWorkflowTaskMcpServer extends ServerWorkflowTaskBase {
+  taskType: ServerTaskTypeEnum.McpServer;
+  executionType:
+    | ServerStepExecutionTypeEnum.FullyAutomated
+    | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+  mcpServerId: string;
+}
+
+export type ServerWorkflowTask =
+  | ServerWorkflowTaskGuideline
+  | ServerWorkflowTaskGetData
+  | ServerWorkflowTaskUpdateData
+  | ServerWorkflowTaskTriggerAction
+  | ServerWorkflowTaskLoadRelatedRecord
+  | ServerWorkflowTaskMcpServer;
+
+export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.End;
+  executionType: ServerStepExecutionTypeEnum.Manual;
+  automaticCompletion: false;
+  outgoing: [];
+}
+
+export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.Condition;
+  executionType: ServerStepExecutionTypeEnum.Manual | ServerStepExecutionTypeEnum.FullyAutomated;
+  prompt: string;
+  automaticCompletion: false;
+}
+
+export interface ServerWorkflowEscalation extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.Escalation;
+  prompt: string;
+  outgoing: [ServerWorkflowTransition];
   inboxId: string | null;
 }
 
-export interface ServerStartSubWorkflow {
-  type: 'start-sub-workflow';
-  title: string;
-  prompt: string;
-  outgoing: ServerWorkflowTransition;
+export interface ServerStartSubWorkflow extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.StartSubWorkflow;
+  executionType: ServerStepExecutionTypeEnum.Manual;
+  outgoing: [ServerWorkflowTransition];
   workflowId: string;
 }
 
-export interface ServerCloseSubWorkflow {
-  type: 'close-sub-workflow';
-  title?: string;
-  outgoing: ServerWorkflowTransition;
+export interface ServerCloseSubWorkflow extends ServerWorkflowStepBase {
+  type: ServerStepTypeEnum.CloseSubWorkflow;
+  executionType: ServerStepExecutionTypeEnum.Manual;
+  outgoing: [ServerWorkflowTransition];
   parentWorkflowId: string | null;
 }
 

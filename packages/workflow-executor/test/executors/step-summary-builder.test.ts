@@ -3,10 +3,15 @@ import type { StepDefinition } from '../../src/types/validated/step-definition';
 import type { StepOutcome } from '../../src/types/validated/step-outcome';
 
 import StepSummaryBuilder from '../../src/executors/summary/step-summary-builder';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeConditionStep(prompt?: string): StepDefinition {
-  return { type: StepType.Condition, options: ['A', 'B'], prompt };
+  return {
+    type: StepType.Condition,
+    executionType: StepExecutionMode.Manual,
+    options: ['A', 'B'],
+    prompt,
+  };
 }
 
 function makeConditionOutcome(
@@ -38,7 +43,11 @@ describe('StepSummaryBuilder', () => {
     });
 
     it('renders Output: when executionResult is present but executionParams is absent', () => {
-      const step: StepDefinition = { type: StepType.ReadRecord, prompt: 'Do something' };
+      const step: StepDefinition = {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Do something',
+      };
       const outcome: StepOutcome = {
         type: 'record',
         stepId: 'task-1',
@@ -97,7 +106,11 @@ describe('StepSummaryBuilder', () => {
     });
 
     it('omits History type field and includes status for record steps', () => {
-      const step: StepDefinition = { type: StepType.ReadRecord, prompt: 'Run task' };
+      const step: StepDefinition = {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Run task',
+      };
       const outcome: StepOutcome = {
         type: 'record',
         stepId: 'read-record-1',
@@ -112,7 +125,11 @@ describe('StepSummaryBuilder', () => {
     });
 
     it('omits Input and Output lines when executionParams and executionResult are both absent', () => {
-      const step: StepDefinition = { type: StepType.ReadRecord, prompt: 'Do something' };
+      const step: StepDefinition = {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Do something',
+      };
       const outcome: StepOutcome = {
         type: 'record',
         stepId: 'read-record-1',
@@ -130,7 +147,11 @@ describe('StepSummaryBuilder', () => {
     });
 
     it('uses Pending when update-record step has pendingData but no executionParams', () => {
-      const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status to active' };
+      const step: StepDefinition = {
+        type: StepType.UpdateRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Set status to active',
+      };
       const outcome: StepOutcome = {
         type: 'record',
         stepId: 'update-1',
@@ -155,6 +176,7 @@ describe('StepSummaryBuilder', () => {
     it('uses Pending for trigger-action step with pendingData', () => {
       const step: StepDefinition = {
         type: StepType.TriggerAction,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
         prompt: 'Archive the customer',
       };
       const outcome: StepOutcome = {
@@ -181,6 +203,7 @@ describe('StepSummaryBuilder', () => {
     it('renders load-related-record completed as Loaded: (no Input: or Output:)', () => {
       const step: StepDefinition = {
         type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
         prompt: 'Load the address',
       };
       const outcome: StepOutcome = {
@@ -213,6 +236,7 @@ describe('StepSummaryBuilder', () => {
     it('renders load-related-record skipped as generic Output: fallback', () => {
       const step: StepDefinition = {
         type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
         prompt: 'Load the address',
       };
       const outcome: StepOutcome = {
@@ -237,6 +261,7 @@ describe('StepSummaryBuilder', () => {
     it('renders load-related-record pending state with Pending: line', () => {
       const step: StepDefinition = {
         type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
         prompt: 'Load the address',
       };
       const outcome: StepOutcome = {
@@ -269,6 +294,7 @@ describe('StepSummaryBuilder', () => {
       it('signals manually handled update-record when pendingData exists and idempotencyPhase is undefined', () => {
         const step: StepDefinition = {
           type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
           prompt: 'Set status to active',
         };
         const outcome: StepOutcome = {
@@ -296,6 +322,7 @@ describe('StepSummaryBuilder', () => {
       it('signals manually handled trigger-action when pendingData exists and idempotencyPhase is undefined', () => {
         const step: StepDefinition = {
           type: StepType.TriggerAction,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
           prompt: 'Archive the customer',
         };
         const outcome: StepOutcome = {
@@ -319,7 +346,11 @@ describe('StepSummaryBuilder', () => {
       });
 
       it('does NOT signal manually handled when idempotencyPhase is done (executor completed it)', () => {
-        const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status' };
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Set status',
+        };
         const outcome: StepOutcome = {
           type: 'record',
           stepId: 'update-1',
@@ -341,7 +372,11 @@ describe('StepSummaryBuilder', () => {
       });
 
       it('does NOT signal manually handled when status is awaiting-input (still pending)', () => {
-        const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status' };
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Set status',
+        };
         const outcome: StepOutcome = {
           type: 'record',
           stepId: 'update-1',
@@ -364,6 +399,7 @@ describe('StepSummaryBuilder', () => {
       it('does NOT signal manually handled for trigger-action completed via saveFrontendResult (executionResult present)', () => {
         const step: StepDefinition = {
           type: StepType.TriggerAction,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
           prompt: 'Archive the customer',
         };
         const outcome: StepOutcome = {
@@ -386,7 +422,11 @@ describe('StepSummaryBuilder', () => {
       });
 
       it('does NOT signal manually handled for update-record skipped (executionResult: skipped)', () => {
-        const step: StepDefinition = { type: StepType.UpdateRecord, prompt: 'Set status' };
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Set status',
+        };
         const outcome: StepOutcome = {
           type: 'record',
           stepId: 'update-1',
@@ -409,6 +449,7 @@ describe('StepSummaryBuilder', () => {
       it('does NOT signal manually handled for load-related-record success (executionResult present, no idempotencyPhase)', () => {
         const step: StepDefinition = {
           type: StepType.LoadRelatedRecord,
+          executionType: StepExecutionMode.FullyAutomated,
           prompt: 'Load the address',
         };
         const outcome: StepOutcome = {
@@ -435,7 +476,11 @@ describe('StepSummaryBuilder', () => {
     });
 
     it('shows "(no prompt)" when step has no prompt', () => {
-      const step: StepDefinition = { type: StepType.Condition, options: ['A', 'B'] };
+      const step: StepDefinition = {
+        type: StepType.Condition,
+        executionType: StepExecutionMode.Manual,
+        options: ['A', 'B'],
+      };
       const outcome = makeConditionOutcome('cond-1', 0);
       const execution: HydratedStepExecutionData = {
         type: 'condition',

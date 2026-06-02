@@ -19,4 +19,17 @@ describe('ConsoleLogger', () => {
 
     spy.mockRestore();
   });
+
+  it('warn() writes to console.warn as JSON', () => {
+    const spy = jest.spyOn(console, 'warn').mockImplementation();
+
+    logger.warn('something suspicious', { count: 3 });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const output = JSON.parse(spy.mock.calls[0][0]);
+    expect(output).toMatchObject({ message: 'something suspicious', count: 3 });
+    expect(output.timestamp).toBeDefined();
+
+    spy.mockRestore();
+  });
 });

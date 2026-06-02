@@ -1,12 +1,14 @@
-import type { McpConfiguration } from './mcp-client';
 import type { AiConfiguration } from './provider';
+import type RemoteTool from './remote-tool';
+import type { ToolProvider } from './tool-provider';
+import type { ToolConfig } from './tool-provider-factory';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 import { createBaseChatModel } from './create-base-chat-model';
 import { AINotConfiguredError } from './errors';
 import getAiConfiguration from './get-ai-configuration';
-import McpClient from './mcp-client';
+import { createToolProviders } from './tool-provider-factory';
 import validateAiConfigurations from './validate-ai-configurations';
 
 // eslint-disable-next-line import/prefer-default-export
@@ -14,7 +16,7 @@ export class AiClient {
   private readonly aiConfigurations: AiConfiguration[];
   private readonly logger?: Logger;
   private readonly modelCache = new Map<string, BaseChatModel>();
-  private mcpClient?: McpClient;
+  private toolProviders: ToolProvider[] = [];
 
   constructor(params?: { aiConfigurations?: AiConfiguration[]; logger?: Logger }) {
     this.aiConfigurations = params?.aiConfigurations ?? [];
@@ -36,32 +38,34 @@ export class AiClient {
     return model;
   }
 
-  async loadRemoteTools(
-    mcpConfig: McpConfiguration,
-  ): Promise<Awaited<ReturnType<McpClient['loadTools']>>> {
-    await this.disposeMcpClient('Error closing previous MCP connection');
+  async loadRemoteTools(configs: Record<string, ToolConfig>): Promise<RemoteTool[]> {
+    await this.disposeToolProviders('Error closing previous remote tool connection');
 
-    const newClient = new McpClient(mcpConfig, this.logger);
-    const tools = await newClient.loadTools();
-    this.mcpClient = newClient;
+    const providers = createToolProviders(configs, this.logger);
+    const toolsByProvider = await Promise.all(providers.map(p => p.loadTools()));
+    this.toolProviders = providers;
 
-    return tools;
+    return toolsByProvider.flat();
   }
 
   async closeConnections(): Promise<void> {
-    await this.disposeMcpClient('Error during MCP connection cleanup');
+    await this.disposeToolProviders('Error during remote tool connection cleanup');
   }
 
-  private async disposeMcpClient(errorMessage: string): Promise<void> {
-    if (!this.mcpClient) return;
+  private async disposeToolProviders(errorMessage: string): Promise<void> {
+    if (this.toolProviders.length === 0) return;
 
-    try {
-      await this.mcpClient.dispose();
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger?.('Error', errorMessage, err);
-    } finally {
-      this.mcpClient = undefined;
-    }
+    const providers = this.toolProviders;
+    this.toolProviders = [];
+
+    const results = await Promise.allSettled(providers.map(p => p.dispose()));
+
+    results.forEach(result => {
+      if (result.status === 'rejected') {
+        const { reason } = result;
+        const err = reason instanceof Error ? reason : new Error(String(reason));
+        this.logger?.('Error', errorMessage, err);
+      }
+    });
   }
 }

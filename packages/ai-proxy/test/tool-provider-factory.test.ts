@@ -35,14 +35,12 @@ describe('createToolProviders', () => {
     const providers = createToolProviders(configs as any);
 
     expect(providers).toHaveLength(1);
-    expect(McpClient).toHaveBeenCalledWith(
-      { configs: { slack: configs.slack } },
-      undefined,
-    );
+    expect(McpClient).toHaveBeenCalledWith({ configs: { slack: configs.slack } }, undefined);
   });
 
   it('should create ForestIntegrationClient for ForestIntegration configs', () => {
     const zendeskConfig = {
+      id: '1',
       isForestConnector: true as const,
       integrationName: 'Zendesk' as const,
       config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
@@ -58,6 +56,7 @@ describe('createToolProviders', () => {
     const configs = {
       slack: { command: 'npx', args: [] },
       zendesk: {
+        id: '1',
         isForestConnector: true as const,
         integrationName: 'Zendesk' as const,
         config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
@@ -67,10 +66,7 @@ describe('createToolProviders', () => {
     const providers = createToolProviders(configs as any);
 
     expect(providers).toHaveLength(2);
-    expect(McpClient).toHaveBeenCalledWith(
-      { configs: { slack: configs.slack } },
-      undefined,
-    );
+    expect(McpClient).toHaveBeenCalledWith({ configs: { slack: configs.slack } }, undefined);
     expect(ForestIntegrationClient).toHaveBeenCalledWith([configs.zendesk], undefined);
   });
 
@@ -85,6 +81,7 @@ describe('createToolProviders', () => {
     const configs = {
       slack: { command: 'npx', args: [] },
       zendesk: {
+        id: '1',
         isForestConnector: true as const,
         integrationName: 'Zendesk' as const,
         config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },

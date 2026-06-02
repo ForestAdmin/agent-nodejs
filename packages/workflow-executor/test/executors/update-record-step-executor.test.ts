@@ -9,11 +9,12 @@ import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<UpdateRecordStepDefinition> = {}): UpdateRecordStepDefinition {
   return {
     type: StepType.UpdateRecord,
+    executionType: StepExecutionMode.AutomatedWithConfirmation,
     prompt: 'Set the customer status to active',
     ...overrides,
   };
@@ -85,7 +86,7 @@ function makeMockWorkflowPort(
           schemasByCollection[name] ?? makeCollectionSchema({ collectionName: name }),
         ),
       ),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }
@@ -129,7 +130,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -141,7 +142,7 @@ function makeContext(
 }
 
 describe('UpdateRecordStepExecutor', () => {
-  describe('automaticExecution: update direct (Branch B)', () => {
+  describe('executionType=FullyAutomated: update direct (Branch B)', () => {
     it('updates the record and returns success', async () => {
       const updatedValues = { status: 'active', name: 'John Doe' };
       const agentPort = makeMockAgentPort(updatedValues);
@@ -153,7 +154,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -180,7 +181,7 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
-  describe('without automaticExecution: awaiting-input (Branch C)', () => {
+  describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {
     it('saves execution and returns awaiting-input', async () => {
       const mockModel = makeMockModel({
         input: { fieldName: 'Status', value: 'active', reasoning: 'User requested status change' },
@@ -220,8 +221,8 @@ describe('UpdateRecordStepExecutor', () => {
         pendingData: {
           name: 'status',
           value: 'active',
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -246,8 +247,128 @@ describe('UpdateRecordStepExecutor', () => {
           pendingData: {
             name: 'status',
             value: 'active',
-            userConfirmed: true,
           },
+        }),
+      );
+    });
+  });
+
+  describe('confirmation with user override (Branch A)', () => {
+    it('preserves AI suggestion in pendingData and writes user value to executionParams', async () => {
+      // Persisted state: AI proposed 'inactive', awaiting confirmation.
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: {
+          name: 'status',
+          value: 'inactive',
+        },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      // User confirms with a different value: 'active'.
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: true, value: 'active' },
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      // updateRecord must be called with the user-confirmed value.
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ id: 1 }),
+      );
+
+      // Final persisted execution must keep AI suggestion in pendingData
+      // and the user value in executionParams.
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          type: 'update-record',
+          pendingData: expect.objectContaining({
+            name: 'status',
+            value: 'inactive', // AI suggestion preserved
+          }),
+          executionParams: { name: 'status', value: 'active' },
+          executionResult: { updatedValues },
+        }),
+      );
+    });
+  });
+
+  describe('accept-via-PATCH without value override (Branch A)', () => {
+    it('falls back to pendingData.value when userConfirmation has no value key', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { name: 'status', value: 'active' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: true },
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ id: 1 }),
+      );
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          executionParams: { name: 'status', value: 'active' },
+          userConfirmation: { userConfirmed: true },
+        }),
+      );
+    });
+  });
+
+  describe('rejection via PATCH with userConfirmation set (Branch A)', () => {
+    it('skips the update and ignores any value in userConfirmation', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { name: 'status', value: 'inactive' },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: false, value: 'active' },
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          executionResult: { skipped: true },
+          pendingData: expect.objectContaining({
+            value: 'inactive',
+          }),
         }),
       );
     });
@@ -262,8 +383,8 @@ describe('UpdateRecordStepExecutor', () => {
         pendingData: {
           name: 'status',
           value: 'active',
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -283,7 +404,6 @@ describe('UpdateRecordStepExecutor', () => {
           pendingData: {
             name: 'status',
             value: 'active',
-            userConfirmed: false,
           },
         }),
       );
@@ -473,15 +593,69 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
+  describe('type-less fields (orchestrator drift)', () => {
+    it('does not offer a type-less field to the AI, so it never blocks the whole step', async () => {
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
+            // Drifted field with no `type`: must be excluded from the AI choices, not fail the step.
+            { fieldName: 'age', displayName: 'Age', isRelationship: false },
+          ],
+        }),
+      });
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Status', value: 'active', reasoning: 'r' },
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('throws NoWritableFieldsError when every non-relationship field lacks a type', async () => {
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [{ fieldName: 'age', displayName: 'Age', isRelationship: false }],
+        }),
+      });
+      const context = makeContext({
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This record type has no editable fields configured in Forest Admin.',
+      );
+    });
+  });
+
   describe('resolveFieldName failure', () => {
-    it('returns error when field is not found during automaticExecution (Branch B)', async () => {
+    it('returns error when field is not found during executionType=FullyAutomated (Branch B)', async () => {
       // AI returns a display name that doesn't match any field in the schema
       const mockModel = makeMockModel({
         input: { fieldName: 'NonExistentField', value: 'test', reasoning: 'test' },
       });
       const context = makeContext({
         model: mockModel.model,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -491,6 +665,72 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         "The AI selected a field that doesn't exist on this record. Try rephrasing the step's prompt.",
       );
+    });
+  });
+
+  describe('resolveFieldName fuzzy matching', () => {
+    it.each([
+      ['snake_case variant', 'full_name', 'Full Name', 'name'],
+      ['camelCase variant', 'fullName', 'Full Name', 'name'],
+      ['lowercase no separator', 'fullname', 'Full Name', 'name'],
+      ['hyphen variant', 'full-name', 'Full Name', 'name'],
+    ])(
+      'resolves field when LLM returns %s (%s)',
+      async (_label, aiReturnedName, _displayName, expectedFieldName) => {
+        const agentPort = makeMockAgentPort();
+        const mockModel = makeMockModel({
+          input: { fieldName: aiReturnedName, value: 'John Doe', reasoning: 'test' },
+        });
+        const context = makeContext({
+          model: mockModel.model,
+          agentPort,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        });
+        const executor = new UpdateRecordStepExecutor(context);
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('success');
+        expect(agentPort.updateRecord).toHaveBeenCalledWith(
+          expect.objectContaining({ values: { [expectedFieldName]: 'John Doe' } }),
+          expect.anything(),
+        );
+      },
+    );
+
+    it('returns undefined (field not found) when two fields normalize to the same string', async () => {
+      // { displayName: "Full Name", fieldName: "fullname" } and
+      // { displayName: "FullName", fieldName: "full_name" } both normalize to "fullname".
+      // Returning either one would be a silent wrong pick — undefined is safer.
+      const ambiguousSchema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'fullname',
+            displayName: 'Full Name',
+            isRelationship: false,
+            type: 'String',
+          },
+          {
+            fieldName: 'full_name',
+            displayName: 'FullName',
+            isRelationship: false,
+            type: 'String',
+          },
+        ],
+      });
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Full-Name', value: 'John', reasoning: 'test' },
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        workflowPort: makeMockWorkflowPort({ customers: ambiguousSchema }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -590,7 +830,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -616,8 +856,8 @@ describe('UpdateRecordStepExecutor', () => {
         pendingData: {
           name: 'status',
           value: 'active',
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -648,7 +888,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -665,8 +905,8 @@ describe('UpdateRecordStepExecutor', () => {
         pendingData: {
           name: 'status',
           value: 'active',
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -680,7 +920,7 @@ describe('UpdateRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.updateRecord throws an infra error', async () => {
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(
         new AgentPortError('updateRecord', new Error('DB connection lost')),
@@ -692,7 +932,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         logger,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -711,7 +951,9 @@ describe('UpdateRecordStepExecutor', () => {
 
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
-      const context = makeContext({ stepDefinition: makeStep({ automaticExecution: true }) });
+      const context = makeContext({
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -735,7 +977,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -754,7 +996,7 @@ describe('UpdateRecordStepExecutor', () => {
       const workflowPort = makeMockWorkflowPort();
       const context = makeContext({
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -784,8 +1026,8 @@ describe('UpdateRecordStepExecutor', () => {
         pendingData: {
           name: 'status',
           value: 'active',
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
         selectedRecordRef: makeRecordRef(),
       };
       const runStore = makeMockRunStore({
@@ -818,7 +1060,7 @@ describe('UpdateRecordStepExecutor', () => {
       });
       const context = makeContext({
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -869,6 +1111,7 @@ describe('UpdateRecordStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },
@@ -890,12 +1133,11 @@ describe('UpdateRecordStepExecutor', () => {
       await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
-      // context + previous steps summary + system prompt + collection info + human message = 5
-      expect(messages).toHaveLength(5);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('Should we proceed?');
-      expect(messages[1].content).toContain('"answer":"Yes"');
-      expect(messages[2].content).toContain('updating a field on a record');
+      expect(messages[0].content).toContain('Should we proceed?');
+      expect(messages[0].content).toContain('"answer":"Yes"');
+      expect(messages[0].content).toContain('updating a field on a record');
     });
   });
 
@@ -907,7 +1149,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldDisplayName: 'Status', value: 'active' },
         }),
       });
@@ -923,7 +1165,7 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
-    it('still goes through awaiting-input when automaticExecution is false', async () => {
+    it('still goes through awaiting-input when executionType is not FullyAutomated', async () => {
       const mockModel = makeMockModel();
       const runStore = makeMockRunStore();
       const context = makeContext({
@@ -948,7 +1190,7 @@ describe('UpdateRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { selectedRecordStepIndex: 0 },
         }),
       });
@@ -962,7 +1204,7 @@ describe('UpdateRecordStepExecutor', () => {
     it('returns error when fieldDisplayName is provided without value', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldDisplayName: 'Status' },
         }),
       });
@@ -976,7 +1218,7 @@ describe('UpdateRecordStepExecutor', () => {
     it('returns error when value is provided without fieldDisplayName', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { value: 'active' },
         }),
       });
@@ -998,7 +1240,7 @@ describe('UpdateRecordStepExecutor', () => {
         runStore,
         workflowPort,
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldDisplayName: 'Age', value: 42 },
         }),
       });
@@ -1382,7 +1624,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new UpdateRecordStepExecutor(context);
 
@@ -1402,6 +1644,268 @@ describe('UpdateRecordStepExecutor', () => {
         idempotencyPhase: 'done',
         executionResult: { updatedValues },
       });
+    });
+  });
+
+  describe('confirmation value coercion (Branch A)', () => {
+    // Build a confirmation execution targeting `field` with a given pendingData/userConfirmation value.
+    function makeCoercionContext(
+      field: CollectionSchema['fields'][number],
+      pendingValue: unknown,
+      userConfirmation: { userConfirmed: boolean; value?: unknown },
+      agentPort = makeMockAgentPort({ [field.fieldName]: pendingValue }),
+    ) {
+      const schema = makeCollectionSchema({ fields: [field] });
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { name: field.fieldName, value: pendingValue },
+        userConfirmation,
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: schema }),
+      });
+
+      return { executor: new UpdateRecordStepExecutor(context), agentPort };
+    }
+
+    const booleanField = {
+      fieldName: 'isActive',
+      displayName: 'Is Active',
+      isRelationship: false,
+      type: 'Boolean' as const,
+    };
+    const numberArrayField = {
+      fieldName: 'scores',
+      displayName: 'Scores',
+      isRelationship: false,
+      type: ['Number'] as ['Number'],
+    };
+    const stringArrayField = {
+      fieldName: 'tags',
+      displayName: 'Tags',
+      isRelationship: false,
+      type: ['String'] as ['String'],
+    };
+    const enumArrayField = {
+      fieldName: 'colors',
+      displayName: 'Colors',
+      isRelationship: false,
+      type: ['Enum'] as ['Enum'],
+      enumValues: ['red', 'green', 'blue'],
+    };
+
+    it('coerces a native boolean user override', async () => {
+      const { executor, agentPort } = makeCoercionContext(booleanField, null, {
+        userConfirmed: true,
+        value: true,
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: true } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('coerces "true"/"false" string overrides to booleans', async () => {
+      const t = makeCoercionContext(booleanField, null, { userConfirmed: true, value: 'true' });
+      await t.executor.execute();
+      expect(t.agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: true } },
+        expect.objectContaining({ id: 1 }),
+      );
+
+      const f = makeCoercionContext(booleanField, null, { userConfirmed: true, value: 'false' });
+      await f.executor.execute();
+      expect(f.agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: false } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('coerces a [Number] array of numeric strings to numbers', async () => {
+      const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
+        userConfirmed: true,
+        value: ['1', '2'],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { scores: [1, 2] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('keeps a native [Number] array unchanged', async () => {
+      const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
+        userConfirmed: true,
+        value: [1, 2],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { scores: [1, 2] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('keeps a [String] array unchanged', async () => {
+      const { executor, agentPort } = makeCoercionContext(stringArrayField, null, {
+        userConfirmed: true,
+        value: ['a', 'b'],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { tags: ['a', 'b'] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('accepts a valid [Enum] array', async () => {
+      const { executor, agentPort } = makeCoercionContext(enumArrayField, null, {
+        userConfirmed: true,
+        value: ['red', 'blue'],
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { colors: ['red', 'blue'] } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('coerces a numeric string to a number (non-regression)', async () => {
+      const numberField = {
+        fieldName: 'age',
+        displayName: 'Age',
+        isRelationship: false,
+        type: 'Number' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(numberField, null, {
+        userConfirmed: true,
+        value: '42',
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { age: 42 } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('leaves an ISO datetime string unchanged (non-regression)', async () => {
+      const dateField = {
+        fieldName: 'createdAt',
+        displayName: 'Created At',
+        isRelationship: false,
+        type: 'Date' as const,
+      };
+      const { executor, agentPort } = makeCoercionContext(dateField, null, {
+        userConfirmed: true,
+        value: '2026-05-28T00:00:00.000Z',
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { createdAt: '2026-05-28T00:00:00.000Z' } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('fails with a StepStateError on coercion mismatch without updating', async () => {
+      const { executor, agentPort } = makeCoercionContext(numberArrayField, null, {
+        userConfirmed: true,
+        value: ['abc'],
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+    });
+
+    it('coerces the AI/preRecordedArg value when the user confirms without overriding', async () => {
+      // pendingData.value is a raw "true" string (e.g. from preRecordedArgs); no user override.
+      const { executor, agentPort } = makeCoercionContext(booleanField, 'true', {
+        userConfirmed: true,
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: true } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('passes a null override through without coercion (field clear)', async () => {
+      const { executor, agentPort } = makeCoercionContext(booleanField, true, {
+        userConfirmed: true,
+        value: null,
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { isActive: null } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('passes the value through unchanged when the field type is null (relationship)', async () => {
+      const nullTypeField = {
+        fieldName: 'orders',
+        displayName: 'Orders',
+        isRelationship: true,
+        type: null,
+      };
+      const opaque = { some: 'object' };
+      const { executor, agentPort } = makeCoercionContext(nullTypeField, null, {
+        userConfirmed: true,
+        value: opaque,
+      });
+
+      await executor.execute();
+
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { orders: opaque } },
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('fails the step when overriding a non-relationship field that has no type', async () => {
+      const typelessField = { fieldName: 'age', displayName: 'Age', isRelationship: false };
+      const { executor, agentPort } = makeCoercionContext(typelessField, null, {
+        userConfirmed: true,
+        value: '42',
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "This field can't be updated because its type is missing from the schema. " +
+          'Contact your administrator if the problem persists.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
   });
 });

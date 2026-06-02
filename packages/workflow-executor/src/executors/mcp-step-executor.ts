@@ -15,6 +15,7 @@ import {
   StepStateError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
 Select the most appropriate tool and fill in its parameters precisely.
@@ -26,9 +27,23 @@ Important rules:
 export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
 
-  constructor(context: ExecutionContext<McpStepDefinition>, remoteTools: readonly RemoteTool[]) {
+  private readonly mcpServerName?: string;
+
+  constructor(
+    context: ExecutionContext<McpStepDefinition>,
+    remoteTools: readonly RemoteTool[],
+    mcpServerName?: string,
+  ) {
     super(context);
     this.remoteTools = remoteTools;
+    this.mcpServerName = mcpServerName;
+  }
+
+  protected override getExtraLogContext(): Record<string, unknown> {
+    return {
+      mcpServerId: this.context.stepDefinition.mcpServerId,
+      mcpServerName: this.mcpServerName,
+    };
   }
 
   protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
@@ -36,6 +51,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       renderingId: this.context.user.renderingId,
       action: 'action',
       type: 'write',
+      collectionId: this.context.collectionId,
       label: this.context.stepDefinition.mcpServerId,
     };
   }
@@ -81,13 +97,13 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
 
     // Branches B & C -- First call
-    const tools = this.getFilteredTools();
+    const tools = this.requireTools();
     const { toolName, args } = await this.selectTool(tools);
     const selectedTool = tools.find(t => t.base.name === toolName);
     if (!selectedTool) throw new McpToolNotFoundError(toolName);
     const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
 
-    if (this.context.stepDefinition.automaticExecution) {
+    if (this.context.stepDefinition.executionType === StepExecutionMode.FullyAutomated) {
       // Branch B -- direct execution
       return this.executeToolAndPersist(target);
     }
@@ -106,7 +122,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     target: McpToolCall,
     existingExecution?: McpStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const tools = this.getFilteredTools();
+    const tools = this.requireTools();
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
@@ -224,14 +240,15 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     );
   }
 
-  /** Returns tools filtered by mcpServerId (if specified). Throws NoMcpToolsError if empty. */
-  private getFilteredTools(): RemoteTool[] {
-    const { mcpServerId } = this.context.stepDefinition;
-    const tools = mcpServerId
-      ? this.remoteTools.filter(t => t.sourceId === mcpServerId)
-      : [...this.remoteTools];
-    if (tools.length === 0) throw new NoMcpToolsError();
+  // Tools are pre-scoped to step.mcpServerId upstream. An empty list means either no config
+  // matched, or the per-server connection failed at load time (McpClient swallows per-server
+  // errors). RemoteToolFetcher emits the diagnostic upstream; here we just surface the empty
+  // case as a domain error so BaseStepExecutor turns it into a step outcome.
+  private requireTools(): RemoteTool[] {
+    if (this.remoteTools.length === 0) {
+      throw new NoMcpToolsError(this.context.stepDefinition.mcpServerId);
+    }
 
-    return tools;
+    return [...this.remoteTools];
   }
 }

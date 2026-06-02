@@ -10,6 +10,11 @@ export default class PrettyLogger implements Logger {
     console.info(this.format(pc.cyan('info '), message, context));
   }
 
+  warn(message: string, context: Record<string, unknown>): void {
+    // eslint-disable-next-line no-console
+    console.warn(this.format(pc.yellow('warn '), message, context));
+  }
+
   error(message: string, context: Record<string, unknown>): void {
     // eslint-disable-next-line no-console
     console.error(this.format(pc.red('error'), message, context));

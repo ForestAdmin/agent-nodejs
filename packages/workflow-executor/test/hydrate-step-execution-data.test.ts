@@ -41,7 +41,7 @@ describe('hydrateStepExecutionData', () => {
       stepIndex: 1,
       selectedRecordRef: recordRef,
       executionParams: { name: 'status', value: 'active' },
-      pendingData: { name: 'status', value: 'active', userConfirmed: true },
+      pendingData: { name: 'status', value: 'active' },
     };
 
     const result = await hydrateStepExecutionData(execution, makeGetter());
@@ -49,7 +49,7 @@ describe('hydrateStepExecutionData', () => {
     expect(result).toMatchObject({
       type: 'update-record',
       executionParams: { name: 'status', displayName: 'Status', value: 'active' },
-      pendingData: { name: 'status', displayName: 'Status', value: 'active', userConfirmed: true },
+      pendingData: { name: 'status', displayName: 'Status', value: 'active' },
     });
   });
 

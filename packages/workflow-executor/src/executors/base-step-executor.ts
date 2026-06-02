@@ -5,7 +5,7 @@ import type {
   IStepExecutor,
   StepExecutionResult,
 } from '../types/execution-context';
-import type { StepExecutionData } from '../types/step-execution-data';
+import type { ConfirmableStepExecutionData, StepExecutionData } from '../types/step-execution-data';
 import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
@@ -17,6 +17,7 @@ import type {
 import { SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
   StepStateError,
@@ -27,8 +28,6 @@ import {
 import patchBodySchemas from '../http/pending-data-validators';
 import hydrateStepExecutionData, { makeSchemaGetter } from '../hydrate-step-execution-data';
 import StepSummaryBuilder from './summary/step-summary-builder';
-
-type WithPendingData = StepExecutionData & { pendingData?: object };
 
 export default abstract class BaseStepExecutor<TStep extends StepDefinition = StepDefinition>
   implements IStepExecutor
@@ -43,13 +42,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   async execute(): Promise<StepExecutionResult> {
-    const { runId, stepId, stepIndex, stepDefinition, baseRecordRef } = this.context;
+    const { baseRecordRef } = this.context;
 
     this.context.logger.info('Step execution started', {
-      runId,
-      stepId,
-      stepIndex,
-      stepType: stepDefinition.type,
+      ...this.logCtx,
       collection: baseRecordRef.collectionName,
     });
 
@@ -60,9 +56,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
       if (cached) {
         this.context.logger.info('Step execution completed (replayed from cache)', {
-          runId,
-          stepId,
-          stepIndex,
+          ...this.logCtx,
           status: cached.stepOutcome.status,
         });
 
@@ -72,9 +66,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       const result = await this.runWithActivityLog();
 
       this.context.logger.info('Step execution completed', {
-        runId,
-        stepId,
-        stepIndex,
+        ...this.logCtx,
         status: result.stepOutcome.status,
       });
 
@@ -82,10 +74,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     } catch (error) {
       if (error instanceof StepTimeoutError) {
         this.context.logger.error(error.message, {
-          runId: this.context.runId,
-          stepId: this.context.stepId,
-          stepIndex: this.context.stepIndex,
-          stepType: this.context.stepDefinition.type,
+          ...this.logCtx,
           timeoutMs: this.context.stepTimeoutMs,
         });
 
@@ -93,26 +82,20 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       }
 
       if (error instanceof WorkflowExecutorError) {
-        if (error.cause !== undefined) {
-          this.context.logger.error(error.message, {
-            runId: this.context.runId,
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
-            cause: error.cause instanceof Error ? error.cause.message : String(error.cause),
-            stack: error.cause instanceof Error ? error.cause.stack : undefined,
-          });
-        }
+        this.context.logger.error(error.message, {
+          ...this.logCtx,
+          cause: extractErrorMessage(error.cause),
+          stack: error.cause instanceof Error ? error.cause.stack : undefined,
+        });
 
         return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
       }
 
       const { cause: errorCause } = error as { cause?: unknown };
       this.context.logger.error('Unexpected error during step execution', {
-        runId: this.context.runId,
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
+        ...this.logCtx,
         error: extractErrorMessage(error),
-        cause: errorCause instanceof Error ? errorCause.message : undefined,
+        cause: extractErrorMessage(errorCause),
         stack: error instanceof Error ? error.stack : undefined,
       });
 
@@ -129,8 +112,9 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return Promise.resolve(null);
   }
 
-  // Return null when the frontend performs the action (e.g. TriggerAction with automaticExecution=false)
-  // — the front logs on its side. Override when the executor itself calls the agent.
+  // Return null when the frontend performs the action (e.g. TriggerAction without
+  // executionType=FullyAutomated) — the front logs on its side. Override when the
+  // executor itself calls the agent.
   protected buildActivityLogArgs(): CreateActivityLogArgs | null {
     return null;
   }
@@ -174,13 +158,13 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     if (!timeoutMs || timeoutMs <= 0) return this.doExecute();
 
     let timer: NodeJS.Timeout | undefined;
+    let hasTimeoutFired = false;
     const execPromise = this.doExecute();
 
     execPromise.catch(err => {
-      this.context.logger.info('Step work rejected after timeout — result discarded', {
-        runId: this.context.runId,
-        stepId: this.context.stepId,
-        stepIndex: this.context.stepIndex,
+      if (!hasTimeoutFired) return;
+      this.context.logger.warn('Step work rejected after timeout — result discarded', {
+        ...this.logCtx,
         error: extractErrorMessage(err),
       });
     });
@@ -189,7 +173,10 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       return await Promise.race([
         execPromise,
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new StepTimeoutError(timeoutMs)), timeoutMs);
+          timer = setTimeout(() => {
+            hasTimeoutFired = true;
+            reject(new StepTimeoutError(timeoutMs));
+          }, timeoutMs);
         }),
       ]);
     } finally {
@@ -202,7 +189,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     error?: string;
   }): StepExecutionResult;
 
-  protected async findPendingExecution<TExec extends WithPendingData>(
+  protected async findPendingExecution<TExec extends ConfirmableStepExecutionData>(
     type: string,
   ): Promise<TExec | undefined> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
@@ -212,41 +199,47 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     );
   }
 
-  protected async patchAndReloadPendingData<TExec extends WithPendingData>(
+  protected async patchAndReloadPendingData<TExec extends ConfirmableStepExecutionData>(
     pendingData?: unknown,
   ): Promise<TExec | undefined> {
     const { type } = this.context.stepDefinition;
     const execution = await this.findPendingExecution<TExec>(type);
 
-    if (pendingData !== undefined && execution) {
-      const schema = patchBodySchemas[execution.type]!;
-      const parsed = schema.safeParse(pendingData);
+    if (!execution) return undefined;
 
-      if (!parsed.success) {
-        throw new StepStateError(
-          `Invalid pending data: ${parsed.error.issues.map(i => i.message).join(', ')}`,
-        );
-      }
+    if (pendingData === undefined) return execution;
 
-      const updated = {
-        ...execution,
-        pendingData: { ...(execution.pendingData as object), ...(parsed.data as object) },
-      } as TExec;
+    const schema = patchBodySchemas[execution.type];
 
-      await this.context.runStore.saveStepExecution(
-        this.context.runId,
-        updated as StepExecutionData,
+    if (!schema) {
+      throw new StepStateError(
+        `No pending-data validator registered for step type "${execution.type}"`,
       );
-
-      return updated;
     }
 
-    return execution;
+    const parsed = schema.safeParse(pendingData);
+
+    if (!parsed.success) {
+      throw new StepStateError(
+        `Invalid pending data: ${parsed.error.issues.map(i => i.message).join(', ')}`,
+      );
+    }
+
+    const userConfirmation = parsed.data as TExec['userConfirmation'];
+
+    const updated: TExec = {
+      ...execution,
+      userConfirmation,
+    };
+
+    await this.context.runStore.saveStepExecution(this.context.runId, updated);
+
+    return updated;
   }
 
-  // userConfirmed branches: undefined → re-emit awaiting-input (PATCH not yet called);
+  // userConfirmed branches: undefined → re-emit awaiting-input (POST not yet called);
   // false → save as skipped + success outcome; true → resolveAndExecute.
-  protected async handleConfirmationFlow<TExec extends WithPendingData>(
+  protected async handleConfirmationFlow<TExec extends ConfirmableStepExecutionData>(
     execution: TExec,
     resolveAndExecute: (execution: TExec) => Promise<StepExecutionResult>,
   ): Promise<StepExecutionResult> {
@@ -254,7 +247,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const { userConfirmed } = execution.pendingData as { userConfirmed?: boolean };
+    const { userConfirmed } = execution.userConfirmation ?? {};
 
     if (userConfirmed === undefined) {
       return this.buildOutcomeResult({ status: 'awaiting-input' });
@@ -308,12 +301,45 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return [new SystemMessage(summaries.join('\n\n'))];
   }
 
+  private static mergeLeadingSystemMessages(messages: BaseMessage[]): BaseMessage[] {
+    let i = 0;
+    while (i < messages.length && messages[i] instanceof SystemMessage) i += 1;
+    if (i <= 1) return messages;
+
+    const merged = new SystemMessage(
+      messages
+        .slice(0, i)
+        .map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+        .filter(Boolean)
+        .join('\n\n'),
+    );
+
+    return [merged, ...messages.slice(i)];
+  }
+
+  private static assertNoMidArraySystemMessages(messages: BaseMessage[]): void {
+    let seenNonSystem = false;
+
+    for (let i = 0; i < messages.length; i += 1) {
+      if (!(messages[i] instanceof SystemMessage)) {
+        seenNonSystem = true;
+      } else if (seenNonSystem) {
+        throw new InvalidAiRequestError(
+          `SystemMessage at position ${i} appears after a non-system message — move all system context to the front of the messages array.`,
+        );
+      }
+    }
+  }
+
   protected async invokeWithTools<T = Record<string, unknown>>(
     messages: BaseMessage[],
     tools: StructuredToolInterface[],
   ): Promise<{ toolName: string; args: T }> {
+    BaseStepExecutor.assertNoMidArraySystemMessages(messages);
     const modelWithTools = this.context.model.bindTools(tools, { tool_choice: 'any' });
-    const response = await modelWithTools.invoke(messages);
+    const response = await modelWithTools.invoke(
+      BaseStepExecutor.mergeLeadingSystemMessages(messages),
+    );
     const toolCall = response.tool_calls?.[0];
 
     if (toolCall !== undefined) {
@@ -341,5 +367,22 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     tool: DynamicStructuredTool,
   ): Promise<T> {
     return (await this.invokeWithTools<T>(messages, [tool])).args;
+  }
+
+  // Overridden by executors that carry type-specific log identifiers (e.g. McpStepExecutor).
+  protected getExtraLogContext(): Record<string, unknown> {
+    return {};
+  }
+
+  private get logCtx() {
+    const { runId, stepId, stepIndex, stepDefinition } = this.context;
+
+    return {
+      runId,
+      stepId,
+      stepIndex,
+      stepType: stepDefinition.type,
+      ...this.getExtraLogContext(),
+    };
   }
 }

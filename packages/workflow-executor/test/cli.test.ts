@@ -4,6 +4,7 @@ import type { CliFactories } from '../src/cli-core';
 import ConsoleLogger from '../src/adapters/console-logger';
 import PrettyLogger from '../src/adapters/pretty-logger';
 import {
+  logStartup,
   parseArgs,
   pickLogger,
   printHelp,
@@ -11,6 +12,14 @@ import {
   readEnvConfig,
   runCli,
 } from '../src/cli-core';
+import {
+  DEFAULT_FOREST_SERVER_URL,
+  DEFAULT_HTTP_PORT,
+  DEFAULT_MAX_CHAIN_DEPTH,
+  DEFAULT_POLLING_INTERVAL_MS,
+  DEFAULT_STEP_TIMEOUT_MS,
+  DEFAULT_STOP_TIMEOUT_MS,
+} from '../src/defaults';
 
 const baseEnv: NodeJS.ProcessEnv = {
   FOREST_ENV_SECRET: 'env-secret',
@@ -118,7 +127,7 @@ describe('readEnvConfig', () => {
         envSecret: 'env-secret',
         authSecret: 'auth-secret',
         agentUrl: 'http://localhost:3351',
-        httpPort: 3400,
+        httpPort: DEFAULT_HTTP_PORT,
       }),
     );
   });
@@ -218,6 +227,24 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.aiConfigurations).toBeUndefined();
   });
 
+  it('sets forceAiError when FORCE_AI_ERROR=true', () => {
+    const config = readEnvConfig({ ...baseEnv, FORCE_AI_ERROR: 'true' }, args);
+
+    expect(config.executorOptions.forceAiError).toBe(true);
+  });
+
+  it('omits forceAiError when FORCE_AI_ERROR is not set', () => {
+    const config = readEnvConfig(baseEnv, args);
+
+    expect(config.executorOptions.forceAiError).toBeUndefined();
+  });
+
+  it('omits forceAiError when FORCE_AI_ERROR=false', () => {
+    const config = readEnvConfig({ ...baseEnv, FORCE_AI_ERROR: 'false' }, args);
+
+    expect(config.executorOptions.forceAiError).toBeUndefined();
+  });
+
   it('throws when AI config is partially set', () => {
     expect(() =>
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'anthropic', AI_MODEL: 'claude' }, args),
@@ -255,11 +282,51 @@ describe('printHelp / printVersion', () => {
     expect(output).toContain('SIGTERM');
   });
 
+  it('printHelp prints every default value from defaults.ts', () => {
+    printHelp();
+    const output = logSpy.mock.calls.map(call => call[0]).join('\n');
+
+    expect(output).toContain(`Default: ${DEFAULT_HTTP_PORT}`);
+    expect(output).toContain(`Default: ${DEFAULT_FOREST_SERVER_URL}`);
+    expect(output).toContain(`Default: ${DEFAULT_POLLING_INTERVAL_MS}`);
+    expect(output).toContain(`Default: ${DEFAULT_STOP_TIMEOUT_MS}`);
+    expect(output).toContain(`default: ${DEFAULT_STEP_TIMEOUT_MS}`);
+    expect(output).toContain(`default: ${DEFAULT_MAX_CHAIN_DEPTH}`);
+  });
+
   it('printVersion prints a version string', () => {
     printVersion();
 
     expect(logSpy).toHaveBeenCalled();
     expect(logSpy.mock.calls[0][0]).toMatch(/^\d+\.\d+\.\d+/);
+  });
+});
+
+describe('logStartup', () => {
+  function makeLogger() {
+    return { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
+  }
+
+  it('logs resolved defaults when env-derived options are undefined', () => {
+    const logger = makeLogger();
+
+    logStartup(logger as never, {
+      mode: 'database',
+      executorOptions: {
+        envSecret: 'e',
+        authSecret: 'a',
+        agentUrl: 'http://agent',
+        httpPort: DEFAULT_HTTP_PORT,
+      },
+    });
+
+    expect(logger.info).toHaveBeenCalledWith(
+      'Workflow executor starting',
+      expect.objectContaining({
+        forestServerUrl: DEFAULT_FOREST_SERVER_URL,
+        pollingIntervalMs: DEFAULT_POLLING_INTERVAL_MS,
+      }),
+    );
   });
 });
 
@@ -373,6 +440,26 @@ describe('runCli', () => {
     const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
     expect(output).toContain('Workflow executor starting');
     expect(output).toContain('Workflow executor ready');
+  });
+
+  it('logs aiConfig as "forced-error (dev only)" when FORCE_AI_ERROR=true', async () => {
+    const { factories } = makeFactories();
+    await runCli(['--json'], { ...baseEnv, FORCE_AI_ERROR: 'true' }, factories);
+
+    const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    expect(output).toContain('forced-error (dev only)');
+  });
+
+  it('logs aiConfig with provider/model when aiConfigurations are set', async () => {
+    const { factories } = makeFactories();
+    await runCli(
+      ['--json'],
+      { ...baseEnv, AI_PROVIDER: 'openai', AI_MODEL: 'gpt-4o', AI_API_KEY: 'sk-x' },
+      factories,
+    );
+
+    const output = infoSpy.mock.calls.map(call => call.join(' ')).join('\n');
+    expect(output).toContain('local (openai / gpt-4o)');
   });
 
   it('logs a structured error when executor.start() fails and rethrows', async () => {

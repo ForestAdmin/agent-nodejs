@@ -8,11 +8,12 @@ import type { ReadRecordStepDefinition } from '../../src/types/validated/step-de
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ReadRecordStepDefinition> = {}): ReadRecordStepDefinition {
   return {
     type: StepType.ReadRecord,
+    executionType: StepExecutionMode.FullyAutomated,
     prompt: 'Read the customer email',
     ...overrides,
   };
@@ -85,7 +86,7 @@ function makeMockWorkflowPort(
           schemasByCollection[name] ?? makeCollectionSchema({ collectionName: name }),
         ),
       ),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }
@@ -130,7 +131,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -419,12 +420,11 @@ describe('ReadRecordStepExecutor', () => {
       const readTool = bindTools.mock.calls[1][0][0];
       expect(readTool.name).toBe('read-selected-record-fields');
 
-      // Record selection includes previous steps context + system prompt + user prompt
       const selectMessages = invoke.mock.calls[0][0];
-      expect(selectMessages).toHaveLength(3);
+      expect(selectMessages).toHaveLength(2);
       expect(selectMessages[0].content).toContain('Step executed by');
-      expect(selectMessages[1].content).toContain('selecting the most relevant record');
-      expect(selectMessages[2].content).toContain('Read the customer email');
+      expect(selectMessages[0].content).toContain('selecting the most relevant record');
+      expect(selectMessages[1].content).toContain('Read the customer email');
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -672,7 +672,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.getRecord throws an infra error', async () => {
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const agentPort = makeMockAgentPort();
       // Prod adapter normalizes infra errors into AgentPortError — simulate here.
       (agentPort.getRecord as jest.Mock).mockRejectedValue(
@@ -799,6 +799,7 @@ describe('ReadRecordStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },
@@ -820,12 +821,11 @@ describe('ReadRecordStepExecutor', () => {
       await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
-      // context + previous steps summary + system prompt + collection info + human message = 5
-      expect(messages).toHaveLength(5);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('Should we proceed?');
-      expect(messages[1].content).toContain('"answer":"Yes"');
-      expect(messages[2].content).toContain('reading fields from a record');
+      expect(messages[0].content).toContain('Should we proceed?');
+      expect(messages[0].content).toContain('"answer":"Yes"');
+      expect(messages[0].content).toContain('reading fields from a record');
     });
   });
 

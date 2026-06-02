@@ -13,7 +13,7 @@ import ExecutorHttpServer from '../../src/http/executor-http-server';
 import Runner from '../../src/runner';
 import SchemaCache from '../../src/schema-cache';
 import InMemoryStore from '../../src/stores/in-memory-store';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -39,9 +39,9 @@ const COLLECTION_SCHEMA: CollectionSchema = {
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
-    { fieldName: 'id', displayName: 'Id', isRelationship: false },
-    { fieldName: 'email', displayName: 'Email', isRelationship: false },
-    { fieldName: 'name', displayName: 'Name', isRelationship: false },
+    { fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' },
+    { fieldName: 'email', displayName: 'Email', isRelationship: false, type: 'String' },
+    { fieldName: 'name', displayName: 'Name', isRelationship: false, type: 'String' },
   ],
   actions: [],
 };
@@ -51,8 +51,8 @@ const COLLECTION_SCHEMA_WITH_STATUS: CollectionSchema = {
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
-    { fieldName: 'id', displayName: 'Id', isRelationship: false },
-    { fieldName: 'status', displayName: 'Status', isRelationship: false },
+    { fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' },
+    { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
   ],
   actions: [],
 };
@@ -61,7 +61,7 @@ const COLLECTION_SCHEMA_WITH_ACTIONS: CollectionSchema = {
   collectionName: 'customers',
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
-  fields: [{ fieldName: 'id', displayName: 'Id', isRelationship: false }],
+  fields: [{ fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' }],
   actions: [
     { name: 'send_email', displayName: 'Send Email', endpoint: '/forest/actions/send-email' },
   ],
@@ -72,7 +72,7 @@ const COLLECTION_SCHEMA_WITH_RELATION: CollectionSchema = {
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
-    { fieldName: 'id', displayName: 'Id', isRelationship: false },
+    { fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' },
     {
       fieldName: 'order',
       displayName: 'Order',
@@ -89,8 +89,8 @@ const ORDERS_SCHEMA: CollectionSchema = {
   collectionDisplayName: 'Orders',
   primaryKeyFields: ['id'],
   fields: [
-    { fieldName: 'id', displayName: 'Id', isRelationship: false },
-    { fieldName: 'total', displayName: 'Total', isRelationship: false },
+    { fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' },
+    { fieldName: 'total', displayName: 'Total', isRelationship: false, type: 'Number' },
   ],
   actions: [],
 };
@@ -139,7 +139,7 @@ function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): jest.Moc
     getAvailableRun: jest.fn().mockResolvedValue(null),
     updateStepExecution: jest.fn().mockResolvedValue(null),
     getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
     ...overrides,
   } as jest.Mocked<WorkflowPort>;
@@ -313,6 +313,7 @@ describe('workflow execution (integration)', () => {
     const step = buildPendingStep({
       stepDefinition: {
         type: StepType.Condition,
+        executionType: StepExecutionMode.FullyAutomated,
         options: ['Yes', 'No'],
         prompt: 'Is the customer active?',
       },
@@ -358,7 +359,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.UpdateRecord, prompt: 'Update the status' },
+      stepDefinition: {
+        type: StepType.UpdateRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Update the status',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -417,7 +422,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.TriggerAction, prompt: 'Send the email' },
+      stepDefinition: {
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Send the email',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -475,7 +484,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.LoadRelatedRecord, prompt: 'Load the order' },
+      stepDefinition: {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Load the order',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -566,16 +579,24 @@ describe('workflow execution (integration)', () => {
     (aiClient.loadRemoteTools as jest.Mock).mockResolvedValue([fakeRemoteTool]);
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.Mcp, prompt: 'Send a notification' },
+      stepDefinition: {
+        type: StepType.Mcp,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Send a notification',
+        mcpServerId: 'mcp-1',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
       getAvailableRun: jest
         .fn()
         .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
-      getMcpServerConfigs: jest
-        .fn()
-        .mockResolvedValue([{ type: 'sse', configs: { 'mcp-1': { url: 'http://fake' } } }]),
+      // Two configs but only one matches step.mcpServerId — the assertion below proves
+      // RemoteToolFetcher actually scopes the Record before calling loadRemoteTools.
+      getMcpServerConfigs: jest.fn().mockResolvedValue({
+        'mcp-server-1': { id: 'mcp-1', url: 'http://fake' },
+        'mcp-server-2': { id: 'mcp-2', url: 'http://other' },
+      }),
     });
 
     const { server, runStore } = createIntegrationSetup({
@@ -611,6 +632,10 @@ describe('workflow execution (integration)', () => {
       'run-1',
       expect.objectContaining({ type: 'mcp', status: 'success' }),
     );
+    // Scoping must reach the AI port — only the matching server is forwarded, not the full map.
+    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({
+      'mcp-server-1': expect.objectContaining({ id: 'mcp-1' }),
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -619,7 +644,11 @@ describe('workflow execution (integration)', () => {
 
   it('user mismatch → HTTP 403', async () => {
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.ReadRecord, prompt: 'Read email' },
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Read email',
+      },
       user: { ...STEP_USER, id: 1 },
     });
 
@@ -651,7 +680,11 @@ describe('workflow execution (integration)', () => {
 
   it('GET /runs/:runId returns step data after trigger', async () => {
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer email' },
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Read the customer email',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -718,7 +751,11 @@ describe('workflow execution (integration)', () => {
     });
 
     const step = buildPendingStep({
-      stepDefinition: { type: StepType.UpdateRecord, prompt: 'Update the status' },
+      stepDefinition: {
+        type: StepType.UpdateRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Update the status',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({
@@ -764,7 +801,11 @@ describe('workflow execution (integration)', () => {
     const model = createMockModel({ fieldNames: ['Email'] });
 
     const pendingStep = buildPendingStep({
-      stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer email' },
+      stepDefinition: {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Read the customer email',
+      },
     });
 
     const workflowPort = createMockWorkflowPort({

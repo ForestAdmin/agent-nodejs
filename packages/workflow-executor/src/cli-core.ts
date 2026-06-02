@@ -1,10 +1,5 @@
 /* eslint-disable no-console */
 
-import type {
-  DatabaseExecutorOptions,
-  ExecutorOptions,
-  WorkflowExecutor,
-} from './build-workflow-executor';
 import type { Logger } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 
@@ -12,6 +7,19 @@ import { z } from 'zod';
 
 import ConsoleLogger from './adapters/console-logger';
 import PrettyLogger from './adapters/pretty-logger';
+import {
+  type DatabaseExecutorOptions,
+  type ExecutorOptions,
+  type WorkflowExecutor,
+} from './build-workflow-executor';
+import {
+  DEFAULT_FOREST_SERVER_URL,
+  DEFAULT_HTTP_PORT,
+  DEFAULT_MAX_CHAIN_DEPTH,
+  DEFAULT_POLLING_INTERVAL_MS,
+  DEFAULT_STEP_TIMEOUT_MS,
+  DEFAULT_STOP_TIMEOUT_MS,
+} from './defaults';
 import { ConfigurationError, extractErrorMessage } from './errors';
 
 const POSITIVE_INT = z.coerce.number().int().positive();
@@ -145,13 +153,14 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     envSecret: env.FOREST_ENV_SECRET as string,
     authSecret: env.FOREST_AUTH_SECRET as string,
     agentUrl: env.AGENT_URL as string,
-    httpPort: parsePositiveIntEnv('HTTP_PORT', env.HTTP_PORT) ?? 3400,
+    httpPort: parsePositiveIntEnv('HTTP_PORT', env.HTTP_PORT) ?? DEFAULT_HTTP_PORT,
     forestServerUrl: env.FOREST_SERVER_URL,
     pollingIntervalMs: parsePositiveIntEnv('POLLING_INTERVAL_MS', env.POLLING_INTERVAL_MS),
     stopTimeoutMs: parsePositiveIntEnv('STOP_TIMEOUT_MS', env.STOP_TIMEOUT_MS),
     stepTimeoutMs: parsePositiveIntEnv('STEP_TIMEOUT_MS', env.STEP_TIMEOUT_MS),
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
     ...(aiConfigurations && { aiConfigurations }),
+    ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
   };
 
   return {
@@ -180,13 +189,14 @@ Required environment variables:
   DATABASE_URL        Postgres connection string (not needed with --in-memory)
 
 Optional environment variables:
-  HTTP_PORT              Default: 3400
-  FOREST_SERVER_URL      Default: https://api.forestadmin.com
-  POLLING_INTERVAL_MS    Default: 5000
-  STOP_TIMEOUT_MS        Default: 30000
-  STEP_TIMEOUT_MS        Max duration of a step in ms (default: 300000 = 5 minutes)
-  MAX_CHAIN_DEPTH        Max steps auto-executed per run before yielding (default: 50)
+  HTTP_PORT              Default: ${DEFAULT_HTTP_PORT}
+  FOREST_SERVER_URL      Default: ${DEFAULT_FOREST_SERVER_URL}
+  POLLING_INTERVAL_MS    Default: ${DEFAULT_POLLING_INTERVAL_MS}
+  STOP_TIMEOUT_MS        Default: ${DEFAULT_STOP_TIMEOUT_MS}
+  STEP_TIMEOUT_MS        Max duration of a step in ms (default: ${DEFAULT_STEP_TIMEOUT_MS})
+  MAX_CHAIN_DEPTH        Max steps auto-executed per run before yielding (default: ${DEFAULT_MAX_CHAIN_DEPTH})
   NO_COLOR               Set to any value to disable ANSI colors in pretty logs
+  FORCE_AI_ERROR         Set to "true" to make every AI call fail (dev only, to test error paths)
 
 AI configuration (all-or-nothing — falls back to server AI if any is missing):
   AI_PROVIDER            'anthropic' | 'openai'
@@ -203,16 +213,22 @@ export function printVersion(): void {
 
 export function logStartup(logger: Logger, config: CliConfig): void {
   const { executorOptions: opts, mode } = config;
-  const aiLabel = opts.aiConfigurations?.length
-    ? `local (${opts.aiConfigurations[0].provider} / ${opts.aiConfigurations[0].model})`
-    : 'server fallback';
+  let aiLabel: string;
+
+  if (opts.forceAiError) {
+    aiLabel = 'forced-error (dev only)';
+  } else if (opts.aiConfigurations?.length) {
+    aiLabel = `local (${opts.aiConfigurations[0].provider} / ${opts.aiConfigurations[0].model})`;
+  } else {
+    aiLabel = 'server fallback';
+  }
 
   logger.info('Workflow executor starting', {
     mode,
-    forestServerUrl: opts.forestServerUrl ?? 'https://api.forestadmin.com',
+    forestServerUrl: opts.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL,
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,
-    pollingIntervalMs: opts.pollingIntervalMs ?? 5000,
+    pollingIntervalMs: opts.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,
     aiConfig: aiLabel,
   });
 }

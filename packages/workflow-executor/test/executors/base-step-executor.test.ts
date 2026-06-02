@@ -8,18 +8,20 @@ import type { StepDefinition } from '../../src/types/validated/step-definition';
 import type { BaseStepStatus, StepOutcome } from '../../src/types/validated/step-outcome';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 
-import { SystemMessage } from '@forestadmin/ai-proxy';
+import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
   NoRecordsError,
   RunStorePortError,
+  StepStateError,
   WorkflowExecutorError,
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
 class TestableExecutor extends BaseStepExecutor {
@@ -66,6 +68,7 @@ function makeHistoryEntry(
   return {
     stepDefinition: {
       type: StepType.Condition,
+      executionType: StepExecutionMode.Manual,
       options: ['A', 'B'],
       prompt: overrides.prompt ?? 'Pick one',
     },
@@ -88,7 +91,7 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 }
 
 function makeMockLogger(): Logger {
-  return { info: jest.fn(), error: jest.fn() };
+  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
 function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
@@ -112,6 +115,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     } as RecordRef,
     stepDefinition: {
       type: StepType.Condition,
+      executionType: StepExecutionMode.Manual,
       options: ['A', 'B'],
       prompt: 'Pick one',
     },
@@ -242,6 +246,35 @@ describe('BaseStepExecutor', () => {
         );
       });
 
+      it('includes stepType in info logs for started and completed steps', async () => {
+        const logger = makeMockLogger();
+        const executor = new TestableExecutor(makeContext({ logger }));
+        await executor.execute();
+        expect(logger.info).toHaveBeenCalledWith(
+          'Step execution started',
+          expect.objectContaining({ stepType: StepType.Condition }),
+        );
+        expect(logger.info).toHaveBeenCalledWith(
+          'Step execution completed',
+          expect.objectContaining({ stepType: StepType.Condition }),
+        );
+      });
+
+      it('includes stepType in cache-replay log', async () => {
+        class CachedExecutor extends TestableExecutor {
+          override checkIdempotency() {
+            return Promise.resolve(this.buildOutcomeResult({ status: 'success' }));
+          }
+        }
+        const logger = makeMockLogger();
+        const executor = new CachedExecutor(makeContext({ logger }));
+        await executor.execute();
+        expect(logger.info).toHaveBeenCalledWith(
+          'Step execution completed (replayed from cache)',
+          expect.objectContaining({ stepType: StepType.Condition }),
+        );
+      });
+
       it('includes stack trace in log context', async () => {
         const logger = makeMockLogger();
         const err = new Error('db connection refused');
@@ -270,6 +303,26 @@ describe('BaseStepExecutor', () => {
           expect.objectContaining({ cause: 'root cause' }),
         );
       });
+
+      it('sets cause to undefined in log when error has no cause', async () => {
+        const logger = makeMockLogger();
+        const executor = new TestableExecutor(makeContext({ logger }), new Error('no cause'));
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({ cause: undefined }),
+        );
+      });
+
+      it('includes stepType in log context', async () => {
+        const logger = makeMockLogger();
+        const executor = new TestableExecutor(makeContext({ logger }), new Error('boom'));
+        await executor.execute();
+        expect(logger.error).toHaveBeenCalledWith(
+          'Unexpected error during step execution',
+          expect.objectContaining({ stepType: StepType.Condition }),
+        );
+      });
     });
 
     it('logs cause when WorkflowExecutorError has a cause', async () => {
@@ -283,15 +336,20 @@ describe('BaseStepExecutor', () => {
         expect.objectContaining({
           cause: 'db timeout',
           stack: cause.stack,
+          stepType: StepType.Condition,
         }),
       );
     });
 
-    it('does not log when WorkflowExecutorError has no cause', async () => {
+    it('logs error.message even when WorkflowExecutorError has no cause', async () => {
       const logger = makeMockLogger();
-      const executor = new TestableExecutor(makeContext({ logger }), new MissingToolCallError());
+      const err = new MissingToolCallError();
+      const executor = new TestableExecutor(makeContext({ logger }), err);
       await executor.execute();
-      expect(logger.error).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        err.message,
+        expect.not.objectContaining({ cause: expect.anything() }),
+      );
     });
   });
 
@@ -440,11 +498,12 @@ describe('BaseStepExecutor', () => {
           setTimeout(resolve, 1_100);
         });
 
-        expect(logger.info).toHaveBeenCalledWith(
+        expect(logger.warn).toHaveBeenCalledWith(
           'Step work rejected after timeout — result discarded',
           expect.objectContaining({
             runId: 'run-1',
             stepId: 'step-0',
+            stepType: StepType.Condition,
             error: 'late agent failure',
           }),
         );
@@ -453,6 +512,21 @@ describe('BaseStepExecutor', () => {
         process.off('unhandledRejection', unhandled);
       }
     }, 5_000);
+
+    it('does not log discard message when step rejects before timeout', async () => {
+      const logger = makeMockLogger();
+      const executor = new TestableExecutor(
+        makeContext({ stepTimeoutMs: 5_000, logger }),
+        new Error('normal step error'),
+      );
+
+      await executor.execute();
+
+      expect(logger.warn).not.toHaveBeenCalledWith(
+        'Step work rejected after timeout — result discarded',
+        expect.anything(),
+      );
+    });
   });
 
   describe('activity log lifecycle', () => {
@@ -712,6 +786,120 @@ describe('BaseStepExecutor', () => {
       );
       await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toThrow(
         'AI returned a malformed tool call for "unknown": Something broke',
+      );
+    });
+
+    describe('SystemMessage handling for Anthropic compat', () => {
+      it('merges multiple leading SystemMessages into a single one', async () => {
+        const { model, invoke } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model }));
+        const messages = [
+          new SystemMessage('context'),
+          new SystemMessage('previous steps'),
+          new SystemMessage('step prompt'),
+          new HumanMessage('request'),
+        ];
+
+        await executor.invokeWithTool(messages, dummyTool);
+
+        const passedMessages = invoke.mock.calls[0][0] as BaseMessage[];
+        expect(passedMessages).toHaveLength(2);
+        expect(passedMessages[0]).toBeInstanceOf(SystemMessage);
+        expect(passedMessages[0].content).toBe('context\n\nprevious steps\n\nstep prompt');
+        expect(passedMessages[1]).toBeInstanceOf(HumanMessage);
+      });
+
+      it('leaves messages unchanged when only one leading SystemMessage', async () => {
+        const { model, invoke } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model }));
+        const messages = [new SystemMessage('only system'), new HumanMessage('request')];
+
+        await executor.invokeWithTool(messages, dummyTool);
+
+        expect(invoke).toHaveBeenCalledWith(messages);
+      });
+
+      it('leaves messages unchanged when there is no SystemMessage', async () => {
+        const { model, invoke } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model }));
+        const messages = [new HumanMessage('only human')];
+
+        await executor.invokeWithTool(messages, dummyTool);
+
+        expect(invoke).toHaveBeenCalledWith(messages);
+      });
+
+      it('throws when a SystemMessage appears after a non-system message', async () => {
+        const { model } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model }));
+        const messages = [
+          new SystemMessage('leading'),
+          new HumanMessage('request'),
+          new SystemMessage('mid-array (invalid for Anthropic)'),
+        ];
+
+        await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
+          InvalidAiRequestError,
+        );
+        await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
+          /SystemMessage at position 2 appears after a non-system message/,
+        );
+      });
+    });
+  });
+
+  describe('patchAndReloadPendingData', () => {
+    class PatchingExecutor extends BaseStepExecutor {
+      async callPatchAndReload(pendingData?: unknown) {
+        return (
+          this as unknown as { patchAndReloadPendingData(d?: unknown): Promise<unknown> }
+        ).patchAndReloadPendingData(pendingData);
+      }
+
+      protected async doExecute(): Promise<StepExecutionResult> {
+        return this.buildOutcomeResult({ status: 'success' });
+      }
+
+      protected buildOutcomeResult(outcome: {
+        status: BaseStepStatus;
+        error?: string;
+      }): StepExecutionResult {
+        return {
+          stepOutcome: {
+            type: 'record',
+            stepId: this.context.stepId,
+            stepIndex: this.context.stepIndex,
+            status: outcome.status,
+          },
+        };
+      }
+    }
+
+    it('throws StepStateError when no schema is registered for the step type', async () => {
+      const runStore = makeMockRunStore([
+        { type: 'read-record', stepIndex: 0 } as unknown as StepExecutionData,
+      ]);
+      const executor = new PatchingExecutor(
+        makeContext({
+          runStore,
+          stepDefinition: {
+            type: StepType.ReadRecord,
+            executionType: StepExecutionMode.FullyAutomated,
+          },
+        }),
+      );
+
+      await expect(executor.callPatchAndReload({ someField: 'x' })).rejects.toThrow(StepStateError);
+      await expect(executor.callPatchAndReload({ someField: 'x' })).rejects.toThrow(
+        'No pending-data validator registered for step type "read-record"',
       );
     });
   });

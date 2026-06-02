@@ -8,19 +8,22 @@ import { Sequelize } from 'sequelize';
 
 import AgentClientAgentPort from './adapters/agent-client-agent-port';
 import AiClientAdapter from './adapters/ai-client-adapter';
+import AlwaysErrorAiModelPort from './adapters/always-error-ai-model-port';
 import ConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
+import {
+  DEFAULT_FOREST_SERVER_URL,
+  DEFAULT_POLLING_INTERVAL_MS,
+  DEFAULT_STEP_TIMEOUT_MS,
+} from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
 import DatabaseStore from './stores/database-store';
 import InMemoryStore from './stores/in-memory-store';
 
-const DEFAULT_FOREST_SERVER_URL = 'https://api.forestadmin.com';
-const DEFAULT_POLLING_INTERVAL_MS = 5000;
-const DEFAULT_STEP_TIMEOUT_MS = 5 * 60_000;
 const FORCE_EXIT_DELAY_MS = 5000;
 
 export interface WorkflowExecutor {
@@ -42,6 +45,8 @@ export interface ExecutorOptions {
   stepTimeoutMs?: number;
   // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
   maxChainDepth?: number;
+  // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
+  forceAiError?: boolean;
 }
 
 export type DatabaseExecutorOptions = ExecutorOptions &
@@ -57,9 +62,26 @@ function buildCommonDependencies(options: ExecutorOptions) {
     logger,
   });
 
-  const aiModelPort = options.aiConfigurations?.length
-    ? new AiClientAdapter(options.aiConfigurations)
-    : new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
+  const forceAiError = options.forceAiError && process.env.NODE_ENV !== 'production';
+
+  if (forceAiError) {
+    logger.info(
+      'FORCE_AI_ERROR is enabled — AI calls will always fail. Do not use in production.',
+      {},
+    );
+  } else if (options.forceAiError && process.env.NODE_ENV === 'production') {
+    logger.info('FORCE_AI_ERROR is set but ignored in production.', {});
+  }
+
+  let aiModelPort;
+
+  if (forceAiError) {
+    aiModelPort = new AlwaysErrorAiModelPort();
+  } else if (options.aiConfigurations?.length) {
+    aiModelPort = new AiClientAdapter(options.aiConfigurations);
+  } else {
+    aiModelPort = new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
+  }
 
   const schemaCache = new SchemaCache();
 

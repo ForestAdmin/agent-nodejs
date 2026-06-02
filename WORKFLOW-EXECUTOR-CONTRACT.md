@@ -263,51 +263,63 @@ Request body:
 { pendingData?: unknown }
 ```
 
-On re-execution, the executor reads `pendingData` from the RunStore and checks `userConfirmed`:
-- `undefined` → returns `awaiting-input` again (step not yet actionable)
+> Note: the HTTP body key is `pendingData` for historical reasons, but the validated payload is
+> stored separately as `execution.userConfirmation` in the RunStore — it does **not** overwrite
+> the AI suggestion in `execution.pendingData`.
+
+On re-execution, the executor reads `userConfirmation` from the RunStore and checks `userConfirmed`:
+- `undefined` → returns `awaiting-input` again (POST not yet called)
 - `true` → executes the confirmed action
 - `false` → skips the step (marks as success)
 
 ### update-record
 
 ```typescript
-// Stored in RunStore (pendingData written by executor):
+// Stored in RunStore (pendingData written by executor — AI suggestion, never overwritten):
 interface UpdateRecordPendingData {
-  name:           string;   // technical field name
-  displayName:    string;   // label shown in UI
-  value:          string;   // AI-proposed value; overridable by frontend
-  userConfirmed?: boolean;
+  name:        string;   // technical field name
+  displayName: string;   // label shown in UI
+  value:       unknown;  // AI-proposed value
 }
 
-// pendingData field of POST /runs/:runId/trigger body:
+// userConfirmation payload of POST /runs/:runId/trigger body:
 { userConfirmed: boolean; value?: string; }
+// value overrides the AI-proposed value when provided
 ```
 
-### trigger-action & mcp
+### trigger-action
 
 ```typescript
-// pendingData field of POST /runs/:runId/trigger body:
+// userConfirmation payload of POST /runs/:runId/trigger body:
+{
+  userConfirmed: boolean;
+  actionResult?: unknown; // required when userConfirmed=true (frontend executes the action itself)
+}
+```
+
+### mcp
+
+```typescript
+// userConfirmation payload of POST /runs/:runId/trigger body:
 { userConfirmed: boolean; }
 ```
 
 ### load-related-record
 
 ```typescript
-// Stored in RunStore (pendingData written by executor):
+// Stored in RunStore (pendingData written by executor — AI suggestion, never overwritten):
 interface LoadRelatedRecordPendingData {
-  name:              string;
-  displayName:       string;
-  suggestedFields?:  string[];
-  selectedRecordId:  Array<string | number>;
-  userConfirmed?:    boolean;
+  name:             string;
+  displayName:      string;
+  suggestedFields?: string[];
+  selectedRecordId: Array<string | number>;
 }
 
-// pendingData field of POST /runs/:runId/trigger body:
+// userConfirmation payload of POST /runs/:runId/trigger body:
 {
-  userConfirmed:      boolean;
-  name?:              string;                 // override relation
-  displayName?:       string;
-  selectedRecordId?:  Array<string | number>; // min 1 element
+  userConfirmed:     boolean;
+  name?:             string;                 // override relation (requires selectedRecordId)
+  selectedRecordId?: Array<string | number>; // min 1 element; required when name is provided
 }
 ```
 

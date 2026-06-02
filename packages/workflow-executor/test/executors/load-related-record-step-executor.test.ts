@@ -9,13 +9,14 @@ import type { LoadRelatedRecordStepDefinition } from '../../src/types/validated/
 import { AgentPortError, RunStorePortError } from '../../src/errors';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
-import { StepType } from '../../src/types/validated/step-definition';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
   overrides: Partial<LoadRelatedRecordStepDefinition> = {},
 ): LoadRelatedRecordStepDefinition {
   return {
     type: StepType.LoadRelatedRecord,
+    executionType: StepExecutionMode.AutomatedWithConfirmation,
     prompt: 'Load the related order for this customer',
     ...overrides,
   };
@@ -102,7 +103,7 @@ function makeMockWorkflowPort(
           schemasByCollection[name] ?? makeCollectionSchema({ collectionName: name }),
         ),
       ),
-    getMcpServerConfigs: jest.fn().mockResolvedValue([]),
+    getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
   };
 }
@@ -144,7 +145,7 @@ function makeContext(
     },
     schemaCache: new SchemaCache(),
     previousSteps: [],
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
     activityLogPort: {
       createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -173,7 +174,7 @@ function makePendingExecution(
 }
 
 describe('LoadRelatedRecordStepExecutor', () => {
-  describe('automaticExecution: BelongsTo — load direct (Branch B)', () => {
+  describe('executionType=FullyAutomated: BelongsTo — load direct (Branch B)', () => {
     it('fetches 1 related record and returns success', async () => {
       const agentPort = makeMockAgentPort();
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'User requested order' });
@@ -182,7 +183,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -215,7 +216,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('automaticExecution: HasMany — 2 AI calls (Branch B)', () => {
+  describe('executionType=FullyAutomated: HasMany — 2 AI calls (Branch B)', () => {
     it('runs selectRelevantFields + selectBestRecord to pick the best candidate', async () => {
       const hasManySchema = makeCollectionSchema({
         fields: [
@@ -281,7 +282,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           customers: hasManySchema,
           addresses: addressSchema,
         }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -359,7 +360,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -402,7 +403,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -468,7 +469,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -527,7 +528,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -541,7 +542,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('automaticExecution: HasOne — load direct (Branch B)', () => {
+  describe('executionType=FullyAutomated: HasOne — load direct (Branch B)', () => {
     it('fetches 1 related record (same path as BelongsTo) and returns success', async () => {
       const hasOneSchema = makeCollectionSchema({
         fields: [
@@ -563,7 +564,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasOneSchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -586,7 +587,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('without automaticExecution: awaiting-input (Branch C)', () => {
+  describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {
     it('saves AI suggestion in pendingData and returns awaiting-input (single record — no field/record AI calls)', async () => {
       const agentPort = makeMockAgentPort(); // returns 1 record: orders #99
       const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'User requested order' });
@@ -761,8 +762,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -797,8 +798,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [42],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -815,6 +816,95 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('confirmation with user override of selectedRecordId (Branch A)', () => {
+    it('preserves AI suggestion in pendingData and writes user choice to executionParams', async () => {
+      // Persisted state: AI suggested record [99], awaiting confirmation.
+      const execution = makePendingExecution({
+        pendingData: {
+          name: 'order',
+          selectedRecordId: [99],
+          suggestedFields: ['status', 'amount'],
+        },
+      });
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      // User confirms with a different record id: [42].
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: true, selectedRecordId: [42] },
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+
+      // Final persisted execution must keep AI suggestion in pendingData
+      // and use the user-overridden record id in executionResult.
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          type: 'load-related-record',
+          pendingData: expect.objectContaining({
+            name: 'order',
+            selectedRecordId: [99], // AI suggestion preserved
+          }),
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('confirmation with user override of relation name (Branch A)', () => {
+    it('re-derives relatedCollectionName when the user switches to a different relation', async () => {
+      // AI suggested "order" (→ orders collection). User switches to "address" (→ addresses).
+      const execution = makePendingExecution({
+        pendingData: {
+          name: 'order',
+          selectedRecordId: [99],
+          suggestedFields: [],
+        },
+      });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        runStore,
+        incomingPendingData: {
+          userConfirmed: true,
+          name: 'address',
+          selectedRecordId: [7],
+        },
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave).toEqual(
+        expect.objectContaining({
+          // AI suggestion preserved on pendingData
+          pendingData: expect.objectContaining({
+            name: 'order',
+            selectedRecordId: [99],
+          }),
+          // User-overridden relation resolves to the addresses collection
+          executionParams: { name: 'address' },
+          executionResult: expect.objectContaining({
+            relation: { name: 'address' },
+            record: expect.objectContaining({ collectionName: 'addresses', recordId: [7] }),
           }),
         }),
       );
@@ -839,8 +929,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -879,8 +969,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -923,8 +1013,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'address',
           suggestedFields: [],
           selectedRecordId: [77],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -953,8 +1043,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: [],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -980,8 +1070,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1004,9 +1094,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('trigger before PATCH (Branch A)', () => {
-    it('re-emits awaiting-input when userConfirmed is not yet set in pendingData', async () => {
+    it('re-emits awaiting-input when userConfirmation is not yet set', async () => {
       const agentPort = makeMockAgentPort();
-      const execution = makePendingExecution(); // pendingData has no userConfirmed
+      const execution = makePendingExecution(); // userConfirmation not yet set
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
@@ -1078,7 +1168,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1110,7 +1200,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: hasManySchema }),
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1151,7 +1241,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runId: 'run-1',
         stepIndex: 0,
         runStore,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1167,8 +1257,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
-          userConfirmed: true,
         },
+        userConfirmation: { userConfirmed: true },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1207,7 +1297,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1280,7 +1370,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         agentPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1300,7 +1390,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.getRelatedData throws an infra error', async () => {
-      const logger = { info: jest.fn(), error: jest.fn() };
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(
         new AgentPortError('getRelatedData', new Error('DB connection lost')),
@@ -1310,7 +1400,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         logger,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1423,7 +1513,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
   describe('stepOutcome shape', () => {
     it('emits correct type, stepId and stepIndex in the outcome', async () => {
-      const context = makeContext({ stepDefinition: makeStep({ automaticExecution: true }) });
+      const context = makeContext({
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -1456,6 +1548,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           {
             stepDefinition: {
               type: StepType.Condition,
+              executionType: StepExecutionMode.Manual,
               options: ['Yes', 'No'],
               prompt: 'Should we proceed?',
             },
@@ -1477,12 +1570,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
       await executor.execute();
 
       const messages = mockModel.invoke.mock.calls[0][0];
-      // context + previous steps message + system prompt + collection info + human message = 5
-      expect(messages).toHaveLength(5);
+      expect(messages).toHaveLength(2);
       expect(messages[0].content).toContain('Step executed by');
-      expect(messages[1].content).toContain('Should we proceed?');
-      expect(messages[1].content).toContain('"answer":"Yes"');
-      expect(messages[2].content).toContain('loading a related record');
+      expect(messages[0].content).toContain('Should we proceed?');
+      expect(messages[0].content).toContain('"answer":"Yes"');
+      expect(messages[0].content).toContain('loading a related record');
     });
   });
 
@@ -1533,8 +1625,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           name: 'order',
           suggestedFields: ['status', 'amount'],
           selectedRecordId: [99],
-          userConfirmed: false,
         },
+        userConfirmation: { userConfirmed: false },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -1568,7 +1660,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model: mockModel.model,
         agentPort,
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1587,7 +1679,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const workflowPort = makeMockWorkflowPort();
       const context = makeContext({
         workflowPort,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1698,7 +1790,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         runStore,
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Order' },
         }),
       });
@@ -1731,7 +1823,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         agentPort: makeMockAgentPort(relatedData),
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 1 },
         }),
       });
@@ -1769,7 +1861,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         agentPort: makeMockAgentPort(relatedData),
         stepDefinition: makeStep({
-          automaticExecution: true,
+          executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 99 },
         }),
       });
@@ -1784,7 +1876,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const { model, bindTools } = makeMockModel({ relationName: 'Orders', reasoning: 'r' });
       const context = makeContext({
         model,
-        stepDefinition: makeStep({ automaticExecution: true }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 

@@ -5,7 +5,7 @@ import ForestadminClientActivityLogPort from '../../src/adapters/forestadmin-cli
 import { ActivityLogCreationError } from '../../src/errors';
 
 function makeLogger() {
-  return { info: jest.fn(), error: jest.fn() };
+  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
 function makeService(): jest.Mocked<ActivityLogsServiceInterface> {
@@ -77,8 +77,8 @@ describe('ForestadminClientActivityLogPort', () => {
 
       expect(handle).toEqual({ id: 'log-2', index: '1' });
       expect(service.createActivityLog).toHaveBeenCalledTimes(2);
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('createPending'),
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('activity log create'),
         expect.objectContaining({ attempt: 1 }),
       );
     });
@@ -95,6 +95,17 @@ describe('ForestadminClientActivityLogPort', () => {
 
       expect(err).toBeInstanceOf(ActivityLogCreationError);
       expect(service.createActivityLog).toHaveBeenCalledTimes(4);
+    });
+
+    it('throws immediately on 404 — not retriable for createPending (unlike markSucceeded/markFailed)', async () => {
+      const service = makeService();
+      service.createActivityLog.mockRejectedValueOnce(makeHttpError(404));
+      const port = makePort(service);
+
+      await expect(
+        port.createPending({ renderingId: 5, action: 'update', type: 'write' }),
+      ).rejects.toBeInstanceOf(ActivityLogCreationError);
+      expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
 
     it('does not retry on 401 (not a transient error)', async () => {
@@ -183,9 +194,22 @@ describe('ForestadminClientActivityLogPort', () => {
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('markSucceeded failed'),
+        'activity log mark-as-completed failed',
         expect.objectContaining({ handleId: 'log-1' }),
       );
+    });
+
+    it('retries on 404 — eventual consistency: record may not be visible yet on the read path', async () => {
+      const service = makeService();
+      service.updateActivityLogStatus
+        .mockRejectedValueOnce(makeHttpError(404))
+        .mockResolvedValueOnce(undefined);
+      const port = makePort(service);
+
+      const promise = port.markSucceeded({ id: 'log-1', index: '0' });
+      await jest.advanceTimersByTimeAsync(100);
+      await expect(promise).resolves.toBeUndefined();
+      expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -222,12 +246,25 @@ describe('ForestadminClientActivityLogPort', () => {
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('markFailed failed'),
+        'activity log mark-as-failed failed',
         expect.objectContaining({
           handleId: 'log-1',
           stepErrorMessage: 'step-error-msg',
         }),
       );
+    });
+
+    it('retries on 404 — eventual consistency: record may not be visible yet on the read path', async () => {
+      const service = makeService();
+      service.updateActivityLogStatus
+        .mockRejectedValueOnce(makeHttpError(404))
+        .mockResolvedValueOnce(undefined);
+      const port = makePort(service);
+
+      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'boom');
+      await jest.advanceTimersByTimeAsync(100);
+      await expect(promise).resolves.toBeUndefined();
+      expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
     });
   });
 

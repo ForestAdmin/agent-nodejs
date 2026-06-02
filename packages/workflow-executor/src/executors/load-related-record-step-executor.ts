@@ -16,6 +16,7 @@ import {
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
 Select the relation to follow.
@@ -78,8 +79,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       : await this.selectRelation(schema, step.prompt);
     const target = this.buildTarget(schema, args.relationName, selectedRecordRef);
 
-    // Branch B -- automaticExecution
-    if (step.automaticExecution) {
+    // Branch B -- fully automated execution
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
       return this.resolveAndLoadAutomatic(target);
     }
 
@@ -137,30 +138,30 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.persistAndReturn(record, target, undefined);
   }
 
-  // Branch A: builds RecordRef from pendingData.selectedRecordId without a new getRelatedData call.
-  // Re-derives relatedCollectionName so a user-overridden relation name is handled correctly.
+  // Branch A: builds RecordRef from the user-confirmed selection without a new getRelatedData call.
   private async resolveFromSelection(
     execution: LoadRelatedRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, pendingData } = execution;
+    const { selectedRecordRef, pendingData, userConfirmation } = execution;
 
     if (!pendingData) {
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const { name, selectedRecordId } = pendingData;
+    const name = userConfirmation?.name ?? pendingData.name;
+    const selectedRecordId = userConfirmation?.selectedRecordId ?? pendingData.selectedRecordId;
 
-    // Re-derive relatedCollectionName from schema using the (possibly updated) relation name.
-    // `name` is always a fieldName (set from field.fieldName in buildTarget) — search directly.
+    // Re-derive relatedCollectionName because the user may have swapped the relation.
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const field = schema.fields.find(f => f.fieldName === name);
-    const relatedCollectionName = field?.relatedCollectionName;
 
-    if (!relatedCollectionName) {
+    if (!field?.relatedCollectionName) {
       throw new StepStateError(
         `Step at index ${this.context.stepIndex} could not resolve relatedCollectionName for relation "${name}"`,
       );
     }
+
+    const { relatedCollectionName } = field;
 
     const record: RecordRef = {
       collectionName: relatedCollectionName,
@@ -227,7 +228,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return { relatedData, bestIndex, suggestedFields };
   }
 
-  /** HasMany + automaticExecution: fetch top 50, then AI calls to select the best record. */
+  /** HasMany + fully automated execution: fetch top 50, then AI calls to select the best record. */
   private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordRef> {
     const { relatedData, bestIndex } = await this.selectBestFromRelatedData(target, 50);
 

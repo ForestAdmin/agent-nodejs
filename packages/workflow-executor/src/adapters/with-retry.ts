@@ -11,16 +11,17 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-function isRetryable(err: unknown): boolean {
+function isRetryable(err: unknown, extra: number[]): boolean {
   const { status } = err as { status?: number };
+  if (typeof status !== 'number') return false;
 
-  return typeof status === 'number' && RETRYABLE_STATUS.has(status);
+  return RETRYABLE_STATUS.has(status) || extra.includes(status);
 }
 
 export default async function withRetry<T>(
   label: string,
   fn: () => Promise<T>,
-  { logger }: { logger: Logger },
+  { logger, extraRetryStatuses = [] }: { logger: Logger; extraRetryStatuses?: number[] },
 ): Promise<T> {
   let lastError: unknown;
 
@@ -30,9 +31,10 @@ export default async function withRetry<T>(
       return await fn();
     } catch (err) {
       lastError = err;
-      if (!isRetryable(err) || attempt === RETRY_DELAYS_MS.length) throw err;
-      logger.info(`"${label}" failed, retrying`, {
+      if (!isRetryable(err, extraRetryStatuses) || attempt === RETRY_DELAYS_MS.length) throw err;
+      logger.warn(`"${label}" failed, retrying`, {
         attempt: attempt + 1,
+        status: (err as { status?: number }).status,
         error: extractErrorMessage(err),
       });
       // eslint-disable-next-line no-await-in-loop

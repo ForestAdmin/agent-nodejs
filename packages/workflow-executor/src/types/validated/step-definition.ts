@@ -12,26 +12,38 @@ export enum StepType {
   Guidance = 'guidance',
 }
 
-const baseFields = {
+/**
+ * Domain enum for how a step is executed. Decoupled from the server contract
+ * (`ServerStepExecutionTypeEnum`) — `step-definition-mapper.ts` is the single translation point.
+ */
+export enum StepExecutionMode {
+  Manual = 'manual',
+  AutomatedWithConfirmation = 'automated-with-confirmation',
+  FullyAutomated = 'fully-automated',
+}
+
+// Shared fields across all step types. executionType is intentionally excluded —
+// each schema declares its own valid modes with .default().catch() for normalization.
+const sharedFields = {
   prompt: z.string().optional(),
   aiConfigName: z.string().optional(),
 };
 
-const baseRecordFields = {
-  ...baseFields,
-  automaticExecution: z.boolean().optional(),
-};
+// Use z.enum(EnumObject), not z.nativeEnum — the latter is deprecated in zod 4.
+const { Manual, AutomatedWithConfirmation, FullyAutomated } = StepExecutionMode;
 
 export const ConditionStepDefinitionSchema = z.object({
-  ...baseFields,
+  ...sharedFields,
   type: z.literal(StepType.Condition),
+  executionType: z.enum([Manual, FullyAutomated]).default(FullyAutomated).catch(FullyAutomated),
   options: z.array(z.string()).min(2),
 });
 export type ConditionStepDefinition = z.infer<typeof ConditionStepDefinitionSchema>;
 
 export const ReadRecordStepDefinitionSchema = z.object({
-  ...baseRecordFields,
+  ...sharedFields,
   type: z.literal(StepType.ReadRecord),
+  executionType: z.literal(FullyAutomated).default(FullyAutomated).catch(FullyAutomated),
   preRecordedArgs: z
     .object({
       selectedRecordStepIndex: z.number().int().optional(),
@@ -43,8 +55,12 @@ export const ReadRecordStepDefinitionSchema = z.object({
 export type ReadRecordStepDefinition = z.infer<typeof ReadRecordStepDefinitionSchema>;
 
 export const UpdateRecordStepDefinitionSchema = z.object({
-  ...baseRecordFields,
+  ...sharedFields,
   type: z.literal(StepType.UpdateRecord),
+  executionType: z
+    .enum([AutomatedWithConfirmation, FullyAutomated])
+    .default(AutomatedWithConfirmation)
+    .catch(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
       selectedRecordStepIndex: z.number().int().optional(),
@@ -57,8 +73,12 @@ export const UpdateRecordStepDefinitionSchema = z.object({
 export type UpdateRecordStepDefinition = z.infer<typeof UpdateRecordStepDefinitionSchema>;
 
 export const TriggerActionStepDefinitionSchema = z.object({
-  ...baseRecordFields,
+  ...sharedFields,
   type: z.literal(StepType.TriggerAction),
+  executionType: z
+    .enum([AutomatedWithConfirmation, FullyAutomated])
+    .default(AutomatedWithConfirmation)
+    .catch(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
       selectedRecordStepIndex: z.number().int().optional(),
@@ -70,8 +90,12 @@ export const TriggerActionStepDefinitionSchema = z.object({
 export type TriggerActionStepDefinition = z.infer<typeof TriggerActionStepDefinitionSchema>;
 
 export const LoadRelatedRecordStepDefinitionSchema = z.object({
-  ...baseRecordFields,
+  ...sharedFields,
   type: z.literal(StepType.LoadRelatedRecord),
+  executionType: z
+    .enum([AutomatedWithConfirmation, FullyAutomated])
+    .default(AutomatedWithConfirmation)
+    .catch(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
       selectedRecordStepIndex: z.number().int().optional(),
@@ -84,16 +108,20 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
 export type LoadRelatedRecordStepDefinition = z.infer<typeof LoadRelatedRecordStepDefinitionSchema>;
 
 export const McpStepDefinitionSchema = z.object({
-  ...baseFields,
+  ...sharedFields,
   type: z.literal(StepType.Mcp),
-  mcpServerId: z.string().optional(),
-  automaticExecution: z.boolean().optional(),
+  executionType: z
+    .enum([AutomatedWithConfirmation, FullyAutomated])
+    .default(AutomatedWithConfirmation)
+    .catch(AutomatedWithConfirmation),
+  mcpServerId: z.string().min(1),
 });
 export type McpStepDefinition = z.infer<typeof McpStepDefinitionSchema>;
 
 export const GuidanceStepDefinitionSchema = z.object({
-  ...baseFields,
+  ...sharedFields,
   type: z.literal(StepType.Guidance),
+  executionType: z.literal(Manual).default(Manual).catch(Manual),
 });
 export type GuidanceStepDefinition = z.infer<typeof GuidanceStepDefinitionSchema>;
 

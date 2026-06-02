@@ -29,7 +29,7 @@ export const ConditionStepOutcomeSchema = z
   .object({
     ...baseOutcomeFields,
     type: z.literal('condition'),
-    status: BaseStepStatusSchema,
+    status: RecordStepStatusSchema,
     /** Present when status is 'success'. */
     selectedOption: z.string().optional(),
   })

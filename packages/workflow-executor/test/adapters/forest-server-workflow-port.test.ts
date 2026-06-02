@@ -1,11 +1,49 @@
-import type { ServerHydratedWorkflowRun, ServerUserProfile } from '../../src/adapters/server-types';
+import type {
+  ServerHydratedWorkflowRun,
+  ServerUserProfile,
+  ServerWorkflowCondition,
+  ServerWorkflowEscalation,
+} from '../../src/adapters/server-types';
 import type { CollectionSchema } from '../../src/types/validated/collection';
 import type { StepOutcome } from '../../src/types/validated/step-outcome';
 
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
 import ForestServerWorkflowPort from '../../src/adapters/forest-server-workflow-port';
+import { ServerStepExecutionTypeEnum, ServerStepTypeEnum } from '../../src/adapters/server-types';
 import { MalformedRunError } from '../../src/errors';
+
+function makeConditionStepDef(
+  overrides: Partial<ServerWorkflowCondition> = {},
+): ServerWorkflowCondition {
+  return {
+    type: ServerStepTypeEnum.Condition,
+    title: 'Decide',
+    prompt: 'pick one',
+    executionType: ServerStepExecutionTypeEnum.FullyAutomated,
+    automaticCompletion: false,
+    outgoing: [
+      { stepId: 'next-a', buttonText: 'A', answer: 'Yes' },
+      { stepId: 'next-b', buttonText: 'B', answer: 'No' },
+    ],
+    ...overrides,
+  };
+}
+
+function makeEscalationStepDef(
+  overrides: Partial<ServerWorkflowEscalation> = {},
+): ServerWorkflowEscalation {
+  return {
+    type: ServerStepTypeEnum.Escalation,
+    title: 'Escalate',
+    prompt: 'pick one',
+    executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+    automaticCompletion: false,
+    outgoing: [{ stepId: 'n', buttonText: null }],
+    inboxId: null,
+    ...overrides,
+  };
+}
 
 jest.mock('@forestadmin/forestadmin-client', () => ({
   ServerUtils: { query: jest.fn() },
@@ -29,15 +67,7 @@ function makeRun(overrides: Partial<ServerHydratedWorkflowRun> = {}): ServerHydr
         stepName: 'step-1',
         stepIndex: 0,
         done: false,
-        stepDefinition: {
-          type: 'condition',
-          title: 'Decide',
-          prompt: 'pick one',
-          outgoing: [
-            { stepId: 'next-a', buttonText: 'A', answer: 'Yes' },
-            { stepId: 'next-b', buttonText: 'B', answer: 'No' },
-          ],
-        },
+        stepDefinition: makeConditionStepDef(),
       },
     ],
     createdAt: '2026-04-20T00:00:00.000Z',
@@ -93,12 +123,11 @@ describe('ForestServerWorkflowPort', () => {
             stepName: 'step-1',
             stepIndex: 0,
             done: true,
-            stepDefinition: {
-              type: 'condition',
+            stepDefinition: makeConditionStepDef({
               title: 'Done',
               prompt: '',
               outgoing: [{ stepId: 'next', buttonText: 'ok', answer: 'ok' }],
-            },
+            }),
           },
         ],
       });
@@ -143,23 +172,21 @@ describe('ForestServerWorkflowPort', () => {
             stepName: 'done-step',
             stepIndex: 0,
             done: true,
-            stepDefinition: {
-              type: 'condition',
+            stepDefinition: makeConditionStepDef({
               title: 'x',
               prompt: 'x',
               outgoing: [{ stepId: 'n', buttonText: 'ok', answer: 'ok' }],
-            },
+            }),
           },
           {
             stepName: 'pending-step',
             stepIndex: 1,
             done: false,
-            stepDefinition: {
-              type: 'condition',
+            stepDefinition: makeConditionStepDef({
               title: 'y',
               prompt: 'y',
               outgoing: [{ stepId: 'm', buttonText: 'ok', answer: 'ok' }],
-            },
+            }),
           },
         ],
       });
@@ -191,13 +218,7 @@ describe('ForestServerWorkflowPort', () => {
             stepName: 'esc-step',
             stepIndex: 0,
             done: false,
-            stepDefinition: {
-              type: 'escalation',
-              title: 'x',
-              prompt: 'x',
-              outgoing: { stepId: 'n', buttonText: null },
-              inboxId: null,
-            },
+            stepDefinition: makeEscalationStepDef({ title: 'x', prompt: 'x' }),
           },
         ],
       });
@@ -270,15 +291,12 @@ describe('ForestServerWorkflowPort', () => {
             stepName: '',
             stepIndex: 0,
             done: false,
-            stepDefinition: {
-              type: 'condition',
-              title: 'Decide',
-              prompt: 'pick one',
+            stepDefinition: makeConditionStepDef({
               outgoing: [
                 { stepId: 'a', buttonText: 'A', answer: 'Yes' },
                 { stepId: 'b', buttonText: 'B', answer: 'No' },
               ],
-            },
+            }),
           },
         ],
       });
@@ -296,7 +314,7 @@ describe('ForestServerWorkflowPort', () => {
     });
 
     it('logs and skips when the mapping throws a non-WorkflowExecutorError', async () => {
-      const logger = { error: jest.fn(), info: jest.fn() };
+      const logger = { error: jest.fn(), warn: jest.fn(), info: jest.fn() };
       const portWithLogger = new ForestServerWorkflowPort({ ...options, logger });
       // Simulate a non-domain error by passing a run whose workflowHistory will
       // blow up a pure JS operation inside the mapper (missing `find` on non-array).
@@ -508,29 +526,26 @@ describe('ForestServerWorkflowPort', () => {
               stepName: 'step-1',
               stepIndex: 0,
               done: true,
-              stepDefinition: {
-                type: 'condition',
+              stepDefinition: makeConditionStepDef({
                 title: 'Decide',
-                prompt: 'pick one',
                 outgoing: [
                   { stepId: 'step-2', buttonText: 'Yes', answer: 'Yes' },
                   { stepId: 'step-end', buttonText: 'No', answer: 'No' },
                 ],
-              },
+              }),
             },
             {
               stepName: 'step-2',
               stepIndex: 1,
               done: false,
-              stepDefinition: {
-                type: 'condition',
+              stepDefinition: makeConditionStepDef({
                 title: 'Next',
                 prompt: 'choose',
                 outgoing: [
                   { stepId: 'end-a', buttonText: 'A', answer: 'Yes' },
                   { stepId: 'end-b', buttonText: 'B', answer: 'No' },
                 ],
-              },
+              }),
             },
           ],
         }),
@@ -620,17 +635,61 @@ describe('ForestServerWorkflowPort', () => {
       await expect(port.getCollectionSchema('users', '42')).rejects.toThrow(/invalid/i);
     });
 
-    it('rejects unknown extra fields on the wire (strict mode)', async () => {
+    it('strips unknown extra fields on the wire (orchestrator drift tolerance)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        referenceField: 'name',
+        fields: [
+          {
+            fieldName: 'store',
+            displayName: 'Store',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'stores',
+            relatedPrimaryKey: 'id',
+            type: null,
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result).not.toHaveProperty('referenceField');
+      expect(result.fields[0]).not.toHaveProperty('relatedPrimaryKey');
+      expect(result.fields[0]).toMatchObject({
+        fieldName: 'store',
+        relatedCollectionName: 'stores',
+      });
+    });
+
+    it('defaults actions to [] when the orchestrator omits it', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [],
-        actions: [],
-        unexpectedNewField: 'oops',
       });
 
-      await expect(port.getCollectionSchema('users', '42')).rejects.toThrow();
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.actions).toEqual([]);
+    });
+
+    it('accepts a field without type (omitted by the orchestrator)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [{ fieldName: 'email', displayName: 'Email', isRelationship: false }],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.fields[0].type).toBeUndefined();
     });
 
     it.each([null, ''])(
@@ -732,8 +791,10 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('getMcpServerConfigs', () => {
-    it('fetches mcp server configs', async () => {
-      const configs = [{ name: 'mcp-1' }];
+    it('returns the Record<string, ToolConfig> map verbatim from the orchestrator', async () => {
+      const configs = {
+        'mcp-server-1': { url: 'https://mcp.example.com', type: 'http', headers: {} },
+      };
       mockQuery.mockResolvedValue(configs);
 
       const result = await port.getMcpServerConfigs();
@@ -744,6 +805,14 @@ describe('ForestServerWorkflowPort', () => {
         '/liana/mcp-server-configs-with-details',
       );
       expect(result).toEqual(configs);
+    });
+
+    it('returns an empty Record when the orchestrator has no MCP servers configured', async () => {
+      mockQuery.mockResolvedValue({});
+
+      const result = await port.getMcpServerConfigs();
+
+      expect(result).toEqual({});
     });
   });
 

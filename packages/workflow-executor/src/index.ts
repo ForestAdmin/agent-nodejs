@@ -77,7 +77,7 @@ export type {
   Limit,
   UpdateRecordQuery,
 } from './ports/agent-port';
-export type { McpConfiguration, WorkflowPort } from './ports/workflow-port';
+export type { WorkflowPort } from './ports/workflow-port';
 export type { RunStore } from './ports/run-store';
 export type { Logger } from './ports/logger-port';
 export { default as ConsoleLogger } from './adapters/console-logger';
@@ -95,6 +95,7 @@ export {
   NoRelationshipFieldsError,
   RelatedRecordNotFoundError,
   InvalidAIResponseError,
+  InvalidAiRequestError,
   RelationNotFoundError,
   FieldNotFoundError,
   ActionNotFoundError,

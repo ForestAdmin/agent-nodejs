@@ -3,6 +3,11 @@
 import { z } from 'zod';
 
 // -- Schema types (structure of a collection — source: WorkflowPort) --
+//
+// These schemas (Field/Action/Collection) come from the orchestrator, which deploys independently
+// and evolves this contract over time. They intentionally omit `.strict()` so unknown keys are
+// stripped, not rejected, and require only structural fields — step-specific props are optional and
+// asserted at use-time by the consuming executor. Don't re-add `.strict()` here.
 
 // Mirrors PrimitiveTypes from @forestadmin/datasource-toolkit — kept local to avoid
 // adding a hard dependency on datasource-toolkit from the executor package.
@@ -33,21 +38,15 @@ const ColumnTypeSchema: z.ZodType<any> = z.lazy(() =>
   ]),
 );
 
-export const FieldSchemaSchema = z
-  .object({
-    fieldName: z.string().min(1),
-    displayName: z.string().min(1),
-    isRelationship: z.boolean(),
-    /** Cardinality of the relation. Absent for non-relationship fields. */
-    relationType: z.enum(['BelongsTo', 'HasMany', 'HasOne', 'BelongsToMany']).optional(),
-    /** Target collection name; only meaningful for relationship fields. */
-    relatedCollectionName: z.string().optional(),
-    /** Column type — null for relationship fields. */
-    type: ColumnTypeSchema.nullable(),
-    /** Allowed values for Enum fields. */
-    enumValues: z.array(z.string()).min(1).optional(),
-  })
-  .strict();
+export const FieldSchemaSchema = z.object({
+  fieldName: z.string().min(1),
+  displayName: z.string().min(1),
+  isRelationship: z.boolean(),
+  relationType: z.enum(['BelongsTo', 'HasMany', 'HasOne', 'BelongsToMany']).optional(),
+  relatedCollectionName: z.string().optional(),
+  type: ColumnTypeSchema.nullable().optional(),
+  enumValues: z.array(z.string()).min(1).optional(),
+});
 export type FieldSchema = z.infer<typeof FieldSchemaSchema>;
 
 // ActionSchema.fields / hooks content is a discriminated union owned by the upstream
@@ -59,20 +58,17 @@ const ActionHooksSchema = z
     load: z.boolean(),
     change: z.array(z.unknown()),
   })
-  .strict()
   .optional();
 
-export const ActionSchemaSchema = z
-  .object({
-    name: z.string().min(1),
-    displayName: z.string().min(1),
-    endpoint: z.string().min(1),
-    /** Static form fields. Used as fallback when the agent's /hooks/load route 404s (old Ruby agents). */
-    fields: ActionFieldsSchema,
-    /** Action lifecycle hooks. Drives agent-client's dynamic form loading. */
-    hooks: ActionHooksSchema,
-  })
-  .strict();
+export const ActionSchemaSchema = z.object({
+  name: z.string().min(1),
+  displayName: z.string().min(1),
+  endpoint: z.string().min(1),
+  /** Static form fields. Used as fallback when the agent's /hooks/load route 404s (old Ruby agents). */
+  fields: ActionFieldsSchema,
+  /** Action lifecycle hooks. Drives agent-client's dynamic form loading. */
+  hooks: ActionHooksSchema,
+});
 export type ActionSchema = z.infer<typeof ActionSchemaSchema>;
 
 export const CollectionSchemaSchema = z
@@ -82,9 +78,8 @@ export const CollectionSchemaSchema = z
     collectionDisplayName: z.string().nullable(),
     primaryKeyFields: z.array(z.string().min(1)).min(1),
     fields: z.array(FieldSchemaSchema),
-    actions: z.array(ActionSchemaSchema),
+    actions: z.array(ActionSchemaSchema).optional().default([]),
   })
-  .strict()
   .transform(data => ({
     ...data,
     collectionDisplayName: data.collectionDisplayName || data.collectionName,

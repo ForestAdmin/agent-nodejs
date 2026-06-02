@@ -1,52 +1,52 @@
 import type {
-  ServerTaskType,
   ServerWorkflowCondition,
   ServerWorkflowStep,
   ServerWorkflowTask,
 } from './server-types';
 import type { ConditionStepDefinition, StepDefinition } from '../types/validated/step-definition';
 
+import { ServerTaskTypeEnum } from './server-types';
 import { InvalidStepDefinitionError, UnsupportedStepTypeError } from '../errors';
-import { StepType } from '../types/validated/step-definition';
-
-const TASK_TYPE_TO_STEP_TYPE: Record<ServerTaskType, StepType> = {
-  'get-data': StepType.ReadRecord,
-  'update-data': StepType.UpdateRecord,
-  'trigger-action': StepType.TriggerAction,
-  'load-related-record': StepType.LoadRelatedRecord,
-  'mcp-server': StepType.Mcp,
-  guideline: StepType.Guidance,
-};
+import {
+  ConditionStepDefinitionSchema,
+  GuidanceStepDefinitionSchema,
+  LoadRelatedRecordStepDefinitionSchema,
+  McpStepDefinitionSchema,
+  ReadRecordStepDefinitionSchema,
+  StepType,
+  TriggerActionStepDefinitionSchema,
+  UpdateRecordStepDefinitionSchema,
+} from '../types/validated/step-definition';
 
 function mapTask(task: ServerWorkflowTask): StepDefinition {
-  const stepType = TASK_TYPE_TO_STEP_TYPE[task.taskType];
+  // executionType is passed through as-is; each schema's .default().catch() handles
+  // missing or unsupported values without requiring an explicit mapping here.
+  const base = { prompt: task.prompt, executionType: task.executionType };
 
-  if (!stepType) {
-    throw new InvalidStepDefinitionError(`Unknown taskType: "${task.taskType}"`);
-  }
-
-  const base: { prompt: string; automaticExecution?: boolean } = { prompt: task.prompt };
-  if (task.automaticExecution !== undefined) base.automaticExecution = task.automaticExecution;
-
-  switch (stepType) {
-    case StepType.Mcp:
-      return {
+  switch (task.taskType) {
+    case ServerTaskTypeEnum.McpServer:
+      return McpStepDefinitionSchema.parse({
         ...base,
         type: StepType.Mcp,
-        ...(task.mcpServerId !== undefined && { mcpServerId: task.mcpServerId }),
-      };
-    case StepType.Guidance:
-      return { ...base, type: StepType.Guidance };
-    case StepType.ReadRecord:
-      return { ...base, type: StepType.ReadRecord };
-    case StepType.UpdateRecord:
-      return { ...base, type: StepType.UpdateRecord };
-    case StepType.TriggerAction:
-      return { ...base, type: StepType.TriggerAction };
-    case StepType.LoadRelatedRecord:
-      return { ...base, type: StepType.LoadRelatedRecord };
+        mcpServerId: task.mcpServerId,
+      });
+    case ServerTaskTypeEnum.Guideline:
+      return GuidanceStepDefinitionSchema.parse({ ...base, type: StepType.Guidance });
+    case ServerTaskTypeEnum.GetData:
+      return ReadRecordStepDefinitionSchema.parse({ ...base, type: StepType.ReadRecord });
+    case ServerTaskTypeEnum.UpdateData:
+      return UpdateRecordStepDefinitionSchema.parse({ ...base, type: StepType.UpdateRecord });
+    case ServerTaskTypeEnum.TriggerAction:
+      return TriggerActionStepDefinitionSchema.parse({ ...base, type: StepType.TriggerAction });
+    case ServerTaskTypeEnum.LoadRelatedRecord:
+      return LoadRelatedRecordStepDefinitionSchema.parse({
+        ...base,
+        type: StepType.LoadRelatedRecord,
+      });
     default:
-      throw new InvalidStepDefinitionError(`Unmapped step type: "${stepType}"`);
+      throw new InvalidStepDefinitionError(
+        `Unknown taskType: "${(task as { taskType: string }).taskType}"`,
+      );
   }
 }
 
@@ -61,11 +61,12 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
     );
   }
 
-  return {
+  return ConditionStepDefinitionSchema.parse({
     type: StepType.Condition,
     prompt: condition.prompt,
+    executionType: condition.executionType,
     options,
-  };
+  });
 }
 
 // Server uses `type:'task' + taskType` for non-condition steps and `outgoing[]` for conditions;

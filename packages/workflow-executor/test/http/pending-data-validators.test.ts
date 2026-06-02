@@ -22,6 +22,81 @@ describe('patchBodySchemas', () => {
     });
   });
 
+  describe('update-record', () => {
+    const schema = patchBodySchemas['update-record'];
+    if (!schema) throw new Error('update-record schema not registered');
+
+    it('accepts { userConfirmed: true } without value (AI-proposed value kept)', () => {
+      expect(schema.parse({ userConfirmed: true })).toEqual({ userConfirmed: true });
+    });
+
+    it('accepts string value override', () => {
+      expect(schema.parse({ userConfirmed: true, value: 'new' })).toEqual({
+        userConfirmed: true,
+        value: 'new',
+      });
+    });
+
+    it('accepts number value override', () => {
+      expect(schema.parse({ userConfirmed: true, value: 42 })).toEqual({
+        userConfirmed: true,
+        value: 42,
+      });
+    });
+
+    it('accepts empty string value', () => {
+      expect(schema.parse({ userConfirmed: true, value: '' })).toEqual({
+        userConfirmed: true,
+        value: '',
+      });
+    });
+
+    it('accepts zero value', () => {
+      expect(schema.parse({ userConfirmed: true, value: 0 })).toEqual({
+        userConfirmed: true,
+        value: 0,
+      });
+    });
+
+    // value is now z.unknown(): the HTTP schema no longer judges the business type.
+    // The update-record executor coerces/validates it field-aware (buildZodSchemaForField).
+    it('accepts boolean value (coerced field-aware downstream)', () => {
+      expect(schema.parse({ userConfirmed: true, value: true })).toEqual({
+        userConfirmed: true,
+        value: true,
+      });
+    });
+
+    it('accepts array value (coerced field-aware downstream)', () => {
+      expect(schema.parse({ userConfirmed: true, value: [1, 2] })).toEqual({
+        userConfirmed: true,
+        value: [1, 2],
+      });
+    });
+
+    it('accepts null value', () => {
+      expect(schema.parse({ userConfirmed: true, value: null })).toEqual({
+        userConfirmed: true,
+        value: null,
+      });
+    });
+
+    it('accepts object value (coerced field-aware downstream)', () => {
+      expect(schema.parse({ userConfirmed: true, value: { foo: 'bar' } })).toEqual({
+        userConfirmed: true,
+        value: { foo: 'bar' },
+      });
+    });
+
+    it('rejects missing userConfirmed', () => {
+      expect(() => schema.parse({ value: 'x' })).toThrow();
+    });
+
+    it('rejects unknown fields (strict schema)', () => {
+      expect(() => schema.parse({ userConfirmed: true, value: 'x', extra: 'leak' })).toThrow();
+    });
+  });
+
   describe('trigger-action', () => {
     const schema = patchBodySchemas['trigger-action'];
     if (!schema) throw new Error('trigger-action schema not registered');
@@ -62,6 +137,42 @@ describe('patchBodySchemas', () => {
 
     it('rejects non-boolean userConfirmed', () => {
       expect(() => schema.parse({ userConfirmed: 'yes' })).toThrow();
+    });
+  });
+
+  describe('load-related-record', () => {
+    const schema = patchBodySchemas['load-related-record'];
+    if (!schema) throw new Error('load-related-record schema not registered');
+
+    it('accepts confirmation with no overrides', () => {
+      expect(schema.parse({ userConfirmed: true })).toEqual({ userConfirmed: true });
+    });
+
+    it('accepts confirmation with selectedRecordId override only', () => {
+      expect(schema.parse({ userConfirmed: true, selectedRecordId: [42] })).toEqual({
+        userConfirmed: true,
+        selectedRecordId: [42],
+      });
+    });
+
+    it('accepts confirmation with both name and selectedRecordId (relation override)', () => {
+      expect(schema.parse({ userConfirmed: true, name: 'address', selectedRecordId: [7] })).toEqual(
+        { userConfirmed: true, name: 'address', selectedRecordId: [7] },
+      );
+    });
+
+    it('rejects name override without selectedRecordId — original record ID belongs to a different collection', () => {
+      expect(() => schema.parse({ userConfirmed: true, name: 'address' })).toThrow(
+        'selectedRecordId is required when overriding the relation name',
+      );
+    });
+
+    it('rejects empty string name — empty string is not a valid relation name', () => {
+      expect(() => schema.parse({ userConfirmed: true, name: '' })).toThrow();
+    });
+
+    it('rejects unknown fields (strict schema)', () => {
+      expect(() => schema.parse({ userConfirmed: true, extra: 'leak' })).toThrow();
     });
   });
 });

@@ -5,13 +5,17 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import { AIBadRequestError } from './errors';
 import getKolarTools, { type KolarConfig } from './integrations/kolar/tools';
 import { validateKolarConfig } from './integrations/kolar/utils';
+import getSnowflakeTools, { type SnowflakeConfig } from './integrations/snowflake/tools';
+import { validateSnowflakeConfig } from './integrations/snowflake/utils';
 import getZendeskTools, { type ZendeskConfig } from './integrations/zendesk/tools';
 import { validateZendeskConfig } from './integrations/zendesk/utils';
 
-export type CustomConfig = ZendeskConfig | KolarConfig;
-export type ForestIntegrationName = 'Zendesk' | 'Kolar';
+export type CustomConfig = ZendeskConfig | KolarConfig | SnowflakeConfig;
+export const FOREST_INTEGRATION_NAMES = ['Zendesk', 'Kolar', 'Snowflake'] as const;
+export type ForestIntegrationName = (typeof FOREST_INTEGRATION_NAMES)[number];
 
 export interface ForestIntegrationConfig {
+  id?: string;
   integrationName: ForestIntegrationName;
   config: CustomConfig;
   isForestConnector: true;
@@ -37,13 +41,16 @@ export default class ForestIntegrationClient implements ToolProvider {
   async loadTools(): Promise<RemoteTool[]> {
     const tools: RemoteTool[] = [];
 
-    this.configs.forEach(({ integrationName, config }) => {
+    this.configs.forEach(({ id: mcpServerId, integrationName, config }) => {
       switch (integrationName) {
         case 'Zendesk':
-          tools.push(...getZendeskTools(config as ZendeskConfig));
+          tools.push(...getZendeskTools(config as ZendeskConfig, mcpServerId));
           break;
         case 'Kolar':
-          tools.push(...getKolarTools(config as KolarConfig));
+          tools.push(...getKolarTools(config as KolarConfig, mcpServerId));
+          break;
+        case 'Snowflake':
+          tools.push(...getSnowflakeTools(config as SnowflakeConfig, mcpServerId));
           break;
         default:
           this.logger?.('Warn', `Unsupported integration: ${integrationName}`);
@@ -61,6 +68,8 @@ export default class ForestIntegrationClient implements ToolProvider {
             return validateZendeskConfig(config as ZendeskConfig);
           case 'Kolar':
             return validateKolarConfig(config as KolarConfig);
+          case 'Snowflake':
+            return validateSnowflakeConfig(config as SnowflakeConfig);
           default:
             throw new AIBadRequestError(`Unsupported integration: ${integrationName}`);
         }
