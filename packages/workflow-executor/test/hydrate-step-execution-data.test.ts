@@ -1,10 +1,15 @@
 import type { SchemaGetter } from '../src/hydrate-step-execution-data';
+import type { Logger } from '../src/ports/logger-port';
 import type { WorkflowPort } from '../src/ports/workflow-port';
 import type { StepExecutionData } from '../src/types/step-execution-data';
 import type { CollectionSchema, RecordRef } from '../src/types/validated/collection';
 
 import hydrateStepExecutionData, { makeSchemaGetter } from '../src/hydrate-step-execution-data';
 import SchemaCache from '../src/schema-cache';
+
+function makeLogger(): jest.Mocked<Logger> {
+  return { error: jest.fn(), warn: jest.fn(), info: jest.fn() };
+}
 
 function makeSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
@@ -326,6 +331,47 @@ describe('hydrateStepExecutionData', () => {
     expect(result).toBe(future);
     expect(getter).toHaveBeenCalledWith('customers');
   });
+
+  // --- resilience & observability
+
+  it('warns (but does not throw) when the schema fetch fails', async () => {
+    const logger = makeLogger();
+    const failingGetter: SchemaGetter = jest.fn().mockRejectedValue(new Error('endpoint down'));
+    const execution: StepExecutionData = {
+      type: 'trigger-action',
+      stepIndex: 2,
+      selectedRecordRef: recordRef,
+      executionParams: { name: 'send-email' },
+    };
+
+    const result = await hydrateStepExecutionData(execution, failingGetter, logger);
+
+    expect(result).toMatchObject({
+      executionParams: { name: 'send-email', displayName: 'send-email' },
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to fetch collection schema'),
+      expect.objectContaining({ collection: 'customers', stepIndex: 2 }),
+    );
+  });
+
+  it('returns the raw execution and logs an error when a malformed row cannot be hydrated', async () => {
+    const logger = makeLogger();
+    // A corrupted/legacy read-record row missing executionParams would throw inside hydration.
+    const malformed = {
+      type: 'read-record',
+      stepIndex: 4,
+      selectedRecordRef: recordRef,
+    } as unknown as StepExecutionData;
+
+    const result = await hydrateStepExecutionData(malformed, makeGetter(), logger);
+
+    expect(result).toBe(malformed);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to hydrate'),
+      expect.objectContaining({ type: 'read-record', stepIndex: 4 }),
+    );
+  });
 });
 
 describe('makeSchemaGetter', () => {
@@ -344,5 +390,63 @@ describe('makeSchemaGetter', () => {
     // Second call is served from the cache — the port is hit exactly once.
     expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
     expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith('customers', 'run-1');
+  });
+
+  it('de-duplicates concurrent fetches for the same collection (no stampede)', async () => {
+    const cache = new SchemaCache();
+    let resolveFetch: (s: CollectionSchema) => void = () => undefined;
+    const deferred = new Promise<CollectionSchema>(resolve => {
+      resolveFetch = resolve;
+    });
+    const getCollectionSchema = jest.fn().mockReturnValue(deferred);
+    const getSchema = makeSchemaGetter(
+      cache,
+      { getCollectionSchema } as unknown as WorkflowPort,
+      'run-1',
+    );
+
+    // Five concurrent misses while the first fetch is still in flight.
+    const all = Promise.all([
+      getSchema('customers'),
+      getSchema('customers'),
+      getSchema('customers'),
+      getSchema('customers'),
+      getSchema('customers'),
+    ]);
+    resolveFetch(makeSchema());
+    const results = await all;
+
+    expect(getCollectionSchema).toHaveBeenCalledTimes(1);
+    results.forEach(r => expect(r).toMatchObject({ collectionName: 'customers' }));
+  });
+
+  it('clears the in-flight entry so a failed fetch can be retried', async () => {
+    const cache = new SchemaCache();
+    const getCollectionSchema = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('transient'))
+      .mockResolvedValueOnce(makeSchema());
+    const getSchema = makeSchemaGetter(
+      cache,
+      { getCollectionSchema } as unknown as WorkflowPort,
+      'run-1',
+    );
+
+    await expect(getSchema('customers')).rejects.toThrow('transient');
+    await expect(getSchema('customers')).resolves.toMatchObject({ collectionName: 'customers' });
+    expect(getCollectionSchema).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not cache a failed fetch', async () => {
+    const cache = new SchemaCache();
+    const getCollectionSchema = jest.fn().mockRejectedValue(new Error('down'));
+    const getSchema = makeSchemaGetter(
+      cache,
+      { getCollectionSchema } as unknown as WorkflowPort,
+      'run-1',
+    );
+
+    await expect(getSchema('customers')).rejects.toThrow('down');
+    expect(cache.get('customers')).toBeUndefined();
   });
 });

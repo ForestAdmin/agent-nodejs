@@ -157,7 +157,9 @@ export default class Runner {
     const executions = await this.config.runStore.getStepExecutions(runId);
     const getSchema = makeSchemaGetter(this.config.schemaCache, this.config.workflowPort, runId);
 
-    return Promise.all(executions.map(execution => hydrateStepExecutionData(execution, getSchema)));
+    return Promise.all(
+      executions.map(execution => hydrateStepExecutionData(execution, getSchema, this.logger)),
+    );
   }
 
   async triggerPoll(

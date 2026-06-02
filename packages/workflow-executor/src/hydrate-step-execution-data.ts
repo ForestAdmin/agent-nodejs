@@ -1,3 +1,4 @@
+import type { Logger } from './ports/logger-port';
 import type { WorkflowPort } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
 import type {
@@ -8,6 +9,8 @@ import type {
 } from './types/step-execution-data';
 import type { CollectionSchema } from './types/validated/collection';
 
+import { extractErrorMessage } from './errors';
+
 // displayName is not persisted — it is rebuilt from the current schema so labels never go stale.
 
 export type SchemaGetter = (collectionName: string) => Promise<CollectionSchema>;
@@ -17,14 +20,29 @@ export function makeSchemaGetter(
   workflowPort: WorkflowPort,
   runId: string,
 ): SchemaGetter {
-  return async (collectionName: string) => {
+  // De-duplicates concurrent fetches for the same collection within a single read (e.g. the
+  // Promise.all over a run's steps): the first miss starts the fetch, the rest share its promise.
+  const inFlight = new Map<string, Promise<CollectionSchema>>();
+
+  return (collectionName: string) => {
     const cached = schemaCache.get(collectionName);
-    if (cached) return cached;
+    if (cached) return Promise.resolve(cached);
 
-    const schema = await workflowPort.getCollectionSchema(collectionName, runId);
-    schemaCache.set(collectionName, schema);
+    const pending = inFlight.get(collectionName);
+    if (pending) return pending;
 
-    return schema;
+    const promise = workflowPort
+      .getCollectionSchema(collectionName, runId)
+      .then(schema => {
+        schemaCache.set(collectionName, schema);
+
+        return schema;
+      })
+      .finally(() => inFlight.delete(collectionName));
+
+    inFlight.set(collectionName, promise);
+
+    return promise;
   };
 }
 
@@ -49,28 +67,16 @@ function hydrateRelationResult(
   };
 }
 
-export default async function hydrateStepExecutionData(
-  execution: StepExecutionData,
-  getSchema: SchemaGetter,
-): Promise<HydratedStepExecutionData> {
-  if (
-    execution.type === 'condition' ||
-    execution.type === 'mcp' ||
-    execution.type === 'record' ||
-    execution.type === 'guidance'
-  ) {
-    return execution;
-  }
-
-  // A missing/renamed collection must not break a read — fall back to technical names.
-  let schema: CollectionSchema | null = null;
-
-  try {
-    schema = await getSchema(execution.selectedRecordRef.collectionName);
-  } catch {
-    schema = null;
-  }
-
+// Pure transform — assumes the schema fetch already happened (or failed to null). Split from the
+// async wrapper so the wrapper can guard it: a throw here (malformed row) is caught, logged, and
+// the raw execution returned rather than failing the whole read.
+function hydrate(
+  execution: Exclude<
+    StepExecutionData,
+    { type: 'condition' } | { type: 'mcp' } | { type: 'record' } | { type: 'guidance' }
+  >,
+  schema: CollectionSchema | null,
+): HydratedStepExecutionData {
   switch (execution.type) {
     case 'read-record':
       return {
@@ -131,5 +137,52 @@ export default async function hydrateStepExecutionData(
 
     default:
       return execution;
+  }
+}
+
+export default async function hydrateStepExecutionData(
+  execution: StepExecutionData,
+  getSchema: SchemaGetter,
+  logger?: Logger,
+): Promise<HydratedStepExecutionData> {
+  if (
+    execution.type === 'condition' ||
+    execution.type === 'mcp' ||
+    execution.type === 'record' ||
+    execution.type === 'guidance'
+  ) {
+    return execution;
+  }
+
+  const { collectionName } = execution.selectedRecordRef;
+
+  // A missing/renamed collection must not break a read — fall back to technical names.
+  let schema: CollectionSchema | null = null;
+
+  try {
+    schema = await getSchema(collectionName);
+  } catch (error) {
+    logger?.warn(
+      'Failed to fetch collection schema for displayName hydration; using technical names',
+      {
+        collection: collectionName,
+        stepIndex: execution.stepIndex,
+        error: extractErrorMessage(error),
+      },
+    );
+    schema = null;
+  }
+
+  try {
+    return hydrate(execution, schema);
+  } catch (error) {
+    // A single malformed/legacy row must not take down the whole read — return it un-hydrated.
+    logger?.error('Failed to hydrate step execution displayNames; returning the raw execution', {
+      type: execution.type,
+      stepIndex: execution.stepIndex,
+      error: extractErrorMessage(error),
+    });
+
+    return execution as HydratedStepExecutionData;
   }
 }

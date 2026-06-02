@@ -291,7 +291,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       this.context.previousSteps.map(async ({ stepDefinition, stepOutcome }) => {
         const execution = allStepExecutions.find(e => e.stepIndex === stepOutcome.stepIndex);
         const hydrated = execution
-          ? await hydrateStepExecutionData(execution, getSchema)
+          ? await hydrateStepExecutionData(execution, getSchema, this.context.logger)
           : undefined;
 
         return StepSummaryBuilder.build(stepDefinition, stepOutcome, hydrated);

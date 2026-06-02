@@ -2085,6 +2085,73 @@ describe('getRunStepExecutions', () => {
     });
     expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith('customers', 'run-1');
   });
+
+  it('fetches the schema once for many steps sharing a collection (no stampede)', async () => {
+    const ref = { collectionName: 'customers', recordId: [1], stepIndex: 0 };
+    const persisted = Array.from({ length: 6 }, (_, i) => ({
+      type: 'update-record' as const,
+      stepIndex: i,
+      selectedRecordRef: { ...ref, stepIndex: i },
+      executionParams: { name: 'status', value: 'active' },
+    }));
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue(persisted),
+    });
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getCollectionSchema.mockResolvedValue({
+      collectionName: 'customers',
+      collectionDisplayName: 'Customers',
+      primaryKeyFields: ['id'],
+      fields: [{ fieldName: 'status', displayName: 'Status', isRelationship: false }],
+      actions: [],
+    });
+    runner = new Runner(createRunnerConfig({ runStore, workflowPort }));
+
+    const result = await runner.getRunStepExecutions('run-1');
+
+    expect(result).toHaveLength(6);
+    expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fail the whole read when one persisted row is malformed', async () => {
+    const ref = { collectionName: 'customers', recordId: [1], stepIndex: 0 };
+    const persisted = [
+      {
+        type: 'update-record' as const,
+        stepIndex: 0,
+        selectedRecordRef: ref,
+        executionParams: { name: 'status', value: 'active' },
+      },
+      // Corrupted/legacy read-record row missing executionParams — would throw during hydration.
+      { type: 'read-record' as const, stepIndex: 1, selectedRecordRef: ref },
+    ];
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue(persisted),
+    });
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getCollectionSchema.mockResolvedValue({
+      collectionName: 'customers',
+      collectionDisplayName: 'Customers',
+      primaryKeyFields: ['id'],
+      fields: [{ fieldName: 'status', displayName: 'Status', isRelationship: false }],
+      actions: [],
+    });
+    const logger = createMockLogger();
+    runner = new Runner(createRunnerConfig({ runStore, workflowPort, logger }));
+
+    const result = await runner.getRunStepExecutions('run-1');
+
+    // The good row is hydrated; the malformed row is returned raw rather than 500-ing the read.
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      executionParams: { name: 'status', displayName: 'Status', value: 'active' },
+    });
+    expect(result[1]).toMatchObject({ type: 'read-record', stepIndex: 1 });
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to hydrate'),
+      expect.objectContaining({ type: 'read-record', stepIndex: 1 }),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
