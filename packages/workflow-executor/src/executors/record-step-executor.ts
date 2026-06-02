@@ -68,8 +68,6 @@ export default abstract class RecordStepExecutor<
   }
 
   protected async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    // Lazily build a rendering-scoped getter once per executor instance (one runId/rendering),
-    // shared across this step's getCollectionSchema calls — same keying as the read path.
     this.schemaGetter ??= makeSchemaGetter(
       this.context.schemaCache,
       this.context.workflowPort,

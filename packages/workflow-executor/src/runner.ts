@@ -153,8 +153,6 @@ export default class Runner {
     }
   }
 
-  // renderingId (from the requesting user) scopes the schema cache; the schema content itself is
-  // resolved server-side from the run's rendering via runId in getCollectionSchema.
   async getRunStepExecutions(
     runId: string,
     renderingId: number,

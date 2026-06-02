@@ -15,9 +15,7 @@ import { extractErrorMessage } from './errors';
 
 export type SchemaGetter = (collectionName: string) => Promise<CollectionSchema>;
 
-// runId scopes the server fetch (it resolves the run's rendering); renderingId scopes the cache so
-// entries are never shared across renderings of one environment. Fetch de-duplication and caching
-// live in SchemaCache.getOrFetch, so concurrent callers share one fetch regardless of getter.
+// runId fetches the run's rendering server-side; renderingId scopes the cache.
 export function makeSchemaGetter(
   schemaCache: SchemaCache,
   workflowPort: WorkflowPort,
@@ -51,9 +49,8 @@ function hydrateRelationResult(
   };
 }
 
-// Pure transform — assumes the schema fetch already happened (or failed to null). Split from the
-// async wrapper so the wrapper can guard it: a throw here (malformed row) is caught, logged, and
-// the raw execution returned rather than failing the whole read.
+// Split from the async wrapper so a throw on a malformed row can be caught and the raw execution
+// returned instead of failing the whole read.
 function hydrate(
   execution: Exclude<
     StepExecutionData,
@@ -160,7 +157,6 @@ export default async function hydrateStepExecutionData(
   try {
     return hydrate(execution, schema);
   } catch (error) {
-    // A single malformed/legacy row must not take down the whole read — return it un-hydrated.
     logger?.error('Failed to hydrate step execution displayNames; returning the raw execution', {
       type: execution.type,
       stepIndex: execution.stepIndex,
