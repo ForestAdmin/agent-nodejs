@@ -149,14 +149,17 @@ export default class AgentClientAgentPort implements AgentPort {
     user: StepUser,
   ): Promise<RecordData | null> {
     return this.callAgent('getSingleRelatedData', async () => {
-      const projectedFields = Array.from(
-        new Set([...relatedSchema.primaryKeyFields, ...(fields ?? [])]),
-      );
+      // The agent can't parse multiple sub-fields on one relation in a single projection
+      // (`fields[store]=id,name` is read as a single field name → ValidationError). The linkage
+      // `id` carries the (packed) related PK regardless of projection, so project at most ONE
+      // field: the requested reference field for display, else a single PK field just to pull the
+      // relation into the response.
+      const projectedField = fields?.[0] ?? relatedSchema.primaryKeyFields[0];
       const parent = await this.getRecord(
         {
           collection,
           id,
-          fields: projectedFields.map(f => `${relation}@@@${f}`),
+          fields: [`${relation}@@@${projectedField}`],
         },
         user,
       );
@@ -166,7 +169,7 @@ export default class AgentClientAgentPort implements AgentPort {
 
       if (!linkage || !packedId) return null;
 
-      const restored = restoreFieldNames(linkage, projectedFields);
+      const restored = restoreFieldNames(linkage, [projectedField]);
 
       return {
         collectionName: relatedSchema.collectionName,

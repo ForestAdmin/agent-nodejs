@@ -493,7 +493,7 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    it('adds extra projections for caller-supplied fields (e.g. referenceField)', async () => {
+    it('projects only the caller field (e.g. referenceField), not the PK — the linkage id comes free', async () => {
       mockCollection.list.mockResolvedValue([{ order: { id: '99', reference: 'ORD-2026-001' } }]);
 
       const result = await port.getSingleRelatedData(
@@ -507,14 +507,15 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
+      // Single sub-field only: the agent can't parse `fields[order]=id,reference`.
       expect(mockCollection.list).toHaveBeenCalledWith(
-        expect.objectContaining({ fields: ['order@@@id', 'order@@@reference'] }),
+        expect.objectContaining({ fields: ['order@@@reference'] }),
       );
       expect(result?.values).toEqual({ id: '99', reference: 'ORD-2026-001' });
     });
 
-    it('deduplicates the PK if the caller passes it again in fields', async () => {
-      mockCollection.list.mockResolvedValue([{ order: { id: '99' } }]);
+    it('projects at most one sub-field even when the caller passes several', async () => {
+      mockCollection.list.mockResolvedValue([{ order: { id: '99', reference: 'ORD-2026-001' } }]);
 
       await port.getSingleRelatedData(
         {
@@ -522,13 +523,13 @@ describe('AgentClientAgentPort', () => {
           id: [42],
           relation: 'order',
           relatedSchema: ordersSchema,
-          fields: ['id'],
+          fields: ['reference', 'label'],
         },
         user,
       );
 
       expect(mockCollection.list).toHaveBeenCalledWith(
-        expect.objectContaining({ fields: ['order@@@id'] }),
+        expect.objectContaining({ fields: ['order@@@reference'] }),
       );
     });
 
