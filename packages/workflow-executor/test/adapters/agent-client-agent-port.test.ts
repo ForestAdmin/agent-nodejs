@@ -1,6 +1,7 @@
 import type { StepUser } from '../../src/types/execution-context';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
+import jsonwebtoken from 'jsonwebtoken';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
 import { AgentProbeError, RecordNotFoundError } from '../../src/errors';
@@ -199,6 +200,29 @@ describe('AgentClientAgentPort', () => {
         }),
       );
       expect(result.collectionName).toBe('unknown');
+    });
+  });
+
+  describe('agent JWT', () => {
+    it('signs both camelCase and snake_case identity claims for cross-runtime agents', async () => {
+      mockCollection.list.mockResolvedValue([{ id: 42 }]);
+
+      await port.getRecord({ collection: 'users', id: [42] }, user);
+
+      const { token } = mockedCreateRemoteAgentClient.mock.calls[0][0];
+      const payload = jsonwebtoken.verify(token, 'test-secret') as Record<string, unknown>;
+
+      expect(payload).toMatchObject({
+        firstName: 'Test',
+        lastName: 'User',
+        renderingId: 1,
+        permissionLevel: 'admin',
+        first_name: 'Test',
+        last_name: 'User',
+        rendering_id: 1,
+        permission_level: 'admin',
+        scope: 'step-execution',
+      });
     });
   });
 

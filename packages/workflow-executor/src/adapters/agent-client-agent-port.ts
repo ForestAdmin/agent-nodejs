@@ -179,9 +179,19 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   private createClient(user: StepUser) {
-    const token = jsonwebtoken.sign({ ...user, scope: 'step-execution' }, this.authSecret, {
-      expiresIn: '5m',
-    });
+    // snake_case aliases: Ruby/Python agents splat JWT claims into Caller.new (snake_case kwargs).
+    const token = jsonwebtoken.sign(
+      {
+        ...user,
+        first_name: user.firstName,
+        last_name: user.lastName,
+        rendering_id: user.renderingId,
+        permission_level: user.permissionLevel,
+        scope: 'step-execution',
+      },
+      this.authSecret,
+      { expiresIn: '5m' },
+    );
 
     return createRemoteAgentClient({
       url: this.agentUrl,
