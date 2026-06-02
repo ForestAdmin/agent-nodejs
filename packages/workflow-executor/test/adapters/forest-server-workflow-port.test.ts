@@ -649,7 +649,7 @@ describe('ForestServerWorkflowPort', () => {
             isRelationship: true,
             relationType: 'BelongsTo',
             relatedCollectionName: 'stores',
-            relatedPrimaryKey: 'id',
+            futureFieldKey: 'ignored',
             type: null,
           },
         ],
@@ -660,7 +660,7 @@ describe('ForestServerWorkflowPort', () => {
 
       // Genuinely-unknown keys are stripped; declared fields (referenceField) are preserved.
       expect(result).not.toHaveProperty('futureUnknownField');
-      expect(result.fields[0]).not.toHaveProperty('relatedPrimaryKey');
+      expect(result.fields[0]).not.toHaveProperty('futureFieldKey');
       expect(result.referenceField).toBe('name');
       expect(result.fields[0]).toMatchObject({
         fieldName: 'store',
@@ -747,7 +747,6 @@ describe('ForestServerWorkflowPort', () => {
             isRelationship: true,
             relationType: 'BelongsTo',
             relatedCollectionName: 'store.id',
-            relatedPrimaryKey: 'id',
             type: null,
           },
         ],
@@ -771,7 +770,6 @@ describe('ForestServerWorkflowPort', () => {
             isRelationship: true,
             relationType: 'BelongsTo',
             relatedCollectionName: 'store',
-            relatedPrimaryKey: 'id',
             type: null,
           },
         ],

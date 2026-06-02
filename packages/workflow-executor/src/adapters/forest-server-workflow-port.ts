@@ -44,7 +44,7 @@ const ROUTES = {
 };
 
 // Forest sends relatedCollectionName as a `collection.targetKey` reference (e.g. "store.id");
-// normalize it to a plain collection name (the target key lives in relatedPrimaryKey).
+// normalize it to a plain collection name (the related PK comes from the schema's primaryKeyFields).
 function stripReferenceKey(name: string | undefined): string | undefined {
   return name?.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name;
 }
