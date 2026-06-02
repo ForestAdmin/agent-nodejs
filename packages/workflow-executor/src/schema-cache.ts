@@ -1,6 +1,8 @@
 import type { CollectionSchema } from './types/validated/collection';
 
-const DEFAULT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+// 10 minutes. By design, a label edited in the rendering can take up to this long to appear on the
+// hydration read path (GET /runs/:runId) — an accepted freshness/load trade-off, not a bug.
+const DEFAULT_TTL_MS = 10 * 60 * 1000;
 
 interface Entry {
   schema: CollectionSchema;
