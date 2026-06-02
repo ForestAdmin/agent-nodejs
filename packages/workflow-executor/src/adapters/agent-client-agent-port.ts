@@ -73,7 +73,7 @@ export default class AgentClientAgentPort implements AgentPort {
   async getRecord({ collection, id, fields }: GetRecordQuery, user: StepUser): Promise<RecordData> {
     return this.callAgent('getRecord', async () => {
       const client = this.createClient(user);
-      const schema = this.resolveSchema(collection);
+      const schema = this.resolveSchema(collection, user.renderingId);
       const records = await client.collection(collection).list<Record<string, unknown>>({
         filters: buildPkFilter(schema.primaryKeyFields, id),
         pagination: { size: 1, number: 1 },
@@ -116,10 +116,10 @@ export default class AgentClientAgentPort implements AgentPort {
   ): Promise<RecordData[]> {
     return this.callAgent('getRelatedData', async () => {
       const client = this.createClient(user);
-      const parentSchema = this.resolveSchema(collection);
+      const parentSchema = this.resolveSchema(collection, user.renderingId);
       const relationField = parentSchema.fields.find(f => f.fieldName === relation);
       const relatedCollectionName = relationField?.relatedCollectionName ?? relation;
-      const relatedSchema = this.resolveSchema(relatedCollectionName);
+      const relatedSchema = this.resolveSchema(relatedCollectionName, user.renderingId);
 
       const records = await client
         .collection(collection)
@@ -186,7 +186,7 @@ export default class AgentClientAgentPort implements AgentPort {
     return createRemoteAgentClient({
       url: this.agentUrl,
       token,
-      actionEndpoints: this.buildActionEndpoints(),
+      actionEndpoints: this.buildActionEndpoints(user.renderingId),
     });
   }
 
@@ -212,10 +212,10 @@ export default class AgentClientAgentPort implements AgentPort {
     }
   }
 
-  private buildActionEndpoints(): ActionEndpointsByCollection {
+  private buildActionEndpoints(renderingId: number): ActionEndpointsByCollection {
     const endpoints: ActionEndpointsByCollection = {};
 
-    for (const [collectionName, schema] of this.schemaCache) {
+    for (const [collectionName, schema] of this.schemaCache.entriesForRendering(renderingId)) {
       endpoints[collectionName] = {};
 
       for (const action of schema.actions) {
@@ -238,8 +238,8 @@ export default class AgentClientAgentPort implements AgentPort {
     return endpoints;
   }
 
-  private resolveSchema(collectionName: string): CollectionSchema {
-    const cached = this.schemaCache.get(collectionName);
+  private resolveSchema(collectionName: string, renderingId: number): CollectionSchema {
+    const cached = this.schemaCache.get(renderingId, collectionName);
 
     if (!cached) {
       // eslint-disable-next-line no-console

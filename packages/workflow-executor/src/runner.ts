@@ -153,9 +153,19 @@ export default class Runner {
     }
   }
 
-  async getRunStepExecutions(runId: string): Promise<HydratedStepExecutionData[]> {
+  // renderingId (from the requesting user) scopes the schema cache; the schema content itself is
+  // resolved server-side from the run's rendering via runId in getCollectionSchema.
+  async getRunStepExecutions(
+    runId: string,
+    renderingId: number,
+  ): Promise<HydratedStepExecutionData[]> {
     const executions = await this.config.runStore.getStepExecutions(runId);
-    const getSchema = makeSchemaGetter(this.config.schemaCache, this.config.workflowPort, runId);
+    const getSchema = makeSchemaGetter(
+      this.config.schemaCache,
+      this.config.workflowPort,
+      runId,
+      renderingId,
+    );
 
     return Promise.all(
       executions.map(execution => hydrateStepExecutionData(execution, getSchema, this.logger)),

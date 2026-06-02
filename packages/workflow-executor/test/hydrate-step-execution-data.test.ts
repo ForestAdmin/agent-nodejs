@@ -382,7 +382,7 @@ describe('makeSchemaGetter', () => {
       getCollectionSchema: jest.fn().mockResolvedValue(schema),
     } as unknown as WorkflowPort;
 
-    const getSchema = makeSchemaGetter(cache, workflowPort, 'run-1');
+    const getSchema = makeSchemaGetter(cache, workflowPort, 'run-1', 1);
 
     await expect(getSchema('customers')).resolves.toBe(schema);
     await expect(getSchema('customers')).resolves.toBe(schema);
@@ -390,6 +390,25 @@ describe('makeSchemaGetter', () => {
     // Second call is served from the cache — the port is hit exactly once.
     expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
     expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith('customers', 'run-1');
+  });
+
+  it('scopes the cache by rendering: two renderings of one collection do not share', async () => {
+    const cache = new SchemaCache();
+    const getCollectionSchema = jest
+      .fn()
+      .mockResolvedValueOnce(makeSchema({ collectionDisplayName: 'Clients' }))
+      .mockResolvedValueOnce(makeSchema({ collectionDisplayName: 'Accounts' }));
+    const workflowPort = { getCollectionSchema } as unknown as WorkflowPort;
+
+    const r1 = await makeSchemaGetter(cache, workflowPort, 'run-1', 1)('customers');
+    const r2 = await makeSchemaGetter(cache, workflowPort, 'run-2', 2)('customers');
+
+    // Each rendering fetched and cached independently — no cross-rendering hit.
+    expect(getCollectionSchema).toHaveBeenCalledTimes(2);
+    expect(r1.collectionDisplayName).toBe('Clients');
+    expect(r2.collectionDisplayName).toBe('Accounts');
+    expect(cache.get(1, 'customers')?.collectionDisplayName).toBe('Clients');
+    expect(cache.get(2, 'customers')?.collectionDisplayName).toBe('Accounts');
   });
 
   it('de-duplicates concurrent fetches for the same collection (no stampede)', async () => {
@@ -403,6 +422,7 @@ describe('makeSchemaGetter', () => {
       cache,
       { getCollectionSchema } as unknown as WorkflowPort,
       'run-1',
+      1,
     );
 
     // Five concurrent misses while the first fetch is still in flight.
@@ -430,6 +450,7 @@ describe('makeSchemaGetter', () => {
       cache,
       { getCollectionSchema } as unknown as WorkflowPort,
       'run-1',
+      1,
     );
 
     await expect(getSchema('customers')).rejects.toThrow('transient');
@@ -444,9 +465,10 @@ describe('makeSchemaGetter', () => {
       cache,
       { getCollectionSchema } as unknown as WorkflowPort,
       'run-1',
+      1,
     );
 
     await expect(getSchema('customers')).rejects.toThrow('down');
-    expect(cache.get('customers')).toBeUndefined();
+    expect(cache.get(1, 'customers')).toBeUndefined();
   });
 });

@@ -289,7 +289,7 @@ describe('ExecutorHttpServer', () => {
       });
 
       const server = createServer({ runner });
-      const token = signToken({ id: 1 });
+      const token = signToken({ id: 1, renderingId: 7 });
 
       const response = await request(server.callback)
         .get('/runs/run-1')
@@ -297,7 +297,8 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ steps });
-      expect(runner.getRunStepExecutions).toHaveBeenCalledWith('run-1');
+      // Schema hydration is scoped to the requesting user's rendering.
+      expect(runner.getRunStepExecutions).toHaveBeenCalledWith('run-1', 7);
     });
 
     it('should return 500 when getRunStepExecutions rejects', async () => {

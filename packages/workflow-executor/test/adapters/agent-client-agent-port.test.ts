@@ -46,7 +46,7 @@ describe('AgentClientAgentPort', () => {
     mockedCreateRemoteAgentClient.mockReturnValue(mocks.client as any);
 
     const schemaCache = new SchemaCache();
-    schemaCache.set('users', {
+    schemaCache.set(1, 'users', {
       collectionName: 'users',
       collectionDisplayName: 'Users',
       primaryKeyFields: ['id'],
@@ -59,7 +59,7 @@ describe('AgentClientAgentPort', () => {
         { name: 'archive', displayName: 'Archive', endpoint: '/forest/actions/archive' },
       ],
     });
-    schemaCache.set('orders', {
+    schemaCache.set(1, 'orders', {
       collectionName: 'orders',
       collectionDisplayName: 'Orders',
       primaryKeyFields: ['tenantId', 'orderId'],
@@ -69,7 +69,7 @@ describe('AgentClientAgentPort', () => {
       ],
       actions: [],
     });
-    schemaCache.set('posts', {
+    schemaCache.set(1, 'posts', {
       collectionName: 'posts',
       collectionDisplayName: 'Posts',
       primaryKeyFields: ['id'],
@@ -369,7 +369,7 @@ describe('AgentClientAgentPort', () => {
 
     it('should restore snake_case field names in recordId and values when agent returns camelCase keys', async () => {
       const cache = new SchemaCache();
-      cache.set('users', {
+      cache.set(1, 'users', {
         collectionName: 'users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
@@ -383,7 +383,7 @@ describe('AgentClientAgentPort', () => {
         ],
         actions: [],
       });
-      cache.set('posts', {
+      cache.set(1, 'posts', {
         collectionName: 'posts',
         collectionDisplayName: 'Posts',
         primaryKeyFields: ['post_id'],
@@ -487,7 +487,7 @@ describe('AgentClientAgentPort', () => {
   describe('buildActionEndpoints', () => {
     it('passes fields and hooks from schema to agent-client (supports Ruby agent fallback)', async () => {
       const schemaCache = new SchemaCache();
-      schemaCache.set('users', {
+      schemaCache.set(1, 'users', {
         collectionName: 'users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],

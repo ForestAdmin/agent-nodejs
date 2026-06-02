@@ -159,7 +159,8 @@ export default class ExecutorHttpServer {
   }
 
   private async handleGetRun(ctx: Koa.Context): Promise<void> {
-    const steps = await this.options.runner.getRunStepExecutions(ctx.params.runId);
+    const { renderingId } = ctx.state.user as StepUser;
+    const steps = await this.options.runner.getRunStepExecutions(ctx.params.runId, renderingId);
     ctx.body = { steps };
   }
 

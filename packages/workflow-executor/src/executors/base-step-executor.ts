@@ -286,6 +286,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       this.context.schemaCache,
       this.context.workflowPort,
       this.context.runId,
+      this.context.user.renderingId,
     );
     const summaries = await Promise.all(
       this.context.previousSteps.map(async ({ stepDefinition, stepOutcome }) => {

@@ -15,17 +15,20 @@ import { extractErrorMessage } from './errors';
 
 export type SchemaGetter = (collectionName: string) => Promise<CollectionSchema>;
 
+// runId scopes the server fetch (it resolves the run's rendering); renderingId scopes the cache so
+// entries are never shared across renderings of one environment.
 export function makeSchemaGetter(
   schemaCache: SchemaCache,
   workflowPort: WorkflowPort,
   runId: string,
+  renderingId: number,
 ): SchemaGetter {
   // De-duplicates concurrent fetches for the same collection within a single read (e.g. the
   // Promise.all over a run's steps): the first miss starts the fetch, the rest share its promise.
   const inFlight = new Map<string, Promise<CollectionSchema>>();
 
   return (collectionName: string) => {
-    const cached = schemaCache.get(collectionName);
+    const cached = schemaCache.get(renderingId, collectionName);
     if (cached) return Promise.resolve(cached);
 
     const pending = inFlight.get(collectionName);
@@ -34,7 +37,7 @@ export function makeSchemaGetter(
     const promise = workflowPort
       .getCollectionSchema(collectionName, runId)
       .then(schema => {
-        schemaCache.set(collectionName, schema);
+        schemaCache.set(renderingId, collectionName, schema);
 
         return schema;
       })

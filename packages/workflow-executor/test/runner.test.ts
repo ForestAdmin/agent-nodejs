@@ -2048,7 +2048,7 @@ describe('getRunStepExecutions', () => {
     });
     runner = new Runner(createRunnerConfig({ runStore }));
 
-    const result = await runner.getRunStepExecutions('run-1');
+    const result = await runner.getRunStepExecutions('run-1', 1);
 
     expect(result).toEqual(steps);
     expect(runStore.getStepExecutions).toHaveBeenCalledWith('run-1');
@@ -2077,7 +2077,7 @@ describe('getRunStepExecutions', () => {
     });
     runner = new Runner(createRunnerConfig({ runStore, workflowPort }));
 
-    const result = await runner.getRunStepExecutions('run-1');
+    const result = await runner.getRunStepExecutions('run-1', 1);
 
     expect(result[0]).toMatchObject({
       type: 'update-record',
@@ -2107,7 +2107,7 @@ describe('getRunStepExecutions', () => {
     });
     runner = new Runner(createRunnerConfig({ runStore, workflowPort }));
 
-    const result = await runner.getRunStepExecutions('run-1');
+    const result = await runner.getRunStepExecutions('run-1', 1);
 
     expect(result).toHaveLength(6);
     expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(1);
@@ -2139,7 +2139,7 @@ describe('getRunStepExecutions', () => {
     const logger = createMockLogger();
     runner = new Runner(createRunnerConfig({ runStore, workflowPort, logger }));
 
-    const result = await runner.getRunStepExecutions('run-1');
+    const result = await runner.getRunStepExecutions('run-1', 1);
 
     // The good row is hydrated; the malformed row is returned raw rather than 500-ing the read.
     expect(result).toHaveLength(2);
@@ -2151,6 +2151,50 @@ describe('getRunStepExecutions', () => {
       expect.stringContaining('Failed to hydrate'),
       expect.objectContaining({ type: 'read-record', stepIndex: 1 }),
     );
+  });
+
+  it('does not contaminate labels across renderings sharing one executor cache', async () => {
+    const ref = { collectionName: 'customers', recordId: [1], stepIndex: 0 };
+    const execution = {
+      type: 'update-record' as const,
+      stepIndex: 0,
+      selectedRecordRef: ref,
+      executionParams: { name: 'status', value: 'active' },
+    };
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue([execution]),
+    });
+    const workflowPort = createMockWorkflowPort();
+    // The server resolves the schema from the run's rendering (via runId) — different label per run.
+    workflowPort.getCollectionSchema.mockImplementation((_collection: string, runId: string) =>
+      Promise.resolve({
+        collectionName: 'customers',
+        collectionDisplayName: 'Customers',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'status',
+            displayName: runId === 'run-A' ? 'Lifecycle Stage' : 'État',
+            isRelationship: false,
+          },
+        ],
+        actions: [],
+      }),
+    );
+    // One Runner == one shared SchemaCache, exercised by two renderings of the same environment.
+    runner = new Runner(createRunnerConfig({ runStore, workflowPort }));
+
+    const resultA = await runner.getRunStepExecutions('run-A', 1);
+    const resultB = await runner.getRunStepExecutions('run-B', 2);
+
+    expect(resultA[0]).toMatchObject({
+      executionParams: { name: 'status', displayName: 'Lifecycle Stage' },
+    });
+    expect(resultB[0]).toMatchObject({
+      executionParams: { name: 'status', displayName: 'État' },
+    });
+    // Each rendering triggered its own fetch — rendering 2 did NOT read rendering 1's cached entry.
+    expect(workflowPort.getCollectionSchema).toHaveBeenCalledTimes(2);
   });
 });
 
