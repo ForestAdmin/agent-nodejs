@@ -732,6 +732,30 @@ describe('ForestServerWorkflowPort', () => {
       });
     });
 
+    it("strips the target key from relatedCollectionName (Forest 'collection.key' reference)", async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'accounts',
+        collectionDisplayName: 'Accounts',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'store',
+            displayName: 'Store',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'store.id',
+            relatedPrimaryKey: 'id',
+            type: null,
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('accounts', '42');
+
+      expect(result.fields[0].relatedCollectionName).toBe('store');
+    });
+
     it('accepts type File (Forest Admin extension)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
