@@ -191,6 +191,141 @@ describe('hydrateStepExecutionData', () => {
 
     expect(result).toMatchObject({ executionResult: { skipped: true } });
   });
+
+  // --- optional-field phases: only the present fields get a displayName, absent ones stay absent
+
+  it('hydrates only pendingData when update-record is awaiting input (no executionParams)', async () => {
+    const execution: StepExecutionData = {
+      type: 'update-record',
+      stepIndex: 1,
+      selectedRecordRef: recordRef,
+      pendingData: { name: 'status', value: 'active' },
+    };
+
+    const result = await hydrateStepExecutionData(execution, makeGetter());
+
+    expect(result).toMatchObject({
+      pendingData: { name: 'status', displayName: 'Status', value: 'active' },
+    });
+    expect((result as { executionParams?: unknown }).executionParams).toBeUndefined();
+  });
+
+  it('hydrates only executionParams when update-record is done (no pendingData)', async () => {
+    const execution: StepExecutionData = {
+      type: 'update-record',
+      stepIndex: 1,
+      selectedRecordRef: recordRef,
+      executionParams: { name: 'status', value: 'active' },
+      executionResult: { updatedValues: { status: 'active' } },
+    };
+
+    const result = await hydrateStepExecutionData(execution, makeGetter());
+
+    expect(result).toMatchObject({
+      executionParams: { name: 'status', displayName: 'Status', value: 'active' },
+      executionResult: { updatedValues: { status: 'active' } },
+    });
+    expect((result as { pendingData?: unknown }).pendingData).toBeUndefined();
+  });
+
+  it('leaves both fields undefined for the update-record executing phase', async () => {
+    const execution: StepExecutionData = {
+      type: 'update-record',
+      stepIndex: 1,
+      selectedRecordRef: recordRef,
+      idempotencyPhase: 'executing',
+    };
+
+    const result = await hydrateStepExecutionData(execution, makeGetter());
+
+    expect(result).toMatchObject({ type: 'update-record', idempotencyPhase: 'executing' });
+    expect((result as { executionParams?: unknown }).executionParams).toBeUndefined();
+    expect((result as { pendingData?: unknown }).pendingData).toBeUndefined();
+  });
+
+  it('leaves both fields undefined for the trigger-action executing phase', async () => {
+    const execution: StepExecutionData = {
+      type: 'trigger-action',
+      stepIndex: 2,
+      selectedRecordRef: recordRef,
+      idempotencyPhase: 'executing',
+    };
+
+    const result = await hydrateStepExecutionData(execution, makeGetter());
+
+    expect((result as { executionParams?: unknown }).executionParams).toBeUndefined();
+    expect((result as { pendingData?: unknown }).pendingData).toBeUndefined();
+  });
+
+  it('hydrates load-related automatic execution (executionParams + result, no pendingData)', async () => {
+    const execution: StepExecutionData = {
+      type: 'load-related-record',
+      stepIndex: 3,
+      selectedRecordRef: recordRef,
+      executionParams: { name: 'orders' },
+      executionResult: {
+        relation: { name: 'orders' },
+        record: { collectionName: 'orders', recordId: [7], stepIndex: 3 },
+      },
+    };
+
+    const result = await hydrateStepExecutionData(execution, makeGetter());
+
+    expect(result).toMatchObject({
+      executionParams: { name: 'orders', displayName: 'Orders' },
+      executionResult: { relation: { name: 'orders', displayName: 'Orders' } },
+    });
+    expect((result as { pendingData?: unknown }).pendingData).toBeUndefined();
+  });
+
+  it('hydrates load-related pendingData while it is still awaiting input (no executionResult)', async () => {
+    const execution: StepExecutionData = {
+      type: 'load-related-record',
+      stepIndex: 3,
+      selectedRecordRef: recordRef,
+      pendingData: { name: 'orders', selectedRecordId: [7] },
+    };
+
+    const result = await hydrateStepExecutionData(execution, makeGetter());
+
+    expect(result).toMatchObject({
+      pendingData: { name: 'orders', displayName: 'Orders', selectedRecordId: [7] },
+    });
+    // hydrateRelationResult passes an absent executionResult straight through.
+    expect((result as { executionResult?: unknown }).executionResult).toBeUndefined();
+    expect((result as { executionParams?: unknown }).executionParams).toBeUndefined();
+  });
+
+  it('resolves the action displayName from schema.actions, not schema.fields', async () => {
+    const execution: StepExecutionData = {
+      type: 'trigger-action',
+      stepIndex: 2,
+      selectedRecordRef: recordRef,
+      // A field shares the name of no action; ensure the action lookup is used (and a matching
+      // field name would NOT leak its label into an action ref).
+      executionParams: { name: 'send-email' },
+    };
+
+    const result = await hydrateStepExecutionData(execution, makeGetter());
+
+    expect(result).toMatchObject({
+      executionParams: { name: 'send-email', displayName: 'Send Email' },
+    });
+  });
+
+  it('returns an unrecognized step type unchanged after fetching the schema', async () => {
+    const getter = makeGetter();
+    const future = {
+      type: 'future-step',
+      stepIndex: 9,
+      selectedRecordRef: recordRef,
+    } as unknown as StepExecutionData;
+
+    const result = await hydrateStepExecutionData(future, getter);
+
+    expect(result).toBe(future);
+    expect(getter).toHaveBeenCalledWith('customers');
+  });
 });
 
 describe('makeSchemaGetter', () => {
