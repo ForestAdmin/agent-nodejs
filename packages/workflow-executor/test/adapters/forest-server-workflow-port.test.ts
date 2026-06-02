@@ -635,17 +635,61 @@ describe('ForestServerWorkflowPort', () => {
       await expect(port.getCollectionSchema('users', '42')).rejects.toThrow(/invalid/i);
     });
 
-    it('rejects unknown extra fields on the wire (strict mode)', async () => {
+    it('strips unknown extra fields on the wire (orchestrator drift tolerance)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        referenceField: 'name',
+        fields: [
+          {
+            fieldName: 'store',
+            displayName: 'Store',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'stores',
+            relatedPrimaryKey: 'id',
+            type: null,
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result).not.toHaveProperty('referenceField');
+      expect(result.fields[0]).not.toHaveProperty('relatedPrimaryKey');
+      expect(result.fields[0]).toMatchObject({
+        fieldName: 'store',
+        relatedCollectionName: 'stores',
+      });
+    });
+
+    it('defaults actions to [] when the orchestrator omits it', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [],
-        actions: [],
-        unexpectedNewField: 'oops',
       });
 
-      await expect(port.getCollectionSchema('users', '42')).rejects.toThrow();
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.actions).toEqual([]);
+    });
+
+    it('accepts a field without type (omitted by the orchestrator)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [{ fieldName: 'email', displayName: 'Email', isRelationship: false }],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.fields[0].type).toBeUndefined();
     });
 
     it.each([null, ''])(
