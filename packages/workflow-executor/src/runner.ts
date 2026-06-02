@@ -12,7 +12,7 @@ import type {
 } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
 import type { AvailableStepExecution, StepExecutionResult } from './types/execution-context';
-import type { StepExecutionData } from './types/step-execution-data';
+import type { HydratedStepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
@@ -25,6 +25,7 @@ import {
   extractErrorMessage,
 } from './errors';
 import StepExecutorFactory from './executors/step-executor-factory';
+import hydrateStepExecutionData, { makeSchemaGetter } from './hydrate-step-execution-data';
 import InFlightRunRegistry from './in-flight-run-registry';
 import { stepTypeToOutcomeType } from './types/validated/step-outcome';
 import validateSecrets from './validate-secrets';
@@ -155,8 +156,11 @@ export default class Runner {
     }
   }
 
-  async getRunStepExecutions(runId: string): Promise<StepExecutionData[]> {
-    return this.config.runStore.getStepExecutions(runId);
+  async getRunStepExecutions(runId: string): Promise<HydratedStepExecutionData[]> {
+    const executions = await this.config.runStore.getStepExecutions(runId);
+    const getSchema = makeSchemaGetter(this.config.schemaCache, this.config.workflowPort, runId);
+
+    return Promise.all(executions.map(execution => hydrateStepExecutionData(execution, getSchema)));
   }
 
   async triggerPoll(

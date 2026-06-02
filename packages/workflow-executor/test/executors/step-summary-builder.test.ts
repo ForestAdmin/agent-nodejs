@@ -1,4 +1,4 @@
-import type { StepExecutionData } from '../../src/types/step-execution-data';
+import type { HydratedStepExecutionData } from '../../src/types/step-execution-data';
 import type { StepDefinition } from '../../src/types/validated/step-definition';
 import type { StepOutcome } from '../../src/types/validated/step-outcome';
 
@@ -22,7 +22,7 @@ describe('StepSummaryBuilder', () => {
     it('renders header, prompt, Input, and Output for a condition step with execution data', () => {
       const step = makeConditionStep('Approve?');
       const outcome = makeConditionOutcome('cond-1', 0);
-      const execution: StepExecutionData = {
+      const execution: HydratedStepExecutionData = {
         type: 'condition',
         stepIndex: 0,
         executionParams: { answer: 'Yes', reasoning: 'Order is valid' },
@@ -45,7 +45,7 @@ describe('StepSummaryBuilder', () => {
         stepIndex: 0,
         status: 'success',
       };
-      const execution: StepExecutionData = {
+      const execution: HydratedStepExecutionData = {
         type: 'record',
         stepIndex: 0,
         executionResult: { success: true },
@@ -119,7 +119,7 @@ describe('StepSummaryBuilder', () => {
         stepIndex: 0,
         status: 'success',
       };
-      const execution: StepExecutionData = { type: 'record', stepIndex: 0 };
+      const execution: HydratedStepExecutionData = { type: 'record', stepIndex: 0 };
 
       const result = StepSummaryBuilder.build(step, outcome, execution);
 
@@ -137,7 +137,7 @@ describe('StepSummaryBuilder', () => {
         stepIndex: 0,
         status: 'awaiting-input',
       };
-      const execution: StepExecutionData = {
+      const execution: HydratedStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
         pendingData: { displayName: 'Status', name: 'status', value: 'active' },
@@ -163,7 +163,7 @@ describe('StepSummaryBuilder', () => {
         stepIndex: 0,
         status: 'awaiting-input',
       };
-      const execution: StepExecutionData = {
+      const execution: HydratedStepExecutionData = {
         type: 'trigger-action',
         stepIndex: 0,
         pendingData: { displayName: 'Archive Customer', name: 'archive' },
@@ -189,7 +189,7 @@ describe('StepSummaryBuilder', () => {
         stepIndex: 1,
         status: 'success',
       };
-      const execution: StepExecutionData = {
+      const execution: HydratedStepExecutionData = {
         type: 'load-related-record',
         stepIndex: 1,
         selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
@@ -221,7 +221,7 @@ describe('StepSummaryBuilder', () => {
         stepIndex: 1,
         status: 'success',
       };
-      const execution: StepExecutionData = {
+      const execution: HydratedStepExecutionData = {
         type: 'load-related-record',
         stepIndex: 1,
         selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
@@ -245,7 +245,7 @@ describe('StepSummaryBuilder', () => {
         stepIndex: 1,
         status: 'awaiting-input',
       };
-      const execution: StepExecutionData = {
+      const execution: HydratedStepExecutionData = {
         type: 'load-related-record',
         stepIndex: 1,
         selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
@@ -277,7 +277,7 @@ describe('StepSummaryBuilder', () => {
           stepIndex: 0,
           status: 'success',
         };
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'update-record',
           stepIndex: 0,
           pendingData: { displayName: 'Status', name: 'status', value: 'active' },
@@ -304,7 +304,7 @@ describe('StepSummaryBuilder', () => {
           stepIndex: 0,
           status: 'success',
         };
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'trigger-action',
           stepIndex: 0,
           pendingData: { displayName: 'Archive Customer', name: 'archive' },
@@ -326,7 +326,7 @@ describe('StepSummaryBuilder', () => {
           stepIndex: 0,
           status: 'success',
         };
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'update-record',
           stepIndex: 0,
           idempotencyPhase: 'done',
@@ -348,7 +348,7 @@ describe('StepSummaryBuilder', () => {
           stepIndex: 0,
           status: 'awaiting-input',
         };
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'update-record',
           stepIndex: 0,
           pendingData: { displayName: 'Status', name: 'status', value: 'active' },
@@ -372,7 +372,7 @@ describe('StepSummaryBuilder', () => {
           stepIndex: 0,
           status: 'success',
         };
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'trigger-action',
           stepIndex: 0,
           pendingData: { displayName: 'Archive Customer', name: 'archive' },
@@ -393,7 +393,7 @@ describe('StepSummaryBuilder', () => {
           stepIndex: 0,
           status: 'success',
         };
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'update-record',
           stepIndex: 0,
           pendingData: { displayName: 'Status', name: 'status', value: 'active' },
@@ -417,7 +417,7 @@ describe('StepSummaryBuilder', () => {
           stepIndex: 1,
           status: 'success',
         };
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'load-related-record',
           stepIndex: 1,
           selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
@@ -437,7 +437,7 @@ describe('StepSummaryBuilder', () => {
     it('shows "(no prompt)" when step has no prompt', () => {
       const step: StepDefinition = { type: StepType.Condition, options: ['A', 'B'] };
       const outcome = makeConditionOutcome('cond-1', 0);
-      const execution: StepExecutionData = {
+      const execution: HydratedStepExecutionData = {
         type: 'condition',
         stepIndex: 0,
         executionParams: { answer: 'A', reasoning: 'Only option' },

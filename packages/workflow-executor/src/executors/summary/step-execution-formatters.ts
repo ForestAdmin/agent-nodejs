@@ -1,14 +1,14 @@
 import type {
+  DisplayedLoadRelatedRecordStepExecutionData,
   GuidanceStepExecutionData,
-  LoadRelatedRecordStepExecutionData,
+  HydratedStepExecutionData,
   McpStepExecutionData,
-  StepExecutionData,
 } from '../../types/step-execution-data';
 
 export default class StepExecutionFormatters {
   // Returns null when no custom format is defined for the step type or when execution data
   // doesn't satisfy formatter preconditions — caller falls back to generic Input:/Output:.
-  static format(execution: StepExecutionData): string | null {
+  static format(execution: HydratedStepExecutionData): string | null {
     switch (execution.type) {
       case 'load-related-record':
         return StepExecutionFormatters.formatLoadRelatedRecord(execution);
@@ -42,7 +42,7 @@ export default class StepExecutionFormatters {
   }
 
   private static formatLoadRelatedRecord(
-    execution: LoadRelatedRecordStepExecutionData,
+    execution: DisplayedLoadRelatedRecordStepExecutionData,
   ): string | null {
     const { executionResult } = execution;
 

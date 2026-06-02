@@ -1,4 +1,4 @@
-import type { StepExecutionData } from '../../src/types/step-execution-data';
+import type { HydratedStepExecutionData } from '../../src/types/step-execution-data';
 
 import StepExecutionFormatters from '../../src/executors/summary/step-execution-formatters';
 
@@ -6,7 +6,7 @@ describe('StepExecutionFormatters', () => {
   describe('format', () => {
     describe('load-related-record', () => {
       it('returns the full Loaded: line for a completed execution', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'load-related-record',
           stepIndex: 1,
           selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
@@ -22,7 +22,7 @@ describe('StepExecutionFormatters', () => {
       });
 
       it('returns null for a skipped execution', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'load-related-record',
           stepIndex: 1,
           selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
@@ -33,7 +33,7 @@ describe('StepExecutionFormatters', () => {
       });
 
       it('returns null when executionResult is absent (pending phase)', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'load-related-record',
           stepIndex: 1,
           selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
@@ -48,7 +48,7 @@ describe('StepExecutionFormatters', () => {
       });
 
       it('formats composite record IDs joined by ", "', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'load-related-record',
           stepIndex: 1,
           selectedRecordRef: { collectionName: 'customers', recordId: [42, 'abc'], stepIndex: 0 },
@@ -66,7 +66,7 @@ describe('StepExecutionFormatters', () => {
 
     describe('mcp', () => {
       it('returns the Result: line when formattedResponse is present', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'mcp',
           stepIndex: 2,
           executionParams: {
@@ -85,7 +85,7 @@ describe('StepExecutionFormatters', () => {
       });
 
       it('returns a generic Executed: line when formattedResponse is absent', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'mcp',
           stepIndex: 2,
           executionParams: {
@@ -102,7 +102,7 @@ describe('StepExecutionFormatters', () => {
       });
 
       it('returns null when executionResult is absent (pending phase)', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'mcp',
           stepIndex: 2,
           pendingData: { name: 'search_records', sourceId: 'mcp-server-1', input: {} },
@@ -112,7 +112,7 @@ describe('StepExecutionFormatters', () => {
       });
 
       it('returns null for a skipped execution', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'mcp',
           stepIndex: 2,
           executionResult: { skipped: true },
@@ -124,7 +124,7 @@ describe('StepExecutionFormatters', () => {
 
     describe('types without a custom formatter', () => {
       it('returns null for condition type', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'condition',
           stepIndex: 0,
           executionParams: { answer: 'Yes' },
@@ -135,7 +135,7 @@ describe('StepExecutionFormatters', () => {
       });
 
       it('returns null for record type', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'record',
           stepIndex: 0,
           executionResult: { success: true },
@@ -147,7 +147,7 @@ describe('StepExecutionFormatters', () => {
 
     describe('guidance', () => {
       it('returns the user input line when executionResult is present', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'guidance',
           stepIndex: 0,
           executionResult: { userInput: 'I called the client and confirmed the delivery date.' },
@@ -159,7 +159,7 @@ describe('StepExecutionFormatters', () => {
       });
 
       it('returns null when executionResult is absent', () => {
-        const execution: StepExecutionData = {
+        const execution: HydratedStepExecutionData = {
           type: 'guidance',
           stepIndex: 0,
         };

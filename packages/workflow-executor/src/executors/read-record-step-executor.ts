@@ -64,7 +64,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       type: 'read-record',
       stepIndex: this.context.stepIndex,
       executionParams: {
-        fields: fieldResults.map(({ name, displayName }) => ({ name, displayName })),
+        fields: fieldResults.map(({ name }) => ({ name })),
       },
       executionResult: { fields: fieldResults },
       selectedRecordRef,
@@ -129,12 +129,11 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
     return fieldDisplayNames.map(name => {
       const field = this.findField(schema, name);
 
-      if (!field) return { error: `Field not found: ${name}`, name, displayName: name };
+      if (!field) return { error: `Field not found: ${name}`, name };
 
       return {
         value: values[field.fieldName],
         name: field.fieldName,
-        displayName: field.displayName,
       };
     });
   }

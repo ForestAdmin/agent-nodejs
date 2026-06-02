@@ -157,9 +157,9 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'read-record',
           stepIndex: 0,
-          executionParams: { fields: [{ name: 'email', displayName: 'Email' }] },
+          executionParams: { fields: [{ name: 'email' }] },
           executionResult: {
-            fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
+            fields: [{ value: 'john@example.com', name: 'email' }],
           },
         }),
       );
@@ -180,15 +180,12 @@ describe('ReadRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionParams: {
-            fields: [
-              { name: 'email', displayName: 'Email' },
-              { name: 'name', displayName: 'Full Name' },
-            ],
+            fields: [{ name: 'email' }, { name: 'name' }],
           },
           executionResult: {
             fields: [
-              { value: 'john@example.com', name: 'email', displayName: 'Email' },
-              { value: 'John Doe', name: 'name', displayName: 'Full Name' },
+              { value: 'john@example.com', name: 'email' },
+              { value: 'John Doe', name: 'name' },
             ],
           },
         }),
@@ -209,9 +206,9 @@ describe('ReadRecordStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionParams: { fields: [{ name: 'name', displayName: 'Full Name' }] },
+          executionParams: { fields: [{ name: 'name' }] },
           executionResult: {
-            fields: [{ value: 'John Doe', name: 'name', displayName: 'Full Name' }],
+            fields: [{ value: 'John Doe', name: 'name' }],
           },
         }),
       );
@@ -282,11 +279,10 @@ describe('ReadRecordStepExecutor', () => {
         expect.objectContaining({
           executionResult: {
             fields: [
-              { value: 'john@example.com', name: 'email', displayName: 'Email' },
+              { value: 'john@example.com', name: 'email' },
               {
                 error: 'Field not found: nonexistent',
                 name: 'nonexistent',
-                displayName: 'nonexistent',
               },
             ],
           },
@@ -396,7 +392,7 @@ describe('ReadRecordStepExecutor', () => {
             type: 'load-related-record',
             stepIndex: 2,
             executionResult: {
-              relation: { name: 'order', displayName: 'Order' },
+              relation: { name: 'order' },
               record: relatedRecord,
             },
             selectedRecordRef: makeRecordRef(),
@@ -434,7 +430,7 @@ describe('ReadRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: {
-            fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
+            fields: [{ value: 'john@example.com', name: 'email' }],
           },
           selectedRecordRef: expect.objectContaining({
             recordId: [42],
@@ -487,7 +483,7 @@ describe('ReadRecordStepExecutor', () => {
             type: 'load-related-record',
             stepIndex: 2,
             executionResult: {
-              relation: { name: 'order', displayName: 'Order' },
+              relation: { name: 'order' },
               record: relatedRecord,
             },
             selectedRecordRef: makeRecordRef(),
@@ -511,7 +507,7 @@ describe('ReadRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: {
-            fields: [{ value: 150, name: 'total', displayName: 'Total' }],
+            fields: [{ value: 150, name: 'total' }],
           },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
@@ -564,7 +560,7 @@ describe('ReadRecordStepExecutor', () => {
             type: 'load-related-record',
             stepIndex: 5,
             executionResult: {
-              relation: { name: 'order', displayName: 'Order' },
+              relation: { name: 'order' },
               record: relatedRecord,
             },
             selectedRecordRef: makeRecordRef(),
@@ -620,7 +616,7 @@ describe('ReadRecordStepExecutor', () => {
             type: 'load-related-record',
             stepIndex: 1,
             executionResult: {
-              relation: { name: 'order', displayName: 'Order' },
+              relation: { name: 'order' },
               record: relatedRecord,
             },
             selectedRecordRef: makeRecordRef(),
@@ -867,15 +863,12 @@ describe('ReadRecordStepExecutor', () => {
         type: 'read-record',
         stepIndex: 3,
         executionParams: {
-          fields: [
-            { name: 'email', displayName: 'Email' },
-            { name: 'name', displayName: 'Full Name' },
-          ],
+          fields: [{ name: 'email' }, { name: 'name' }],
         },
         executionResult: {
           fields: [
-            { value: 'john@example.com', name: 'email', displayName: 'Email' },
-            { value: 'John Doe', name: 'name', displayName: 'Full Name' },
+            { value: 'john@example.com', name: 'email' },
+            { value: 'John Doe', name: 'name' },
           ],
         },
         selectedRecordRef: {
@@ -908,7 +901,7 @@ describe('ReadRecordStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionResult: {
-            fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
+            fields: [{ value: 'john@example.com', name: 'email' }],
           },
         }),
       );

@@ -1775,6 +1775,38 @@ describe('getRunStepExecutions', () => {
     expect(result).toEqual(steps);
     expect(runStore.getStepExecutions).toHaveBeenCalledWith('run-1');
   });
+
+  it('re-derives displayName from the current schema (not from persisted data)', async () => {
+    // Persisted execution carries ONLY the technical fieldName.
+    const persisted = [
+      {
+        type: 'update-record' as const,
+        stepIndex: 0,
+        selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        executionParams: { name: 'status', value: 'active' },
+      },
+    ];
+    const runStore = createMockRunStore({
+      getStepExecutions: jest.fn().mockResolvedValue(persisted),
+    });
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getCollectionSchema.mockResolvedValue({
+      collectionName: 'customers',
+      collectionDisplayName: 'Customers',
+      primaryKeyFields: ['id'],
+      fields: [{ fieldName: 'status', displayName: 'Lifecycle Stage', isRelationship: false }],
+      actions: [],
+    });
+    runner = new Runner(createRunnerConfig({ runStore, workflowPort }));
+
+    const result = await runner.getRunStepExecutions('run-1');
+
+    expect(result[0]).toMatchObject({
+      type: 'update-record',
+      executionParams: { name: 'status', displayName: 'Lifecycle Stage', value: 'active' },
+    });
+    expect(workflowPort.getCollectionSchema).toHaveBeenCalledWith('customers', 'run-1');
+  });
 });
 
 // ---------------------------------------------------------------------------

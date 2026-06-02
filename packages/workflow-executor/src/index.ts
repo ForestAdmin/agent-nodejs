@@ -40,6 +40,15 @@ export type {
   GuidanceStepExecutionData,
   ExecutedStepExecutionData,
   StepExecutionData,
+  DisplayedFieldRef,
+  DisplayedActionRef,
+  DisplayedRelationRef,
+  DisplayedFieldReadResult,
+  DisplayedReadRecordStepExecutionData,
+  DisplayedUpdateRecordStepExecutionData,
+  DisplayedTriggerRecordActionStepExecutionData,
+  DisplayedLoadRelatedRecordStepExecutionData,
+  HydratedStepExecutionData,
 } from './types/step-execution-data';
 
 export type {

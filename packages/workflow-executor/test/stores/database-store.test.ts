@@ -92,9 +92,9 @@ describe('DatabaseStore (SQLite)', () => {
     const step: StepExecutionData = {
       type: 'update-record',
       stepIndex: 0,
-      executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+      executionParams: { name: 'status', value: 'active' },
       executionResult: { updatedValues: { status: 'active', nested: { deep: true } } },
-      pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+      pendingData: { name: 'status', value: 'active' },
       selectedRecordRef: { collectionName: 'users', recordId: ['42'], stepIndex: 0 },
     };
 

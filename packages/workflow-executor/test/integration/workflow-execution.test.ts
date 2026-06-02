@@ -293,7 +293,7 @@ describe('workflow execution (integration)', () => {
         type: 'read-record',
         stepIndex: 0,
         executionResult: {
-          fields: [{ value: 'john@example.com', name: 'email', displayName: 'Email' }],
+          fields: [{ value: 'john@example.com', name: 'email' }],
         },
       }),
     );
@@ -533,7 +533,7 @@ describe('workflow execution (integration)', () => {
       expect.objectContaining({
         type: 'load-related-record',
         executionResult: {
-          relation: { name: 'order', displayName: 'Order' },
+          relation: { name: 'order' },
           record: { collectionName: 'orders', recordId: [99], stepIndex: 0 },
         },
       }),

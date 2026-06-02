@@ -175,7 +175,6 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const name = this.resolveFieldName(schema, args.fieldName);
     const target: UpdateTarget = {
       selectedRecordRef,
-      displayName: args.fieldName,
       name,
       value: args.value,
     };
@@ -190,7 +189,6 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       type: 'update-record',
       stepIndex: this.context.stepIndex,
       pendingData: {
-        displayName: target.displayName,
         name: target.name,
         value: target.value,
       },
@@ -205,7 +203,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name, value } = target;
+    const { selectedRecordRef, name, value } = target;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...existingExecution,
@@ -228,7 +226,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name, value },
+      executionParams: { name, value },
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,
       idempotencyPhase: 'done',
