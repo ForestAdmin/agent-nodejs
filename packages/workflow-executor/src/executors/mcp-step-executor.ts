@@ -27,9 +27,23 @@ Important rules:
 export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
 
-  constructor(context: ExecutionContext<McpStepDefinition>, remoteTools: readonly RemoteTool[]) {
+  private readonly mcpServerName?: string;
+
+  constructor(
+    context: ExecutionContext<McpStepDefinition>,
+    remoteTools: readonly RemoteTool[],
+    mcpServerName?: string,
+  ) {
     super(context);
     this.remoteTools = remoteTools;
+    this.mcpServerName = mcpServerName;
+  }
+
+  protected override getExtraLogContext(): Record<string, unknown> {
+    return {
+      mcpServerId: this.context.stepDefinition.mcpServerId,
+      mcpServerName: this.mcpServerName,
+    };
   }
 
   protected override buildActivityLogArgs(): CreateActivityLogArgs | null {

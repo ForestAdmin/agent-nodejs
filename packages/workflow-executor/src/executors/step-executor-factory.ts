@@ -4,6 +4,7 @@ import type { AiModelPort } from '../ports/ai-model-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
+import type { FetchRemoteToolsResult } from '../remote-tool-fetcher';
 import type SchemaCache from '../schema-cache';
 import type {
   AvailableStepExecution,
@@ -20,7 +21,6 @@ import type {
   TriggerActionStepDefinition,
   UpdateRecordStepDefinition,
 } from '../types/validated/step-definition';
-import type { RemoteTool } from '@forestadmin/ai-proxy';
 
 import { StepStateError, causeMessage, extractErrorMessage } from '../errors';
 import ConditionStepExecutor from './condition-step-executor';
@@ -48,7 +48,7 @@ export default class StepExecutorFactory {
     step: AvailableStepExecution,
     contextConfig: StepContextConfig,
     activityLogPort: ActivityLogPort,
-    fetchRemoteTools: (mcpServerId: string) => Promise<RemoteTool[]>,
+    fetchRemoteTools: (mcpServerId: string) => Promise<FetchRemoteToolsResult>,
     incomingPendingData?: unknown,
   ): Promise<IStepExecutor> {
     try {
@@ -79,11 +79,11 @@ export default class StepExecutorFactory {
 
         case StepType.Mcp: {
           const mcpContext = context as ExecutionContext<McpStepDefinition>;
-
-          return new McpStepExecutor(
-            mcpContext,
-            await fetchRemoteTools(mcpContext.stepDefinition.mcpServerId),
+          const { tools, mcpServerName } = await fetchRemoteTools(
+            mcpContext.stepDefinition.mcpServerId,
           );
+
+          return new McpStepExecutor(mcpContext, tools, mcpServerName);
         }
 
         case StepType.Guidance:

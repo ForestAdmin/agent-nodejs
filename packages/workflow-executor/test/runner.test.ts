@@ -1295,6 +1295,7 @@ describe('MCP fetch scoping', () => {
       'MCP step targets a server not advertised by the orchestrator',
       {
         requestedMcpServerId: 'id-missing',
+        mcpServerName: undefined,
         availableMcpServerIds: expect.arrayContaining(['id-A', 'id-B']),
       },
     );
@@ -1332,7 +1333,7 @@ describe('MCP fetch scoping', () => {
     expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
       'MCP step targets a server but orchestrator returned no MCP configs',
-      { requestedMcpServerId: 'id-A', availableMcpServerIds: [] },
+      { requestedMcpServerId: 'id-A', mcpServerName: undefined, availableMcpServerIds: [] },
     );
     expect(logger.warn).not.toHaveBeenCalledWith(
       'MCP step targets a server not advertised by the orchestrator',
@@ -1377,6 +1378,7 @@ describe('MCP fetch scoping', () => {
 
     expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
       requestedMcpServerId: 'id-A',
+      mcpServerName: 'server-A',
       failedConfigNames: ['server-A'],
     });
     expect(executeSpy).toHaveBeenCalledTimes(1);
@@ -1523,7 +1525,9 @@ describe('StepExecutorFactory.create — factory', () => {
         mcpServerId: 'srv-42',
       },
     });
-    const fetchRemoteTools = jest.fn().mockResolvedValue([]);
+    const fetchRemoteTools = jest
+      .fn()
+      .mockResolvedValue({ tools: [], mcpServerName: 'Production Slack' });
     const executor = await StepExecutorFactory.create(
       step,
       makeContextConfig(),
@@ -1532,6 +1536,11 @@ describe('StepExecutorFactory.create — factory', () => {
     );
     expect(executor).toBeInstanceOf(McpStepExecutor);
     expect(fetchRemoteTools).toHaveBeenCalledWith('srv-42');
+    expect(
+      (
+        executor as unknown as { getExtraLogContext(): Record<string, unknown> }
+      ).getExtraLogContext(),
+    ).toEqual({ mcpServerId: 'srv-42', mcpServerName: 'Production Slack' });
   });
 
   it('dispatches Guidance steps to GuidanceStepExecutor', async () => {
