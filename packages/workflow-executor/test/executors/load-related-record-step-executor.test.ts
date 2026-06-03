@@ -1782,7 +1782,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
 
     // Answers the 3 HasMany AI calls in order: select-relation, select-fields, select-record.
-    const buildModel = (selectedFieldDisplayNames: string[]) => {
+    const buildModel = (selectedFieldDisplayNames: string[], recordIndex = 0) => {
       const invoke = jest
         .fn()
         .mockResolvedValueOnce({
@@ -1803,7 +1803,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           tool_calls: [
             {
               name: 'select-record-by-content',
-              args: { recordIndex: 0, reasoning: 'r' },
+              args: { recordIndex, reasoning: 'r' },
               id: 'c3',
             },
           ],
@@ -1900,14 +1900,83 @@ describe('LoadRelatedRecordStepExecutor', () => {
       await new LoadRelatedRecordStepExecutor(context).execute();
 
       const shownRows = (selectRecordPrompt(invoke).match(/\[\d+\] \{/g) ?? []).length;
+      expect(shownRows).toBeGreaterThan(1);
       expect(shownRows).toBeLessThan(50);
+      // The warn carries the run-correlation context (logCtx) alongside the counters.
       expect(logger.warn).toHaveBeenCalledWith(
         'load-related-record: candidate list truncated for AI prompt',
-        expect.objectContaining({ total: 50 }),
+        expect.objectContaining({ total: 50, runId: 'run-1', stepIndex: 0 }),
       );
       // The full list is still returned to the front, untrimmed.
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.availableRecordIds).toHaveLength(50);
+    });
+
+    // The AI sees only the budgeted prefix, but its index maps back into the FULL list — so a
+    // non-zero pick must resolve to the correct full-list record (cap the prompt, not the data).
+    it('maps a non-zero AI index back into the full candidate list after truncation', async () => {
+      const big = 'y'.repeat(80);
+      const values = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`f${i}`, big]));
+      const relatedData: RecordData[] = Array.from({ length: 50 }, (_, i) => ({
+        collectionName: 'addresses',
+        recordId: [i + 1],
+        values,
+      }));
+      const { model } = buildModel(
+        Array.from({ length: 6 }, (_, i) => `F${i}`),
+        5,
+      ); // AI picks index 5
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        agentPort: makeMockAgentPort(relatedData),
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: wideSchema(6),
+        }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      // relatedData[5] has recordId [6] — proves index 5 maps to the full array, not a truncated copy.
+      expect(saved.pendingData.suggestedRecord.recordId).toEqual([6]);
+      expect(saved.pendingData.availableRecordIds).toHaveLength(50);
+    });
+
+    it('clamps non-string field values: short stays intact, oversized object is truncated', async () => {
+      const bigObject = { note: 'z'.repeat(120) };
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { count: 42, meta: bigObject } },
+        { collectionName: 'addresses', recordId: [2], values: { count: 7, meta: { note: 'ok' } } },
+      ];
+      const schema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [
+          { fieldName: 'count', displayName: 'Count', isRelationship: false },
+          { fieldName: 'meta', displayName: 'Meta', isRelationship: false },
+        ],
+      });
+      const { invoke, model } = buildModel(['Count', 'Meta']);
+      const context = makeContext({
+        model,
+        agentPort: makeMockAgentPort(relatedData),
+        runStore: makeMockRunStore(),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: schema,
+        }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      const content = selectRecordPrompt(invoke);
+      expect(content).toContain('"count":42'); // number passes through unchanged (not stringified)
+      expect(content).toContain('… (truncated)'); // oversized object value truncated
+      expect(content).not.toContain('z'.repeat(120));
     });
   });
 

@@ -38,7 +38,7 @@ Choose the record that best matches the user request based on the provided field
 
 // Bound only what is sent to the AI in selectBestRecordIndex — the full candidate list is
 // always returned to the front via availableRecordIds. These cap the prompt size, not the data.
-const MAX_RELEVANT_FIELDS = 6; // max fields used to compare candidates
+const MAX_RELEVANT_FIELDS = 6;
 const MAX_FIELD_VALUE_LENGTH = 80; // per-field serialized length before truncation
 const MAX_AI_CANDIDATES_CHARS = 16_000; // global budget for the `Candidates:` block (~4k tokens)
 
@@ -599,6 +599,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     if (shown < candidates.length) {
       this.context.logger.warn('load-related-record: candidate list truncated for AI prompt', {
+        ...this.logCtx,
         shown,
         total: candidates.length,
       });
