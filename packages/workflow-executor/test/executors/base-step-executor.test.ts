@@ -4,6 +4,7 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution-context';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { RecordRef } from '../../src/types/validated/collection';
+import type { Step } from '../../src/types/validated/execution';
 import type { StepDefinition } from '../../src/types/validated/step-definition';
 import type { BaseStepStatus, StepOutcome } from '../../src/types/validated/step-outcome';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
@@ -208,6 +209,125 @@ describe('BaseStepExecutor', () => {
       expect(content).toContain('Step "cond-1"');
       expect(content).toContain('Step "cond-2"');
       expect(content).toContain('\n\nStep "cond-2"');
+    });
+  });
+
+  describe('previous-steps summary after revision', () => {
+    // Revision clones keep their stepName but get a NEW stepIndex, while the RunStore keys
+    // executions by the ORIGINAL index. The summary must resolve a step's execution through
+    // its lineageStepIndexes (own index first, then earlier generations) instead of an exact
+    // stepIndex match — otherwise clone summaries lose all execution detail.
+
+    function makeLineageEntry(
+      overrides: { stepId?: string; stepIndex?: number; prompt?: string },
+      lineageStepIndexes: number[],
+    ): Step {
+      return { ...makeHistoryEntry(overrides), lineageStepIndexes };
+    }
+
+    it('resolves a clone summary through its lineage to the original execution', async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 3,
+          executionParams: { answer: 'Yes', reasoning: 'REASONING-AT-IDX-3' },
+          executionResult: { answer: 'Yes' },
+        },
+      ]);
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [
+            makeLineageEntry({ stepId: 'cond-1', stepIndex: 7, prompt: 'Approve?' }, [7, 3]),
+          ],
+          runStore,
+        }),
+      );
+
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
+
+      expect(content).toContain('Step "cond-1"');
+      expect(content).toContain('REASONING-AT-IDX-3');
+    });
+
+    it('prefers the freshest lineage generation when several executions exist', async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 3,
+          executionParams: { answer: 'No', reasoning: 'STALE-GENERATION' },
+          executionResult: { answer: 'No' },
+        },
+        {
+          type: 'condition',
+          stepIndex: 7,
+          executionParams: { answer: 'Yes', reasoning: 'FRESH-GENERATION' },
+          executionResult: { answer: 'Yes' },
+        },
+      ]);
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [
+            makeLineageEntry({ stepId: 'cond-1', stepIndex: 10, prompt: 'Approve?' }, [10, 7, 3]),
+          ],
+          runStore,
+        }),
+      );
+
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
+
+      expect(content).toContain('FRESH-GENERATION');
+      expect(content).not.toContain('STALE-GENERATION');
+    });
+
+    it('falls back to outcome history details when no lineage generation has an execution', async () => {
+      const runStore = makeMockRunStore([]);
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [
+            makeLineageEntry({ stepId: 'cond-1', stepIndex: 7, prompt: 'Approve?' }, [7, 3]),
+          ],
+          runStore,
+        }),
+      );
+
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
+
+      expect(content).toContain('Step "cond-1"');
+      expect(content).toContain('History:');
+    });
+
+    it('does not surface executions of steps absent from previousSteps (dead branch)', async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 0,
+          executionParams: { answer: 'Yes', reasoning: 'LIVE-INPUT' },
+          executionResult: { answer: 'Yes' },
+        },
+        {
+          type: 'condition',
+          stepIndex: 5,
+          executionParams: { answer: 'No', reasoning: 'DEAD-INPUT' },
+          executionResult: { answer: 'No' },
+        },
+      ]);
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [
+            makeLineageEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' }, [0]),
+          ],
+          runStore,
+        }),
+      );
+
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
+
+      expect(content).toContain('LIVE-INPUT');
+      expect(content).not.toContain('DEAD-INPUT');
     });
   });
 

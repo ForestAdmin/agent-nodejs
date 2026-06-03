@@ -4,6 +4,7 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
+import type { Step } from '../../src/types/validated/execution';
 import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
@@ -138,6 +139,23 @@ function makeContext(
       markFailed: jest.fn().mockResolvedValue(undefined),
     },
     ...overrides,
+  };
+}
+
+function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: number[]): Step {
+  return {
+    stepDefinition: {
+      type: StepType.LoadRelatedRecord,
+      executionType: StepExecutionMode.FullyAutomated,
+      prompt: 'Load the order',
+    },
+    stepOutcome: {
+      type: 'record',
+      stepId: `load-${stepIndex}`,
+      stepIndex,
+      status: 'success',
+    },
+    lineageStepIndexes,
   };
 }
 
@@ -546,7 +564,13 @@ describe('UpdateRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2, [2])],
+      });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();

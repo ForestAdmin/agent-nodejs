@@ -76,11 +76,12 @@ function toStepOutcome(s: ServerStepHistory): StepOutcome {
   return { type: 'record', ...baseFromCtx, status } satisfies RecordStepOutcome;
 }
 
-function tryMapStep(s: ServerStepHistory): Step | null {
+function tryMapStep(s: ServerStepHistory, lineageStepIndexes: [number, ...number[]]): Step | null {
   try {
     return {
       stepDefinition: toStepDefinition(s.stepDefinition),
       stepOutcome: toStepOutcome(s),
+      lineageStepIndexes,
     };
   } catch (err) {
     // Sub-workflow navigation steps (start-sub-workflow, close-sub-workflow) are not
@@ -90,13 +91,31 @@ function tryMapStep(s: ServerStepHistory): Step | null {
   }
 }
 
+// All generations of the same logical step share the same root (originalStepIndex chains to
+// the FIRST original), so the lineage is rebuilt by grouping the FULL history — dead entries
+// included, since they carry the intermediate generations. Own index first, then older ones.
+function toLineageStepIndexes(
+  history: ServerStepHistory[],
+  step: ServerStepHistory,
+): [number, ...number[]] {
+  const root = step.originalStepIndex ?? step.stepIndex;
+  const generations = history
+    .filter(s => (s.originalStepIndex ?? s.stepIndex) === root && s.stepIndex <= step.stepIndex)
+    .map(s => s.stepIndex)
+    .sort((a, b) => b - a);
+
+  return generations as [number, ...number[]];
+}
+
+// Mirrors the orchestrator's own read filter: revised (pivot anchor) and cancelled (dead
+// branch) entries are not on the live path and must not reach the AI context.
 function toPreviousSteps(
   history: ServerStepHistory[],
   pendingStepIndex: number,
 ): ReadonlyArray<Step> {
   return history
-    .filter(s => s.done && s.stepIndex < pendingStepIndex)
-    .map(s => tryMapStep(s))
+    .filter(s => s.done && !s.revised && !s.cancelled && s.stepIndex < pendingStepIndex)
+    .map(s => tryMapStep(s, toLineageStepIndexes(history, s)))
     .filter((s): s is Step => s !== null);
 }
 

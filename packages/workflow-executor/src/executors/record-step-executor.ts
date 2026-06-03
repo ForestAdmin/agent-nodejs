@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { InvalidAIResponseError, InvalidPreRecordedArgsError, NoRecordsError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { StepType } from '../types/validated/step-definition';
 
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
@@ -46,15 +47,22 @@ export default abstract class RecordStepExecutor<
     return this.selectRecordRef(records, prompt);
   }
 
+  // The pool is scoped to the live path: records are derived from previousSteps (already
+  // cleaned of revised/cancelled entries), not from the raw RunStore — executions persisted
+  // by dead-branch steps must not offer their records to re-executed steps.
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = stepExecutions.flatMap(e => {
+    const relatedRecords = this.context.previousSteps.flatMap(step => {
+      if (step.stepDefinition.type !== StepType.LoadRelatedRecord) return [];
+
+      const execution = BaseStepExecutor.resolveLineageExecution(step, stepExecutions);
+
       if (
-        e.type === 'load-related-record' &&
-        e.executionResult !== undefined &&
-        'record' in e.executionResult
+        execution?.type === 'load-related-record' &&
+        execution.executionResult !== undefined &&
+        'record' in execution.executionResult
       ) {
-        return [e.executionResult.record];
+        return [execution.executionResult.record];
       }
 
       return [];

@@ -169,6 +169,8 @@ export interface ServerStepHistory {
   done: boolean;
   revised?: boolean;
   cancelled?: boolean;
+  // Set on revision clones and re-executions; chains to the FIRST original across revisions.
+  originalStepIndex?: number;
   context?: Record<string, unknown>;
   childrenWorkflowId?: string;
   stepDefinition: ServerWorkflowStep;

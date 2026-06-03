@@ -6,6 +6,7 @@ import type {
   StepExecutionResult,
 } from '../types/execution-context';
 import type { ConfirmableStepExecutionData, StepExecutionData } from '../types/step-execution-data';
+import type { Step } from '../types/validated/execution';
 import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
@@ -283,14 +284,31 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
     const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const summary = this.context.previousSteps
-      .map(({ stepDefinition, stepOutcome }) => {
-        const execution = allStepExecutions.find(e => e.stepIndex === stepOutcome.stepIndex);
+      .map(step => {
+        const execution = BaseStepExecutor.resolveLineageExecution(step, allStepExecutions);
 
-        return StepSummaryBuilder.build(stepDefinition, stepOutcome, execution);
+        return StepSummaryBuilder.build(step.stepDefinition, step.stepOutcome, execution);
       })
       .join('\n\n');
 
     return [new SystemMessage(summary)];
+  }
+
+  // Revision clones run under a new stepIndex while their execution data stays keyed under the
+  // original one. Lineage candidates are ordered freshest-first, so the first hit is the most
+  // recent execution of that logical step.
+  protected static resolveLineageExecution(
+    step: Step,
+    executions: StepExecutionData[],
+  ): StepExecutionData | undefined {
+    const candidates = step.lineageStepIndexes ?? [step.stepOutcome.stepIndex];
+
+    for (const stepIndex of candidates) {
+      const execution = executions.find(e => e.stepIndex === stepIndex);
+      if (execution) return execution;
+    }
+
+    return undefined;
   }
 
   private static mergeLeadingSystemMessages(messages: BaseMessage[]): BaseMessage[] {

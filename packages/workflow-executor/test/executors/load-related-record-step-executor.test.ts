@@ -4,6 +4,7 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { LoadRelatedRecordStepExecutionData } from '../../src/types/step-execution-data';
 import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/validated/collection';
+import type { Step } from '../../src/types/validated/execution';
 import type { LoadRelatedRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, RunStorePortError } from '../../src/errors';
@@ -193,6 +194,23 @@ function makePendingExecution(
     },
     selectedRecordRef: makeRecordRef(),
     ...overrides,
+  };
+}
+
+function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: number[]): Step {
+  return {
+    stepDefinition: {
+      type: StepType.LoadRelatedRecord,
+      executionType: StepExecutionMode.FullyAutomated,
+      prompt: 'Load the order',
+    },
+    stepOutcome: {
+      type: 'record',
+      stepId: `load-${stepIndex}`,
+      stepIndex,
+      status: 'success',
+    },
+    lineageStepIndexes,
   };
 }
 
@@ -2398,7 +2416,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort, agentPort });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        agentPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2, [2])],
+      });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -2709,7 +2734,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2, [2]), makeLoadRelatedPreviousStep(3, [3])],
+      });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
       await executor.execute();
@@ -2827,6 +2858,53 @@ describe('LoadRelatedRecordStepExecutor', () => {
       await executor.execute();
 
       expect(bindTools).toHaveBeenCalled();
+    });
+  });
+
+  describe('record pool after revision', () => {
+    it('re-executes a revised load step from the base record, not from the dead branch record', async () => {
+      // Given: the run loaded an owner before the user revised the "Load store" step. The
+      // owner's execution survives in the RunStore (dead branch), but the cleaned
+      // previousSteps no longer claims it.
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'reload' });
+      const agentPort = makeMockAgentPort();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'owner', displayName: 'Owner' },
+              record: makeRecordRef({ collectionName: 'owners', recordId: [7], stepIndex: 2 }),
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        previousSteps: [],
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then: the pool collapsed to the base record — no select-record round; the relation
+      // was selected and loaded directly from the base record (the ticket's bug offered the
+      // dead branch's owner as a source instead).
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+      expect((mockModel.bindTools.mock.calls[0][0][0] as { name: string }).name).toBe(
+        'select-relation',
+      );
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], relation: 'order', limit: 1 },
+        expect.objectContaining({ id: 1 }),
+      );
     });
   });
 });

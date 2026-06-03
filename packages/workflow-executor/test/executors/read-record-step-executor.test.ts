@@ -3,6 +3,7 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
+import type { Step } from '../../src/types/validated/execution';
 import type { ReadRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
@@ -139,6 +140,23 @@ function makeContext(
       markFailed: jest.fn().mockResolvedValue(undefined),
     },
     ...overrides,
+  };
+}
+
+function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: number[]): Step {
+  return {
+    stepDefinition: {
+      type: StepType.LoadRelatedRecord,
+      executionType: StepExecutionMode.FullyAutomated,
+      prompt: 'Load the order',
+    },
+    stepOutcome: {
+      type: 'record',
+      stepId: `load-${stepIndex}`,
+      stepIndex,
+      status: 'success',
+    },
+    lineageStepIndexes,
   };
 }
 
@@ -408,7 +426,13 @@ describe('ReadRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2, [2])],
+      });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -501,7 +525,14 @@ describe('ReadRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort({
         orders: { values: { total: 150 } },
       });
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort, agentPort });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        agentPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2, [2])],
+      });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -576,7 +607,13 @@ describe('ReadRecordStepExecutor', () => {
         orders: ordersSchema,
       });
       const executor = new ReadRecordStepExecutor(
-        makeContext({ baseRecordRef, model, runStore, workflowPort }),
+        makeContext({
+          baseRecordRef,
+          model,
+          runStore,
+          workflowPort,
+          previousSteps: [makeLoadRelatedPreviousStep(5, [5])],
+        }),
       );
 
       await executor.execute();
@@ -631,7 +668,13 @@ describe('ReadRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        previousSteps: [makeLoadRelatedPreviousStep(1, [1])],
+      });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -922,13 +965,18 @@ describe('ReadRecordStepExecutor', () => {
           {
             type: 'load-related-record',
             stepIndex: 1,
-            executionResult: { record: relatedRef },
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRef,
+            },
+            selectedRecordRef: makeRecordRef(),
           },
         ]),
       });
       const context = makeContext({
         model: mockModel.model,
         runStore,
+        previousSteps: [makeLoadRelatedPreviousStep(1, [1])],
         stepDefinition: makeStep({
           preRecordedArgs: { selectedRecordStepIndex: 1 },
         }),
@@ -1003,6 +1051,219 @@ describe('ReadRecordStepExecutor', () => {
       await executor.execute();
 
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('record pool after revision', () => {
+    // After a revision, records persisted in the RunStore by now-dead steps must leave the
+    // pool, while records produced by steps whose live representative is a CLONE (new
+    // stepIndex) must be resolved through the clone's lineageStepIndexes — the RunStore keys
+    // executions by the ORIGINAL index.
+    function makeLoadRelatedExecution(stepIndex: number, recordId: number) {
+      return {
+        type: 'load-related-record',
+        stepIndex,
+        executionResult: {
+          relation: { name: 'order', displayName: 'Order' },
+          record: makeRecordRef({ collectionName: 'orders', recordId: [recordId], stepIndex }),
+        },
+        selectedRecordRef: makeRecordRef(),
+      };
+    }
+
+    const ordersSchema = () =>
+      makeCollectionSchema({
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
+      });
+
+    it('ignores records persisted by dead-branch steps when no live step claims them', async () => {
+      // Given: the RunStore still holds a record loaded before the revision, but the cleaned
+      // previousSteps no longer contains any load-related step.
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([makeLoadRelatedExecution(2, 99)]),
+      });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        previousSteps: [],
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then: the pool collapsed to the base record — no select-record AI round happened,
+      // and the read targeted the base record, not the stale order.
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+      expect((mockModel.bindTools.mock.calls[0][0][0] as { name: string }).name).toBe(
+        'read-selected-record-fields',
+      );
+      expect(agentPort.getRecord).toHaveBeenCalledTimes(1);
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('resolves a live clone record through its lineage to the original RunStore entry', async () => {
+      // Given: the live previous step is a clone at idx 7 whose execution (and record) was
+      // stored under the original idx 3.
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-record', args: { recordIdentifier: 'Step 3 - Orders #99' }, id: 'c1' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'read-selected-record-fields', args: { fieldNames: ['total'] }, id: 'c2' },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([makeLoadRelatedExecution(3, 99)]),
+      });
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 150 } } });
+      const context = makeContext({
+        model,
+        runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema(),
+        }),
+        previousSteps: [makeLoadRelatedPreviousStep(7, [7, 3])],
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then: the clone's record was offered and readable.
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('offers only the freshest lineage generation after a double revision', async () => {
+      // Given: the same logical step executed twice (idx 3 then idx 7, stale → fresh); its
+      // live representative is a clone at idx 10 with lineage [10, 7, 3]. Only the freshest
+      // execution's record may enter the pool.
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-record', args: { recordIdentifier: 'Step 7 - Orders #77' }, id: 'c1' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'read-selected-record-fields', args: { fieldNames: ['total'] }, id: 'c2' },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([makeLoadRelatedExecution(3, 99), makeLoadRelatedExecution(7, 77)]),
+      });
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 150 } } });
+      const context = makeContext({
+        model,
+        runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema(),
+        }),
+        previousSteps: [makeLoadRelatedPreviousStep(10, [10, 7, 3])],
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then: the select-record tool offered exactly base + freshest — the stale idx-3 record
+      // is absent from the enum.
+      const selectTool = bindTools.mock.calls[0][0][0] as {
+        name: string;
+        schema: { shape: { recordIdentifier: { options: string[] } } };
+      };
+      expect(selectTool.name).toBe('select-record');
+      expect(selectTool.schema.shape.recordIdentifier.options).toEqual([
+        'Step 0 - Customers #42',
+        'Step 7 - Orders #77',
+      ]);
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [77] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('offers both records when the same step ran twice on the live path (LinkTo loop)', async () => {
+      // Given: a loop executed the same load step at idx 0 and idx 2 — two distinct live
+      // instances, two distinct records. Lineage is per instance; neither shadows the other.
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-record', args: { recordIdentifier: 'Step 2 - Orders #77' }, id: 'c1' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'read-selected-record-fields', args: { fieldNames: ['total'] }, id: 'c2' },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([makeLoadRelatedExecution(0, 99), makeLoadRelatedExecution(2, 77)]),
+      });
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 150 } } });
+      const context = makeContext({
+        model,
+        runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema(),
+        }),
+        previousSteps: [makeLoadRelatedPreviousStep(0, [0]), makeLoadRelatedPreviousStep(2, [2])],
+        baseRecordRef: makeRecordRef({ stepIndex: 4 }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then
+      const selectTool = bindTools.mock.calls[0][0][0] as {
+        schema: { shape: { recordIdentifier: { options: string[] } } };
+      };
+      expect(selectTool.schema.shape.recordIdentifier.options).toEqual([
+        'Step 4 - Customers #42',
+        'Step 0 - Orders #99',
+        'Step 2 - Orders #77',
+      ]);
+      expect(result.stepOutcome.status).toBe('success');
     });
   });
 });

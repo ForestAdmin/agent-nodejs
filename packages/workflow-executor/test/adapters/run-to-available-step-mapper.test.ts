@@ -501,6 +501,189 @@ describe('toAvailableStepExecution', () => {
     });
   });
 
+  describe('revision handling', () => {
+    // Revision model (orchestrator): the pivot card is stamped revised:true, every step after
+    // it is stamped cancelled:true, and clones of the still-valid card sub-steps are appended
+    // at the tail with originalStepIndex chaining to the FIRST original. The live path is
+    // filter(!revised && !cancelled).
+
+    function makeClonedStepHistory(
+      overrides: Partial<ServerStepHistory>,
+      originalStepIndex: number,
+    ): ServerStepHistory {
+      return { ...makeStepHistory(overrides), originalStepIndex };
+    }
+
+    /**
+     * Canonical single-revision scenario (sub B1 of card B revised):
+     *   idx 0  trunk task        done                     ← live
+     *   idx 1  card B            done, revised            ← pivot anchor (dead)
+     *   idx 2  sub B1            done, cancelled          ← dead branch
+     *   idx 3  card C            done, cancelled          ← dead branch
+     *   idx 4  card B clone      done, originalStepIndex 1 ← live
+     *   idx 5  sub B1 re-exec    pending                  ← current
+     */
+    function makeRevisedRun(): ServerHydratedWorkflowRun {
+      return makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'trunk', stepIndex: 0, done: true }),
+          makeStepHistory({ stepName: 'card-b', stepIndex: 1, done: true, revised: true }),
+          makeStepHistory({ stepName: 'sub-b1', stepIndex: 2, done: true, cancelled: true }),
+          makeStepHistory({ stepName: 'card-c', stepIndex: 3, done: true, cancelled: true }),
+          makeClonedStepHistory({ stepName: 'card-b', stepIndex: 4, done: true }, 1),
+          makeClonedStepHistory({ stepName: 'sub-b1', stepIndex: 5, done: false }, 2),
+        ],
+      });
+    }
+
+    it('excludes cancelled steps from previousSteps', () => {
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 's0', stepIndex: 0, done: true }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: true, cancelled: true }),
+          makeStepHistory({ stepName: 's2', stepIndex: 2, done: false }),
+        ],
+      });
+
+      const result = toAvailableStepExecution(run);
+
+      expect(result?.previousSteps).toHaveLength(1);
+      expect(result?.previousSteps[0].stepOutcome.stepId).toBe('s0');
+    });
+
+    it('excludes the revised anchor while keeping its live clone', () => {
+      const result = toAvailableStepExecution(makeRevisedRun());
+
+      const indexes = result?.previousSteps.map(s => s.stepOutcome.stepIndex);
+      expect(indexes).toEqual([0, 4]);
+    });
+
+    it('returns empty previousSteps when the entry point is revised', () => {
+      // Entry-point revision: the pivot IS the first step, so nothing valid precedes the
+      // re-execution — context must collapse to a clean slate.
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({ stepName: 'entry', stepIndex: 0, done: true, revised: true }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: true, cancelled: true }),
+          makeClonedStepHistory({ stepName: 'entry', stepIndex: 2, done: false }, 0),
+        ],
+      });
+
+      const result = toAvailableStepExecution(run);
+
+      expect(result?.previousSteps).toEqual([]);
+    });
+
+    it('does not attempt to map dead-branch steps (filtering precedes mapping)', () => {
+      // A cancelled step with an unmappable definition must not fail the run — it is dead.
+      const run = makeRun({
+        workflowHistory: [
+          makeStepHistory({
+            stepName: 's0',
+            stepIndex: 0,
+            done: true,
+            cancelled: true,
+            stepDefinition: makeTaskStepDef({
+              taskType: 'unknown-future-type' as ServerTaskTypeEnum,
+              title: 't',
+            }),
+          }),
+          makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+        ],
+      });
+
+      const result = toAvailableStepExecution(run);
+
+      expect(result?.previousSteps).toEqual([]);
+    });
+
+    describe('lineageStepIndexes', () => {
+      it('is the own index alone for steps that were never revised', () => {
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 's0', stepIndex: 0, done: true }),
+            makeStepHistory({ stepName: 's1', stepIndex: 1, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps).toEqual([
+          expect.objectContaining({ lineageStepIndexes: [0] }),
+        ]);
+      });
+
+      it('walks a clone back to its original through originalStepIndex', () => {
+        const result = toAvailableStepExecution(makeRevisedRun());
+
+        expect(result?.previousSteps).toEqual([
+          expect.objectContaining({
+            stepOutcome: expect.objectContaining({ stepIndex: 0 }),
+            lineageStepIndexes: [0],
+          }),
+          expect.objectContaining({
+            stepOutcome: expect.objectContaining({ stepIndex: 4 }),
+            lineageStepIndexes: [4, 1],
+          }),
+        ]);
+      });
+
+      it('includes every generation latest-first after a double revision', () => {
+        // idx 0: original (dead), idx 1: re-execution (dead, root 0), idx 2: clone of the
+        // re-execution (live, root 0 — originalStepIndex chains to the FIRST original).
+        // The intermediate generation at idx 1 is only discoverable via the dead entry.
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'b1', stepIndex: 0, done: true, cancelled: true }),
+            makeClonedStepHistory({ stepName: 'b1', stepIndex: 1, done: true, cancelled: true }, 0),
+            makeClonedStepHistory({ stepName: 'b1', stepIndex: 2, done: true }, 0),
+            makeStepHistory({ stepName: 'next', stepIndex: 3, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps).toEqual([
+          expect.objectContaining({
+            stepOutcome: expect.objectContaining({ stepIndex: 2 }),
+            lineageStepIndexes: [2, 1, 0],
+          }),
+        ]);
+      });
+
+      it('keeps separate lineages for two live instances of the same stepName (LinkTo loop)', () => {
+        // Cycles are a product feature (designer LinkTo tool): the same definition node can
+        // legitimately execute twice on the live path. Lineage is instance identity, not
+        // definition identity — the two iterations must not share candidates.
+        const run = makeRun({
+          workflowHistory: [
+            makeStepHistory({ stepName: 'load-x', stepIndex: 0, done: true }),
+            makeStepHistory({ stepName: 'cond', stepIndex: 1, done: true }),
+            makeStepHistory({ stepName: 'load-x', stepIndex: 2, done: true }),
+            makeStepHistory({ stepName: 'next', stepIndex: 3, done: false }),
+          ],
+        });
+
+        const result = toAvailableStepExecution(run);
+
+        expect(result?.previousSteps).toEqual([
+          expect.objectContaining({
+            stepOutcome: expect.objectContaining({ stepId: 'load-x', stepIndex: 0 }),
+            lineageStepIndexes: [0],
+          }),
+          expect.objectContaining({
+            stepOutcome: expect.objectContaining({ stepId: 'cond', stepIndex: 1 }),
+            lineageStepIndexes: [1],
+          }),
+          expect.objectContaining({
+            stepOutcome: expect.objectContaining({ stepId: 'load-x', stepIndex: 2 }),
+            lineageStepIndexes: [2],
+          }),
+        ]);
+      });
+    });
+  });
+
   describe('user mapping', () => {
     it('should map server userProfile to StepUser with null → empty string', () => {
       const profile: ServerUserProfile = {
