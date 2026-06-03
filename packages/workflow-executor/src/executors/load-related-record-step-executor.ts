@@ -36,6 +36,19 @@ Choose the fields that are most useful for determining which record best matches
 const SELECT_RECORD_SYSTEM_PROMPT = `You are an AI agent selecting the most relevant related record from a list of candidates.
 Choose the record that best matches the user request based on the provided field values.`;
 
+// Bound only what is sent to the AI in selectBestRecordIndex — the full candidate list is
+// always returned to the front via availableRecordIds. These cap the prompt size, not the data.
+const MAX_RELEVANT_FIELDS = 6; // max fields used to compare candidates
+const MAX_FIELD_VALUE_LENGTH = 80; // per-field serialized length before truncation
+const MAX_AI_CANDIDATES_CHARS = 16_000; // global budget for the `Candidates:` block (~4k tokens)
+
+function clampFieldValue(value: unknown): unknown {
+  const serialized = typeof value === 'string' ? value : JSON.stringify(value) ?? '';
+  if (serialized.length <= MAX_FIELD_VALUE_LENGTH) return value;
+
+  return `${serialized.slice(0, MAX_FIELD_VALUE_LENGTH)}… (truncated)`;
+}
+
 interface RelationTarget extends RelationRef {
   selectedRecordRef: RecordRef;
   relationType?: 'BelongsTo' | 'HasMany' | 'HasOne' | 'BelongsToMany';
@@ -516,7 +529,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         fieldNames: z
           .array(z.enum(displayNames))
           .min(1)
-          .describe('Field names most useful for identifying the relevant record'),
+          .max(MAX_RELEVANT_FIELDS)
+          .describe(
+            `The ${MAX_RELEVANT_FIELDS} fields most useful for identifying the relevant record`,
+          ),
       }),
       func: undefined,
     });
@@ -544,9 +560,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     // Map display names back to technical field names — values in RecordData are keyed by fieldName.
-    return selectedDisplayNames.map(
-      dn => nonRelationFields.find(f => f.displayName === dn)?.fieldName ?? dn,
-    );
+    // .max() shapes the prompt only (not validated against the response), so cap explicitly.
+    return selectedDisplayNames
+      .slice(0, MAX_RELEVANT_FIELDS)
+      .map(dn => nonRelationFields.find(f => f.displayName === dn)?.fieldName ?? dn);
   }
 
   /** AI call 2 for HasMany: selects the best record by index from the candidate list. */
@@ -555,15 +572,39 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     fieldNames: string[],
     prompt: string | undefined,
   ): Promise<number> {
-    const maxIndex = candidates.length - 1;
-    const filteredCandidates = candidates.map((c, i) => ({
-      index: i,
-      values:
-        fieldNames.length > 0
-          ? Object.fromEntries(Object.entries(c.values).filter(([k]) => fieldNames.includes(k)))
-          : c.values,
-    }));
+    const filteredCandidates = candidates.map((c, i) => {
+      const entries = Object.entries(c.values).filter(
+        ([k]) => fieldNames.length === 0 || fieldNames.includes(k),
+      );
 
+      return {
+        index: i,
+        values: Object.fromEntries(entries.map(([k, v]) => [k, clampFieldValue(v)])),
+      };
+    });
+
+    // Bound the prompt only — the full candidate list is still returned upstream. Accumulate
+    // lines until the global budget is reached (always keep at least the first candidate).
+    const lines: string[] = [];
+    let usedChars = 0;
+
+    for (const c of filteredCandidates) {
+      const line = `[${c.index}] ${JSON.stringify(c.values)}`;
+      if (lines.length > 0 && usedChars + line.length > MAX_AI_CANDIDATES_CHARS) break;
+      lines.push(line);
+      usedChars += line.length + 1;
+    }
+
+    const shown = lines.length;
+
+    if (shown < candidates.length) {
+      this.context.logger.warn('load-related-record: candidate list truncated for AI prompt', {
+        shown,
+        total: candidates.length,
+      });
+    }
+
+    const maxIndex = shown - 1;
     const tool = new DynamicStructuredTool({
       name: 'select-record-by-content',
       description: 'Select the most relevant related record by its index.',
@@ -579,14 +620,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       func: undefined,
     });
 
-    const recordList = filteredCandidates
-      .map(c => `[${c.index}] ${JSON.stringify(c.values)}`)
-      .join('\n');
-
     const messages = [
       this.buildContextMessage(),
       new SystemMessage(SELECT_RECORD_SYSTEM_PROMPT),
-      new SystemMessage(`Candidates:\n${recordList}`),
+      new SystemMessage(`Candidates:\n${lines.join('\n')}`),
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
     ];
 

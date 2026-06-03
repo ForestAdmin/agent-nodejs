@@ -1767,6 +1767,150 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
+  // Bounds what is sent to the record-selection AI call; the full candidate list is still
+  // returned to the front via availableRecordIds (HasMany / to-many path, awaiting-input).
+  describe('AI payload bounding (HasMany)', () => {
+    const wideSchema = (count: number) =>
+      makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: Array.from({ length: count }, (_, i) => ({
+          fieldName: `f${i}`,
+          displayName: `F${i}`,
+          isRelationship: false,
+        })),
+      });
+
+    // Answers the 3 HasMany AI calls in order: select-relation, select-fields, select-record.
+    const buildModel = (selectedFieldDisplayNames: string[]) => {
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-relation',
+              args: { relationName: 'Address', reasoning: 'r' },
+              id: 'c1',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-fields', args: { fieldNames: selectedFieldDisplayNames }, id: 'c2' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'r' },
+              id: 'c3',
+            },
+          ],
+        });
+
+      return {
+        invoke,
+        model: {
+          bindTools: jest.fn().mockReturnValue({ invoke }),
+        } as unknown as ExecutionContext['model'],
+      };
+    };
+
+    // Concatenated content of the select-record AI call (3rd invoke), robust to system-message merge.
+    const selectRecordPrompt = (invoke: jest.Mock): string =>
+      (invoke.mock.calls[2][0] as Array<{ content: unknown }>)
+        .map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+        .join('\n');
+
+    it('caps the fields sent to the record-selection call at MAX_RELEVANT_FIELDS (6)', async () => {
+      const values = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`f${i}`, `v${i}`]));
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values },
+        { collectionName: 'addresses', recordId: [2], values },
+      ];
+      const { invoke, model } = buildModel(Array.from({ length: 8 }, (_, i) => `F${i}`)); // AI returns 8
+      const context = makeContext({
+        model,
+        agentPort: makeMockAgentPort(relatedData),
+        runStore: makeMockRunStore(),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: wideSchema(8),
+        }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      const firstRow = JSON.parse(selectRecordPrompt(invoke).match(/\[0\] (\{[^\n]*\})/)![1]);
+      expect(Object.keys(firstRow)).toHaveLength(6);
+    });
+
+    it('truncates an over-long field value in the AI candidate list', async () => {
+      const longValue = 'x'.repeat(200);
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { bio: longValue } },
+        { collectionName: 'addresses', recordId: [2], values: { bio: 'short' } },
+      ];
+      const schema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'bio', displayName: 'Bio', isRelationship: false }],
+      });
+      const { invoke, model } = buildModel(['Bio']);
+      const context = makeContext({
+        model,
+        agentPort: makeMockAgentPort(relatedData),
+        runStore: makeMockRunStore(),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: schema,
+        }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      const content = selectRecordPrompt(invoke);
+      expect(content).toContain('… (truncated)');
+      expect(content).not.toContain(longValue);
+    });
+
+    it('caps the candidate list to the global budget but still returns all records', async () => {
+      const big = 'y'.repeat(80);
+      const values = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`f${i}`, big]));
+      const relatedData: RecordData[] = Array.from({ length: 50 }, (_, i) => ({
+        collectionName: 'addresses',
+        recordId: [i + 1],
+        values,
+      }));
+      const { invoke, model } = buildModel(Array.from({ length: 6 }, (_, i) => `F${i}`));
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        logger,
+        agentPort: makeMockAgentPort(relatedData),
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: wideSchema(6),
+        }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      const shownRows = (selectRecordPrompt(invoke).match(/\[\d+\] \{/g) ?? []).length;
+      expect(shownRows).toBeLessThan(50);
+      expect(logger.warn).toHaveBeenCalledWith(
+        'load-related-record: candidate list truncated for AI prompt',
+        expect.objectContaining({ total: 50 }),
+      );
+      // The full list is still returned to the front, untrimmed.
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toHaveLength(50);
+    });
+  });
+
   describe('trigger before PATCH (Branch A)', () => {
     it('re-emits awaiting-input when userConfirmation is not yet set', async () => {
       const agentPort = makeMockAgentPort();
