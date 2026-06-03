@@ -963,6 +963,27 @@ describe('BaseStepExecutor', () => {
 
         await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toBe(apiError);
       });
+
+      // End-to-end: a timed-out AI invoke must surface through execute() as an error outcome
+      // carrying the AI-specific userMessage (distinct from the step-timeout message).
+      it('surfaces a timed-out AI invoke as an error outcome with the AI-specific userMessage', async () => {
+        class InvokingExecutor extends TestableExecutor {
+          protected override async doExecute(): Promise<StepExecutionResult> {
+            await this.invokeWithTool(dummyMessages, dummyTool);
+
+            return this.buildOutcomeResult({ status: 'success' });
+          }
+        }
+        const { model } = makeAbortAwareModel();
+        const executor = new InvokingExecutor(makeContext({ model, aiInvokeTimeoutMs: 20 }));
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.error).toBe(
+          'The AI provider did not respond in time. Please try again, or contact your administrator if the problem persists.',
+        );
+      });
     });
   });
 

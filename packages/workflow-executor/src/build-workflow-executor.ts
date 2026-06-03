@@ -54,6 +54,12 @@ export interface ExecutorOptions {
 export type DatabaseExecutorOptions = ExecutorOptions &
   ({ database: SequelizeOptions & { uri: string } } | { database: SequelizeOptions });
 
+// A bad timeout config (0, negative, non-finite) must fall back to the default rather than
+// silently disabling the timeout — `?? default` only catches null/undefined, not 0/negative.
+function positiveOrDefault(value: number | undefined, fallback: number): number {
+  return typeof value === 'number' && value > 0 ? value : fallback;
+}
+
 function buildCommonDependencies(options: ExecutorOptions) {
   const forestServerUrl = options.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL;
   const logger = options.logger ?? new ConsoleLogger();
@@ -113,8 +119,8 @@ function buildCommonDependencies(options: ExecutorOptions) {
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutMs: options.stopTimeoutMs,
-    stepTimeoutMs: options.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS,
-    aiInvokeTimeoutMs: options.aiInvokeTimeoutMs ?? DEFAULT_AI_INVOKE_TIMEOUT_MS,
+    stepTimeoutMs: positiveOrDefault(options.stepTimeoutMs, DEFAULT_STEP_TIMEOUT_MS),
+    aiInvokeTimeoutMs: positiveOrDefault(options.aiInvokeTimeoutMs, DEFAULT_AI_INVOKE_TIMEOUT_MS),
     maxChainDepth: options.maxChainDepth,
   };
 }

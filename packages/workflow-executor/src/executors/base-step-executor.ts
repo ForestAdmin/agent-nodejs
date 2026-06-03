@@ -331,8 +331,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const modelWithTools = this.context.model.bindTools(tools, { tool_choice: 'any' });
     const preparedMessages = BaseStepExecutor.mergeLeadingSystemMessages(messages);
     const aiTimeoutMs = this.context.aiInvokeTimeoutMs;
-    const timeoutEnabled = Boolean(aiTimeoutMs && aiTimeoutMs > 0);
-    const signal = timeoutEnabled ? AbortSignal.timeout(aiTimeoutMs as number) : undefined;
+    const timeoutMs = aiTimeoutMs && aiTimeoutMs > 0 ? aiTimeoutMs : undefined;
+    const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
 
     let response;
 
@@ -340,7 +340,9 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       // `signal: undefined` is equivalent to passing no options — LangChain leaves the call un-timed.
       response = await modelWithTools.invoke(preparedMessages, { signal });
     } catch (err) {
-      if (signal?.aborted) throw new AiInvokeTimeoutError(aiTimeoutMs as number);
+      // Detect the timeout via our own signal, not the thrown error's name: providers wrap an
+      // aborted request differently (AbortError, TimeoutError, APIUserAbortError, …).
+      if (timeoutMs !== undefined && signal?.aborted) throw new AiInvokeTimeoutError(timeoutMs);
       throw err;
     }
 
