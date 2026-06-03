@@ -179,6 +179,7 @@ describe('patchBodySchemas', () => {
       expect(() => schema.parse({ userConfirmed: true, fieldName: 'address' })).toThrow(
         'selectedRecordId is required when confirming with a relation override',
       );
+    });
 
     it('rejects empty string fieldName — empty string is not a valid field name', () => {
       expect(() => schema.parse({ userConfirmed: true, fieldName: '' })).toThrow();

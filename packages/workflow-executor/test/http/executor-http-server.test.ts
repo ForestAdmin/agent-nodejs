@@ -336,16 +336,17 @@ describe('ExecutorHttpServer', () => {
       expect(response.body.steps[0].selectedRecordRef.recordId).toBe('pk1|pk2');
     });
 
-    it('serializes load-related-record pendingData.selectedRecordId and executionResult.record.recordId', async () => {
+    it('serializes load-related-record pendingData candidate recordIds and executionResult.record.recordId', async () => {
       const steps = [
         {
           type: 'load-related-record' as const,
           stepIndex: 2,
           selectedRecordRef: { collectionName: 'customers', recordId: ['c1'], stepIndex: 0 },
           pendingData: {
-            name: 'orders',
-            displayName: 'Orders',
-            selectedRecordId: ['o1', 'o2'],
+            availableFields: [{ name: 'orders', displayName: 'Orders' }],
+            suggestedField: { name: 'orders', displayName: 'Orders' },
+            availableRecordIds: [{ recordId: ['o1', 'o2'], referenceFieldValue: null }],
+            suggestedRecord: { recordId: ['o1', 'o2'], referenceFieldValue: null },
           },
           executionResult: {
             relation: { name: 'orders', displayName: 'Orders' },
@@ -364,7 +365,8 @@ describe('ExecutorHttpServer', () => {
       expect(response.status).toBe(200);
       const step = response.body.steps[0];
       expect(step.selectedRecordRef.recordId).toBe('c1');
-      expect(step.pendingData.selectedRecordId).toBe('o1|o2');
+      expect(step.pendingData.availableRecordIds[0].recordId).toBe('o1|o2');
+      expect(step.pendingData.suggestedRecord.recordId).toBe('o1|o2');
       expect(step.executionResult.record.recordId).toBe('o1|o2');
     });
 

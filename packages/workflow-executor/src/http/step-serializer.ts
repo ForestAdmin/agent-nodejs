@@ -21,9 +21,20 @@ export default function serializeStepForWire(step: StepExecutionData): unknown {
       };
 
       if (step.pendingData) {
+        const { availableRecordIds, suggestedRecord } = step.pendingData;
+
         result.pendingData = {
           ...step.pendingData,
-          selectedRecordId: serializeRecordId(step.pendingData.selectedRecordId),
+          availableRecordIds: availableRecordIds.map(c => ({
+            ...c,
+            recordId: serializeRecordId(c.recordId),
+          })),
+          ...(suggestedRecord && {
+            suggestedRecord: {
+              ...suggestedRecord,
+              recordId: serializeRecordId(suggestedRecord.recordId),
+            },
+          }),
         };
       }
 
