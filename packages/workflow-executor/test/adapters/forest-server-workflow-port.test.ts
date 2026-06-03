@@ -641,6 +641,7 @@ describe('ForestServerWorkflowPort', () => {
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         referenceField: 'name',
+        futureUnknownField: 'ignored',
         fields: [
           {
             fieldName: 'store',
@@ -648,7 +649,7 @@ describe('ForestServerWorkflowPort', () => {
             isRelationship: true,
             relationType: 'BelongsTo',
             relatedCollectionName: 'stores',
-            relatedPrimaryKey: 'id',
+            futureFieldKey: 'ignored',
             type: null,
           },
         ],
@@ -657,8 +658,10 @@ describe('ForestServerWorkflowPort', () => {
 
       const result = await port.getCollectionSchema('users', '42');
 
-      expect(result).not.toHaveProperty('referenceField');
-      expect(result.fields[0]).not.toHaveProperty('relatedPrimaryKey');
+      // Genuinely-unknown keys are stripped; declared fields (referenceField) are preserved.
+      expect(result).not.toHaveProperty('futureUnknownField');
+      expect(result.fields[0]).not.toHaveProperty('futureFieldKey');
+      expect(result.referenceField).toBe('name');
       expect(result.fields[0]).toMatchObject({
         fieldName: 'store',
         relatedCollectionName: 'stores',
@@ -730,6 +733,52 @@ describe('ForestServerWorkflowPort', () => {
       await expect(port.getCollectionSchema('users', '42')).resolves.toMatchObject({
         collectionName: 'users',
       });
+    });
+
+    it("strips the target key from relatedCollectionName (Forest 'collection.key' reference)", async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'accounts',
+        collectionDisplayName: 'Accounts',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'store',
+            displayName: 'Store',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'store.id',
+            type: null,
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('accounts', '42');
+
+      expect(result.fields[0].relatedCollectionName).toBe('store');
+    });
+
+    it('leaves relatedCollectionName unchanged when it carries no target key (no dot)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'accounts',
+        collectionDisplayName: 'Accounts',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'store',
+            displayName: 'Store',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'store',
+            type: null,
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('accounts', '42');
+
+      expect(result.fields[0].relatedCollectionName).toBe('store');
     });
 
     it('accepts type File (Forest Admin extension)', async () => {

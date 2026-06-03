@@ -365,7 +365,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return {};
   }
 
-  private get logCtx() {
+  protected get logCtx() {
     const { runId, stepId, stepIndex, stepDefinition } = this.context;
 
     return {

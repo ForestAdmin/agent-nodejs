@@ -4,6 +4,7 @@ import type {
   GetActionFormInfoQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
+  GetSingleRelatedDataQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
 import type SchemaCache from '../schema-cache';
@@ -22,6 +23,10 @@ import {
   extractErrorMessage,
 } from '../errors';
 
+function toCamelCase(name: string): string {
+  return name.replace(/_([a-zA-Z0-9])/g, (_, c: string) => c.toUpperCase());
+}
+
 // The agent-client HTTP layer deserializes JSON:API responses with camelCase keys.
 // Field names in the schema and in GetRecordQuery.fields use the original format (e.g. snake_case).
 // This function restores the original field names so callers can look up values by schema fieldName.
@@ -34,8 +39,7 @@ function restoreFieldNames(
   const camelToOriginal: Record<string, string> = {};
 
   for (const name of originalFieldNames) {
-    const camelName = name.replace(/_([a-zA-Z0-9])/g, (_, c: string) => c.toUpperCase());
-    camelToOriginal[camelName] = name;
+    camelToOriginal[toCamelCase(name)] = name;
   }
 
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));
@@ -111,17 +115,12 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async getRelatedData(
-    { collection, id, relation, limit, fields }: GetRelatedDataQuery,
+    { collection, id, relation, relatedSchema, limit, fields }: GetRelatedDataQuery,
     user: StepUser,
   ): Promise<RecordData[]> {
     return this.callAgent('getRelatedData', async () => {
       const client = this.createClient(user);
-      const parentSchema = this.resolveSchema(collection);
-      const relationField = parentSchema.fields.find(f => f.fieldName === relation);
-      const relatedCollectionName = relationField?.relatedCollectionName ?? relation;
-      const relatedSchema = this.resolveSchema(relatedCollectionName);
-
-      const records = await client
+      const rows = await client
         .collection(collection)
         .relation(relation, id)
         .list<Record<string, unknown>>({
@@ -129,11 +128,11 @@ export default class AgentClientAgentPort implements AgentPort {
           ...(fields?.length && { fields }),
         });
 
-      return records.map(record => {
-        const restored = restoreFieldNames(record, [
-          ...relatedSchema.primaryKeyFields,
-          ...(fields ?? []),
-        ]);
+      return rows.map(row => {
+        const restored = restoreFieldNames(
+          row,
+          relatedSchema.fields.map(f => f.fieldName),
+        );
 
         return {
           collectionName: relatedSchema.collectionName,
@@ -141,6 +140,49 @@ export default class AgentClientAgentPort implements AgentPort {
           values: restored,
         };
       });
+    });
+  }
+
+  // xToOne relations have no /relationships/<relation> route on the agent. We read the
+  // parent record with a `<relation>@@@<field>` projection and unpack the relation linkage
+  // jsonapi-serializer emits as a nested object on the parent (with the related PK packed
+  // under "id" when composite).
+  async getSingleRelatedData(
+    { collection, id, relation, relatedSchema, fields }: GetSingleRelatedDataQuery,
+    user: StepUser,
+  ): Promise<RecordData | null> {
+    return this.callAgent('getSingleRelatedData', async () => {
+      // The agent can't parse multiple sub-fields on one relation in a single projection
+      // (`fields[store]=id,name` is read as a single field name → ValidationError). The linkage
+      // `id` carries the (packed) related PK regardless of projection, so project at most ONE
+      // field: the requested reference field for display, else a single PK field just to pull the
+      // relation into the response.
+      const projectedField = fields?.[0] ?? relatedSchema.primaryKeyFields[0];
+      const parent = await this.getRecord(
+        {
+          collection,
+          id,
+          fields: [`${relation}@@@${projectedField}`],
+        },
+        user,
+      );
+
+      // agent-client camelCases relation keys; look the linkage up under the camelCased name.
+      const linkage = parent.values[toCamelCase(relation)] as
+        | Record<string, unknown>
+        | null
+        | undefined;
+      const packedId = linkage?.id as string | undefined;
+
+      if (!linkage || !packedId) return null;
+
+      const restored = restoreFieldNames(linkage, [projectedField]);
+
+      return {
+        collectionName: relatedSchema.collectionName,
+        recordId: packedId.split('|'),
+        values: restored,
+      };
     });
   }
 

@@ -132,12 +132,17 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 }
 
 // -- Load Related Record --
+export interface LoadRelatedRecordCandidate {
+  recordId: Array<string | number>;
+  referenceFieldValue: string | null;
+}
 
-export interface LoadRelatedRecordPendingData extends RelationRef {
-  // undefined when not computed (record has no non-relation fields).
-  suggestedFields?: string[];
-  // AI-selected initially; frontend can override via userConfirmation.selectedRecordId.
-  selectedRecordId: Array<string | number>;
+export interface LoadRelatedRecordPendingData {
+  availableFields: RelationRef[];
+  suggestedField: RelationRef;
+  availableRecordIds: LoadRelatedRecordCandidate[];
+  // Absent when the relation has no linked record(s): the list is empty and there's nothing to suggest.
+  suggestedRecord?: LoadRelatedRecordCandidate;
 }
 
 export interface LoadRelatedRecordStepExecutionData
@@ -147,7 +152,6 @@ export interface LoadRelatedRecordStepExecutionData
   pendingData?: LoadRelatedRecordPendingData;
   selectedRecordRef: RecordRef;
   executionParams?: RelationRef;
-  // Source is always selectedRecordRef, not repeated here (consistent with other step types).
   executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
 }
 
