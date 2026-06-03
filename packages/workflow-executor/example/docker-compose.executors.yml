@@ -28,12 +28,18 @@ x-executor-common: &executor-common
   restart: unless-stopped
   extra_hosts:
     - "host.docker.internal:host-gateway"
+    # Forest local-dev domains resolve to 127.0.0.1 via the host's /etc/hosts (the orchestrator
+    # runs on the host). Inside containers 127.0.0.1 is the container itself, so map them to the
+    # host. Inert for non-dev setups (prod api.forestadmin.com is unaffected).
+    - "api.development.forestadmin.com:host-gateway"
+    - "app.development.forestadmin.com:host-gateway"
+    - "static.development.forestadmin.com:host-gateway"
 
 services:
   executor-1:
     <<: *executor-common
     build:
-      context: ../..
+      context: ../../..
       dockerfile: packages/workflow-executor/Dockerfile
     environment: *executor-env
 
