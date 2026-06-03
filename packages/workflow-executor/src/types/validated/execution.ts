@@ -27,8 +27,7 @@ export const StepSchema = z
     stepOutcome: StepOutcomeSchema,
     // RunStore execution lookup candidates, own stepIndex first then earlier same-step
     // generations descending. Revision clones run under a new stepIndex while their execution
-    // data stays keyed under the original one — consumers walk these until an execution is
-    // found. Absent (legacy producers) means "own index only".
+    // data stays keyed under the original one. Absent (legacy producers) means "own index only".
     lineageStepIndexes: z.array(z.number().int().nonnegative()).nonempty().optional(),
   })
   .strict();

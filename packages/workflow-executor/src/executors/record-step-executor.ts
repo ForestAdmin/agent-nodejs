@@ -47,9 +47,9 @@ export default abstract class RecordStepExecutor<
     return this.selectRecordRef(records, prompt);
   }
 
-  // The pool is scoped to the live path: records are derived from previousSteps (already
-  // cleaned of revised/cancelled entries), not from the raw RunStore — executions persisted
-  // by dead-branch steps must not offer their records to re-executed steps.
+  // Candidate sources for the AI: the base record plus the record each live prior
+  // load-related step resolved (via lineage — clones key their execution under the original
+  // stepIndex).
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const relatedRecords = this.context.previousSteps.flatMap(step => {

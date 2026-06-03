@@ -93,7 +93,7 @@ function tryMapStep(s: ServerStepHistory, lineageStepIndexes: [number, ...number
 
 // All generations of the same logical step share the same root (originalStepIndex chains to
 // the FIRST original), so the lineage is rebuilt by grouping the FULL history — dead entries
-// included, since they carry the intermediate generations. Own index first, then older ones.
+// included, since they carry the intermediate generations.
 function toLineageStepIndexes(
   history: ServerStepHistory[],
   step: ServerStepHistory,
@@ -107,8 +107,8 @@ function toLineageStepIndexes(
   return generations as [number, ...number[]];
 }
 
-// Mirrors the orchestrator's own read filter: revised (pivot anchor) and cancelled (dead
-// branch) entries are not on the live path and must not reach the AI context.
+// Mirrors the orchestrator's own read filter: revised and cancelled entries are not on the
+// live path.
 function toPreviousSteps(
   history: ServerStepHistory[],
   pendingStepIndex: number,

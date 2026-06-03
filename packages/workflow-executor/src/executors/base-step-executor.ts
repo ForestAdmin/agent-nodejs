@@ -294,9 +294,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return [new SystemMessage(summary)];
   }
 
-  // Revision clones run under a new stepIndex while their execution data stays keyed under the
-  // original one. Lineage candidates are ordered freshest-first, so the first hit is the most
-  // recent execution of that logical step.
+  // Lineage candidates are ordered freshest-first, so the first hit is the most recent
+  // execution of that logical step (see Step.lineageStepIndexes for the keying rationale).
   protected static resolveLineageExecution(
     step: Step,
     executions: StepExecutionData[],
