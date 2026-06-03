@@ -12,6 +12,7 @@ lerna-debug.log
 # Configuration
 .env
 .env-test
+.env.executors
 .forestadmin-schema.json
 
 # yarn
