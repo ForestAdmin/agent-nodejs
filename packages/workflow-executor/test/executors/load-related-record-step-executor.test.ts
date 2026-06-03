@@ -2894,15 +2894,19 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       // Then: the pool collapsed to the base record — no select-record round; the relation
-      // was selected and loaded directly from the base record (the ticket's bug offered the
-      // dead branch's owner as a source instead).
+      // was selected and loaded directly from the base record (previously the dead branch's
+      // owner was offered as a source instead).
       expect(result.stepOutcome.status).toBe('success');
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
       expect((mockModel.bindTools.mock.calls[0][0][0] as { name: string }).name).toBe(
         'select-relation',
       );
-      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
-        { collection: 'customers', id: [42], relation: 'order', limit: 1 },
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          relation: 'order',
+        }),
         expect.objectContaining({ id: 1 }),
       );
     });
