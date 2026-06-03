@@ -81,13 +81,23 @@ describe('QuerySerializer', () => {
         expect(result.search).toBe('john');
         expect(result['page[size]']).toBe(15);
         expect(result['page[number]']).toBe(3);
-        expect(result['fields[users]']).toEqual(['id', 'name']);
+        expect(result['fields[users]']).toBe('id,name');
       });
     });
 
     it('should serialize fields with escaped collection name', () => {
       const result = QuerySerializer.serialize({ fields: ['id', 'name', 'email'] }, 'users');
-      expect(result['fields[users]']).toEqual(['id', 'name', 'email']);
+      expect(result['fields[users]']).toBe('id,name,email');
+    });
+
+    it('should serialize fields as a single comma-separated value, not an array', () => {
+      // Regression (PRD-437): an array serializes as repeated params that Ruby agents collapse to one.
+      const result = QuerySerializer.serialize(
+        { fields: ['first_name', 'last_name', 'email'] },
+        'users',
+      );
+      expect(result['fields[users]']).toBe('first_name,last_name,email');
+      expect(Array.isArray(result['fields[users]'])).toBe(false);
     });
 
     it('should serialize ascending sort', () => {
@@ -188,7 +198,7 @@ describe('QuerySerializer', () => {
       expect(result.search).toBe('john');
       expect(result['page[size]']).toBe(20);
       expect(result['page[number]']).toBe(1);
-      expect(result['fields[users]']).toEqual(['id', 'name']);
+      expect(result['fields[users]']).toBe('id,name');
       expect(result.sort).toBe('-createdAt');
       const parsed = JSON.parse(result.filters as string);
       expect(parsed.conditions[0].operator).toBe('equal');
@@ -197,7 +207,7 @@ describe('QuerySerializer', () => {
 
     it('should handle collection names with special characters', () => {
       const result = QuerySerializer.serialize({ fields: ['id'] }, 'user+data');
-      expect(result['fields[user\\+data]']).toEqual(['id']);
+      expect(result['fields[user\\+data]']).toBe('id');
     });
 
     it('should handle undefined sort', () => {
@@ -214,11 +224,8 @@ describe('QuerySerializer', () => {
       it('should handle single relation field with @@@ separator', () => {
         const result = QuerySerializer.serialize({ fields: ['id', 'customer@@@name'] }, 'orders');
 
-        // Main collection should have id and the relation name (customer)
-        expect(result['fields[orders]']).toContain('id');
-        expect(result['fields[orders]']).toContain('customer');
-        // Related collection should have the field name
-        expect(result['fields[customer]']).toContain('name');
+        expect(result['fields[orders]']).toBe('id,customer');
+        expect(result['fields[customer]']).toBe('name');
       });
 
       it('should handle multiple relation fields from the same relation', () => {
@@ -227,12 +234,8 @@ describe('QuerySerializer', () => {
           'orders',
         );
 
-        // Main collection should have id and the relation name (customer) - may appear twice
-        expect(result['fields[orders]']).toContain('id');
-        expect(result['fields[orders]']).toContain('customer');
-        // Related collection should have both field names
-        expect(result['fields[customer]']).toContain('name');
-        expect(result['fields[customer]']).toContain('email');
+        expect(result['fields[orders]']).toBe('id,customer');
+        expect(result['fields[customer]']).toBe('name,email');
       });
 
       it('should handle multiple different relations', () => {
@@ -241,13 +244,9 @@ describe('QuerySerializer', () => {
           'orders',
         );
 
-        // Main collection should have id and both relation names
-        expect(result['fields[orders]']).toContain('id');
-        expect(result['fields[orders]']).toContain('customer');
-        expect(result['fields[orders]']).toContain('product');
-        // Each related collection should have its field
-        expect(result['fields[customer]']).toContain('name');
-        expect(result['fields[product]']).toContain('title');
+        expect(result['fields[orders]']).toBe('id,customer,product');
+        expect(result['fields[customer]']).toBe('name');
+        expect(result['fields[product]']).toBe('title');
       });
 
       it('should only process first level of relation with multiple @@@ separators', () => {
@@ -256,12 +255,9 @@ describe('QuerySerializer', () => {
           'orders',
         );
 
-        // Main collection should have id and customer relation
-        expect(result['fields[orders]']).toContain('id');
-        expect(result['fields[orders]']).toContain('customer');
-        // Only first level is processed - "address@@@city" becomes the field name
-        expect(result['fields[customer]']).toContain('address@@@city');
-        // No further nesting - address collection should not exist
+        // "address@@@city" stays the field name — no nesting beyond the first level
+        expect(result['fields[orders]']).toBe('id,customer');
+        expect(result['fields[customer]']).toBe('address@@@city');
         expect(result['fields[address]']).toBeUndefined();
       });
 
@@ -271,21 +267,15 @@ describe('QuerySerializer', () => {
           'orders',
         );
 
-        // Main collection should only have the relation name
-        expect(result['fields[orders]']).toContain('customer');
-        expect(result['fields[orders]']).not.toContain('name');
-        expect(result['fields[orders]']).not.toContain('email');
-        // Related collection should have both fields
-        expect(result['fields[customer]']).toContain('name');
-        expect(result['fields[customer]']).toContain('email');
+        expect(result['fields[orders]']).toBe('customer');
+        expect(result['fields[customer]']).toBe('name,email');
       });
 
       it('should escape special characters in relation names', () => {
         const result = QuerySerializer.serialize({ fields: ['id', 'user+data@@@name'] }, 'orders');
 
-        expect(result['fields[orders]']).toContain('id');
-        expect(result['fields[orders]']).toContain('user+data');
-        expect(result['fields[user\\+data]']).toContain('name');
+        expect(result['fields[orders]']).toBe('id,user+data');
+        expect(result['fields[user\\+data]']).toBe('name');
       });
 
       it('should handle empty fields array', () => {
@@ -298,28 +288,28 @@ describe('QuerySerializer', () => {
       it('should skip empty strings in fields', () => {
         const result = QuerySerializer.serialize({ fields: ['', 'name', ''] }, 'users');
 
-        expect(result['fields[users]']).toEqual(['name']);
+        expect(result['fields[users]']).toBe('name');
       });
 
       it('should skip malformed @@@ separator with missing relation name', () => {
         const result = QuerySerializer.serialize({ fields: ['id', '@@@fieldName'] }, 'orders');
 
         // Should only include 'id', skip the malformed '@@@fieldName'
-        expect(result['fields[orders]']).toEqual(['id']);
+        expect(result['fields[orders]']).toBe('id');
       });
 
       it('should skip malformed @@@ separator with missing field name', () => {
         const result = QuerySerializer.serialize({ fields: ['id', 'customer@@@'] }, 'orders');
 
         // Should only include 'id', skip the malformed 'customer@@@'
-        expect(result['fields[orders]']).toEqual(['id']);
+        expect(result['fields[orders]']).toBe('id');
       });
 
       it('should skip standalone @@@ separator', () => {
         const result = QuerySerializer.serialize({ fields: ['id', '@@@'] }, 'orders');
 
         // Should only include 'id', skip the malformed '@@@'
-        expect(result['fields[orders]']).toEqual(['id']);
+        expect(result['fields[orders]']).toBe('id');
       });
 
       it('should not include duplicate relation names', () => {
@@ -328,29 +318,27 @@ describe('QuerySerializer', () => {
           'orders',
         );
 
-        // customer should only appear once in the orders fields
-        const ordersFields = result['fields[orders]'] as string[];
-        const customerCount = ordersFields.filter(f => f === 'customer').length;
-        expect(customerCount).toBe(1);
+        // customer appears once even though two of its fields were requested
+        expect(result['fields[orders]']).toBe('id,customer');
       });
 
       it('should not include duplicate field names', () => {
         const result = QuerySerializer.serialize({ fields: ['id', 'id', 'name', 'name'] }, 'users');
 
-        expect(result['fields[users]']).toEqual(['id', 'name']);
+        expect(result['fields[users]']).toBe('id,name');
       });
 
       it('should handle whitespace in field names', () => {
         const result = QuerySerializer.serialize({ fields: ['  id  ', '  name  '] }, 'users');
 
-        expect(result['fields[users]']).toEqual(['id', 'name']);
+        expect(result['fields[users]']).toBe('id,name');
       });
 
       it('should handle whitespace around @@@ separator', () => {
         const result = QuerySerializer.serialize({ fields: ['  customer  @@@  name  '] }, 'orders');
 
-        expect(result['fields[orders]']).toContain('customer');
-        expect(result['fields[customer]']).toContain('name');
+        expect(result['fields[orders]']).toBe('customer');
+        expect(result['fields[customer]']).toBe('name');
       });
     });
   });
