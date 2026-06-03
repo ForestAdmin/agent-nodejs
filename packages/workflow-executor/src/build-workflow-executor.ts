@@ -57,7 +57,7 @@ export type DatabaseExecutorOptions = ExecutorOptions &
 // A bad timeout config (0, negative, non-finite) must fall back to the default rather than
 // silently disabling the timeout — `?? default` only catches null/undefined, not 0/negative.
 function positiveOrDefault(value: number | undefined, fallback: number): number {
-  return typeof value === 'number' && value > 0 ? value : fallback;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 function buildCommonDependencies(options: ExecutorOptions) {
