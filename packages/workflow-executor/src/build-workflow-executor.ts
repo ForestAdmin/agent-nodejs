@@ -16,6 +16,7 @@ import ServerAiAdapter from './adapters/server-ai-adapter';
 import {
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_POLLING_INTERVAL_MS,
+  DEFAULT_SCHEMA_CACHE_TTL_MS,
   DEFAULT_STEP_TIMEOUT_MS,
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
@@ -45,6 +46,8 @@ export interface ExecutorOptions {
   stepTimeoutMs?: number;
   // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
   maxChainDepth?: number;
+  // Collection schema cache TTL in ms. Lower it to pick up orchestrator schema changes sooner.
+  schemaCacheTtlMs?: number;
   // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
   forceAiError?: boolean;
 }
@@ -83,7 +86,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiModelPort = new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
   }
 
-  const schemaCache = new SchemaCache();
+  const schemaCache = new SchemaCache(options.schemaCacheTtlMs ?? DEFAULT_SCHEMA_CACHE_TTL_MS);
 
   const agentPort = new AgentClientAgentPort({
     agentUrl: options.agentUrl,

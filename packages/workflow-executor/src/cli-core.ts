@@ -17,6 +17,7 @@ import {
   DEFAULT_HTTP_PORT,
   DEFAULT_MAX_CHAIN_DEPTH,
   DEFAULT_POLLING_INTERVAL_MS,
+  DEFAULT_SCHEMA_CACHE_TTL_MS,
   DEFAULT_STEP_TIMEOUT_MS,
   DEFAULT_STOP_TIMEOUT_MS,
 } from './defaults';
@@ -159,6 +160,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     stopTimeoutMs: parsePositiveIntEnv('STOP_TIMEOUT_MS', env.STOP_TIMEOUT_MS),
     stepTimeoutMs: parsePositiveIntEnv('STEP_TIMEOUT_MS', env.STEP_TIMEOUT_MS),
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
+    schemaCacheTtlMs: parsePositiveIntEnv('SCHEMA_CACHE_TTL_MS', env.SCHEMA_CACHE_TTL_MS),
     ...(aiConfigurations && { aiConfigurations }),
     ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
   };
@@ -195,6 +197,7 @@ Optional environment variables:
   STOP_TIMEOUT_MS        Default: ${DEFAULT_STOP_TIMEOUT_MS}
   STEP_TIMEOUT_MS        Max duration of a step in ms (default: ${DEFAULT_STEP_TIMEOUT_MS})
   MAX_CHAIN_DEPTH        Max steps auto-executed per run before yielding (default: ${DEFAULT_MAX_CHAIN_DEPTH})
+  SCHEMA_CACHE_TTL_MS    Collection schema cache TTL in ms (default: ${DEFAULT_SCHEMA_CACHE_TTL_MS})
   NO_COLOR               Set to any value to disable ANSI colors in pretty logs
   FORCE_AI_ERROR         Set to "true" to make every AI call fail (dev only, to test error paths)
 

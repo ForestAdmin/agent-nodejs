@@ -141,6 +141,7 @@ describe('readEnvConfig', () => {
         STOP_TIMEOUT_MS: '10000',
         STEP_TIMEOUT_MS: '60000',
         MAX_CHAIN_DEPTH: '10',
+        SCHEMA_CACHE_TTL_MS: '120000',
       },
       args,
     );
@@ -150,6 +151,19 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.stopTimeoutMs).toBe(10000);
     expect(config.executorOptions.stepTimeoutMs).toBe(60000);
     expect(config.executorOptions.maxChainDepth).toBe(10);
+    expect(config.executorOptions.schemaCacheTtlMs).toBe(120000);
+  });
+
+  it('leaves schemaCacheTtlMs undefined when SCHEMA_CACHE_TTL_MS is unset (default applied downstream in build)', () => {
+    const config = readEnvConfig(baseEnv, args);
+
+    expect(config.executorOptions.schemaCacheTtlMs).toBeUndefined();
+  });
+
+  it('throws ConfigurationError when SCHEMA_CACHE_TTL_MS is non-numeric', () => {
+    expect(() => readEnvConfig({ ...baseEnv, SCHEMA_CACHE_TTL_MS: 'abc' }, args)).toThrow(
+      /SCHEMA_CACHE_TTL_MS must be a positive integer/,
+    );
   });
 
   it('leaves stepTimeoutMs undefined when STEP_TIMEOU_MS is unset (default applied downstream in build)', () => {
