@@ -16,9 +16,9 @@ name: workflow-executor-gateway
 x-executor-env: &executor-env
   FOREST_ENV_SECRET: ${FOREST_ENV_SECRET}
   FOREST_AUTH_SECRET: ${FOREST_AUTH_SECRET}
-  AGENT_URL: ${AGENT_URL:-http://host.docker.internal:3351}
-  FOREST_SERVER_URL: ${FOREST_SERVER_URL:-https://api.forestadmin.com}
-  DATABASE_URL: ${DATABASE_URL}
+  AGENT_URL: ${EXECUTOR_AGENT_URL:-http://host.docker.internal:3351}
+  FOREST_SERVER_URL: ${FOREST_SERVER_URL:-https://api.development.forestadmin.com}
+  DATABASE_URL: ${EXECUTOR_DATABASE_URL}
   POLLING_INTERVAL_MS: ${POLLING_INTERVAL_MS:-5000}
   HTTP_PORT: "3400"
   NODE_TLS_REJECT_UNAUTHORIZED: 0
