@@ -25,7 +25,7 @@ x-executor-env: &executor-env
 
 x-executor-common: &executor-common
   image: forest-workflow-executor:local
-  restart: unless-stopped
+  restart: always
   extra_hosts:
     - "host.docker.internal:host-gateway"
     # Forest local-dev domains resolve to 127.0.0.1 via the host's /etc/hosts (the orchestrator
