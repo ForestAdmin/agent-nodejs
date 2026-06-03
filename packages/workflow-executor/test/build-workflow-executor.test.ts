@@ -176,6 +176,27 @@ describe('buildInMemoryExecutor', () => {
     expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ stepTimeoutMs: 30_000 }));
   });
 
+  it('falls back to the default timeouts for non-positive or non-finite values', () => {
+    buildInMemoryExecutor({
+      ...BASE_OPTIONS,
+      stepTimeoutMs: 0,
+      aiInvokeTimeoutMs: Number.POSITIVE_INFINITY,
+    });
+
+    // A bad config must never silently disable the timeout — 0/negative/Infinity fall back.
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ stepTimeoutMs: 5 * 60_000, aiInvokeTimeoutMs: 30_000 }),
+    );
+  });
+
+  it('applies the 30s default when aiInvokeTimeoutMs is not configured', () => {
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ aiInvokeTimeoutMs: 30_000 }),
+    );
+  });
+
   it('passes secrets to Runner config', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 

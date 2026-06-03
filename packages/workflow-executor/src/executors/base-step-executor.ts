@@ -17,6 +17,7 @@ import type {
 import { SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  AiInvokeTimeoutError,
   InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
@@ -328,9 +329,23 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   ): Promise<{ toolName: string; args: T }> {
     BaseStepExecutor.assertNoMidArraySystemMessages(messages);
     const modelWithTools = this.context.model.bindTools(tools, { tool_choice: 'any' });
-    const response = await modelWithTools.invoke(
-      BaseStepExecutor.mergeLeadingSystemMessages(messages),
-    );
+    const preparedMessages = BaseStepExecutor.mergeLeadingSystemMessages(messages);
+    const aiTimeoutMs = this.context.aiInvokeTimeoutMs;
+    const timeoutMs = aiTimeoutMs && aiTimeoutMs > 0 ? aiTimeoutMs : undefined;
+    const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
+
+    let response;
+
+    try {
+      // `signal: undefined` is equivalent to passing no options — LangChain leaves the call un-timed.
+      response = await modelWithTools.invoke(preparedMessages, { signal });
+    } catch (err) {
+      // Detect the timeout via our own signal, not the thrown error's name: providers wrap an
+      // aborted request differently (AbortError, TimeoutError, APIUserAbortError, …).
+      if (timeoutMs !== undefined && signal?.aborted) throw new AiInvokeTimeoutError(timeoutMs);
+      throw err;
+    }
+
     const toolCall = response.tool_calls?.[0];
 
     if (toolCall !== undefined) {
