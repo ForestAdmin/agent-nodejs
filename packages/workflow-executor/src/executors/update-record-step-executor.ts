@@ -133,7 +133,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       action: 'update',
       type: 'write',
       collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId[0],
+      recordId: this.context.baseRecordRef.recordId,
     };
   }
 
