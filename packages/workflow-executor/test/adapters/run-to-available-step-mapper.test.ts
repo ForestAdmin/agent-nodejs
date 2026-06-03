@@ -598,6 +598,15 @@ describe('toAvailableStepExecution', () => {
       );
     });
 
+    it('should throw InvalidStepDefinitionError when selectedRecordId is empty', () => {
+      const run = makeRun({ selectedRecordId: '' });
+
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(
+        'Run 42 has no selectedRecordId — cannot build baseRecordRef',
+      );
+    });
+
     it('should propagate mapper errors from toStepDefinition', () => {
       const run = makeRun({
         workflowHistory: [

@@ -30,4 +30,11 @@ describe('deserializeRecordId', () => {
   it('three segments', () => {
     expect(deserializeRecordId('a|b|c')).toEqual(['a', 'b', 'c']);
   });
+
+  // Known/accepted limitation: '|' is the reserved segment delimiter, so a primary-key value
+  // that itself contains '|' is not round-trip safe (it over-splits). This is the convention
+  // used across the Forest stack; pinned here so the behavior is explicit.
+  it('over-splits a value that contains the reserved pipe (documented limitation)', () => {
+    expect(deserializeRecordId(serializeRecordId(['a|b']))).toEqual(['a', 'b']);
+  });
 });
