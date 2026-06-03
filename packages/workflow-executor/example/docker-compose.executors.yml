@@ -43,6 +43,9 @@ services:
       context: ../../..
       dockerfile: packages/workflow-executor/Dockerfile
     environment: *executor-env
+    networks:
+      executors:
+        ipv4_address: 172.28.0.11
 
   executor-2:
     <<: *executor-common
@@ -50,6 +53,9 @@ services:
     depends_on:
       executor-1:
         condition: service_started
+    networks:
+      executors:
+        ipv4_address: 172.28.0.12
 
   gateway:
     image: nginx:1.27-alpine
@@ -61,3 +67,11 @@ services:
     depends_on:
       - executor-1
       - executor-2
+    networks:
+      - executors
+
+networks:
+  executors:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
