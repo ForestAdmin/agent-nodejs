@@ -62,8 +62,8 @@ function createMockAiClient() {
   };
 }
 
-function createMockLogger(): jest.Mocked<Required<Logger>> {
-  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+function createMockLogger(): jest.MockedFunction<Logger> {
+  return jest.fn();
 }
 
 const VALID_ENV_SECRET = 'a'.repeat(64);
@@ -348,7 +348,8 @@ describe('graceful shutdown', () => {
     await runner.start();
     await runner.stop();
 
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Error',
       'Resource cleanup failed during shutdown',
       expect.objectContaining({ error: 'connection leak' }),
     );
@@ -426,7 +427,8 @@ describe('graceful shutdown', () => {
     await runner.stop();
     jest.useFakeTimers();
 
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Error',
       'Drain timeout — runs still in flight',
       expect.objectContaining({
         remainingRuns: ['run-1'],
@@ -442,7 +444,7 @@ describe('graceful shutdown', () => {
     await runner.start();
     await runner.stop();
 
-    expect(logger.info).not.toHaveBeenCalledWith('Draining in-flight runs', expect.anything());
+    expect(logger).not.toHaveBeenCalledWith('Info', 'Draining in-flight runs', expect.anything());
     expect(runner.state).toBe('stopped');
   });
 
@@ -511,11 +513,11 @@ describe('graceful shutdown', () => {
     resolveStep();
     await runner.stop();
 
-    expect(logger.info).toHaveBeenCalledWith('Draining in-flight runs', {
+    expect(logger).toHaveBeenCalledWith('Info', 'Draining in-flight runs', {
       count: 1,
       runs: ['run-1'],
     });
-    expect(logger.info).toHaveBeenCalledWith('All in-flight runs drained', {});
+    expect(logger).toHaveBeenCalledWith('Info', 'All in-flight runs drained', {});
   });
 });
 
@@ -938,7 +940,8 @@ describe('chain', () => {
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
     expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(1);
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'Server returned non-progressing next step — exiting chain',
       expect.objectContaining({
         runId: 'run-1',
@@ -969,7 +972,8 @@ describe('chain', () => {
     await runner.triggerPoll('run-1');
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'Server returned non-progressing next step — exiting chain',
       expect.objectContaining({ runId: 'run-1', returnedRunId: 'run-other' }),
     );
@@ -999,7 +1003,8 @@ describe('chain', () => {
 
     // initial + 2 chained = 3 total executions; the 3rd update returns a next we don't chain.
     expect(executeSpy).toHaveBeenCalledTimes(3);
-    expect(mockLogger.info).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Info',
       'Chain depth cap reached — yielding to next poll',
       expect.objectContaining({ runId: 'run-1', maxDepth: 2 }),
     );
@@ -1092,7 +1097,8 @@ describe('chain', () => {
     await runner.triggerPoll('run-1');
 
     expect(executeSpy).toHaveBeenCalledTimes(2); // initial + 1 chained before the throw
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'Failed to report step outcome',
       expect.objectContaining({
         runId: 'run-1',
@@ -1137,7 +1143,8 @@ describe('chain', () => {
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
     await runner.triggerPoll('run-1');
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'FATAL: executor contract violated — reporting synthetic error outcome',
       expect.objectContaining({
         runId: 'run-1',
@@ -1231,7 +1238,8 @@ describe('chain', () => {
 
     // Only the initial step executed — the draining check prevented chaining.
     expect(executeSpy).toHaveBeenCalledTimes(1);
-    expect(mockLogger.info).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Info',
       'Chain interrupted by stop() — yielding',
       expect.objectContaining({ runId: 'run-1' }),
     );
@@ -1393,7 +1401,8 @@ describe('MCP fetch scoping', () => {
 
     expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
     expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
-    expect(logger.warn).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
       'MCP step targets a server not advertised by the orchestrator',
       {
         requestedMcpServerId: 'id-missing',
@@ -1433,11 +1442,13 @@ describe('MCP fetch scoping', () => {
     await runner.triggerPoll('run-1');
 
     expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
-    expect(logger.warn).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
       'MCP step targets a server but orchestrator returned no MCP configs',
       { requestedMcpServerId: 'id-A', mcpServerName: undefined, availableMcpServerIds: [] },
     );
-    expect(logger.warn).not.toHaveBeenCalledWith(
+    expect(logger).not.toHaveBeenCalledWith(
+      'Warn',
       'MCP step targets a server not advertised by the orchestrator',
       expect.anything(),
     );
@@ -1478,7 +1489,7 @@ describe('MCP fetch scoping', () => {
     );
     await runner.triggerPoll('run-1');
 
-    expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
+    expect(logger).toHaveBeenCalledWith('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: 'id-A',
       mcpServerName: 'server-A',
       failedConfigNames: ['server-A'],
@@ -1554,7 +1565,7 @@ describe('StepExecutorFactory.create — factory', () => {
     workflowPort: {} as WorkflowPort,
     runStore: {} as RunStore,
     schemaCache: new SchemaCache(),
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    logger: jest.fn(),
   });
 
   const makeRunLogger = () => ({
@@ -1691,7 +1702,7 @@ describe('StepExecutorFactory.create — factory', () => {
     const rootCause = new Error('root cause');
     const error = new Error('wrapper');
     (error as Error & { cause: Error }).cause = rootCause;
-    const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    const logger = jest.fn();
     const contextConfig: StepContextConfig = {
       ...makeContextConfig(),
       aiModelPort: {
@@ -1704,7 +1715,8 @@ describe('StepExecutorFactory.create — factory', () => {
 
     await StepExecutorFactory.create(makePendingStep(), contextConfig, makeRunLogger(), jest.fn());
 
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Error',
       'Step execution failed unexpectedly',
       expect.objectContaining({ cause: 'root cause' }),
     );
@@ -1737,7 +1749,7 @@ describe('StepExecutorFactory.create — factory', () => {
   it('logs cause as undefined when construction error cause is not an Error instance', async () => {
     const error = new Error('wrapper');
     (error as Error & { cause: string }).cause = 'plain string';
-    const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    const logger = jest.fn();
     const contextConfig: StepContextConfig = {
       ...makeContextConfig(),
       aiModelPort: {
@@ -1750,7 +1762,8 @@ describe('StepExecutorFactory.create — factory', () => {
 
     await StepExecutorFactory.create(makePendingStep(), contextConfig, makeRunLogger(), jest.fn());
 
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Error',
       'Step execution failed unexpectedly',
       expect.objectContaining({ cause: undefined }),
     );
@@ -1784,7 +1797,8 @@ describe('error handling', () => {
     );
     await runner.triggerPoll('run-1');
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'Step execution failed unexpectedly',
       expect.objectContaining({
         runId: 'run-1',
@@ -1852,7 +1866,8 @@ describe('error handling', () => {
     );
     await runner.triggerPoll('run-2');
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'Step execution failed unexpectedly',
       expect.objectContaining({
         runId: 'run-2',
@@ -1905,7 +1920,8 @@ describe('error handling', () => {
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
     await runner.triggerPoll('run-1');
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'FATAL: executor contract violated — reporting synthetic error outcome',
       expect.objectContaining({
         runId: 'run-1',
@@ -1970,7 +1986,8 @@ describe('error handling', () => {
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
     await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'FATAL: also failed to report synthetic error outcome',
       expect.objectContaining({
         runId: 'run-1',
@@ -2037,7 +2054,7 @@ describe('error handling', () => {
     jest.advanceTimersByTime(POLLING_INTERVAL_MS);
     await flushPromises();
 
-    expect(mockLogger.info).toHaveBeenCalledWith('Poll cycle completed', {
+    expect(mockLogger).toHaveBeenCalledWith('Info', 'Poll cycle completed', {
       fetched: 0,
       dispatching: 0,
       malformed: 0,
@@ -2057,7 +2074,8 @@ describe('error handling', () => {
     jest.advanceTimersByTime(POLLING_INTERVAL_MS);
     await flushPromises();
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'Poll cycle failed',
       expect.objectContaining({ error: 'network error' }),
     );
@@ -2120,7 +2138,8 @@ describe('malformed run reporting', () => {
     await flushPromises();
 
     expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'Malformed run cannot be reported — no available step identified',
       expect.objectContaining({ runId: '99' }),
     );
@@ -2141,7 +2160,8 @@ describe('malformed run reporting', () => {
     jest.advanceTimersByTime(POLLING_INTERVAL_MS);
     await flushPromises();
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
       'Malformed run — also failed to report',
       expect.objectContaining({ runId: '99', reportError: 'orchestrator unreachable' }),
     );

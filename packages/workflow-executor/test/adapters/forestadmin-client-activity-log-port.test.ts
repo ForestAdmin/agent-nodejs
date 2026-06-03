@@ -5,7 +5,7 @@ import ForestadminClientActivityLogPort from '../../src/adapters/forestadmin-cli
 import { ActivityLogCreationError } from '../../src/errors';
 
 function makeLogger() {
-  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  return jest.fn();
 }
 
 function makeService(): jest.Mocked<ActivityLogsServiceInterface> {
@@ -105,7 +105,8 @@ describe('ForestadminClientActivityLogPort', () => {
 
       expect(handle).toEqual({ id: 'log-2', index: '1' });
       expect(service.createActivityLog).toHaveBeenCalledTimes(2);
-      expect(logger.warn).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
         expect.stringContaining('activity log create'),
         expect.objectContaining({ attempt: 1 }),
       );
@@ -246,7 +247,8 @@ describe('ForestadminClientActivityLogPort', () => {
       const promise = port.markSucceeded({ id: 'log-1', index: '0' });
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'activity log mark-as-completed failed',
         expect.objectContaining({ handleId: 'log-1' }),
       );
@@ -298,7 +300,8 @@ describe('ForestadminClientActivityLogPort', () => {
       const promise = port.markFailed({ id: 'log-1', index: '0' });
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'activity log mark-as-failed failed',
         expect.objectContaining({ handleId: 'log-1' }),
       );

@@ -154,7 +154,7 @@ function makeContext(
     },
     schemaResolver,
     previousSteps: [],
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    logger: jest.fn(),
     ...overrides,
   };
 
@@ -766,7 +766,7 @@ describe('ReadRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.getRecord throws an infra error', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const agentPort = makeMockAgentPort();
       // Prod adapter normalizes infra errors into AgentPortError — simulate here.
       (agentPort.getRecord as jest.Mock).mockRejectedValue(
@@ -782,7 +782,8 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         'An error occurred while accessing your data. Please try again.',
       );
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Agent port "getRecord" failed: DB connection lost',
         expect.objectContaining({ cause: 'DB connection lost' }),
       );

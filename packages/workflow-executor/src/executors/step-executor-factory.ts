@@ -103,7 +103,7 @@ export default class StepExecutorFactory {
           );
       }
     } catch (error) {
-      contextConfig.logger.error('Step execution failed unexpectedly', {
+      contextConfig.logger('Error', 'Step execution failed unexpectedly', {
         runId: step.runId,
         stepId: step.stepId,
         stepIndex: step.stepIndex,

@@ -1,12 +1,12 @@
 /* eslint-disable no-console */
 
-import type { Logger } from './ports/logger-port';
+import type { Logger, LoggerLevel } from './ports/logger-port';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 
 import { z } from 'zod';
 
-import ConsoleLogger from './adapters/console-logger';
-import PrettyLogger from './adapters/pretty-logger';
+import createConsoleLogger from './adapters/console-logger';
+import createPrettyLogger from './adapters/pretty-logger';
 import {
   type DatabaseExecutorOptions,
   type ExecutorOptions,
@@ -16,6 +16,7 @@ import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_HTTP_PORT,
+  DEFAULT_LOGGER_LEVEL,
   DEFAULT_MAX_CHAIN_DEPTH,
   DEFAULT_POLLING_INTERVAL_S,
   DEFAULT_SCHEMA_CACHE_TTL_S,
@@ -25,6 +26,7 @@ import {
 import { ConfigurationError, extractErrorMessage } from './errors';
 
 const POSITIVE_INT = z.coerce.number().int().positive();
+const LOGGER_LEVEL_SCHEMA = z.enum(['Debug', 'Info', 'Warn', 'Error']);
 
 function parsePositiveIntEnv(name: string, raw: string | undefined): number | undefined {
   if (!raw) return undefined;
@@ -33,6 +35,20 @@ function parsePositiveIntEnv(name: string, raw: string | undefined): number | un
 
   if (!parsed.success) {
     throw new ConfigurationError(`${name} must be a positive integer (got "${raw}")`);
+  }
+
+  return parsed.data;
+}
+
+function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
+  if (!raw) return undefined;
+
+  const parsed = LOGGER_LEVEL_SCHEMA.safeParse(raw);
+
+  if (!parsed.success) {
+    throw new ConfigurationError(
+      `LOG_LEVEL must be one of Debug, Info, Warn, Error (got "${raw}")`,
+    );
   }
 
   return parsed.data;
@@ -100,11 +116,15 @@ export function parseArgs(argv: string[]): CliArgs {
 
 // Priority: --json → Console; --pretty → Pretty; TTY → Pretty; else Console (piped/docker/k8s/CI).
 // NO_COLOR is respected by picocolors so pretty output stays monochrome where ANSI is banned.
-export function pickLogger(args: CliArgs, stdout: NodeJS.WriteStream = process.stdout): Logger {
-  if (args.json) return new ConsoleLogger();
-  if (args.pretty) return new PrettyLogger();
+export function pickLogger(
+  args: CliArgs,
+  level: LoggerLevel,
+  stdout: NodeJS.WriteStream = process.stdout,
+): Logger {
+  if (args.json) return createConsoleLogger(level);
+  if (args.pretty) return createPrettyLogger(level);
 
-  return stdout.isTTY ? new PrettyLogger() : new ConsoleLogger();
+  return stdout.isTTY ? createPrettyLogger(level) : createConsoleLogger(level);
 }
 
 function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
@@ -163,6 +183,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     aiInvokeTimeoutS: parsePositiveIntEnv('AI_INVOKE_TIMEOUT_S', env.AI_INVOKE_TIMEOUT_S),
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
     schemaCacheTtlS: parsePositiveIntEnv('SCHEMA_CACHE_TTL_S', env.SCHEMA_CACHE_TTL_S),
+    loggerLevel: parseLoggerLevelEnv(env.LOG_LEVEL) ?? DEFAULT_LOGGER_LEVEL,
     ...(aiConfigurations && { aiConfigurations }),
     ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
   };
@@ -201,6 +222,7 @@ Optional environment variables:
   AI_INVOKE_TIMEOUT_S   Max duration of a single AI provider invocation in seconds (default: ${DEFAULT_AI_INVOKE_TIMEOUT_S})
   MAX_CHAIN_DEPTH        Max steps auto-executed per run before yielding (default: ${DEFAULT_MAX_CHAIN_DEPTH})
   SCHEMA_CACHE_TTL_S    Collection schema cache TTL in seconds (default: ${DEFAULT_SCHEMA_CACHE_TTL_S})
+  LOG_LEVEL              Debug | Info | Warn | Error (default: ${DEFAULT_LOGGER_LEVEL})
   NO_COLOR               Set to any value to disable ANSI colors in pretty logs
   FORCE_AI_ERROR         Set to "true" to make every AI call fail (dev only, to test error paths)
 
@@ -229,12 +251,13 @@ export function logStartup(logger: Logger, config: CliConfig): void {
     aiLabel = 'server fallback';
   }
 
-  logger.info('Workflow executor starting', {
+  logger('Info', 'Workflow executor starting', {
     mode,
     forestServerUrl: opts.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL,
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,
     pollingIntervalS: opts.pollingIntervalS ?? DEFAULT_POLLING_INTERVAL_S,
+    loggerLevel: opts.loggerLevel ?? DEFAULT_LOGGER_LEVEL,
     aiConfig: aiLabel,
   });
 }
@@ -259,7 +282,7 @@ export async function runCli(
   }
 
   const config = readEnvConfig(env, args);
-  const logger = pickLogger(args);
+  const logger = pickLogger(args, config.executorOptions.loggerLevel ?? DEFAULT_LOGGER_LEVEL);
   config.executorOptions.logger = logger;
 
   logStartup(logger, config);
@@ -278,13 +301,13 @@ export async function runCli(
     }
 
     await executor.start();
-    logger.info('Workflow executor ready', {
+    logger('Info', 'Workflow executor ready', {
       url: `http://localhost:${config.executorOptions.httpPort}`,
     });
 
     return executor;
   } catch (error) {
-    logger.error('Workflow executor failed to start', {
+    logger('Error', 'Workflow executor failed to start', {
       error: extractErrorMessage(error),
     });
     throw error;

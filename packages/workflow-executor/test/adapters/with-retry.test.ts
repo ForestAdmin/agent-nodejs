@@ -2,11 +2,7 @@ import type { Logger } from '../../src/ports/logger-port';
 
 import withRetry from '../../src/adapters/with-retry';
 
-const makeLogger = (): jest.Mocked<Logger> => ({
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-});
+const makeLogger = (): jest.MockedFunction<Logger> => jest.fn();
 
 const makeHttpError = (status: number) => {
   const err = new Error(`HTTP ${status}`);
@@ -32,7 +28,7 @@ describe('withRetry', () => {
 
     expect(result).toBe('ok');
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger).not.toHaveBeenCalled();
   });
 
   it('retries on retryable HTTP status codes (503)', async () => {
@@ -44,7 +40,8 @@ describe('withRetry', () => {
 
     await expect(promise).resolves.toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
-    expect(logger.warn).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
       '"test" failed, retrying',
       expect.objectContaining({ attempt: 1 }),
     );
@@ -123,7 +120,8 @@ describe('withRetry', () => {
 
     await expect(promise).resolves.toBe('ok');
     expect(fn).toHaveBeenCalledTimes(2);
-    expect(logger.warn).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
       '"test" failed, retrying',
       expect.objectContaining({ attempt: 1, status: 404 }),
     );
@@ -135,7 +133,7 @@ describe('withRetry', () => {
 
     await expect(withRetry('test', fn, { logger })).rejects.toMatchObject({ status: 404 });
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger).not.toHaveBeenCalled();
   });
 
   it('throws immediately on non-retryable errors (4xx)', async () => {
@@ -144,7 +142,7 @@ describe('withRetry', () => {
 
     await expect(withRetry('test', fn, { logger })).rejects.toMatchObject({ status: 400 });
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger).not.toHaveBeenCalled();
   });
 
   it('throws immediately on errors with no status', async () => {

@@ -13,8 +13,8 @@ function createMockAiModelPort(): jest.Mocked<Pick<AiModelPort, 'loadRemoteTools
   return { loadRemoteTools: jest.fn().mockResolvedValue([]) };
 }
 
-function createMockLogger(): jest.Mocked<Required<Logger>> {
-  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+function createMockLogger(): jest.MockedFunction<Logger> {
+  return jest.fn();
 }
 
 function makeRemoteTool(sourceId: string, mcpServerId?: string): RemoteTool {
@@ -24,7 +24,7 @@ function makeRemoteTool(sourceId: string, mcpServerId?: string): RemoteTool {
 function makeFetcher(overrides?: {
   workflowPort?: Partial<jest.Mocked<Pick<WorkflowPort, 'getMcpServerConfigs'>>>;
   aiModelPort?: Partial<jest.Mocked<Pick<AiModelPort, 'loadRemoteTools'>>>;
-  logger?: jest.Mocked<Required<Logger>>;
+  logger?: jest.MockedFunction<Logger>;
 }) {
   const workflowPort = { ...createMockWorkflowPort(), ...overrides?.workflowPort };
   const aiModelPort = { ...createMockAiModelPort(), ...overrides?.aiModelPort };
@@ -123,7 +123,8 @@ describe('RemoteToolFetcher.fetch', () => {
 
     await fetcher.fetch('id-missing');
 
-    expect(logger.warn).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
       'MCP step targets a server not advertised by the orchestrator',
       {
         requestedMcpServerId: 'id-missing',
@@ -140,11 +141,13 @@ describe('RemoteToolFetcher.fetch', () => {
 
     await fetcher.fetch('id-A');
 
-    expect(logger.warn).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
       'MCP step targets a server but orchestrator returned no MCP configs',
       { requestedMcpServerId: 'id-A', mcpServerName: undefined, availableMcpServerIds: [] },
     );
-    expect(logger.warn).not.toHaveBeenCalledWith(
+    expect(logger).not.toHaveBeenCalledWith(
+      'Warn',
       'MCP step targets a server not advertised by the orchestrator',
       expect.anything(),
     );
@@ -159,7 +162,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     await fetcher.fetch('id-A');
 
-    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger.mock.calls.find(c => c[0] === 'Warn')).toBeUndefined();
   });
 
   it('flags the scoped MCP config when no tool was loaded for its id', async () => {
@@ -172,7 +175,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     await fetcher.fetch('id-A');
 
-    expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
+    expect(logger).toHaveBeenCalledWith('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: 'id-A',
       mcpServerName: 'srv-a',
       failedConfigNames: ['srv-a'],
@@ -191,7 +194,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     await fetcher.fetch('id-A');
 
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(logger.mock.calls.find(c => c[0] === 'Error')).toBeUndefined();
   });
 
   // Forest integrations carry a hardcoded sourceId (e.g. 'zendesk'); the partial-failure check
@@ -213,7 +216,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     await fetcher.fetch('id-zendesk');
 
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(logger.mock.calls.find(c => c[0] === 'Error')).toBeUndefined();
   });
 
   it('flags a Forest connector that fails to load entirely', async () => {
@@ -231,7 +234,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     await fetcher.fetch('id-zendesk');
 
-    expect(logger.error).toHaveBeenCalledWith('MCP servers failed to load tools', {
+    expect(logger).toHaveBeenCalledWith('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: 'id-zendesk',
       mcpServerName: 'zendesk-prod',
       failedConfigNames: ['zendesk-prod'],
@@ -263,7 +266,7 @@ describe('RemoteToolFetcher.fetch', () => {
     });
 
     await expect(fetcher.fetch('id-A')).rejects.toThrow('MCP unreachable');
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(logger.mock.calls.find(c => c[0] === 'Error')).toBeUndefined();
   });
 
   it('propagates a rejection from getMcpServerConfigs without calling loadRemoteTools', async () => {

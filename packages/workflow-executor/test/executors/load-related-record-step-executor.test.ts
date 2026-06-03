@@ -205,7 +205,8 @@ function makeContext(
     },
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId, 1),
     previousSteps: [],
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    logger: jest.fn(),
+
     ...overrides,
   };
 
@@ -2190,7 +2191,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         values,
       }));
       const { invoke, model } = buildModel(Array.from({ length: 6 }, (_, i) => `F${i}`));
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
@@ -2209,7 +2210,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(shownRows).toBeGreaterThan(1);
       expect(shownRows).toBeLessThan(50);
       // The warn carries the run-correlation context (logCtx) alongside the counters.
-      expect(logger.warn).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
         'load-related-record: candidate list truncated for AI prompt',
         expect.objectContaining({ total: 50, runId: 'run-1', stepIndex: 0 }),
       );
@@ -2235,7 +2237,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
-        logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        logger: jest.fn(),
         agentPort: makeMockAgentPort(relatedData),
         runStore,
         workflowPort: makeMockWorkflowPort({
@@ -2635,7 +2637,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.getRelatedData throws an infra error', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(
         new AgentPortError('getRelatedData', new Error('DB connection lost')),
@@ -2662,7 +2664,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         'An error occurred while accessing your data. Please try again.',
       );
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Agent port "getRelatedData" failed: DB connection lost',
         expect.objectContaining({ cause: 'DB connection lost' }),
       );

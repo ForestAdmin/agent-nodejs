@@ -41,7 +41,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
 
       return { id: response.id, index: response.attributes.index };
     } catch (cause) {
-      this.logger.error('activity log create failed', {
+      this.logger('Error', 'activity log create failed', {
         action: args.action,
         collectionId: args.collectionId,
         status: (cause as { status?: number }).status,
@@ -65,7 +65,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           { logger: this.logger, extraRetryStatuses: [404] },
         );
       } catch (err) {
-        this.logger.error('activity log mark-as-completed failed', {
+        this.logger('Error', 'activity log mark-as-completed failed', {
           handleId: handle.id,
           error: extractErrorMessage(err),
         });
@@ -87,7 +87,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           { logger: this.logger, extraRetryStatuses: [404] },
         );
       } catch (err) {
-        this.logger.error('activity log mark-as-failed failed', {
+        this.logger('Error', 'activity log mark-as-failed failed', {
           handleId: handle.id,
           error: extractErrorMessage(err),
         });

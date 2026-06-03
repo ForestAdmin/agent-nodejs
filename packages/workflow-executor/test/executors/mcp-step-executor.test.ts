@@ -123,7 +123,7 @@ function makeContext(
     },
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId, 1),
     previousSteps: [],
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    logger: jest.fn(),
     ...overrides,
   };
 
@@ -276,7 +276,7 @@ describe('McpStepExecutor', () => {
           tool_calls: [{ name: 'send_notification', args: { message: 'Hi' }, id: 'call_1' }],
         })
         .mockResolvedValueOnce({ tool_calls: [] });
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const runStore = makeMockRunStore();
       const context = makeContext({
         model,
@@ -298,7 +298,8 @@ describe('McpStepExecutor', () => {
           executionResult: { success: true, toolResult: { result: 'ok' } },
         }),
       );
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Failed to format MCP tool result, persisting raw result without summary',
         expect.objectContaining({ toolName: 'send_notification' }),
       );
@@ -364,7 +365,7 @@ describe('McpStepExecutor', () => {
 
     it('returns error when saveStepExecution fails (Branch C)', async () => {
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const runStore = makeMockRunStore({
         saveStepExecution: jest
           .fn()
@@ -380,7 +381,8 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Run store "saveStepExecution" failed: DB unavailable',
         expect.objectContaining({ cause: 'DB unavailable', stepId: 'mcp-1' }),
       );
@@ -553,7 +555,7 @@ describe('McpStepExecutor', () => {
     });
 
     it('logs the technical message with the requested mcpServerId when tools are empty', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const context = makeContext({
         logger,
         stepDefinition: makeStep({ mcpServerId: 'id-missing' }),
@@ -564,7 +566,8 @@ describe('McpStepExecutor', () => {
 
       // BaseStepExecutor catches NoMcpToolsError and logs error.message (which encodes the
       // requested mcpServerId) along with the step correlation context.
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'No MCP tools available for mcpServerId="id-missing"',
         expect.objectContaining({
           runId: expect.any(String),
@@ -613,7 +616,7 @@ describe('McpStepExecutor', () => {
         invoke: invokeFn,
       });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const runStore = makeMockRunStore({
         saveStepExecution: jest
           .fn()
@@ -631,7 +634,8 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Run store "saveStepExecution" failed: Disk full',
         expect.objectContaining({ cause: 'Disk full', stepId: 'mcp-1' }),
       );
@@ -654,7 +658,7 @@ describe('McpStepExecutor', () => {
         },
         userConfirmation: { userConfirmed: true },
       };
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
         saveStepExecution: jest
@@ -668,7 +672,8 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Run store "saveStepExecution" failed: Disk full',
         expect.objectContaining({ cause: 'Disk full', stepId: 'mcp-1' }),
       );
@@ -769,7 +774,7 @@ describe('McpStepExecutor', () => {
         invoke: invokeFn,
       });
       const { model } = makeMockModel('send_notification', {});
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const context = makeContext({
         model,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
@@ -783,7 +788,8 @@ describe('McpStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         'The tool failed to execute. Please try again or contact your administrator.',
       );
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'MCP tool "send_notification" invocation failed: Connection refused',
         expect.objectContaining({ cause: 'Connection refused' }),
       );
@@ -1019,7 +1025,7 @@ describe('McpStepExecutor', () => {
     it('includes mcpServerId and mcpServerName in the start and completion log lines', async () => {
       const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const context = makeContext({
         model,
         logger,
@@ -1032,14 +1038,16 @@ describe('McpStepExecutor', () => {
 
       await executor.execute();
 
-      expect(logger.info).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
         'Step execution started',
         expect.objectContaining({
           mcpServerId: 'my-mcp-server',
           mcpServerName: 'Production Slack',
         }),
       );
-      expect(logger.info).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
         'Step execution completed',
         expect.objectContaining({
           mcpServerId: 'my-mcp-server',
@@ -1049,7 +1057,7 @@ describe('McpStepExecutor', () => {
     });
 
     it('logs mcpServerName as undefined when no server name was resolved', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const context = makeContext({
         logger,
         stepDefinition: makeStep({ mcpServerId: 'id-missing' }),
@@ -1058,7 +1066,8 @@ describe('McpStepExecutor', () => {
 
       await executor.execute();
 
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'No MCP tools available for mcpServerId="id-missing"',
         expect.objectContaining({ mcpServerId: 'id-missing', mcpServerName: undefined }),
       );

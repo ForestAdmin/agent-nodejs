@@ -1,4 +1,4 @@
-import type { Logger } from './ports/logger-port';
+import type { Logger, LoggerLevel } from './ports/logger-port';
 import type { RunnerState } from './runner';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Options as SequelizeOptions } from 'sequelize';
@@ -9,13 +9,14 @@ import { Sequelize } from 'sequelize';
 import AgentClientAgentPort from './adapters/agent-client-agent-port';
 import AiClientAdapter from './adapters/ai-client-adapter';
 import AlwaysErrorAiModelPort from './adapters/always-error-ai-model-port';
-import ConsoleLogger from './adapters/console-logger';
+import createConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,
   DEFAULT_FOREST_SERVER_URL,
+  DEFAULT_LOGGER_LEVEL,
   DEFAULT_POLLING_INTERVAL_S,
   DEFAULT_SCHEMA_CACHE_TTL_S,
   DEFAULT_STEP_TIMEOUT_S,
@@ -43,6 +44,7 @@ export interface ExecutorOptions {
   aiConfigurations?: AiConfiguration[];
   pollingIntervalS?: number;
   logger?: Logger;
+  loggerLevel?: LoggerLevel;
   stopTimeoutS?: number;
   stepTimeoutS?: number;
   aiInvokeTimeoutS?: number;
@@ -65,7 +67,7 @@ function positiveOrDefault(value: number | undefined, fallback: number): number 
 
 function buildCommonDependencies(options: ExecutorOptions) {
   const forestServerUrl = options.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL;
-  const logger = options.logger ?? new ConsoleLogger();
+  const logger = options.logger ?? createConsoleLogger(options.loggerLevel ?? DEFAULT_LOGGER_LEVEL);
 
   const workflowPort = new ForestServerWorkflowPort({
     envSecret: options.envSecret,
@@ -76,12 +78,12 @@ function buildCommonDependencies(options: ExecutorOptions) {
   const forceAiError = options.forceAiError && process.env.NODE_ENV !== 'production';
 
   if (forceAiError) {
-    logger.info(
+    logger(
+      'Info',
       'FORCE_AI_ERROR is enabled — AI calls will always fail. Do not use in production.',
-      {},
     );
   } else if (options.forceAiError && process.env.NODE_ENV === 'production') {
-    logger.info('FORCE_AI_ERROR is set but ignored in production.', {});
+    logger('Info', 'FORCE_AI_ERROR is set but ignored in production.');
   }
 
   let aiModelPort;
@@ -142,7 +144,7 @@ function createWorkflowExecutor(
     try {
       await server.stop();
     } catch (err) {
-      logger.error('HTTP server close failed during shutdown', {
+      logger('Error', 'HTTP server close failed during shutdown', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
@@ -151,14 +153,14 @@ function createWorkflowExecutor(
   };
 
   const onSignal = async () => {
-    logger.info?.('Received shutdown signal, stopping gracefully...', {});
+    logger('Info', 'Received shutdown signal, stopping gracefully...');
 
     try {
       if (!shutdownPromise) shutdownPromise = shutdown();
       await shutdownPromise;
       process.exitCode = 0;
     } catch (error) {
-      logger.error('Graceful shutdown failed', {
+      logger('Error', 'Graceful shutdown failed', {
         error: error instanceof Error ? error.message : String(error),
       });
       process.exitCode = 1;
@@ -167,7 +169,7 @@ function createWorkflowExecutor(
     // Safety net: force exit if the event loop doesn't drain
     // eslint-disable-next-line no-console
     setTimeout(() => {
-      logger.error('Process did not exit after shutdown — forcing exit', {});
+      logger('Error', 'Process did not exit after shutdown — forcing exit');
       process.exit(process.exitCode ?? 1);
     }, FORCE_EXIT_DELAY_S * 1000).unref();
   };

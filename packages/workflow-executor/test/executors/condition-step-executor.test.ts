@@ -85,7 +85,7 @@ function makeContext(
     },
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId, 1),
     previousSteps: [],
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    logger: jest.fn(),
     ...overrides,
   };
 

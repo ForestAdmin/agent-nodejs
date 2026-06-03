@@ -1,3 +1,4 @@
+import type { Logger } from '../../src/ports/logger-port';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type Runner from '../../src/runner';
 
@@ -47,7 +48,7 @@ function createServer(
   overrides: {
     runner?: Runner;
     workflowPort?: WorkflowPort;
-    logger?: { info: jest.Mock; warn: jest.Mock; error: jest.Mock };
+    logger?: jest.MockedFunction<Logger>;
   } = {},
 ) {
   return new ExecutorHttpServer({
@@ -268,7 +269,7 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('returns 503 when hasRunAccess throws', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const workflowPort = createMockWorkflowPort({
         hasRunAccess: jest.fn().mockRejectedValue(new Error('orchestrator down')),
       });
@@ -281,7 +282,8 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(503);
       expect(response.body).toEqual({ error: 'Service unavailable' });
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Failed to check run access',
         expect.objectContaining({ runId: 'run-1', error: 'orchestrator down' }),
       );

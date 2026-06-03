@@ -713,7 +713,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const shown = lines.length;
 
     if (shown < candidates.length) {
-      this.context.logger.warn('load-related-record: candidate list truncated for AI prompt', {
+      this.context.logger('Warn', 'load-related-record: candidate list truncated for AI prompt', {
         ...this.logCtx,
         shown,
         total: candidates.length,

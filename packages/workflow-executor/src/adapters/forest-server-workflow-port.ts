@@ -14,7 +14,7 @@ import type { HttpOptions } from '@forestadmin/forestadmin-client';
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 import { z } from 'zod';
 
-import ConsoleLogger from './console-logger';
+import createConsoleLogger from './console-logger';
 import toAvailableStepExecution from './run-to-available-step-mapper';
 import toUpdateStepRequest from './step-outcome-to-update-step-mapper';
 import withRetry from './with-retry';
@@ -54,7 +54,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
 
   constructor(params: { envSecret: string; forestServerUrl: string; logger?: Logger }) {
     this.options = { envSecret: params.envSecret, forestServerUrl: params.forestServerUrl };
-    this.logger = params.logger ?? new ConsoleLogger();
+    this.logger = params.logger ?? createConsoleLogger();
   }
 
   async getAvailableRuns(): Promise<AvailableRunsBatch> {
@@ -73,7 +73,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
         if (error instanceof WorkflowExecutorError) {
           malformed.push(this.toMalformedInfo(run, error));
         } else {
-          this.logger.error('Failed to hydrate pending run — unexpected error', {
+          this.logger('Error', 'Failed to hydrate pending run — unexpected error', {
             runId: run.id,
             error: extractErrorMessage(error),
           });
@@ -170,7 +170,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
         } catch (error) {
           // The outcome was recorded server-side; only the chain parse failed. Fall back to the
           // next poll cycle — don't let a malformed chain response mask the successful update.
-          this.logger.error('Failed to parse chained next step from /update-step response', {
+          this.logger('Error', 'Failed to parse chained next step from /update-step response', {
             runId: String(run.id),
             error: extractErrorMessage(error),
           });
