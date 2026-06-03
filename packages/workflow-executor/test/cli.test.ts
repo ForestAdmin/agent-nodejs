@@ -17,6 +17,7 @@ import {
   DEFAULT_HTTP_PORT,
   DEFAULT_MAX_CHAIN_DEPTH,
   DEFAULT_POLLING_INTERVAL_MS,
+  DEFAULT_SCHEMA_CACHE_TTL_MS,
   DEFAULT_STEP_TIMEOUT_MS,
   DEFAULT_STOP_TIMEOUT_MS,
 } from '../src/defaults';
@@ -306,6 +307,7 @@ describe('printHelp / printVersion', () => {
     expect(output).toContain(`Default: ${DEFAULT_STOP_TIMEOUT_MS}`);
     expect(output).toContain(`default: ${DEFAULT_STEP_TIMEOUT_MS}`);
     expect(output).toContain(`default: ${DEFAULT_MAX_CHAIN_DEPTH}`);
+    expect(output).toContain(`default: ${DEFAULT_SCHEMA_CACHE_TTL_MS}`);
   });
 
   it('printVersion prints a version string', () => {
