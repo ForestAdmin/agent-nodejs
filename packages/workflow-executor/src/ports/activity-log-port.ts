@@ -1,10 +1,12 @@
+import type { RecordId } from '../types/validated/collection';
+
 export interface CreateActivityLogArgs {
   renderingId: number;
   action: string;
   type: 'read' | 'write';
   collectionId?: string;
   // Full (possibly composite) record id. The adapter serializes it to the pipe wire format.
-  recordId?: Array<string | number>;
+  recordId?: RecordId;
   label?: string;
 }
 

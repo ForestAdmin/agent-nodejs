@@ -1253,7 +1253,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           suggestedRecord: cand([99]),
         },
         // Frontend confirms a relation that no longer exists in availableFields.
-        userConfirmation: { userConfirmed: true, fieldName: 'ghost', selectedRecordId: [7] },
+        userConfirmation: { userConfirmed: true, fieldName: 'ghost', selectedRecordId: ['7'] },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),

@@ -101,5 +101,8 @@ export const RecordRefSchema = z
   .strict();
 export type RecordRef = z.infer<typeof RecordRefSchema>;
 
+// A record's primary key: one segment for a simple key, several for a composite key.
+export type RecordId = RecordRef['recordId'];
+
 // No stepIndex — the agent doesn't know about steps.
 export type RecordData = Omit<RecordRef, 'stepIndex'> & { values: Record<string, unknown> };
