@@ -1208,6 +1208,20 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
+    it('returns error when a pre-recorded fieldName does not resolve', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'does_not_exist', value: 'x' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
     it('falls back to AI when preRecordedArgs has no fieldName', async () => {
       const mockModel = makeMockModel({
         input: { fieldName: 'Status', value: 'active', reasoning: 'r' },
@@ -1277,6 +1291,49 @@ describe('UpdateRecordStepExecutor', () => {
       expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { age: 42 } }),
         context.user,
+      );
+    });
+
+    it('resolves a pre-recorded technical name to its own field, not another field whose displayName collides', async () => {
+      const runStore = makeMockRunStore();
+      // Field B's displayName ('status') equals field A's technical fieldName ('status').
+      // A pre-recorded technical name must resolve field A, never field B.
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            {
+              fieldName: 'status',
+              displayName: 'Internal Note',
+              isRelationship: false,
+              type: 'String',
+            },
+            { fieldName: 'note', displayName: 'status', isRelationship: false, type: 'String' },
+          ],
+        }),
+      });
+      const context = makeContext({
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'status', value: 'active' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Writes field A ('status'), not field B ('note' / displayName 'status').
+      expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ values: { status: 'active' } }),
+        context.user,
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Internal Note', name: 'status', value: 'active' },
+        }),
       );
     });
   });

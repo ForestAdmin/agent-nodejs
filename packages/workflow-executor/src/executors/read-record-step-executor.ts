@@ -1,7 +1,7 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldReadResult } from '../types/step-execution-data';
-import type { CollectionSchema } from '../types/validated/collection';
+import type { CollectionSchema, FieldSchema } from '../types/validated/collection';
 import type { ReadRecordStepDefinition } from '../types/validated/step-definition';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -40,16 +40,19 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    // Either pre-recorded technical field names (from the orchestrator) or the displayNames the
-    // AI returned — findField resolves both, and the displayName is taken from the schema below.
-    const selectedNames =
+    const fieldNames =
       preRecordedArgs?.fieldNames ?? (await this.selectFields(schema, step.prompt));
-    const resolvedFieldNames = selectedNames
-      .map(name => this.findField(schema, name)?.fieldName)
+    const selected = fieldNames.map(requested => ({
+      requested,
+      field: this.findFieldByTechnicalName(schema, requested),
+    }));
+
+    const resolvedFieldNames = selected
+      .map(s => s.field?.fieldName)
       .filter((name): name is string => name !== undefined);
 
     if (resolvedFieldNames.length === 0) {
-      throw new NoResolvedFieldsError(selectedNames);
+      throw new NoResolvedFieldsError(selected.map(s => s.requested));
     }
 
     const recordData = await this.agentPort.getRecord(
@@ -60,7 +63,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       },
       this.context.user,
     );
-    const fieldResults = this.formatFieldResults(recordData.values, schema, selectedNames);
+    const fieldResults = this.formatFieldResults(recordData.values, selected);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',
@@ -75,6 +78,8 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
     return this.buildOutcomeResult({ status: 'success' });
   }
 
+  // The AI selects by displayName; map each back to the technical fieldName so the rest of the
+  // flow works in technical-name space, like pre-recorded references.
   private async selectFields(
     schema: CollectionSchema,
     prompt: string | undefined,
@@ -90,9 +95,9 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       new HumanMessage(`**Request**: ${prompt ?? 'Read the relevant fields.'}`),
     ];
 
-    const args = await this.invokeWithTool<{ fieldNames: string[] }>(messages, tool);
+    const { fieldNames } = await this.invokeWithTool<{ fieldNames: string[] }>(messages, tool);
 
-    return args.fieldNames;
+    return fieldNames.map(name => this.resolveAiFieldName(schema, name));
   }
 
   private buildReadFieldTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -125,13 +130,12 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
 
   private formatFieldResults(
     values: Record<string, unknown>,
-    schema: CollectionSchema,
-    selectedNames: string[],
+    selected: Array<{ requested: string; field: FieldSchema | undefined }>,
   ): FieldReadResult[] {
-    return selectedNames.map(name => {
-      const field = this.findField(schema, name);
-
-      if (!field) return { error: `Field not found: ${name}`, name, displayName: name };
+    return selected.map(({ requested, field }) => {
+      if (!field) {
+        return { error: `Field not found: ${requested}`, name: requested, displayName: requested };
+      }
 
       return {
         value: values[field.fieldName],

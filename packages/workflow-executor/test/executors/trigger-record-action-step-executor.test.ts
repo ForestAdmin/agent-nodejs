@@ -1103,6 +1103,61 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    it('returns error when a pre-recorded actionName does not resolve', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: 'does-not-exist' },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('resolves a pre-recorded technical actionName to its own action, not another whose displayName collides', async () => {
+      const runStore = makeMockRunStore();
+      // Action B's displayName ('archive') equals action A's technical name ('archive').
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          actions: [
+            {
+              name: 'archive',
+              displayName: 'Send Welcome Email',
+              endpoint: '/forest/actions/archive',
+            },
+            { name: 'send', displayName: 'archive', endpoint: '/forest/actions/send' },
+          ],
+        }),
+      });
+      const context = makeContext({
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: 'archive' },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Triggers action A ('archive'), not action B ('send' / displayName 'archive').
+      expect(context.agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'archive' }),
+        context.user,
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Send Welcome Email', name: 'archive' },
+        }),
+      );
+    });
+
     it('falls back to AI when no preRecordedArgs', async () => {
       const mockModel = makeMockModel({ actionName: 'Send Welcome Email', reasoning: 'r' });
       const context = makeContext({

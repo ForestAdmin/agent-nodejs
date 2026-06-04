@@ -189,9 +189,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     value: unknown,
   ): Promise<unknown> {
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const fieldSchema =
-      this.findField(schema, pendingData?.name ?? '') ??
-      this.findField(schema, pendingData?.displayName ?? '');
+    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData?.name ?? '');
 
     return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName);
   }
@@ -220,18 +218,22 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       );
     }
 
-    // args.fieldName is a technical name (pre-recorded) or a displayName (AI) — findField resolves
-    // both. Take the persisted displayName from the schema, never from the inbound reference.
-    const args =
-      preRecordedArgs?.fieldName !== undefined
-        ? { fieldName: preRecordedArgs.fieldName, value: preRecordedArgs.value }
+    const recordedField = preRecordedArgs?.fieldName;
+    const { fieldName, value } =
+      recordedField !== undefined
+        ? { fieldName: recordedField, value: preRecordedArgs?.value }
         : await this.selectFieldAndValue(schema, step.prompt);
-    const field = this.resolveField(schema, args.fieldName);
+    const field = this.findFieldByTechnicalName(schema, fieldName);
+
+    if (!field) {
+      throw new FieldNotFoundError(fieldName, schema.collectionName);
+    }
+
     const target: UpdateTarget = {
       selectedRecordRef,
       displayName: field.displayName,
       name: field.fieldName,
-      value: args.value,
+      value,
     };
 
     // Branch B -- fully automated execution
@@ -291,10 +293,12 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     return this.buildOutcomeResult({ status: 'success' });
   }
 
+  // The AI selects by displayName; map it back to the technical fieldName so the rest of the
+  // flow works in technical-name space, like a pre-recorded reference.
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ fieldName: string; value: unknown; reasoning: string }> {
+  ): Promise<{ fieldName: string; value: unknown }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -310,7 +314,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       input: { fieldName: string; value: unknown; reasoning: string };
     }>(messages, tool);
 
-    return input;
+    return {
+      fieldName: this.resolveAiFieldName(schema, input.fieldName),
+      value: input.value,
+    };
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -348,15 +355,5 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       schema: z.object({ input: inputSchema }),
       func: undefined,
     });
-  }
-
-  private resolveField(schema: CollectionSchema, name: string): FieldSchema {
-    const field = this.findField(schema, name);
-
-    if (!field) {
-      throw new FieldNotFoundError(name, schema.collectionName);
-    }
-
-    return field;
   }
 }

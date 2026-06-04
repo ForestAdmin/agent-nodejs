@@ -108,12 +108,14 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    // args.actionName is a technical name (pre-recorded) or a displayName (AI) — resolveAction
-    // resolves both. Take the persisted displayName from the schema, never from the inbound ref.
-    const args = preRecordedArgs?.actionName
-      ? { actionName: preRecordedArgs.actionName }
-      : await this.selectAction(schema, step.prompt);
-    const action = this.resolveAction(schema, args.actionName);
+    const recordedAction = preRecordedArgs?.actionName;
+    const actionName = recordedAction ?? (await this.selectAction(schema, step.prompt)).actionName;
+    const action = this.findActionByTechnicalName(schema, actionName);
+
+    if (!action) {
+      throw new ActionNotFoundError(actionName, schema.collectionName);
+    }
+
     const target: ActionTarget = {
       selectedRecordRef,
       displayName: action.displayName,
@@ -127,7 +129,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       const { hasForm } = await this.agentPort.getActionFormInfo(
         {
           collection: selectedRecordRef.collectionName,
-          action: action.name,
+          action: target.name,
           id: selectedRecordRef.recordId,
         },
         this.context.user,
@@ -200,10 +202,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.buildOutcomeResult({ status: 'success' });
   }
 
+  // The AI selects by displayName; map it back to the technical action name so the rest of the
+  // flow works in technical-name space, like a pre-recorded reference.
   private async selectAction(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ actionName: string; reasoning: string }> {
+  ): Promise<{ actionName: string }> {
     const tool = this.buildSelectActionTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -215,7 +219,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       new HumanMessage(`**Request**: ${prompt ?? 'Trigger the relevant action.'}`),
     ];
 
-    return this.invokeWithTool<{ actionName: string; reasoning: string }>(messages, tool);
+    const { actionName } = await this.invokeWithTool<{ actionName: string; reasoning: string }>(
+      messages,
+      tool,
+    );
+
+    return { actionName: this.findAction(schema, actionName)?.name ?? actionName };
   }
 
   private buildSelectActionTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -241,14 +250,17 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     });
   }
 
-  private resolveAction(schema: CollectionSchema, name: string): ActionSchema {
-    const action =
-      schema.actions.find(a => a.displayName === name) ?? schema.actions.find(a => a.name === name);
+  // Exact technical-name match, for pre-recorded references.
+  private findActionByTechnicalName(
+    schema: CollectionSchema,
+    name: string,
+  ): ActionSchema | undefined {
+    return schema.actions.find(a => a.name === name);
+  }
 
-    if (!action) {
-      throw new ActionNotFoundError(name, schema.collectionName);
-    }
-
-    return action;
+  private findAction(schema: CollectionSchema, name: string): ActionSchema | undefined {
+    return (
+      schema.actions.find(a => a.displayName === name) ?? schema.actions.find(a => a.name === name)
+    );
   }
 }
