@@ -48,8 +48,8 @@ export default abstract class RecordStepExecutor<
   }
 
   // Candidate sources for the AI: the base record plus the record each live prior
-  // load-related step resolved (via lineage — clones key their execution under the original
-  // stepIndex).
+  // load-related step resolved — own stepIndex first, falling back to a clone's
+  // originalStepIndex.
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const relatedRecords = this.context.previousSteps.flatMap(step => {
