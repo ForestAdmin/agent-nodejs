@@ -11,6 +11,7 @@ import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
 import { HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  AiInvokeTimeoutError,
   InvalidAiRequestError,
   MalformedToolCallError,
   MissingToolCallError,
@@ -820,7 +821,7 @@ describe('BaseStepExecutor', () => {
 
         await executor.invokeWithTool(messages, dummyTool);
 
-        expect(invoke).toHaveBeenCalledWith(messages);
+        expect(invoke).toHaveBeenCalledWith(messages, { signal: undefined });
       });
 
       it('leaves messages unchanged when there is no SystemMessage', async () => {
@@ -832,7 +833,7 @@ describe('BaseStepExecutor', () => {
 
         await executor.invokeWithTool(messages, dummyTool);
 
-        expect(invoke).toHaveBeenCalledWith(messages);
+        expect(invoke).toHaveBeenCalledWith(messages, { signal: undefined });
       });
 
       it('throws when a SystemMessage appears after a non-system message', async () => {
@@ -851,6 +852,136 @@ describe('BaseStepExecutor', () => {
         );
         await expect(executor.invokeWithTool(messages, dummyTool)).rejects.toThrow(
           /SystemMessage at position 2 appears after a non-system message/,
+        );
+      });
+    });
+
+    describe('AI invoke timeout', () => {
+      // Model whose invoke rejects immediately with the given error (no abort involved).
+      function makeRejectingModel(error: unknown) {
+        const invoke = jest.fn().mockRejectedValue(error);
+
+        return {
+          model: {
+            bindTools: jest.fn().mockReturnValue({ invoke }),
+          } as unknown as ExecutionContext['model'],
+          invoke,
+        };
+      }
+
+      // Model whose invoke hangs until the call's AbortSignal fires, then rejects — like a provider
+      // SDK forwarding an aborted request. `rejectWith` simulates the provider wrapping the abort
+      // under its own error type; defaults to the signal's reason (our AiInvokeTimeoutError).
+      function makeAbortAwareModel(rejectWith?: unknown) {
+        const invoke = jest.fn().mockImplementation(
+          (_messages, options?: { signal?: AbortSignal }) =>
+            new Promise((_resolve, reject) => {
+              const { signal } = options ?? {};
+              signal?.addEventListener('abort', () => reject(rejectWith ?? signal.reason));
+            }),
+        );
+
+        return {
+          model: {
+            bindTools: jest.fn().mockReturnValue({ invoke }),
+          } as unknown as ExecutionContext['model'],
+          invoke,
+        };
+      }
+
+      it('throws AiInvokeTimeoutError when the model invoke hangs past aiInvokeTimeoutMs', async () => {
+        const { model } = makeAbortAwareModel();
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 20 }));
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).toBeInstanceOf(AiInvokeTimeoutError);
+        expect((err as Error).message).toContain('20ms');
+      });
+
+      it('maps to AiInvokeTimeoutError even when the provider wraps the abort under its own error name', async () => {
+        // e.g. Anthropic surfaces an aborted request as APIUserAbortError, not AbortError/TimeoutError —
+        // detection is by signal.aborted, not by the thrown error's name.
+        const providerErr = Object.assign(new Error('Request was aborted.'), {
+          name: 'APIUserAbortError',
+        });
+        const { model } = makeAbortAwareModel(providerErr);
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 20 }));
+
+        const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
+
+        expect(err).toBeInstanceOf(AiInvokeTimeoutError);
+      });
+
+      it('passes an AbortSignal as the second arg to model.invoke', async () => {
+        const { model, invoke } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 5_000 }));
+
+        await executor.invokeWithTool(dummyMessages, dummyTool);
+
+        expect(invoke).toHaveBeenCalledWith(expect.any(Array), {
+          signal: expect.any(AbortSignal),
+        });
+      });
+
+      it('passes an undefined signal (un-timed) when aiInvokeTimeoutMs is unset', async () => {
+        const { model, invoke } = makeMockModel({
+          tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
+        });
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: undefined }));
+
+        await executor.invokeWithTool(dummyMessages, dummyTool);
+
+        expect(invoke).toHaveBeenCalledTimes(1);
+        expect(invoke).toHaveBeenCalledWith(expect.any(Array), { signal: undefined });
+      });
+
+      it('treats aiInvokeTimeoutMs <= 0 as disabled (signal undefined, abort not mapped)', async () => {
+        const abortErr = Object.assign(new Error('Aborted'), { name: 'AbortError' });
+        const invoke = jest
+          .fn()
+          .mockResolvedValueOnce({ tool_calls: [{ name: 'tool', args: {}, id: 'c1' }] })
+          .mockRejectedValueOnce(abortErr);
+        const model = {
+          bindTools: jest.fn().mockReturnValue({ invoke }),
+        } as unknown as ExecutionContext['model'];
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 0 }));
+
+        await executor.invokeWithTool(dummyMessages, dummyTool);
+        expect(invoke.mock.calls[0]).toEqual([expect.any(Array), { signal: undefined }]);
+
+        // With the timeout disabled, an abort is not ours to translate — it bubbles up untouched.
+        await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toBe(abortErr);
+      });
+
+      it('rethrows non-abort errors without wrapping them', async () => {
+        const apiError = Object.assign(new Error('OpenAI 503'), { status: 503, name: 'APIError' });
+        const { model } = makeRejectingModel(apiError);
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 5_000 }));
+
+        await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toBe(apiError);
+      });
+
+      // End-to-end: a timed-out AI invoke must surface through execute() as an error outcome
+      // carrying the AI-specific userMessage (distinct from the step-timeout message).
+      it('surfaces a timed-out AI invoke as an error outcome with the AI-specific userMessage', async () => {
+        class InvokingExecutor extends TestableExecutor {
+          protected override async doExecute(): Promise<StepExecutionResult> {
+            await this.invokeWithTool(dummyMessages, dummyTool);
+
+            return this.buildOutcomeResult({ status: 'success' });
+          }
+        }
+        const { model } = makeAbortAwareModel();
+        const executor = new InvokingExecutor(makeContext({ model, aiInvokeTimeoutMs: 20 }));
+
+        const result = await executor.execute();
+
+        expect(result.stepOutcome.status).toBe('error');
+        expect(result.stepOutcome.error).toBe(
+          'The AI provider did not respond in time. Please try again, or contact your administrator if the problem persists.',
         );
       });
     });

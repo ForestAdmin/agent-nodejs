@@ -1,6 +1,10 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
-import type { LoadRelatedRecordStepExecutionData, RelationRef } from '../types/step-execution-data';
+import type {
+  LoadRelatedRecordCandidate,
+  LoadRelatedRecordStepExecutionData,
+  RelationRef,
+} from '../types/step-execution-data';
 import type { CollectionSchema, RecordData, RecordRef } from '../types/validated/collection';
 import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-definition';
 
@@ -32,9 +36,23 @@ Choose the fields that are most useful for determining which record best matches
 const SELECT_RECORD_SYSTEM_PROMPT = `You are an AI agent selecting the most relevant related record from a list of candidates.
 Choose the record that best matches the user request based on the provided field values.`;
 
+// Bound only what is sent to the AI in selectBestRecordIndex — the full candidate list is
+// always returned to the front via availableRecordIds. These cap the prompt size, not the data.
+const MAX_RELEVANT_FIELDS = 6;
+const MAX_FIELD_VALUE_LENGTH = 80; // per-field serialized length before truncation
+const MAX_AI_CANDIDATES_CHARS = 16_000; // global budget for the `Candidates:` block (~4k tokens)
+
+function clampFieldValue(value: unknown): unknown {
+  const serialized = typeof value === 'string' ? value : JSON.stringify(value) ?? '';
+  if (serialized.length <= MAX_FIELD_VALUE_LENGTH) return value;
+
+  return `${serialized.slice(0, MAX_FIELD_VALUE_LENGTH)}… (truncated)`;
+}
+
 interface RelationTarget extends RelationRef {
   selectedRecordRef: RecordRef;
   relationType?: 'BelongsTo' | 'HasMany' | 'HasOne' | 'BelongsToMany';
+  relatedCollectionName: string;
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
@@ -55,6 +73,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     );
 
     if (pending) {
+      const conf = pending.userConfirmation;
+
+      if (conf?.userConfirmed === undefined && conf?.fieldName !== undefined) {
+        return this.refreshCandidatesForField(pending, conf.fieldName);
+      }
+
       return this.handleConfirmationFlow<LoadRelatedRecordStepExecutionData>(pending, async exec =>
         this.resolveFromSelection(exec),
       );
@@ -62,6 +86,32 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     // Branches B & C -- First call
     return this.handleFirstCall();
+  }
+
+  private async refreshCandidatesForField(
+    execution: LoadRelatedRecordStepExecutionData,
+    fieldName: string,
+  ): Promise<StepExecutionResult> {
+    if (!execution.pendingData) {
+      throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
+    }
+
+    const schema = await this.getCollectionSchema(execution.selectedRecordRef.collectionName);
+    const target = this.buildTarget(schema, fieldName, execution.selectedRecordRef);
+    const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target);
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...execution,
+      userConfirmation: undefined,
+      pendingData: {
+        ...execution.pendingData,
+        suggestedField: { name: target.name, displayName: target.displayName },
+        availableRecordIds,
+        suggestedRecord,
+      },
+    });
+
+    return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
@@ -85,7 +135,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     // Branch C -- pre-fetch candidates, await user confirmation
-    return this.saveAndAwaitInput(target);
+    return this.saveAndAwaitInput(target, schema);
   }
 
   private buildTarget(
@@ -99,44 +149,152 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new RelationNotFoundError(relationName, schema.collectionName);
     }
 
+    if (!field.relatedCollectionName) {
+      throw new StepStateError(
+        `Step at index ${this.context.stepIndex} could not resolve relatedCollectionName for relation "${relationName}"`,
+      );
+    }
+
     return {
       selectedRecordRef,
       displayName: field.displayName,
       name: field.fieldName,
       relationType: field.relationType,
+      relatedCollectionName: field.relatedCollectionName,
     };
   }
 
   // Branch C: AI suggests the best candidate, then awaits user confirmation. Save errors
   // propagate directly — the relation-load hasn't run yet, so the step can be safely retried.
-  private async saveAndAwaitInput(target: RelationTarget): Promise<StepExecutionResult> {
+  private async saveAndAwaitInput(
+    target: RelationTarget,
+    sourceSchema: CollectionSchema,
+  ): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
 
-    const { relatedData, bestIndex, suggestedFields } = await this.selectBestFromRelatedData(
-      target,
-      50,
-    );
+    const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target);
 
-    const selectedRecordId = relatedData[bestIndex].recordId;
+    const availableFields: RelationRef[] = sourceSchema.fields
+      .filter(f => f.isRelationship)
+      .map(f => ({ name: f.fieldName, displayName: f.displayName }));
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
-      pendingData: { displayName, name, suggestedFields, selectedRecordId },
+      pendingData: {
+        availableFields,
+        suggestedField: { name, displayName },
+        availableRecordIds,
+        suggestedRecord,
+      },
       selectedRecordRef,
     });
 
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  /** Branch B: automatic execution. HasMany uses 2 AI calls; others take the first result. */
+  private async collectCandidateIds(target: RelationTarget): Promise<{
+    availableRecordIds: LoadRelatedRecordCandidate[];
+    suggestedRecord?: LoadRelatedRecordCandidate;
+  }> {
+    if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
+      const candidate = await this.fetchXToOneCandidate(target);
+
+      return candidate
+        ? { availableRecordIds: [candidate], suggestedRecord: candidate }
+        : { availableRecordIds: [] };
+    }
+
+    const { relatedData, bestIndex, relatedSchema } = await this.selectBestFromRelatedData(
+      target,
+      50,
+    );
+
+    if (relatedData.length === 0) {
+      return { availableRecordIds: [] };
+    }
+
+    const referenceField = relatedSchema.referenceField ?? null;
+    const toCandidate = (r: RecordData): LoadRelatedRecordCandidate => ({
+      recordId: r.recordId,
+      referenceFieldValue: referenceField
+        ? this.extractReferenceFieldValue(r.values, referenceField)
+        : null,
+    });
+
+    return {
+      availableRecordIds: relatedData.map(toCandidate),
+      suggestedRecord: toCandidate(relatedData[bestIndex]),
+    };
+  }
+
+  private extractReferenceFieldValue(
+    values: Record<string, unknown>,
+    referenceField: string,
+  ): string | null {
+    const v = values[referenceField];
+
+    return v === undefined || v === null ? null : String(v);
+  }
+
+  /** Branch B: fully automated. xToOne loads the linked record; HasMany ranks candidates via AI; BelongsToMany takes the first. */
   private async resolveAndLoadAutomatic(target: RelationTarget): Promise<StepExecutionResult> {
-    const record =
-      target.relationType === 'HasMany'
-        ? await this.selectBestRelatedRecord(target)
-        : await this.fetchFirstCandidate(target);
+    const record = await this.fetchRecordForRelation(target);
 
     return this.persistAndReturn(record, target, undefined);
+  }
+
+  private async fetchRecordForRelation(target: RelationTarget): Promise<RecordRef> {
+    if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
+      return this.fetchXToOneRecordRef(target);
+    }
+
+    if (target.relationType === 'HasMany') {
+      return this.selectBestRelatedRecord(target);
+    }
+
+    return this.fetchFirstCandidate(target);
+  }
+
+  private async fetchXToOneRecordRef(target: RelationTarget): Promise<RecordRef> {
+    const candidate = await this.fetchXToOneCandidate(target);
+
+    if (!candidate) {
+      throw new RelatedRecordNotFoundError(target.selectedRecordRef.collectionName, target.name);
+    }
+
+    return {
+      collectionName: target.relatedCollectionName,
+      recordId: candidate.recordId,
+      stepIndex: this.context.stepIndex,
+    };
+  }
+
+  private async fetchXToOneCandidate(
+    target: RelationTarget,
+  ): Promise<LoadRelatedRecordCandidate | null> {
+    const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
+    const referenceField = relatedSchema.referenceField ?? null;
+
+    const candidate = await this.agentPort.getSingleRelatedData(
+      {
+        collection: target.selectedRecordRef.collectionName,
+        id: target.selectedRecordRef.recordId,
+        relation: target.name,
+        relatedSchema,
+        ...(referenceField && { fields: [referenceField] }),
+      },
+      this.context.user,
+    );
+
+    if (!candidate) return null;
+
+    return {
+      recordId: candidate.recordId,
+      referenceFieldValue: referenceField
+        ? this.extractReferenceFieldValue(candidate.values, referenceField)
+        : null,
+    };
   }
 
   // Branch A: builds RecordRef from the user-confirmed selection without a new getRelatedData call.
@@ -149,10 +307,25 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new StepStateError(`Step at index ${this.context.stepIndex} has no pending data`);
     }
 
-    const name = userConfirmation?.name ?? pendingData.name;
-    const selectedRecordId = userConfirmation?.selectedRecordId ?? pendingData.selectedRecordId;
+    const relationRef = userConfirmation?.fieldName
+      ? pendingData.availableFields.find(f => f.name === userConfirmation.fieldName)
+      : pendingData.suggestedField;
 
-    // Re-derive relatedCollectionName and displayName because the user may have swapped the relation.
+    if (!relationRef) {
+      throw new StepStateError(
+        `Step at index ${this.context.stepIndex} could not resolve relation "${userConfirmation?.fieldName}" from available fields`,
+      );
+    }
+
+    const { name, displayName } = relationRef;
+    const selectedRecordId =
+      userConfirmation?.selectedRecordId ?? pendingData.suggestedRecord?.recordId;
+
+    if (!selectedRecordId) {
+      throw new RelatedRecordNotFoundError(selectedRecordRef.collectionName, name);
+    }
+
+    // Re-derive relatedCollectionName from the live schema — frontend never sends it.
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const field = schema.fields.find(f => f.fieldName === name);
 
@@ -162,10 +335,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       );
     }
 
-    const { displayName, relatedCollectionName } = field;
-
     const record: RecordRef = {
-      collectionName: relatedCollectionName,
+      collectionName: field.relatedCollectionName,
       recordId: selectedRecordId,
       stepIndex: this.context.stepIndex,
     };
@@ -174,27 +345,20 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   }
 
   private async selectBestFromRelatedData(
-    target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
+    target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'relatedCollectionName'>,
     limit: number,
-  ): Promise<{ relatedData: RecordData[]; bestIndex: number; suggestedFields: string[] }> {
-    const { selectedRecordRef, name } = target;
+  ): Promise<{
+    relatedData: RecordData[];
+    bestIndex: number;
+    suggestedFields: string[];
+    relatedSchema: CollectionSchema;
+  }> {
+    const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
+    const relatedData = await this.fetchRelatedData(target, relatedSchema, limit);
 
-    const relatedData = await this.agentPort.getRelatedData(
-      {
-        collection: selectedRecordRef.collectionName,
-        id: selectedRecordRef.recordId,
-        relation: name,
-        limit,
-      },
-      this.context.user,
-    );
-
-    if (relatedData.length === 0) {
-      throw new RelatedRecordNotFoundError(selectedRecordRef.collectionName, name);
-    }
-
-    if (relatedData.length === 1) {
-      return { relatedData, bestIndex: 0, suggestedFields: [] };
+    // Empty (bestIndex unused — callers guard on length) or single → no ranking needed.
+    if (relatedData.length <= 1) {
+      return { relatedData, bestIndex: 0, suggestedFields: [], relatedSchema };
     }
 
     const { preRecordedArgs } = this.context.stepDefinition;
@@ -212,10 +376,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         );
       }
 
-      return { relatedData, bestIndex: preRecordedArgs.selectedRecordIndex, suggestedFields: [] };
+      return {
+        relatedData,
+        bestIndex: preRecordedArgs.selectedRecordIndex,
+        suggestedFields: [],
+        relatedSchema,
+      };
     }
 
-    const relatedSchema = await this.getCollectionSchema(relatedData[0].collectionName);
     const suggestedFields = await this.selectRelevantFields(
       relatedSchema,
       this.context.stepDefinition.prompt,
@@ -226,44 +394,56 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       this.context.stepDefinition.prompt,
     );
 
-    return { relatedData, bestIndex, suggestedFields };
+    return { relatedData, bestIndex, suggestedFields, relatedSchema };
   }
 
   /** HasMany + fully automated execution: fetch top 50, then AI calls to select the best record. */
   private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordRef> {
     const { relatedData, bestIndex } = await this.selectBestFromRelatedData(target, 50);
 
+    if (relatedData.length === 0) {
+      throw new RelatedRecordNotFoundError(target.selectedRecordRef.collectionName, target.name);
+    }
+
     return this.toRecordRef(relatedData[bestIndex]);
   }
 
-  /** BelongsTo / HasOne: fetch 1 record and take it directly. */
   private async fetchFirstCandidate(target: RelationTarget): Promise<RecordRef> {
     const candidates = await this.fetchCandidates(target, 1);
 
     return candidates[0];
   }
 
-  // Throws RelatedRecordNotFoundError when the result is empty.
   private async fetchCandidates(
-    target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
+    target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'relatedCollectionName'>,
     limit: number,
   ): Promise<RecordRef[]> {
     const { selectedRecordRef, name } = target;
-    const relatedData = await this.agentPort.getRelatedData(
-      {
-        collection: selectedRecordRef.collectionName,
-        id: selectedRecordRef.recordId,
-        relation: name,
-        limit,
-      },
-      this.context.user,
-    );
+    const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
+    const relatedData = await this.fetchRelatedData(target, relatedSchema, limit);
 
     if (relatedData.length === 0) {
       throw new RelatedRecordNotFoundError(selectedRecordRef.collectionName, name);
     }
 
     return relatedData.map(r => this.toRecordRef(r));
+  }
+
+  private async fetchRelatedData(
+    target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
+    relatedSchema: CollectionSchema,
+    limit: number,
+  ): Promise<RecordData[]> {
+    return this.agentPort.getRelatedData(
+      {
+        collection: target.selectedRecordRef.collectionName,
+        id: target.selectedRecordRef.recordId,
+        relation: target.name,
+        relatedSchema,
+        limit,
+      },
+      this.context.user,
+    );
   }
 
   /** Persists the loaded record ref and returns a success outcome. */
@@ -349,7 +529,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         fieldNames: z
           .array(z.enum(displayNames))
           .min(1)
-          .describe('Field names most useful for identifying the relevant record'),
+          .max(MAX_RELEVANT_FIELDS)
+          .describe(
+            `The ${MAX_RELEVANT_FIELDS} fields most useful for identifying the relevant record`,
+          ),
       }),
       func: undefined,
     });
@@ -377,9 +560,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     // Map display names back to technical field names — values in RecordData are keyed by fieldName.
-    return selectedDisplayNames.map(
-      dn => nonRelationFields.find(f => f.displayName === dn)?.fieldName ?? dn,
-    );
+    // .max() shapes the prompt only (not validated against the response), so cap explicitly.
+    return selectedDisplayNames
+      .slice(0, MAX_RELEVANT_FIELDS)
+      .map(dn => nonRelationFields.find(f => f.displayName === dn)?.fieldName ?? dn);
   }
 
   /** AI call 2 for HasMany: selects the best record by index from the candidate list. */
@@ -388,15 +572,40 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     fieldNames: string[],
     prompt: string | undefined,
   ): Promise<number> {
-    const maxIndex = candidates.length - 1;
-    const filteredCandidates = candidates.map((c, i) => ({
-      index: i,
-      values:
-        fieldNames.length > 0
-          ? Object.fromEntries(Object.entries(c.values).filter(([k]) => fieldNames.includes(k)))
-          : c.values,
-    }));
+    const filteredCandidates = candidates.map((c, i) => {
+      const entries = Object.entries(c.values).filter(
+        ([k]) => fieldNames.length === 0 || fieldNames.includes(k),
+      );
 
+      return {
+        index: i,
+        values: Object.fromEntries(entries.map(([k, v]) => [k, clampFieldValue(v)])),
+      };
+    });
+
+    // Bound the prompt only — the full candidate list is still returned upstream. Accumulate
+    // lines until the global budget is reached (always keep at least the first candidate).
+    const lines: string[] = [];
+    let usedChars = 0;
+
+    for (const c of filteredCandidates) {
+      const line = `[${c.index}] ${JSON.stringify(c.values)}`;
+      if (lines.length > 0 && usedChars + line.length > MAX_AI_CANDIDATES_CHARS) break;
+      lines.push(line);
+      usedChars += line.length + 1;
+    }
+
+    const shown = lines.length;
+
+    if (shown < candidates.length) {
+      this.context.logger.warn('load-related-record: candidate list truncated for AI prompt', {
+        ...this.logCtx,
+        shown,
+        total: candidates.length,
+      });
+    }
+
+    const maxIndex = shown - 1;
     const tool = new DynamicStructuredTool({
       name: 'select-record-by-content',
       description: 'Select the most relevant related record by its index.',
@@ -412,14 +621,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       func: undefined,
     });
 
-    const recordList = filteredCandidates
-      .map(c => `[${c.index}] ${JSON.stringify(c.values)}`)
-      .join('\n');
-
     const messages = [
       this.buildContextMessage(),
       new SystemMessage(SELECT_RECORD_SYSTEM_PROMPT),
-      new SystemMessage(`Candidates:\n${recordList}`),
+      new SystemMessage(`Candidates:\n${lines.join('\n')}`),
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
     ];
 

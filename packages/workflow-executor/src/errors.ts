@@ -219,6 +219,18 @@ export class StepTimeoutError extends WorkflowExecutorError {
   }
 }
 
+// Thrown when the AI provider does not respond within the configured timeout — distinct from
+// StepTimeoutError so we can surface a provider-specific message and tune the AI timeout
+// independently of the step timeout (AI hangs are common; record fetches are not).
+export class AiInvokeTimeoutError extends WorkflowExecutorError {
+  constructor(timeoutMs: number) {
+    super(
+      `AI provider did not respond within ${timeoutMs}ms`,
+      'The AI provider did not respond in time. Please try again, or contact your administrator if the problem persists.',
+    );
+  }
+}
+
 export class NoMcpToolsError extends WorkflowExecutorError {
   constructor(requestedMcpServerId: string) {
     super(
@@ -253,7 +265,7 @@ export class WorkflowPortError extends WorkflowExecutorError {
       `Workflow port "${operation}" failed: ${
         cause instanceof Error ? cause.message : String(cause)
       }`,
-      'Failed to communicate with the workflow orchestrator. Please try again.',
+      "This step couldn't be completed. Please try again, and contact your administrator if the problem continues.",
     );
     this.cause = cause;
   }

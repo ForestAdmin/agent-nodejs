@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/coverage
+**/.nx
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+**/*.tsbuildinfo
+api-reference

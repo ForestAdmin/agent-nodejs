@@ -43,6 +43,12 @@ const ROUTES = {
   mcpServerConfigs: '/liana/mcp-server-configs-with-details',
 };
 
+// Forest sends relatedCollectionName as a `collection.targetKey` reference (e.g. "store.id");
+// normalize it to a plain collection name (the related PK comes from the schema's primaryKeyFields).
+function stripReferenceKey(name: string | undefined): string | undefined {
+  return name?.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name;
+}
+
 export default class ForestServerWorkflowPort implements WorkflowPort {
   private readonly options: HttpOptions;
   private readonly logger: Logger;
@@ -188,7 +194,15 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
         );
 
         try {
-          return CollectionSchemaSchema.parse(response);
+          const schema = CollectionSchemaSchema.parse(response);
+
+          return {
+            ...schema,
+            fields: schema.fields.map(field => ({
+              ...field,
+              relatedCollectionName: stripReferenceKey(field.relatedCollectionName),
+            })),
+          };
         } catch (err) {
           if (err instanceof z.ZodError) {
             // runId is passed for observability — the schema call is scoped to a run.

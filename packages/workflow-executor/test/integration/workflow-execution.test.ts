@@ -158,6 +158,7 @@ function createMockAgentPort(): jest.Mocked<AgentPort> {
       values: { id: 42, status: 'active' },
     }),
     getRelatedData: jest.fn().mockResolvedValue([]),
+    getSingleRelatedData: jest.fn().mockResolvedValue(null),
     executeAction: jest.fn().mockResolvedValue(undefined),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
     probe: jest.fn().mockResolvedValue(undefined),
@@ -503,9 +504,13 @@ describe('workflow execution (integration)', () => {
     });
 
     const agentPort = createMockAgentPort();
-    agentPort.getRelatedData.mockResolvedValue([
-      { collectionName: 'orders', recordId: [99], values: { id: 99, total: 100 } },
-    ]);
+    // BelongsTo → xToOne path: the port resolves the related record via getSingleRelatedData,
+    // which the adapter implements by projecting on the parent's record endpoint.
+    agentPort.getSingleRelatedData.mockResolvedValue({
+      collectionName: 'orders',
+      recordId: ['99'],
+      values: { id: '99' },
+    });
 
     const { server, runStore } = createIntegrationSetup({
       workflowPort,
@@ -547,7 +552,9 @@ describe('workflow execution (integration)', () => {
         type: 'load-related-record',
         executionResult: {
           relation: { name: 'order', displayName: 'Order' },
-          record: { collectionName: 'orders', recordId: [99], stepIndex: 0 },
+          // xToOne packs the related PK as a string via split('|') of the agent's
+          // serialized relation id.
+          record: { collectionName: 'orders', recordId: ['99'], stepIndex: 0 },
         },
       }),
     );

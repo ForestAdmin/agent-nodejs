@@ -14,6 +14,7 @@ import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import {
+  DEFAULT_AI_INVOKE_TIMEOUT_MS,
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_POLLING_INTERVAL_MS,
   DEFAULT_SCHEMA_CACHE_TTL_MS,
@@ -44,6 +45,7 @@ export interface ExecutorOptions {
   logger?: Logger;
   stopTimeoutMs?: number;
   stepTimeoutMs?: number;
+  aiInvokeTimeoutMs?: number;
   // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
   maxChainDepth?: number;
   // Collection schema cache TTL in ms. Lower it to pick up orchestrator schema changes sooner.
@@ -54,6 +56,12 @@ export interface ExecutorOptions {
 
 export type DatabaseExecutorOptions = ExecutorOptions &
   ({ database: SequelizeOptions & { uri: string } } | { database: SequelizeOptions });
+
+// A bad timeout config (0, negative, non-finite) must fall back to the default rather than
+// silently disabling the timeout — `?? default` only catches null/undefined, not 0/negative.
+function positiveOrDefault(value: number | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
 
 function buildCommonDependencies(options: ExecutorOptions) {
   const forestServerUrl = options.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL;
@@ -114,7 +122,8 @@ function buildCommonDependencies(options: ExecutorOptions) {
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutMs: options.stopTimeoutMs,
-    stepTimeoutMs: options.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS,
+    stepTimeoutMs: positiveOrDefault(options.stepTimeoutMs, DEFAULT_STEP_TIMEOUT_MS),
+    aiInvokeTimeoutMs: positiveOrDefault(options.aiInvokeTimeoutMs, DEFAULT_AI_INVOKE_TIMEOUT_MS),
     maxChainDepth: options.maxChainDepth,
   };
 }
