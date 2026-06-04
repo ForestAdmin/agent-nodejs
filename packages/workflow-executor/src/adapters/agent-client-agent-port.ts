@@ -19,6 +19,7 @@ import {
   AgentPortError,
   AgentProbeError,
   RecordNotFoundError,
+  SchemaNotCachedError,
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
@@ -291,22 +292,9 @@ export default class AgentClientAgentPort implements AgentPort {
     const cached = this.schemaCache.get(collectionName);
 
     if (!cached) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[workflow-executor] Schema not found in cache for collection "${collectionName}". ` +
-          'Falling back to primaryKeyFields: ["id"]. Call getCollectionSchema first.',
-      );
+      throw new SchemaNotCachedError(collectionName);
     }
 
-    return (
-      cached ?? {
-        collectionName,
-        collectionId: collectionName,
-        collectionDisplayName: collectionName,
-        primaryKeyFields: ['id'],
-        fields: [],
-        actions: [],
-      }
-    );
+    return cached;
   }
 }

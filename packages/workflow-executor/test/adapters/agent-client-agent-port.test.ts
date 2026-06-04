@@ -4,7 +4,7 @@ import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
-import { AgentProbeError, RecordNotFoundError } from '../../src/errors';
+import { AgentProbeError, RecordNotFoundError, SchemaNotCachedError } from '../../src/errors';
 import SchemaCache from '../../src/schema-cache';
 
 jest.mock('@forestadmin/agent-client', () => ({
@@ -192,17 +192,11 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    it('should fallback to pk field "id" when collection is unknown', async () => {
-      mockCollection.list.mockResolvedValue([{ id: 1 }]);
-
-      const result = await port.getRecord({ collection: 'unknown', id: [1] }, user);
-
-      expect(mockCollection.list).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filters: { field: 'id', operator: 'Equal', value: 1 },
-        }),
+    it('throws SchemaNotCachedError when the collection schema was not loaded first', async () => {
+      await expect(port.getRecord({ collection: 'unknown', id: [1] }, user)).rejects.toBeInstanceOf(
+        SchemaNotCachedError,
       );
-      expect(result.collectionName).toBe('unknown');
+      expect(mockCollection.list).not.toHaveBeenCalled();
     });
   });
 
