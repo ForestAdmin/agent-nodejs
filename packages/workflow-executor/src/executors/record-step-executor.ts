@@ -8,7 +8,6 @@ import { z } from 'zod';
 
 import { InvalidAIResponseError, InvalidPreRecordedArgsError, NoRecordsError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
-import loadCollectionSchema from './load-collection-schema';
 
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
@@ -65,11 +64,8 @@ export default abstract class RecordStepExecutor<
   }
 
   protected getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    return loadCollectionSchema(
-      this.context.schemaCache,
-      this.context.workflowPort,
-      this.context.runId,
-      collectionName,
+    return this.context.schemaCache.getOrLoad(collectionName, () =>
+      this.context.workflowPort.getCollectionSchema(collectionName, this.context.runId),
     );
   }
 

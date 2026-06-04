@@ -58,6 +58,7 @@ function makeDeps(overrides: Partial<AgentWithLogDeps> = {}) {
   const schemaCache = {
     get: jest.fn().mockReturnValue(makeSchema()),
     set: jest.fn(),
+    getOrLoad: jest.fn().mockResolvedValue(makeSchema()),
   } as unknown as SchemaCache;
   const workflowPort = {
     getCollectionSchema: jest.fn().mockResolvedValue(makeSchema()),

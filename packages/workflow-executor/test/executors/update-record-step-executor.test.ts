@@ -553,13 +553,20 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ agentPort, runStore });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({ agentPort, runStore, activityLogPort });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      // No side effect happened → no audit-log entry (PRD-442 #2: no premature/duplicate log).
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({

@@ -13,7 +13,6 @@ import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 
 import { WorkflowExecutorError } from '../errors';
-import loadCollectionSchema from './load-collection-schema';
 
 // The audit-log target minus renderingId, which audit() stamps centrally.
 export type AuditTarget = Omit<CreateActivityLogArgs, 'renderingId'>;
@@ -133,11 +132,8 @@ export default class AgentWithLog {
   }
 
   private async resolveCollectionId(collectionName: string): Promise<string> {
-    const schema = await loadCollectionSchema(
-      this.schemaCache,
-      this.workflowPort,
-      this.runId,
-      collectionName,
+    const schema = await this.schemaCache.getOrLoad(collectionName, () =>
+      this.workflowPort.getCollectionSchema(collectionName, this.runId),
     );
 
     return schema.collectionId;

@@ -30,6 +30,21 @@ export default class SchemaCache {
     this.store.set(collectionName, { schema, fetchedAt: this.now() });
   }
 
+  // Returns the cached schema, or loads it via `load`, caches it, and returns it.
+  // `load` is injected so the cache stays decoupled from the orchestrator port.
+  async getOrLoad(
+    collectionName: string,
+    load: () => Promise<CollectionSchema>,
+  ): Promise<CollectionSchema> {
+    const cached = this.get(collectionName);
+    if (cached) return cached;
+
+    const schema = await load();
+    this.set(collectionName, schema);
+
+    return schema;
+  }
+
   // Yields non-expired entries; deletes stale ones along the way.
   *[Symbol.iterator](): IterableIterator<[string, CollectionSchema]> {
     const now = this.now();
