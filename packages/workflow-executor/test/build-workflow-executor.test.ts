@@ -1,5 +1,6 @@
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
+import { DEFAULT_SCHEMA_CACHE_TTL_MS } from '../src/defaults';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
 import DatabaseStore from '../src/stores/database-store';
@@ -9,6 +10,7 @@ jest.mock('../src/runner');
 jest.mock('../src/stores/in-memory-store');
 jest.mock('../src/stores/database-store');
 jest.mock('../src/adapters/agent-client-agent-port');
+jest.mock('../src/schema-cache');
 jest.mock('../src/adapters/forest-server-workflow-port');
 jest.mock('../src/http/executor-http-server');
 jest.mock('../src/adapters/ai-client-adapter');
@@ -20,6 +22,7 @@ jest.mock('sequelize', () => ({
 }));
 
 const MockedRunner = Runner as jest.MockedClass<typeof Runner>;
+const MockedSchemaCache = SchemaCache as jest.MockedClass<typeof SchemaCache>;
 
 const BASE_OPTIONS = {
   envSecret: 'a'.repeat(64),
@@ -174,6 +177,25 @@ describe('buildInMemoryExecutor', () => {
     buildInMemoryExecutor({ ...BASE_OPTIONS, stepTimeoutMs: 30_000 });
 
     expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ stepTimeoutMs: 30_000 }));
+  });
+
+  it('builds the SchemaCache with the default TTL when schemaCacheTtlMs is not configured', () => {
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(MockedSchemaCache).toHaveBeenCalledWith(DEFAULT_SCHEMA_CACHE_TTL_MS);
+  });
+
+  it('builds the SchemaCache with a caller-provided schemaCacheTtlMs over the default', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, schemaCacheTtlMs: 5_000 });
+
+    expect(MockedSchemaCache).toHaveBeenCalledWith(5_000);
+  });
+
+  it('falls back to the default TTL for a non-positive or non-finite schemaCacheTtlMs', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, schemaCacheTtlMs: 0 });
+
+    // A 0/negative/Infinity TTL must not silently make the cache always-stale.
+    expect(MockedSchemaCache).toHaveBeenCalledWith(DEFAULT_SCHEMA_CACHE_TTL_MS);
   });
 
   it('falls back to the default timeouts for non-positive or non-finite values', () => {

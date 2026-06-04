@@ -1,13 +1,13 @@
 import type { CollectionSchema } from './types/validated/collection';
 
-const DEFAULT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+import { DEFAULT_SCHEMA_CACHE_TTL_MS } from './defaults';
 
 export default class SchemaCache {
   private readonly store = new Map<string, { schema: CollectionSchema; fetchedAt: number }>();
   private readonly ttlMs: number;
   private readonly now: () => number;
 
-  constructor(ttlMs: number = DEFAULT_TTL_MS, now: () => number = Date.now) {
+  constructor(ttlMs: number = DEFAULT_SCHEMA_CACHE_TTL_MS, now: () => number = Date.now) {
     this.ttlMs = ttlMs;
     this.now = now;
   }
