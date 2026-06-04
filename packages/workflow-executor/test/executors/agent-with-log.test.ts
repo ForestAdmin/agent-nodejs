@@ -115,6 +115,22 @@ describe('AgentWithLog', () => {
         expect.objectContaining({ action: 'listRelatedData', type: 'read', recordId: [42] }),
       );
     });
+
+    it('logs getSingleRelatedData as listRelatedData/read (xToOne)', async () => {
+      const { deps, activityLogPort } = makeDeps();
+      const agent = new AgentWithLog(deps);
+
+      await agent.getSingleRelatedData({
+        collection: 'customers',
+        id: [42],
+        relation: 'order',
+        relatedSchema: makeSchema('col-orders'),
+      });
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'listRelatedData', type: 'read', recordId: [42] }),
+      );
+    });
   });
 
   describe('write methods', () => {

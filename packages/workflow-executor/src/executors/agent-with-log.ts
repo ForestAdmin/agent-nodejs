@@ -10,12 +10,13 @@ import type {
 import type { WorkflowPort } from '../ports/workflow-port';
 import type SchemaCache from '../schema-cache';
 import type { StepUser } from '../types/execution-context';
-import type { RecordData, RecordId } from '../types/validated/collection';
+import type { RecordData } from '../types/validated/collection';
 
 import { WorkflowExecutorError } from '../errors';
 import loadCollectionSchema from './load-collection-schema';
 
-export type LoggedOperation = Pick<CreateActivityLogArgs, 'action' | 'type' | 'label'>;
+// The audit-log target minus renderingId, which audit() stamps centrally.
+export type AuditTarget = Omit<CreateActivityLogArgs, 'renderingId'>;
 
 type WriteOptions = { beforeCall: () => Promise<void> };
 
@@ -100,15 +101,15 @@ export default class AgentWithLog {
   // For operations that are not AgentPort calls (e.g. MCP tool invocation): the caller
   // supplies the full audit target since there is no collection name to resolve.
   logged<T>(
-    op: LoggedOperation & { collectionId: string; recordId?: RecordId },
+    target: AuditTarget,
     run: () => Promise<T>,
     opts?: { beforeCall?: () => Promise<void> },
   ): Promise<T> {
-    return this.audit(op, run, opts?.beforeCall);
+    return this.audit(target, run, opts?.beforeCall);
   }
 
   private async audit<T>(
-    args: Omit<CreateActivityLogArgs, 'renderingId'>,
+    args: AuditTarget,
     run: () => Promise<T>,
     beforeCall?: () => Promise<void>,
   ): Promise<T> {

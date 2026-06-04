@@ -329,6 +329,9 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await new UpdateRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'Could not record this step in the audit log. Please try again, or contact your administrator if the problem persists.',
+      );
       expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ idempotencyPhase: 'executing' }),
