@@ -169,7 +169,7 @@ export interface ServerStepHistory {
   done: boolean;
   revised?: boolean;
   cancelled?: boolean;
-  // Set on revision clones and re-executions; chains to the FIRST original across revisions.
+  // On a revision clone, the index of the step it copies — where that step's record lives.
   originalStepIndex?: number;
   context?: Record<string, unknown>;
   childrenWorkflowId?: string;

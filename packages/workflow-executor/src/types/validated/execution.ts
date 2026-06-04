@@ -26,9 +26,8 @@ export const StepSchema = z
     stepDefinition: StepDefinitionSchema,
     stepOutcome: StepOutcomeSchema,
     // Set on a revision clone (a still-valid step the orchestrator re-injects); points at the
-    // step it copies. The executor never ran the clone, so its record lives at this index —
-    // mirrors the frontend's carryForwardExecutorDataForCopiedSteps. Absent for steps the
-    // executor ran itself.
+    // step it copies. The executor never ran the clone, so its record lives at that index.
+    // Absent for steps the executor ran itself.
     originalStepIndex: z.number().int().nonnegative().optional(),
   })
   .strict();

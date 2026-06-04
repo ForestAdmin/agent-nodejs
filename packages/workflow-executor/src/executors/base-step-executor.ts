@@ -295,9 +295,9 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   // A step the executor ran has its execution at its own stepIndex. A revision clone never ran,
-  // so it inherits from the step it copied (originalStepIndex) — mirroring the frontend's
-  // carryForwardExecutorDataForCopiedSteps. Own-index-first is what stops a re-executed step
-  // (which has its own entry) from resurfacing the superseded original's record.
+  // so it inherits the record of the step it copied (originalStepIndex). Own-index-first is what
+  // stops a re-executed step (which has its own entry) from resurfacing the superseded
+  // original's record.
   protected static resolveStepExecution(
     step: Step,
     executions: StepExecutionData[],
