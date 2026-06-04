@@ -1,4 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
@@ -127,15 +126,7 @@ interface UpdateTarget extends FieldWithValue {
 }
 
 export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateRecordStepDefinition> {
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    return {
-      renderingId: this.context.user.renderingId,
-      action: 'update',
-      type: 'write',
-      collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId,
-    };
-  }
+  protected readonly operation = { action: 'update', type: 'write' } as const;
 
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
     const existing = await this.findPendingExecution<UpdateRecordStepExecutionData>(
@@ -271,13 +262,15 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       idempotencyPhase: 'executing',
     });
 
-    const updated = await this.agentPort.updateRecord(
-      {
-        collection: selectedRecordRef.collectionName,
-        id: selectedRecordRef.recordId,
-        values: { [name]: value },
-      },
-      this.context.user,
+    const updated = await this.logOperation(selectedRecordRef, () =>
+      this.agentPort.updateRecord(
+        {
+          collection: selectedRecordRef.collectionName,
+          id: selectedRecordRef.recordId,
+          values: { [name]: value },
+        },
+        this.context.user,
+      ),
     );
 
     await this.context.runStore.saveStepExecution(this.context.runId, {

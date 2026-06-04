@@ -150,6 +150,25 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return result;
   }
 
+  protected async withActivityLog<T>(
+    args: CreateActivityLogArgs,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const handle = await this.context.activityLogPort.createPending(args);
+
+    try {
+      const result = await operation();
+      void this.context.activityLogPort.markSucceeded(handle);
+
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof WorkflowExecutorError ? err.userMessage : 'Unexpected error';
+      void this.context.activityLogPort.markFailed(handle, errorMessage);
+      throw err;
+    }
+  }
+
   // Promise.race doesn't abort the losing branch — it keeps running in the background. The .catch()
   // on execPromise must be attached BEFORE the race so a late rejection doesn't trigger
   // UnhandledPromiseRejection. Late resolutions are silently discarded.

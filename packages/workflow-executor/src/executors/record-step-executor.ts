@@ -12,6 +12,22 @@ import BaseStepExecutor from './base-step-executor';
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
 > extends BaseStepExecutor<TStep> {
+  protected abstract readonly operation: { action: string; type: 'read' | 'write' };
+
+  protected async logOperation<T>(record: RecordRef, run: () => Promise<T>): Promise<T> {
+    const { collectionId } = await this.getCollectionSchema(record.collectionName);
+
+    return this.withActivityLog(
+      {
+        renderingId: this.context.user.renderingId,
+        ...this.operation,
+        collectionId,
+        recordId: record.recordId,
+      },
+      run,
+    );
+  }
+
   protected buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;

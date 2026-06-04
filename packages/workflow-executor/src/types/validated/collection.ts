@@ -74,6 +74,7 @@ export type ActionSchema = z.infer<typeof ActionSchemaSchema>;
 export const CollectionSchemaSchema = z
   .object({
     collectionName: z.string().min(1),
+    collectionId: z.string().min(1),
     // null when the rendering has no explicit displayName configured — normalized to collectionName.
     collectionDisplayName: z.string().nullable(),
     primaryKeyFields: z.array(z.string().min(1)).min(1),

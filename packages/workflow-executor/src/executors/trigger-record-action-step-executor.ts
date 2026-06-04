@@ -1,4 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
@@ -29,21 +28,7 @@ interface ActionTarget extends ActionRef {
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    // Skip when the frontend executes the action itself (non fully-automated mode).
-    // The front logs on its side via the standard agent activity flow.
-    if (this.context.stepDefinition.executionType !== StepExecutionMode.FullyAutomated) {
-      return null;
-    }
-
-    return {
-      renderingId: this.context.user.renderingId,
-      action: 'action',
-      type: 'write',
-      collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId,
-    };
-  }
+  protected readonly operation = { action: 'action', type: 'write' } as const;
 
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
     const existing = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
@@ -161,13 +146,15 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       idempotencyPhase: 'executing',
     });
 
-    const actionResult = await this.agentPort.executeAction(
-      {
-        collection: selectedRecordRef.collectionName,
-        action: name,
-        id: selectedRecordRef.recordId,
-      },
-      this.context.user,
+    const actionResult = await this.logOperation(selectedRecordRef, () =>
+      this.agentPort.executeAction(
+        {
+          collection: selectedRecordRef.collectionName,
+          action: name,
+          id: selectedRecordRef.recordId,
+        },
+        this.context.user,
+      ),
     );
 
     await this.context.runStore.saveStepExecution(this.context.runId, {

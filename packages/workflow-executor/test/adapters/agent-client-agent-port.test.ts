@@ -49,6 +49,7 @@ describe('AgentClientAgentPort', () => {
     const schemaCache = new SchemaCache();
     schemaCache.set('users', {
       collectionName: 'users',
+      collectionId: 'col-users',
       collectionDisplayName: 'Users',
       primaryKeyFields: ['id'],
       fields: [
@@ -62,6 +63,7 @@ describe('AgentClientAgentPort', () => {
     });
     schemaCache.set('orders', {
       collectionName: 'orders',
+      collectionId: 'col-orders',
       collectionDisplayName: 'Orders',
       primaryKeyFields: ['tenantId', 'orderId'],
       fields: [
@@ -72,6 +74,7 @@ describe('AgentClientAgentPort', () => {
     });
     schemaCache.set('posts', {
       collectionName: 'posts',
+      collectionId: 'col-posts',
       collectionDisplayName: 'Posts',
       primaryKeyFields: ['id'],
       fields: [
@@ -273,6 +276,7 @@ describe('AgentClientAgentPort', () => {
   describe('getRelatedData', () => {
     const postsSchema = {
       collectionName: 'posts',
+      collectionId: 'col-posts',
       collectionDisplayName: 'Posts',
       primaryKeyFields: ['id'],
       fields: [
@@ -480,6 +484,7 @@ describe('AgentClientAgentPort', () => {
     // that jsonapi-serializer emits as a nested object on the parent.
     const ordersSchema = {
       collectionName: 'orders',
+      collectionId: 'col-orders',
       collectionDisplayName: 'Orders',
       primaryKeyFields: ['id'],
       fields: [
@@ -758,6 +763,7 @@ describe('AgentClientAgentPort', () => {
       const schemaCache = new SchemaCache();
       schemaCache.set('users', {
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [{ fieldName: 'id', displayName: 'id', isRelationship: false }],

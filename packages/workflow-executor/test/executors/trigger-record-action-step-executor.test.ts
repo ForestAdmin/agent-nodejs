@@ -44,6 +44,7 @@ function makeMockAgentPort(): AgentPort {
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
@@ -185,6 +186,33 @@ describe('TriggerRecordActionStepExecutor', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('operation activity log (PRD-442 #1)', () => {
+    it('logs the action against the acted record and its collection, not the trigger', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ ok: true });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        agentPort,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'action',
+        type: 'write',
+        collectionId: 'col-customers',
+        recordId: [42],
+      });
     });
   });
 

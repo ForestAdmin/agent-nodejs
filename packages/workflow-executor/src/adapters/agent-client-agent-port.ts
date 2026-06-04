@@ -301,6 +301,7 @@ export default class AgentClientAgentPort implements AgentPort {
     return (
       cached ?? {
         collectionName,
+        collectionId: collectionName,
         collectionDisplayName: collectionName,
         primaryKeyFields: ['id'],
         fields: [],

@@ -5,6 +5,7 @@ import SchemaCache from '../src/schema-cache';
 function makeSchema(collectionName: string): CollectionSchema {
   return {
     collectionName,
+    collectionId: `col-${collectionName}`,
     collectionDisplayName: collectionName,
     primaryKeyFields: ['id'],
     fields: [],

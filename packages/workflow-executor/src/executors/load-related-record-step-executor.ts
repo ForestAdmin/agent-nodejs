@@ -1,4 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
   LoadRelatedRecordCandidate,
@@ -56,15 +55,7 @@ interface RelationTarget extends RelationRef {
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    return {
-      renderingId: this.context.user.renderingId,
-      action: 'listRelatedData',
-      type: 'read',
-      collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId,
-    };
-  }
+  protected readonly operation = { action: 'listRelatedData', type: 'read' } as const;
 
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
@@ -197,35 +188,37 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     availableRecordIds: LoadRelatedRecordCandidate[];
     suggestedRecord?: LoadRelatedRecordCandidate;
   }> {
-    if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
-      const candidate = await this.fetchXToOneCandidate(target);
+    return this.logOperation(target.selectedRecordRef, async () => {
+      if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
+        const candidate = await this.fetchXToOneCandidate(target);
 
-      return candidate
-        ? { availableRecordIds: [candidate], suggestedRecord: candidate }
-        : { availableRecordIds: [] };
-    }
+        return candidate
+          ? { availableRecordIds: [candidate], suggestedRecord: candidate }
+          : { availableRecordIds: [] };
+      }
 
-    const { relatedData, bestIndex, relatedSchema } = await this.selectBestFromRelatedData(
-      target,
-      50,
-    );
+      const { relatedData, bestIndex, relatedSchema } = await this.selectBestFromRelatedData(
+        target,
+        50,
+      );
 
-    if (relatedData.length === 0) {
-      return { availableRecordIds: [] };
-    }
+      if (relatedData.length === 0) {
+        return { availableRecordIds: [] };
+      }
 
-    const referenceField = relatedSchema.referenceField ?? null;
-    const toCandidate = (r: RecordData): LoadRelatedRecordCandidate => ({
-      recordId: r.recordId,
-      referenceFieldValue: referenceField
-        ? this.extractReferenceFieldValue(r.values, referenceField)
-        : null,
+      const referenceField = relatedSchema.referenceField ?? null;
+      const toCandidate = (r: RecordData): LoadRelatedRecordCandidate => ({
+        recordId: r.recordId,
+        referenceFieldValue: referenceField
+          ? this.extractReferenceFieldValue(r.values, referenceField)
+          : null,
+      });
+
+      return {
+        availableRecordIds: relatedData.map(toCandidate),
+        suggestedRecord: toCandidate(relatedData[bestIndex]),
+      };
     });
-
-    return {
-      availableRecordIds: relatedData.map(toCandidate),
-      suggestedRecord: toCandidate(relatedData[bestIndex]),
-    };
   }
 
   private extractReferenceFieldValue(
@@ -239,7 +232,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   /** Branch B: fully automated. xToOne loads the linked record; HasMany ranks candidates via AI; BelongsToMany takes the first. */
   private async resolveAndLoadAutomatic(target: RelationTarget): Promise<StepExecutionResult> {
-    const record = await this.fetchRecordForRelation(target);
+    const record = await this.logOperation(target.selectedRecordRef, () =>
+      this.fetchRecordForRelation(target),
+    );
 
     return this.persistAndReturn(record, target, undefined);
   }

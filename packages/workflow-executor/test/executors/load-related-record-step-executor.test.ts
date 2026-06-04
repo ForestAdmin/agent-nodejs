@@ -72,6 +72,7 @@ function makeMockAgentPort(relatedData: RecordData[] = [makeRelatedRecordData()]
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
@@ -721,6 +722,34 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'The related record could not be found. It may have been deleted.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('operation activity log (PRD-442 #1)', () => {
+    it('logs listRelatedData against the source record and its collection, not the trigger', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const { model } = makeMockModel({ relationName: 'Order', reasoning: 'r' });
+      const context = makeContext({
+        model,
+        runStore,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'listRelatedData',
+        type: 'read',
+        collectionId: 'col-customers',
+        recordId: [42],
+      });
     });
   });
 

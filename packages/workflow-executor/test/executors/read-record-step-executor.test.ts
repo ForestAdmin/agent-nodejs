@@ -48,6 +48,7 @@ function makeMockAgentPort(
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
@@ -454,6 +455,7 @@ describe('ReadRecordStepExecutor', () => {
 
       const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
+        collectionId: 'col-orders',
         collectionDisplayName: 'Orders',
         fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
       });
@@ -501,7 +503,19 @@ describe('ReadRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort({
         orders: { values: { total: 150 } },
       });
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort, agentPort });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        agentPort,
+        activityLogPort,
+      });
       const executor = new ReadRecordStepExecutor(context);
 
       const result = await executor.execute();
@@ -519,6 +533,13 @@ describe('ReadRecordStepExecutor', () => {
           }),
         }),
       );
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'index',
+        type: 'read',
+        collectionId: 'col-orders',
+        recordId: [99],
+      });
     });
 
     it('includes step index in select-record tool schema when records have stepIndex', async () => {

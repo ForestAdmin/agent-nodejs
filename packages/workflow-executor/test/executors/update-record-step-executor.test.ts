@@ -47,6 +47,7 @@ function makeMockAgentPort(
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
@@ -178,6 +179,54 @@ describe('UpdateRecordStepExecutor', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('operation activity log (PRD-442 #1)', () => {
+    it('logs the update against the acted record and its collection, not the trigger', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        model: makeMockModel({ input: { fieldName: 'Status', value: 'active', reasoning: 'r' } })
+          .model,
+        runStore,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new UpdateRecordStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-customers',
+        recordId: [42],
+      });
+    });
+
+    it('does not log the update while only awaiting confirmation', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        model: makeMockModel({ input: { fieldName: 'Status', value: 'active', reasoning: 'r' } })
+          .model,
+        runStore,
+        activityLogPort,
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
   });
 

@@ -1,4 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldReadResult } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema } from '../types/validated/collection';
@@ -19,15 +18,7 @@ Important rules:
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecordStepDefinition> {
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    return {
-      renderingId: this.context.user.renderingId,
-      action: 'index',
-      type: 'read',
-      collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId,
-    };
-  }
+  protected readonly operation = { action: 'index', type: 'read' } as const;
 
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
@@ -55,13 +46,15 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       throw new NoResolvedFieldsError(selectedFields.map(s => s.requested));
     }
 
-    const recordData = await this.agentPort.getRecord(
-      {
-        collection: selectedRecordRef.collectionName,
-        id: selectedRecordRef.recordId,
-        fields: resolvedFieldNames,
-      },
-      this.context.user,
+    const recordData = await this.logOperation(selectedRecordRef, () =>
+      this.agentPort.getRecord(
+        {
+          collection: selectedRecordRef.collectionName,
+          id: selectedRecordRef.recordId,
+          fields: resolvedFieldNames,
+        },
+        this.context.user,
+      ),
     );
     const fieldResults = this.formatFieldResults(recordData.values, selectedFields);
 
