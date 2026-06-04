@@ -94,7 +94,10 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiModelPort = new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
   }
 
-  const schemaCache = new SchemaCache(options.schemaCacheTtlMs ?? DEFAULT_SCHEMA_CACHE_TTL_MS);
+  // A TTL of 0/negative/non-finite would silently make the cache always-stale, so fall back.
+  const schemaCache = new SchemaCache(
+    positiveOrDefault(options.schemaCacheTtlMs, DEFAULT_SCHEMA_CACHE_TTL_MS),
+  );
 
   const agentPort = new AgentClientAgentPort({
     agentUrl: options.agentUrl,

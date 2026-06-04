@@ -191,6 +191,13 @@ describe('buildInMemoryExecutor', () => {
     expect(MockedSchemaCache).toHaveBeenCalledWith(5_000);
   });
 
+  it('falls back to the default TTL for a non-positive or non-finite schemaCacheTtlMs', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, schemaCacheTtlMs: 0 });
+
+    // A 0/negative/Infinity TTL must not silently make the cache always-stale.
+    expect(MockedSchemaCache).toHaveBeenCalledWith(DEFAULT_SCHEMA_CACHE_TTL_MS);
+  });
+
   it('falls back to the default timeouts for non-positive or non-finite values', () => {
     buildInMemoryExecutor({
       ...BASE_OPTIONS,
