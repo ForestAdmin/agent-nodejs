@@ -94,7 +94,7 @@ export type CollectionSchema = z.infer<typeof CollectionSchemaSchema>;
 export const RecordRefSchema = z
   .object({
     collectionName: z.string().min(1),
-    recordId: z.array(z.union([z.string(), z.number()])).min(1),
+    recordId: z.array(z.union([z.string().min(1), z.number()])).min(1),
     // Index of the workflow step that loaded this record.
     stepIndex: z.number().int().nonnegative(),
   })

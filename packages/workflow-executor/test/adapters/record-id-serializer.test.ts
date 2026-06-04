@@ -1,4 +1,5 @@
 import { deserializeRecordId, serializeRecordId } from '../../src/adapters/record-id-serializer';
+import { RecordIdSerializationError } from '../../src/errors';
 
 describe('serializeRecordId', () => {
   it('single id → no pipe', () => {
@@ -16,6 +17,12 @@ describe('serializeRecordId', () => {
   it('mixed string and number ids', () => {
     expect(serializeRecordId(['org', 42])).toBe('org|42');
   });
+
+  // '|' is the reserved segment delimiter, so a part that contains it would over-split on the way
+  // back and match the wrong record. Fail loudly instead of silently corrupting the key.
+  it('throws when a part contains the reserved pipe separator', () => {
+    expect(() => serializeRecordId(['a|b'])).toThrow(RecordIdSerializationError);
+  });
 });
 
 describe('deserializeRecordId', () => {
@@ -31,10 +38,10 @@ describe('deserializeRecordId', () => {
     expect(deserializeRecordId('a|b|c')).toEqual(['a', 'b', 'c']);
   });
 
-  // Known/accepted limitation: '|' is the reserved segment delimiter, so a primary-key value
-  // that itself contains '|' is not round-trip safe (it over-splits). This is the convention
-  // used across the Forest stack; pinned here so the behavior is explicit.
-  it('over-splits a value that contains the reserved pipe (documented limitation)', () => {
-    expect(deserializeRecordId(serializeRecordId(['a|b']))).toEqual(['a', 'b']);
+  // deserialize stays permissive (bare split). Empty segments from a malformed wire value are
+  // rejected at the validation boundaries that consume the result, not here.
+  it('over-splits a raw value containing the reserved pipe (rejected at the boundary, not here)', () => {
+    expect(deserializeRecordId('a|b|c')).toEqual(['a', 'b', 'c']);
+    expect(deserializeRecordId('a|')).toEqual(['a', '']);
   });
 });

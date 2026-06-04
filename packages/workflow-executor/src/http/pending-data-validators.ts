@@ -44,7 +44,13 @@ const loadRelatedRecordPatchSchema = z
     // User may override the AI-selected record; pipe-separated string (e.g. 'id1|id2'),
     // deserialized to an id array. Required when confirming with a relation override —
     // the original record ID belongs to a different collection and cannot be reused.
-    selectedRecordId: z.string().min(1).transform(deserializeRecordId).optional(),
+    // The .pipe(...) rejects empty segments that would build a bogus PK.
+    selectedRecordId: z
+      .string()
+      .min(1)
+      .transform(deserializeRecordId)
+      .pipe(z.array(z.string().min(1)))
+      .optional(),
   })
   .strict()
   .refine(
