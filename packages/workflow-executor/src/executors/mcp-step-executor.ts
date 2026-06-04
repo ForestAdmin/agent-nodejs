@@ -1,4 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { ExecutionContext, StepExecutionResult } from '../types/execution-context';
 import type { McpStepExecutionData, McpToolCall } from '../types/step-execution-data';
 import type { McpStepDefinition } from '../types/validated/step-definition';
@@ -14,7 +13,7 @@ import {
   NoMcpToolsError,
   StepStateError,
 } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import OperationStepExecutor from './operation-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
@@ -24,7 +23,13 @@ Important rules:
 - Select only the tool directly relevant to the request.
 - Final answer is definitive, you won't receive any other input from the user.`;
 
-export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
+export default class McpStepExecutor extends OperationStepExecutor<McpStepDefinition> {
+  protected readonly operation: { action: string; type: 'read' | 'write'; label?: string } = {
+    action: 'action',
+    type: 'write',
+    label: this.context.stepDefinition.mcpServerId,
+  };
+
   private readonly remoteTools: readonly RemoteTool[];
 
   private readonly mcpServerName?: string;
@@ -43,16 +48,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     return {
       mcpServerId: this.context.stepDefinition.mcpServerId,
       mcpServerName: this.mcpServerName,
-    };
-  }
-
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    return {
-      renderingId: this.context.user.renderingId,
-      action: 'action',
-      type: 'write',
-      collectionId: this.context.collectionId,
-      label: this.context.stepDefinition.mcpServerId,
     };
   }
 
@@ -133,13 +128,13 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       idempotencyPhase: 'executing',
     });
 
-    let toolResult: unknown;
-
-    try {
-      toolResult = await tool.base.invoke(target.input);
-    } catch (cause) {
-      throw new McpToolInvocationError(target.name, cause);
-    }
+    const toolResult = await this.logOperation(this.context.baseRecordRef, async () => {
+      try {
+        return await tool.base.invoke(target.input);
+      } catch (cause) {
+        throw new McpToolInvocationError(target.name, cause);
+      }
+    });
 
     // 1. Persist raw result immediately — safe state before any further network calls
     const baseExecutionResult = { success: true as const, toolResult };

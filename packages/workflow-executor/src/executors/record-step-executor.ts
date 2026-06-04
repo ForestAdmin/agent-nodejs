@@ -7,25 +7,15 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import { InvalidAIResponseError, InvalidPreRecordedArgsError, NoRecordsError } from '../errors';
-import BaseStepExecutor from './base-step-executor';
+import OperationStepExecutor from './operation-step-executor';
 
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
-> extends BaseStepExecutor<TStep> {
-  protected abstract readonly operation: { action: string; type: 'read' | 'write' };
-
-  protected async logOperation<T>(record: RecordRef, run: () => Promise<T>): Promise<T> {
+> extends OperationStepExecutor<TStep> {
+  protected override async operationCollectionId(record: RecordRef): Promise<string> {
     const { collectionId } = await this.getCollectionSchema(record.collectionName);
 
-    return this.withActivityLog(
-      {
-        renderingId: this.context.user.renderingId,
-        ...this.operation,
-        collectionId,
-        recordId: record.recordId,
-      },
-      run,
-    );
+    return collectionId;
   }
 
   protected buildOutcomeResult(outcome: {

@@ -951,7 +951,7 @@ describe('McpStepExecutor', () => {
   });
 
   describe('activity log', () => {
-    it('creates activity log with collectionId, renderingId, action, type and mcpServerId as label', async () => {
+    it('logs against the run base record with collectionId, renderingId, action, type and mcpServerId as label', async () => {
       const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
       const activityLogPort = {
@@ -977,6 +977,7 @@ describe('McpStepExecutor', () => {
         action: 'action',
         type: 'write',
         collectionId: 'col-1',
+        recordId: [42],
         label: 'my-mcp-server',
       });
     });
