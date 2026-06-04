@@ -19,6 +19,7 @@ import {
   DEFAULT_STEP_TIMEOUT_S,
   DEFAULT_STOP_TIMEOUT_S,
 } from '../src/defaults';
+import { ConfigurationError } from '../src/errors';
 
 function isJsonLogger(out: string): boolean {
   try {
@@ -300,6 +301,42 @@ describe('readEnvConfig', () => {
     expect(() =>
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'bogus', AI_MODEL: 'm', AI_API_KEY: 'k' }, args),
     ).toThrow('AI_PROVIDER must be "anthropic" or "openai"');
+  });
+
+  it.each(['Debug', 'Info', 'Warn', 'Error'] as const)(
+    'parses LOG_LEVEL=%s into loggerLevel',
+    level => {
+      const config = readEnvConfig({ ...baseEnv, LOG_LEVEL: level }, args);
+
+      expect(config.executorOptions.loggerLevel).toBe(level);
+    },
+  );
+
+  it('falls back to default loggerLevel (Info) when LOG_LEVEL is unset', () => {
+    const config = readEnvConfig(baseEnv, args);
+
+    expect(config.executorOptions.loggerLevel).toBe('Info');
+  });
+
+  it('falls back to default loggerLevel when LOG_LEVEL is empty string', () => {
+    const config = readEnvConfig({ ...baseEnv, LOG_LEVEL: '' }, args);
+
+    expect(config.executorOptions.loggerLevel).toBe('Info');
+  });
+
+  it.each(['debug', 'info', 'trace', 'fatal', 'verbose', 'xxx'])(
+    'throws ConfigurationError on invalid LOG_LEVEL=%s',
+    value => {
+      expect(() => readEnvConfig({ ...baseEnv, LOG_LEVEL: value }, args)).toThrow(
+        `LOG_LEVEL must be one of Debug, Info, Warn, Error (got "${value}")`,
+      );
+    },
+  );
+
+  it('LOG_LEVEL error is a ConfigurationError instance (typed boundary error)', () => {
+    expect(() => readEnvConfig({ ...baseEnv, LOG_LEVEL: 'oops' }, args)).toThrow(
+      ConfigurationError,
+    );
   });
 });
 

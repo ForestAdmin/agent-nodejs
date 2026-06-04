@@ -262,6 +262,68 @@ describe('McpStepExecutor', () => {
       );
     });
 
+    it('returns success and logs when persisting the formatted response fails', async () => {
+      const toolResult = { result: 'notification sent' };
+      const invokeFn = jest.fn().mockResolvedValue(toolResult);
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: invokeFn,
+      });
+      const { model, invoke: modelInvoke } = makeMockModel('send_notification', {
+        message: 'Hello',
+      });
+      modelInvoke
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'send_notification', args: { message: 'Hello' }, id: 'call_1' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'summarize-result', args: { summary: 'Found 3 results.' }, id: 'call_2' },
+          ],
+        });
+      const persistFailure = new Error('database unreachable');
+      // First two saves (executing marker, raw result) succeed; third save (enriched
+      // with formattedResponse) fails.
+      const saveStepExecution = jest
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(persistFailure);
+      const runStore = makeMockRunStore({ saveStepExecution });
+      const logger = jest.fn();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        logger,
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      // Step does NOT fail — the raw toolResult was already persisted on the
+      // second save (done marker). The enriched save is best-effort.
+      expect(result.stepOutcome.status).toBe('success');
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(3);
+      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
+        3,
+        'run-1',
+        expect.objectContaining({
+          executionResult: { success: true, toolResult, formattedResponse: 'Found 3 results.' },
+        }),
+      );
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        'MCP tool result formatted but enriched state could not be persisted',
+        expect.objectContaining({
+          runId: 'run-1',
+          toolName: 'send_notification',
+          cause: 'database unreachable',
+        }),
+      );
+    });
+
     it('returns success and logs when AI formatting throws', async () => {
       const invokeFn = jest.fn().mockResolvedValue({ result: 'ok' });
       const tool = new MockRemoteTool({
