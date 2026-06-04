@@ -5,7 +5,6 @@ export interface CreateActivityLogArgs {
   action: string;
   type: 'read' | 'write';
   collectionId?: string;
-  // Full (possibly composite) record id. The adapter serializes it to the pipe wire format.
   recordId?: RecordId;
   label?: string;
 }

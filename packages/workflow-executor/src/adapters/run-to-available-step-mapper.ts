@@ -140,9 +140,6 @@ export default function toAvailableStepExecution(
     );
   }
 
-  // selectedRecordId is typed `string` but arrives unvalidated from the wire — guard so an empty
-  // value fails loudly instead of deserializing to a bogus [''] baseRecordRef (or throwing a raw
-  // TypeError on undefined). Mirrors the collectionName/collectionId guards above.
   if (!run.selectedRecordId) {
     throw new InvalidStepDefinitionError(
       `Run ${run.id} has no selectedRecordId — cannot build baseRecordRef`,
