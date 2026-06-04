@@ -54,7 +54,12 @@ describe('ForestadminClientActivityLogPort', () => {
       });
       const port = makePort(service);
 
-      const handle = await port.createPending({ renderingId: 5, action: 'update', type: 'write' });
+      const handle = await port.createPending({
+        renderingId: 5,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-1',
+      });
 
       expect(handle).toEqual({ id: 'log-1', index: '0' });
       expect(service.createActivityLog).toHaveBeenCalledWith(
@@ -89,7 +94,12 @@ describe('ForestadminClientActivityLogPort', () => {
       const logger = makeLogger();
       const port = makePort(service, { logger });
 
-      const promise = port.createPending({ renderingId: 5, action: 'update', type: 'write' });
+      const promise = port.createPending({
+        renderingId: 5,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-1',
+      });
       await jest.advanceTimersByTimeAsync(100);
       const handle = await promise;
 
@@ -106,7 +116,12 @@ describe('ForestadminClientActivityLogPort', () => {
       service.createActivityLog.mockRejectedValue(makeHttpError(502));
       const port = makePort(service);
 
-      const promise = port.createPending({ renderingId: 5, action: 'update', type: 'write' });
+      const promise = port.createPending({
+        renderingId: 5,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-1',
+      });
       const settled = promise.catch(err => err);
       await jest.advanceTimersByTimeAsync(2_600);
       const err = await settled;
@@ -121,7 +136,12 @@ describe('ForestadminClientActivityLogPort', () => {
       const port = makePort(service);
 
       await expect(
-        port.createPending({ renderingId: 5, action: 'update', type: 'write' }),
+        port.createPending({
+          renderingId: 5,
+          action: 'update',
+          type: 'write',
+          collectionId: 'col-1',
+        }),
       ).rejects.toBeInstanceOf(ActivityLogCreationError);
       expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
@@ -132,7 +152,12 @@ describe('ForestadminClientActivityLogPort', () => {
       const port = makePort(service);
 
       await expect(
-        port.createPending({ renderingId: 5, action: 'update', type: 'write' }),
+        port.createPending({
+          renderingId: 5,
+          action: 'update',
+          type: 'write',
+          collectionId: 'col-1',
+        }),
       ).rejects.toBeInstanceOf(ActivityLogCreationError);
       expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
@@ -145,7 +170,12 @@ describe('ForestadminClientActivityLogPort', () => {
         .mockResolvedValueOnce({ id: 'log-3', attributes: { index: '2' } });
       const port = makePort(service);
 
-      const promise = port.createPending({ renderingId: 5, action: 'update', type: 'write' });
+      const promise = port.createPending({
+        renderingId: 5,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-1',
+      });
       await jest.advanceTimersByTimeAsync(100);
       await expect(promise).resolves.toEqual({ id: 'log-3', index: '2' });
     });
@@ -158,7 +188,12 @@ describe('ForestadminClientActivityLogPort', () => {
       });
       const port = makePort(service);
 
-      await port.createPending({ renderingId: 42, action: 'update', type: 'write' });
+      await port.createPending({
+        renderingId: 42,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-1',
+      });
 
       expect(service.createActivityLog).toHaveBeenCalledWith(
         expect.objectContaining({ renderingId: '42' }),
@@ -239,7 +274,7 @@ describe('ForestadminClientActivityLogPort', () => {
         .mockResolvedValueOnce(undefined);
       const port = makePort(service);
 
-      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'boom');
+      const promise = port.markFailed({ id: 'log-1', index: '0' });
       await jest.advanceTimersByTimeAsync(100);
       await promise;
 
@@ -249,26 +284,20 @@ describe('ForestadminClientActivityLogPort', () => {
           forestServerToken: 'tok',
         }),
       );
-      expect(service.updateActivityLogStatus).toHaveBeenLastCalledWith(
-        expect.not.objectContaining({ errorMessage: expect.anything() }),
-      );
     });
 
-    it('swallows errors after retries are exhausted (fire-and-forget) and logs with stepErrorMessage', async () => {
+    it('swallows errors after retries are exhausted (fire-and-forget) and logs the handle', async () => {
       const service = makeService();
       service.updateActivityLogStatus.mockRejectedValue(makeHttpError(503));
       const logger = makeLogger();
       const port = makePort(service, { logger });
 
-      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'step-error-msg');
+      const promise = port.markFailed({ id: 'log-1', index: '0' });
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
         'activity log mark-as-failed failed',
-        expect.objectContaining({
-          handleId: 'log-1',
-          stepErrorMessage: 'step-error-msg',
-        }),
+        expect.objectContaining({ handleId: 'log-1' }),
       );
     });
 
@@ -279,7 +308,7 @@ describe('ForestadminClientActivityLogPort', () => {
         .mockResolvedValueOnce(undefined);
       const port = makePort(service);
 
-      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'boom');
+      const promise = port.markFailed({ id: 'log-1', index: '0' });
       await jest.advanceTimersByTimeAsync(100);
       await expect(promise).resolves.toBeUndefined();
       expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
@@ -327,7 +356,7 @@ describe('ForestadminClientActivityLogPort', () => {
       const drainer = new ActivityLogDrainer();
       const port = makePort(service, { drainer });
 
-      const markPromise = port.markFailed({ id: 'log-1', index: '0' }, 'boom');
+      const markPromise = port.markFailed({ id: 'log-1', index: '0' });
 
       let drainResolved = false;
       const drainPromise = drainer.drain().then(() => {

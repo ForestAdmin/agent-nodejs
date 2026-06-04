@@ -139,23 +139,23 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      type: 'trigger-action',
-      stepIndex: this.context.stepIndex,
-      selectedRecordRef,
-      idempotencyPhase: 'executing',
-    });
+    const actionResult = await this.logOperation(selectedRecordRef, async () => {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        type: 'trigger-action',
+        stepIndex: this.context.stepIndex,
+        selectedRecordRef,
+        idempotencyPhase: 'executing',
+      });
 
-    const actionResult = await this.logOperation(selectedRecordRef, () =>
-      this.agentPort.executeAction(
+      return this.agentPort.executeAction(
         {
           collection: selectedRecordRef.collectionName,
           action: name,
           id: selectedRecordRef.recordId,
         },
         this.context.user,
-      ),
-    );
+      );
+    });
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',

@@ -2,13 +2,14 @@ import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { RecordRef } from '../types/validated/collection';
 import type { StepDefinition } from '../types/validated/step-definition';
 
-import { WorkflowExecutorError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+
+export type OperationDescriptor = Pick<CreateActivityLogArgs, 'action' | 'type' | 'label'>;
 
 export default abstract class OperationStepExecutor<
   TStep extends StepDefinition = StepDefinition,
 > extends BaseStepExecutor<TStep> {
-  protected abstract readonly operation: { action: string; type: 'read' | 'write'; label?: string };
+  protected abstract readonly operation: OperationDescriptor;
 
   // Defaults to the run's trigger collection; RecordStepExecutor overrides it to resolve the
   // acted record's own collection (which may differ from the trigger).
@@ -43,9 +44,7 @@ export default abstract class OperationStepExecutor<
 
       return result;
     } catch (err) {
-      const errorMessage =
-        err instanceof WorkflowExecutorError ? err.userMessage : 'Unexpected error';
-      void this.context.activityLogPort.markFailed(handle, errorMessage);
+      void this.context.activityLogPort.markFailed(handle);
       throw err;
     }
   }

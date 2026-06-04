@@ -751,6 +751,30 @@ describe('LoadRelatedRecordStepExecutor', () => {
         recordId: [42],
       });
     });
+
+    it('logs the relation read once on the awaiting-input (Branch C) path', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const { model } = makeMockModel({ relationName: 'Order', reasoning: 'r' });
+      const context = makeContext({ model, runStore, activityLogPort });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
+      expect(activityLogPort.createPending).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'listRelatedData',
+          type: 'read',
+          collectionId: 'col-customers',
+          recordId: [42],
+        }),
+      );
+    });
   });
 
   describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {

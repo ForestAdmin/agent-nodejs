@@ -267,7 +267,7 @@ describe('McpStepExecutor', () => {
         }),
       );
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to format MCP tool result, using generic fallback',
+        'Failed to format MCP tool result, persisting raw result without summary',
         expect.objectContaining({ toolName: 'send_notification' }),
       );
     });

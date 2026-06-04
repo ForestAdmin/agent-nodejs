@@ -13,7 +13,7 @@ import {
   NoMcpToolsError,
   StepStateError,
 } from '../errors';
-import OperationStepExecutor from './operation-step-executor';
+import OperationStepExecutor, { type OperationDescriptor } from './operation-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
@@ -24,7 +24,7 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.`;
 
 export default class McpStepExecutor extends OperationStepExecutor<McpStepDefinition> {
-  protected readonly operation: { action: string; type: 'read' | 'write'; label?: string } = {
+  protected readonly operation: OperationDescriptor = {
     action: 'action',
     type: 'write',
     label: this.context.stepDefinition.mcpServerId,
@@ -121,14 +121,14 @@ export default class McpStepExecutor extends OperationStepExecutor<McpStepDefini
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      ...existingExecution,
-      type: 'mcp',
-      stepIndex: this.context.stepIndex,
-      idempotencyPhase: 'executing',
-    });
-
     const toolResult = await this.logOperation(this.context.baseRecordRef, async () => {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existingExecution,
+        type: 'mcp',
+        stepIndex: this.context.stepIndex,
+        idempotencyPhase: 'executing',
+      });
+
       try {
         return await tool.base.invoke(target.input);
       } catch (cause) {
@@ -155,12 +155,15 @@ export default class McpStepExecutor extends OperationStepExecutor<McpStepDefini
     try {
       formattedResponse = await this.formatToolResult(target, toolResult);
     } catch (cause) {
-      this.context.logger.error('Failed to format MCP tool result, using generic fallback', {
-        runId: this.context.runId,
-        stepIndex: this.context.stepIndex,
-        toolName: target.name,
-        cause: cause instanceof Error ? cause.message : String(cause),
-      });
+      this.context.logger.error(
+        'Failed to format MCP tool result, persisting raw result without summary',
+        {
+          runId: this.context.runId,
+          stepIndex: this.context.stepIndex,
+          toolName: target.name,
+          cause: cause instanceof Error ? cause.message : String(cause),
+        },
+      );
     }
 
     if (formattedResponse) {

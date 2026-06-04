@@ -5,10 +5,7 @@ import type {
   CreateActivityLogArgs,
 } from '../ports/activity-log-port';
 import type { Logger } from '../ports/logger-port';
-import type {
-  ActivityLogAction,
-  ActivityLogsServiceInterface,
-} from '@forestadmin/forestadmin-client';
+import type { ActivityLogsServiceInterface } from '@forestadmin/forestadmin-client';
 
 import { serializeRecordId } from './record-id-serializer';
 import withRetry from './with-retry';
@@ -30,7 +27,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           this.service.createActivityLog({
             forestServerToken: this.forestServerToken,
             renderingId: String(args.renderingId),
-            action: args.action as ActivityLogAction,
+            action: args.action,
             type: args.type,
             // The lib writes this value verbatim into relationships.collection.data.id
             // (JSON:API). The Forest server audit-trail API expects the numeric collectionId.
@@ -76,7 +73,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     });
   }
 
-  async markFailed(handle: ActivityLogHandle, errorMessage: string): Promise<void> {
+  async markFailed(handle: ActivityLogHandle): Promise<void> {
     return this.drainer.track(async () => {
       try {
         await withRetry(
@@ -92,7 +89,6 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
       } catch (err) {
         this.logger.error('activity log mark-as-failed failed', {
           handleId: handle.id,
-          stepErrorMessage: errorMessage,
           error: extractErrorMessage(err),
         });
       }

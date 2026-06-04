@@ -254,24 +254,24 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name, value } = target;
 
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      ...existingExecution,
-      type: 'update-record',
-      stepIndex: this.context.stepIndex,
-      selectedRecordRef,
-      idempotencyPhase: 'executing',
-    });
+    const updated = await this.logOperation(selectedRecordRef, async () => {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existingExecution,
+        type: 'update-record',
+        stepIndex: this.context.stepIndex,
+        selectedRecordRef,
+        idempotencyPhase: 'executing',
+      });
 
-    const updated = await this.logOperation(selectedRecordRef, () =>
-      this.agentPort.updateRecord(
+      return this.agentPort.updateRecord(
         {
           collection: selectedRecordRef.collectionName,
           id: selectedRecordRef.recordId,
           values: { [name]: value },
         },
         this.context.user,
-      ),
-    );
+      );
+    });
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...existingExecution,

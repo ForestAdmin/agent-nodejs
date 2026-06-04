@@ -5,13 +5,13 @@ import type { ExecutionContext, StepExecutionResult } from '../../src/types/exec
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { BaseStepStatus } from '../../src/types/validated/step-outcome';
 
-import { ActivityLogCreationError, NoRecordsError, WorkflowExecutorError } from '../../src/errors';
+import { ActivityLogCreationError, NoRecordsError } from '../../src/errors';
 import OperationStepExecutor from '../../src/executors/operation-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 class TestOperationExecutor extends OperationStepExecutor {
-  protected readonly operation = { action: 'update', type: 'write' as const };
+  protected readonly operation = { action: 'update', type: 'write' } as const;
 
   constructor(
     context: ExecutionContext,
@@ -125,7 +125,7 @@ describe('OperationStepExecutor', () => {
       expect(context.activityLogPort.markFailed).not.toHaveBeenCalled();
     });
 
-    it('marks failed with the userMessage when the operation throws a WorkflowExecutorError', async () => {
+    it('marks the log failed (by handle) when the operation throws', async () => {
       const context = makeContext();
       const executor = new TestOperationExecutor(context, () =>
         Promise.reject(new NoRecordsError()),
@@ -133,33 +133,8 @@ describe('OperationStepExecutor', () => {
 
       await executor.execute();
 
-      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
-        { id: 'log-1', index: '0' },
-        'No records available',
-      );
+      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith({ id: 'log-1', index: '0' });
       expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
-    });
-
-    it('marks failed with the userMessage (not the technical message) on a dual-message error', async () => {
-      class DualMessageError extends WorkflowExecutorError {
-        constructor() {
-          super(
-            'Internal: datasource "customers" returned no record for pk=42',
-            'The record no longer exists.',
-          );
-        }
-      }
-      const context = makeContext();
-      const executor = new TestOperationExecutor(context, () =>
-        Promise.reject(new DualMessageError()),
-      );
-
-      await executor.execute();
-
-      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
-        { id: 'log-1', index: '0' },
-        'The record no longer exists.',
-      );
     });
 
     it('does NOT run the operation and propagates when createPending throws', async () => {

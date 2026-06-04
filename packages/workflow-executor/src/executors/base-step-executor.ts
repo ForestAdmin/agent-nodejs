@@ -49,8 +49,9 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     });
 
     try {
-      // Idempotency guard — mutating executors override this. Called before doExecute
-      // so that cache hits and uncertain-state errors never emit an activity log entry.
+      // Idempotency guard — mutating executors override this. Runs before doExecute so a cache
+      // hit or uncertain-state error short-circuits before any side effect, including the
+      // activity log emitted inside OperationStepExecutor.logOperation.
       const cached = await this.checkIdempotency();
 
       if (cached) {

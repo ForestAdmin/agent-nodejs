@@ -6,7 +6,12 @@ import type { UpdateRecordStepExecutionData } from '../../src/types/step-executi
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-definition';
 
-import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
+import {
+  ActivityLogCreationError,
+  AgentPortError,
+  RunStorePortError,
+  StepStateError,
+} from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
@@ -227,6 +232,107 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+
+    it('logs against a related record in another collection (cross-collection)', async () => {
+      const baseRecordRef = makeRecordRef({ stepIndex: 1 });
+      const relatedRecord = makeRecordRef({
+        stepIndex: 2,
+        recordId: [99],
+        collectionName: 'orders',
+      });
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionId: 'col-orders',
+        collectionDisplayName: 'Orders',
+        fields: [
+          { fieldName: 'total', displayName: 'Total', isRelationship: false, type: 'Number' },
+        ],
+      });
+
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-record', args: { recordIdentifier: 'Step 2 - Orders #99' }, id: 'c1' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'update-record-field',
+              args: { input: { fieldName: 'Total', value: 200, reasoning: 'r' } },
+              id: 'c2',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new UpdateRecordStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-orders',
+        recordId: [99],
+      });
+    });
+
+    it('does not persist the executing marker when the activity log cannot be created', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest
+          .fn()
+          .mockRejectedValue(new ActivityLogCreationError(new Error('audit down'))),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        runStore,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'executing' }),
+      );
     });
   });
 

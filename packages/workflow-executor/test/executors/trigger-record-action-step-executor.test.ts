@@ -214,6 +214,90 @@ describe('TriggerRecordActionStepExecutor', () => {
         recordId: [42],
       });
     });
+
+    it('logs against a related record in another collection (cross-collection)', async () => {
+      const baseRecordRef = makeRecordRef({ stepIndex: 1 });
+      const relatedRecord = makeRecordRef({
+        stepIndex: 2,
+        recordId: [99],
+        collectionName: 'orders',
+      });
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionId: 'col-orders',
+        collectionDisplayName: 'Orders',
+        actions: [
+          {
+            name: 'cancel-order',
+            displayName: 'Cancel Order',
+            endpoint: '/forest/actions/cancel-order',
+          },
+        ],
+      });
+
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-record', args: { recordIdentifier: 'Step 2 - Orders #99' }, id: 'c1' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-action',
+              args: { actionName: 'Cancel Order', reasoning: 'r' },
+              id: 'c2',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ ok: true });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        agentPort,
+        activityLogPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'action',
+        type: 'write',
+        collectionId: 'col-orders',
+        recordId: [99],
+      });
+    });
   });
 
   describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {

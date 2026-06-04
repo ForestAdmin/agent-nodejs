@@ -21,7 +21,12 @@ describe('ForestadminClientActivityLogPortFactory', () => {
     const factory = new ForestadminClientActivityLogPortFactory(service, makeLogger());
 
     const port = factory.forRun('token-42');
-    await port.createPending({ renderingId: 1, action: 'update', type: 'write' });
+    await port.createPending({
+      renderingId: 1,
+      action: 'update',
+      type: 'write',
+      collectionId: 'col-1',
+    });
 
     expect(port).toBeInstanceOf(ForestadminClientActivityLogPort);
     expect(service.createActivityLog).toHaveBeenCalledWith(
