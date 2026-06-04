@@ -148,21 +148,31 @@ describe('patchBodySchemas', () => {
       expect(schema.parse({ userConfirmed: true })).toEqual({ userConfirmed: true });
     });
 
-    it('accepts confirmation with selectedRecordId override only', () => {
-      expect(schema.parse({ userConfirmed: true, selectedRecordId: [42] })).toEqual({
-        userConfirmed: true,
-        selectedRecordId: [42],
-      });
+    it('deserializes selectedRecordId from pipe string to array', () => {
+      const result = schema.parse({ userConfirmed: true, selectedRecordId: 'pk1|pk2' }) as {
+        selectedRecordId: unknown;
+      };
+
+      expect(result.selectedRecordId).toEqual(['pk1', 'pk2']);
+    });
+
+    it('deserializes single selectedRecordId', () => {
+      const result = schema.parse({ userConfirmed: true, selectedRecordId: '42' }) as {
+        selectedRecordId: unknown;
+      };
+
+      expect(result.selectedRecordId).toEqual(['42']);
     });
 
     it('accepts confirmation with both fieldName and selectedRecordId (relation override)', () => {
-      expect(
-        schema.parse({
-          userConfirmed: true,
-          fieldName: 'address',
-          selectedRecordId: [7],
-        }),
-      ).toEqual({ userConfirmed: true, fieldName: 'address', selectedRecordId: [7] });
+      const result = schema.parse({
+        userConfirmed: true,
+        fieldName: 'address',
+        selectedRecordId: '7',
+      }) as { selectedRecordId: unknown };
+
+      expect(result).toMatchObject({ userConfirmed: true, fieldName: 'address' });
+      expect(result.selectedRecordId).toEqual(['7']);
     });
 
     it('rejects fieldName override on confirm without selectedRecordId — original record ID belongs to a different collection', () => {
@@ -173,6 +183,10 @@ describe('patchBodySchemas', () => {
 
     it('rejects empty string fieldName — empty string is not a valid field name', () => {
       expect(() => schema.parse({ userConfirmed: true, fieldName: '' })).toThrow();
+    });
+
+    it('rejects empty selectedRecordId string', () => {
+      expect(() => schema.parse({ userConfirmed: true, selectedRecordId: '' })).toThrow();
     });
 
     it('rejects unknown fields (strict schema)', () => {

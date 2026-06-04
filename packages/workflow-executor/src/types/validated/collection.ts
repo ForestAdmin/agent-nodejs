@@ -94,12 +94,15 @@ export type CollectionSchema = z.infer<typeof CollectionSchemaSchema>;
 export const RecordRefSchema = z
   .object({
     collectionName: z.string().min(1),
-    recordId: z.array(z.union([z.string(), z.number()])).min(1),
+    recordId: z.array(z.union([z.string().min(1), z.number()])).min(1),
     // Index of the workflow step that loaded this record.
     stepIndex: z.number().int().nonnegative(),
   })
   .strict();
 export type RecordRef = z.infer<typeof RecordRefSchema>;
+
+// A record's primary key: one segment for a simple key, several for a composite key.
+export type RecordId = RecordRef['recordId'];
 
 // No stepIndex — the agent doesn't know about steps.
 export type RecordData = Omit<RecordRef, 'stepIndex'> & { values: Record<string, unknown> };

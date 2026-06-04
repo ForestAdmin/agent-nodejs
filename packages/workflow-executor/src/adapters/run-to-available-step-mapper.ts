@@ -13,6 +13,7 @@ import type {
 
 import { z } from 'zod';
 
+import { deserializeRecordId } from './record-id-serializer';
 import toStepDefinition from './step-definition-mapper';
 import {
   DomainValidationError,
@@ -139,6 +140,12 @@ export default function toAvailableStepExecution(
     );
   }
 
+  if (!run.selectedRecordId) {
+    throw new InvalidStepDefinitionError(
+      `Run ${run.id} has no selectedRecordId — cannot build baseRecordRef`,
+    );
+  }
+
   const pending = run.workflowHistory.at(-1) ?? null;
   if (!pending || pending.done) return null;
 
@@ -149,7 +156,7 @@ export default function toAvailableStepExecution(
     collectionId: run.collectionId,
     baseRecordRef: {
       collectionName: run.collectionName,
-      recordId: [run.selectedRecordId],
+      recordId: deserializeRecordId(run.selectedRecordId),
       stepIndex: 0,
     },
     stepDefinition: toStepDefinition(pending.stepDefinition),

@@ -41,7 +41,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       action: 'action',
       type: 'write',
       collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId[0],
+      recordId: this.context.baseRecordRef.recordId,
     };
   }
 

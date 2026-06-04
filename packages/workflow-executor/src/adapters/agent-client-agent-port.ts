@@ -9,7 +9,7 @@ import type {
 } from '../ports/agent-port';
 import type SchemaCache from '../schema-cache';
 import type { StepUser } from '../types/execution-context';
-import type { CollectionSchema, RecordData } from '../types/validated/collection';
+import type { CollectionSchema, RecordData, RecordId } from '../types/validated/collection';
 import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
@@ -45,10 +45,7 @@ function restoreFieldNames(
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));
 }
 
-function buildPkFilter(
-  primaryKeyFields: string[],
-  id: Array<string | number>,
-): SelectOptions['filters'] {
+function buildPkFilter(primaryKeyFields: string[], id: RecordId): SelectOptions['filters'] {
   if (primaryKeyFields.length === 1) {
     return { field: primaryKeyFields[0], operator: 'Equal', value: id[0] };
   }

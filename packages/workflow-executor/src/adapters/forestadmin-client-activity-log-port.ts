@@ -10,6 +10,7 @@ import type {
   ActivityLogsServiceInterface,
 } from '@forestadmin/forestadmin-client';
 
+import { serializeRecordId } from './record-id-serializer';
 import withRetry from './with-retry';
 import { ActivityLogCreationError, extractErrorMessage } from '../errors';
 
@@ -34,7 +35,8 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
             // The lib writes this value verbatim into relationships.collection.data.id
             // (JSON:API). The Forest server audit-trail API expects the numeric collectionId.
             collectionName: args.collectionId,
-            recordId: args.recordId,
+            // Record ids are serialized to the pipe wire format here, never in the executor.
+            recordId: args.recordId?.length ? serializeRecordId(args.recordId) : undefined,
             label: args.label,
           }),
         { logger: this.logger },

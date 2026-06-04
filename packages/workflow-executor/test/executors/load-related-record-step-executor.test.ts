@@ -1086,7 +1086,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({
         agentPort,
         runStore,
-        incomingPendingData: { userConfirmed: true, selectedRecordId: [42] },
+        incomingPendingData: { userConfirmed: true, selectedRecordId: '42' },
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1105,7 +1105,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             suggestedRecord: cand([99]), // AI suggestion preserved
           }),
           executionResult: expect.objectContaining({
-            record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
+            record: expect.objectContaining({ collectionName: 'orders', recordId: ['42'] }),
           }),
         }),
       );
@@ -1134,7 +1134,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         incomingPendingData: {
           userConfirmed: true,
           fieldName: 'address',
-          selectedRecordId: [7],
+          selectedRecordId: '7',
         },
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -1154,7 +1154,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           executionParams: { name: 'address', displayName: 'Address' },
           executionResult: expect.objectContaining({
             relation: { name: 'address', displayName: 'Address' },
-            record: expect.objectContaining({ collectionName: 'addresses', recordId: [7] }),
+            record: expect.objectContaining({ collectionName: 'addresses', recordId: ['7'] }),
           }),
         }),
       );
@@ -1253,7 +1253,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           suggestedRecord: cand([99]),
         },
         // Frontend confirms a relation that no longer exists in availableFields.
-        userConfirmation: { userConfirmed: true, fieldName: 'ghost', selectedRecordId: [7] },
+        userConfirmation: { userConfirmed: true, fieldName: 'ghost', selectedRecordId: ['7'] },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
