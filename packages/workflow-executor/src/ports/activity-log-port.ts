@@ -17,11 +17,12 @@ export interface ActivityLogHandle {
 }
 
 // Per-run scoped port: token baked into the adapter's constructor. markSucceeded/markFailed
-// retry transient failures internally and are invoked with `void` from OperationStepExecutor.
+// retry transient failures internally and are invoked with `void` from AgentWithLog.
 export interface ActivityLogPort {
   createPending(args: CreateActivityLogArgs): Promise<ActivityLogHandle>;
   markSucceeded(handle: ActivityLogHandle): Promise<void>;
-  markFailed(handle: ActivityLogHandle): Promise<void>;
+  // errorMessage is for local diagnostics only — the server status endpoint accepts just { status }.
+  markFailed(handle: ActivityLogHandle, errorMessage: string): Promise<void>;
 }
 
 // Produces per-run ActivityLogPort instances and exposes drain() at the process level so the

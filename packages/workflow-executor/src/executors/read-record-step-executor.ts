@@ -18,8 +18,6 @@ Important rules:
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
 export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecordStepDefinition> {
-  protected readonly operation = { action: 'index', type: 'read' } as const;
-
   protected async doExecute(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
@@ -46,16 +44,11 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       throw new NoResolvedFieldsError(selectedFields.map(s => s.requested));
     }
 
-    const recordData = await this.logOperation(selectedRecordRef, () =>
-      this.agentPort.getRecord(
-        {
-          collection: selectedRecordRef.collectionName,
-          id: selectedRecordRef.recordId,
-          fields: resolvedFieldNames,
-        },
-        this.context.user,
-      ),
-    );
+    const recordData = await this.agent.getRecord({
+      collection: selectedRecordRef.collectionName,
+      id: selectedRecordRef.recordId,
+      fields: resolvedFieldNames,
+    });
     const fieldResults = this.formatFieldResults(recordData.values, selectedFields);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {

@@ -267,14 +267,14 @@ describe('ForestadminClientActivityLogPort', () => {
   });
 
   describe('markFailed', () => {
-    it('sends status: failed (no errorMessage — server schema rejects unknown fields) and retries on 503', async () => {
+    it('sends status: failed to the server without the local errorMessage, and retries on 503', async () => {
       const service = makeService();
       service.updateActivityLogStatus
         .mockRejectedValueOnce(makeHttpError(503))
         .mockResolvedValueOnce(undefined);
       const port = makePort(service);
 
-      const promise = port.markFailed({ id: 'log-1', index: '0' });
+      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'step failed');
       await jest.advanceTimersByTimeAsync(100);
       await promise;
 
@@ -284,20 +284,23 @@ describe('ForestadminClientActivityLogPort', () => {
           forestServerToken: 'tok',
         }),
       );
+      expect(service.updateActivityLogStatus).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({ errorMessage: expect.anything() }),
+      );
     });
 
-    it('swallows errors after retries are exhausted (fire-and-forget) and logs the handle', async () => {
+    it('swallows errors after retries are exhausted (fire-and-forget) and logs the step error message', async () => {
       const service = makeService();
       service.updateActivityLogStatus.mockRejectedValue(makeHttpError(503));
       const logger = makeLogger();
       const port = makePort(service, { logger });
 
-      const promise = port.markFailed({ id: 'log-1', index: '0' });
+      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'step-error-msg');
       await jest.advanceTimersByTimeAsync(2_600);
       await expect(promise).resolves.toBeUndefined();
       expect(logger.error).toHaveBeenCalledWith(
         'activity log mark-as-failed failed',
-        expect.objectContaining({ handleId: 'log-1' }),
+        expect.objectContaining({ handleId: 'log-1', stepErrorMessage: 'step-error-msg' }),
       );
     });
 
@@ -308,7 +311,7 @@ describe('ForestadminClientActivityLogPort', () => {
         .mockResolvedValueOnce(undefined);
       const port = makePort(service);
 
-      const promise = port.markFailed({ id: 'log-1', index: '0' });
+      const promise = port.markFailed({ id: 'log-1', index: '0' }, 'step failed');
       await jest.advanceTimersByTimeAsync(100);
       await expect(promise).resolves.toBeUndefined();
       expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
@@ -356,7 +359,7 @@ describe('ForestadminClientActivityLogPort', () => {
       const drainer = new ActivityLogDrainer();
       const port = makePort(service, { drainer });
 
-      const markPromise = port.markFailed({ id: 'log-1', index: '0' });
+      const markPromise = port.markFailed({ id: 'log-1', index: '0' }, 'step failed');
 
       let drainResolved = false;
       const drainPromise = drainer.drain().then(() => {

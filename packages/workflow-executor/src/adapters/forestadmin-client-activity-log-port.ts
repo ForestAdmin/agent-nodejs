@@ -73,7 +73,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
     });
   }
 
-  async markFailed(handle: ActivityLogHandle): Promise<void> {
+  async markFailed(handle: ActivityLogHandle, errorMessage: string): Promise<void> {
     return this.drainer.track(async () => {
       try {
         await withRetry(
@@ -89,6 +89,7 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
       } catch (err) {
         this.logger.error('activity log mark-as-failed failed', {
           handleId: handle.id,
+          stepErrorMessage: errorMessage,
           error: extractErrorMessage(err),
         });
       }

@@ -55,8 +55,6 @@ interface RelationTarget extends RelationRef {
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
-  protected readonly operation = { action: 'listRelatedData', type: 'read' } as const;
-
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<LoadRelatedRecordStepExecutionData>(
@@ -188,37 +186,35 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     availableRecordIds: LoadRelatedRecordCandidate[];
     suggestedRecord?: LoadRelatedRecordCandidate;
   }> {
-    return this.logOperation(target.selectedRecordRef, async () => {
-      if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
-        const candidate = await this.fetchXToOneCandidate(target);
+    if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
+      const candidate = await this.fetchXToOneCandidate(target);
 
-        return candidate
-          ? { availableRecordIds: [candidate], suggestedRecord: candidate }
-          : { availableRecordIds: [] };
-      }
+      return candidate
+        ? { availableRecordIds: [candidate], suggestedRecord: candidate }
+        : { availableRecordIds: [] };
+    }
 
-      const { relatedData, bestIndex, relatedSchema } = await this.selectBestFromRelatedData(
-        target,
-        50,
-      );
+    const { relatedData, bestIndex, relatedSchema } = await this.selectBestFromRelatedData(
+      target,
+      50,
+    );
 
-      if (relatedData.length === 0) {
-        return { availableRecordIds: [] };
-      }
+    if (relatedData.length === 0) {
+      return { availableRecordIds: [] };
+    }
 
-      const referenceField = relatedSchema.referenceField ?? null;
-      const toCandidate = (r: RecordData): LoadRelatedRecordCandidate => ({
-        recordId: r.recordId,
-        referenceFieldValue: referenceField
-          ? this.extractReferenceFieldValue(r.values, referenceField)
-          : null,
-      });
-
-      return {
-        availableRecordIds: relatedData.map(toCandidate),
-        suggestedRecord: toCandidate(relatedData[bestIndex]),
-      };
+    const referenceField = relatedSchema.referenceField ?? null;
+    const toCandidate = (r: RecordData): LoadRelatedRecordCandidate => ({
+      recordId: r.recordId,
+      referenceFieldValue: referenceField
+        ? this.extractReferenceFieldValue(r.values, referenceField)
+        : null,
     });
+
+    return {
+      availableRecordIds: relatedData.map(toCandidate),
+      suggestedRecord: toCandidate(relatedData[bestIndex]),
+    };
   }
 
   private extractReferenceFieldValue(
@@ -232,9 +228,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   /** Branch B: fully automated. xToOne loads the linked record; HasMany ranks candidates via AI; BelongsToMany takes the first. */
   private async resolveAndLoadAutomatic(target: RelationTarget): Promise<StepExecutionResult> {
-    const record = await this.logOperation(target.selectedRecordRef, () =>
-      this.fetchRecordForRelation(target),
-    );
+    const record = await this.fetchRecordForRelation(target);
 
     return this.persistAndReturn(record, target, undefined);
   }
@@ -271,16 +265,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
     const referenceField = relatedSchema.referenceField ?? null;
 
-    const candidate = await this.agentPort.getSingleRelatedData(
-      {
-        collection: target.selectedRecordRef.collectionName,
-        id: target.selectedRecordRef.recordId,
-        relation: target.name,
-        relatedSchema,
-        ...(referenceField && { fields: [referenceField] }),
-      },
-      this.context.user,
-    );
+    const candidate = await this.agent.getSingleRelatedData({
+      collection: target.selectedRecordRef.collectionName,
+      id: target.selectedRecordRef.recordId,
+      relation: target.name,
+      relatedSchema,
+      ...(referenceField && { fields: [referenceField] }),
+    });
 
     if (!candidate) return null;
 
@@ -429,16 +420,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     relatedSchema: CollectionSchema,
     limit: number,
   ): Promise<RecordData[]> {
-    return this.agentPort.getRelatedData(
-      {
-        collection: target.selectedRecordRef.collectionName,
-        id: target.selectedRecordRef.recordId,
-        relation: target.name,
-        relatedSchema,
-        limit,
-      },
-      this.context.user,
-    );
+    return this.agent.getRelatedData({
+      collection: target.selectedRecordRef.collectionName,
+      id: target.selectedRecordRef.recordId,
+      relation: target.name,
+      relatedSchema,
+      limit,
+    });
   }
 
   /** Persists the loaded record ref and returns a success outcome. */

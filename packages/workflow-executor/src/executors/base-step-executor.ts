@@ -25,6 +25,7 @@ import {
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
+import AgentWithLog from './agent-with-log';
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
@@ -33,11 +34,23 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 {
   protected readonly context: ExecutionContext<TStep>;
 
+  // Raw port — kept only for getActionFormInfo, which is intentionally not audited.
   protected readonly agentPort: AgentPort;
+
+  // Audited data access — every call emits an activity-log entry.
+  protected readonly agent: AgentWithLog;
 
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
     this.agentPort = context.agentPort;
+    this.agent = new AgentWithLog({
+      agentPort: context.agentPort,
+      activityLogPort: context.activityLogPort,
+      workflowPort: context.workflowPort,
+      schemaCache: context.schemaCache,
+      user: context.user,
+      runId: context.runId,
+    });
   }
 
   async execute(): Promise<StepExecutionResult> {
@@ -51,7 +64,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     try {
       // Idempotency guard — mutating executors override this. Runs before doExecute so a cache
       // hit or uncertain-state error short-circuits before any side effect, including the
-      // activity log emitted inside OperationStepExecutor.logOperation.
+      // activity log emitted by AgentWithLog.
       const cached = await this.checkIdempotency();
 
       if (cached) {

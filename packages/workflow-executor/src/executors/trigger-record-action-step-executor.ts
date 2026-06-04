@@ -28,8 +28,6 @@ interface ActionTarget extends ActionRef {
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
-  protected readonly operation = { action: 'action', type: 'write' } as const;
-
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
     const existing = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
       'trigger-action',
@@ -139,23 +137,22 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    const actionResult = await this.logOperation(selectedRecordRef, async () => {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        type: 'trigger-action',
-        stepIndex: this.context.stepIndex,
-        selectedRecordRef,
-        idempotencyPhase: 'executing',
-      });
-
-      return this.agentPort.executeAction(
-        {
-          collection: selectedRecordRef.collectionName,
-          action: name,
-          id: selectedRecordRef.recordId,
-        },
-        this.context.user,
-      );
-    });
+    const actionResult = await this.agent.executeAction(
+      {
+        collection: selectedRecordRef.collectionName,
+        action: name,
+        id: selectedRecordRef.recordId,
+      },
+      {
+        beforeCall: () =>
+          this.context.runStore.saveStepExecution(this.context.runId, {
+            type: 'trigger-action',
+            stepIndex: this.context.stepIndex,
+            selectedRecordRef,
+            idempotencyPhase: 'executing',
+          }),
+      },
+    );
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',

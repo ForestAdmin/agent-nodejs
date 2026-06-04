@@ -7,17 +7,12 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import { InvalidAIResponseError, InvalidPreRecordedArgsError, NoRecordsError } from '../errors';
-import OperationStepExecutor from './operation-step-executor';
+import BaseStepExecutor from './base-step-executor';
+import loadCollectionSchema from './load-collection-schema';
 
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
-> extends OperationStepExecutor<TStep> {
-  protected override async operationCollectionId(record: RecordRef): Promise<string> {
-    const { collectionId } = await this.getCollectionSchema(record.collectionName);
-
-    return collectionId;
-  }
-
+> extends BaseStepExecutor<TStep> {
   protected buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
@@ -69,17 +64,13 @@ export default abstract class RecordStepExecutor<
     return [this.context.baseRecordRef, ...relatedRecords];
   }
 
-  protected async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    const cached = this.context.schemaCache.get(collectionName);
-    if (cached) return cached;
-
-    const schema = await this.context.workflowPort.getCollectionSchema(
-      collectionName,
+  protected getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
+    return loadCollectionSchema(
+      this.context.schemaCache,
+      this.context.workflowPort,
       this.context.runId,
+      collectionName,
     );
-    this.context.schemaCache.set(collectionName, schema);
-
-    return schema;
   }
 
   protected findFieldByTechnicalName(

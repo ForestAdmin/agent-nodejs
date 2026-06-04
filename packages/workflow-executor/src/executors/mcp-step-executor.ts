@@ -13,7 +13,7 @@ import {
   NoMcpToolsError,
   StepStateError,
 } from '../errors';
-import OperationStepExecutor, { type OperationDescriptor } from './operation-step-executor';
+import BaseStepExecutor from './base-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const MCP_TASK_SYSTEM_PROMPT = `You are an AI agent selecting and executing a tool to fulfill a user request.
@@ -23,13 +23,7 @@ Important rules:
 - Select only the tool directly relevant to the request.
 - Final answer is definitive, you won't receive any other input from the user.`;
 
-export default class McpStepExecutor extends OperationStepExecutor<McpStepDefinition> {
-  protected readonly operation: OperationDescriptor = {
-    action: 'action',
-    type: 'write',
-    label: this.context.stepDefinition.mcpServerId,
-  };
-
+export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition> {
   private readonly remoteTools: readonly RemoteTool[];
 
   private readonly mcpServerName?: string;
@@ -121,20 +115,31 @@ export default class McpStepExecutor extends OperationStepExecutor<McpStepDefini
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
-    const toolResult = await this.logOperation(this.context.baseRecordRef, async () => {
-      await this.context.runStore.saveStepExecution(this.context.runId, {
-        ...existingExecution,
-        type: 'mcp',
-        stepIndex: this.context.stepIndex,
-        idempotencyPhase: 'executing',
-      });
-
-      try {
-        return await tool.base.invoke(target.input);
-      } catch (cause) {
-        throw new McpToolInvocationError(target.name, cause);
-      }
-    });
+    const toolResult = await this.agent.logged(
+      {
+        action: 'action',
+        type: 'write',
+        label: this.context.stepDefinition.mcpServerId,
+        collectionId: this.context.collectionId,
+        recordId: this.context.baseRecordRef.recordId,
+      },
+      async () => {
+        try {
+          return await tool.base.invoke(target.input);
+        } catch (cause) {
+          throw new McpToolInvocationError(target.name, cause);
+        }
+      },
+      {
+        beforeCall: () =>
+          this.context.runStore.saveStepExecution(this.context.runId, {
+            ...existingExecution,
+            type: 'mcp',
+            stepIndex: this.context.stepIndex,
+            idempotencyPhase: 'executing',
+          }),
+      },
+    );
 
     // 1. Persist raw result immediately — safe state before any further network calls
     const baseExecutionResult = { success: true as const, toolResult };
