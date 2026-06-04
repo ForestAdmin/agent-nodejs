@@ -40,14 +40,16 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const selectedDisplayNames =
-      preRecordedArgs?.fieldDisplayNames ?? (await this.selectFields(schema, step.prompt));
-    const resolvedFieldNames = selectedDisplayNames
+    // Either pre-recorded technical field names (from the orchestrator) or the displayNames the
+    // AI returned — findField resolves both, and the displayName is taken from the schema below.
+    const selectedNames =
+      preRecordedArgs?.fieldNames ?? (await this.selectFields(schema, step.prompt));
+    const resolvedFieldNames = selectedNames
       .map(name => this.findField(schema, name)?.fieldName)
       .filter((name): name is string => name !== undefined);
 
     if (resolvedFieldNames.length === 0) {
-      throw new NoResolvedFieldsError(selectedDisplayNames);
+      throw new NoResolvedFieldsError(selectedNames);
     }
 
     const recordData = await this.agentPort.getRecord(
@@ -58,7 +60,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       },
       this.context.user,
     );
-    const fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
+    const fieldResults = this.formatFieldResults(recordData.values, schema, selectedNames);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',
@@ -124,9 +126,9 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
   private formatFieldResults(
     values: Record<string, unknown>,
     schema: CollectionSchema,
-    fieldDisplayNames: string[],
+    selectedNames: string[],
   ): FieldReadResult[] {
-    return fieldDisplayNames.map(name => {
+    return selectedNames.map(name => {
       const field = this.findField(schema, name);
 
       if (!field) return { error: `Field not found: ${name}`, name, displayName: name };

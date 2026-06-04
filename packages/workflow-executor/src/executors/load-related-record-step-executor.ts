@@ -124,8 +124,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const args = preRecordedArgs?.relationDisplayName
-      ? { relationName: preRecordedArgs.relationDisplayName }
+    const args = preRecordedArgs?.relationName
+      ? { relationName: preRecordedArgs.relationName }
       : await this.selectRelation(schema, step.prompt);
     const target = this.buildTarget(schema, args.relationName, selectedRecordRef);
 

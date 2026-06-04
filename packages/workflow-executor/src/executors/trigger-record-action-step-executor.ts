@@ -1,7 +1,7 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
-import type { CollectionSchema, RecordRef } from '../types/validated/collection';
+import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -108,11 +108,17 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const args = preRecordedArgs?.actionDisplayName
-      ? { actionName: preRecordedArgs.actionDisplayName }
+    // args.actionName is a technical name (pre-recorded) or a displayName (AI) — resolveAction
+    // resolves both. Take the persisted displayName from the schema, never from the inbound ref.
+    const args = preRecordedArgs?.actionName
+      ? { actionName: preRecordedArgs.actionName }
       : await this.selectAction(schema, step.prompt);
-    const name = this.resolveActionName(schema, args.actionName);
-    const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
+    const action = this.resolveAction(schema, args.actionName);
+    const target: ActionTarget = {
+      selectedRecordRef,
+      displayName: action.displayName,
+      name: action.name,
+    };
 
     // Branch B -- fully automated: executor runs the action itself, so it cannot
     // handle forms (no UI to fill them). Reject form-bearing actions here. When the
@@ -121,7 +127,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       const { hasForm } = await this.agentPort.getActionFormInfo(
         {
           collection: selectedRecordRef.collectionName,
-          action: name,
+          action: action.name,
           id: selectedRecordRef.recordId,
         },
         this.context.user,
@@ -235,15 +241,14 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     });
   }
 
-  private resolveActionName(schema: CollectionSchema, displayName: string): string {
+  private resolveAction(schema: CollectionSchema, name: string): ActionSchema {
     const action =
-      schema.actions.find(a => a.displayName === displayName) ??
-      schema.actions.find(a => a.name === displayName);
+      schema.actions.find(a => a.displayName === name) ?? schema.actions.find(a => a.name === name);
 
     if (!action) {
-      throw new ActionNotFoundError(displayName, schema.collectionName);
+      throw new ActionNotFoundError(name, schema.collectionName);
     }
 
-    return action.name;
+    return action;
   }
 }

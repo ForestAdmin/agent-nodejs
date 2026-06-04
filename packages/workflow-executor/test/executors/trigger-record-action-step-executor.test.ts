@@ -1055,7 +1055,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { actionDisplayName: 'Send Welcome Email' },
+          preRecordedArgs: { actionName: 'send-welcome-email' },
         }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
@@ -1068,6 +1068,14 @@ describe('TriggerRecordActionStepExecutor', () => {
         expect.objectContaining({ action: 'send-welcome-email' }),
         context.user,
       );
+      // Pre-recorded reference is the technical name; the persisted displayName is resolved
+      // from the schema, not received on the wire.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+        }),
+      );
     });
 
     it('still goes through awaiting-input when executionType is not FullyAutomated', async () => {
@@ -1077,7 +1085,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          preRecordedArgs: { actionDisplayName: 'Send Welcome Email' },
+          preRecordedArgs: { actionName: 'send-welcome-email' },
         }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
@@ -1086,6 +1094,13 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      // displayName is resolved from the schema even though only the technical name was sent.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+        }),
+      );
     });
 
     it('falls back to AI when no preRecordedArgs', async () => {

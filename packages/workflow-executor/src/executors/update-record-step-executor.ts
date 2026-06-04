@@ -208,27 +208,29 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
 
-    if (preRecordedArgs?.fieldDisplayName !== undefined && preRecordedArgs?.value === undefined) {
+    if (preRecordedArgs?.fieldName !== undefined && preRecordedArgs?.value === undefined) {
       throw new InvalidPreRecordedArgsError(
-        'fieldDisplayName and value must both be provided or both omitted',
+        'fieldName and value must both be provided or both omitted',
       );
     }
 
-    if (preRecordedArgs?.value !== undefined && preRecordedArgs?.fieldDisplayName === undefined) {
+    if (preRecordedArgs?.value !== undefined && preRecordedArgs?.fieldName === undefined) {
       throw new InvalidPreRecordedArgsError(
-        'fieldDisplayName and value must both be provided or both omitted',
+        'fieldName and value must both be provided or both omitted',
       );
     }
 
+    // args.fieldName is a technical name (pre-recorded) or a displayName (AI) — findField resolves
+    // both. Take the persisted displayName from the schema, never from the inbound reference.
     const args =
-      preRecordedArgs?.fieldDisplayName !== undefined
-        ? { fieldName: preRecordedArgs.fieldDisplayName, value: preRecordedArgs.value }
+      preRecordedArgs?.fieldName !== undefined
+        ? { fieldName: preRecordedArgs.fieldName, value: preRecordedArgs.value }
         : await this.selectFieldAndValue(schema, step.prompt);
-    const name = this.resolveFieldName(schema, args.fieldName);
+    const field = this.resolveField(schema, args.fieldName);
     const target: UpdateTarget = {
       selectedRecordRef,
-      displayName: args.fieldName,
-      name,
+      displayName: field.displayName,
+      name: field.fieldName,
       value: args.value,
     };
 
@@ -348,13 +350,13 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     });
   }
 
-  private resolveFieldName(schema: CollectionSchema, displayName: string): string {
-    const field = this.findField(schema, displayName);
+  private resolveField(schema: CollectionSchema, name: string): FieldSchema {
+    const field = this.findField(schema, name);
 
     if (!field) {
-      throw new FieldNotFoundError(displayName, schema.collectionName);
+      throw new FieldNotFoundError(name, schema.collectionName);
     }
 
-    return field.fieldName;
+    return field;
   }
 }

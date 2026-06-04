@@ -1160,7 +1160,7 @@ describe('UpdateRecordStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { fieldDisplayName: 'Status', value: 'active' },
+          preRecordedArgs: { fieldName: 'status', value: 'active' },
         }),
       });
       const executor = new UpdateRecordStepExecutor(context);
@@ -1173,6 +1173,14 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({ values: { status: 'active' } }),
         context.user,
       );
+      // Pre-recorded reference is the technical name 'status'; the persisted displayName 'Status'
+      // is resolved from the schema, not received on the wire.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+        }),
+      );
     });
 
     it('still goes through awaiting-input when executionType is not FullyAutomated', async () => {
@@ -1182,7 +1190,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          preRecordedArgs: { fieldDisplayName: 'Status', value: 'active' },
+          preRecordedArgs: { fieldName: 'status', value: 'active' },
         }),
       });
       const executor = new UpdateRecordStepExecutor(context);
@@ -1191,9 +1199,16 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      // displayName 'Status' is resolved from the schema even though only the technical name was sent.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        }),
+      );
     });
 
-    it('falls back to AI when preRecordedArgs has no fieldDisplayName', async () => {
+    it('falls back to AI when preRecordedArgs has no fieldName', async () => {
       const mockModel = makeMockModel({
         input: { fieldName: 'Status', value: 'active', reasoning: 'r' },
       });
@@ -1211,11 +1226,11 @@ describe('UpdateRecordStepExecutor', () => {
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
     });
 
-    it('returns error when fieldDisplayName is provided without value', async () => {
+    it('returns error when fieldName is provided without value', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { fieldDisplayName: 'Status' },
+          preRecordedArgs: { fieldName: 'status' },
         }),
       });
       const executor = new UpdateRecordStepExecutor(context);
@@ -1225,7 +1240,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('returns error when value is provided without fieldDisplayName', async () => {
+    it('returns error when value is provided without fieldName', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
@@ -1251,7 +1266,7 @@ describe('UpdateRecordStepExecutor', () => {
         workflowPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { fieldDisplayName: 'Age', value: 42 },
+          preRecordedArgs: { fieldName: 'age', value: 42 },
         }),
       });
       const executor = new UpdateRecordStepExecutor(context);

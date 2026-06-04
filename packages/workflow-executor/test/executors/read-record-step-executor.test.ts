@@ -895,7 +895,7 @@ describe('ReadRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          preRecordedArgs: { fieldDisplayNames: ['Email'] },
+          preRecordedArgs: { fieldNames: ['email'] },
         }),
       });
       const executor = new ReadRecordStepExecutor(context);
@@ -904,6 +904,8 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      // Pre-recorded reference is the technical name 'email'; the persisted displayName 'Email'
+      // is resolved from the schema, not received on the wire.
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -956,7 +958,7 @@ describe('ReadRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          preRecordedArgs: { selectedRecordStepIndex: 0, fieldDisplayNames: ['Email'] },
+          preRecordedArgs: { selectedRecordStepIndex: 0, fieldNames: ['email'] },
         }),
       });
       const executor = new ReadRecordStepExecutor(context);
@@ -985,7 +987,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         stepDefinition: makeStep({
-          preRecordedArgs: { fieldDisplayNames: ['NonExistentField'] },
+          preRecordedArgs: { fieldNames: ['NonExistentField'] },
         }),
       });
       const executor = new ReadRecordStepExecutor(context);
