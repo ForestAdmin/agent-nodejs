@@ -143,7 +143,7 @@ function makeContext(
   };
 }
 
-function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: number[]): Step {
+function makeLoadRelatedPreviousStep(stepIndex: number, originalStepIndex?: number): Step {
   return {
     stepDefinition: {
       type: StepType.LoadRelatedRecord,
@@ -156,7 +156,7 @@ function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: numb
       stepIndex,
       status: 'success',
     },
-    lineageStepIndexes,
+    ...(originalStepIndex !== undefined && { originalStepIndex }),
   };
 }
 
@@ -431,7 +431,7 @@ describe('ReadRecordStepExecutor', () => {
         model,
         runStore,
         workflowPort,
-        previousSteps: [makeLoadRelatedPreviousStep(2, [2])],
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
       });
       const executor = new ReadRecordStepExecutor(context);
 
@@ -531,7 +531,7 @@ describe('ReadRecordStepExecutor', () => {
         runStore,
         workflowPort,
         agentPort,
-        previousSteps: [makeLoadRelatedPreviousStep(2, [2])],
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
       });
       const executor = new ReadRecordStepExecutor(context);
 
@@ -612,7 +612,7 @@ describe('ReadRecordStepExecutor', () => {
           model,
           runStore,
           workflowPort,
-          previousSteps: [makeLoadRelatedPreviousStep(5, [5])],
+          previousSteps: [makeLoadRelatedPreviousStep(5)],
         }),
       );
 
@@ -673,7 +673,7 @@ describe('ReadRecordStepExecutor', () => {
         model,
         runStore,
         workflowPort,
-        previousSteps: [makeLoadRelatedPreviousStep(1, [1])],
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
       });
       const executor = new ReadRecordStepExecutor(context);
 
@@ -976,7 +976,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         runStore,
-        previousSteps: [makeLoadRelatedPreviousStep(1, [1])],
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
         stepDefinition: makeStep({
           preRecordedArgs: { selectedRecordStepIndex: 1 },
         }),
@@ -1055,10 +1055,10 @@ describe('ReadRecordStepExecutor', () => {
   });
 
   describe('record pool after revision', () => {
-    // After a revision, records persisted in the RunStore by now-dead steps must leave the
-    // pool, while records produced by steps whose live representative is a CLONE (new
-    // stepIndex) must be resolved through the clone's lineageStepIndexes — the RunStore keys
-    // executions by the ORIGINAL index.
+    // After a revision, dead-branch records must leave the pool. A live clone (new stepIndex,
+    // never run by the executor) inherits its record from the copied step (originalStepIndex);
+    // a re-executed step uses its OWN entry and never resurfaces the superseded original's
+    // record — own-index-first resolution.
     function makeLoadRelatedExecution(stepIndex: number, recordId: number) {
       return {
         type: 'load-related-record',
@@ -1111,9 +1111,9 @@ describe('ReadRecordStepExecutor', () => {
       );
     });
 
-    it('resolves a live clone record through its lineage to the original RunStore entry', async () => {
-      // Given: the live previous step is a clone at idx 7 whose execution (and record) was
-      // stored under the original idx 3.
+    it("resolves a clone's record from the copied step's original RunStore entry", async () => {
+      // Given: the live previous step is a clone at idx 7 (never run by the executor) that
+      // copies idx 3, where its execution and record are stored.
       const invoke = jest
         .fn()
         .mockResolvedValueOnce({
@@ -1141,7 +1141,7 @@ describe('ReadRecordStepExecutor', () => {
           customers: makeCollectionSchema(),
           orders: ordersSchema(),
         }),
-        previousSteps: [makeLoadRelatedPreviousStep(7, [7, 3])],
+        previousSteps: [makeLoadRelatedPreviousStep(7, 3)],
       });
       const executor = new ReadRecordStepExecutor(context);
 
@@ -1156,67 +1156,47 @@ describe('ReadRecordStepExecutor', () => {
       );
     });
 
-    it('offers only the freshest lineage generation after a double revision', async () => {
-      // Given: the same logical step executed twice (idx 3 then idx 7, stale → fresh); its
-      // live representative is a clone at idx 10 with lineage [10, 7, 3]. Only the freshest
-      // execution's record may enter the pool.
-      const invoke = jest
-        .fn()
-        .mockResolvedValueOnce({
-          tool_calls: [
-            { name: 'select-record', args: { recordIdentifier: 'Step 7 - Orders #77' }, id: 'c1' },
-          ],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [
-            { name: 'read-selected-record-fields', args: { fieldNames: ['total'] }, id: 'c2' },
-          ],
-        });
-      const bindTools = jest.fn().mockReturnValue({ invoke });
-      const model = { bindTools } as unknown as ExecutionContext['model'];
-
+    it('does not resurface the copied original record when the re-executed step has no record (Alban repro)', async () => {
+      // Given: a re-executed load step at idx 10 that copies idx 3 (originalStepIndex 3, where a
+      // record was loaded before the revision) but produced no record of its own (skipped /
+      // handled manually — its own entry has no executionResult.record).
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore({
         getStepExecutions: jest
           .fn()
-          .mockResolvedValue([makeLoadRelatedExecution(3, 99), makeLoadRelatedExecution(7, 77)]),
+          .mockResolvedValue([
+            makeLoadRelatedExecution(3, 99),
+            { type: 'load-related-record', stepIndex: 10, executionResult: { skipped: true } },
+          ]),
       });
-      const agentPort = makeMockAgentPort({ orders: { values: { total: 150 } } });
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
-        model,
+        model: mockModel.model,
         runStore,
         agentPort,
-        workflowPort: makeMockWorkflowPort({
-          customers: makeCollectionSchema(),
-          orders: ordersSchema(),
-        }),
-        previousSteps: [makeLoadRelatedPreviousStep(10, [10, 7, 3])],
+        previousSteps: [makeLoadRelatedPreviousStep(10, 3)],
       });
       const executor = new ReadRecordStepExecutor(context);
 
       // When
       const result = await executor.execute();
 
-      // Then: the select-record tool offered exactly base + freshest — the stale idx-3 record
-      // is absent from the enum.
-      const selectTool = bindTools.mock.calls[0][0][0] as {
-        name: string;
-        schema: { shape: { recordIdentifier: { options: string[] } } };
-      };
-      expect(selectTool.name).toBe('select-record');
-      expect(selectTool.schema.shape.recordIdentifier.options).toEqual([
-        'Step 0 - Customers #42',
-        'Step 7 - Orders #77',
-      ]);
+      // Then: own-index-first resolves idx 10 (record-less), so the dead idx-3 record never
+      // enters the pool — it collapses to the base record, no select-record round.
       expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+      expect((mockModel.bindTools.mock.calls[0][0][0] as { name: string }).name).toBe(
+        'read-selected-record-fields',
+      );
       expect(agentPort.getRecord).toHaveBeenCalledWith(
-        expect.objectContaining({ collection: 'orders', id: [77] }),
+        expect.objectContaining({ collection: 'customers', id: [42] }),
         expect.objectContaining({ id: 1 }),
       );
     });
 
     it('offers both records when the same step ran twice on the live path (LinkTo loop)', async () => {
       // Given: a loop executed the same load step at idx 0 and idx 2 — two distinct live
-      // instances, two distinct records. Lineage is per instance; neither shadows the other.
+      // instances, two distinct records, each resolved from its own index; neither shadows the other.
       const invoke = jest
         .fn()
         .mockResolvedValueOnce({
@@ -1246,7 +1226,7 @@ describe('ReadRecordStepExecutor', () => {
           customers: makeCollectionSchema(),
           orders: ordersSchema(),
         }),
-        previousSteps: [makeLoadRelatedPreviousStep(0, [0]), makeLoadRelatedPreviousStep(2, [2])],
+        previousSteps: [makeLoadRelatedPreviousStep(0), makeLoadRelatedPreviousStep(2)],
         baseRecordRef: makeRecordRef({ stepIndex: 4 }),
       });
       const executor = new ReadRecordStepExecutor(context);

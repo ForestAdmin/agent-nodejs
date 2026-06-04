@@ -145,7 +145,7 @@ function makeContext(
   };
 }
 
-function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: number[]): Step {
+function makeLoadRelatedPreviousStep(stepIndex: number, originalStepIndex?: number): Step {
   return {
     stepDefinition: {
       type: StepType.LoadRelatedRecord,
@@ -158,7 +158,7 @@ function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: numb
       stepIndex,
       status: 'success',
     },
-    lineageStepIndexes,
+    ...(originalStepIndex !== undefined && { originalStepIndex }),
   };
 }
 
@@ -794,7 +794,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         runStore,
         workflowPort,
         agentPort,
-        previousSteps: [makeLoadRelatedPreviousStep(2, [2])],
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
       });
       const executor = new TriggerRecordActionStepExecutor(context);
 

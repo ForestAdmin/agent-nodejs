@@ -55,7 +55,7 @@ export default abstract class RecordStepExecutor<
     const relatedRecords = this.context.previousSteps.flatMap(step => {
       if (step.stepDefinition.type !== StepType.LoadRelatedRecord) return [];
 
-      const execution = BaseStepExecutor.resolveLineageExecution(step, stepExecutions);
+      const execution = BaseStepExecutor.resolveStepExecution(step, stepExecutions);
 
       if (
         execution?.type === 'load-related-record' &&

@@ -597,8 +597,8 @@ describe('toAvailableStepExecution', () => {
       expect(result?.previousSteps).toEqual([]);
     });
 
-    describe('lineageStepIndexes', () => {
-      it('is the own index alone for steps that were never revised', () => {
+    describe('originalStepIndex', () => {
+      it('is absent for a step the executor ran itself (no revision)', () => {
         const run = makeRun({
           workflowHistory: [
             makeStepHistory({ stepName: 's0', stepIndex: 0, done: true }),
@@ -608,78 +608,21 @@ describe('toAvailableStepExecution', () => {
 
         const result = toAvailableStepExecution(run);
 
-        expect(result?.previousSteps).toEqual([
-          expect.objectContaining({ lineageStepIndexes: [0] }),
-        ]);
+        expect(result?.previousSteps).toHaveLength(1);
+        expect(result?.previousSteps[0]).not.toHaveProperty('originalStepIndex');
       });
 
-      it('walks a clone back to its original through originalStepIndex', () => {
+      it('is set on a clone, pointing at the step it copies', () => {
         const result = toAvailableStepExecution(makeRevisedRun());
 
-        expect(result?.previousSteps).toEqual([
-          expect.objectContaining({
-            stepOutcome: expect.objectContaining({ stepIndex: 0 }),
-            lineageStepIndexes: [0],
-          }),
+        // previousSteps = [trunk (ran, no original), card-b clone (copy of idx 1)]
+        expect(result?.previousSteps[0]).not.toHaveProperty('originalStepIndex');
+        expect(result?.previousSteps[1]).toEqual(
           expect.objectContaining({
             stepOutcome: expect.objectContaining({ stepIndex: 4 }),
-            lineageStepIndexes: [4, 1],
+            originalStepIndex: 1,
           }),
-        ]);
-      });
-
-      it('includes every generation latest-first after a double revision', () => {
-        // idx 0: original (dead), idx 1: re-execution (dead, root 0), idx 2: clone of the
-        // re-execution (live, root 0 — originalStepIndex chains to the FIRST original).
-        // The intermediate generation at idx 1 is only discoverable via the dead entry.
-        const run = makeRun({
-          workflowHistory: [
-            makeStepHistory({ stepName: 'b1', stepIndex: 0, done: true, cancelled: true }),
-            makeClonedStepHistory({ stepName: 'b1', stepIndex: 1, done: true, cancelled: true }, 0),
-            makeClonedStepHistory({ stepName: 'b1', stepIndex: 2, done: true }, 0),
-            makeStepHistory({ stepName: 'next', stepIndex: 3, done: false }),
-          ],
-        });
-
-        const result = toAvailableStepExecution(run);
-
-        expect(result?.previousSteps).toEqual([
-          expect.objectContaining({
-            stepOutcome: expect.objectContaining({ stepIndex: 2 }),
-            lineageStepIndexes: [2, 1, 0],
-          }),
-        ]);
-      });
-
-      it('keeps separate lineages for two live instances of the same stepName (LinkTo loop)', () => {
-        // Cycles are a product feature (designer LinkTo tool): the same definition node can
-        // legitimately execute twice on the live path. Lineage is instance identity, not
-        // definition identity — the two iterations must not share candidates.
-        const run = makeRun({
-          workflowHistory: [
-            makeStepHistory({ stepName: 'load-x', stepIndex: 0, done: true }),
-            makeStepHistory({ stepName: 'cond', stepIndex: 1, done: true }),
-            makeStepHistory({ stepName: 'load-x', stepIndex: 2, done: true }),
-            makeStepHistory({ stepName: 'next', stepIndex: 3, done: false }),
-          ],
-        });
-
-        const result = toAvailableStepExecution(run);
-
-        expect(result?.previousSteps).toEqual([
-          expect.objectContaining({
-            stepOutcome: expect.objectContaining({ stepId: 'load-x', stepIndex: 0 }),
-            lineageStepIndexes: [0],
-          }),
-          expect.objectContaining({
-            stepOutcome: expect.objectContaining({ stepId: 'cond', stepIndex: 1 }),
-            lineageStepIndexes: [1],
-          }),
-          expect.objectContaining({
-            stepOutcome: expect.objectContaining({ stepId: 'load-x', stepIndex: 2 }),
-            lineageStepIndexes: [2],
-          }),
-        ]);
+        );
       });
     });
   });

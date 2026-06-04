@@ -197,7 +197,7 @@ function makePendingExecution(
   };
 }
 
-function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: number[]): Step {
+function makeLoadRelatedPreviousStep(stepIndex: number, originalStepIndex?: number): Step {
   return {
     stepDefinition: {
       type: StepType.LoadRelatedRecord,
@@ -210,7 +210,7 @@ function makeLoadRelatedPreviousStep(stepIndex: number, lineageStepIndexes: numb
       stepIndex,
       status: 'success',
     },
-    lineageStepIndexes,
+    ...(originalStepIndex !== undefined && { originalStepIndex }),
   };
 }
 
@@ -2422,7 +2422,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         workflowPort,
         agentPort,
-        previousSteps: [makeLoadRelatedPreviousStep(2, [2])],
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -2739,7 +2739,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         model,
         runStore,
         workflowPort,
-        previousSteps: [makeLoadRelatedPreviousStep(2, [2]), makeLoadRelatedPreviousStep(3, [3])],
+        previousSteps: [makeLoadRelatedPreviousStep(2), makeLoadRelatedPreviousStep(3)],
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 

@@ -25,10 +25,11 @@ export const StepSchema = z
   .object({
     stepDefinition: StepDefinitionSchema,
     stepOutcome: StepOutcomeSchema,
-    // RunStore execution lookup candidates, own stepIndex first then earlier same-step
-    // generations descending. Revision clones run under a new stepIndex while their execution
-    // data stays keyed under the original one. Absent (legacy producers) means "own index only".
-    lineageStepIndexes: z.array(z.number().int().nonnegative()).nonempty().optional(),
+    // Set on a revision clone (a still-valid step the orchestrator re-injects); points at the
+    // step it copies. The executor never ran the clone, so its record lives at this index —
+    // mirrors the frontend's carryForwardExecutorDataForCopiedSteps. Absent for steps the
+    // executor ran itself.
+    originalStepIndex: z.number().int().nonnegative().optional(),
   })
   .strict();
 export type Step = z.infer<typeof StepSchema>;

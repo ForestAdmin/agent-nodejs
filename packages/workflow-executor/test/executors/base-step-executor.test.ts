@@ -213,19 +213,19 @@ describe('BaseStepExecutor', () => {
   });
 
   describe('previous-steps summary after revision', () => {
-    // Revision clones keep their stepName but get a NEW stepIndex, while the RunStore keys
-    // executions by the ORIGINAL index. The summary must resolve a step's execution through
-    // its lineageStepIndexes (own index first, then earlier generations) instead of an exact
-    // stepIndex match — otherwise clone summaries lose all execution detail.
+    // A revision clone never ran under its own (new) stepIndex — its execution lives at the
+    // copied step's index (originalStepIndex). The summary resolves own-index first, then the
+    // copied step; own-first is what stops a re-executed step from resurfacing the superseded
+    // original's execution detail.
 
-    function makeLineageEntry(
+    function makeCloneEntry(
       overrides: { stepId?: string; stepIndex?: number; prompt?: string },
-      lineageStepIndexes: number[],
+      originalStepIndex: number,
     ): Step {
-      return { ...makeHistoryEntry(overrides), lineageStepIndexes };
+      return { ...makeHistoryEntry(overrides), originalStepIndex };
     }
 
-    it('resolves a clone summary through its lineage to the original execution', async () => {
+    it("resolves a clone summary from the copied step's execution", async () => {
       const runStore = makeMockRunStore([
         {
           type: 'condition',
@@ -236,9 +236,8 @@ describe('BaseStepExecutor', () => {
       ]);
       const executor = new TestableExecutor(
         makeContext({
-          previousSteps: [
-            makeLineageEntry({ stepId: 'cond-1', stepIndex: 7, prompt: 'Approve?' }, [7, 3]),
-          ],
+          // clone runs under idx 7 but copies idx 3; the executor never ran idx 7
+          previousSteps: [makeCloneEntry({ stepId: 'cond-1', stepIndex: 7 }, 3)],
           runStore,
         }),
       );
@@ -250,26 +249,25 @@ describe('BaseStepExecutor', () => {
       expect(content).toContain('REASONING-AT-IDX-3');
     });
 
-    it('prefers the freshest lineage generation when several executions exist', async () => {
+    it("uses the step's own execution, never the copied original's, when both exist", async () => {
       const runStore = makeMockRunStore([
         {
           type: 'condition',
           stepIndex: 3,
-          executionParams: { answer: 'No', reasoning: 'STALE-GENERATION' },
+          executionParams: { answer: 'No', reasoning: 'SUPERSEDED-ORIGINAL' },
           executionResult: { answer: 'No' },
         },
         {
           type: 'condition',
           stepIndex: 7,
-          executionParams: { answer: 'Yes', reasoning: 'FRESH-GENERATION' },
+          executionParams: { answer: 'Yes', reasoning: 'OWN-FRESH' },
           executionResult: { answer: 'Yes' },
         },
       ]);
       const executor = new TestableExecutor(
         makeContext({
-          previousSteps: [
-            makeLineageEntry({ stepId: 'cond-1', stepIndex: 10, prompt: 'Approve?' }, [10, 7, 3]),
-          ],
+          // a re-executed step carries originalStepIndex but has its OWN execution at idx 7
+          previousSteps: [makeCloneEntry({ stepId: 'cond-1', stepIndex: 7 }, 3)],
           runStore,
         }),
       );
@@ -277,17 +275,15 @@ describe('BaseStepExecutor', () => {
       const messages = await executor.buildPreviousStepsMessages();
       const content = messages[0].content as string;
 
-      expect(content).toContain('FRESH-GENERATION');
-      expect(content).not.toContain('STALE-GENERATION');
+      expect(content).toContain('OWN-FRESH');
+      expect(content).not.toContain('SUPERSEDED-ORIGINAL');
     });
 
-    it('falls back to outcome history details when no lineage generation has an execution', async () => {
+    it('falls back to outcome History when neither own nor copied step has an execution', async () => {
       const runStore = makeMockRunStore([]);
       const executor = new TestableExecutor(
         makeContext({
-          previousSteps: [
-            makeLineageEntry({ stepId: 'cond-1', stepIndex: 7, prompt: 'Approve?' }, [7, 3]),
-          ],
+          previousSteps: [makeCloneEntry({ stepId: 'cond-1', stepIndex: 7 }, 3)],
           runStore,
         }),
       );
@@ -316,9 +312,7 @@ describe('BaseStepExecutor', () => {
       ]);
       const executor = new TestableExecutor(
         makeContext({
-          previousSteps: [
-            makeLineageEntry({ stepId: 'cond-1', stepIndex: 0, prompt: 'Approve?' }, [0]),
-          ],
+          previousSteps: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0 })],
           runStore,
         }),
       );

@@ -285,7 +285,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const summary = this.context.previousSteps
       .map(step => {
-        const execution = BaseStepExecutor.resolveLineageExecution(step, allStepExecutions);
+        const execution = BaseStepExecutor.resolveStepExecution(step, allStepExecutions);
 
         return StepSummaryBuilder.build(step.stepDefinition, step.stepOutcome, execution);
       })
@@ -294,17 +294,19 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return [new SystemMessage(summary)];
   }
 
-  // Lineage candidates are ordered freshest-first, so the first hit is the most recent
-  // execution of that logical step (see Step.lineageStepIndexes for the keying rationale).
-  protected static resolveLineageExecution(
+  // A step the executor ran has its execution at its own stepIndex. A revision clone never ran,
+  // so it inherits from the step it copied (originalStepIndex) — mirroring the frontend's
+  // carryForwardExecutorDataForCopiedSteps. Own-index-first is what stops a re-executed step
+  // (which has its own entry) from resurfacing the superseded original's record.
+  protected static resolveStepExecution(
     step: Step,
     executions: StepExecutionData[],
   ): StepExecutionData | undefined {
-    const candidates = step.lineageStepIndexes ?? [step.stepOutcome.stepIndex];
+    const own = executions.find(e => e.stepIndex === step.stepOutcome.stepIndex);
+    if (own) return own;
 
-    for (const stepIndex of candidates) {
-      const execution = executions.find(e => e.stepIndex === stepIndex);
-      if (execution) return execution;
+    if (step.originalStepIndex !== undefined) {
+      return executions.find(e => e.stepIndex === step.originalStepIndex);
     }
 
     return undefined;
