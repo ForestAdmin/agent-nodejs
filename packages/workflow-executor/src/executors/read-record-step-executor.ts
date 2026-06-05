@@ -42,7 +42,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const fieldNames =
       preRecordedArgs?.fieldNames ?? (await this.selectFields(schema, step.prompt));
-    const selected = fieldNames.map(requested => ({
+    const selectedFields = fieldNames.map(requested => ({
       requested,
       field: this.findFieldByTechnicalName(schema, requested),
     }));
