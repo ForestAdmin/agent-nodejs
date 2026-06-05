@@ -4,7 +4,12 @@ import type {
   LoadRelatedRecordStepExecutionData,
   RelationRef,
 } from '../types/step-execution-data';
-import type { CollectionSchema, RecordData, RecordRef } from '../types/validated/collection';
+import type {
+  CollectionSchema,
+  FieldSchema,
+  RecordData,
+  RecordRef,
+} from '../types/validated/collection';
 import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-definition';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -22,10 +27,12 @@ import RecordStepExecutor from './record-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
-Select the relation to follow.
+You are given relations to follow, each shown as "<source record> → <relation> (→ <target collection>)".
+Choose the relation that LEADS TO the collection the user wants to load — decide from each
+relation's target collection, NOT from which source record happens to resemble the request.
 
 Important rules:
-- Be precise: only select the relation directly relevant to the request.
+- Pick the relation whose target collection matches the requested record.
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
@@ -52,6 +59,13 @@ interface RelationTarget extends RelationRef {
   selectedRecordRef: RecordRef;
   relationType?: 'BelongsTo' | 'HasMany' | 'HasOne' | 'BelongsToMany';
   relatedCollectionName: string;
+}
+
+// A relationship reachable from one available record — the unit the AI chooses among.
+interface RelationCandidate {
+  record: RecordRef;
+  schema: CollectionSchema;
+  field: FieldSchema;
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
@@ -105,18 +119,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
-    const { preRecordedArgs } = step;
-    const records = await this.getAvailableRecordRefs();
-    const selectedRecordRef = await this.resolveRecordRef(
-      records,
-      step.prompt,
-      preRecordedArgs?.selectedRecordStepIndex,
-    );
-    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const recordedRelation = preRecordedArgs?.relationName;
-    const relationName =
-      recordedRelation ?? (await this.selectRelation(schema, step.prompt)).relationName;
-    const target = this.buildTarget(schema, relationName, selectedRecordRef);
+    const target = await this.resolveTarget();
 
     // Branch B -- fully automated execution
     if (step.executionType === StepExecutionMode.FullyAutomated) {
@@ -124,7 +127,65 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     // Branch C -- pre-fetch candidates, await user confirmation
-    return this.saveAndAwaitInput(target, schema);
+    const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
+
+    return this.saveAndAwaitInput(target, sourceSchema);
+  }
+
+  // Picks the (record, relation) pair to follow. Unlike a separate record-then-relation choice,
+  // this lets the AI decide by what each relation LEADS TO — so "load the dvd" follows
+  // store→dvds rather than latching onto a previously-loaded dvd whose collection just matches.
+  private async resolveTarget(): Promise<RelationTarget> {
+    const { preRecordedArgs } = this.context.stepDefinition;
+    const records = await this.getAvailableRecordRefs();
+
+    const sourceRecords =
+      preRecordedArgs?.selectedRecordStepIndex !== undefined
+        ? [this.requireRecordAtStepIndex(records, preRecordedArgs.selectedRecordStepIndex)]
+        : records;
+
+    const candidates = await this.buildRelationCandidates(sourceRecords);
+    // Pre-recorded relations are pinned by their stable technical name (PRD-426), matched exactly.
+    const recordedRelation = preRecordedArgs?.relationName;
+    const eligible = recordedRelation
+      ? candidates.filter(c => c.field.fieldName === recordedRelation)
+      : candidates;
+
+    if (eligible.length === 0) {
+      throw new NoRelationshipFieldsError(sourceRecords[0]?.collectionName ?? 'unknown');
+    }
+
+    const chosen =
+      eligible.length === 1 ? eligible[0] : await this.selectRelationToFollow(eligible);
+
+    return this.buildTarget(chosen.schema, chosen.field.fieldName, chosen.record);
+  }
+
+  private requireRecordAtStepIndex(records: RecordRef[], stepIndex: number): RecordRef {
+    const match = records.find(r => r.stepIndex === stepIndex);
+
+    if (!match) {
+      throw new InvalidPreRecordedArgsError(`No record found at step index ${stepIndex}`);
+    }
+
+    return match;
+  }
+
+  private async buildRelationCandidates(records: RecordRef[]): Promise<RelationCandidate[]> {
+    const candidates: RelationCandidate[] = [];
+
+    for (const record of records) {
+      // eslint-disable-next-line no-await-in-loop
+      const schema = await this.getCollectionSchema(record.collectionName);
+
+      for (const field of schema.fields) {
+        if (field.isRelationship && field.relatedCollectionName) {
+          candidates.push({ record, schema, field });
+        }
+      }
+    }
+
+    return candidates;
   }
 
   private buildTarget(
@@ -449,52 +510,53 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.buildOutcomeResult({ status: 'success' });
   }
 
-  private async selectRelation(
-    schema: CollectionSchema,
-    prompt: string | undefined,
-  ): Promise<{ relationName: string }> {
-    const tool = this.buildSelectRelationTool(schema);
+  private relationOptionLabel(candidate: RelationCandidate): string {
+    const { record, schema, field } = candidate;
+
+    return `Step ${record.stepIndex} - ${schema.collectionDisplayName} #${record.recordId} → ${field.displayName} (→ ${field.relatedCollectionName})`;
+  }
+
+  private async selectRelationToFollow(
+    candidates: RelationCandidate[],
+  ): Promise<RelationCandidate> {
+    const labels = candidates.map(c => this.relationOptionLabel(c));
+    const labelTuple = labels as [string, ...string[]];
+
+    const tool = new DynamicStructuredTool({
+      name: 'select-relation-to-follow',
+      description: 'Select the relation to follow to load the requested related record.',
+      schema: z.object({
+        relation: z
+          .enum(labelTuple)
+          .describe('The relation to follow, chosen by the collection it leads to'),
+        reasoning: z.string().describe('Why this relation leads to the requested record'),
+      }),
+      func: undefined,
+    });
+
     const messages = [
       this.buildContextMessage(),
       ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(SELECT_RELATION_SYSTEM_PROMPT),
-      new SystemMessage(
-        `The selected record belongs to the "${schema.collectionDisplayName}" collection.`,
+      new HumanMessage(
+        `**Request**: ${this.context.stepDefinition.prompt ?? 'Load the relevant related record.'}`,
       ),
-      new HumanMessage(`**Request**: ${prompt ?? 'Load the relevant related record.'}`),
     ];
 
-    const { relationName } = await this.invokeWithTool<{ relationName: string; reasoning: string }>(
+    const { relation } = await this.invokeWithTool<{ relation: string; reasoning: string }>(
       messages,
       tool,
     );
 
-    return { relationName: this.resolveAiFieldName(schema, relationName) };
-  }
+    const index = labels.indexOf(relation);
 
-  private buildSelectRelationTool(schema: CollectionSchema): DynamicStructuredTool {
-    const relationFields = schema.fields.filter(f => f.isRelationship);
-
-    if (relationFields.length === 0) {
-      throw new NoRelationshipFieldsError(schema.collectionName);
+    if (index === -1) {
+      throw new InvalidAIResponseError(
+        `AI selected relation "${relation}" which does not match any available option`,
+      );
     }
 
-    const displayNames = relationFields.map(f => f.displayName) as [string, ...string[]];
-    const technicalNames = relationFields
-      .map(f => `${f.displayName} (technical name: ${f.fieldName})`)
-      .join(', ');
-
-    return new DynamicStructuredTool({
-      name: 'select-relation',
-      description: 'Select the relation to follow from the record.',
-      schema: z.object({
-        relationName: z
-          .enum(displayNames)
-          .describe(`The name of the relation to follow. Available: ${technicalNames}`),
-        reasoning: z.string().describe('Why this relation was chosen'),
-      }),
-      func: undefined,
-    });
+    return candidates[index];
   }
 
   /** AI call 1 for HasMany: selects the most relevant fields to compare candidates. */
