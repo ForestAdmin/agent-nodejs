@@ -47,12 +47,12 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       field: this.findFieldByTechnicalName(schema, requested),
     }));
 
-    const resolvedFieldNames = selected
+    const resolvedFieldNames = selectedFields
       .map(s => s.field?.fieldName)
       .filter((name): name is string => name !== undefined);
 
     if (resolvedFieldNames.length === 0) {
-      throw new NoResolvedFieldsError(selected.map(s => s.requested));
+      throw new NoResolvedFieldsError(selectedFields.map(s => s.requested));
     }
 
     const recordData = await this.agentPort.getRecord(
@@ -63,7 +63,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       },
       this.context.user,
     );
-    const fieldResults = this.formatFieldResults(recordData.values, selected);
+    const fieldResults = this.formatFieldResults(recordData.values, selectedFields);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',
