@@ -129,33 +129,4 @@ describe('SchemaCache', () => {
       expect([...cache]).toHaveLength(0);
     });
   });
-
-  describe('getOrLoad', () => {
-    it('returns the cached schema without invoking the loader on a hit', async () => {
-      const cache = new SchemaCache();
-      const schema = makeSchema('customers');
-      cache.set('customers', schema);
-      const load = jest.fn();
-
-      const result = await cache.getOrLoad('customers', load);
-
-      expect(result).toBe(schema);
-      expect(load).not.toHaveBeenCalled();
-    });
-
-    it('loads, caches, and returns the schema on a miss', async () => {
-      const cache = new SchemaCache();
-      const schema = makeSchema('orders');
-      const load = jest.fn().mockResolvedValue(schema);
-
-      const result = await cache.getOrLoad('orders', load);
-
-      expect(result).toBe(schema);
-      expect(load).toHaveBeenCalledTimes(1);
-      // subsequent call hits the cache — loader not invoked again
-      await cache.getOrLoad('orders', load);
-      expect(load).toHaveBeenCalledTimes(1);
-      expect(cache.get('orders')).toBe(schema);
-    });
-  });
 });

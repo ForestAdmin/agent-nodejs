@@ -8,6 +8,7 @@ import type { ReadRecordStepDefinition } from '../../src/types/validated/step-de
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ReadRecordStepDefinition> = {}): ReadRecordStepDefinition {
@@ -108,8 +109,12 @@ function makeMockModel(
 function makeContext(
   overrides: Partial<ExecutionContext<ReadRecordStepDefinition>> = {},
 ): ExecutionContext<ReadRecordStepDefinition> {
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = overrides.schemaCache ?? new SchemaCache();
+
   return {
-    runId: 'run-1',
+    runId,
     stepId: 'read-1',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -117,7 +122,7 @@ function makeContext(
     stepDefinition: makeStep(),
     model: makeMockModel({ fieldNames: ['email'] }).model,
     agentPort: makeMockAgentPort(),
-    workflowPort: makeMockWorkflowPort(),
+    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -130,7 +135,8 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaCache,
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 

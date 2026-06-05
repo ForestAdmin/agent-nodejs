@@ -46,10 +46,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     this.agent = new AgentWithLog({
       agentPort: context.agentPort,
       activityLogPort: context.activityLogPort,
-      workflowPort: context.workflowPort,
-      schemaCache: context.schemaCache,
+      schemaResolver: context.schemaResolver,
       user: context.user,
-      runId: context.runId,
     });
   }
 

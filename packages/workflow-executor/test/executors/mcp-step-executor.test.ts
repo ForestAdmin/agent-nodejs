@@ -9,6 +9,7 @@ import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 import { RunStorePortError, StepStateError } from '../../src/errors';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
@@ -87,8 +88,12 @@ function makeMockModel(toolName: string, toolArgs: Record<string, unknown>) {
 function makeContext(
   overrides: Partial<ExecutionContext<McpStepDefinition>> = {},
 ): ExecutionContext<McpStepDefinition> {
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = overrides.schemaCache ?? new SchemaCache();
+
   return {
-    runId: 'run-1',
+    runId,
     stepId: 'mcp-1',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -101,7 +106,7 @@ function makeContext(
       getRelatedData: jest.fn(),
       executeAction: jest.fn(),
     } as unknown as ExecutionContext['agentPort'],
-    workflowPort: makeMockWorkflowPort(),
+    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -114,7 +119,8 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaCache,
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 

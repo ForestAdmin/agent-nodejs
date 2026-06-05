@@ -9,6 +9,7 @@ import type { TriggerActionStepDefinition } from '../../src/types/validated/step
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
@@ -107,8 +108,12 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'selec
 function makeContext(
   overrides: Partial<ExecutionContext<TriggerActionStepDefinition>> = {},
 ): ExecutionContext<TriggerActionStepDefinition> {
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = overrides.schemaCache ?? new SchemaCache();
+
   return {
-    runId: 'run-1',
+    runId,
     stepId: 'trigger-1',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -119,7 +124,7 @@ function makeContext(
       reasoning: 'User requested welcome email',
     }).model,
     agentPort: makeMockAgentPort(),
-    workflowPort: makeMockWorkflowPort(),
+    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -132,7 +137,8 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaCache,
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 

@@ -23,6 +23,7 @@ import type {
 } from '../types/validated/step-definition';
 
 import { StepStateError, causeMessage, extractErrorMessage } from '../errors';
+import SchemaResolver from '../schema-resolver';
 import ConditionStepExecutor from './condition-step-executor';
 import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
@@ -138,6 +139,7 @@ export default class StepExecutorFactory {
       workflowPort: cfg.workflowPort,
       runStore: cfg.runStore,
       schemaCache: cfg.schemaCache,
+      schemaResolver: new SchemaResolver(cfg.schemaCache, cfg.workflowPort, step.runId),
       logger: cfg.logger,
       incomingPendingData,
       stepTimeoutMs: cfg.stepTimeoutMs,

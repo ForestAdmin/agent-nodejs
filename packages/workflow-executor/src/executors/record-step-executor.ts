@@ -64,9 +64,7 @@ export default abstract class RecordStepExecutor<
   }
 
   protected getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    return this.context.schemaCache.getOrLoad(collectionName, () =>
-      this.context.workflowPort.getCollectionSchema(collectionName, this.context.runId),
-    );
+    return this.context.schemaResolver.resolve(collectionName);
   }
 
   protected findFieldByTechnicalName(

@@ -1,7 +1,6 @@
 import type { AgentWithLogDeps } from '../../src/executors/agent-with-log';
 import type { AgentPort } from '../../src/ports/agent-port';
-import type { WorkflowPort } from '../../src/ports/workflow-port';
-import type SchemaCache from '../../src/schema-cache';
+import type SchemaResolver from '../../src/schema-resolver';
 import type { StepUser } from '../../src/types/execution-context';
 import type { CollectionSchema } from '../../src/types/validated/collection';
 
@@ -55,26 +54,19 @@ function makeDeps(overrides: Partial<AgentWithLogDeps> = {}) {
     getSingleRelatedData: jest.fn().mockResolvedValue(null),
     executeAction: jest.fn().mockResolvedValue({ ok: true }),
   } as unknown as AgentPort;
-  const schemaCache = {
-    get: jest.fn().mockReturnValue(makeSchema()),
-    set: jest.fn(),
-    getOrLoad: jest.fn().mockResolvedValue(makeSchema()),
-  } as unknown as SchemaCache;
-  const workflowPort = {
-    getCollectionSchema: jest.fn().mockResolvedValue(makeSchema()),
-  } as unknown as WorkflowPort;
+  const schemaResolver = {
+    resolve: jest.fn().mockResolvedValue(makeSchema()),
+  } as unknown as SchemaResolver;
 
   const deps = {
     agentPort,
     activityLogPort,
-    workflowPort,
-    schemaCache,
+    schemaResolver,
     user: makeUser(),
-    runId: 'run-1',
     ...overrides,
   };
 
-  return { deps, agentPort, activityLogPort, schemaCache, workflowPort };
+  return { deps, agentPort, activityLogPort, schemaResolver };
 }
 
 describe('AgentWithLog', () => {

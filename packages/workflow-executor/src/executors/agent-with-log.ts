@@ -7,8 +7,7 @@ import type {
   GetSingleRelatedDataQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
-import type { WorkflowPort } from '../ports/workflow-port';
-import type SchemaCache from '../schema-cache';
+import type SchemaResolver from '../schema-resolver';
 import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 
@@ -22,10 +21,8 @@ type WriteOptions = { beforeCall: () => Promise<void> };
 export interface AgentWithLogDeps {
   agentPort: AgentPort;
   activityLogPort: ActivityLogPort;
-  workflowPort: WorkflowPort;
-  schemaCache: SchemaCache;
+  schemaResolver: SchemaResolver;
   user: StepUser;
-  runId: string;
 }
 
 // Wraps AgentPort and emits an activity-log entry around each data-access call
@@ -37,18 +34,14 @@ export interface AgentWithLogDeps {
 export default class AgentWithLog {
   private readonly agentPort: AgentPort;
   private readonly activityLogPort: ActivityLogPort;
-  private readonly workflowPort: WorkflowPort;
-  private readonly schemaCache: SchemaCache;
+  private readonly schemaResolver: SchemaResolver;
   private readonly user: StepUser;
-  private readonly runId: string;
 
   constructor(deps: AgentWithLogDeps) {
     this.agentPort = deps.agentPort;
     this.activityLogPort = deps.activityLogPort;
-    this.workflowPort = deps.workflowPort;
-    this.schemaCache = deps.schemaCache;
+    this.schemaResolver = deps.schemaResolver;
     this.user = deps.user;
-    this.runId = deps.runId;
   }
 
   async getRecord(query: GetRecordQuery): Promise<RecordData> {
@@ -132,9 +125,7 @@ export default class AgentWithLog {
   }
 
   private async resolveCollectionId(collectionName: string): Promise<string> {
-    const schema = await this.schemaCache.getOrLoad(collectionName, () =>
-      this.workflowPort.getCollectionSchema(collectionName, this.runId),
-    );
+    const schema = await this.schemaResolver.resolve(collectionName);
 
     return schema.collectionId;
   }

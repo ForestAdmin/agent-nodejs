@@ -14,6 +14,7 @@ import {
 } from '../../src/errors';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<UpdateRecordStepDefinition> = {}): UpdateRecordStepDefinition {
@@ -110,8 +111,12 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'updat
 function makeContext(
   overrides: Partial<ExecutionContext<UpdateRecordStepDefinition>> = {},
 ): ExecutionContext<UpdateRecordStepDefinition> {
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = overrides.schemaCache ?? new SchemaCache();
+
   return {
-    runId: 'run-1',
+    runId,
     stepId: 'update-1',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -121,7 +126,7 @@ function makeContext(
       input: { fieldName: 'Status', value: 'active', reasoning: 'User requested status change' },
     }).model,
     agentPort: makeMockAgentPort(),
-    workflowPort: makeMockWorkflowPort(),
+    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -134,7 +139,8 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaCache,
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 

@@ -21,6 +21,7 @@ import {
 } from '../../src/errors';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
@@ -103,8 +104,12 @@ function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
 }
 
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? ({} as ExecutionContext['workflowPort']);
+  const schemaCache = overrides.schemaCache ?? new SchemaCache();
+
   return {
-    runId: 'run-1',
+    runId,
     stepId: 'step-0',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -121,7 +126,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     },
     model: {} as ExecutionContext['model'],
     agentPort: {} as ExecutionContext['agentPort'],
-    workflowPort: {} as ExecutionContext['workflowPort'],
+    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -134,7 +139,8 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaCache,
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: makeMockLogger(),
 

@@ -6,6 +6,7 @@ import type { GuidanceStepOutcome } from '../../src/types/validated/step-outcome
 
 import GuidanceStepExecutor from '../../src/executors/guidance-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
@@ -21,8 +22,12 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
 function makeContext(
   overrides: Partial<ExecutionContext<GuidanceStepDefinition>> = {},
 ): ExecutionContext<GuidanceStepDefinition> {
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? ({} as ExecutionContext['workflowPort']);
+  const schemaCache = overrides.schemaCache ?? new SchemaCache();
+
   return {
-    runId: 'run-1',
+    runId,
     stepId: 'guidance-1',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -34,7 +39,7 @@ function makeContext(
     stepDefinition: { type: StepType.Guidance, executionType: StepExecutionMode.Manual },
     model: {} as ExecutionContext['model'],
     agentPort: {} as ExecutionContext['agentPort'],
-    workflowPort: {} as ExecutionContext['workflowPort'],
+    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -47,7 +52,8 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaCache,
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 
