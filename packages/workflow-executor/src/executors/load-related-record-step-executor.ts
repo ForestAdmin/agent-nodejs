@@ -466,8 +466,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return this.buildOutcomeResult({ status: 'success' });
   }
 
-  // The AI selects by displayName; map it back to the technical relation name so the rest of the
-  // flow (buildTarget) works in technical-name space, like a pre-recorded reference.
   private async selectRelation(
     schema: CollectionSchema,
     prompt: string | undefined,

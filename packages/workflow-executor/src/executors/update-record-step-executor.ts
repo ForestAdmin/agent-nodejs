@@ -293,8 +293,6 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     return this.buildOutcomeResult({ status: 'success' });
   }
 
-  // The AI selects by displayName; map it back to the technical fieldName so the rest of the
-  // flow works in technical-name space, like a pre-recorded reference.
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,

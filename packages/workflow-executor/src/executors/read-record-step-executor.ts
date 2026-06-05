@@ -78,8 +78,6 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
     return this.buildOutcomeResult({ status: 'success' });
   }
 
-  // The AI selects by displayName; map each back to the technical fieldName so the rest of the
-  // flow works in technical-name space, like pre-recorded references.
   private async selectFields(
     schema: CollectionSchema,
     prompt: string | undefined,

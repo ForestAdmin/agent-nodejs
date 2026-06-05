@@ -202,8 +202,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.buildOutcomeResult({ status: 'success' });
   }
 
-  // The AI selects by displayName; map it back to the technical action name so the rest of the
-  // flow works in technical-name space, like a pre-recorded reference.
   private async selectAction(
     schema: CollectionSchema,
     prompt: string | undefined,
@@ -250,7 +248,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     });
   }
 
-  // Exact technical-name match, for pre-recorded references.
   private findActionByTechnicalName(
     schema: CollectionSchema,
     name: string,

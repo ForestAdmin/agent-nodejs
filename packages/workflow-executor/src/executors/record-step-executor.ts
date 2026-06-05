@@ -76,7 +76,6 @@ export default abstract class RecordStepExecutor<
     return schema;
   }
 
-  // Exact technical-name match, for pre-recorded / front references (no displayName, no fuzzy).
   protected findFieldByTechnicalName(
     schema: CollectionSchema,
     name: string,
