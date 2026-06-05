@@ -111,7 +111,7 @@ function makeContext(
 ): ExecutionContext<ReadRecordStepDefinition> {
   const runId = overrides.runId ?? 'run-1';
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
-  const schemaCache = overrides.schemaCache ?? new SchemaCache();
+  const schemaCache = new SchemaCache();
 
   return {
     runId,
@@ -135,7 +135,6 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache,
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },

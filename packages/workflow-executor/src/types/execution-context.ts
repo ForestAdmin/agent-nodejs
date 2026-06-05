@@ -5,7 +5,6 @@ import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { WorkflowPort } from '../ports/workflow-port';
-import type SchemaCache from '../schema-cache';
 import type SchemaResolver from '../schema-resolver';
 import type { RecordRef } from './validated/collection';
 import type { AvailableStepExecution, Step, StepUser } from './validated/execution';
@@ -37,7 +36,6 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
   readonly user: StepUser;
-  readonly schemaCache: SchemaCache;
   readonly schemaResolver: SchemaResolver;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;

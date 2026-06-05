@@ -4,8 +4,9 @@ import type { CollectionSchema } from './types/validated/collection';
 
 // Per-run schema resolution: binds the shared SchemaCache, the orchestrator port and the
 // current runId once, so callers never thread a loader. Writes into the SAME SchemaCache
-// instance AgentClientAgentPort reads from (get/iterate) — that shared instance is the
-// invariant that keeps the agent-port's SchemaNotCachedError guard unreachable in normal flow.
+// instance AgentClientAgentPort reads from (get/iterate): the resolver always populates an
+// entry before the agent-port reads it, so the agent-port's SchemaNotCachedError guard does
+// not fire under normal TTLs (a TTL shorter than a single step's round-trip could still evict).
 export default class SchemaResolver {
   private readonly cache: SchemaCache;
   private readonly workflowPort: WorkflowPort;

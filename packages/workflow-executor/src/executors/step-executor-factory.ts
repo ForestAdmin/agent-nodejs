@@ -138,7 +138,6 @@ export default class StepExecutorFactory {
       agentPort: cfg.agentPort,
       workflowPort: cfg.workflowPort,
       runStore: cfg.runStore,
-      schemaCache: cfg.schemaCache,
       schemaResolver: new SchemaResolver(cfg.schemaCache, cfg.workflowPort, step.runId),
       logger: cfg.logger,
       incomingPendingData,

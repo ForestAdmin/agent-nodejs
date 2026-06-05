@@ -106,7 +106,7 @@ function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
 function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   const runId = overrides.runId ?? 'run-1';
   const workflowPort = overrides.workflowPort ?? ({} as ExecutionContext['workflowPort']);
-  const schemaCache = overrides.schemaCache ?? new SchemaCache();
+  const schemaCache = new SchemaCache();
 
   return {
     runId,
@@ -139,7 +139,6 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache,
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: makeMockLogger(),
