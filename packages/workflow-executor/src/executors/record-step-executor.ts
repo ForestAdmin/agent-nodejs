@@ -78,8 +78,10 @@ export default abstract class RecordStepExecutor<
 
   protected findFieldByTechnicalName(
     schema: CollectionSchema,
-    name: string,
+    name: string | undefined,
   ): FieldSchema | undefined {
+    if (name === undefined) return undefined;
+
     return schema.fields.find(f => f.fieldName === name);
   }
 

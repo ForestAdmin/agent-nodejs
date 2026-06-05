@@ -189,7 +189,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     value: unknown,
   ): Promise<unknown> {
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData?.name ?? '');
+    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData?.name);
 
     return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName);
   }
