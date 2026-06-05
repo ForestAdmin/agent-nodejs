@@ -1194,6 +1194,43 @@ describe('ReadRecordStepExecutor', () => {
       );
     });
 
+    it('does not resurface the copied original record when the re-executed step errored (no own entry)', async () => {
+      // Given: the user revised "Load related", whose re-run ERRORED. A fully-automated
+      // load-related persists nothing on error, so the clone at idx 10 (originalStepIndex 3) has
+      // no own RunStore entry — only the pre-revision idx-3 record survives in the store.
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([makeLoadRelatedExecution(3, 99)]),
+      });
+      const agentPort = makeMockAgentPort();
+      const erroredClone: Step = {
+        ...makeLoadRelatedPreviousStep(10, 3),
+        stepOutcome: { type: 'record', stepId: 'load-10', stepIndex: 10, status: 'error' },
+      };
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        previousSteps: [erroredClone],
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then: the errored clone inherits nothing, so the dead idx-3 record never enters the pool —
+      // it collapses to the base record, no select-record round.
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+      expect((mockModel.bindTools.mock.calls[0][0][0] as { name: string }).name).toBe(
+        'read-selected-record-fields',
+      );
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
     it('offers both records when the same step ran twice on the live path (LinkTo loop)', async () => {
       // Given: a loop executed the same load step at idx 0 and idx 2 — two distinct live
       // instances, two distinct records, each resolved from its own index; neither shadows the other.
