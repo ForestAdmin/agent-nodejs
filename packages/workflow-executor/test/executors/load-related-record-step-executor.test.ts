@@ -38,6 +38,23 @@ function cand(
   return { recordId, referenceFieldValue };
 }
 
+// Builds the exact label the executor's `select-relation-to-follow` tool offers for a
+// (record, relation) candidate — mirrors LoadRelatedRecordStepExecutor#relationOptionLabel:
+//   `Step ${stepIndex} - ${collectionDisplayName} #${recordId} → ${relationDisplayName} (→ ${relatedCollectionName})`
+// recordId is an array and is interpolated with the same Array#toString as the executor.
+function relationOption(o: {
+  stepIndex?: number;
+  collectionDisplayName?: string;
+  recordId: Array<string | number>;
+  relationDisplayName: string;
+  relatedCollectionName: string;
+}): string {
+  const stepIndex = o.stepIndex ?? 0;
+  const collectionDisplayName = o.collectionDisplayName ?? 'Customers';
+
+  return `Step ${stepIndex} - ${collectionDisplayName} #${o.recordId} → ${o.relationDisplayName} (→ ${o.relatedCollectionName})`;
+}
+
 function makeRecordRef(overrides: Partial<RecordRef> = {}): RecordRef {
   return {
     collectionName: 'customers',
@@ -133,7 +150,10 @@ function makeMockWorkflowPort(
   };
 }
 
-function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'select-relation') {
+function makeMockModel(
+  toolCallArgs?: Record<string, unknown>,
+  toolName = 'select-relation-to-follow',
+) {
   const invoke = jest.fn().mockResolvedValue({
     tool_calls: toolCallArgs ? [{ name: toolName, args: toolCallArgs, id: 'call_1' }] : undefined,
   });
@@ -162,7 +182,14 @@ function makeContext(
     collectionId: 'col-1',
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
-    model: makeMockModel({ relationName: 'Order', reasoning: 'User requested order' }).model,
+    model: makeMockModel({
+      relation: relationOption({
+        recordId: [42],
+        relationDisplayName: 'Order',
+        relatedCollectionName: 'orders',
+      }),
+      reasoning: 'User requested order',
+    }).model,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -248,7 +275,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('executionType=FullyAutomated: BelongsTo — load direct (Branch B)', () => {
     it('fetches 1 related record and returns success', async () => {
       const agentPort = makeMockAgentPort();
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'User requested order' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'User requested order',
+      });
       const runStore = makeMockRunStore();
       const context = makeContext({
         model: mockModel.model,
@@ -324,19 +358,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
         ],
       });
 
-      // Call 1: select-relation → Address; Call 2: select-fields → ['City'] (displayName);
-      // Call 3: select-record-by-content → index 1 (Lyon)
+      // Source has a single relation (Address) → auto-picked, no select-relation-to-follow call.
+      // Call 1: select-fields → ['City'] (displayName); Call 2: select-record-by-content → index 1 (Lyon)
       const invoke = jest
         .fn()
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-relation',
-              args: { relationName: 'Address', reasoning: 'Load addresses' },
-              id: 'c1',
-            },
-          ],
-        })
         .mockResolvedValueOnce({
           tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
         })
@@ -368,10 +393,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(bindTools).toHaveBeenCalledTimes(3);
-      expect(bindTools.mock.calls[0][0][0].name).toBe('select-relation');
-      expect(bindTools.mock.calls[1][0][0].name).toBe('select-fields');
-      expect(bindTools.mock.calls[2][0][0].name).toBe('select-record-by-content');
+      expect(bindTools).toHaveBeenCalledTimes(2);
+      expect(bindTools.mock.calls[0][0][0].name).toBe('select-fields');
+      expect(bindTools.mock.calls[1][0][0].name).toBe('select-record-by-content');
 
       // Fetches 50 candidates (HasMany)
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
@@ -418,27 +442,17 @@ describe('LoadRelatedRecordStepExecutor', () => {
         fields: [],
       });
 
-      // Call 1: select-relation; Call 2: select-record-by-content (no select-fields)
-      const invoke = jest
-        .fn()
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-relation',
-              args: { relationName: 'Address', reasoning: 'Load addresses' },
-              id: 'c1',
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-record-by-content',
-              args: { recordIndex: 0, reasoning: 'First is best' },
-              id: 'c2',
-            },
-          ],
-        });
+      // Source has a single relation (Address) → auto-picked, no select-relation-to-follow call.
+      // Call 1: select-record-by-content (no select-fields — related collection has no fields).
+      const invoke = jest.fn().mockResolvedValueOnce({
+        tool_calls: [
+          {
+            name: 'select-record-by-content',
+            args: { recordIndex: 0, reasoning: 'First is best' },
+            id: 'c2',
+          },
+        ],
+      });
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
@@ -453,9 +467,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(bindTools).toHaveBeenCalledTimes(2);
-      expect(bindTools.mock.calls[0][0][0].name).toBe('select-relation');
-      expect(bindTools.mock.calls[1][0][0].name).toBe('select-record-by-content');
+      expect(bindTools).toHaveBeenCalledTimes(1);
+      expect(bindTools.mock.calls[0][0][0].name).toBe('select-record-by-content');
     });
 
     it('takes the single candidate directly without AI record-selection calls', async () => {
@@ -474,15 +487,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
       ]);
 
-      const invoke = jest.fn().mockResolvedValueOnce({
-        tool_calls: [
-          {
-            name: 'select-relation',
-            args: { relationName: 'Address', reasoning: 'Load address' },
-            id: 'c1',
-          },
-        ],
-      });
+      const invoke = jest.fn();
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
@@ -497,8 +502,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // Only select-relation was called — no field/record AI calls for single candidate
-      expect(bindTools).toHaveBeenCalledTimes(1);
+      // Single relation (auto-picked, no select-relation-to-follow) AND single related
+      // candidate (no field/record AI calls) → no AI calls at all.
+      expect(bindTools).not.toHaveBeenCalled();
     });
 
     it('returns error outcome when AI selects an out-of-range record index', async () => {
@@ -524,18 +530,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
         fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
       });
 
-      // Call 1: select-relation; Call 2: select-fields; Call 3: out-of-range index 999
+      // Single relation (auto-picked). Call 1: select-fields; Call 2: out-of-range index 999
       const invoke = jest
         .fn()
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-relation',
-              args: { relationName: 'Address', reasoning: 'Load addresses' },
-              id: 'c1',
-            },
-          ],
-        })
         .mockResolvedValueOnce({
           tool_calls: [{ name: 'select-fields', args: { fieldNames: ['city'] }, id: 'c2' }],
         })
@@ -593,21 +590,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
         fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
       });
 
-      // Call 1: select-relation; Call 2: select-fields returns empty array (AI violation)
-      const invoke = jest
-        .fn()
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-relation',
-              args: { relationName: 'Address', reasoning: 'Load addresses' },
-              id: 'c1',
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [{ name: 'select-fields', args: { fieldNames: [] }, id: 'c2' }],
-        });
+      // Single relation (auto-picked). Call 1: select-fields returns empty array (AI violation)
+      const invoke = jest.fn().mockResolvedValueOnce({
+        tool_calls: [{ name: 'select-fields', args: { fieldNames: [] }, id: 'c2' }],
+      });
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
@@ -780,7 +766,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
         markSucceeded: jest.fn().mockResolvedValue(undefined),
         markFailed: jest.fn().mockResolvedValue(undefined),
       };
-      const { model } = makeMockModel({ relationName: 'Order', reasoning: 'r' });
+      const { model } = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'r',
+      });
       const context = makeContext({
         model,
         runStore,
@@ -807,7 +800,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
         markSucceeded: jest.fn().mockResolvedValue(undefined),
         markFailed: jest.fn().mockResolvedValue(undefined),
       };
-      const { model } = makeMockModel({ relationName: 'Order', reasoning: 'r' });
+      const { model } = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'r',
+      });
       const context = makeContext({ model, runStore, activityLogPort });
 
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
@@ -829,7 +829,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {
     it('saves AI suggestion in pendingData and returns awaiting-input (single record — no field/record AI calls)', async () => {
       const agentPort = makeMockAgentPort(); // returns 1 record: orders #99
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'User requested order' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'User requested order',
+      });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -848,7 +855,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({ id: 1 }),
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
-      // xToOne has exactly one candidate → only select-relation AI call (no field/record selection)
+      // 2 relations on the source → one select-relation-to-follow AI call; xToOne target then
+      // yields a single candidate, so no field/record-selection AI calls.
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -892,8 +900,15 @@ describe('LoadRelatedRecordStepExecutor', () => {
         .mockResolvedValueOnce({
           tool_calls: [
             {
-              name: 'select-relation',
-              args: { relationName: 'Address', reasoning: 'Load address' },
+              name: 'select-relation-to-follow',
+              args: {
+                relation: relationOption({
+                  recordId: [42],
+                  relationDisplayName: 'Address',
+                  relatedCollectionName: 'addresses',
+                }),
+                reasoning: 'Load address',
+              },
               id: 'c1',
             },
           ],
@@ -965,8 +980,15 @@ describe('LoadRelatedRecordStepExecutor', () => {
         .mockResolvedValueOnce({
           tool_calls: [
             {
-              name: 'select-relation',
-              args: { relationName: 'Address', reasoning: 'Load address' },
+              name: 'select-relation-to-follow',
+              args: {
+                relation: relationOption({
+                  recordId: [42],
+                  relationDisplayName: 'Address',
+                  relatedCollectionName: 'addresses',
+                }),
+                reasoning: 'Load address',
+              },
               id: 'c1',
             },
           ],
@@ -998,7 +1020,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      // select-relation + select-record-by-content (no select-fields)
+      // select-relation-to-follow + select-record-by-content (no select-fields)
       expect(bindTools).toHaveBeenCalledTimes(2);
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -1015,7 +1037,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
     // candidate list (no suggestedRecord) — the user can switch relation. It is NOT an error.
     it('returns awaiting-input with an empty candidate list when the xToOne relation has no linked record', async () => {
       const agentPort = makeMockAgentPort([]); // getSingleRelatedData → null
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'Load order',
+      });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -1711,8 +1740,15 @@ describe('LoadRelatedRecordStepExecutor', () => {
         .mockResolvedValueOnce({
           tool_calls: [
             {
-              name: 'select-relation',
-              args: { relationName: 'Address', reasoning: 'Load address' },
+              name: 'select-relation-to-follow',
+              args: {
+                relation: relationOption({
+                  recordId: [42],
+                  relationDisplayName: 'Address',
+                  relatedCollectionName: 'addresses',
+                }),
+                reasoning: 'Load address',
+              },
               id: 'c1',
             },
           ],
@@ -1813,7 +1849,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
         recordId: ['99'],
         values: { id: '99', reference: 'ORD-2026-001' },
       });
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'Load order',
+      });
       const runStore = makeMockRunStore();
       const context = makeContext({
         model: mockModel.model,
@@ -1849,7 +1892,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // Default makeCollectionSchema doesn't set referenceField → executor omits `fields`
       // when calling getSingleRelatedData and writes null on every candidate.
       const agentPort = makeMockAgentPort();
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'Load order' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'Load order',
+      });
       const runStore = makeMockRunStore();
       const context = makeContext({ model: mockModel.model, agentPort, runStore });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -1883,15 +1933,22 @@ describe('LoadRelatedRecordStepExecutor', () => {
         })),
       });
 
-    // Answers the 3 HasMany AI calls in order: select-relation, select-fields, select-record.
+    // Answers the 3 HasMany AI calls in order: select-relation-to-follow, select-fields, select-record.
     const buildModel = (selectedFieldDisplayNames: string[], recordIndex = 0) => {
       const invoke = jest
         .fn()
         .mockResolvedValueOnce({
           tool_calls: [
             {
-              name: 'select-relation',
-              args: { relationName: 'Address', reasoning: 'r' },
+              name: 'select-relation-to-follow',
+              args: {
+                relation: relationOption({
+                  recordId: [42],
+                  relationDisplayName: 'Address',
+                  relatedCollectionName: 'addresses',
+                }),
+                reasoning: 'r',
+              },
               id: 'c1',
             },
           ],
@@ -2148,10 +2205,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('StepStateError on malformed schema', () => {
-    // A relationship field with no relatedCollectionName can't be followed — throw rather than
-    // silently falling back to the field name (which would 404 later as a bogus collection).
-    it('returns error when the selected relation has no relatedCollectionName', async () => {
+  describe('malformed schema — relation without relatedCollectionName', () => {
+    // A relationship field with no relatedCollectionName can't be followed, so it is excluded
+    // from the candidate set. With it being the only relationship field, there are zero
+    // candidates → NoRelationshipFieldsError rather than a silent fallback to the field name.
+    it('excludes the relation and returns the no-relations error', async () => {
       const schema = makeCollectionSchema({
         fields: [
           {
@@ -2162,7 +2220,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
           },
         ],
       });
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'test',
+      });
       const runStore = makeMockRunStore();
       const context = makeContext({
         model: mockModel.model,
@@ -2176,7 +2241,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        'An unexpected error occurred while processing this step.',
+        'This record type has no relations configured in Forest Admin.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
@@ -2185,7 +2250,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
   describe('RelatedRecordNotFoundError', () => {
     it('returns error when BelongsTo getRelatedData returns empty array (Branch B)', async () => {
       const agentPort = makeMockAgentPort([]);
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'test',
+      });
       const runStore = makeMockRunStore();
       const context = makeContext({
         model: mockModel.model,
@@ -2288,28 +2360,25 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('resolveRelationName failure', () => {
-    it('returns error when AI returns a relation name not found in the schema', async () => {
+  describe('select-relation-to-follow failure', () => {
+    // With >=2 candidates the AI must echo back one of the offered labels. A label that
+    // matches no option (here a fabricated relation) is rejected as an invalid AI response.
+    it('returns error when AI selects a relation label not among the offered options', async () => {
       const agentPort = makeMockAgentPort();
-      const mockModel = makeMockModel({ relationName: 'NonExistentRelation', reasoning: 'test' });
-      const schema = makeCollectionSchema({
-        fields: [
-          {
-            fieldName: 'order',
-            displayName: 'Order',
-            isRelationship: true,
-            relationType: 'BelongsTo',
-            relatedCollectionName: 'orders',
-          },
-        ],
+      // Default schema has two relations (Order, Address) → select-relation-to-follow IS invoked.
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'NonExistentRelation',
+          relatedCollectionName: 'ghosts',
+        }),
+        reasoning: 'test',
       });
-      const workflowPort = makeMockWorkflowPort({ customers: schema });
       const runStore = makeMockRunStore();
       const context = makeContext({
         model: mockModel.model,
         agentPort,
         runStore,
-        workflowPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -2318,7 +2387,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe(
-        "The AI selected a relation that doesn't exist on this record. Try rephrasing the step's prompt.",
+        "The AI made an unexpected choice. Try rephrasing the step's prompt.",
       );
       expect(agentPort.getRelatedData).not.toHaveBeenCalled();
     });
@@ -2329,7 +2398,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const invoke = jest.fn().mockResolvedValue({
         tool_calls: [],
         invalid_tool_calls: [
-          { name: 'select-relation', args: '{bad json', error: 'JSON parse error' },
+          { name: 'select-relation-to-follow', args: '{bad json', error: 'JSON parse error' },
         ],
       });
       const bindTools = jest.fn().mockReturnValue({ invoke });
@@ -2381,7 +2450,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
     it('returns error outcome for getRelatedData infrastructure errors (Branch B)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('Connection refused'));
-      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'test' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Address',
+          relatedCollectionName: 'addresses',
+        }),
+        reasoning: 'test',
+      });
       const context = makeContext({
         model: mockModel.model,
         agentPort,
@@ -2396,7 +2472,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
     it('returns error outcome for getRelatedData infrastructure errors (Branch C)', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(new Error('Connection refused'));
-      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'test' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Address',
+          relatedCollectionName: 'addresses',
+        }),
+        reasoning: 'test',
+      });
       const context = makeContext({ model: mockModel.model, agentPort });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -2410,7 +2493,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
       (agentPort.getRelatedData as jest.Mock).mockRejectedValue(
         new AgentPortError('getRelatedData', new Error('DB connection lost')),
       );
-      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'test' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Address',
+          relatedCollectionName: 'addresses',
+        }),
+        reasoning: 'test',
+      });
       const context = makeContext({
         model: mockModel.model,
         agentPort,
@@ -2433,7 +2523,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('multi-record AI selection (base record pool)', () => {
-    it('uses AI to select among multiple base records then loads relation', async () => {
+    it('follows a relation on a loaded record, not the base record', async () => {
       const baseRecordRef = makeRecordRef({ stepIndex: 1 });
       const relatedRecord = makeRecordRef({
         stepIndex: 2,
@@ -2455,27 +2545,26 @@ describe('LoadRelatedRecordStepExecutor', () => {
         ],
       });
 
-      // Call 1: select-record; Call 2: select-relation
-      const invoke = jest
-        .fn()
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-record',
-              args: { recordIdentifier: 'Step 2 - Orders #99' },
-              id: 'call_1',
+      // One combined AI call over all candidates (base customers #42 relations + the loaded
+      // orders #99 relations). The AI follows the loaded order's Invoice relation.
+      const invoke = jest.fn().mockResolvedValueOnce({
+        tool_calls: [
+          {
+            name: 'select-relation-to-follow',
+            args: {
+              relation: relationOption({
+                stepIndex: 2,
+                collectionDisplayName: 'Orders',
+                recordId: [99],
+                relationDisplayName: 'Invoice',
+                relatedCollectionName: 'invoices',
+              }),
+              reasoning: 'Load the invoice',
             },
-          ],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-relation',
-              args: { relationName: 'Invoice', reasoning: 'Load the invoice' },
-              id: 'call_2',
-            },
-          ],
-        });
+            id: 'call_1',
+          },
+        ],
+      });
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
@@ -2513,13 +2602,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      expect(bindTools).toHaveBeenCalledTimes(2);
+      // One combined relation-following AI call (xToOne target needs no further AI calls).
+      expect(bindTools).toHaveBeenCalledTimes(1);
 
-      const selectRecordTool = bindTools.mock.calls[0][0][0];
-      expect(selectRecordTool.name).toBe('select-record');
-
-      const selectRelationTool = bindTools.mock.calls[1][0][0];
-      expect(selectRelationTool.name).toBe('select-relation');
+      const selectRelationTool = bindTools.mock.calls[0][0][0];
+      expect(selectRelationTool.name).toBe('select-relation-to-follow');
 
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -2555,8 +2642,15 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('previous steps context', () => {
-    it('includes previous steps summary in select-relation messages', async () => {
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+    it('includes previous steps summary in select-relation-to-follow messages', async () => {
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'test',
+      });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
           {
@@ -2605,7 +2699,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
   describe('default prompt', () => {
     it('uses default prompt when step.prompt is undefined', async () => {
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'test',
+      });
       const context = makeContext({
         model: mockModel.model,
         stepDefinition: makeStep({ prompt: undefined }),
@@ -2722,7 +2823,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
           collectionDisplayName: 'Addresses',
         }),
       });
-      const mockModel = makeMockModel({ relationName: 'Address', reasoning: 'Load address' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Address',
+          relatedCollectionName: 'addresses',
+        }),
+        reasoning: 'Load address',
+      });
       const context = makeContext({
         model: mockModel.model,
         workflowPort,
@@ -2775,28 +2883,24 @@ describe('LoadRelatedRecordStepExecutor', () => {
         ],
       });
 
-      // Call 1: select-record (picks the completed related record)
-      // Call 2: select-relation
-      const invoke = jest
-        .fn()
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-record',
-              args: { recordIdentifier: 'Step 2 - Orders #99' },
-              id: 'call_1',
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-relation',
-              args: { relationName: 'Order', reasoning: 'test' },
-              id: 'call_2',
-            },
-          ],
-        });
+      // One combined select-relation-to-follow call over all candidates. The AI follows the
+      // completed order's Order relation.
+      const orderOnLoaded = relationOption({
+        stepIndex: 2,
+        collectionDisplayName: 'Orders',
+        recordId: [99],
+        relationDisplayName: 'Order',
+        relatedCollectionName: 'orders',
+      });
+      const invoke = jest.fn().mockResolvedValueOnce({
+        tool_calls: [
+          {
+            name: 'select-relation-to-follow',
+            args: { relation: orderOnLoaded, reasoning: 'test' },
+            id: 'call_1',
+          },
+        ],
+      });
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
@@ -2829,14 +2933,193 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await executor.execute();
 
-      // Pool = [base, completedRecord] = 2 items → select-record IS invoked
-      // Pool does NOT include pending execution (no record) → only 2 options, not 3
-      expect(bindTools).toHaveBeenCalledTimes(2);
-      const selectRecordTool = bindTools.mock.calls[0][0][0];
-      expect(selectRecordTool.name).toBe('select-record');
-      expect(selectRecordTool.schema.shape.recordIdentifier.options).toHaveLength(2);
-      expect(selectRecordTool.schema.shape.recordIdentifier.options).not.toContain(
-        expect.stringContaining('stepIndex: 3'),
+      // Candidate pool = base customers #42 relations (Order, Address) + completed orders #99
+      // relation (Order). The pending step-3 record (no record field) contributes none.
+      expect(bindTools).toHaveBeenCalledTimes(1);
+      const selectRelationTool = bindTools.mock.calls[0][0][0];
+      expect(selectRelationTool.name).toBe('select-relation-to-follow');
+      // base customers: 2 relations; loaded order: 1 relation → 3 options.
+      expect(selectRelationTool.schema.shape.relation.options).toHaveLength(3);
+      expect(selectRelationTool.schema.shape.relation.options).toContain(orderOnLoaded);
+      // The excluded pending step-3 record contributes no candidate label.
+      expect(
+        selectRelationTool.schema.shape.relation.options.some((o: string) =>
+          o.startsWith('Step 3 -'),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  // Repro for the "latch onto a previously-loaded record" bug: when a dvd was already loaded
+  // by a prior step, "Load the dvd titanic" must still follow store → dvds (the relation that
+  // LEADS TO a dvd), not read a relation off the already-loaded dvd. resolveTarget now offers
+  // every relation across all available records and lets the AI choose by target collection.
+  describe('follows the relation leading to the requested collection (PRD-214 repro)', () => {
+    it('follows store → dvds rather than a relation on the already-loaded dvd', async () => {
+      // Available records: base account #1 (store BelongsTo), loaded store #6 (dvds HasMany),
+      // loaded dvd #32 (store BelongsTo).
+      const baseRecordRef: RecordRef = {
+        collectionName: 'account',
+        recordId: [1],
+        stepIndex: 0,
+      };
+      const loadedStore: RecordRef = { collectionName: 'store', recordId: [6], stepIndex: 1 };
+      const loadedDvd: RecordRef = { collectionName: 'dvd', recordId: [32], stepIndex: 3 };
+
+      const accountSchema = makeCollectionSchema({
+        collectionName: 'account',
+        collectionDisplayName: 'Account',
+        fields: [
+          {
+            fieldName: 'store',
+            displayName: 'Store',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'store',
+          },
+        ],
+      });
+      const storeSchema = makeCollectionSchema({
+        collectionName: 'store',
+        collectionDisplayName: 'Store',
+        fields: [
+          {
+            fieldName: 'dvds',
+            displayName: 'Dvds',
+            isRelationship: true,
+            relationType: 'HasMany',
+            relatedCollectionName: 'dvd',
+          },
+        ],
+      });
+      const dvdSchema = makeCollectionSchema({
+        collectionName: 'dvd',
+        collectionDisplayName: 'Dvd',
+        referenceField: 'title',
+        fields: [
+          { fieldName: 'title', displayName: 'Title', isRelationship: false },
+          {
+            fieldName: 'store',
+            displayName: 'Store',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'store',
+          },
+        ],
+      });
+
+      // store → dvds returns two dvds; the AI ranks them and picks "Titanic".
+      const dvds: RecordData[] = [
+        { collectionName: 'dvd', recordId: [40], values: { title: 'Avatar' } },
+        { collectionName: 'dvd', recordId: [41], values: { title: 'Titanic' } },
+      ];
+      const agentPort = makeMockAgentPort(dvds);
+
+      // 1 combined relation-following call → store → dvds (HasMany), then select-fields +
+      // select-record-by-content to pick Titanic.
+      const storeDvdsLabel = relationOption({
+        stepIndex: 1,
+        collectionDisplayName: 'Store',
+        recordId: [6],
+        relationDisplayName: 'Dvds',
+        relatedCollectionName: 'dvd',
+      });
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-relation-to-follow',
+              args: { relation: storeDvdsLabel, reasoning: 'store leads to dvds' },
+              id: 'c1',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['Title'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 1, reasoning: 'Titanic matches' },
+              id: 'c3',
+            },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: {
+              relation: { name: 'store', displayName: 'Store' },
+              record: loadedStore,
+            },
+            selectedRecordRef: baseRecordRef,
+          },
+          {
+            type: 'load-related-record',
+            stepIndex: 3,
+            executionResult: {
+              relation: { name: 'dvd', displayName: 'Dvd' },
+              record: loadedDvd,
+            },
+            selectedRecordRef: loadedStore,
+          },
+        ]),
+      });
+      const workflowPort = makeMockWorkflowPort({
+        account: accountSchema,
+        store: storeSchema,
+        dvd: dvdSchema,
+      });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        agentPort,
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: 'Load the dvd titanic',
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+
+      // The relation read goes through the loaded STORE's dvds relation, NOT the dvd.
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'store',
+          id: [6],
+          relation: 'dvds',
+          limit: 50,
+          relatedSchema: expect.objectContaining({ collectionName: 'dvd' }),
+        }),
+        expect.objectContaining({ id: 1 }),
+      );
+
+      // The persisted result is the AI-ranked dvd (Titanic #41), sourced from the store.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Dvds', name: 'dvds' },
+          executionResult: expect.objectContaining({
+            relation: { name: 'dvds', displayName: 'Dvds' },
+            record: expect.objectContaining({ collectionName: 'dvd', recordId: [41] }),
+          }),
+          selectedRecordRef: expect.objectContaining({
+            collectionName: 'store',
+            recordId: [6],
+          }),
+        }),
       );
     });
   });
