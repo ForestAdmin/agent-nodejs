@@ -91,7 +91,7 @@ export default class QuerySerializer {
       .toLowerCase();
   }
 
-  private static formatFields(collectionName: string, fields: string[]): Record<string, string[]> {
+  private static formatFields(collectionName: string, fields: string[]): Record<string, string> {
     if (!fields) return {};
 
     const projectionName = `fields[${HttpRequester.escapeUrlSlug(collectionName)}]`;
@@ -138,6 +138,10 @@ export default class QuerySerializer {
       }
     });
 
-    return projection;
+    // Join per type (`fields[users]=id,name`): an array would serialize as repeated params,
+    // which Ruby (Rack) agents collapse to the last value only — dropping every field but one.
+    return Object.fromEntries(
+      Object.entries(projection).map(([key, values]) => [key, values.join(',')]),
+    );
   }
 }
