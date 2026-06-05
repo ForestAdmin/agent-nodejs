@@ -172,6 +172,29 @@ describe('AgentWithLog', () => {
       expect(beforeCall).not.toHaveBeenCalled();
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
+
+    it('marks failed and rethrows when beforeCall throws — the side effect never runs', async () => {
+      // beforeCall persists the write-ahead "executing" marker. If that save fails, the datasource
+      // write must not run, and the already-created pending entry is resolved to failed (never left
+      // orphan-pending). The record is genuinely untouched, which "failed" correctly conveys.
+      const { deps, agentPort, activityLogPort } = makeDeps();
+      const agent = new AgentWithLog(deps);
+
+      await expect(
+        agent.updateRecord(
+          { collection: 'customers', id: [42], values: { name: 'X' } },
+          {
+            beforeCall: async () => {
+              throw new Error('marker save failed');
+            },
+          },
+        ),
+      ).rejects.toThrow('marker save failed');
+
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      expect(activityLogPort.markFailed).toHaveBeenCalledWith({ id: 'log-1', index: '0' });
+      expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
+    });
   });
 
   describe('failure marking', () => {
