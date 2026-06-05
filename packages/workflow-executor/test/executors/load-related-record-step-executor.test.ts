@@ -2695,6 +2695,26 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(messages[0].content).toContain('"answer":"Yes"');
       expect(messages[0].content).toContain('loading a related record');
     });
+
+    it('surfaces the step title in the select-relation-to-follow context', async () => {
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'test',
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ title: 'Load the customer order' }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      const messages = mockModel.invoke.mock.calls[0][0];
+      expect(messages[0].content).toContain('Step title: "Load the customer order"');
+    });
   });
 
   describe('default prompt', () => {
@@ -3125,7 +3145,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('pre-recorded args', () => {
-    it('skips AI relation selection when relationName is pre-recorded', async () => {
+    it('follows the pre-recorded relation without an AI call', async () => {
       const { model, bindTools } = makeMockModel();
       const runStore = makeMockRunStore();
       const context = makeContext({
@@ -3136,34 +3156,65 @@ describe('LoadRelatedRecordStepExecutor', () => {
           preRecordedArgs: { relationName: 'order' },
         }),
       });
-      const executor = new LoadRelatedRecordStepExecutor(context);
 
-      const result = await executor.execute();
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('success');
       expect(bindTools).not.toHaveBeenCalled();
       // Pre-recorded reference is the technical name 'order'; the persisted displayName 'Order'
-      // is resolved from the schema, not received on the wire.
+      // is resolved from the schema, not received on the wire. The pinned relation is the one
+      // actually followed (not just the first eligible).
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
-        expect.objectContaining({
-          executionResult: expect.objectContaining({
-            relation: { name: 'order', displayName: 'Order' },
-          }),
-        }),
+        expect.objectContaining({ executionParams: { displayName: 'Order', name: 'order' } }),
       );
     });
 
-    it('pins the source record via selectedRecordStepIndex (no AI relation choice)', async () => {
+    it('pins the source record via selectedRecordStepIndex (among several records)', async () => {
+      // Base customers #42 (step 0) + a loaded order #99 (step 1) are both available;
+      // pinning step 1 must make the relation follow the ORDER, not the base customer.
+      const loadedOrder: RecordRef = { collectionName: 'orders', recordId: [99], stepIndex: 1 };
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        fields: [
+          {
+            fieldName: 'customer',
+            displayName: 'Customer',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'customers',
+          },
+        ],
+      });
       const { model, bindTools } = makeMockModel();
-      const runStore = makeMockRunStore();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: loadedOrder,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const agentPort = makeMockAgentPort([
+        makeRelatedRecordData({ collectionName: 'customers', recordId: [7], values: {} }),
+      ]);
       const context = makeContext({
         model,
         runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          // step 0 is the base customers record; pin it + its Order relation → single candidate.
-          preRecordedArgs: { selectedRecordStepIndex: 0, relationDisplayName: 'Order' },
+          preRecordedArgs: { selectedRecordStepIndex: 1, relationDisplayName: 'Customer' },
         }),
       });
 
@@ -3171,9 +3222,21 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(bindTools).not.toHaveBeenCalled();
+      // The relation is read off the pinned order #99, not the base customer.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99], relation: 'customer' }),
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Customer', name: 'customer' },
+          selectedRecordRef: expect.objectContaining({ collectionName: 'orders', recordId: [99] }),
+        }),
+      );
     });
 
-    it('errors when selectedRecordStepIndex matches no available record', async () => {
+    it('errors with the pre-recorded-args message when selectedRecordStepIndex matches no record', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
@@ -3184,6 +3247,21 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+    });
+
+    it('errors with the pre-recorded-args message when the pinned relation matches nothing', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { relationDisplayName: 'Nonexistent' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
     });
 
     it('skips AI record selection when selectedRecordIndex is pre-recorded with HasMany', async () => {

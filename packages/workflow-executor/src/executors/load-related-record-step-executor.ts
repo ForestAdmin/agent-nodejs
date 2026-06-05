@@ -62,10 +62,11 @@ interface RelationTarget extends RelationRef {
 }
 
 // A relationship reachable from one available record — the unit the AI chooses among.
+// `relatedCollectionName` is guaranteed non-null (buildRelationCandidates filters on it).
 interface RelationCandidate {
   record: RecordRef;
   schema: CollectionSchema;
-  field: FieldSchema;
+  field: FieldSchema & { relatedCollectionName: string };
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
@@ -145,20 +146,40 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         : records;
 
     const candidates = await this.buildRelationCandidates(sourceRecords);
+
+    if (candidates.length === 0) {
+      throw new NoRelationshipFieldsError(sourceRecords[0]?.collectionName ?? 'unknown');
+    }
+
     // Pre-recorded relations are pinned by their stable technical name (PRD-426), matched exactly.
-    const recordedRelation = preRecordedArgs?.relationName;
-    const eligible = recordedRelation
-      ? candidates.filter(c => c.field.fieldName === recordedRelation)
+    const pinned = preRecordedArgs?.relationName;
+    const eligible = pinned
+      ? candidates.filter(c => c.field.fieldName === pinned)
       : candidates;
 
     if (eligible.length === 0) {
-      throw new NoRelationshipFieldsError(sourceRecords[0]?.collectionName ?? 'unknown');
+      // Relations exist, but the pre-recorded one doesn't match any of them.
+      throw new InvalidPreRecordedArgsError(
+        `No relation matching "${pinned}" on the selected record`,
+      );
     }
 
     const chosen =
       eligible.length === 1 ? eligible[0] : await this.selectRelationToFollow(eligible);
 
-    return this.buildTarget(chosen.schema, chosen.field.fieldName, chosen.record);
+    return this.targetFromCandidate(chosen);
+  }
+
+  private targetFromCandidate(candidate: RelationCandidate): RelationTarget {
+    const { record, field } = candidate;
+
+    return {
+      selectedRecordRef: record,
+      displayName: field.displayName,
+      name: field.fieldName,
+      relationType: field.relationType,
+      relatedCollectionName: field.relatedCollectionName,
+    };
   }
 
   private requireRecordAtStepIndex(records: RecordRef[], stepIndex: number): RecordRef {
@@ -180,7 +201,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
       for (const field of schema.fields) {
         if (field.isRelationship && field.relatedCollectionName) {
-          candidates.push({ record, schema, field });
+          candidates.push({
+            record,
+            schema,
+            field: { ...field, relatedCollectionName: field.relatedCollectionName },
+          });
         }
       }
     }
