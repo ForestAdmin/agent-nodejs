@@ -285,7 +285,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const summary = this.context.previousSteps
       .map(step => {
-        const execution = BaseStepExecutor.resolveStepExecution(step, allStepExecutions);
+        const execution = this.resolveStepExecution(step, allStepExecutions);
 
         return StepSummaryBuilder.build(step.stepDefinition, step.stepOutcome, execution);
       })
@@ -298,7 +298,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   // so it inherits the record of the step it copied (originalStepIndex). Own-index-first is what
   // stops a re-executed step (which has its own entry) from resurfacing the superseded
   // original's record.
-  protected static resolveStepExecution(
+  protected resolveStepExecution(
     step: Step,
     executions: StepExecutionData[],
   ): StepExecutionData | undefined {
