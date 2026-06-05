@@ -175,7 +175,7 @@ describe('AgentWithLog', () => {
   });
 
   describe('failure marking', () => {
-    it('marks failed with the userMessage when the operation throws a WorkflowExecutorError', async () => {
+    it('marks failed (not succeeded) and rethrows the original WorkflowExecutorError', async () => {
       const { deps, agentPort, activityLogPort } = makeDeps();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(new NoRecordsError());
       const agent = new AgentWithLog(deps);
@@ -187,24 +187,18 @@ describe('AgentWithLog', () => {
         ),
       ).rejects.toBeInstanceOf(NoRecordsError);
 
-      expect(activityLogPort.markFailed).toHaveBeenCalledWith(
-        { id: 'log-1', index: '0' },
-        'No records available',
-      );
+      expect(activityLogPort.markFailed).toHaveBeenCalledWith({ id: 'log-1', index: '0' });
       expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
     });
 
-    it("marks failed with 'Unexpected error' for a non-WorkflowExecutorError", async () => {
+    it('marks failed and rethrows a non-WorkflowExecutorError unchanged', async () => {
       const { deps, agentPort, activityLogPort } = makeDeps();
       (agentPort.getRecord as jest.Mock).mockRejectedValue(new Error('boom'));
       const agent = new AgentWithLog(deps);
 
       await expect(agent.getRecord({ collection: 'customers', id: [42] })).rejects.toThrow('boom');
 
-      expect(activityLogPort.markFailed).toHaveBeenCalledWith(
-        { id: 'log-1', index: '0' },
-        'Unexpected error',
-      );
+      expect(activityLogPort.markFailed).toHaveBeenCalledWith({ id: 'log-1', index: '0' });
     });
   });
 

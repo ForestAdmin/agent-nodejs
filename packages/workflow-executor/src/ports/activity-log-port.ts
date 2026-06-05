@@ -21,8 +21,9 @@ export interface ActivityLogHandle {
 export interface ActivityLogPort {
   createPending(args: CreateActivityLogArgs): Promise<ActivityLogHandle>;
   markSucceeded(handle: ActivityLogHandle): Promise<void>;
-  // errorMessage is for local diagnostics only — the server status endpoint accepts just { status }.
-  markFailed(handle: ActivityLogHandle, errorMessage: string): Promise<void>;
+  // The server status endpoint accepts just { status }; the step error itself is logged by
+  // base-step-executor when the failure is rethrown, so no error message is threaded here.
+  markFailed(handle: ActivityLogHandle): Promise<void>;
 }
 
 // Produces per-run ActivityLogPort instances and exposes drain() at the process level so the

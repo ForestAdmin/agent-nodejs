@@ -11,8 +11,6 @@ import type SchemaResolver from '../schema-resolver';
 import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 
-import { WorkflowExecutorError } from '../errors';
-
 // The audit-log target minus renderingId, which audit() stamps centrally.
 export type AuditTarget = Omit<CreateActivityLogArgs, 'renderingId'>;
 
@@ -117,9 +115,9 @@ export default class AgentWithLog {
 
       return result;
     } catch (err) {
-      const errorMessage =
-        err instanceof WorkflowExecutorError ? err.userMessage : 'Unexpected error';
-      void this.activityLogPort.markFailed(handle, errorMessage);
+      // The step error is logged/surfaced by base-step-executor when rethrown, so the audit
+      // transition only needs the handle.
+      void this.activityLogPort.markFailed(handle);
       throw err;
     }
   }
