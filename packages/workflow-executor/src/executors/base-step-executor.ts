@@ -305,10 +305,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     const own = executions.find(e => e.stepIndex === step.stepOutcome.stepIndex);
     if (own) return own;
 
-    // A re-executed clone that errored persists no execution of its own (load-related only saves
-    // on success), so own-index resolution finds nothing. Falling back to the copied step would
-    // then resurface the superseded original's record — the very leak revision is meant to close.
-    // Inherit the copied record only when the clone didn't run-and-fail.
+    // An errored clone persists nothing, so inheriting the copied record would resurface the
+    // superseded original's — only fall back when the clone didn't run-and-fail.
     if (step.originalStepIndex !== undefined && step.stepOutcome.status !== 'error') {
       return executions.find(e => e.stepIndex === step.originalStepIndex);
     }
