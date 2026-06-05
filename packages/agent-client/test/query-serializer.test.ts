@@ -91,7 +91,7 @@ describe('QuerySerializer', () => {
     });
 
     it('should serialize fields as a single comma-separated value, not an array', () => {
-      // Regression (PRD-437): an array serializes as repeated params that Ruby agents collapse to one.
+      // Regression: an array serializes as repeated params that Ruby agents collapse to one.
       const result = QuerySerializer.serialize(
         { fields: ['first_name', 'last_name', 'email'] },
         'users',
