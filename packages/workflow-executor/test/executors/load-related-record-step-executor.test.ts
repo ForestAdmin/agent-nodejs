@@ -796,6 +796,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         type: 'read',
         collectionId: 'col-customers',
         recordId: [42],
+        label: 'list relation "Order"',
       });
     });
 
@@ -819,6 +820,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           type: 'read',
           collectionId: 'col-customers',
           recordId: [42],
+          label: 'list relation "Order"',
         }),
       );
     });

@@ -258,6 +258,7 @@ describe('UpdateRecordStepExecutor', () => {
         type: 'write',
         collectionId: 'col-customers',
         recordId: [42],
+        label: 'updated',
       });
     });
 
@@ -356,6 +357,7 @@ describe('UpdateRecordStepExecutor', () => {
         type: 'write',
         collectionId: 'col-orders',
         recordId: [99],
+        label: 'updated',
       });
     });
 

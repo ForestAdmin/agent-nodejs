@@ -10,7 +10,7 @@ import type {
 } from '../ports/agent-port';
 import type SchemaResolver from '../schema-resolver';
 import type { StepUser } from '../types/execution-context';
-import type { RecordData } from '../types/validated/collection';
+import type { CollectionSchema, RecordData } from '../types/validated/collection';
 
 type WriteOptions = { beforeCall: () => Promise<void> };
 
@@ -42,7 +42,7 @@ export default class AgentWithLog {
   }
 
   async getRecord(query: GetRecordQuery): Promise<RecordData> {
-    const collectionId = await this.resolveCollectionId(query.collection);
+    const { collectionId } = await this.resolveSchema(query.collection);
 
     return this.activityLog.track(
       { action: 'index', type: 'read', collectionId, recordId: query.id },
@@ -51,28 +51,40 @@ export default class AgentWithLog {
   }
 
   async getRelatedData(query: GetRelatedDataQuery): Promise<RecordData[]> {
-    const collectionId = await this.resolveCollectionId(query.collection);
+    const schema = await this.resolveSchema(query.collection);
 
     return this.activityLog.track(
-      { action: 'listRelatedData', type: 'read', collectionId, recordId: query.id },
+      {
+        action: 'listRelatedData',
+        type: 'read',
+        collectionId: schema.collectionId,
+        recordId: query.id,
+        label: this.relationLabel(schema, query.relation),
+      },
       { operation: () => this.agentPort.getRelatedData(query, this.user) },
     );
   }
 
   async getSingleRelatedData(query: GetSingleRelatedDataQuery): Promise<RecordData | null> {
-    const collectionId = await this.resolveCollectionId(query.collection);
+    const schema = await this.resolveSchema(query.collection);
 
     return this.activityLog.track(
-      { action: 'listRelatedData', type: 'read', collectionId, recordId: query.id },
+      {
+        action: 'listRelatedData',
+        type: 'read',
+        collectionId: schema.collectionId,
+        recordId: query.id,
+        label: this.relationLabel(schema, query.relation),
+      },
       { operation: () => this.agentPort.getSingleRelatedData(query, this.user) },
     );
   }
 
   async updateRecord(query: UpdateRecordQuery, opts: WriteOptions): Promise<RecordData> {
-    const collectionId = await this.resolveCollectionId(query.collection);
+    const { collectionId } = await this.resolveSchema(query.collection);
 
     return this.activityLog.track(
-      { action: 'update', type: 'write', collectionId, recordId: query.id },
+      { action: 'update', type: 'write', collectionId, recordId: query.id, label: 'updated' },
       {
         operation: () => this.agentPort.updateRecord(query, this.user),
         beforeCall: opts.beforeCall,
@@ -81,10 +93,16 @@ export default class AgentWithLog {
   }
 
   async executeAction(query: ExecuteActionQuery, opts: WriteOptions): Promise<unknown> {
-    const collectionId = await this.resolveCollectionId(query.collection);
+    const { collectionId } = await this.resolveSchema(query.collection);
 
     return this.activityLog.track(
-      { action: 'action', type: 'write', collectionId, recordId: query.id },
+      {
+        action: 'action',
+        type: 'write',
+        collectionId,
+        recordId: query.id,
+        label: `triggered the action "${query.action}"`,
+      },
       {
         operation: () => this.agentPort.executeAction(query, this.user),
         beforeCall: opts.beforeCall,
@@ -98,9 +116,16 @@ export default class AgentWithLog {
     return this.agentPort.getActionFormInfo(query, this.user);
   }
 
-  private async resolveCollectionId(collectionName: string): Promise<string> {
-    const schema = await this.schemaResolver.resolve(collectionName);
+  // ISO with the browser engine: `list relation "<displayName>"`. The query carries the technical
+  // relation name; resolve its displayName from the source schema, falling back to the technical
+  // name when the field is absent (resilient to orchestrator schema drift).
+  private relationLabel(schema: CollectionSchema, relation: string): string {
+    const displayName = schema.fields.find(f => f.fieldName === relation)?.displayName ?? relation;
 
-    return schema.collectionId;
+    return `list relation "${displayName}"`;
+  }
+
+  private resolveSchema(collectionName: string): Promise<CollectionSchema> {
+    return this.schemaResolver.resolve(collectionName);
   }
 }

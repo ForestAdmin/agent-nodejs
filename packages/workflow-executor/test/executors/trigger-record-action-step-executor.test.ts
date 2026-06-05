@@ -259,6 +259,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         type: 'write',
         collectionId: 'col-customers',
         recordId: [42],
+        label: 'triggered the action "send-welcome-email"',
       });
     });
 
@@ -344,6 +345,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         type: 'write',
         collectionId: 'col-orders',
         recordId: [99],
+        label: 'triggered the action "cancel-order"',
       });
     });
   });

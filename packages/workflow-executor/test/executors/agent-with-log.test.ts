@@ -21,16 +21,26 @@ function makeUser(): StepUser {
   } as StepUser;
 }
 
-function makeSchema(collectionId = 'col-customers'): CollectionSchema {
+function makeSchema(
+  collectionId = 'col-customers',
+  fields: CollectionSchema['fields'] = [],
+): CollectionSchema {
   return {
     collectionName: 'customers',
     collectionId,
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     referenceField: null,
-    fields: [],
+    fields,
     actions: [],
   };
+}
+
+function makeRelationField(
+  fieldName: string,
+  displayName: string,
+): CollectionSchema['fields'][number] {
+  return { fieldName, displayName, isRelationship: true, relationType: 'BelongsTo' };
 }
 
 function makeActivityLogPort() {
@@ -93,7 +103,53 @@ describe('AgentWithLog', () => {
       expect(result).toEqual({ collectionName: 'customers', recordId: [42], values: {} });
     });
 
-    it('logs getRelatedData as listRelatedData/read', async () => {
+    it('logs getRelatedData as listRelatedData/read labelled with the relation displayName', async () => {
+      const schema = makeSchema('col-customers', [makeRelationField('orders', 'Orders')]);
+      const { deps, activityLogPort, schemaResolver } = makeDeps();
+      (schemaResolver.resolve as jest.Mock).mockResolvedValue(schema);
+      const agent = new AgentWithLog(deps);
+
+      await agent.getRelatedData({
+        collection: 'customers',
+        id: [42],
+        relation: 'orders',
+        relatedSchema: makeSchema('col-orders'),
+        limit: 50,
+      });
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'listRelatedData',
+        type: 'read',
+        collectionId: 'col-customers',
+        recordId: [42],
+        label: 'list relation "Orders"',
+      });
+    });
+
+    it('logs getSingleRelatedData as listRelatedData/read labelled with the relation displayName (xToOne)', async () => {
+      const schema = makeSchema('col-customers', [makeRelationField('order', 'Order')]);
+      const { deps, activityLogPort, schemaResolver } = makeDeps();
+      (schemaResolver.resolve as jest.Mock).mockResolvedValue(schema);
+      const agent = new AgentWithLog(deps);
+
+      await agent.getSingleRelatedData({
+        collection: 'customers',
+        id: [42],
+        relation: 'order',
+        relatedSchema: makeSchema('col-orders'),
+      });
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'listRelatedData',
+          type: 'read',
+          label: 'list relation "Order"',
+        }),
+      );
+    });
+
+    it('falls back to the technical relation name when the field is absent from the schema', async () => {
       const { deps, activityLogPort } = makeDeps();
       const agent = new AgentWithLog(deps);
 
@@ -106,29 +162,51 @@ describe('AgentWithLog', () => {
       });
 
       expect(activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'listRelatedData', type: 'read', recordId: [42] }),
-      );
-    });
-
-    it('logs getSingleRelatedData as listRelatedData/read (xToOne)', async () => {
-      const { deps, activityLogPort } = makeDeps();
-      const agent = new AgentWithLog(deps);
-
-      await agent.getSingleRelatedData({
-        collection: 'customers',
-        id: [42],
-        relation: 'order',
-        relatedSchema: makeSchema('col-orders'),
-      });
-
-      expect(activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'listRelatedData', type: 'read', recordId: [42] }),
+        expect.objectContaining({ label: 'list relation "orders"' }),
       );
     });
   });
 
   describe('write methods', () => {
-    it('logs updateRecord as update/write and forwards beforeCall before the side effect', async () => {
+    it('logs updateRecord as update/write with the static "updated" label', async () => {
+      const { deps, activityLogPort } = makeDeps();
+      const agent = new AgentWithLog(deps);
+
+      await agent.updateRecord(
+        { collection: 'customers', id: [42], values: { name: 'X' } },
+        { beforeCall: async () => undefined },
+      );
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-customers',
+        recordId: [42],
+        label: 'updated',
+      });
+    });
+
+    it('logs executeAction labelled with the action technical name', async () => {
+      const { deps, activityLogPort } = makeDeps();
+      const agent = new AgentWithLog(deps);
+
+      await agent.executeAction(
+        { collection: 'customers', action: 'send_email', id: [42] },
+        { beforeCall: async () => undefined },
+      );
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'action',
+        type: 'write',
+        collectionId: 'col-customers',
+        recordId: [42],
+        label: 'triggered the action "send_email"',
+      });
+    });
+
+    it('runs beforeCall between createPending and the agent call (audit precedes the side effect)', async () => {
       const order: string[] = [];
       const { deps, agentPort, activityLogPort } = makeDeps();
       (agentPort.updateRecord as jest.Mock).mockImplementation(async () => {
