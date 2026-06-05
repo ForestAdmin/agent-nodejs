@@ -3154,6 +3154,38 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
+    it('pins the source record via selectedRecordStepIndex (no AI relation choice)', async () => {
+      const { model, bindTools } = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          // step 0 is the base customers record; pin it + its Order relation → single candidate.
+          preRecordedArgs: { selectedRecordStepIndex: 0, relationDisplayName: 'Order' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(bindTools).not.toHaveBeenCalled();
+    });
+
+    it('errors when selectedRecordStepIndex matches no available record', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepIndex: 99 },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
     it('skips AI record selection when selectedRecordIndex is pre-recorded with HasMany', async () => {
       const relatedData = [
         makeRelatedRecordData({
