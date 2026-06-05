@@ -21,7 +21,7 @@ import {
 function mapTask(task: ServerWorkflowTask): StepDefinition {
   // executionType is passed through as-is; each schema's .default().catch() handles
   // missing or unsupported values without requiring an explicit mapping here.
-  const base = { prompt: task.prompt, executionType: task.executionType };
+  const base = { prompt: task.prompt, executionType: task.executionType, title: task.title };
 
   switch (task.taskType) {
     case ServerTaskTypeEnum.McpServer:
@@ -65,6 +65,7 @@ function mapCondition(condition: ServerWorkflowCondition): ConditionStepDefiniti
     type: StepType.Condition,
     prompt: condition.prompt,
     executionType: condition.executionType,
+    title: condition.title,
     options,
   });
 }

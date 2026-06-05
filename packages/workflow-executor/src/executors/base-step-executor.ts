@@ -224,16 +224,22 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   protected buildContextMessage(): SystemMessage {
-    const { user } = this.context;
+    const { user, stepDefinition } = this.context;
     const now = new Date();
 
-    return new SystemMessage(
-      [
-        `Step executed by: ${user.firstName} ${user.lastName} (${user.email}, id: ${user.id})`,
-        `Role: ${user.role} | Team: ${user.team}`,
-        `Current date and time: ${now.toISOString()} (UTC)`,
-      ].join('\n'),
-    );
+    const lines = [
+      `Step executed by: ${user.firstName} ${user.lastName} (${user.email}, id: ${user.id})`,
+      `Role: ${user.role} | Team: ${user.team}`,
+      `Current date and time: ${now.toISOString()} (UTC)`,
+    ];
+
+    // Fall back to the step title only when there is no prompt — the prompt, when present, is the
+    // authoritative intent (surfaced by each executor), so the title would just be noise.
+    if (!stepDefinition.prompt?.trim() && stepDefinition.title) {
+      lines.push(`Step title: "${stepDefinition.title}"`);
+    }
+
+    return new SystemMessage(lines.join('\n'));
   }
 
   protected async buildPreviousStepsMessages(): Promise<SystemMessage[]> {

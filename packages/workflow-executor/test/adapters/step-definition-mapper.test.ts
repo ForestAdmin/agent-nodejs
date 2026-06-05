@@ -60,6 +60,7 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(task)).toEqual({
         type: StepType.ReadRecord,
         prompt: 'read it',
+        title: 'Test task',
         executionType: ServerStepExecutionTypeEnum.FullyAutomated,
       });
     });
@@ -70,6 +71,7 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(task)).toEqual({
         type: StepType.UpdateRecord,
         prompt: 'update it',
+        title: 'Test task',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
     });
@@ -80,6 +82,7 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(task)).toEqual({
         type: StepType.TriggerAction,
         prompt: 'trigger it',
+        title: 'Test task',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
     });
@@ -93,6 +96,7 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(task)).toEqual({
         type: StepType.LoadRelatedRecord,
         prompt: 'load it',
+        title: 'Test task',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
     });
@@ -108,6 +112,7 @@ describe('toStepDefinition', () => {
         type: StepType.Mcp,
         prompt: 'run mcp',
         mcpServerId: 'mcp-abc',
+        title: 'Test task',
         executionType: ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
       });
     });
@@ -128,6 +133,7 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(task)).toEqual({
         type: StepType.Guidance,
         prompt: 'guide them',
+        title: 'Test task',
         executionType: StepExecutionMode.Manual,
       });
     });
@@ -196,6 +202,7 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(condition)).toEqual({
         type: StepType.Condition,
         prompt: 'Choose one',
+        title: 'Test condition',
         options: ['Yes', 'No'],
         executionType: StepExecutionMode.FullyAutomated,
       });
@@ -210,6 +217,7 @@ describe('toStepDefinition', () => {
       expect(toStepDefinition(condition)).toEqual({
         type: StepType.Condition,
         prompt: 'Choose one',
+        title: 'Test condition',
         options: ['Approve', 'Reject'],
         executionType: StepExecutionMode.FullyAutomated,
       });
