@@ -61,6 +61,10 @@ class TestableExecutor extends BaseStepExecutor {
     return super.buildPreviousStepsMessages();
   }
 
+  override buildContextMessage(): SystemMessage {
+    return super.buildContextMessage();
+  }
+
   override invokeWithTool<T = Record<string, unknown>>(
     messages: BaseMessage[],
     tool: DynamicStructuredTool,
@@ -175,6 +179,53 @@ function makeContext(
 }
 
 describe('BaseStepExecutor', () => {
+  describe('buildContextMessage', () => {
+    it('falls back to the step title when there is no prompt', () => {
+      const context = makeContext({
+        stepDefinition: {
+          type: StepType.Condition,
+          executionType: StepExecutionMode.Manual,
+          options: ['A', 'B'],
+          title: 'Load the store',
+        },
+      });
+
+      const message = new TestableExecutor(context).buildContextMessage();
+
+      expect(message.content as string).toContain('Step title: "Load the store"');
+    });
+
+    it('omits the title when a prompt is present (the prompt is authoritative)', () => {
+      const context = makeContext({
+        stepDefinition: {
+          type: StepType.Condition,
+          executionType: StepExecutionMode.Manual,
+          options: ['A', 'B'],
+          prompt: 'Pick one',
+          title: 'Load the store',
+        },
+      });
+
+      const message = new TestableExecutor(context).buildContextMessage();
+
+      expect(message.content as string).not.toContain('Step title');
+    });
+
+    it('omits the title line when the step has neither prompt nor title', () => {
+      const context = makeContext({
+        stepDefinition: {
+          type: StepType.Condition,
+          executionType: StepExecutionMode.Manual,
+          options: ['A', 'B'],
+        },
+      });
+
+      const message = new TestableExecutor(context).buildContextMessage();
+
+      expect(message.content as string).not.toContain('Step title');
+    });
+  });
+
   describe('buildPreviousStepsMessages', () => {
     it('returns empty array for empty history', async () => {
       const executor = new TestableExecutor(makeContext());

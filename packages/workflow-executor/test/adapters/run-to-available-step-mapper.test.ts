@@ -118,6 +118,7 @@ describe('toAvailableStepExecution', () => {
       stepDefinition: {
         type: StepType.ReadRecord,
         prompt: 'prompt',
+        title: 'Task',
         executionType: ServerStepExecutionTypeEnum.FullyAutomated,
       },
       previousSteps: [],
@@ -189,6 +190,7 @@ describe('toAvailableStepExecution', () => {
     expect(result?.stepDefinition).toEqual({
       type: StepType.Guidance,
       prompt: 'follow the guide',
+      title: 'guidance',
       executionType: ServerStepExecutionTypeEnum.Manual,
     });
   });

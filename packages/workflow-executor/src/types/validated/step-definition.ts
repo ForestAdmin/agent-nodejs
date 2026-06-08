@@ -25,6 +25,7 @@ export enum StepExecutionMode {
 const sharedFields = {
   prompt: z.string().optional(),
   aiConfigName: z.string().optional(),
+  title: z.string().optional(),
 };
 
 // Use z.enum(EnumObject), not z.nativeEnum — the latter is deprecated in zod 4.
