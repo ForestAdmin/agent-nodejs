@@ -153,9 +153,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     // Pre-recorded relations are pinned by their stable technical name (PRD-426), matched exactly.
     const pinned = preRecordedArgs?.relationName;
-    const eligible = pinned
-      ? candidates.filter(c => c.field.fieldName === pinned)
-      : candidates;
+    const eligible = pinned ? candidates.filter(c => c.field.fieldName === pinned) : candidates;
 
     if (eligible.length === 0) {
       // Relations exist, but the pre-recorded one doesn't match any of them.

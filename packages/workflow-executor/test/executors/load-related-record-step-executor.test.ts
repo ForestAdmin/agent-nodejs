@@ -2696,7 +2696,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(messages[0].content).toContain('loading a related record');
     });
 
-    it('surfaces the step title in the select-relation-to-follow context', async () => {
+    it('falls back to the step title in the select-relation-to-follow context when there is no prompt', async () => {
       const mockModel = makeMockModel({
         relation: relationOption({
           recordId: [42],
@@ -2707,7 +2707,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       });
       const context = makeContext({
         model: mockModel.model,
-        stepDefinition: makeStep({ title: 'Load the customer order' }),
+        stepDefinition: makeStep({ title: 'Load the customer order', prompt: undefined }),
       });
 
       await new LoadRelatedRecordStepExecutor(context).execute();
@@ -3103,6 +3103,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort,
         runStore,
         workflowPort,
+        previousSteps: [makeLoadRelatedPreviousStep(1), makeLoadRelatedPreviousStep(3)],
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           prompt: 'Load the dvd titanic',
@@ -3212,9 +3213,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
           customers: makeCollectionSchema(),
           orders: ordersSchema,
         }),
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { selectedRecordStepIndex: 1, relationDisplayName: 'Customer' },
+          preRecordedArgs: { selectedRecordStepIndex: 1, relationName: 'customer' },
         }),
       });
 
@@ -3254,7 +3256,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { relationDisplayName: 'Nonexistent' },
+          preRecordedArgs: { relationName: 'nonexistent' },
         }),
       });
 
@@ -3418,7 +3420,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // Given: the run loaded an owner before the user revised the "Load store" step. The
       // owner's execution survives in the RunStore (dead branch), but the cleaned
       // previousSteps no longer claims it.
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'reload' });
+      const mockModel = makeMockModel({
+        relation: relationOption({
+          recordId: [42],
+          relationDisplayName: 'Order',
+          relatedCollectionName: 'orders',
+        }),
+        reasoning: 'reload',
+      });
       const agentPort = makeMockAgentPort();
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
@@ -3451,7 +3460,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
       expect((mockModel.bindTools.mock.calls[0][0][0] as { name: string }).name).toBe(
-        'select-relation',
+        'select-relation-to-follow',
       );
       expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({
