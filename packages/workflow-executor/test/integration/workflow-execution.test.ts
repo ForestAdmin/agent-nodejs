@@ -36,6 +36,7 @@ const STEP_USER: StepUser = {
 
 const COLLECTION_SCHEMA: CollectionSchema = {
   collectionName: 'customers',
+  collectionId: 'col-customers',
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
@@ -48,6 +49,7 @@ const COLLECTION_SCHEMA: CollectionSchema = {
 
 const COLLECTION_SCHEMA_WITH_STATUS: CollectionSchema = {
   collectionName: 'customers',
+  collectionId: 'col-customers',
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
@@ -59,6 +61,7 @@ const COLLECTION_SCHEMA_WITH_STATUS: CollectionSchema = {
 
 const COLLECTION_SCHEMA_WITH_ACTIONS: CollectionSchema = {
   collectionName: 'customers',
+  collectionId: 'col-customers',
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [{ fieldName: 'id', displayName: 'Id', isRelationship: false, type: 'Number' }],
@@ -69,6 +72,7 @@ const COLLECTION_SCHEMA_WITH_ACTIONS: CollectionSchema = {
 
 const COLLECTION_SCHEMA_WITH_RELATION: CollectionSchema = {
   collectionName: 'customers',
+  collectionId: 'col-customers',
   collectionDisplayName: 'Customers',
   primaryKeyFields: ['id'],
   fields: [
@@ -86,6 +90,7 @@ const COLLECTION_SCHEMA_WITH_RELATION: CollectionSchema = {
 
 const ORDERS_SCHEMA: CollectionSchema = {
   collectionName: 'orders',
+  collectionId: 'col-orders',
   collectionDisplayName: 'Orders',
   primaryKeyFields: ['id'],
   fields: [

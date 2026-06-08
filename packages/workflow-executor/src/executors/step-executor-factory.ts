@@ -23,6 +23,9 @@ import type {
 } from '../types/validated/step-definition';
 
 import { StepStateError, causeMessage, extractErrorMessage } from '../errors';
+import SchemaResolver from '../schema-resolver';
+import ActivityLog from './activity-log';
+import AgentWithLog from './agent-with-log';
 import ConditionStepExecutor from './condition-step-executor';
 import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
@@ -124,6 +127,9 @@ export default class StepExecutorFactory {
     activityLogPort: ActivityLogPort,
     incomingPendingData?: unknown,
   ): ExecutionContext {
+    const schemaResolver = new SchemaResolver(cfg.schemaCache, cfg.workflowPort, step.runId);
+    const activityLog = new ActivityLog(activityLogPort, step.user);
+
     return {
       runId: step.runId,
       stepId: step.stepId,
@@ -134,15 +140,19 @@ export default class StepExecutorFactory {
       previousSteps: step.previousSteps,
       user: step.user,
       model: cfg.aiModelPort.getModel(step.stepDefinition.aiConfigName),
-      agentPort: cfg.agentPort,
-      workflowPort: cfg.workflowPort,
+      agent: new AgentWithLog({
+        agentPort: cfg.agentPort,
+        schemaResolver,
+        user: step.user,
+        activityLog,
+      }),
+      activityLog,
       runStore: cfg.runStore,
-      schemaCache: cfg.schemaCache,
+      schemaResolver,
       logger: cfg.logger,
       incomingPendingData,
       stepTimeoutMs: cfg.stepTimeoutMs,
       aiInvokeTimeoutMs: cfg.aiInvokeTimeoutMs,
-      activityLogPort,
     };
   }
 }

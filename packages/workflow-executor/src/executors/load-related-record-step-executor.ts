@@ -1,4 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
   LoadRelatedRecordCandidate,
@@ -56,16 +55,6 @@ interface RelationTarget extends RelationRef {
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    return {
-      renderingId: this.context.user.renderingId,
-      action: 'listRelatedData',
-      type: 'read',
-      collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId,
-    };
-  }
-
   protected async doExecute(): Promise<StepExecutionResult> {
     // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<LoadRelatedRecordStepExecutionData>(
@@ -276,16 +265,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
     const referenceField = relatedSchema.referenceField ?? null;
 
-    const candidate = await this.agentPort.getSingleRelatedData(
-      {
-        collection: target.selectedRecordRef.collectionName,
-        id: target.selectedRecordRef.recordId,
-        relation: target.name,
-        relatedSchema,
-        ...(referenceField && { fields: [referenceField] }),
-      },
-      this.context.user,
-    );
+    const candidate = await this.context.agent.getSingleRelatedData({
+      collection: target.selectedRecordRef.collectionName,
+      id: target.selectedRecordRef.recordId,
+      relation: target.name,
+      relatedSchema,
+      ...(referenceField && { fields: [referenceField] }),
+    });
 
     if (!candidate) return null;
 
@@ -434,16 +420,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     relatedSchema: CollectionSchema,
     limit: number,
   ): Promise<RecordData[]> {
-    return this.agentPort.getRelatedData(
-      {
-        collection: target.selectedRecordRef.collectionName,
-        id: target.selectedRecordRef.recordId,
-        relation: target.name,
-        relatedSchema,
-        limit,
-      },
-      this.context.user,
-    );
+    return this.context.agent.getRelatedData({
+      collection: target.selectedRecordRef.collectionName,
+      id: target.selectedRecordRef.recordId,
+      relation: target.name,
+      relatedSchema,
+      limit,
+    });
   }
 
   /** Persists the loaded record ref and returns a success outcome. */

@@ -1,3 +1,4 @@
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
@@ -7,8 +8,11 @@ import type { Step } from '../../src/types/validated/execution';
 import type { ReadRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
+import ActivityLog from '../../src/executors/activity-log';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ReadRecordStepDefinition> = {}): ReadRecordStepDefinition {
@@ -49,6 +53,7 @@ function makeMockAgentPort(
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
@@ -105,19 +110,36 @@ function makeMockModel(
   return { model, bindTools, invoke };
 }
 
-function makeContext(
-  overrides: Partial<ExecutionContext<ReadRecordStepDefinition>> = {},
-): ExecutionContext<ReadRecordStepDefinition> {
+function makeMockActivityLogPort(): ActivityLogPort {
   return {
-    runId: 'run-1',
+    createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+    markSucceeded: jest.fn().mockResolvedValue(undefined),
+    markFailed: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+function makeContext(
+  overrides: Partial<ExecutionContext<ReadRecordStepDefinition>> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    activityLog?: ActivityLog;
+    workflowPort?: WorkflowPort;
+  } = {},
+): ExecutionContext<ReadRecordStepDefinition> {
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = new SchemaCache();
+  const schemaResolver =
+    overrides.schemaResolver ?? new SchemaResolver(schemaCache, workflowPort, runId);
+
+  const base: Omit<ExecutionContext<ReadRecordStepDefinition>, 'agent' | 'activityLog'> = {
+    runId,
     stepId: 'read-1',
     stepIndex: 0,
     collectionId: 'col-1',
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
     model: makeMockModel({ fieldNames: ['email'] }).model,
-    agentPort: makeMockAgentPort(),
-    workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -130,16 +152,27 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaResolver,
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-    },
     ...overrides,
+  };
+
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(overrides.activityLogPort ?? makeMockActivityLogPort(), base.user);
+
+  return {
+    ...base,
+    activityLog,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: overrides.agentPort ?? makeMockAgentPort(),
+        schemaResolver,
+        user: base.user,
+        activityLog,
+      }),
   };
 }
 
@@ -478,6 +511,7 @@ describe('ReadRecordStepExecutor', () => {
 
       const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
+        collectionId: 'col-orders',
         collectionDisplayName: 'Orders',
         fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
       });
@@ -525,12 +559,18 @@ describe('ReadRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort({
         orders: { values: { total: 150 } },
       });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
       const context = makeContext({
         baseRecordRef,
         model,
         runStore,
         workflowPort,
         agentPort,
+        activityLogPort,
         previousSteps: [makeLoadRelatedPreviousStep(2)],
       });
       const executor = new ReadRecordStepExecutor(context);
@@ -550,6 +590,13 @@ describe('ReadRecordStepExecutor', () => {
           }),
         }),
       );
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'index',
+        type: 'read',
+        collectionId: 'col-orders',
+        recordId: [99],
+      });
     });
 
     it('includes step index in select-record tool schema when records have stepIndex', async () => {

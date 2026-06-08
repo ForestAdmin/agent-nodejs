@@ -1,4 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { ExecutionContext, StepExecutionResult } from '../types/execution-context';
 import type { McpStepExecutionData, McpToolCall } from '../types/step-execution-data';
 import type { McpStepDefinition } from '../types/validated/step-definition';
@@ -43,16 +42,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     return {
       mcpServerId: this.context.stepDefinition.mcpServerId,
       mcpServerName: this.mcpServerName,
-    };
-  }
-
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    return {
-      renderingId: this.context.user.renderingId,
-      action: 'action',
-      type: 'write',
-      collectionId: this.context.collectionId,
-      label: this.context.stepDefinition.mcpServerId,
     };
   }
 
@@ -126,20 +115,31 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      ...existingExecution,
-      type: 'mcp',
-      stepIndex: this.context.stepIndex,
-      idempotencyPhase: 'executing',
-    });
-
-    let toolResult: unknown;
-
-    try {
-      toolResult = await tool.base.invoke(target.input);
-    } catch (cause) {
-      throw new McpToolInvocationError(target.name, cause);
-    }
+    const toolResult = await this.context.activityLog.track(
+      {
+        action: 'action',
+        type: 'write',
+        label: this.context.stepDefinition.mcpServerId,
+        collectionId: this.context.collectionId,
+        recordId: this.context.baseRecordRef.recordId,
+      },
+      {
+        operation: async () => {
+          try {
+            return await tool.base.invoke(target.input);
+          } catch (cause) {
+            throw new McpToolInvocationError(target.name, cause);
+          }
+        },
+        beforeCall: () =>
+          this.context.runStore.saveStepExecution(this.context.runId, {
+            ...existingExecution,
+            type: 'mcp',
+            stepIndex: this.context.stepIndex,
+            idempotencyPhase: 'executing',
+          }),
+      },
+    );
 
     // 1. Persist raw result immediately — safe state before any further network calls
     const baseExecutionResult = { success: true as const, toolResult };
@@ -160,12 +160,15 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     try {
       formattedResponse = await this.formatToolResult(target, toolResult);
     } catch (cause) {
-      this.context.logger.error('Failed to format MCP tool result, using generic fallback', {
-        runId: this.context.runId,
-        stepIndex: this.context.stepIndex,
-        toolName: target.name,
-        cause: cause instanceof Error ? cause.message : String(cause),
-      });
+      this.context.logger.error(
+        'Failed to format MCP tool result, persisting raw result without summary',
+        {
+          runId: this.context.runId,
+          stepIndex: this.context.stepIndex,
+          toolName: target.name,
+          cause: cause instanceof Error ? cause.message : String(cause),
+        },
+      );
     }
 
     if (formattedResponse) {

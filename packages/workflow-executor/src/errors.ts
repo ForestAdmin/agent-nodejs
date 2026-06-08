@@ -259,6 +259,17 @@ export class AgentPortError extends WorkflowExecutorError {
   }
 }
 
+// Invariant guard: the agent port reads a collection's schema (for its primary keys) from the
+// cache, which the executor must populate via getCollectionSchema before any record access.
+export class SchemaNotCachedError extends WorkflowExecutorError {
+  constructor(collectionName: string) {
+    super(
+      `Collection schema for "${collectionName}" was not loaded before access — call getCollectionSchema first`,
+      'An error occurred while accessing your data. Please try again.',
+    );
+  }
+}
+
 export class WorkflowPortError extends WorkflowExecutorError {
   constructor(operation: string, cause: unknown) {
     super(

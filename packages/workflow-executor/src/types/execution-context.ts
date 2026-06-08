@@ -1,9 +1,8 @@
-import type { ActivityLogPort } from '../ports/activity-log-port';
-import type { AgentPort } from '../ports/agent-port';
+import type ActivityLog from '../executors/activity-log';
+import type AgentWithLog from '../executors/agent-with-log';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
-import type { WorkflowPort } from '../ports/workflow-port';
-import type SchemaCache from '../schema-cache';
+import type SchemaResolver from '../schema-resolver';
 import type { RecordRef } from './validated/collection';
 import type { AvailableStepExecution, Step, StepUser } from './validated/execution';
 import type { StepDefinition } from './validated/step-definition';
@@ -30,15 +29,14 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly baseRecordRef: RecordRef;
   readonly stepDefinition: TStep;
   readonly model: BaseChatModel;
-  readonly agentPort: AgentPort;
-  readonly workflowPort: WorkflowPort;
+  readonly agent: AgentWithLog;
+  readonly activityLog: ActivityLog;
   readonly runStore: RunStore;
   readonly user: StepUser;
-  readonly schemaCache: SchemaCache;
+  readonly schemaResolver: SchemaResolver;
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;
   readonly incomingPendingData?: unknown;
   readonly stepTimeoutMs?: number;
   readonly aiInvokeTimeoutMs?: number;
-  readonly activityLogPort: ActivityLogPort;
 }

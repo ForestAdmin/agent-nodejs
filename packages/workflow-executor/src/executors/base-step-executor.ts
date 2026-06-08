@@ -1,5 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
-import type { AgentPort } from '../ports/agent-port';
 import type {
   ExecutionContext,
   IStepExecutor,
@@ -35,11 +33,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 {
   protected readonly context: ExecutionContext<TStep>;
 
-  protected readonly agentPort: AgentPort;
-
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
-    this.agentPort = context.agentPort;
   }
 
   async execute(): Promise<StepExecutionResult> {
@@ -51,8 +46,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     });
 
     try {
-      // Idempotency guard — mutating executors override this. Called before runWithActivityLog
-      // so that cache hits and uncertain-state errors never emit an activity log entry.
+      // Idempotency guard — mutating executors override this. Runs before doExecute so a cache
+      // hit or uncertain-state error short-circuits before any side effect.
       const cached = await this.checkIdempotency();
 
       if (cached) {
@@ -64,7 +59,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         return cached;
       }
 
-      const result = await this.runWithActivityLog();
+      const result = await this.runWithTimeout();
 
       this.context.logger.info('Step execution completed', {
         ...this.logCtx,
@@ -111,44 +106,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
   protected checkIdempotency(): Promise<StepExecutionResult | null> {
     return Promise.resolve(null);
-  }
-
-  // Return null when the frontend performs the action (e.g. TriggerAction without
-  // executionType=FullyAutomated) — the front logs on its side. Override when the
-  // executor itself calls the agent.
-  protected buildActivityLogArgs(): CreateActivityLogArgs | null {
-    return null;
-  }
-
-  private async runWithActivityLog(): Promise<StepExecutionResult> {
-    const args = this.buildActivityLogArgs();
-    if (!args) return this.runWithTimeout();
-
-    const handle = await this.context.activityLogPort.createPending(args);
-
-    let result: StepExecutionResult;
-
-    try {
-      result = await this.runWithTimeout();
-    } catch (err) {
-      // Use userMessage (not the technical message) — errorMessage is rendered to end-users
-      // in the Forest Admin UI. Privacy: no collection/field/AI internals in the audit trail.
-      const errorMessage =
-        err instanceof WorkflowExecutorError ? err.userMessage : 'Unexpected error';
-      void this.context.activityLogPort.markFailed(handle, errorMessage);
-      throw err;
-    }
-
-    if (result.stepOutcome.status === 'error') {
-      void this.context.activityLogPort.markFailed(
-        handle,
-        result.stepOutcome.error ?? 'Step failed',
-      );
-    } else {
-      void this.context.activityLogPort.markSucceeded(handle);
-    }
-
-    return result;
   }
 
   // Promise.race doesn't abort the losing branch — it keeps running in the background. The .catch()

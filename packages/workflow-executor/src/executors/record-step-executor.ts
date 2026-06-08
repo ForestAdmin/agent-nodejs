@@ -71,17 +71,8 @@ export default abstract class RecordStepExecutor<
     return [this.context.baseRecordRef, ...relatedRecords];
   }
 
-  protected async getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
-    const cached = this.context.schemaCache.get(collectionName);
-    if (cached) return cached;
-
-    const schema = await this.context.workflowPort.getCollectionSchema(
-      collectionName,
-      this.context.runId,
-    );
-    this.context.schemaCache.set(collectionName, schema);
-
-    return schema;
+  protected getCollectionSchema(collectionName: string): Promise<CollectionSchema> {
+    return this.context.schemaResolver.resolve(collectionName);
   }
 
   protected findFieldByTechnicalName(

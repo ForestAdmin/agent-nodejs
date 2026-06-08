@@ -1,6 +1,9 @@
 /* eslint-disable max-classes-per-file */
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
+import type { AgentPort } from '../../src/ports/agent-port';
 import type { Logger } from '../../src/ports/logger-port';
 import type { RunStore } from '../../src/ports/run-store';
+import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution-context';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { RecordRef } from '../../src/types/validated/collection';
@@ -19,10 +22,12 @@ import {
   NoRecordsError,
   RunStorePortError,
   StepStateError,
-  WorkflowExecutorError,
 } from '../../src/errors';
+import ActivityLog from '../../src/executors/activity-log';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 /** Concrete subclass that exposes protected methods for testing. */
@@ -96,7 +101,7 @@ function makeMockLogger(): Logger {
   return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
-function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
+function makeMockActivityLogPort(): ActivityLogPort {
   return {
     createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
     markSucceeded: jest.fn().mockResolvedValue(undefined),
@@ -104,9 +109,20 @@ function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
   };
 }
 
-function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
-  return {
-    runId: 'run-1',
+function makeContext(
+  overrides: Partial<ExecutionContext> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    activityLog?: ActivityLog;
+    workflowPort?: WorkflowPort;
+  } = {},
+): ExecutionContext {
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? ({} as WorkflowPort);
+  const schemaCache = new SchemaCache();
+
+  const base: Omit<ExecutionContext, 'agent' | 'activityLog'> = {
+    runId,
     stepId: 'step-0',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -122,8 +138,6 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
       prompt: 'Pick one',
     },
     model: {} as ExecutionContext['model'],
-    agentPort: {} as ExecutionContext['agentPort'],
-    workflowPort: {} as ExecutionContext['workflowPort'],
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -136,12 +150,27 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: makeMockLogger(),
-
-    activityLogPort: makeMockActivityLogPort(),
     ...overrides,
+  };
+
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(overrides.activityLogPort ?? makeMockActivityLogPort(), base.user);
+
+  return {
+    ...base,
+    activityLog,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: overrides.agentPort ?? ({} as AgentPort),
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+        activityLog,
+      }),
   };
 }
 
@@ -641,181 +670,6 @@ describe('BaseStepExecutor', () => {
         'Step work rejected after timeout — result discarded',
         expect.anything(),
       );
-    });
-  });
-
-  describe('activity log lifecycle', () => {
-    class LoggedExecutor extends BaseStepExecutor {
-      constructor(context: ExecutionContext, private readonly errorToThrow?: unknown) {
-        super(context);
-      }
-
-      protected override buildActivityLogArgs() {
-        return {
-          renderingId: 1,
-          action: 'update',
-          type: 'write' as const,
-          collectionId: 'col-1',
-          recordId: [42],
-        };
-      }
-
-      protected async doExecute(): Promise<StepExecutionResult> {
-        if (this.errorToThrow !== undefined) throw this.errorToThrow;
-
-        return this.buildOutcomeResult({ status: 'success' });
-      }
-
-      protected buildOutcomeResult(outcome: {
-        status: BaseStepStatus;
-        error?: string;
-      }): StepExecutionResult {
-        return {
-          stepOutcome: {
-            type: 'record',
-            stepId: this.context.stepId,
-            stepIndex: this.context.stepIndex,
-            status: outcome.status,
-            ...(outcome.error !== undefined && { error: outcome.error }),
-          },
-        };
-      }
-    }
-
-    it('creates pending log, runs doExecute, then marks succeeded on success', async () => {
-      const context = makeContext();
-      const executor = new LoggedExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('success');
-      expect(context.activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({
-          action: 'update',
-          type: 'write',
-          collectionId: 'col-1',
-        }),
-      );
-      expect(context.activityLogPort.markSucceeded).toHaveBeenCalledWith({
-        id: 'log-1',
-        index: '0',
-      });
-      expect(context.activityLogPort.markFailed).not.toHaveBeenCalled();
-    });
-
-    it('marks failed when doExecute throws a WorkflowExecutorError', async () => {
-      const context = makeContext();
-      const executor = new LoggedExecutor(context, new NoRecordsError());
-
-      await executor.execute();
-
-      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
-        { id: 'log-1', index: '0' },
-        'No records available',
-      );
-      expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
-    });
-
-    it('fails the step and does NOT run doExecute when createPending throws ActivityLogCreationError', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
-      const { ActivityLogCreationError } = require('../../src/errors');
-      const context = makeContext();
-      (context.activityLogPort.createPending as jest.Mock).mockRejectedValue(
-        new ActivityLogCreationError(new Error('net')),
-      );
-      const doExecuteSpy = jest.fn().mockResolvedValue({
-        stepOutcome: { type: 'record', stepId: 'x', stepIndex: 0, status: 'success' },
-      });
-
-      class NeverRunExecutor extends LoggedExecutor {
-        protected override async doExecute(): Promise<StepExecutionResult> {
-          return doExecuteSpy();
-        }
-      }
-
-      const executor = new NeverRunExecutor(context);
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'Could not record this step in the audit log. Please try again, or contact your administrator if the problem persists.',
-      );
-      expect(doExecuteSpy).not.toHaveBeenCalled();
-    });
-
-    it('does NOT create pending log when buildActivityLogArgs returns null (default)', async () => {
-      const context = makeContext();
-      const executor = new TestableExecutor(context);
-
-      await executor.execute();
-
-      expect(context.activityLogPort.createPending).not.toHaveBeenCalled();
-      expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
-    });
-
-    it('calls markFailed with userMessage (not the technical message) on WorkflowExecutorError', async () => {
-      class DualMessageError extends WorkflowExecutorError {
-        constructor() {
-          super(
-            'Internal: datasource "customers" returned no record for pk=42',
-            'The record no longer exists.',
-          );
-        }
-      }
-      const context = makeContext();
-      const executor = new LoggedExecutor(context, new DualMessageError());
-
-      await executor.execute();
-
-      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
-        { id: 'log-1', index: '0' },
-        'The record no longer exists.',
-      );
-    });
-
-    it('marks failed when doExecute returns an error outcome without throwing', async () => {
-      class ErrorOutcomeExecutor extends BaseStepExecutor {
-        protected override buildActivityLogArgs() {
-          return {
-            renderingId: 1,
-            action: 'update',
-            type: 'write' as const,
-            collectionName: 'customers',
-            recordId: [42],
-          };
-        }
-
-        protected async doExecute(): Promise<StepExecutionResult> {
-          return this.buildOutcomeResult({ status: 'error', error: 'soft failure' });
-        }
-
-        protected buildOutcomeResult(outcome: {
-          status: BaseStepStatus;
-          error?: string;
-        }): StepExecutionResult {
-          return {
-            stepOutcome: {
-              type: 'record',
-              stepId: this.context.stepId,
-              stepIndex: this.context.stepIndex,
-              status: outcome.status,
-              ...(outcome.error !== undefined && { error: outcome.error }),
-            },
-          };
-        }
-      }
-
-      const context = makeContext();
-      const executor = new ErrorOutcomeExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
-      expect(context.activityLogPort.markFailed).toHaveBeenCalledWith(
-        { id: 'log-1', index: '0' },
-        'soft failure',
-      );
-      expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
     });
   });
 

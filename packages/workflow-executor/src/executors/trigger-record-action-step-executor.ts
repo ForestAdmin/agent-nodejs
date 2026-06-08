@@ -1,4 +1,3 @@
-import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
@@ -29,22 +28,6 @@ interface ActionTarget extends ActionRef {
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
-  protected override buildActivityLogArgs(): CreateActivityLogArgs | null {
-    // Skip when the frontend executes the action itself (non fully-automated mode).
-    // The front logs on its side via the standard agent activity flow.
-    if (this.context.stepDefinition.executionType !== StepExecutionMode.FullyAutomated) {
-      return null;
-    }
-
-    return {
-      renderingId: this.context.user.renderingId,
-      action: 'action',
-      type: 'write',
-      collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId,
-    };
-  }
-
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
     const existing = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
       'trigger-action',
@@ -126,14 +109,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     // handle forms (no UI to fill them). Reject form-bearing actions here. When the
     // frontend is in the loop (Branch C), it handles the form natively so no check.
     if (step.executionType === StepExecutionMode.FullyAutomated) {
-      const { hasForm } = await this.agentPort.getActionFormInfo(
-        {
-          collection: selectedRecordRef.collectionName,
-          action: target.name,
-          id: selectedRecordRef.recordId,
-        },
-        this.context.user,
-      );
+      const { hasForm } = await this.context.agent.getActionFormInfo({
+        collection: selectedRecordRef.collectionName,
+        action: target.name,
+        id: selectedRecordRef.recordId,
+      });
       if (hasForm) throw new UnsupportedActionFormError(target.displayName);
 
       return this.executeOnExecutor(target);
@@ -150,24 +130,25 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  /** Branch B — executor runs the action via agentPort, then persists the result. */
+  /** Branch B — executor runs the action via the audited agent, then persists the result. */
   private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      type: 'trigger-action',
-      stepIndex: this.context.stepIndex,
-      selectedRecordRef,
-      idempotencyPhase: 'executing',
-    });
-
-    const actionResult = await this.agentPort.executeAction(
+    const actionResult = await this.context.agent.executeAction(
       {
         collection: selectedRecordRef.collectionName,
         action: name,
         id: selectedRecordRef.recordId,
       },
-      this.context.user,
+      {
+        beforeCall: () =>
+          this.context.runStore.saveStepExecution(this.context.runId, {
+            type: 'trigger-action',
+            stepIndex: this.context.stepIndex,
+            selectedRecordRef,
+            idempotencyPhase: 'executing',
+          }),
+      },
     );
 
     await this.context.runStore.saveStepExecution(this.context.runId, {

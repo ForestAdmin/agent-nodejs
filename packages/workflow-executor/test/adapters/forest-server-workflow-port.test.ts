@@ -591,6 +591,7 @@ describe('ForestServerWorkflowPort', () => {
   describe('getCollectionSchema', () => {
     const collectionSchema: CollectionSchema = {
       collectionName: 'users',
+      collectionId: 'col-users',
       collectionDisplayName: 'Users',
       primaryKeyFields: ['id'],
       fields: [],
@@ -626,6 +627,7 @@ describe('ForestServerWorkflowPort', () => {
       // Shape invalide : fields[0] manque fieldName (violation FieldSchema.fieldName.min(1)).
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [{ displayName: 'Email', isRelationship: false }],
@@ -638,6 +640,7 @@ describe('ForestServerWorkflowPort', () => {
     it('strips unknown extra fields on the wire (orchestrator drift tolerance)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         referenceField: 'name',
@@ -671,6 +674,7 @@ describe('ForestServerWorkflowPort', () => {
     it('defaults actions to [] when the orchestrator omits it', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [],
@@ -684,6 +688,7 @@ describe('ForestServerWorkflowPort', () => {
     it('accepts a field without type (omitted by the orchestrator)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [{ fieldName: 'email', displayName: 'Email', isRelationship: false }],
@@ -700,6 +705,7 @@ describe('ForestServerWorkflowPort', () => {
       async displayName => {
         mockQuery.mockResolvedValue({
           collectionName: 'users',
+          collectionId: 'col-users',
           collectionDisplayName: displayName,
           primaryKeyFields: ['id'],
           fields: [],
@@ -715,6 +721,7 @@ describe('ForestServerWorkflowPort', () => {
     it('accepts relationType BelongsToMany (many-to-many relation)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
@@ -738,6 +745,7 @@ describe('ForestServerWorkflowPort', () => {
     it("strips the target key from relatedCollectionName (Forest 'collection.key' reference)", async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'accounts',
+        collectionId: 'col-accounts',
         collectionDisplayName: 'Accounts',
         primaryKeyFields: ['id'],
         fields: [
@@ -761,6 +769,7 @@ describe('ForestServerWorkflowPort', () => {
     it('leaves relatedCollectionName unchanged when it carries no target key (no dot)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'accounts',
+        collectionId: 'col-accounts',
         collectionDisplayName: 'Accounts',
         primaryKeyFields: ['id'],
         fields: [
@@ -784,6 +793,7 @@ describe('ForestServerWorkflowPort', () => {
     it('accepts type File (Forest Admin extension)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
@@ -800,6 +810,7 @@ describe('ForestServerWorkflowPort', () => {
     it('accepts type [File] (array of files)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
@@ -821,6 +832,7 @@ describe('ForestServerWorkflowPort', () => {
     it('rejects enumValues: [] (empty enum is invalid)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
@@ -1033,6 +1045,7 @@ describe('ForestServerWorkflowPort', () => {
     it('getCollectionSchema retries on HTTP 408 (timeout)', async () => {
       const validSchema: CollectionSchema = {
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [

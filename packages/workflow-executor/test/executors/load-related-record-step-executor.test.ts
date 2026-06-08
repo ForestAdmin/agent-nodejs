@@ -1,3 +1,4 @@
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
@@ -8,8 +9,11 @@ import type { Step } from '../../src/types/validated/execution';
 import type { LoadRelatedRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, RunStorePortError } from '../../src/errors';
+import ActivityLog from '../../src/executors/activity-log';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
@@ -73,6 +77,7 @@ function makeMockAgentPort(relatedData: RecordData[] = [makeRelatedRecordData()]
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
@@ -139,18 +144,25 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'selec
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<LoadRelatedRecordStepDefinition>> = {},
+  overrides: Partial<ExecutionContext<LoadRelatedRecordStepDefinition>> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    activityLog?: ActivityLog;
+    workflowPort?: WorkflowPort;
+  } = {},
 ): ExecutionContext<LoadRelatedRecordStepDefinition> {
-  return {
-    runId: 'run-1',
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = new SchemaCache();
+
+  const base: Omit<ExecutionContext<LoadRelatedRecordStepDefinition>, 'agent' | 'activityLog'> = {
+    runId,
     stepId: 'load-1',
     stepIndex: 0,
     collectionId: 'col-1',
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
     model: makeMockModel({ relationName: 'Order', reasoning: 'User requested order' }).model,
-    agentPort: makeMockAgentPort(),
-    workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -163,16 +175,34 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-    },
     ...overrides,
+  };
+
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(
+      overrides.activityLogPort ?? {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      },
+      base.user,
+    );
+
+  return {
+    ...base,
+    activityLog,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: overrides.agentPort ?? makeMockAgentPort(),
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+        activityLog,
+      }),
   };
 }
 
@@ -739,6 +769,58 @@ describe('LoadRelatedRecordStepExecutor', () => {
         'The related record could not be found. It may have been deleted.',
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('operation activity log (PRD-442 #1)', () => {
+    it('logs listRelatedData against the source record and its collection, not the trigger', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const { model } = makeMockModel({ relationName: 'Order', reasoning: 'r' });
+      const context = makeContext({
+        model,
+        runStore,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'listRelatedData',
+        type: 'read',
+        collectionId: 'col-customers',
+        recordId: [42],
+      });
+    });
+
+    it('logs the relation read once on the awaiting-input (Branch C) path', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const { model } = makeMockModel({ relationName: 'Order', reasoning: 'r' });
+      const context = makeContext({ model, runStore, activityLogPort });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
+      expect(activityLogPort.createPending).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'listRelatedData',
+          type: 'read',
+          collectionId: 'col-customers',
+          recordId: [42],
+        }),
+      );
     });
   });
 

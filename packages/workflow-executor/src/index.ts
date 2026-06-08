@@ -122,6 +122,7 @@ export { default as Runner } from './runner';
 export type { RunnerConfig, RunnerState } from './runner';
 export { default as validateSecrets } from './validate-secrets';
 export { default as SchemaCache } from './schema-cache';
+export { default as SchemaResolver } from './schema-resolver';
 export { default as InMemoryStore } from './stores/in-memory-store';
 export { default as DatabaseStore } from './stores/database-store';
 export type { DatabaseStoreOptions } from './stores/database-store';

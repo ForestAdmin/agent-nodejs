@@ -1,3 +1,5 @@
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
+import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
@@ -7,8 +9,11 @@ import type { McpStepDefinition } from '../../src/types/validated/step-definitio
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { RunStorePortError, StepStateError } from '../../src/errors';
+import ActivityLog from '../../src/executors/activity-log';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
@@ -85,23 +90,25 @@ function makeMockModel(toolName: string, toolArgs: Record<string, unknown>) {
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<McpStepDefinition>> = {},
+  overrides: Partial<ExecutionContext<McpStepDefinition>> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    activityLog?: ActivityLog;
+    workflowPort?: WorkflowPort;
+  } = {},
 ): ExecutionContext<McpStepDefinition> {
-  return {
-    runId: 'run-1',
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = new SchemaCache();
+
+  const base: Omit<ExecutionContext<McpStepDefinition>, 'agent' | 'activityLog'> = {
+    runId,
     stepId: 'mcp-1',
     stepIndex: 0,
     collectionId: 'col-1',
     baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
     stepDefinition: makeStep(),
     model: makeMockModel('send_notification', { message: 'Hello' }).model,
-    agentPort: {
-      getRecord: jest.fn(),
-      updateRecord: jest.fn(),
-      getRelatedData: jest.fn(),
-      executeAction: jest.fn(),
-    } as unknown as ExecutionContext['agentPort'],
-    workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -114,16 +121,41 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-    },
     ...overrides,
+  };
+
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(
+      overrides.activityLogPort ?? {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      },
+      base.user,
+    );
+
+  return {
+    ...base,
+    activityLog,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort:
+          overrides.agentPort ??
+          ({
+            getRecord: jest.fn(),
+            updateRecord: jest.fn(),
+            getRelatedData: jest.fn(),
+            executeAction: jest.fn(),
+          } as unknown as AgentPort),
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+        activityLog,
+      }),
   };
 }
 
@@ -267,7 +299,7 @@ describe('McpStepExecutor', () => {
         }),
       );
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to format MCP tool result, using generic fallback',
+        'Failed to format MCP tool result, persisting raw result without summary',
         expect.objectContaining({ toolName: 'send_notification' }),
       );
     });
@@ -951,7 +983,7 @@ describe('McpStepExecutor', () => {
   });
 
   describe('activity log', () => {
-    it('creates activity log with collectionId, renderingId, action, type and mcpServerId as label', async () => {
+    it('logs against the run base record with collectionId, renderingId, action, type and mcpServerId as label', async () => {
       const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
       const { model } = makeMockModel('send_notification', { message: 'Hello' });
       const activityLogPort = {
@@ -977,6 +1009,7 @@ describe('McpStepExecutor', () => {
         action: 'action',
         type: 'write',
         collectionId: 'col-1',
+        recordId: [42],
         label: 'my-mcp-server',
       });
     });

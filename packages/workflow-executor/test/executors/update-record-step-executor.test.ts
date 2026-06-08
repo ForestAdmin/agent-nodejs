@@ -1,3 +1,4 @@
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
@@ -7,9 +8,17 @@ import type { CollectionSchema, RecordRef } from '../../src/types/validated/coll
 import type { Step } from '../../src/types/validated/execution';
 import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-definition';
 
-import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
+import {
+  ActivityLogCreationError,
+  AgentPortError,
+  RunStorePortError,
+  StepStateError,
+} from '../../src/errors';
+import ActivityLog from '../../src/executors/activity-log';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<UpdateRecordStepDefinition> = {}): UpdateRecordStepDefinition {
@@ -48,6 +57,7 @@ function makeMockAgentPort(
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
@@ -103,10 +113,19 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'updat
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<UpdateRecordStepDefinition>> = {},
+  overrides: Partial<ExecutionContext<UpdateRecordStepDefinition>> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    activityLog?: ActivityLog;
+    workflowPort?: WorkflowPort;
+  } = {},
 ): ExecutionContext<UpdateRecordStepDefinition> {
-  return {
-    runId: 'run-1',
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = new SchemaCache();
+
+  const base: Omit<ExecutionContext<UpdateRecordStepDefinition>, 'agent' | 'activityLog'> = {
+    runId,
     stepId: 'update-1',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -115,8 +134,6 @@ function makeContext(
     model: makeMockModel({
       input: { fieldName: 'Status', value: 'active', reasoning: 'User requested status change' },
     }).model,
-    agentPort: makeMockAgentPort(),
-    workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -129,16 +146,34 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-    },
     ...overrides,
+  };
+
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(
+      overrides.activityLogPort ?? {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      },
+      base.user,
+    );
+
+  return {
+    ...base,
+    activityLog,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: overrides.agentPort ?? makeMockAgentPort(),
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+        activityLog,
+      }),
   };
 }
 
@@ -195,6 +230,159 @@ describe('UpdateRecordStepExecutor', () => {
             recordId: [42],
           }),
         }),
+      );
+    });
+  });
+
+  describe('operation activity log (PRD-442 #1)', () => {
+    it('logs the update against the acted record and its collection, not the trigger', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        model: makeMockModel({ input: { fieldName: 'Status', value: 'active', reasoning: 'r' } })
+          .model,
+        runStore,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new UpdateRecordStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-customers',
+        recordId: [42],
+      });
+    });
+
+    it('does not log the update while only awaiting confirmation', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        model: makeMockModel({ input: { fieldName: 'Status', value: 'active', reasoning: 'r' } })
+          .model,
+        runStore,
+        activityLogPort,
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+
+    it('logs against a related record in another collection (cross-collection)', async () => {
+      const baseRecordRef = makeRecordRef({ stepIndex: 1 });
+      const relatedRecord = makeRecordRef({
+        stepIndex: 2,
+        recordId: [99],
+        collectionName: 'orders',
+      });
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionId: 'col-orders',
+        collectionDisplayName: 'Orders',
+        fields: [
+          { fieldName: 'total', displayName: 'Total', isRelationship: false, type: 'Number' },
+        ],
+      });
+
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-record', args: { recordIdentifier: 'Step 2 - Orders #99' }, id: 'c1' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'update-record-field',
+              args: { input: { fieldName: 'Total', value: 200, reasoning: 'r' } },
+              id: 'c2',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
+        activityLogPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new UpdateRecordStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-orders',
+        recordId: [99],
+      });
+    });
+
+    it('does not persist the executing marker when the activity log cannot be created', async () => {
+      const runStore = makeMockRunStore();
+      const activityLogPort = {
+        createPending: jest
+          .fn()
+          .mockRejectedValue(new ActivityLogCreationError(new Error('audit down'))),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        runStore,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'Could not record this step in the audit log. Please try again, or contact your administrator if the problem persists.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ idempotencyPhase: 'executing' }),
       );
     });
   });
@@ -413,13 +601,20 @@ describe('UpdateRecordStepExecutor', () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
       });
-      const context = makeContext({ agentPort, runStore });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({ agentPort, runStore, activityLogPort });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.updateRecord).not.toHaveBeenCalled();
+      // No side effect happened → no audit-log entry (PRD-442 #2: no premature/duplicate log).
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -1179,9 +1374,11 @@ describe('UpdateRecordStepExecutor', () => {
     it('skips AI field selection when fieldName and value are pre-recorded', async () => {
       const mockModel = makeMockModel();
       const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         model: mockModel.model,
         runStore,
+        agentPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldName: 'status', value: 'active' },
@@ -1193,7 +1390,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
-      expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { status: 'active' } }),
         context.user,
       );
@@ -1299,9 +1496,11 @@ describe('UpdateRecordStepExecutor', () => {
           fields: [{ fieldName: 'age', displayName: 'Age', isRelationship: false, type: 'Number' }],
         }),
       });
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         runStore,
         workflowPort,
+        agentPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldName: 'age', value: 42 },
@@ -1312,7 +1511,7 @@ describe('UpdateRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { age: 42 } }),
         context.user,
       );
@@ -1335,9 +1534,11 @@ describe('UpdateRecordStepExecutor', () => {
           ],
         }),
       });
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         runStore,
         workflowPort,
+        agentPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldName: 'status', value: 'active' },
@@ -1349,7 +1550,7 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       // Writes field A ('status'), not field B ('note' / displayName 'status').
-      expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { status: 'active' } }),
         context.user,
       );

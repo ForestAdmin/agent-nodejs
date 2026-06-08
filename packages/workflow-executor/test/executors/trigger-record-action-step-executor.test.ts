@@ -1,3 +1,4 @@
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
@@ -8,8 +9,11 @@ import type { Step } from '../../src/types/validated/execution';
 import type { TriggerActionStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
+import ActivityLog from '../../src/executors/activity-log';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import TriggerRecordActionStepExecutor from '../../src/executors/trigger-record-action-step-executor';
 import SchemaCache from '../../src/schema-cache';
+import SchemaResolver from '../../src/schema-resolver';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(
@@ -45,6 +49,7 @@ function makeMockAgentPort(): AgentPort {
 function makeCollectionSchema(overrides: Partial<CollectionSchema> = {}): CollectionSchema {
   return {
     collectionName: 'customers',
+    collectionId: 'col-customers',
     collectionDisplayName: 'Customers',
     primaryKeyFields: ['id'],
     fields: [
@@ -105,10 +110,19 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'selec
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<TriggerActionStepDefinition>> = {},
+  overrides: Partial<ExecutionContext<TriggerActionStepDefinition>> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    activityLog?: ActivityLog;
+    workflowPort?: WorkflowPort;
+  } = {},
 ): ExecutionContext<TriggerActionStepDefinition> {
-  return {
-    runId: 'run-1',
+  const runId = overrides.runId ?? 'run-1';
+  const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
+  const schemaCache = new SchemaCache();
+
+  const base: Omit<ExecutionContext<TriggerActionStepDefinition>, 'agent' | 'activityLog'> = {
+    runId,
     stepId: 'trigger-1',
     stepIndex: 0,
     collectionId: 'col-1',
@@ -118,8 +132,6 @@ function makeContext(
       actionName: 'Send Welcome Email',
       reasoning: 'User requested welcome email',
     }).model,
-    agentPort: makeMockAgentPort(),
-    workflowPort: makeMockWorkflowPort(),
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -132,16 +144,34 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaCache: new SchemaCache(),
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-    },
     ...overrides,
+  };
+
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(
+      overrides.activityLogPort ?? {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      },
+      base.user,
+    );
+
+  return {
+    ...base,
+    activityLog,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: overrides.agentPort ?? makeMockAgentPort(),
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+        activityLog,
+      }),
   };
 }
 
@@ -206,6 +236,118 @@ describe('TriggerRecordActionStepExecutor', () => {
     });
   });
 
+  describe('operation activity log (PRD-442 #1)', () => {
+    it('logs the action against the acted record and its collection, not the trigger', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ ok: true });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        agentPort,
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'action',
+        type: 'write',
+        collectionId: 'col-customers',
+        recordId: [42],
+      });
+    });
+
+    it('logs against a related record in another collection (cross-collection)', async () => {
+      const baseRecordRef = makeRecordRef({ stepIndex: 1 });
+      const relatedRecord = makeRecordRef({
+        stepIndex: 2,
+        recordId: [99],
+        collectionName: 'orders',
+      });
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionId: 'col-orders',
+        collectionDisplayName: 'Orders',
+        actions: [
+          {
+            name: 'cancel-order',
+            displayName: 'Cancel Order',
+            endpoint: '/forest/actions/cancel-order',
+          },
+        ],
+      });
+
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            { name: 'select-record', args: { recordIdentifier: 'Step 2 - Orders #99' }, id: 'c1' },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-action',
+              args: { actionName: 'Cancel Order', reasoning: 'r' },
+              id: 'c2',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ ok: true });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        agentPort,
+        activityLogPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(activityLogPort.createPending).toHaveBeenCalledWith({
+        renderingId: 1,
+        action: 'action',
+        type: 'write',
+        collectionId: 'col-orders',
+        recordId: [99],
+      });
+    });
+  });
+
   describe('without executionType=FullyAutomated: awaiting-input (Branch C)', () => {
     it('saves pendingAction and returns awaiting-input', async () => {
       const mockModel = makeMockModel({
@@ -244,8 +386,14 @@ describe('TriggerRecordActionStepExecutor', () => {
         actionName: 'Send Welcome Email',
         reasoning: 'User requested welcome email',
       });
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
       const context = makeContext({
         model: mockModel.model,
+        activityLogPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.AutomatedWithConfirmation,
         }),
@@ -254,9 +402,9 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       await executor.execute();
 
-      expect(context.activityLogPort.createPending).not.toHaveBeenCalled();
-      expect(context.activityLogPort.markSucceeded).not.toHaveBeenCalled();
-      expect(context.activityLogPort.markFailed).not.toHaveBeenCalled();
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
+      expect(activityLogPort.markFailed).not.toHaveBeenCalled();
     });
   });
 
@@ -1075,9 +1223,11 @@ describe('TriggerRecordActionStepExecutor', () => {
     it('skips AI action selection when actionName is pre-recorded', async () => {
       const mockModel = makeMockModel();
       const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         model: mockModel.model,
         runStore,
+        agentPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { actionName: 'send-welcome-email' },
@@ -1089,7 +1239,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
-      expect(context.agentPort.executeAction).toHaveBeenCalledWith(
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'send-welcome-email' }),
         context.user,
       );
@@ -1157,9 +1307,11 @@ describe('TriggerRecordActionStepExecutor', () => {
           ],
         }),
       });
+      const agentPort = makeMockAgentPort();
       const context = makeContext({
         runStore,
         workflowPort,
+        agentPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { actionName: 'archive' },
@@ -1171,7 +1323,7 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       // Triggers action A ('archive'), not action B ('send' / displayName 'archive').
-      expect(context.agentPort.executeAction).toHaveBeenCalledWith(
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'archive' }),
         context.user,
       );
