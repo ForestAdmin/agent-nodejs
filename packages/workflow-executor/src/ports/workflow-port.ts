@@ -1,5 +1,3 @@
-/** @draft Types derived from the workflow-executor spec -- subject to change. */
-
 import type { AvailableStepExecution, StepUser } from '../types/execution-context';
 import type { CollectionSchema } from '../types/validated/collection';
 import type { StepOutcome } from '../types/validated/step-outcome';

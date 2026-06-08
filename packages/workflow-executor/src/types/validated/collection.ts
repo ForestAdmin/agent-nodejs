@@ -1,5 +1,3 @@
-/** @draft Types derived from the workflow-executor spec -- subject to change. */
-
 import { z } from 'zod';
 
 // -- Schema types (structure of a collection — source: WorkflowPort) --

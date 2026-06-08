@@ -1,5 +1,3 @@
-/** @draft Types derived from the workflow-executor spec -- subject to change. */
-
 import type AgentWithLog from '../executors/agent-with-log';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';

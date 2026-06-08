@@ -1,5 +1,3 @@
-/** @draft Types derived from the workflow-executor spec -- subject to change. */
-
 import type { RecordId, RecordRef } from './validated/collection';
 import type {
   LoadRelatedRecordConfirmation,
