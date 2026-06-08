@@ -75,7 +75,7 @@ export default class AgentWithLog {
     return this.audit(
       { action: 'update', type: 'write', collectionId, recordId: query.id },
       () => this.agentPort.updateRecord(query, this.user),
-      opts.beforeCall,
+      opts,
     );
   }
 
@@ -85,7 +85,7 @@ export default class AgentWithLog {
     return this.audit(
       { action: 'action', type: 'write', collectionId, recordId: query.id },
       () => this.agentPort.executeAction(query, this.user),
-      opts.beforeCall,
+      opts,
     );
   }
 
@@ -97,18 +97,14 @@ export default class AgentWithLog {
 
   // For operations that are not AgentPort calls (e.g. MCP tool invocation): the caller
   // supplies the full audit target since there is no collection name to resolve.
-  logged<T>(
-    target: AuditTarget,
-    run: () => Promise<T>,
-    opts?: { beforeCall?: () => Promise<void> },
-  ): Promise<T> {
-    return this.audit(target, run, opts?.beforeCall);
+  logged<T>(target: AuditTarget, run: () => Promise<T>, opts: WriteOptions): Promise<T> {
+    return this.audit(target, run, opts);
   }
 
   private async audit<T>(
     args: AuditTarget,
     run: () => Promise<T>,
-    beforeCall?: () => Promise<void>,
+    opts?: WriteOptions,
   ): Promise<T> {
     const handle = await this.activityLogPort.createPending({
       renderingId: this.user.renderingId,
@@ -116,7 +112,7 @@ export default class AgentWithLog {
     });
 
     try {
-      if (beforeCall) await beforeCall();
+      if (opts) await opts.beforeCall();
       const result = await run();
       void this.activityLogPort.markSucceeded(handle);
 
