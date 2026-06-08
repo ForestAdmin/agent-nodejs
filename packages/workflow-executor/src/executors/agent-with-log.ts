@@ -1,5 +1,4 @@
-import type ActivityLogger from './activity-logger';
-import type { AuditOptions } from './activity-logger';
+import type ActivityLog from './activity-log';
 import type {
   AgentPort,
   ExecuteActionQuery,
@@ -13,14 +12,16 @@ import type SchemaResolver from '../schema-resolver';
 import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 
+type WriteOptions = { beforeCall: () => Promise<void> };
+
 export interface AgentWithLogDeps {
   agentPort: AgentPort;
   schemaResolver: SchemaResolver;
   user: StepUser;
-  activityLogger: ActivityLogger;
+  activityLog: ActivityLog;
 }
 
-// Wraps AgentPort and runs each data-access call through the ActivityLogger so it emits an
+// Wraps AgentPort and runs each data-access call through the ActivityLog so it records an
 // activity-log entry. The audit target is derived from the call: the numeric collectionId is
 // resolved from the call's collection name, the recordId from its id. Idempotency stays in the
 // executors: write methods forward a `beforeCall` thunk (the executor's write-ahead marker).
@@ -31,64 +32,68 @@ export default class AgentWithLog {
 
   private readonly user: StepUser;
 
-  private readonly activityLogger: ActivityLogger;
+  private readonly activityLog: ActivityLog;
 
   constructor(deps: AgentWithLogDeps) {
     this.agentPort = deps.agentPort;
     this.schemaResolver = deps.schemaResolver;
     this.user = deps.user;
-    this.activityLogger = deps.activityLogger;
+    this.activityLog = deps.activityLog;
   }
 
   async getRecord(query: GetRecordQuery): Promise<RecordData> {
     const collectionId = await this.resolveCollectionId(query.collection);
 
-    return this.activityLogger.run(
+    return this.activityLog.track(
       { action: 'index', type: 'read', collectionId, recordId: query.id },
-      () => this.agentPort.getRecord(query, this.user),
+      { operation: () => this.agentPort.getRecord(query, this.user) },
     );
   }
 
   async getRelatedData(query: GetRelatedDataQuery): Promise<RecordData[]> {
     const collectionId = await this.resolveCollectionId(query.collection);
 
-    return this.activityLogger.run(
+    return this.activityLog.track(
       { action: 'listRelatedData', type: 'read', collectionId, recordId: query.id },
-      () => this.agentPort.getRelatedData(query, this.user),
+      { operation: () => this.agentPort.getRelatedData(query, this.user) },
     );
   }
 
   async getSingleRelatedData(query: GetSingleRelatedDataQuery): Promise<RecordData | null> {
     const collectionId = await this.resolveCollectionId(query.collection);
 
-    return this.activityLogger.run(
+    return this.activityLog.track(
       { action: 'listRelatedData', type: 'read', collectionId, recordId: query.id },
-      () => this.agentPort.getSingleRelatedData(query, this.user),
+      { operation: () => this.agentPort.getSingleRelatedData(query, this.user) },
     );
   }
 
-  async updateRecord(query: UpdateRecordQuery, opts: AuditOptions): Promise<RecordData> {
+  async updateRecord(query: UpdateRecordQuery, opts: WriteOptions): Promise<RecordData> {
     const collectionId = await this.resolveCollectionId(query.collection);
 
-    return this.activityLogger.run(
+    return this.activityLog.track(
       { action: 'update', type: 'write', collectionId, recordId: query.id },
-      () => this.agentPort.updateRecord(query, this.user),
-      opts,
+      {
+        operation: () => this.agentPort.updateRecord(query, this.user),
+        beforeCall: opts.beforeCall,
+      },
     );
   }
 
-  async executeAction(query: ExecuteActionQuery, opts: AuditOptions): Promise<unknown> {
+  async executeAction(query: ExecuteActionQuery, opts: WriteOptions): Promise<unknown> {
     const collectionId = await this.resolveCollectionId(query.collection);
 
-    return this.activityLogger.run(
+    return this.activityLog.track(
       { action: 'action', type: 'write', collectionId, recordId: query.id },
-      () => this.agentPort.executeAction(query, this.user),
-      opts,
+      {
+        operation: () => this.agentPort.executeAction(query, this.user),
+        beforeCall: opts.beforeCall,
+      },
     );
   }
 
   // Unaudited passthrough: form-info is a read-only probe (does this action have a form?),
-  // not a data access, so unlike the methods above it emits NO activity-log entry.
+  // not a data access, so unlike the methods above it records NO activity-log entry.
   getActionFormInfo(query: GetActionFormInfoQuery): Promise<{ hasForm: boolean }> {
     return this.agentPort.getActionFormInfo(query, this.user);
   }

@@ -1,8 +1,8 @@
-import type { AuditTarget } from '../../src/executors/activity-logger';
+import type { AuditTarget } from '../../src/executors/activity-log';
 import type { StepUser } from '../../src/types/execution-context';
 
 import { NoRecordsError } from '../../src/errors';
-import ActivityLogger from '../../src/executors/activity-logger';
+import ActivityLog from '../../src/executors/activity-log';
 
 function makeUser(): StepUser {
   return {
@@ -34,13 +34,13 @@ const TARGET: AuditTarget = {
   recordId: [7],
 };
 
-describe('ActivityLogger', () => {
-  describe('run', () => {
+describe('ActivityLog', () => {
+  describe('track', () => {
     it('stamps renderingId and emits pending → succeeded around the operation', async () => {
       const port = makeActivityLogPort();
-      const logger = new ActivityLogger(port, makeUser());
+      const activityLog = new ActivityLog(port, makeUser());
 
-      const result = await logger.run(TARGET, async () => 'done');
+      const result = await activityLog.track(TARGET, { operation: async () => 'done' });
 
       expect(result).toBe('done');
       expect(port.createPending).toHaveBeenCalledWith({
@@ -63,21 +63,18 @@ describe('ActivityLogger', () => {
 
         return { id: 'log-1', index: '0' };
       });
-      const logger = new ActivityLogger(port, makeUser());
+      const activityLog = new ActivityLog(port, makeUser());
 
-      await logger.run(
-        TARGET,
-        async () => {
+      await activityLog.track(TARGET, {
+        operation: async () => {
           order.push('operation');
 
           return 'x';
         },
-        {
-          beforeCall: async () => {
-            order.push('beforeCall');
-          },
+        beforeCall: async () => {
+          order.push('beforeCall');
         },
-      );
+      });
 
       expect(order).toEqual(['createPending', 'beforeCall', 'operation']);
     });
@@ -87,9 +84,11 @@ describe('ActivityLogger', () => {
       (port.createPending as jest.Mock).mockRejectedValue(new Error('audit down'));
       const beforeCall = jest.fn().mockResolvedValue(undefined);
       const operation = jest.fn().mockResolvedValue('x');
-      const logger = new ActivityLogger(port, makeUser());
+      const activityLog = new ActivityLog(port, makeUser());
 
-      await expect(logger.run(TARGET, operation, { beforeCall })).rejects.toThrow('audit down');
+      await expect(activityLog.track(TARGET, { operation, beforeCall })).rejects.toThrow(
+        'audit down',
+      );
       expect(beforeCall).not.toHaveBeenCalled();
       expect(operation).not.toHaveBeenCalled();
     });
@@ -97,10 +96,11 @@ describe('ActivityLogger', () => {
     it('marks failed and rethrows when beforeCall throws — the operation never runs', async () => {
       const port = makeActivityLogPort();
       const operation = jest.fn().mockResolvedValue('x');
-      const logger = new ActivityLogger(port, makeUser());
+      const activityLog = new ActivityLog(port, makeUser());
 
       await expect(
-        logger.run(TARGET, operation, {
+        activityLog.track(TARGET, {
+          operation,
           beforeCall: async () => {
             throw new Error('marker save failed');
           },
@@ -114,11 +114,13 @@ describe('ActivityLogger', () => {
 
     it('marks failed (not succeeded) and rethrows the original error', async () => {
       const port = makeActivityLogPort();
-      const logger = new ActivityLogger(port, makeUser());
+      const activityLog = new ActivityLog(port, makeUser());
 
       await expect(
-        logger.run(TARGET, async () => {
-          throw new NoRecordsError();
+        activityLog.track(TARGET, {
+          operation: async () => {
+            throw new NoRecordsError();
+          },
         }),
       ).rejects.toBeInstanceOf(NoRecordsError);
 

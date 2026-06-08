@@ -115,7 +115,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
-    const toolResult = await this.context.activityLogger.run(
+    const toolResult = await this.context.activityLog.track(
       {
         action: 'action',
         type: 'write',
@@ -123,14 +123,14 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
         collectionId: this.context.collectionId,
         recordId: this.context.baseRecordRef.recordId,
       },
-      async () => {
-        try {
-          return await tool.base.invoke(target.input);
-        } catch (cause) {
-          throw new McpToolInvocationError(target.name, cause);
-        }
-      },
       {
+        operation: async () => {
+          try {
+            return await tool.base.invoke(target.input);
+          } catch (cause) {
+            throw new McpToolInvocationError(target.name, cause);
+          }
+        },
         beforeCall: () =>
           this.context.runStore.saveStepExecution(this.context.runId, {
             ...existingExecution,

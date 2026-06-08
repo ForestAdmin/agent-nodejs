@@ -9,7 +9,7 @@ import type { McpStepDefinition } from '../../src/types/validated/step-definitio
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { RunStorePortError, StepStateError } from '../../src/errors';
-import ActivityLogger from '../../src/executors/activity-logger';
+import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -93,7 +93,7 @@ function makeContext(
   overrides: Partial<ExecutionContext<McpStepDefinition>> & {
     agentPort?: AgentPort;
     activityLogPort?: ActivityLogPort;
-    activityLogger?: ActivityLogger;
+    activityLog?: ActivityLog;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<McpStepDefinition> {
@@ -101,7 +101,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
   const schemaCache = new SchemaCache();
 
-  const base: Omit<ExecutionContext<McpStepDefinition>, 'agent' | 'activityLogger'> = {
+  const base: Omit<ExecutionContext<McpStepDefinition>, 'agent' | 'activityLog'> = {
     runId,
     stepId: 'mcp-1',
     stepIndex: 0,
@@ -127,9 +127,9 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLogger =
-    overrides.activityLogger ??
-    new ActivityLogger(
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(
       overrides.activityLogPort ?? {
         createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
         markSucceeded: jest.fn().mockResolvedValue(undefined),
@@ -140,7 +140,7 @@ function makeContext(
 
   return {
     ...base,
-    activityLogger,
+    activityLog,
     agent:
       overrides.agent ??
       new AgentWithLog({
@@ -154,7 +154,7 @@ function makeContext(
           } as unknown as AgentPort),
         schemaResolver: base.schemaResolver,
         user: base.user,
-        activityLogger,
+        activityLog,
       }),
   };
 }

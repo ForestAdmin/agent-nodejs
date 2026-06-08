@@ -14,7 +14,7 @@ import {
   RunStorePortError,
   StepStateError,
 } from '../../src/errors';
-import ActivityLogger from '../../src/executors/activity-logger';
+import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -116,7 +116,7 @@ function makeContext(
   overrides: Partial<ExecutionContext<UpdateRecordStepDefinition>> & {
     agentPort?: AgentPort;
     activityLogPort?: ActivityLogPort;
-    activityLogger?: ActivityLogger;
+    activityLog?: ActivityLog;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<UpdateRecordStepDefinition> {
@@ -124,7 +124,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
   const schemaCache = new SchemaCache();
 
-  const base: Omit<ExecutionContext<UpdateRecordStepDefinition>, 'agent' | 'activityLogger'> = {
+  const base: Omit<ExecutionContext<UpdateRecordStepDefinition>, 'agent' | 'activityLog'> = {
     runId,
     stepId: 'update-1',
     stepIndex: 0,
@@ -152,9 +152,9 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLogger =
-    overrides.activityLogger ??
-    new ActivityLogger(
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(
       overrides.activityLogPort ?? {
         createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
         markSucceeded: jest.fn().mockResolvedValue(undefined),
@@ -165,14 +165,14 @@ function makeContext(
 
   return {
     ...base,
-    activityLogger,
+    activityLog,
     agent:
       overrides.agent ??
       new AgentWithLog({
         agentPort: overrides.agentPort ?? makeMockAgentPort(),
         schemaResolver: base.schemaResolver,
         user: base.user,
-        activityLogger,
+        activityLog,
       }),
   };
 }

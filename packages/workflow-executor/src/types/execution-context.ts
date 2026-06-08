@@ -1,4 +1,4 @@
-import type ActivityLogger from '../executors/activity-logger';
+import type ActivityLog from '../executors/activity-log';
 import type AgentWithLog from '../executors/agent-with-log';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
@@ -30,7 +30,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly stepDefinition: TStep;
   readonly model: BaseChatModel;
   readonly agent: AgentWithLog;
-  readonly activityLogger: ActivityLogger;
+  readonly activityLog: ActivityLog;
   readonly runStore: RunStore;
   readonly user: StepUser;
   readonly schemaResolver: SchemaResolver;

@@ -23,7 +23,7 @@ import {
   RunStorePortError,
   StepStateError,
 } from '../../src/errors';
-import ActivityLogger from '../../src/executors/activity-logger';
+import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -113,7 +113,7 @@ function makeContext(
   overrides: Partial<ExecutionContext> & {
     agentPort?: AgentPort;
     activityLogPort?: ActivityLogPort;
-    activityLogger?: ActivityLogger;
+    activityLog?: ActivityLog;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext {
@@ -121,7 +121,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? ({} as WorkflowPort);
   const schemaCache = new SchemaCache();
 
-  const base: Omit<ExecutionContext, 'agent' | 'activityLogger'> = {
+  const base: Omit<ExecutionContext, 'agent' | 'activityLog'> = {
     runId,
     stepId: 'step-0',
     stepIndex: 0,
@@ -156,20 +156,20 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLogger =
-    overrides.activityLogger ??
-    new ActivityLogger(overrides.activityLogPort ?? makeMockActivityLogPort(), base.user);
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(overrides.activityLogPort ?? makeMockActivityLogPort(), base.user);
 
   return {
     ...base,
-    activityLogger,
+    activityLog,
     agent:
       overrides.agent ??
       new AgentWithLog({
         agentPort: overrides.agentPort ?? ({} as AgentPort),
         schemaResolver: base.schemaResolver,
         user: base.user,
-        activityLogger,
+        activityLog,
       }),
   };
 }

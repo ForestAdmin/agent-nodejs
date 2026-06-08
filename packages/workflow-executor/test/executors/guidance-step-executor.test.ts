@@ -7,7 +7,7 @@ import type { RecordRef } from '../../src/types/validated/collection';
 import type { GuidanceStepDefinition } from '../../src/types/validated/step-definition';
 import type { GuidanceStepOutcome } from '../../src/types/validated/step-outcome';
 
-import ActivityLogger from '../../src/executors/activity-logger';
+import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import GuidanceStepExecutor from '../../src/executors/guidance-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -28,7 +28,7 @@ function makeContext(
   overrides: Partial<ExecutionContext<GuidanceStepDefinition>> & {
     agentPort?: AgentPort;
     activityLogPort?: ActivityLogPort;
-    activityLogger?: ActivityLogger;
+    activityLog?: ActivityLog;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<GuidanceStepDefinition> {
@@ -36,7 +36,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? ({} as WorkflowPort);
   const schemaCache = new SchemaCache();
 
-  const base: Omit<ExecutionContext<GuidanceStepDefinition>, 'agent' | 'activityLogger'> = {
+  const base: Omit<ExecutionContext<GuidanceStepDefinition>, 'agent' | 'activityLog'> = {
     runId,
     stepId: 'guidance-1',
     stepIndex: 0,
@@ -66,9 +66,9 @@ function makeContext(
     ...overrides,
   };
 
-  const activityLogger =
-    overrides.activityLogger ??
-    new ActivityLogger(
+  const activityLog =
+    overrides.activityLog ??
+    new ActivityLog(
       overrides.activityLogPort ?? {
         createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
         markSucceeded: jest.fn().mockResolvedValue(undefined),
@@ -79,14 +79,14 @@ function makeContext(
 
   return {
     ...base,
-    activityLogger,
+    activityLog,
     agent:
       overrides.agent ??
       new AgentWithLog({
         agentPort: overrides.agentPort ?? ({} as AgentPort),
         schemaResolver: base.schemaResolver,
         user: base.user,
-        activityLogger,
+        activityLog,
       }),
   };
 }

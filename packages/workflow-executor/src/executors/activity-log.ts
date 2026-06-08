@@ -1,15 +1,21 @@
 import type { ActivityLogPort, CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepUser } from '../types/execution-context';
 
-// The activity-log target minus renderingId, which run() stamps centrally.
+// The activity-log target minus renderingId, which track() stamps centrally.
 export type AuditTarget = Omit<CreateActivityLogArgs, 'renderingId'>;
 
-export type AuditOptions = { beforeCall: () => Promise<void> };
+export type TrackOptions<T> = {
+  operation: () => Promise<T>;
+  // Runs between createPending and the operation — the executor's write-ahead marker. Optional:
+  // read operations have no marker to persist.
+  beforeCall?: () => Promise<void>;
+};
 
-// Emits an activity-log entry around an operation (pending → success/failed). Write operations
-// pass a `beforeCall` thunk that runs between createPending and the side effect (the executor
-// persists its write-ahead marker there), so the logger never reaches into run state.
-export default class ActivityLogger {
+// Runs an operation while recording an activity-log entry around it (pending → success/failed).
+// It both executes `operation` and owns the activity-log transitions, so callers never touch the
+// ActivityLogPort directly. `beforeCall` runs after createPending, just before the operation, so
+// an audit-creation failure never leaves an orphan write-ahead marker.
+export default class ActivityLog {
   private readonly activityLogPort: ActivityLogPort;
 
   private readonly user: StepUser;
@@ -19,14 +25,14 @@ export default class ActivityLogger {
     this.user = user;
   }
 
-  async run<T>(target: AuditTarget, operation: () => Promise<T>, opts?: AuditOptions): Promise<T> {
+  async track<T>(target: AuditTarget, { operation, beforeCall }: TrackOptions<T>): Promise<T> {
     const handle = await this.activityLogPort.createPending({
       renderingId: this.user.renderingId,
       ...target,
     });
 
     try {
-      if (opts) await opts.beforeCall();
+      if (beforeCall) await beforeCall();
       const result = await operation();
       void this.activityLogPort.markSucceeded(handle);
 

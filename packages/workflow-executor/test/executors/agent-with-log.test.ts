@@ -4,7 +4,7 @@ import type SchemaResolver from '../../src/schema-resolver';
 import type { StepUser } from '../../src/types/execution-context';
 import type { CollectionSchema } from '../../src/types/validated/collection';
 
-import ActivityLogger from '../../src/executors/activity-logger';
+import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 
 function makeUser(): StepUser {
@@ -63,7 +63,7 @@ function makeDeps(overrides: Partial<AgentWithLogDeps> = {}) {
     agentPort,
     schemaResolver,
     user: makeUser(),
-    activityLogger: new ActivityLogger(activityLogPort, makeUser()),
+    activityLog: new ActivityLog(activityLogPort, makeUser()),
     ...overrides,
   };
 
