@@ -109,14 +109,11 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     // handle forms (no UI to fill them). Reject form-bearing actions here. When the
     // frontend is in the loop (Branch C), it handles the form natively so no check.
     if (step.executionType === StepExecutionMode.FullyAutomated) {
-      const { hasForm } = await this.agentPort.getActionFormInfo(
-        {
-          collection: selectedRecordRef.collectionName,
-          action: target.name,
-          id: selectedRecordRef.recordId,
-        },
-        this.context.user,
-      );
+      const { hasForm } = await this.agent.getActionFormInfo({
+        collection: selectedRecordRef.collectionName,
+        action: target.name,
+        id: selectedRecordRef.recordId,
+      });
       if (hasForm) throw new UnsupportedActionFormError(target.displayName);
 
       return this.executeOnExecutor(target);

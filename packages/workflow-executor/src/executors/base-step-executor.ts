@@ -1,4 +1,4 @@
-import type { AgentPort } from '../ports/agent-port';
+import type AgentWithLog from './agent-with-log';
 import type {
   ExecutionContext,
   IStepExecutor,
@@ -25,7 +25,6 @@ import {
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
-import AgentWithLog from './agent-with-log';
 import patchBodySchemas from '../http/pending-data-validators';
 import StepSummaryBuilder from './summary/step-summary-builder';
 
@@ -34,21 +33,13 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 {
   protected readonly context: ExecutionContext<TStep>;
 
-  // Raw port — kept only for getActionFormInfo, which is intentionally not audited.
-  protected readonly agentPort: AgentPort;
-
-  // Audited data access — every call emits an activity-log entry.
+  // Audited data access — every call emits an activity-log entry. The raw AgentPort is never
+  // exposed to executors: even the unaudited getActionFormInfo goes through AgentWithLog.
   protected readonly agent: AgentWithLog;
 
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
-    this.agentPort = context.agentPort;
-    this.agent = new AgentWithLog({
-      agentPort: context.agentPort,
-      activityLogPort: context.activityLogPort,
-      schemaResolver: context.schemaResolver,
-      user: context.user,
-    });
+    this.agent = context.agent;
   }
 
   async execute(): Promise<StepExecutionResult> {

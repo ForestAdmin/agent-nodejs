@@ -5,6 +5,7 @@ import type { ConditionStepDefinition } from '../../src/types/validated/step-def
 import type { ConditionStepOutcome } from '../../src/types/validated/step-outcome';
 
 import { RunStorePortError } from '../../src/errors';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import ConditionStepExecutor from '../../src/executors/condition-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
@@ -49,7 +50,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? ({} as ExecutionContext['workflowPort']);
   const schemaCache = new SchemaCache();
 
-  return {
+  const base: Omit<ExecutionContext<ConditionStepDefinition>, 'agent'> = {
     runId,
     stepId: 'cond-1',
     stepIndex: 0,
@@ -85,6 +86,18 @@ function makeContext(
       markFailed: jest.fn().mockResolvedValue(undefined),
     },
     ...overrides,
+  };
+
+  return {
+    ...base,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: base.agentPort,
+        activityLogPort: base.activityLogPort,
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+      }),
   };
 }
 

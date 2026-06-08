@@ -19,6 +19,7 @@ import {
   RunStorePortError,
   StepStateError,
 } from '../../src/errors';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import BaseStepExecutor from '../../src/executors/base-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
@@ -108,7 +109,7 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
   const workflowPort = overrides.workflowPort ?? ({} as ExecutionContext['workflowPort']);
   const schemaCache = new SchemaCache();
 
-  return {
+  const base: Omit<ExecutionContext, 'agent'> = {
     runId,
     stepId: 'step-0',
     stepIndex: 0,
@@ -145,6 +146,18 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
 
     activityLogPort: makeMockActivityLogPort(),
     ...overrides,
+  };
+
+  return {
+    ...base,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: base.agentPort,
+        activityLogPort: base.activityLogPort,
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+      }),
   };
 }
 

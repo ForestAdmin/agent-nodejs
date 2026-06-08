@@ -7,6 +7,7 @@ import type { McpStepDefinition } from '../../src/types/validated/step-definitio
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
 import { RunStorePortError, StepStateError } from '../../src/errors';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
@@ -92,7 +93,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
   const schemaCache = new SchemaCache();
 
-  return {
+  const base: Omit<ExecutionContext<McpStepDefinition>, 'agent'> = {
     runId,
     stepId: 'mcp-1',
     stepIndex: 0,
@@ -129,6 +130,18 @@ function makeContext(
       markFailed: jest.fn().mockResolvedValue(undefined),
     },
     ...overrides,
+  };
+
+  return {
+    ...base,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: base.agentPort,
+        activityLogPort: base.activityLogPort,
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+      }),
   };
 }
 

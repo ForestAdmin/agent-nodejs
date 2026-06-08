@@ -6,6 +6,7 @@ import type { CollectionSchema, RecordRef } from '../../src/types/validated/coll
 import type { ReadRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
@@ -113,7 +114,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
   const schemaCache = new SchemaCache();
 
-  return {
+  const base: Omit<ExecutionContext<ReadRecordStepDefinition>, 'agent'> = {
     runId,
     stepId: 'read-1',
     stepIndex: 0,
@@ -145,6 +146,18 @@ function makeContext(
       markFailed: jest.fn().mockResolvedValue(undefined),
     },
     ...overrides,
+  };
+
+  return {
+    ...base,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: base.agentPort,
+        activityLogPort: base.activityLogPort,
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+      }),
   };
 }
 

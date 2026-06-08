@@ -4,6 +4,7 @@ import type { RecordRef } from '../../src/types/validated/collection';
 import type { GuidanceStepDefinition } from '../../src/types/validated/step-definition';
 import type { GuidanceStepOutcome } from '../../src/types/validated/step-outcome';
 
+import AgentWithLog from '../../src/executors/agent-with-log';
 import GuidanceStepExecutor from '../../src/executors/guidance-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
@@ -26,7 +27,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? ({} as ExecutionContext['workflowPort']);
   const schemaCache = new SchemaCache();
 
-  return {
+  const base: Omit<ExecutionContext<GuidanceStepDefinition>, 'agent'> = {
     runId,
     stepId: 'guidance-1',
     stepIndex: 0,
@@ -62,6 +63,18 @@ function makeContext(
       markFailed: jest.fn().mockResolvedValue(undefined),
     },
     ...overrides,
+  };
+
+  return {
+    ...base,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: base.agentPort,
+        activityLogPort: base.activityLogPort,
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+      }),
   };
 }
 

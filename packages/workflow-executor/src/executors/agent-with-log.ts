@@ -2,6 +2,7 @@ import type { ActivityLogPort, CreateActivityLogArgs } from '../ports/activity-l
 import type {
   AgentPort,
   ExecuteActionQuery,
+  GetActionFormInfoQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
   GetSingleRelatedDataQuery,
@@ -86,6 +87,12 @@ export default class AgentWithLog {
       () => this.agentPort.executeAction(query, this.user),
       opts.beforeCall,
     );
+  }
+
+  // Action form metadata — read-only, touches no record and triggers no side effect, so it is
+  // intentionally not audited. Exposed here only so executors never reach for the raw AgentPort.
+  getActionFormInfo(query: GetActionFormInfoQuery): Promise<{ hasForm: boolean }> {
+    return this.agentPort.getActionFormInfo(query, this.user);
   }
 
   // For operations that are not AgentPort calls (e.g. MCP tool invocation): the caller

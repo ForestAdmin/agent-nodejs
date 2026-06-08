@@ -53,6 +53,7 @@ function makeDeps(overrides: Partial<AgentWithLogDeps> = {}) {
     getRelatedData: jest.fn().mockResolvedValue([]),
     getSingleRelatedData: jest.fn().mockResolvedValue(null),
     executeAction: jest.fn().mockResolvedValue({ ok: true }),
+    getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: true }),
   } as unknown as AgentPort;
   const schemaResolver = {
     resolve: jest.fn().mockResolvedValue(makeSchema()),
@@ -123,6 +124,27 @@ describe('AgentWithLog', () => {
       expect(activityLogPort.createPending).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'listRelatedData', type: 'read', recordId: [42] }),
       );
+    });
+  });
+
+  describe('getActionFormInfo (unaudited passthrough)', () => {
+    it('forwards to the agent port with the injected user and emits no activity log', async () => {
+      const { deps, agentPort, activityLogPort } = makeDeps();
+      const agent = new AgentWithLog(deps);
+
+      const result = await agent.getActionFormInfo({
+        collection: 'customers',
+        action: 'send-email',
+        id: [42],
+      });
+
+      expect(agentPort.getActionFormInfo).toHaveBeenCalledWith(
+        { collection: 'customers', action: 'send-email', id: [42] },
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(result).toEqual({ hasForm: true });
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+      expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
     });
   });
 

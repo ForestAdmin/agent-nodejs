@@ -7,6 +7,7 @@ import type { CollectionSchema, RecordData, RecordRef } from '../../src/types/va
 import type { LoadRelatedRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, RunStorePortError } from '../../src/errors';
+import AgentWithLog from '../../src/executors/agent-with-log';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
@@ -146,7 +147,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
   const schemaCache = new SchemaCache();
 
-  return {
+  const base: Omit<ExecutionContext<LoadRelatedRecordStepDefinition>, 'agent'> = {
     runId,
     stepId: 'load-1',
     stepIndex: 0,
@@ -178,6 +179,18 @@ function makeContext(
       markFailed: jest.fn().mockResolvedValue(undefined),
     },
     ...overrides,
+  };
+
+  return {
+    ...base,
+    agent:
+      overrides.agent ??
+      new AgentWithLog({
+        agentPort: base.agentPort,
+        activityLogPort: base.activityLogPort,
+        schemaResolver: base.schemaResolver,
+        user: base.user,
+      }),
   };
 }
 

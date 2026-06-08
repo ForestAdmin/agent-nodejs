@@ -24,6 +24,7 @@ import type {
 
 import { StepStateError, causeMessage, extractErrorMessage } from '../errors';
 import SchemaResolver from '../schema-resolver';
+import AgentWithLog from './agent-with-log';
 import ConditionStepExecutor from './condition-step-executor';
 import GuidanceStepExecutor from './guidance-step-executor';
 import LoadRelatedRecordStepExecutor from './load-related-record-step-executor';
@@ -125,6 +126,8 @@ export default class StepExecutorFactory {
     activityLogPort: ActivityLogPort,
     incomingPendingData?: unknown,
   ): ExecutionContext {
+    const schemaResolver = new SchemaResolver(cfg.schemaCache, cfg.workflowPort, step.runId);
+
     return {
       runId: step.runId,
       stepId: step.stepId,
@@ -136,9 +139,15 @@ export default class StepExecutorFactory {
       user: step.user,
       model: cfg.aiModelPort.getModel(step.stepDefinition.aiConfigName),
       agentPort: cfg.agentPort,
+      agent: new AgentWithLog({
+        agentPort: cfg.agentPort,
+        activityLogPort,
+        schemaResolver,
+        user: step.user,
+      }),
       workflowPort: cfg.workflowPort,
       runStore: cfg.runStore,
-      schemaResolver: new SchemaResolver(cfg.schemaCache, cfg.workflowPort, step.runId),
+      schemaResolver,
       logger: cfg.logger,
       incomingPendingData,
       stepTimeoutMs: cfg.stepTimeoutMs,
