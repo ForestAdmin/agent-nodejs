@@ -1,4 +1,7 @@
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
+import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
+import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { RecordRef } from '../../src/types/validated/collection';
 import type { GuidanceStepDefinition } from '../../src/types/validated/step-definition';
@@ -21,10 +24,14 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<GuidanceStepDefinition>> = {},
+  overrides: Partial<ExecutionContext<GuidanceStepDefinition>> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    workflowPort?: WorkflowPort;
+  } = {},
 ): ExecutionContext<GuidanceStepDefinition> {
   const runId = overrides.runId ?? 'run-1';
-  const workflowPort = overrides.workflowPort ?? ({} as ExecutionContext['workflowPort']);
+  const workflowPort = overrides.workflowPort ?? ({} as WorkflowPort);
   const schemaCache = new SchemaCache();
 
   const base: Omit<ExecutionContext<GuidanceStepDefinition>, 'agent'> = {
@@ -39,8 +46,6 @@ function makeContext(
     } as RecordRef,
     stepDefinition: { type: StepType.Guidance, executionType: StepExecutionMode.Manual },
     model: {} as ExecutionContext['model'],
-    agentPort: {} as ExecutionContext['agentPort'],
-    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -56,12 +61,6 @@ function makeContext(
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-    },
     ...overrides,
   };
 
@@ -70,8 +69,12 @@ function makeContext(
     agent:
       overrides.agent ??
       new AgentWithLog({
-        agentPort: base.agentPort,
-        activityLogPort: base.activityLogPort,
+        agentPort: overrides.agentPort ?? ({} as AgentPort),
+        activityLogPort: overrides.activityLogPort ?? {
+          createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+          markSucceeded: jest.fn().mockResolvedValue(undefined),
+          markFailed: jest.fn().mockResolvedValue(undefined),
+        },
         schemaResolver: base.schemaResolver,
         user: base.user,
       }),

@@ -115,7 +115,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
-    const toolResult = await this.agent.logged(
+    const toolResult = await this.context.agent.logged(
       {
         action: 'action',
         type: 'write',

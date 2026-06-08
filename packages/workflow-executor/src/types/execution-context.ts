@@ -1,11 +1,8 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
 import type AgentWithLog from '../executors/agent-with-log';
-import type { ActivityLogPort } from '../ports/activity-log-port';
-import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
-import type { WorkflowPort } from '../ports/workflow-port';
 import type SchemaResolver from '../schema-resolver';
 import type { RecordRef } from './validated/collection';
 import type { AvailableStepExecution, Step, StepUser } from './validated/execution';
@@ -33,11 +30,7 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly baseRecordRef: RecordRef;
   readonly stepDefinition: TStep;
   readonly model: BaseChatModel;
-  readonly agentPort: AgentPort;
-  // Audited data access — every call emits an activity-log entry. Built by the factory off
-  // agentPort + activityLogPort + schemaResolver, so executors share one wiring point.
   readonly agent: AgentWithLog;
-  readonly workflowPort: WorkflowPort;
   readonly runStore: RunStore;
   readonly user: StepUser;
   readonly schemaResolver: SchemaResolver;
@@ -46,5 +39,4 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly incomingPendingData?: unknown;
   readonly stepTimeoutMs?: number;
   readonly aiInvokeTimeoutMs?: number;
-  readonly activityLogPort: ActivityLogPort;
 }

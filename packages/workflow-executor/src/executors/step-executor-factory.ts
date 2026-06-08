@@ -138,21 +138,18 @@ export default class StepExecutorFactory {
       previousSteps: step.previousSteps,
       user: step.user,
       model: cfg.aiModelPort.getModel(step.stepDefinition.aiConfigName),
-      agentPort: cfg.agentPort,
       agent: new AgentWithLog({
         agentPort: cfg.agentPort,
         activityLogPort,
         schemaResolver,
         user: step.user,
       }),
-      workflowPort: cfg.workflowPort,
       runStore: cfg.runStore,
       schemaResolver,
       logger: cfg.logger,
       incomingPendingData,
       stepTimeoutMs: cfg.stepTimeoutMs,
       aiInvokeTimeoutMs: cfg.aiInvokeTimeoutMs,
-      activityLogPort,
     };
   }
 }

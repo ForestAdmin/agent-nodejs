@@ -1,3 +1,5 @@
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
+import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
@@ -87,7 +89,11 @@ function makeMockModel(toolName: string, toolArgs: Record<string, unknown>) {
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<McpStepDefinition>> = {},
+  overrides: Partial<ExecutionContext<McpStepDefinition>> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    workflowPort?: WorkflowPort;
+  } = {},
 ): ExecutionContext<McpStepDefinition> {
   const runId = overrides.runId ?? 'run-1';
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
@@ -101,13 +107,6 @@ function makeContext(
     baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
     stepDefinition: makeStep(),
     model: makeMockModel('send_notification', { message: 'Hello' }).model,
-    agentPort: {
-      getRecord: jest.fn(),
-      updateRecord: jest.fn(),
-      getRelatedData: jest.fn(),
-      executeAction: jest.fn(),
-    } as unknown as ExecutionContext['agentPort'],
-    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -123,12 +122,6 @@ function makeContext(
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-    },
     ...overrides,
   };
 
@@ -137,8 +130,19 @@ function makeContext(
     agent:
       overrides.agent ??
       new AgentWithLog({
-        agentPort: base.agentPort,
-        activityLogPort: base.activityLogPort,
+        agentPort:
+          overrides.agentPort ??
+          ({
+            getRecord: jest.fn(),
+            updateRecord: jest.fn(),
+            getRelatedData: jest.fn(),
+            executeAction: jest.fn(),
+          } as unknown as AgentPort),
+        activityLogPort: overrides.activityLogPort ?? {
+          createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+          markSucceeded: jest.fn().mockResolvedValue(undefined),
+          markFailed: jest.fn().mockResolvedValue(undefined),
+        },
         schemaResolver: base.schemaResolver,
         user: base.user,
       }),

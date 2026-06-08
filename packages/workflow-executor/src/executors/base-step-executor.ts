@@ -1,4 +1,3 @@
-import type AgentWithLog from './agent-with-log';
 import type {
   ExecutionContext,
   IStepExecutor,
@@ -34,11 +33,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 {
   protected readonly context: ExecutionContext<TStep>;
 
-  protected readonly agent: AgentWithLog;
-
   constructor(context: ExecutionContext<TStep>) {
     this.context = context;
-    this.agent = context.agent;
   }
 
   async execute(): Promise<StepExecutionResult> {

@@ -265,7 +265,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
     const referenceField = relatedSchema.referenceField ?? null;
 
-    const candidate = await this.agent.getSingleRelatedData({
+    const candidate = await this.context.agent.getSingleRelatedData({
       collection: target.selectedRecordRef.collectionName,
       id: target.selectedRecordRef.recordId,
       relation: target.name,
@@ -420,7 +420,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     relatedSchema: CollectionSchema,
     limit: number,
   ): Promise<RecordData[]> {
-    return this.agent.getRelatedData({
+    return this.context.agent.getRelatedData({
       collection: target.selectedRecordRef.collectionName,
       id: target.selectedRecordRef.recordId,
       relation: target.name,

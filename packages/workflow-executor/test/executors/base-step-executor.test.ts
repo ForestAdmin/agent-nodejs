@@ -1,6 +1,9 @@
 /* eslint-disable max-classes-per-file */
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
+import type { AgentPort } from '../../src/ports/agent-port';
 import type { Logger } from '../../src/ports/logger-port';
 import type { RunStore } from '../../src/ports/run-store';
+import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution-context';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { RecordRef } from '../../src/types/validated/collection';
@@ -97,7 +100,7 @@ function makeMockLogger(): Logger {
   return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 }
 
-function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
+function makeMockActivityLogPort(): ActivityLogPort {
   return {
     createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
     markSucceeded: jest.fn().mockResolvedValue(undefined),
@@ -105,9 +108,15 @@ function makeMockActivityLogPort(): ExecutionContext['activityLogPort'] {
   };
 }
 
-function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
+function makeContext(
+  overrides: Partial<ExecutionContext> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    workflowPort?: WorkflowPort;
+  } = {},
+): ExecutionContext {
   const runId = overrides.runId ?? 'run-1';
-  const workflowPort = overrides.workflowPort ?? ({} as ExecutionContext['workflowPort']);
+  const workflowPort = overrides.workflowPort ?? ({} as WorkflowPort);
   const schemaCache = new SchemaCache();
 
   const base: Omit<ExecutionContext, 'agent'> = {
@@ -127,8 +136,6 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
       prompt: 'Pick one',
     },
     model: {} as ExecutionContext['model'],
-    agentPort: {} as ExecutionContext['agentPort'],
-    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -144,8 +151,6 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: makeMockLogger(),
-
-    activityLogPort: makeMockActivityLogPort(),
     ...overrides,
   };
 
@@ -154,8 +159,8 @@ function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContex
     agent:
       overrides.agent ??
       new AgentWithLog({
-        agentPort: base.agentPort,
-        activityLogPort: base.activityLogPort,
+        agentPort: overrides.agentPort ?? ({} as AgentPort),
+        activityLogPort: overrides.activityLogPort ?? makeMockActivityLogPort(),
         schemaResolver: base.schemaResolver,
         user: base.user,
       }),

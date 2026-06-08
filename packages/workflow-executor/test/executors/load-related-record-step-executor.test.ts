@@ -1,3 +1,4 @@
+import type { ActivityLogPort } from '../../src/ports/activity-log-port';
 import type { AgentPort } from '../../src/ports/agent-port';
 import type { RunStore } from '../../src/ports/run-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
@@ -142,7 +143,11 @@ function makeMockModel(toolCallArgs?: Record<string, unknown>, toolName = 'selec
 }
 
 function makeContext(
-  overrides: Partial<ExecutionContext<LoadRelatedRecordStepDefinition>> = {},
+  overrides: Partial<ExecutionContext<LoadRelatedRecordStepDefinition>> & {
+    agentPort?: AgentPort;
+    activityLogPort?: ActivityLogPort;
+    workflowPort?: WorkflowPort;
+  } = {},
 ): ExecutionContext<LoadRelatedRecordStepDefinition> {
   const runId = overrides.runId ?? 'run-1';
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
@@ -156,8 +161,6 @@ function makeContext(
     baseRecordRef: makeRecordRef(),
     stepDefinition: makeStep(),
     model: makeMockModel({ relationName: 'Order', reasoning: 'User requested order' }).model,
-    agentPort: makeMockAgentPort(),
-    workflowPort,
     runStore: makeMockRunStore(),
     user: {
       id: 1,
@@ -173,12 +176,6 @@ function makeContext(
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-
-    activityLogPort: {
-      createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
-      markSucceeded: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue(undefined),
-    },
     ...overrides,
   };
 
@@ -187,8 +184,12 @@ function makeContext(
     agent:
       overrides.agent ??
       new AgentWithLog({
-        agentPort: base.agentPort,
-        activityLogPort: base.activityLogPort,
+        agentPort: overrides.agentPort ?? makeMockAgentPort(),
+        activityLogPort: overrides.activityLogPort ?? {
+          createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+          markSucceeded: jest.fn().mockResolvedValue(undefined),
+          markFailed: jest.fn().mockResolvedValue(undefined),
+        },
         schemaResolver: base.schemaResolver,
         user: base.user,
       }),
