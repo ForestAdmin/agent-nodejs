@@ -4,7 +4,12 @@ import type Runner from '../../src/runner';
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import { MalformedRunError, RunNotFoundError, UserMismatchError } from '../../src/errors';
+import {
+  MalformedRunError,
+  RunAlreadyInFlightError,
+  RunNotFoundError,
+  UserMismatchError,
+} from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
 const AUTH_SECRET = 'test-auth-secret';
@@ -464,6 +469,22 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(403);
       expect(response.body).toEqual({ error: 'Forbidden' });
+    });
+
+    it('returns 400 when triggerPoll rejects with RunAlreadyInFlightError', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new RunAlreadyInFlightError('run-1')),
+      });
+
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Run "run-1" is already being processed' });
     });
 
     it('returns 500 when triggerPoll rejects with an unexpected error', async () => {

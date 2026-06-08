@@ -328,6 +328,13 @@ export class UserMismatchError extends Error {
   }
 }
 
+export class RunAlreadyInFlightError extends Error {
+  constructor(runId: string) {
+    super(`Run "${runId}" is already being processed`);
+    this.name = 'RunAlreadyInFlightError';
+  }
+}
+
 export class PendingDataNotFoundError extends Error {
   constructor(runId: string, stepIndex: number) {
     super(`Step ${stepIndex} in run "${runId}" not found or has no pending data`);

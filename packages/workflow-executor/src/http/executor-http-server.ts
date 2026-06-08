@@ -13,6 +13,7 @@ import koaJwt from 'koa-jwt';
 import serializeStepForWire from './step-serializer';
 import ConsoleLogger from '../adapters/console-logger';
 import {
+  RunAlreadyInFlightError,
   RunNotFoundError,
   UserMismatchError,
   WorkflowExecutorError,
@@ -187,6 +188,13 @@ export default class ExecutorHttpServer {
       if (err instanceof RunNotFoundError) {
         ctx.status = 404;
         ctx.body = { error: 'Run not found or unavailable' };
+
+        return;
+      }
+
+      if (err instanceof RunAlreadyInFlightError) {
+        ctx.status = 400;
+        ctx.body = { error: err.message };
 
         return;
       }
