@@ -21,9 +21,6 @@ export interface ActivityLogHandle {
 export interface ActivityLogPort {
   createPending(args: CreateActivityLogArgs): Promise<ActivityLogHandle>;
   markSucceeded(handle: ActivityLogHandle): Promise<void>;
-  // The server status endpoint accepts just { status }; the step error itself is logged by
-  // base-step-executor when the failure is rethrown (as the sole caller, AgentWithLog.audit,
-  // does), so no error message is threaded here. Only call this on a rethrow path.
   markFailed(handle: ActivityLogHandle): Promise<void>;
 }
 
