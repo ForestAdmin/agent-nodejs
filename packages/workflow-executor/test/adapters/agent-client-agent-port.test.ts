@@ -1,18 +1,22 @@
 import type { StepUser } from '../../src/types/execution-context';
 
-import { createRemoteAgentClient } from '@forestadmin/agent-client';
+import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
-import { AgentProbeError, RecordNotFoundError } from '../../src/errors';
+import { AgentPortError, AgentProbeError, RecordNotFoundError } from '../../src/errors';
 import SchemaCache from '../../src/schema-cache';
 
 jest.mock('@forestadmin/agent-client', () => ({
   createRemoteAgentClient: jest.fn(),
+  HttpRequester: { is404Error: jest.fn() },
 }));
 
 const mockedCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunction<
   typeof createRemoteAgentClient
+>;
+const mockedIs404Error = HttpRequester.is404Error as jest.MockedFunction<
+  typeof HttpRequester.is404Error
 >;
 
 function createMockClient() {
@@ -131,6 +135,33 @@ describe('AgentClientAgentPort', () => {
       mockCollection.getOne.mockResolvedValue(null);
 
       await expect(port.getRecord({ collection: 'users', id: [999] }, user)).rejects.toThrow(
+        RecordNotFoundError,
+      );
+    });
+
+    it('maps a 404 from the agent to RecordNotFoundError', async () => {
+      mockedIs404Error.mockReturnValue(true);
+      mockCollection.getOne.mockRejectedValue(new Error('not found'));
+
+      await expect(port.getRecord({ collection: 'users', id: [999] }, user)).rejects.toThrow(
+        RecordNotFoundError,
+      );
+    });
+
+    it('rethrows non-404 errors instead of masking them as RecordNotFoundError', async () => {
+      // A 500 / auth / network failure must surface as a real error, not "record not found".
+      mockedIs404Error.mockReturnValue(false);
+      mockCollection.getOne.mockRejectedValue(new Error('boom'));
+
+      await expect(port.getRecord({ collection: 'users', id: [1] }, user)).rejects.toThrow(
+        AgentPortError,
+      );
+    });
+
+    it('treats a 200 with an empty body as RecordNotFoundError (missing composite record)', async () => {
+      mockCollection.getOne.mockResolvedValue({});
+
+      await expect(port.getRecord({ collection: 'orders', id: [1, 2] }, user)).rejects.toThrow(
         RecordNotFoundError,
       );
     });

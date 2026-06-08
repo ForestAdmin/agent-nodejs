@@ -12,7 +12,7 @@ import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 
-import { createRemoteAgentClient } from '@forestadmin/agent-client';
+import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import {
@@ -61,12 +61,23 @@ export default class AgentClientAgentPort implements AgentPort {
       const client = this.createClient(user);
       // Fetch by id through the agent's by-id route (like update/delete): the recordId is an
       // opaque ordered token and the agent — the only party that knows the primary key column
-      // order — does the matching. No buildPkFilter / primaryKeyFields ordering assumption here.
-      const record = await client
-        .collection(collection)
-        .getOne<Record<string, unknown>>(id, { ...(fields?.length && { fields }) });
+      // order — does the matching. No primaryKeyFields ordering assumption here.
+      let record: Record<string, unknown> | null;
 
-      if (!record) {
+      try {
+        record = await client
+          .collection(collection)
+          .getOne<Record<string, unknown>>(id, { ...(fields?.length && { fields }) });
+      } catch (error) {
+        if (HttpRequester.is404Error(error)) {
+          throw new RecordNotFoundError(collection, id.join('|'));
+        }
+
+        throw error;
+      }
+
+      // Some agents answer a missing composite-key record with a 200 + empty body instead of 404.
+      if (!record || Object.keys(record).length === 0) {
         throw new RecordNotFoundError(collection, id.join('|'));
       }
 
