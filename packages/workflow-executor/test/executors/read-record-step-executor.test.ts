@@ -8,6 +8,7 @@ import type { Step } from '../../src/types/validated/execution';
 import type { ReadRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, NoRecordsError, RecordNotFoundError } from '../../src/errors';
+import ActivityLogger from '../../src/executors/activity-logger';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
@@ -121,6 +122,7 @@ function makeContext(
   overrides: Partial<ExecutionContext<ReadRecordStepDefinition>> & {
     agentPort?: AgentPort;
     activityLogPort?: ActivityLogPort;
+    activityLogger?: ActivityLogger;
     workflowPort?: WorkflowPort;
   } = {},
 ): ExecutionContext<ReadRecordStepDefinition> {
@@ -130,7 +132,7 @@ function makeContext(
   const schemaResolver =
     overrides.schemaResolver ?? new SchemaResolver(schemaCache, workflowPort, runId);
 
-  const base: Omit<ExecutionContext<ReadRecordStepDefinition>, 'agent'> = {
+  const base: Omit<ExecutionContext<ReadRecordStepDefinition>, 'agent' | 'activityLogger'> = {
     runId,
     stepId: 'read-1',
     stepIndex: 0,
@@ -156,15 +158,20 @@ function makeContext(
     ...overrides,
   };
 
+  const activityLogger =
+    overrides.activityLogger ??
+    new ActivityLogger(overrides.activityLogPort ?? makeMockActivityLogPort(), base.user);
+
   return {
     ...base,
+    activityLogger,
     agent:
       overrides.agent ??
       new AgentWithLog({
         agentPort: overrides.agentPort ?? makeMockAgentPort(),
-        activityLogPort: overrides.activityLogPort ?? makeMockActivityLogPort(),
         schemaResolver,
         user: base.user,
+        activityLogger,
       }),
   };
 }
