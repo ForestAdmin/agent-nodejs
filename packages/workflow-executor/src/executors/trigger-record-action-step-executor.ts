@@ -130,7 +130,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  /** Branch B — executor runs the action via agentPort, then persists the result. */
+  /** Branch B — executor runs the action via the audited agent, then persists the result. */
   private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 

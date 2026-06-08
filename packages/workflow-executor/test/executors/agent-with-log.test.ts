@@ -145,6 +145,7 @@ describe('AgentWithLog', () => {
       expect(result).toEqual({ hasForm: true });
       expect(activityLogPort.createPending).not.toHaveBeenCalled();
       expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
+      expect(activityLogPort.markFailed).not.toHaveBeenCalled();
     });
   });
 

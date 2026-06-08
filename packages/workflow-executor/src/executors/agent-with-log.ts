@@ -89,6 +89,8 @@ export default class AgentWithLog {
     );
   }
 
+  // Unaudited passthrough: form-info is a read-only probe (does this action have a form?),
+  // not a data access, so unlike the methods above it emits NO activity-log entry.
   getActionFormInfo(query: GetActionFormInfoQuery): Promise<{ hasForm: boolean }> {
     return this.agentPort.getActionFormInfo(query, this.user);
   }
