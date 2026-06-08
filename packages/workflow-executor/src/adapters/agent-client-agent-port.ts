@@ -9,8 +9,8 @@ import type {
 } from '../ports/agent-port';
 import type SchemaCache from '../schema-cache';
 import type { StepUser } from '../types/execution-context';
-import type { CollectionSchema, RecordData, RecordId } from '../types/validated/collection';
-import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
+import type { RecordData } from '../types/validated/collection';
+import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
@@ -19,7 +19,6 @@ import {
   AgentPortError,
   AgentProbeError,
   RecordNotFoundError,
-  SchemaNotCachedError,
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
@@ -46,21 +45,6 @@ function restoreFieldNames(
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));
 }
 
-function buildPkFilter(primaryKeyFields: string[], id: RecordId): SelectOptions['filters'] {
-  if (primaryKeyFields.length === 1) {
-    return { field: primaryKeyFields[0], operator: 'Equal', value: id[0] };
-  }
-
-  return {
-    aggregator: 'And',
-    conditions: primaryKeyFields.map((field, i) => ({
-      field,
-      operator: 'Equal',
-      value: id[i],
-    })),
-  };
-}
-
 export default class AgentClientAgentPort implements AgentPort {
   private readonly agentUrl: string;
   private readonly authSecret: string;
@@ -75,21 +59,21 @@ export default class AgentClientAgentPort implements AgentPort {
   async getRecord({ collection, id, fields }: GetRecordQuery, user: StepUser): Promise<RecordData> {
     return this.callAgent('getRecord', async () => {
       const client = this.createClient(user);
-      const schema = this.resolveSchema(collection);
-      const records = await client.collection(collection).list<Record<string, unknown>>({
-        filters: buildPkFilter(schema.primaryKeyFields, id),
-        pagination: { size: 1, number: 1 },
-        ...(fields?.length && { fields }),
-      });
+      // Fetch by id through the agent's by-id route (like update/delete): the recordId is an
+      // opaque ordered token and the agent — the only party that knows the primary key column
+      // order — does the matching. No buildPkFilter / primaryKeyFields ordering assumption here.
+      const record = await client
+        .collection(collection)
+        .getOne<Record<string, unknown>>(id, { ...(fields?.length && { fields }) });
 
-      if (records.length === 0) {
+      if (!record) {
         throw new RecordNotFoundError(collection, id.join('|'));
       }
 
       return {
         collectionName: collection,
         recordId: id,
-        values: restoreFieldNames(records[0], fields),
+        values: restoreFieldNames(record, fields),
       };
     });
   }
@@ -132,9 +116,18 @@ export default class AgentClientAgentPort implements AgentPort {
           relatedSchema.fields.map(f => f.fieldName),
         );
 
+        // For composite PKs, rebuilding the id from primaryKeyFields assumes the schema's
+        // (alphabetical) order matches the agent's column order — it may not, which would
+        // mis-pair the key. Use the agent's opaque record id (pipe-joined when composite),
+        // like getSingleRelatedData, so it round-trips through the by-id route.
+        const recordId =
+          relatedSchema.primaryKeyFields.length > 1
+            ? String(row.id).split('|')
+            : relatedSchema.primaryKeyFields.map(f => restored[f] as string | number);
+
         return {
           collectionName: relatedSchema.collectionName,
-          recordId: relatedSchema.primaryKeyFields.map(f => restored[f] as string | number),
+          recordId,
           values: restored,
         };
       });
@@ -286,15 +279,5 @@ export default class AgentClientAgentPort implements AgentPort {
     }
 
     return endpoints;
-  }
-
-  private resolveSchema(collectionName: string): CollectionSchema {
-    const cached = this.schemaCache.get(collectionName);
-
-    if (!cached) {
-      throw new SchemaNotCachedError(collectionName);
-    }
-
-    return cached;
   }
 }

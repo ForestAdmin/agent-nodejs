@@ -5,6 +5,7 @@ import type {
   StepExecutionResult,
 } from '../types/execution-context';
 import type { ConfirmableStepExecutionData, StepExecutionData } from '../types/step-execution-data';
+import type { Step } from '../types/validated/execution';
 import type { StepDefinition } from '../types/validated/step-definition';
 import type { StepStatus } from '../types/validated/step-outcome';
 import type {
@@ -244,14 +245,34 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
     const allStepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
     const summary = this.context.previousSteps
-      .map(({ stepDefinition, stepOutcome }) => {
-        const execution = allStepExecutions.find(e => e.stepIndex === stepOutcome.stepIndex);
+      .map(step => {
+        const execution = this.resolveStepExecution(step, allStepExecutions);
 
-        return StepSummaryBuilder.build(stepDefinition, stepOutcome, execution);
+        return StepSummaryBuilder.build(step.stepDefinition, step.stepOutcome, execution);
       })
       .join('\n\n');
 
     return [new SystemMessage(summary)];
+  }
+
+  // A step the executor ran has its execution at its own stepIndex. A revision clone never ran,
+  // so it inherits the record of the step it copied (originalStepIndex). Own-index-first is what
+  // stops a re-executed step (which has its own entry) from resurfacing the superseded
+  // original's record.
+  protected resolveStepExecution(
+    step: Step,
+    executions: StepExecutionData[],
+  ): StepExecutionData | undefined {
+    const own = executions.find(e => e.stepIndex === step.stepOutcome.stepIndex);
+    if (own) return own;
+
+    // An errored clone persists nothing, so inheriting the copied record would resurface the
+    // superseded original's — only fall back when the clone didn't run-and-fail.
+    if (step.originalStepIndex !== undefined && step.stepOutcome.status !== 'error') {
+      return executions.find(e => e.stepIndex === step.originalStepIndex);
+    }
+
+    return undefined;
   }
 
   private static mergeLeadingSystemMessages(messages: BaseMessage[]): BaseMessage[] {

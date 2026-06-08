@@ -4,6 +4,7 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { UpdateRecordStepExecutionData } from '../../src/types/step-execution-data';
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
+import type { Step } from '../../src/types/validated/execution';
 import type { UpdateRecordStepDefinition } from '../../src/types/validated/step-definition';
 
 import {
@@ -165,6 +166,23 @@ function makeContext(
   };
 }
 
+function makeLoadRelatedPreviousStep(stepIndex: number, originalStepIndex?: number): Step {
+  return {
+    stepDefinition: {
+      type: StepType.LoadRelatedRecord,
+      executionType: StepExecutionMode.FullyAutomated,
+      prompt: 'Load the order',
+    },
+    stepOutcome: {
+      type: 'record',
+      stepId: `load-${stepIndex}`,
+      stepIndex,
+      status: 'success',
+    },
+    ...(originalStepIndex !== undefined && { originalStepIndex }),
+  };
+}
+
 describe('UpdateRecordStepExecutor', () => {
   describe('executionType=FullyAutomated: update direct (Branch B)', () => {
     it('updates the record and returns success', async () => {
@@ -315,6 +333,7 @@ describe('UpdateRecordStepExecutor', () => {
           orders: ordersSchema,
         }),
         activityLogPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
@@ -729,7 +748,13 @@ describe('UpdateRecordStepExecutor', () => {
         customers: makeCollectionSchema(),
         orders: ordersSchema,
       });
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
+      });
       const executor = new UpdateRecordStepExecutor(context);
 
       const result = await executor.execute();

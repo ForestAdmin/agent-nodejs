@@ -4,6 +4,7 @@ import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type { ExecutionContext } from '../../src/types/execution-context';
 import type { TriggerRecordActionStepExecutionData } from '../../src/types/step-execution-data';
 import type { CollectionSchema, RecordRef } from '../../src/types/validated/collection';
+import type { Step } from '../../src/types/validated/execution';
 import type { TriggerActionStepDefinition } from '../../src/types/validated/step-definition';
 
 import { AgentPortError, RunStorePortError, StepStateError } from '../../src/errors';
@@ -163,6 +164,23 @@ function makeContext(
   };
 }
 
+function makeLoadRelatedPreviousStep(stepIndex: number, originalStepIndex?: number): Step {
+  return {
+    stepDefinition: {
+      type: StepType.LoadRelatedRecord,
+      executionType: StepExecutionMode.FullyAutomated,
+      prompt: 'Load the order',
+    },
+    stepOutcome: {
+      type: 'record',
+      stepId: `load-${stepIndex}`,
+      stepIndex,
+      status: 'success',
+    },
+    ...(originalStepIndex !== undefined && { originalStepIndex }),
+  };
+}
+
 describe('TriggerRecordActionStepExecutor', () => {
   describe('executionType=FullyAutomated: trigger direct (Branch B)', () => {
     it('triggers the action and returns success', async () => {
@@ -303,6 +321,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           customers: makeCollectionSchema(),
           orders: ordersSchema,
         }),
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
 
@@ -900,7 +919,14 @@ describe('TriggerRecordActionStepExecutor', () => {
         orders: ordersSchema,
       });
       const agentPort = makeMockAgentPort();
-      const context = makeContext({ baseRecordRef, model, runStore, workflowPort, agentPort });
+      const context = makeContext({
+        baseRecordRef,
+        model,
+        runStore,
+        workflowPort,
+        agentPort,
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
+      });
       const executor = new TriggerRecordActionStepExecutor(context);
 
       const result = await executor.execute();

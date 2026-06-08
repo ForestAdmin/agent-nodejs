@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { InvalidAIResponseError, InvalidPreRecordedArgsError, NoRecordsError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
+import { StepType } from '../types/validated/step-definition';
 
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
@@ -46,15 +47,22 @@ export default abstract class RecordStepExecutor<
     return this.selectRecordRef(records, prompt);
   }
 
+  // Candidate sources for the AI: the base record plus the record each live prior
+  // load-related step resolved — own stepIndex first, falling back to a clone's
+  // originalStepIndex.
   protected async getAvailableRecordRefs(): Promise<RecordRef[]> {
     const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-    const relatedRecords = stepExecutions.flatMap(e => {
+    const relatedRecords = this.context.previousSteps.flatMap(step => {
+      if (step.stepDefinition.type !== StepType.LoadRelatedRecord) return [];
+
+      const execution = this.resolveStepExecution(step, stepExecutions);
+
       if (
-        e.type === 'load-related-record' &&
-        e.executionResult !== undefined &&
-        'record' in e.executionResult
+        execution?.type === 'load-related-record' &&
+        execution.executionResult !== undefined &&
+        'record' in execution.executionResult
       ) {
-        return [e.executionResult.record];
+        return [execution.executionResult.record];
       }
 
       return [];
