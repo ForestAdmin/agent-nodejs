@@ -81,6 +81,7 @@ function tryMapStep(s: ServerStepHistory): Step | null {
     return {
       stepDefinition: toStepDefinition(s.stepDefinition),
       stepOutcome: toStepOutcome(s),
+      ...(s.originalStepIndex !== undefined && { originalStepIndex: s.originalStepIndex }),
     };
   } catch (err) {
     // Sub-workflow navigation steps (start-sub-workflow, close-sub-workflow) are not
@@ -90,12 +91,14 @@ function tryMapStep(s: ServerStepHistory): Step | null {
   }
 }
 
+// Mirrors the orchestrator's own read filter: revised and cancelled entries are not on the
+// live path.
 function toPreviousSteps(
   history: ServerStepHistory[],
   pendingStepIndex: number,
 ): ReadonlyArray<Step> {
   return history
-    .filter(s => s.done && s.stepIndex < pendingStepIndex)
+    .filter(s => s.done && !s.revised && !s.cancelled && s.stepIndex < pendingStepIndex)
     .map(s => tryMapStep(s))
     .filter((s): s is Step => s !== null);
 }

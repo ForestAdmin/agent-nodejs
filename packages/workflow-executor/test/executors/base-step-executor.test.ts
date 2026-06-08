@@ -4,6 +4,7 @@ import type { RunStore } from '../../src/ports/run-store';
 import type { ExecutionContext, StepExecutionResult } from '../../src/types/execution-context';
 import type { StepExecutionData } from '../../src/types/step-execution-data';
 import type { RecordRef } from '../../src/types/validated/collection';
+import type { Step } from '../../src/types/validated/execution';
 import type { StepDefinition } from '../../src/types/validated/step-definition';
 import type { BaseStepStatus, StepOutcome } from '../../src/types/validated/step-outcome';
 import type { BaseMessage, DynamicStructuredTool } from '@forestadmin/ai-proxy';
@@ -208,6 +209,119 @@ describe('BaseStepExecutor', () => {
       expect(content).toContain('Step "cond-1"');
       expect(content).toContain('Step "cond-2"');
       expect(content).toContain('\n\nStep "cond-2"');
+    });
+  });
+
+  describe('previous-steps summary after revision', () => {
+    // A revision clone never ran under its own (new) stepIndex — its execution lives at the
+    // copied step's index (originalStepIndex). The summary resolves own-index first, then the
+    // copied step; own-first is what stops a re-executed step from resurfacing the superseded
+    // original's execution detail.
+
+    function makeCloneEntry(
+      overrides: { stepId?: string; stepIndex?: number; prompt?: string },
+      originalStepIndex: number,
+    ): Step {
+      return { ...makeHistoryEntry(overrides), originalStepIndex };
+    }
+
+    it("resolves a clone summary from the copied step's execution", async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 3,
+          executionParams: { answer: 'Yes', reasoning: 'REASONING-AT-IDX-3' },
+          executionResult: { answer: 'Yes' },
+        },
+      ]);
+      const executor = new TestableExecutor(
+        makeContext({
+          // clone runs under idx 7 but copies idx 3; the executor never ran idx 7
+          previousSteps: [makeCloneEntry({ stepId: 'cond-1', stepIndex: 7 }, 3)],
+          runStore,
+        }),
+      );
+
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
+
+      expect(content).toContain('Step "cond-1"');
+      expect(content).toContain('REASONING-AT-IDX-3');
+    });
+
+    it("uses the step's own execution, never the copied original's, when both exist", async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 3,
+          executionParams: { answer: 'No', reasoning: 'SUPERSEDED-ORIGINAL' },
+          executionResult: { answer: 'No' },
+        },
+        {
+          type: 'condition',
+          stepIndex: 7,
+          executionParams: { answer: 'Yes', reasoning: 'OWN-FRESH' },
+          executionResult: { answer: 'Yes' },
+        },
+      ]);
+      const executor = new TestableExecutor(
+        makeContext({
+          // a re-executed step carries originalStepIndex but has its OWN execution at idx 7
+          previousSteps: [makeCloneEntry({ stepId: 'cond-1', stepIndex: 7 }, 3)],
+          runStore,
+        }),
+      );
+
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
+
+      expect(content).toContain('OWN-FRESH');
+      expect(content).not.toContain('SUPERSEDED-ORIGINAL');
+    });
+
+    it('falls back to outcome History when neither own nor copied step has an execution', async () => {
+      const runStore = makeMockRunStore([]);
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [makeCloneEntry({ stepId: 'cond-1', stepIndex: 7 }, 3)],
+          runStore,
+        }),
+      );
+
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
+
+      expect(content).toContain('Step "cond-1"');
+      expect(content).toContain('History:');
+    });
+
+    it('does not surface executions of steps absent from previousSteps (dead branch)', async () => {
+      const runStore = makeMockRunStore([
+        {
+          type: 'condition',
+          stepIndex: 0,
+          executionParams: { answer: 'Yes', reasoning: 'LIVE-INPUT' },
+          executionResult: { answer: 'Yes' },
+        },
+        {
+          type: 'condition',
+          stepIndex: 5,
+          executionParams: { answer: 'No', reasoning: 'DEAD-INPUT' },
+          executionResult: { answer: 'No' },
+        },
+      ]);
+      const executor = new TestableExecutor(
+        makeContext({
+          previousSteps: [makeHistoryEntry({ stepId: 'cond-1', stepIndex: 0 })],
+          runStore,
+        }),
+      );
+
+      const messages = await executor.buildPreviousStepsMessages();
+      const content = messages[0].content as string;
+
+      expect(content).toContain('LIVE-INPUT');
+      expect(content).not.toContain('DEAD-INPUT');
     });
   });
 
