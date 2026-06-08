@@ -70,7 +70,7 @@ export default class AgentClientAgentPort implements AgentPort {
           .getOne<Record<string, unknown>>(id, { ...(fields?.length && { fields }) });
       } catch (error) {
         if (HttpRequester.is404Error(error)) {
-          throw new RecordNotFoundError(collection, id.join('|'));
+          throw new RecordNotFoundError(collection, id);
         }
 
         throw error;
@@ -78,7 +78,7 @@ export default class AgentClientAgentPort implements AgentPort {
 
       // Some agents answer a missing composite-key record with a 200 + empty body instead of 404.
       if (!record || Object.keys(record).length === 0) {
-        throw new RecordNotFoundError(collection, id.join('|'));
+        throw new RecordNotFoundError(collection, id);
       }
 
       return {

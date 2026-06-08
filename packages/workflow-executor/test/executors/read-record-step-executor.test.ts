@@ -738,7 +738,7 @@ describe('ReadRecordStepExecutor', () => {
     it('returns error when agentPort.getRecord throws a WorkflowExecutorError', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getRecord as jest.Mock).mockRejectedValue(
-        new RecordNotFoundError('customers', '42'),
+        new RecordNotFoundError('customers', [42]),
       );
       const mockModel = makeMockModel({ fieldNames: ['email'] });
       const runStore = makeMockRunStore();
