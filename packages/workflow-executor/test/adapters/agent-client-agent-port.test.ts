@@ -20,6 +20,7 @@ function createMockClient() {
   const mockRelation = { list: jest.fn() };
   const mockCollection = {
     list: jest.fn(),
+    getOne: jest.fn(),
     update: jest.fn(),
     relation: jest.fn().mockReturnValue(mockRelation),
     action: jest.fn().mockResolvedValue(mockAction),
@@ -102,14 +103,11 @@ describe('AgentClientAgentPort', () => {
 
   describe('getRecord', () => {
     it('should return a RecordData for a simple PK', async () => {
-      mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
+      mockCollection.getOne.mockResolvedValue({ id: 42, name: 'Alice' });
 
       const result = await port.getRecord({ collection: 'users', id: [42] }, user);
 
-      expect(mockCollection.list).toHaveBeenCalledWith({
-        filters: { field: 'id', operator: 'Equal', value: 42 },
-        pagination: { size: 1, number: 1 },
-      });
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {});
       expect(result).toEqual({
         collectionName: 'users',
         recordId: [42],
@@ -117,58 +115,43 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    it('should build a composite And filter for composite PKs', async () => {
-      mockCollection.list.mockResolvedValue([{ tenantId: 1, orderId: 2 }]);
+    it('should pass the composite id opaquely (no primary-key ordering assumption)', async () => {
+      mockCollection.getOne.mockResolvedValue({ tenantId: 1, orderId: 2 });
 
       await port.getRecord({ collection: 'orders', id: [1, 2] }, user);
 
-      expect(mockCollection.list).toHaveBeenCalledWith({
-        filters: {
-          aggregator: 'And',
-          conditions: [
-            { field: 'tenantId', operator: 'Equal', value: 1 },
-            { field: 'orderId', operator: 'Equal', value: 2 },
-          ],
-        },
-        pagination: { size: 1, number: 1 },
-      });
+      // The id is forwarded as-is; the agent resolves the primary key column order.
+      expect(mockCollection.getOne).toHaveBeenCalledWith([1, 2], {});
     });
 
     it('should throw a RecordNotFoundError when no record is found', async () => {
-      mockCollection.list.mockResolvedValue([]);
+      mockCollection.getOne.mockResolvedValue(null);
 
       await expect(port.getRecord({ collection: 'users', id: [999] }, user)).rejects.toThrow(
         RecordNotFoundError,
       );
     });
 
-    it('should pass fields to list when fields is provided', async () => {
-      mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
+    it('should pass fields to getOne when fields is provided', async () => {
+      mockCollection.getOne.mockResolvedValue({ id: 42, name: 'Alice' });
 
       await port.getRecord({ collection: 'users', id: [42], fields: ['id', 'name'] }, user);
 
-      expect(mockCollection.list).toHaveBeenCalledWith({
-        filters: { field: 'id', operator: 'Equal', value: 42 },
-        pagination: { size: 1, number: 1 },
-        fields: ['id', 'name'],
-      });
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['id', 'name'] });
     });
 
-    it('should not pass fields to list when fields is an empty array', async () => {
-      mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
+    it('should not pass fields to getOne when fields is an empty array', async () => {
+      mockCollection.getOne.mockResolvedValue({ id: 42, name: 'Alice' });
 
       await port.getRecord({ collection: 'users', id: [42], fields: [] }, user);
 
-      expect(mockCollection.list).toHaveBeenCalledWith({
-        filters: { field: 'id', operator: 'Equal', value: 42 },
-        pagination: { size: 1, number: 1 },
-      });
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {});
     });
 
     it('should restore snake_case field names when agent returns camelCase keys', async () => {
       // The agent-client HTTP layer deserializes JSON:API responses with camelCase keys.
       // restoreFieldNames must map them back to the original snake_case names.
-      mockCollection.list.mockResolvedValue([{ cardNumber: '4111', isActive: true }]);
+      mockCollection.getOne.mockResolvedValue({ cardNumber: '4111', isActive: true });
 
       const result = await port.getRecord(
         { collection: 'users', id: [42], fields: ['card_number', 'is_active'] },
@@ -178,34 +161,27 @@ describe('AgentClientAgentPort', () => {
       expect(result.values).toEqual({ card_number: '4111', is_active: true });
     });
 
-    it('should not pass fields to list when fields is undefined', async () => {
-      mockCollection.list.mockResolvedValue([{ id: 42, name: 'Alice' }]);
+    it('should not pass fields to getOne when fields is undefined', async () => {
+      mockCollection.getOne.mockResolvedValue({ id: 42, name: 'Alice' });
 
       await port.getRecord({ collection: 'users', id: [42] }, user);
 
-      expect(mockCollection.list).toHaveBeenCalledWith({
-        filters: { field: 'id', operator: 'Equal', value: 42 },
-        pagination: { size: 1, number: 1 },
-      });
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {});
     });
 
-    it('should fallback to pk field "id" when collection is unknown', async () => {
-      mockCollection.list.mockResolvedValue([{ id: 1 }]);
+    it('works without a cached schema (no primary-key lookup needed)', async () => {
+      mockCollection.getOne.mockResolvedValue({ id: 1 });
 
       const result = await port.getRecord({ collection: 'unknown', id: [1] }, user);
 
-      expect(mockCollection.list).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filters: { field: 'id', operator: 'Equal', value: 1 },
-        }),
-      );
+      expect(mockCollection.getOne).toHaveBeenCalledWith([1], {});
       expect(result.collectionName).toBe('unknown');
     });
   });
 
   describe('agent JWT', () => {
     it('signs both camelCase and snake_case identity claims for cross-runtime agents', async () => {
-      mockCollection.list.mockResolvedValue([{ id: 42 }]);
+      mockCollection.getOne.mockResolvedValue({ id: 42 });
 
       await port.getRecord({ collection: 'users', id: [42] }, user);
 
@@ -352,7 +328,7 @@ describe('AgentClientAgentPort', () => {
       ]);
     });
 
-    it('extracts composite primary keys in the order declared by the schema', async () => {
+    it('uses the agent opaque record id for composite PKs (no schema-order assumption)', async () => {
       const compositeSchema = {
         ...postsSchema,
         primaryKeyFields: ['tenantId', 'postId'],
@@ -371,7 +347,9 @@ describe('AgentClientAgentPort', () => {
           },
         ],
       };
-      mockRelation.list.mockResolvedValue([{ tenantId: 'acme', postId: 7 }]);
+      // The agent serializes the (composite) record id; we reuse it rather than rebuilding it
+      // from primaryKeyFields, so the column order is the agent's, not the schema's alphabetical one.
+      mockRelation.list.mockResolvedValue([{ id: 'acme|7', tenantId: 'acme', postId: 7 }]);
 
       const result = await port.getRelatedData(
         {
@@ -384,7 +362,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(result[0].recordId).toEqual(['acme', 7]);
+      expect(result[0].recordId).toEqual(['acme', '7']);
     });
 
     it('applies pagination when limit is a number', async () => {
@@ -495,7 +473,7 @@ describe('AgentClientAgentPort', () => {
     };
 
     it('projects the related PK on the parent and unpacks the linkage as RecordData', async () => {
-      mockCollection.list.mockResolvedValue([{ order: { id: '99' } }]);
+      mockCollection.getOne.mockResolvedValue({ order: { id: '99' } });
 
       const result = await port.getSingleRelatedData(
         {
@@ -507,9 +485,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.list).toHaveBeenCalledWith(
-        expect.objectContaining({ fields: ['order@@@id'] }),
-      );
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['order@@@id'] });
       expect(result).toEqual({
         collectionName: 'orders',
         recordId: ['99'],
@@ -518,7 +494,7 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('projects only the caller field (e.g. referenceField), not the PK — the linkage id comes free', async () => {
-      mockCollection.list.mockResolvedValue([{ order: { id: '99', reference: 'ORD-2026-001' } }]);
+      mockCollection.getOne.mockResolvedValue({ order: { id: '99', reference: 'ORD-2026-001' } });
 
       const result = await port.getSingleRelatedData(
         {
@@ -532,14 +508,12 @@ describe('AgentClientAgentPort', () => {
       );
 
       // Single sub-field only: the agent can't parse `fields[order]=id,reference`.
-      expect(mockCollection.list).toHaveBeenCalledWith(
-        expect.objectContaining({ fields: ['order@@@reference'] }),
-      );
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['order@@@reference'] });
       expect(result?.values).toEqual({ id: '99', reference: 'ORD-2026-001' });
     });
 
     it('projects at most one sub-field even when the caller passes several', async () => {
-      mockCollection.list.mockResolvedValue([{ order: { id: '99', reference: 'ORD-2026-001' } }]);
+      mockCollection.getOne.mockResolvedValue({ order: { id: '99', reference: 'ORD-2026-001' } });
 
       await port.getSingleRelatedData(
         {
@@ -552,9 +526,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.list).toHaveBeenCalledWith(
-        expect.objectContaining({ fields: ['order@@@reference'] }),
-      );
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['order@@@reference'] });
     });
 
     // Regression: jsonapi-serializer emits the nested linkage with camelCased attribute
@@ -573,7 +545,7 @@ describe('AgentClientAgentPort', () => {
           },
         ],
       };
-      mockCollection.list.mockResolvedValue([{ order: { id: '99', fullName: 'John Doe' } }]);
+      mockCollection.getOne.mockResolvedValue({ order: { id: '99', fullName: 'John Doe' } });
 
       const result = await port.getSingleRelatedData(
         {
@@ -593,7 +565,7 @@ describe('AgentClientAgentPort', () => {
     // emits the linkage under the camelCased key (billingAddress), so looking it up by the raw
     // name returned null and the relation never loaded.
     it('finds the linkage when the relation name is snake_case', async () => {
-      mockCollection.list.mockResolvedValue([{ billingAddress: { id: '7|2' } }]);
+      mockCollection.getOne.mockResolvedValue({ billingAddress: { id: '7|2' } });
 
       const result = await port.getSingleRelatedData(
         {
@@ -605,9 +577,9 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
-      expect(mockCollection.list).toHaveBeenCalledWith(
-        expect.objectContaining({ fields: ['billing_address@@@id'] }),
-      );
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {
+        fields: ['billing_address@@@id'],
+      });
       expect(result).toEqual({
         collectionName: 'addresses',
         recordId: ['7', '2'],
@@ -634,7 +606,7 @@ describe('AgentClientAgentPort', () => {
           },
         ],
       };
-      mockCollection.list.mockResolvedValue([{ order: { id: 'acme|7' } }]);
+      mockCollection.getOne.mockResolvedValue({ order: { id: 'acme|7' } });
 
       const result = await port.getSingleRelatedData(
         {
@@ -650,7 +622,7 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('returns null when the parent has no linkage to the xToOne relation', async () => {
-      mockCollection.list.mockResolvedValue([{ order: null }]);
+      mockCollection.getOne.mockResolvedValue({ order: null });
 
       const result = await port.getSingleRelatedData(
         {
@@ -666,7 +638,7 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('returns null when the linkage object is present but has no id', async () => {
-      mockCollection.list.mockResolvedValue([{ order: {} }]);
+      mockCollection.getOne.mockResolvedValue({ order: {} });
 
       const result = await port.getSingleRelatedData(
         {
