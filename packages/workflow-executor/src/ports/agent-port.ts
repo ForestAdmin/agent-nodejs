@@ -1,5 +1,3 @@
-/** @draft Types derived from the workflow-executor spec -- subject to change. */
-
 import type { StepUser } from '../types/execution-context';
 import type { CollectionSchema, RecordData } from '../types/validated/collection';
 
