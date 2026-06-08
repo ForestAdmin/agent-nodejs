@@ -1700,7 +1700,7 @@ describe('ForestMCPServer Instance', () => {
             });
 
           expect(response.status).toBe(200);
-          expect(capturedQueryParams['fields[users]']).toEqual(['id', 'name', 'email']);
+          expect(capturedQueryParams['fields[users]']).toBe('id,name,email');
         });
 
         it('should pass relation fields with @@@ separator to the agent', async () => {
@@ -1724,13 +1724,10 @@ describe('ForestMCPServer Instance', () => {
             });
 
           expect(response.status).toBe(200);
-          // Main collection should have the relation name
-          expect(capturedQueryParams['fields[users]']).toContain('id');
-          expect(capturedQueryParams['fields[users]']).toContain('name');
-          expect(capturedQueryParams['fields[users]']).toContain('company');
-          // Related collection should have the field names
-          expect(capturedQueryParams['fields[company]']).toContain('name');
-          expect(capturedQueryParams['fields[company]']).toContain('address');
+          const usersFields = (capturedQueryParams['fields[users]'] as string).split(',');
+          const companyFields = (capturedQueryParams['fields[company]'] as string).split(',');
+          expect(usersFields).toEqual(expect.arrayContaining(['id', 'name', 'company']));
+          expect(companyFields).toEqual(expect.arrayContaining(['name', 'address']));
         });
       });
 
@@ -1970,7 +1967,7 @@ describe('ForestMCPServer Instance', () => {
           expect(capturedQueryParams.search).toBe('john');
           expect(capturedQueryParams.searchExtended).toBe(true);
           expect(capturedQueryParams.sort).toBe('name');
-          expect(capturedQueryParams['fields[users]']).toEqual(['id', 'name', 'email']);
+          expect(capturedQueryParams['fields[users]']).toBe('id,name,email');
           expect(capturedQueryParams['page[size]']).toBe(20);
           expect(capturedQueryParams['page[number]']).toBe(2);
 

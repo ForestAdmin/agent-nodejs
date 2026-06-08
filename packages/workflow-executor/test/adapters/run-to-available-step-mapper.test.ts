@@ -133,12 +133,20 @@ describe('toAvailableStepExecution', () => {
     expect(result?.runId).toBe('999');
   });
 
-  it('should wrap selectedRecordId in an array for baseRecordRef', () => {
+  it('should deserialize selectedRecordId into an array for baseRecordRef', () => {
     const run = makeRun({ selectedRecordId: 'rec-abc' });
 
     const result = toAvailableStepExecution(run);
 
     expect(result?.baseRecordRef.recordId).toEqual(['rec-abc']);
+  });
+
+  it('splits a pipe-separated selectedRecordId into a multi-element recordId array', () => {
+    const run = makeRun({ selectedRecordId: 'pk1|pk2' });
+
+    const result = toAvailableStepExecution(run);
+
+    expect(result?.baseRecordRef.recordId).toEqual(['pk1', 'pk2']);
   });
 
   it('should return null when workflowHistory is empty', () => {
@@ -587,6 +595,15 @@ describe('toAvailableStepExecution', () => {
       expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
       expect(() => toAvailableStepExecution(run)).toThrow(
         'Run 42 has no collectionId — cannot build baseRecordRef',
+      );
+    });
+
+    it('should throw InvalidStepDefinitionError when selectedRecordId is empty', () => {
+      const run = makeRun({ selectedRecordId: '' });
+
+      expect(() => toAvailableStepExecution(run)).toThrow(InvalidStepDefinitionError);
+      expect(() => toAvailableStepExecution(run)).toThrow(
+        'Run 42 has no selectedRecordId — cannot build baseRecordRef',
       );
     });
 

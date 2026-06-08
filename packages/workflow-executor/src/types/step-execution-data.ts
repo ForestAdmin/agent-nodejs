@@ -1,6 +1,6 @@
 /** @draft Types derived from the workflow-executor spec -- subject to change. */
 
-import type { RecordRef } from './validated/collection';
+import type { RecordId, RecordRef } from './validated/collection';
 import type {
   LoadRelatedRecordConfirmation,
   McpConfirmation,
@@ -133,7 +133,7 @@ export interface RecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Load Related Record --
 export interface LoadRelatedRecordCandidate {
-  recordId: Array<string | number>;
+  recordId: RecordId;
   referenceFieldValue: string | null;
 }
 

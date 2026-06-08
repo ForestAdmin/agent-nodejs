@@ -1160,7 +1160,7 @@ describe('UpdateRecordStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { fieldDisplayName: 'Status', value: 'active' },
+          preRecordedArgs: { fieldName: 'status', value: 'active' },
         }),
       });
       const executor = new UpdateRecordStepExecutor(context);
@@ -1173,6 +1173,14 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({ values: { status: 'active' } }),
         context.user,
       );
+      // Pre-recorded reference is the technical name 'status'; the persisted displayName 'Status'
+      // is resolved from the schema, not received on the wire.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+        }),
+      );
     });
 
     it('still goes through awaiting-input when executionType is not FullyAutomated', async () => {
@@ -1182,7 +1190,7 @@ describe('UpdateRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          preRecordedArgs: { fieldDisplayName: 'Status', value: 'active' },
+          preRecordedArgs: { fieldName: 'status', value: 'active' },
         }),
       });
       const executor = new UpdateRecordStepExecutor(context);
@@ -1191,9 +1199,30 @@ describe('UpdateRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      // displayName 'Status' is resolved from the schema even though only the technical name was sent.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        }),
+      );
     });
 
-    it('falls back to AI when preRecordedArgs has no fieldDisplayName', async () => {
+    it('returns error when a pre-recorded fieldName does not resolve', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'does_not_exist', value: 'x' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('falls back to AI when preRecordedArgs has no fieldName', async () => {
       const mockModel = makeMockModel({
         input: { fieldName: 'Status', value: 'active', reasoning: 'r' },
       });
@@ -1211,11 +1240,11 @@ describe('UpdateRecordStepExecutor', () => {
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
     });
 
-    it('returns error when fieldDisplayName is provided without value', async () => {
+    it('returns error when fieldName is provided without value', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { fieldDisplayName: 'Status' },
+          preRecordedArgs: { fieldName: 'status' },
         }),
       });
       const executor = new UpdateRecordStepExecutor(context);
@@ -1225,7 +1254,7 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('returns error when value is provided without fieldDisplayName', async () => {
+    it('returns error when value is provided without fieldName', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
@@ -1251,7 +1280,7 @@ describe('UpdateRecordStepExecutor', () => {
         workflowPort,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { fieldDisplayName: 'Age', value: 42 },
+          preRecordedArgs: { fieldName: 'age', value: 42 },
         }),
       });
       const executor = new UpdateRecordStepExecutor(context);
@@ -1262,6 +1291,49 @@ describe('UpdateRecordStepExecutor', () => {
       expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
         expect.objectContaining({ values: { age: 42 } }),
         context.user,
+      );
+    });
+
+    it('resolves a pre-recorded technical name to its own field, not another field whose displayName collides', async () => {
+      const runStore = makeMockRunStore();
+      // Field B's displayName ('status') equals field A's technical fieldName ('status').
+      // A pre-recorded technical name must resolve field A, never field B.
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            {
+              fieldName: 'status',
+              displayName: 'Internal Note',
+              isRelationship: false,
+              type: 'String',
+            },
+            { fieldName: 'note', displayName: 'status', isRelationship: false, type: 'String' },
+          ],
+        }),
+      });
+      const context = makeContext({
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'status', value: 'active' },
+        }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Writes field A ('status'), not field B ('note' / displayName 'status').
+      expect(context.agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ values: { status: 'active' } }),
+        context.user,
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Internal Note', name: 'status', value: 'active' },
+        }),
       );
     });
   });

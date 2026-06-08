@@ -1086,7 +1086,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const context = makeContext({
         agentPort,
         runStore,
-        incomingPendingData: { userConfirmed: true, selectedRecordId: [42] },
+        incomingPendingData: { userConfirmed: true, selectedRecordId: '42' },
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
@@ -1105,7 +1105,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
             suggestedRecord: cand([99]), // AI suggestion preserved
           }),
           executionResult: expect.objectContaining({
-            record: expect.objectContaining({ collectionName: 'orders', recordId: [42] }),
+            record: expect.objectContaining({ collectionName: 'orders', recordId: ['42'] }),
           }),
         }),
       );
@@ -1134,7 +1134,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         incomingPendingData: {
           userConfirmed: true,
           fieldName: 'address',
-          selectedRecordId: [7],
+          selectedRecordId: '7',
         },
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -1154,7 +1154,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           executionParams: { name: 'address', displayName: 'Address' },
           executionResult: expect.objectContaining({
             relation: { name: 'address', displayName: 'Address' },
-            record: expect.objectContaining({ collectionName: 'addresses', recordId: [7] }),
+            record: expect.objectContaining({ collectionName: 'addresses', recordId: ['7'] }),
           }),
         }),
       );
@@ -1253,7 +1253,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           suggestedRecord: cand([99]),
         },
         // Frontend confirms a relation that no longer exists in availableFields.
-        userConfirmation: { userConfirmed: true, fieldName: 'ghost', selectedRecordId: [7] },
+        userConfirmation: { userConfirmed: true, fieldName: 'ghost', selectedRecordId: ['7'] },
       });
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([execution]),
@@ -2735,7 +2735,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { relationDisplayName: 'Order' },
+          preRecordedArgs: { relationName: 'order' },
         }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -2744,6 +2744,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(bindTools).not.toHaveBeenCalled();
+      // Pre-recorded reference is the technical name 'order'; the persisted displayName 'Order'
+      // is resolved from the schema, not received on the wire.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            relation: { name: 'order', displayName: 'Order' },
+          }),
+        }),
+      );
     });
 
     it('skips AI record selection when selectedRecordIndex is pre-recorded with HasMany', async () => {
@@ -2768,7 +2778,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort: makeMockAgentPort(relatedData),
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 1 },
+          preRecordedArgs: { relationName: 'address', selectedRecordIndex: 1 },
         }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -2806,7 +2816,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         agentPort: makeMockAgentPort(relatedData),
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { relationDisplayName: 'Address', selectedRecordIndex: 99 },
+          preRecordedArgs: { relationName: 'address', selectedRecordIndex: 99 },
         }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -2814,6 +2824,71 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('returns error when a pre-recorded relationName does not resolve', async () => {
+      const { model } = makeMockModel();
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { relationName: 'does_not_exist' },
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('resolves a pre-recorded technical relationName to its own relation, not another whose displayName collides', async () => {
+      const { model } = makeMockModel();
+      const runStore = makeMockRunStore();
+      // Relation B's displayName ('order') equals relation A's technical fieldName ('order').
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            {
+              fieldName: 'order',
+              displayName: 'Linked Address',
+              isRelationship: true,
+              relationType: 'BelongsTo',
+              relatedCollectionName: 'orders',
+            },
+            {
+              fieldName: 'addr',
+              displayName: 'order',
+              isRelationship: true,
+              relationType: 'BelongsTo',
+              relatedCollectionName: 'addresses',
+            },
+          ],
+        }),
+      });
+      const context = makeContext({
+        model,
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { relationName: 'order' },
+        }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Follows relation A ('order' / 'Linked Address'), not B ('addr' / displayName 'order').
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            relation: { name: 'order', displayName: 'Linked Address' },
+          }),
+        }),
+      );
     });
 
     it('falls back to AI when no preRecordedArgs', async () => {

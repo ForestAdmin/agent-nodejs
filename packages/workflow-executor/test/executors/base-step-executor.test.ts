@@ -542,7 +542,7 @@ describe('BaseStepExecutor', () => {
           action: 'update',
           type: 'write' as const,
           collectionId: 'col-1',
-          recordId: 42,
+          recordId: [42],
         };
       }
 
@@ -667,7 +667,7 @@ describe('BaseStepExecutor', () => {
             action: 'update',
             type: 'write' as const,
             collectionName: 'customers',
-            recordId: 42,
+            recordId: [42],
           };
         }
 

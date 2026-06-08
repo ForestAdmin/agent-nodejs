@@ -47,8 +47,8 @@ export const ReadRecordStepDefinitionSchema = z.object({
   preRecordedArgs: z
     .object({
       selectedRecordStepIndex: z.number().int().optional(),
-      /** Display names of the fields to read */
-      fieldDisplayNames: z.array(z.string()).optional(),
+      /** Technical names of the fields to read */
+      fieldNames: z.array(z.string()).optional(),
     })
     .optional(),
 });
@@ -64,8 +64,8 @@ export const UpdateRecordStepDefinitionSchema = z.object({
   preRecordedArgs: z
     .object({
       selectedRecordStepIndex: z.number().int().optional(),
-      /** Display name of the field to update */
-      fieldDisplayName: z.string().optional(),
+      /** Technical name of the field to update */
+      fieldName: z.string().optional(),
       value: z.unknown().optional(),
     })
     .optional(),
@@ -82,8 +82,8 @@ export const TriggerActionStepDefinitionSchema = z.object({
   preRecordedArgs: z
     .object({
       selectedRecordStepIndex: z.number().int().optional(),
-      /** Display name of the action to trigger */
-      actionDisplayName: z.string().optional(),
+      /** Technical name of the action to trigger */
+      actionName: z.string().optional(),
     })
     .optional(),
 });
@@ -99,8 +99,8 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
   preRecordedArgs: z
     .object({
       selectedRecordStepIndex: z.number().int().optional(),
-      /** Display name of the relation to follow */
-      relationDisplayName: z.string().optional(),
+      /** Technical name of the relation to follow */
+      relationName: z.string().optional(),
       selectedRecordIndex: z.number().int().optional(),
     })
     .optional(),

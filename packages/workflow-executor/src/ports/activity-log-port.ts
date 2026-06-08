@@ -1,9 +1,11 @@
+import type { RecordId } from '../types/validated/collection';
+
 export interface CreateActivityLogArgs {
   renderingId: number;
   action: string;
   type: 'read' | 'write';
   collectionId?: string;
-  recordId?: string | number;
+  recordId?: RecordId;
   label?: string;
 }
 

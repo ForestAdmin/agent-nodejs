@@ -63,6 +63,24 @@ describe('ForestadminClientActivityLogPort', () => {
       expect(service.createActivityLog).toHaveBeenCalledTimes(1);
     });
 
+    it('serializes a composite recordId to the pipe wire format', async () => {
+      const service = makeService();
+      service.createActivityLog.mockResolvedValue({ id: 'log-1', attributes: { index: '0' } });
+      const port = makePort(service);
+
+      await port.createPending({
+        renderingId: 5,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-1',
+        recordId: ['tenant', 7],
+      });
+
+      expect(service.createActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({ recordId: 'tenant|7' }),
+      );
+    });
+
     it('retries on 503 and succeeds on the second attempt', async () => {
       const service = makeService();
       service.createActivityLog

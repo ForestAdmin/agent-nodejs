@@ -1,7 +1,7 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { FieldReadResult } from '../types/step-execution-data';
-import type { CollectionSchema } from '../types/validated/collection';
+import type { CollectionSchema, FieldSchema } from '../types/validated/collection';
 import type { ReadRecordStepDefinition } from '../types/validated/step-definition';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -25,7 +25,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       action: 'index',
       type: 'read',
       collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId[0],
+      recordId: this.context.baseRecordRef.recordId,
     };
   }
 
@@ -40,14 +40,19 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const selectedDisplayNames =
-      preRecordedArgs?.fieldDisplayNames ?? (await this.selectFields(schema, step.prompt));
-    const resolvedFieldNames = selectedDisplayNames
-      .map(name => this.findField(schema, name)?.fieldName)
+    const fieldNames =
+      preRecordedArgs?.fieldNames ?? (await this.selectFields(schema, step.prompt));
+    const selectedFields = fieldNames.map(requested => ({
+      requested,
+      field: this.findFieldByTechnicalName(schema, requested),
+    }));
+
+    const resolvedFieldNames = selectedFields
+      .map(s => s.field?.fieldName)
       .filter((name): name is string => name !== undefined);
 
     if (resolvedFieldNames.length === 0) {
-      throw new NoResolvedFieldsError(selectedDisplayNames);
+      throw new NoResolvedFieldsError(selectedFields.map(s => s.requested));
     }
 
     const recordData = await this.agentPort.getRecord(
@@ -58,7 +63,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       },
       this.context.user,
     );
-    const fieldResults = this.formatFieldResults(recordData.values, schema, selectedDisplayNames);
+    const fieldResults = this.formatFieldResults(recordData.values, selectedFields);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'read-record',
@@ -88,9 +93,9 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
       new HumanMessage(`**Request**: ${prompt ?? 'Read the relevant fields.'}`),
     ];
 
-    const args = await this.invokeWithTool<{ fieldNames: string[] }>(messages, tool);
+    const { fieldNames } = await this.invokeWithTool<{ fieldNames: string[] }>(messages, tool);
 
-    return args.fieldNames;
+    return fieldNames.map(name => this.resolveAiFieldName(schema, name));
   }
 
   private buildReadFieldTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -123,13 +128,12 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
 
   private formatFieldResults(
     values: Record<string, unknown>,
-    schema: CollectionSchema,
-    fieldDisplayNames: string[],
+    selected: Array<{ requested: string; field: FieldSchema | undefined }>,
   ): FieldReadResult[] {
-    return fieldDisplayNames.map(name => {
-      const field = this.findField(schema, name);
-
-      if (!field) return { error: `Field not found: ${name}`, name, displayName: name };
+    return selected.map(({ requested, field }) => {
+      if (!field) {
+        return { error: `Field not found: ${requested}`, name: requested, displayName: requested };
+      }
 
       return {
         value: values[field.fieldName],

@@ -133,7 +133,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       action: 'update',
       type: 'write',
       collectionId: this.context.collectionId,
-      recordId: this.context.baseRecordRef.recordId[0],
+      recordId: this.context.baseRecordRef.recordId,
     };
   }
 
@@ -189,9 +189,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     value: unknown,
   ): Promise<unknown> {
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const fieldSchema =
-      this.findField(schema, pendingData?.name ?? '') ??
-      this.findField(schema, pendingData?.displayName ?? '');
+    const fieldSchema = this.findFieldByTechnicalName(schema, pendingData?.name);
 
     return coerceFieldValue(fieldSchema, value, selectedRecordRef.collectionName);
   }
@@ -208,28 +206,34 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
 
-    if (preRecordedArgs?.fieldDisplayName !== undefined && preRecordedArgs?.value === undefined) {
+    if (preRecordedArgs?.fieldName !== undefined && preRecordedArgs?.value === undefined) {
       throw new InvalidPreRecordedArgsError(
-        'fieldDisplayName and value must both be provided or both omitted',
+        'fieldName and value must both be provided or both omitted',
       );
     }
 
-    if (preRecordedArgs?.value !== undefined && preRecordedArgs?.fieldDisplayName === undefined) {
+    if (preRecordedArgs?.value !== undefined && preRecordedArgs?.fieldName === undefined) {
       throw new InvalidPreRecordedArgsError(
-        'fieldDisplayName and value must both be provided or both omitted',
+        'fieldName and value must both be provided or both omitted',
       );
     }
 
-    const args =
-      preRecordedArgs?.fieldDisplayName !== undefined
-        ? { fieldName: preRecordedArgs.fieldDisplayName, value: preRecordedArgs.value }
+    const recordedField = preRecordedArgs?.fieldName;
+    const { fieldName, value } =
+      recordedField !== undefined
+        ? { fieldName: recordedField, value: preRecordedArgs?.value }
         : await this.selectFieldAndValue(schema, step.prompt);
-    const name = this.resolveFieldName(schema, args.fieldName);
+    const field = this.findFieldByTechnicalName(schema, fieldName);
+
+    if (!field) {
+      throw new FieldNotFoundError(fieldName, schema.collectionName);
+    }
+
     const target: UpdateTarget = {
       selectedRecordRef,
-      displayName: args.fieldName,
-      name,
-      value: args.value,
+      displayName: field.displayName,
+      name: field.fieldName,
+      value,
     };
 
     // Branch B -- fully automated execution
@@ -292,7 +296,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ fieldName: string; value: unknown; reasoning: string }> {
+  ): Promise<{ fieldName: string; value: unknown }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -308,7 +312,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       input: { fieldName: string; value: unknown; reasoning: string };
     }>(messages, tool);
 
-    return input;
+    return {
+      fieldName: this.resolveAiFieldName(schema, input.fieldName),
+      value: input.value,
+    };
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -346,15 +353,5 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       schema: z.object({ input: inputSchema }),
       func: undefined,
     });
-  }
-
-  private resolveFieldName(schema: CollectionSchema, displayName: string): string {
-    const field = this.findField(schema, displayName);
-
-    if (!field) {
-      throw new FieldNotFoundError(displayName, schema.collectionName);
-    }
-
-    return field.fieldName;
   }
 }

@@ -1055,7 +1055,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         runStore,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { actionDisplayName: 'Send Welcome Email' },
+          preRecordedArgs: { actionName: 'send-welcome-email' },
         }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
@@ -1068,6 +1068,14 @@ describe('TriggerRecordActionStepExecutor', () => {
         expect.objectContaining({ action: 'send-welcome-email' }),
         context.user,
       );
+      // Pre-recorded reference is the technical name; the persisted displayName is resolved
+      // from the schema, not received on the wire.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+        }),
+      );
     });
 
     it('still goes through awaiting-input when executionType is not FullyAutomated', async () => {
@@ -1077,7 +1085,7 @@ describe('TriggerRecordActionStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          preRecordedArgs: { actionDisplayName: 'Send Welcome Email' },
+          preRecordedArgs: { actionName: 'send-welcome-email' },
         }),
       });
       const executor = new TriggerRecordActionStepExecutor(context);
@@ -1086,6 +1094,68 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      // displayName is resolved from the schema even though only the technical name was sent.
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
+        }),
+      );
+    });
+
+    it('returns error when a pre-recorded actionName does not resolve', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: 'does-not-exist' },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('resolves a pre-recorded technical actionName to its own action, not another whose displayName collides', async () => {
+      const runStore = makeMockRunStore();
+      // Action B's displayName ('archive') equals action A's technical name ('archive').
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          actions: [
+            {
+              name: 'archive',
+              displayName: 'Send Welcome Email',
+              endpoint: '/forest/actions/archive',
+            },
+            { name: 'send', displayName: 'archive', endpoint: '/forest/actions/send' },
+          ],
+        }),
+      });
+      const context = makeContext({
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: 'archive' },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Triggers action A ('archive'), not action B ('send' / displayName 'archive').
+      expect(context.agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'archive' }),
+        context.user,
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Send Welcome Email', name: 'archive' },
+        }),
+      );
     });
 
     it('falls back to AI when no preRecordedArgs', async () => {
