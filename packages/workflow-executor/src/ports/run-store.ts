@@ -1,5 +1,3 @@
-/** @draft Types derived from the workflow-executor spec -- subject to change. */
-
 import type { Logger } from './logger-port';
 import type { StepExecutionData } from '../types/step-execution-data';
 

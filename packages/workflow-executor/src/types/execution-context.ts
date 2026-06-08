@@ -1,5 +1,3 @@
-/** @draft Types derived from the workflow-executor spec -- subject to change. */
-
 import type { ActivityLogPort } from '../ports/activity-log-port';
 import type { AgentPort } from '../ports/agent-port';
 import type { Logger } from '../ports/logger-port';
