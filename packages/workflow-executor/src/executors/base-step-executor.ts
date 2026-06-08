@@ -33,8 +33,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 {
   protected readonly context: ExecutionContext<TStep>;
 
-  // Audited data access — every call emits an activity-log entry. The raw AgentPort is never
-  // exposed to executors: even the unaudited getActionFormInfo goes through AgentWithLog.
   protected readonly agent: AgentWithLog;
 
   constructor(context: ExecutionContext<TStep>) {
@@ -52,8 +50,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
 
     try {
       // Idempotency guard — mutating executors override this. Runs before doExecute so a cache
-      // hit or uncertain-state error short-circuits before any side effect, including the
-      // activity log emitted by AgentWithLog.
+      // hit or uncertain-state error short-circuits before any side effect.
       const cached = await this.checkIdempotency();
 
       if (cached) {

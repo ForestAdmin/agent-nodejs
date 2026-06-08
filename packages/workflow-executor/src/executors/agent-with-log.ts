@@ -89,8 +89,6 @@ export default class AgentWithLog {
     );
   }
 
-  // Action form metadata — read-only, touches no record and triggers no side effect, so it is
-  // intentionally not audited. Exposed here only so executors never reach for the raw AgentPort.
   getActionFormInfo(query: GetActionFormInfoQuery): Promise<{ hasForm: boolean }> {
     return this.agentPort.getActionFormInfo(query, this.user);
   }
