@@ -120,7 +120,9 @@ export default class AgentWithLog {
   // relation name; resolve its displayName from the source schema, falling back to the technical
   // name when the field is absent (resilient to orchestrator schema drift).
   private relationLabel(schema: CollectionSchema, relation: string): string {
-    const displayName = schema.fields.find(f => f.fieldName === relation)?.displayName ?? relation;
+    const displayName =
+      schema.fields.filter(f => f.isRelationship).find(f => f.fieldName === relation)
+        ?.displayName ?? relation;
 
     return `list relation "${displayName}"`;
   }
