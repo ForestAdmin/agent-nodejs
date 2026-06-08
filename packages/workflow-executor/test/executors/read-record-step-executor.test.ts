@@ -895,7 +895,7 @@ describe('ReadRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          preRecordedArgs: { fieldDisplayNames: ['Email'] },
+          preRecordedArgs: { fieldNames: ['email'] },
         }),
       });
       const executor = new ReadRecordStepExecutor(context);
@@ -904,6 +904,8 @@ describe('ReadRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(mockModel.bindTools).not.toHaveBeenCalled();
+      // Pre-recorded reference is the technical name 'email'; the persisted displayName 'Email'
+      // is resolved from the schema, not received on the wire.
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
@@ -956,7 +958,7 @@ describe('ReadRecordStepExecutor', () => {
         model: mockModel.model,
         runStore,
         stepDefinition: makeStep({
-          preRecordedArgs: { selectedRecordStepIndex: 0, fieldDisplayNames: ['Email'] },
+          preRecordedArgs: { selectedRecordStepIndex: 0, fieldNames: ['email'] },
         }),
       });
       const executor = new ReadRecordStepExecutor(context);
@@ -985,7 +987,7 @@ describe('ReadRecordStepExecutor', () => {
       const context = makeContext({
         model: mockModel.model,
         stepDefinition: makeStep({
-          preRecordedArgs: { fieldDisplayNames: ['NonExistentField'] },
+          preRecordedArgs: { fieldNames: ['non_existent_field'] },
         }),
       });
       const executor = new ReadRecordStepExecutor(context);
@@ -993,6 +995,43 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('resolves a pre-recorded technical fieldName to its own field, not another whose displayName collides', async () => {
+      const runStore = makeMockRunStore();
+      // Field B's displayName ('status') equals field A's technical fieldName ('status').
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            { fieldName: 'status', displayName: 'Internal Note', isRelationship: false },
+            { fieldName: 'note', displayName: 'status', isRelationship: false },
+          ],
+        }),
+      });
+      const agentPort = makeMockAgentPort({
+        customers: { values: { status: 'active', note: 'B' } },
+      });
+      const context = makeContext({
+        model: makeMockModel().model,
+        runStore,
+        workflowPort,
+        agentPort,
+        stepDefinition: makeStep({ preRecordedArgs: { fieldNames: ['status'] } }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Reads field A ('status'), not field B ('note' / displayName 'status').
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: {
+            fields: [{ value: 'active', name: 'status', displayName: 'Internal Note' }],
+          },
+        }),
+      );
     });
 
     it('falls back to AI when no preRecordedArgs', async () => {

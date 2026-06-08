@@ -1,7 +1,7 @@
 import type { CreateActivityLogArgs } from '../ports/activity-log-port';
 import type { StepExecutionResult } from '../types/execution-context';
 import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
-import type { CollectionSchema, RecordRef } from '../types/validated/collection';
+import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
@@ -108,11 +108,19 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const args = preRecordedArgs?.actionDisplayName
-      ? { actionName: preRecordedArgs.actionDisplayName }
-      : await this.selectAction(schema, step.prompt);
-    const name = this.resolveActionName(schema, args.actionName);
-    const target: ActionTarget = { selectedRecordRef, displayName: args.actionName, name };
+    const recordedAction = preRecordedArgs?.actionName;
+    const actionName = recordedAction ?? (await this.selectAction(schema, step.prompt)).actionName;
+    const action = this.findActionByTechnicalName(schema, actionName);
+
+    if (!action) {
+      throw new ActionNotFoundError(actionName, schema.collectionName);
+    }
+
+    const target: ActionTarget = {
+      selectedRecordRef,
+      displayName: action.displayName,
+      name: action.name,
+    };
 
     // Branch B -- fully automated: executor runs the action itself, so it cannot
     // handle forms (no UI to fill them). Reject form-bearing actions here. When the
@@ -121,7 +129,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       const { hasForm } = await this.agentPort.getActionFormInfo(
         {
           collection: selectedRecordRef.collectionName,
-          action: name,
+          action: target.name,
           id: selectedRecordRef.recordId,
         },
         this.context.user,
@@ -197,7 +205,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   private async selectAction(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ actionName: string; reasoning: string }> {
+  ): Promise<{ actionName: string }> {
     const tool = this.buildSelectActionTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -209,7 +217,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       new HumanMessage(`**Request**: ${prompt ?? 'Trigger the relevant action.'}`),
     ];
 
-    return this.invokeWithTool<{ actionName: string; reasoning: string }>(messages, tool);
+    const { actionName } = await this.invokeWithTool<{ actionName: string; reasoning: string }>(
+      messages,
+      tool,
+    );
+
+    return { actionName: this.findAction(schema, actionName)?.name ?? actionName };
   }
 
   private buildSelectActionTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -235,15 +248,16 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     });
   }
 
-  private resolveActionName(schema: CollectionSchema, displayName: string): string {
-    const action =
-      schema.actions.find(a => a.displayName === displayName) ??
-      schema.actions.find(a => a.name === displayName);
+  private findActionByTechnicalName(
+    schema: CollectionSchema,
+    name: string,
+  ): ActionSchema | undefined {
+    return schema.actions.find(a => a.name === name);
+  }
 
-    if (!action) {
-      throw new ActionNotFoundError(displayName, schema.collectionName);
-    }
-
-    return action.name;
+  private findAction(schema: CollectionSchema, name: string): ActionSchema | undefined {
+    return (
+      schema.actions.find(a => a.displayName === name) ?? schema.actions.find(a => a.name === name)
+    );
   }
 }

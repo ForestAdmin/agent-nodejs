@@ -76,26 +76,32 @@ export default abstract class RecordStepExecutor<
     return schema;
   }
 
-  protected findField(schema: CollectionSchema, name: string): FieldSchema | undefined {
-    // LLMs occasionally return formatting variants of field names (e.g. "first_name" for
-    // "firstname", "full-name" for "Full Name") even though the tool schema declares them
-    // as literals. Fall back to a normalized comparison so a cosmetic variation doesn't
-    // fail an otherwise correct step.
-    const normalizeFieldName = (s: string) => s.toLowerCase().replace(/[\s_-]/g, '');
-    const normalized = normalizeFieldName(name);
+  protected findFieldByTechnicalName(
+    schema: CollectionSchema,
+    name: string | undefined,
+  ): FieldSchema | undefined {
+    if (name === undefined) return undefined;
 
+    return schema.fields.find(f => f.fieldName === name);
+  }
+
+  // Map an AI-returned displayName back to its technical fieldName. LLMs occasionally return
+  // formatting variants (e.g. "first_name" for "firstname", "full-name" for "Full Name"), so fall
+  // back to a normalized comparison. On a miss, returns the raw name — the exact lookup downstream
+  // turns it into a loud error.
+  protected resolveAiFieldName(schema: CollectionSchema, name: string): string {
     const exact =
       schema.fields.find(f => f.displayName === name) ??
       schema.fields.find(f => f.fieldName === name);
-    if (exact) return exact;
+    if (exact) return exact.fieldName;
 
+    const normalize = (s: string) => s.toLowerCase().replace(/[\s_-]/g, '');
+    const normalized = normalize(name);
     const fuzzy = schema.fields.filter(
-      f =>
-        normalizeFieldName(f.displayName) === normalized ||
-        normalizeFieldName(f.fieldName) === normalized,
+      f => normalize(f.displayName) === normalized || normalize(f.fieldName) === normalized,
     );
 
-    return fuzzy.length === 1 ? fuzzy[0] : undefined;
+    return fuzzy.length === 1 ? fuzzy[0].fieldName : name;
   }
 
   private async toRecordIdentifier(record: RecordRef): Promise<string> {

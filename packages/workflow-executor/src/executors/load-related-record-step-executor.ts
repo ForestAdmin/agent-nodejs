@@ -124,10 +124,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       preRecordedArgs?.selectedRecordStepIndex,
     );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
-    const args = preRecordedArgs?.relationDisplayName
-      ? { relationName: preRecordedArgs.relationDisplayName }
-      : await this.selectRelation(schema, step.prompt);
-    const target = this.buildTarget(schema, args.relationName, selectedRecordRef);
+    const recordedRelation = preRecordedArgs?.relationName;
+    const relationName =
+      recordedRelation ?? (await this.selectRelation(schema, step.prompt)).relationName;
+    const target = this.buildTarget(schema, relationName, selectedRecordRef);
 
     // Branch B -- fully automated execution
     if (step.executionType === StepExecutionMode.FullyAutomated) {
@@ -143,7 +143,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     relationName: string,
     selectedRecordRef: RecordRef,
   ): RelationTarget {
-    const field = this.findField(schema, relationName);
+    const field = this.findFieldByTechnicalName(schema, relationName);
 
     if (!field) {
       throw new RelationNotFoundError(relationName, schema.collectionName);
@@ -469,7 +469,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   private async selectRelation(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ relationName: string; reasoning: string }> {
+  ): Promise<{ relationName: string }> {
     const tool = this.buildSelectRelationTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -481,7 +481,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       new HumanMessage(`**Request**: ${prompt ?? 'Load the relevant related record.'}`),
     ];
 
-    return this.invokeWithTool<{ relationName: string; reasoning: string }>(messages, tool);
+    const { relationName } = await this.invokeWithTool<{ relationName: string; reasoning: string }>(
+      messages,
+      tool,
+    );
+
+    return { relationName: this.resolveAiFieldName(schema, relationName) };
   }
 
   private buildSelectRelationTool(schema: CollectionSchema): DynamicStructuredTool {
