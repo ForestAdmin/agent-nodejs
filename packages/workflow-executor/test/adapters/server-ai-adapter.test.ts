@@ -1,58 +1,76 @@
 import ServerAiAdapter from '../../src/adapters/server-ai-adapter';
 
-jest.mock('@forestadmin/ai-proxy', () => ({
-  AiClient: jest.fn().mockImplementation(() => ({
-    loadRemoteTools: jest.fn().mockResolvedValue([]),
-    closeConnections: jest.fn().mockResolvedValue(undefined),
-  })),
-}));
+const mockGetModel = jest.fn().mockReturnValue({ id: 'fake-model' });
+const mockLoadRemoteTools = jest.fn().mockResolvedValue([]);
+const mockCloseConnections = jest.fn().mockResolvedValue(undefined);
+const mockAiClientConstructor = jest.fn();
 
-jest.mock('@langchain/openai', () => ({
-  ChatOpenAI: jest.fn().mockImplementation((opts: Record<string, unknown>) => ({
-    mockOpts: opts,
-  })),
+jest.mock('@forestadmin/ai-proxy', () => ({
+  AiClient: jest.fn().mockImplementation((...args: unknown[]) => {
+    mockAiClientConstructor(...args);
+
+    return {
+      getModel: mockGetModel,
+      loadRemoteTools: mockLoadRemoteTools,
+      closeConnections: mockCloseConnections,
+    };
+  }),
 }));
 
 const ENV_SECRET = 'a'.repeat(64);
 
 describe('ServerAiAdapter', () => {
-  const adapter = new ServerAiAdapter({
-    forestServerUrl: 'https://api.forestadmin.com',
-    envSecret: ENV_SECRET,
+  let adapter: ServerAiAdapter;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    adapter = new ServerAiAdapter({
+      forestServerUrl: 'https://api.forestadmin.com',
+      envSecret: ENV_SECRET,
+    });
   });
 
-  describe('getModel', () => {
-    it('returns a ChatOpenAI configured for the FA server', () => {
-      const model = adapter.getModel() as unknown as { mockOpts: Record<string, unknown> };
+  const proxyConfig = () =>
+    (mockAiClientConstructor.mock.calls[0][0] as { aiConfigurations: Record<string, unknown>[] })
+      .aiConfigurations[0];
 
-      expect(model.mockOpts).toEqual(
+  describe('constructor', () => {
+    it('configures AiClient with a single openai config targeting the FA server', () => {
+      expect(proxyConfig()).toEqual(
         expect.objectContaining({
+          name: 'forest-server',
+          provider: 'openai',
           model: 'gpt-4.1',
           maxRetries: 2,
           configuration: expect.objectContaining({
+            apiKey: 'unused',
             fetch: expect.any(Function),
           }),
         }),
       );
     });
+  });
 
-    it('sends forest-secret-key header instead of Authorization', () => {
-      const model = adapter.getModel() as unknown as { mockOpts: Record<string, unknown> };
+  describe('getModel', () => {
+    it('delegates to the internal AiClient', () => {
+      expect(adapter.getModel()).toEqual({ id: 'fake-model' });
+      expect(mockGetModel).toHaveBeenCalled();
+    });
 
-      const { fetch: customFetch } = model.mockOpts.configuration as {
+    it('rewrites fetch to the proxy URL with forest-secret-key instead of Authorization', () => {
+      const { fetch: customFetch } = proxyConfig().configuration as {
         fetch: (url: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
       };
 
-      const mockInit = {
-        method: 'POST',
-        body: '{}',
-        headers: { Authorization: 'Bearer unused' },
-      } as RequestInit;
       const originalFetch = global.fetch;
       global.fetch = jest.fn().mockResolvedValue(new Response('{}', { status: 200 }));
 
       try {
-        customFetch('https://ignored.com/chat/completions', mockInit);
+        customFetch('https://ignored.com/chat/completions', {
+          method: 'POST',
+          body: '{}',
+          headers: { Authorization: 'Bearer unused' },
+        });
 
         const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
         expect(url).toBe('https://api.forestadmin.com/liana/v1/ai-proxy');
@@ -67,16 +85,21 @@ describe('ServerAiAdapter', () => {
   });
 
   describe('loadRemoteTools', () => {
-    it('delegates to internal AiClient', async () => {
-      const result = await adapter.loadRemoteTools({});
+    it('delegates to internal AiClient with the given configs', async () => {
+      const configs = {};
 
+      const result = await adapter.loadRemoteTools(configs);
+
+      expect(mockLoadRemoteTools).toHaveBeenCalledWith(configs);
       expect(result).toEqual([]);
     });
   });
 
   describe('closeConnections', () => {
-    it('resolves without error', async () => {
-      await expect(adapter.closeConnections()).resolves.toBeUndefined();
+    it('delegates to internal AiClient', async () => {
+      await adapter.closeConnections();
+
+      expect(mockCloseConnections).toHaveBeenCalled();
     });
   });
 });
