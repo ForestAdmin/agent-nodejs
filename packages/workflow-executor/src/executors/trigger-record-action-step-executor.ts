@@ -1,0 +1,244 @@
+import type { StepExecutionResult } from '../types/execution-context';
+import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
+import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
+import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
+
+import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
+import { z } from 'zod';
+
+import {
+  ActionNotFoundError,
+  NoActionsError,
+  StepStateError,
+  UnsupportedActionFormError,
+} from '../errors';
+import RecordStepExecutor from './record-step-executor';
+import { StepExecutionMode } from '../types/validated/step-definition';
+
+const TRIGGER_ACTION_SYSTEM_PROMPT = `You are an AI agent triggering an action on a record based on a user request.
+Select the action to trigger.
+
+Important rules:
+- Be precise: only trigger the action directly relevant to the request.
+- Final answer is definitive, you won't receive any other input from the user.
+- Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
+
+interface ActionTarget extends ActionRef {
+  selectedRecordRef: RecordRef;
+}
+
+export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
+  protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
+    const existing = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
+      'trigger-action',
+    );
+
+    if (existing?.idempotencyPhase === 'done') {
+      return this.buildOutcomeResult({ status: 'success' });
+    }
+
+    if (existing?.idempotencyPhase === 'executing') {
+      throw new StepStateError('Step execution was interrupted. Please retry the step manually.');
+    }
+
+    return null;
+  }
+
+  protected async doExecute(): Promise<StepExecutionResult> {
+    // Branch A -- Re-entry after pending execution found in RunStore
+    const pending = await this.patchAndReloadPendingData<TriggerRecordActionStepExecutionData>(
+      this.context.incomingPendingData,
+    );
+
+    if (pending) {
+      return this.handleConfirmationFlow<TriggerRecordActionStepExecutionData>(
+        pending,
+        async exec => {
+          const { selectedRecordRef, pendingData, userConfirmation } = exec;
+
+          // The frontend executes the action itself and posts the result back.
+          // A confirmed step without actionResult is a broken frontend contract.
+          if (!pendingData || !userConfirmation || !('actionResult' in userConfirmation)) {
+            throw new StepStateError(
+              `Frontend confirmed action but did not provide actionResult ` +
+                `(run "${this.context.runId}", step ${this.context.stepIndex})`,
+            );
+          }
+
+          const target: ActionTarget = {
+            selectedRecordRef,
+            displayName: pendingData.displayName,
+            name: pendingData.name,
+          };
+
+          return this.saveFrontendResult(target, userConfirmation.actionResult, exec);
+        },
+      );
+    }
+
+    // Branches B & C -- First call
+    return this.handleFirstCall();
+  }
+
+  private async handleFirstCall(): Promise<StepExecutionResult> {
+    const { stepDefinition: step } = this.context;
+    const { preRecordedArgs } = step;
+    const records = await this.getAvailableRecordRefs();
+
+    const selectedRecordRef = await this.resolveRecordRef(
+      records,
+      step.prompt,
+      preRecordedArgs?.selectedRecordStepIndex,
+    );
+    const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
+    const recordedAction = preRecordedArgs?.actionName;
+    const actionName = recordedAction ?? (await this.selectAction(schema, step.prompt)).actionName;
+    const action = this.findActionByTechnicalName(schema, actionName);
+
+    if (!action) {
+      throw new ActionNotFoundError(actionName, schema.collectionName);
+    }
+
+    const target: ActionTarget = {
+      selectedRecordRef,
+      displayName: action.displayName,
+      name: action.name,
+    };
+
+    // Branch B -- fully automated: executor runs the action itself, so it cannot
+    // handle forms (no UI to fill them). Reject form-bearing actions here. When the
+    // frontend is in the loop (Branch C), it handles the form natively so no check.
+    if (step.executionType === StepExecutionMode.FullyAutomated) {
+      const { hasForm } = await this.context.agent.getActionFormInfo({
+        collection: selectedRecordRef.collectionName,
+        action: target.name,
+        id: selectedRecordRef.recordId,
+      });
+      if (hasForm) throw new UnsupportedActionFormError(target.displayName);
+
+      return this.executeOnExecutor(target);
+    }
+
+    // Branch C -- Awaiting confirmation (frontend executes the action, including forms)
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'trigger-action',
+      stepIndex: this.context.stepIndex,
+      pendingData: { displayName: target.displayName, name: target.name },
+      selectedRecordRef: target.selectedRecordRef,
+    });
+
+    return this.buildOutcomeResult({ status: 'awaiting-input' });
+  }
+
+  /** Branch B — executor runs the action via the audited agent, then persists the result. */
+  private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
+    const { selectedRecordRef, displayName, name } = target;
+
+    const actionResult = await this.context.agent.executeAction(
+      {
+        collection: selectedRecordRef.collectionName,
+        action: name,
+        id: selectedRecordRef.recordId,
+      },
+      {
+        beforeCall: () =>
+          this.context.runStore.saveStepExecution(this.context.runId, {
+            type: 'trigger-action',
+            stepIndex: this.context.stepIndex,
+            selectedRecordRef,
+            idempotencyPhase: 'executing',
+          }),
+      },
+    );
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'trigger-action',
+      stepIndex: this.context.stepIndex,
+      executionParams: { displayName, name },
+      executionResult: { success: true, actionResult },
+      selectedRecordRef,
+      idempotencyPhase: 'done',
+    });
+
+    return this.buildOutcomeResult({ status: 'success' });
+  }
+
+  /** Branch A — the frontend executed the action; executor only persists the result it sent. */
+  private async saveFrontendResult(
+    target: ActionTarget,
+    actionResult: unknown,
+    existingExecution: TriggerRecordActionStepExecutionData,
+  ): Promise<StepExecutionResult> {
+    const { selectedRecordRef, displayName, name } = target;
+
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      ...existingExecution,
+      type: 'trigger-action',
+      stepIndex: this.context.stepIndex,
+      executionParams: { displayName, name },
+      executionResult: { success: true, actionResult },
+      selectedRecordRef,
+    });
+
+    return this.buildOutcomeResult({ status: 'success' });
+  }
+
+  private async selectAction(
+    schema: CollectionSchema,
+    prompt: string | undefined,
+  ): Promise<{ actionName: string }> {
+    const tool = this.buildSelectActionTool(schema);
+    const messages = [
+      this.buildContextMessage(),
+      ...(await this.buildPreviousStepsMessages()),
+      new SystemMessage(TRIGGER_ACTION_SYSTEM_PROMPT),
+      new SystemMessage(
+        `The selected record belongs to the "${schema.collectionDisplayName}" collection.`,
+      ),
+      new HumanMessage(`**Request**: ${prompt ?? 'Trigger the relevant action.'}`),
+    ];
+
+    const { actionName } = await this.invokeWithTool<{ actionName: string; reasoning: string }>(
+      messages,
+      tool,
+    );
+
+    return { actionName: this.findAction(schema, actionName)?.name ?? actionName };
+  }
+
+  private buildSelectActionTool(schema: CollectionSchema): DynamicStructuredTool {
+    if (schema.actions.length === 0) {
+      throw new NoActionsError(schema.collectionName);
+    }
+
+    const displayNames = schema.actions.map(a => a.displayName) as [string, ...string[]];
+    const technicalNames = schema.actions
+      .map(a => `${a.displayName} (technical name: ${a.name})`)
+      .join(', ');
+
+    return new DynamicStructuredTool({
+      name: 'select-action',
+      description: 'Select the action to trigger on the record.',
+      schema: z.object({
+        actionName: z
+          .enum(displayNames)
+          .describe(`The name of the action to trigger. Available: ${technicalNames}`),
+        reasoning: z.string().describe('Why this action was chosen'),
+      }),
+      func: undefined,
+    });
+  }
+
+  private findActionByTechnicalName(
+    schema: CollectionSchema,
+    name: string,
+  ): ActionSchema | undefined {
+    return schema.actions.find(a => a.name === name);
+  }
+
+  private findAction(schema: CollectionSchema, name: string): ActionSchema | undefined {
+    return (
+      schema.actions.find(a => a.displayName === name) ?? schema.actions.find(a => a.name === name)
+    );
+  }
+}

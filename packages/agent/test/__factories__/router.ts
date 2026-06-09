@@ -7,6 +7,7 @@ export class RouterFactory extends Factory<Router> {
       router.get = jest.fn();
       router.delete = jest.fn();
       router.use = jest.fn();
+      router.patch = jest.fn();
       router.post = jest.fn();
       router.put = jest.fn();
       router.all = jest.fn();

@@ -45,6 +45,13 @@ export type AgentOptions = {
    */
   ignoreMissingSchemaElementErrors?: boolean;
   useUnsafeActionEndpoint?: boolean;
+  /**
+   * Base URL of the workflow executor to proxy requests to.
+   * When set, the agent exposes routes at `/_internal/workflow-executions/`
+   * that forward to the executor, benefiting from the agent's authentication layer.
+   * @example 'http://localhost:4001'
+   */
+  workflowExecutorUrl?: string | null;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

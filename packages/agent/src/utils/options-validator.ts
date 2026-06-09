@@ -38,6 +38,7 @@ export default class OptionsValidator {
     copyOptions.loggerLevel = copyOptions.loggerLevel || 'Info';
     copyOptions.skipSchemaUpdate = copyOptions.skipSchemaUpdate || false;
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
+    copyOptions.workflowExecutorUrl = copyOptions.workflowExecutorUrl ?? null;
     copyOptions.maxBodySize = copyOptions.maxBodySize || '50mb';
     copyOptions.bodyParserOptions = copyOptions.bodyParserOptions || {
       jsonLimit: '50mb',

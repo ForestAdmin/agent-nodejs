@@ -15,6 +15,7 @@ export const FOREST_INTEGRATION_NAMES = ['Zendesk', 'Kolar', 'Snowflake'] as con
 export type ForestIntegrationName = (typeof FOREST_INTEGRATION_NAMES)[number];
 
 export interface ForestIntegrationConfig {
+  id?: string;
   integrationName: ForestIntegrationName;
   config: CustomConfig;
   isForestConnector: true;
@@ -40,16 +41,16 @@ export default class ForestIntegrationClient implements ToolProvider {
   async loadTools(): Promise<RemoteTool[]> {
     const tools: RemoteTool[] = [];
 
-    this.configs.forEach(({ integrationName, config }) => {
+    this.configs.forEach(({ id: mcpServerId, integrationName, config }) => {
       switch (integrationName) {
         case 'Zendesk':
-          tools.push(...getZendeskTools(config as ZendeskConfig));
+          tools.push(...getZendeskTools(config as ZendeskConfig, mcpServerId));
           break;
         case 'Kolar':
-          tools.push(...getKolarTools(config as KolarConfig));
+          tools.push(...getKolarTools(config as KolarConfig, mcpServerId));
           break;
         case 'Snowflake':
-          tools.push(...getSnowflakeTools(config as SnowflakeConfig));
+          tools.push(...getSnowflakeTools(config as SnowflakeConfig, mcpServerId));
           break;
         default:
           this.logger?.('Warn', `Unsupported integration: ${integrationName}`);

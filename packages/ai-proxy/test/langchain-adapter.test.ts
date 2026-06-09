@@ -90,15 +90,11 @@ describe('LangChainAdapter', () => {
           {
             role: 'assistant',
             content: '',
-            tool_calls: [
-              { id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } },
-            ],
+            tool_calls: [{ id: 'call_1', function: { name: 'my_tool', arguments: 'not-json' } }],
           },
         ]),
       ).toThrow(
-        new AIBadRequestError(
-          "Invalid JSON in tool_calls arguments for tool 'my_tool': not-json",
-        ),
+        new AIBadRequestError("Invalid JSON in tool_calls arguments for tool 'my_tool': not-json"),
       );
     });
   });
@@ -256,5 +252,4 @@ describe('LangChainAdapter', () => {
       );
     });
   });
-
 });

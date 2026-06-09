@@ -50,7 +50,8 @@
     "test:coverage": "yarn test --coverage"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/workflow-executor/example"
   ],
   "resolutions": {
     "tar": ">=7.5.11",
@@ -62,6 +63,8 @@
     "lodash": "^4.18.0",
     "**/express-rate-limit/ip-address": "^10.1.1",
     "**/@aws-sdk/xml-builder/fast-xml-parser": "^5.7.0",
+    "**/@modelcontextprotocol/sdk/hono": "^4.12.18",
+    "**/ajv/fast-uri": "^3.1.2",
     "**/@fastify/ajv-compiler/fast-uri": "^3.1.2",
     "**/fast-json-stringify/fast-uri": "^3.1.2"
   }

@@ -80,6 +80,7 @@ jobs:
           - plugin-aws-s3
           - plugin-export-advanced
           - plugin-flattener
+          - workflow-executor
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

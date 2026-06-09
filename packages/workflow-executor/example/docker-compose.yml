@@ -1,0 +1,17 @@
+name: workflow-executor-example
+
+services:
+  postgres:
+    image: postgres:16
+    ports:
+      - '5459:5432'
+    environment:
+      - POSTGRES_DB=workflow_executor
+      - POSTGRES_USER=executor
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+volumes:
+  pg-data:
+    driver: local

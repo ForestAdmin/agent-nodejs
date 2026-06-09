@@ -1,0 +1,61 @@
+import type { StepExecutionData } from '../../types/step-execution-data';
+import type { StepDefinition } from '../../types/validated/step-definition';
+import type { StepOutcome } from '../../types/validated/step-outcome';
+
+import StepExecutionFormatters from './step-execution-formatters';
+
+export default class StepSummaryBuilder {
+  static build(
+    step: StepDefinition,
+    stepOutcome: StepOutcome,
+    execution: StepExecutionData | undefined,
+  ): string {
+    const prompt = step.prompt ?? '(no prompt)';
+    const header = `Step "${stepOutcome.stepId}" (index ${stepOutcome.stepIndex}):`;
+    const lines = [header, `  Prompt: ${prompt}`];
+
+    if (execution !== undefined) {
+      // Detect "handled manually": executor proposed an action (pendingData) but the user
+      // completed the step on the frontend without going through the trigger endpoint, so the
+      // executor never wrote executionResult. Normal completions (confirmation flow, skip, Branch B)
+      // always set executionResult before the step is marked done.
+      if (
+        stepOutcome.status === 'success' &&
+        'pendingData' in execution &&
+        execution.pendingData !== undefined &&
+        execution.executionResult === undefined
+      ) {
+        lines.push(`  Proposed: ${JSON.stringify(execution.pendingData)}`);
+        lines.push(
+          `  Note: the user handled this step manually — the actual outcome may differ from the proposal above.`,
+        );
+
+        return lines.join('\n');
+      }
+
+      // Try custom formatting — if it fires, it owns the entire output section (no Input: line)
+      const customLine = execution.executionResult
+        ? StepExecutionFormatters.format(execution)
+        : null;
+
+      if (customLine !== null) {
+        lines.push(customLine);
+      } else {
+        if ('executionParams' in execution && execution.executionParams !== undefined) {
+          lines.push(`  Input: ${JSON.stringify(execution.executionParams)}`);
+        } else if ('pendingData' in execution && execution.pendingData !== undefined) {
+          lines.push(`  Pending: ${JSON.stringify(execution.pendingData)}`);
+        }
+
+        if (execution.executionResult) {
+          lines.push(`  Output: ${JSON.stringify(execution.executionResult)}`);
+        }
+      }
+    } else {
+      const { stepId, stepIndex, type, ...historyDetails } = stepOutcome;
+      lines.push(`  History: ${JSON.stringify(historyDetails)}`);
+    }
+
+    return lines.join('\n');
+  }
+}

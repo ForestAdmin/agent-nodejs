@@ -1,0 +1,503 @@
+import type { StepExecutionData } from '../../src/types/step-execution-data';
+import type { StepDefinition } from '../../src/types/validated/step-definition';
+import type { StepOutcome } from '../../src/types/validated/step-outcome';
+
+import StepSummaryBuilder from '../../src/executors/summary/step-summary-builder';
+import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
+
+function makeConditionStep(prompt?: string): StepDefinition {
+  return {
+    type: StepType.Condition,
+    executionType: StepExecutionMode.Manual,
+    options: ['A', 'B'],
+    prompt,
+  };
+}
+
+function makeConditionOutcome(
+  stepId: string,
+  stepIndex: number,
+  extra: Record<string, unknown> = {},
+): StepOutcome {
+  return { type: 'condition', stepId, stepIndex, status: 'success', ...extra } as StepOutcome;
+}
+
+describe('StepSummaryBuilder', () => {
+  describe('build', () => {
+    it('renders header, prompt, Input, and Output for a condition step with execution data', () => {
+      const step = makeConditionStep('Approve?');
+      const outcome = makeConditionOutcome('cond-1', 0);
+      const execution: StepExecutionData = {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: { answer: 'Yes', reasoning: 'Order is valid' },
+        executionResult: { answer: 'Yes' },
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      expect(result).toContain('Step "cond-1" (index 0):');
+      expect(result).toContain('Prompt: Approve?');
+      expect(result).toContain('Input: {"answer":"Yes","reasoning":"Order is valid"}');
+      expect(result).toContain('Output: {"answer":"Yes"}');
+    });
+
+    it('renders Output: when executionResult is present but executionParams is absent', () => {
+      const step: StepDefinition = {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Do something',
+      };
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'task-1',
+        stepIndex: 0,
+        status: 'success',
+      };
+      const execution: StepExecutionData = {
+        type: 'record',
+        stepIndex: 0,
+        executionResult: { success: true },
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      expect(result).toContain('Output: {"success":true}');
+      expect(result).not.toContain('Input:');
+    });
+
+    it('falls back to History when no execution data is provided', () => {
+      const step = makeConditionStep('Pick one');
+      const outcome = makeConditionOutcome('cond-1', 0);
+
+      const result = StepSummaryBuilder.build(step, outcome, undefined);
+
+      expect(result).toContain('Step "cond-1" (index 0):');
+      expect(result).toContain('Prompt: Pick one');
+      expect(result).toContain('History: {"status":"success"}');
+      expect(result).not.toContain('"stepId"');
+      expect(result).not.toContain('"stepIndex"');
+      expect(result).not.toContain('"type"');
+    });
+
+    it('includes selectedOption in History for condition steps', () => {
+      const step = makeConditionStep('Approved?');
+      const outcome = makeConditionOutcome('cond-approval', 0, { selectedOption: 'Yes' });
+
+      const result = StepSummaryBuilder.build(step, outcome, undefined);
+
+      expect(result).toContain('"selectedOption":"Yes"');
+    });
+
+    it('includes error in History for failed steps', () => {
+      const step = makeConditionStep('Do something');
+      const outcome: StepOutcome = {
+        type: 'condition',
+        stepId: 'failing-step',
+        stepIndex: 0,
+        status: 'error',
+        error: 'AI could not match an option',
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, undefined);
+
+      expect(result).toContain('"status":"error"');
+      expect(result).toContain('"error":"AI could not match an option"');
+    });
+
+    it('omits History type field and includes status for record steps', () => {
+      const step: StepDefinition = {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Run task',
+      };
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'read-record-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, undefined);
+
+      expect(result).toContain('Step "read-record-1" (index 0):');
+      expect(result).toContain('History: {"status":"awaiting-input"}');
+    });
+
+    it('omits Input and Output lines when executionParams and executionResult are both absent', () => {
+      const step: StepDefinition = {
+        type: StepType.ReadRecord,
+        executionType: StepExecutionMode.FullyAutomated,
+        prompt: 'Do something',
+      };
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'read-record-1',
+        stepIndex: 0,
+        status: 'success',
+      };
+      const execution: StepExecutionData = { type: 'record', stepIndex: 0 };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      expect(result).toContain('Step "read-record-1" (index 0):');
+      expect(result).toContain('Prompt: Do something');
+      expect(result).not.toContain('Input:');
+      expect(result).not.toContain('Output:');
+    });
+
+    it('uses Pending when update-record step has pendingData but no executionParams', () => {
+      const step: StepDefinition = {
+        type: StepType.UpdateRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Set status to active',
+      };
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'update-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+      };
+      const execution: StepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      expect(result).toContain('Pending:');
+      expect(result).toContain('"displayName":"Status"');
+      expect(result).toContain('"value":"active"');
+      expect(result).not.toContain('Input:');
+    });
+
+    it('uses Pending for trigger-action step with pendingData', () => {
+      const step: StepDefinition = {
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Archive the customer',
+      };
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'trigger-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+      };
+      const execution: StepExecutionData = {
+        type: 'trigger-action',
+        stepIndex: 0,
+        pendingData: { displayName: 'Archive Customer', name: 'archive' },
+        selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      expect(result).toContain('Pending:');
+      expect(result).toContain('"displayName":"Archive Customer"');
+      expect(result).toContain('"name":"archive"');
+      expect(result).not.toContain('Input:');
+    });
+
+    it('renders load-related-record completed as Loaded: (no Input: or Output:)', () => {
+      const step: StepDefinition = {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Load the address',
+      };
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'load-1',
+        stepIndex: 1,
+        status: 'success',
+      };
+      const execution: StepExecutionData = {
+        type: 'load-related-record',
+        stepIndex: 1,
+        selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+        executionResult: {
+          relation: { name: 'address', displayName: 'Address' },
+          record: { collectionName: 'addresses', recordId: [1], stepIndex: 1 },
+        },
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      const lines = result.split('\n');
+      expect(lines).toHaveLength(3);
+      expect(lines[0]).toBe('Step "load-1" (index 1):');
+      expect(lines[1]).toBe('  Prompt: Load the address');
+      expect(lines[2]).toBe('  Loaded: customers #42 → [Address] → addresses #1 (step 1)');
+      expect(result).not.toContain('Input:');
+      expect(result).not.toContain('Output:');
+    });
+
+    it('renders load-related-record skipped as generic Output: fallback', () => {
+      const step: StepDefinition = {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Load the address',
+      };
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'load-1',
+        stepIndex: 1,
+        status: 'success',
+      };
+      const execution: StepExecutionData = {
+        type: 'load-related-record',
+        stepIndex: 1,
+        selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+        executionResult: { skipped: true },
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      expect(result).toContain('Output: {"skipped":true}');
+      expect(result).not.toContain('Loaded:');
+    });
+
+    it('renders load-related-record pending state with Pending: line', () => {
+      const step: StepDefinition = {
+        type: StepType.LoadRelatedRecord,
+        executionType: StepExecutionMode.AutomatedWithConfirmation,
+        prompt: 'Load the address',
+      };
+      const outcome: StepOutcome = {
+        type: 'record',
+        stepId: 'load-1',
+        stepIndex: 1,
+        status: 'awaiting-input',
+      };
+      const execution: StepExecutionData = {
+        type: 'load-related-record',
+        stepIndex: 1,
+        selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+        pendingData: {
+          availableFields: [{ name: 'address', displayName: 'Address' }],
+          suggestedField: { name: 'address', displayName: 'Address' },
+          availableRecordIds: [{ recordId: [1], referenceFieldValue: null }],
+          suggestedRecord: { recordId: [1], referenceFieldValue: null },
+        },
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      expect(result).toContain('Pending:');
+      expect(result).toContain('"displayName":"Address"');
+      expect(result).not.toContain('Input:');
+      expect(result).not.toContain('Output:');
+      expect(result).not.toContain('Loaded:');
+    });
+
+    describe('manually handled steps', () => {
+      it('signals manually handled update-record when pendingData exists and idempotencyPhase is undefined', () => {
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Set status to active',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).toContain('Proposed:');
+        expect(result).toContain('"displayName":"Status"');
+        expect(result).toContain('handled this step manually');
+        expect(result).not.toContain('Pending:');
+        expect(result).not.toContain('Output:');
+      });
+
+      it('signals manually handled trigger-action when pendingData exists and idempotencyPhase is undefined', () => {
+        const step: StepDefinition = {
+          type: StepType.TriggerAction,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Archive the customer',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'trigger-action',
+          stepIndex: 0,
+          pendingData: { displayName: 'Archive Customer', name: 'archive' },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).toContain('Proposed:');
+        expect(result).toContain('"displayName":"Archive Customer"');
+        expect(result).toContain('handled this step manually');
+      });
+
+      it('does NOT signal manually handled when idempotencyPhase is done (executor completed it)', () => {
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Set status',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          idempotencyPhase: 'done',
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          executionResult: { updatedValues: { status: 'active' } },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+      });
+
+      it('does NOT signal manually handled when status is awaiting-input (still pending)', () => {
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Set status',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'awaiting-input',
+        };
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+        expect(result).toContain('Pending:');
+      });
+
+      it('does NOT signal manually handled for trigger-action completed via saveFrontendResult (executionResult present)', () => {
+        const step: StepDefinition = {
+          type: StepType.TriggerAction,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Archive the customer',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'trigger-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'trigger-action',
+          stepIndex: 0,
+          pendingData: { displayName: 'Archive Customer', name: 'archive' },
+          executionResult: { success: true, actionResult: {} },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+      });
+
+      it('does NOT signal manually handled for update-record skipped (executionResult: skipped)', () => {
+        const step: StepDefinition = {
+          type: StepType.UpdateRecord,
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          prompt: 'Set status',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'update-1',
+          stepIndex: 0,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'update-record',
+          stepIndex: 0,
+          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          executionResult: { skipped: true },
+          selectedRecordRef: { collectionName: 'customers', recordId: [1], stepIndex: 0 },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+      });
+
+      it('does NOT signal manually handled for load-related-record success (executionResult present, no idempotencyPhase)', () => {
+        const step: StepDefinition = {
+          type: StepType.LoadRelatedRecord,
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: 'Load the address',
+        };
+        const outcome: StepOutcome = {
+          type: 'record',
+          stepId: 'load-1',
+          stepIndex: 1,
+          status: 'success',
+        };
+        const execution: StepExecutionData = {
+          type: 'load-related-record',
+          stepIndex: 1,
+          selectedRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
+          pendingData: {
+            availableFields: [{ name: 'address', displayName: 'Address' }],
+            suggestedField: { name: 'address', displayName: 'Address' },
+            availableRecordIds: [{ recordId: [1], referenceFieldValue: null }],
+            suggestedRecord: { recordId: [1], referenceFieldValue: null },
+          },
+          executionResult: {
+            relation: { name: 'address', displayName: 'Address' },
+            record: { collectionName: 'addresses', recordId: [1], stepIndex: 1 },
+          },
+        };
+
+        const result = StepSummaryBuilder.build(step, outcome, execution);
+
+        expect(result).not.toContain('handled this step manually');
+      });
+    });
+
+    it('shows "(no prompt)" when step has no prompt', () => {
+      const step: StepDefinition = {
+        type: StepType.Condition,
+        executionType: StepExecutionMode.Manual,
+        options: ['A', 'B'],
+      };
+      const outcome = makeConditionOutcome('cond-1', 0);
+      const execution: StepExecutionData = {
+        type: 'condition',
+        stepIndex: 0,
+        executionParams: { answer: 'A', reasoning: 'Only option' },
+        executionResult: { answer: 'A' },
+      };
+
+      const result = StepSummaryBuilder.build(step, outcome, execution);
+
+      expect(result).toContain('Prompt: (no prompt)');
+    });
+  });
+});
