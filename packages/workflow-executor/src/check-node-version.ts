@@ -1,7 +1,11 @@
-// Driven by the heaviest runtime dependency floor: @langchain/openai requires Node >= 20
-// (koa requires >= 18). Keep this module free of heavy imports so the CLI entry can run the
-// guard before those modules are evaluated on an unsupported runtime.
-export const MINIMUM_NODE_MAJOR = 20;
+// The minimum Node major is the single source of truth in package.json `engines.node` (which npm
+// also reads at install time); derive it here so the runtime guard can never drift from it.
+// Requiring a JSON file keeps this module free of heavy imports, so the CLI entry can run the guard
+// before koa / @langchain/openai are evaluated — on an unsupported runtime those would crash first.
+// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
+const { engines } = require('../package.json') as { engines?: { node?: string } };
+
+export const MINIMUM_NODE_MAJOR = Number.parseInt(/\d+/.exec(engines?.node ?? '')?.[0] ?? '', 10);
 
 function parseMajor(version: string): number {
   return Number.parseInt(version.replace(/^v/, ''), 10);
