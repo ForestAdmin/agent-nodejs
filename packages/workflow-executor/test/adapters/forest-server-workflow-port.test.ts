@@ -832,6 +832,7 @@ describe('ForestServerWorkflowPort', () => {
     it('accepts a composite type sent as the native record form { data: String }', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
@@ -853,6 +854,7 @@ describe('ForestServerWorkflowPort', () => {
     it('accepts the orchestrator wire form { fields: [{ field, type }] } and normalizes it to a record', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
@@ -874,6 +876,7 @@ describe('ForestServerWorkflowPort', () => {
     it('normalizes a multi-entry wire-form composite type to its full record form', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
@@ -900,6 +903,7 @@ describe('ForestServerWorkflowPort', () => {
     it('accepts a nested wire-form composite type (composite inside composite)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',
+        collectionId: 'col-users',
         collectionDisplayName: 'Users',
         primaryKeyFields: ['id'],
         fields: [
