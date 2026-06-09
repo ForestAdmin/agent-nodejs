@@ -1,13 +1,15 @@
+// Pulls the leading major out of any version-ish string: a version (`v20.1.0`) or an engines
+// range (`>=20.0.0`) both yield 20.
+function parseMajor(version: string): number {
+  return Number.parseInt(/\d+/.exec(version)?.[0] ?? '', 10);
+}
+
 // Single source of truth for the floor: read it from package.json `engines.node` so the runtime
 // guard can't drift from the version npm enforces at install time.
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { engines } = require('../package.json') as { engines?: { node?: string } };
 
-export const MINIMUM_NODE_MAJOR = Number.parseInt(/\d+/.exec(engines?.node ?? '')?.[0] ?? '', 10);
-
-function parseMajor(version: string): number {
-  return Number.parseInt(version.replace(/^v/, ''), 10);
-}
+export const MINIMUM_NODE_MAJOR = parseMajor(engines?.node ?? '');
 
 export function isSupportedNodeVersion(
   currentVersion: string,
