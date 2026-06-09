@@ -7,11 +7,8 @@ import type * as Errors from './errors';
 
 import checkNodeVersion from './check-node-version';
 
-// Fail fast with a clear message on an unsupported Node.js runtime before requiring the rest
-// of the CLI: its transitive dependencies (koa, @langchain/openai) would otherwise crash with
-// a cryptic low-level error on an old runtime, hiding the real cause. The heavy requires below
-// are deferred until after the guard so they are never evaluated on a runtime too old to load
-// them.
+// Run the guard before the rest of the CLI loads: a static import would evaluate koa /
+// @langchain/openai first and crash cryptically on an old runtime, before the guard could report.
 checkNodeVersion();
 
 if (require.main === module) {

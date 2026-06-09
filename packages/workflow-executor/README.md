@@ -10,8 +10,7 @@ client data ever leaves your infrastructure.
 
 ### Install
 
-Requires Node.js 20 or higher. The executor refuses to start on older runtimes
-with an explicit message.
+Requires Node.js 20 or higher.
 
 ```bash
 npm install -g @forestadmin/workflow-executor

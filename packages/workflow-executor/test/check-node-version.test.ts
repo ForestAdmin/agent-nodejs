@@ -1,7 +1,8 @@
-// The guard's module must stay dependency-free so the CLI entry can run it before the heavy
-// imports (koa, @langchain/openai) are evaluated; on an old runtime those imports crash first.
-// The floor is asserted only relative to MINIMUM_NODE_MAJOR, never as a literal, since the chosen
-// version is a product decision.
+// The guard's module stays dependency-free so the CLI entry can run it before the heavy imports
+// (koa, @langchain/openai) are evaluated; on an old runtime those imports crash first.
+// Pure-function tests pass an explicit minimum (a fixed fixture, e.g. 20) to exercise the
+// comparison; only the default-floor and engines tests are tied to MINIMUM_NODE_MAJOR so they
+// stay correct whatever floor is chosen.
 import checkNodeVersion, {
   MINIMUM_NODE_MAJOR,
   isSupportedNodeVersion,
@@ -13,8 +14,10 @@ describe('isSupportedNodeVersion', () => {
     expect(isSupportedNodeVersion('22.3.0', 20)).toBe(true);
   });
 
-  it('returns true at exactly the minimum major (boundary)', () => {
+  it('returns true at the minimum major regardless of minor/patch (boundary)', () => {
     expect(isSupportedNodeVersion('20.0.0', 20)).toBe(true);
+    expect(isSupportedNodeVersion('20.0.1', 20)).toBe(true);
+    expect(isSupportedNodeVersion('20.1.0', 20)).toBe(true);
   });
 
   it('returns false one major below the minimum (boundary)', () => {
