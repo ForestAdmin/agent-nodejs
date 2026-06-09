@@ -829,6 +829,102 @@ describe('ForestServerWorkflowPort', () => {
       });
     });
 
+    it('accepts a composite type sent as the native record form { data: String }', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'embedded',
+            displayName: 'Embedded',
+            isRelationship: false,
+            type: { data: 'String' },
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.fields[0].type).toEqual({ data: 'String' });
+    });
+
+    it('accepts the orchestrator wire form { fields: [{ field, type }] } and normalizes it to a record', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'embedded',
+            displayName: 'Embedded',
+            isRelationship: false,
+            type: { fields: [{ field: 'data', type: 'String' }] },
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.fields[0].type).toEqual({ data: 'String' });
+    });
+
+    it('normalizes a multi-entry wire-form composite type to its full record form', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'profile',
+            displayName: 'Profile',
+            isRelationship: false,
+            type: {
+              fields: [
+                { field: 'firstName', type: 'String' },
+                { field: 'age', type: 'Number' },
+              ],
+            },
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.fields[0].type).toEqual({ firstName: 'String', age: 'Number' });
+    });
+
+    it('accepts a nested wire-form composite type (composite inside composite)', async () => {
+      mockQuery.mockResolvedValue({
+        collectionName: 'users',
+        collectionDisplayName: 'Users',
+        primaryKeyFields: ['id'],
+        fields: [
+          {
+            fieldName: 'meta',
+            displayName: 'Meta',
+            isRelationship: false,
+            type: {
+              fields: [
+                {
+                  field: 'inner',
+                  type: { fields: [{ field: 'leaf', type: 'Boolean' }] },
+                },
+              ],
+            },
+          },
+        ],
+        actions: [],
+      });
+
+      const result = await port.getCollectionSchema('users', '42');
+
+      expect(result.fields[0].type).toEqual({ inner: { leaf: 'Boolean' } });
+    });
+
     it('rejects enumValues: [] (empty enum is invalid)', async () => {
       mockQuery.mockResolvedValue({
         collectionName: 'users',

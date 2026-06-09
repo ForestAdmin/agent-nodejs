@@ -26,13 +26,20 @@ export const PRIMITIVE_TYPES = [
 ] as const;
 export type PrimitiveType = (typeof PRIMITIVE_TYPES)[number];
 
-// Mirrors ColumnType = PrimitiveTypes | [ColumnType] | { [key: string]: ColumnType }
+// Mirrors ColumnType = PrimitiveTypes | [ColumnType] | { [key: string]: ColumnType }.
+// The orchestrator additionally serializes composite types as { fields: [{ field, type }] }
+// (array-of-entries wire form) — accepted here and normalized to the native record shape.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ColumnTypeSchema: z.ZodType<any> = z.lazy(() =>
   z.union([
     z.enum(PRIMITIVE_TYPES),
     z.tuple([ColumnTypeSchema]),
     z.record(z.string(), ColumnTypeSchema),
+    z
+      .object({
+        fields: z.array(z.object({ field: z.string(), type: ColumnTypeSchema })),
+      })
+      .transform(obj => Object.fromEntries(obj.fields.map(f => [f.field, f.type]))),
   ]),
 );
 
