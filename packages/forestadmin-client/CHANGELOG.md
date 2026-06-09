@@ -1,3 +1,18 @@
+# @forestadmin/forestadmin-client [1.40.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.9...@forestadmin/forestadmin-client@1.40.0) (2026-06-09)
+
+
+### Features
+
+* **executor:** introduce workflow executor ([#1564](https://github.com/ForestAdmin/agent-nodejs/issues/1564)) ([1545069](https://github.com/ForestAdmin/agent-nodejs/commit/15450694043f0394f3d3ec00330df9ccc71cc8d9))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.11.0
+
 ## @forestadmin/forestadmin-client [1.39.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.39.8...@forestadmin/forestadmin-client@1.39.9) (2026-05-20)
 
 
