@@ -1,35 +1,51 @@
-import { AiClient } from '@forestadmin/ai-proxy';
-
 import ServerAiAdapter from '../../src/adapters/server-ai-adapter';
 
+const mockGetModel = jest.fn().mockReturnValue({ id: 'fake-model' });
+const mockLoadRemoteTools = jest.fn().mockResolvedValue([]);
+const mockCloseConnections = jest.fn().mockResolvedValue(undefined);
+const mockAiClientConstructor = jest.fn();
+
 jest.mock('@forestadmin/ai-proxy', () => ({
-  AiClient: jest.fn().mockImplementation(() => ({
-    getModel: jest.fn().mockReturnValue({ id: 'fake-model' }),
-    loadRemoteTools: jest.fn().mockResolvedValue([]),
-    closeConnections: jest.fn().mockResolvedValue(undefined),
-  })),
+  AiClient: jest.fn().mockImplementation((...args: unknown[]) => {
+    mockAiClientConstructor(...args);
+
+    return {
+      getModel: mockGetModel,
+      loadRemoteTools: mockLoadRemoteTools,
+      closeConnections: mockCloseConnections,
+    };
+  }),
 }));
 
 const ENV_SECRET = 'a'.repeat(64);
 
 describe('ServerAiAdapter', () => {
-  const adapter = new ServerAiAdapter({
-    forestServerUrl: 'https://api.forestadmin.com',
-    envSecret: ENV_SECRET,
+  let adapter: ServerAiAdapter;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    adapter = new ServerAiAdapter({
+      forestServerUrl: 'https://api.forestadmin.com',
+      envSecret: ENV_SECRET,
+    });
   });
 
-  const aiClientMock = AiClient as unknown as jest.Mock;
-  const proxyConfig = () => aiClientMock.mock.calls[0][0].aiConfigurations[0];
-  const aiClientInstance = () => aiClientMock.mock.results[0].value;
+  const proxyConfig = () =>
+    (mockAiClientConstructor.mock.calls[0][0] as { aiConfigurations: Record<string, unknown>[] })
+      .aiConfigurations[0];
 
   describe('constructor', () => {
     it('configures AiClient with a single openai config targeting the FA server', () => {
       expect(proxyConfig()).toEqual(
         expect.objectContaining({
+          name: 'forest-server',
           provider: 'openai',
           model: 'gpt-4.1',
           maxRetries: 2,
-          configuration: expect.objectContaining({ fetch: expect.any(Function) }),
+          configuration: expect.objectContaining({
+            apiKey: 'unused',
+            fetch: expect.any(Function),
+          }),
         }),
       );
     });
@@ -38,7 +54,7 @@ describe('ServerAiAdapter', () => {
   describe('getModel', () => {
     it('delegates to the internal AiClient', () => {
       expect(adapter.getModel()).toEqual({ id: 'fake-model' });
-      expect(aiClientInstance().getModel).toHaveBeenCalled();
+      expect(mockGetModel).toHaveBeenCalled();
     });
 
     it('rewrites fetch to the proxy URL with forest-secret-key instead of Authorization', () => {
@@ -69,16 +85,21 @@ describe('ServerAiAdapter', () => {
   });
 
   describe('loadRemoteTools', () => {
-    it('delegates to internal AiClient', async () => {
-      const result = await adapter.loadRemoteTools({});
+    it('delegates to internal AiClient with the given configs', async () => {
+      const configs = {};
 
+      const result = await adapter.loadRemoteTools(configs);
+
+      expect(mockLoadRemoteTools).toHaveBeenCalledWith(configs);
       expect(result).toEqual([]);
     });
   });
 
   describe('closeConnections', () => {
-    it('resolves without error', async () => {
-      await expect(adapter.closeConnections()).resolves.toBeUndefined();
+    it('delegates to internal AiClient', async () => {
+      await adapter.closeConnections();
+
+      expect(mockCloseConnections).toHaveBeenCalled();
     });
   });
 });

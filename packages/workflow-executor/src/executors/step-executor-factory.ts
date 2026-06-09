@@ -22,7 +22,12 @@ import type {
   UpdateRecordStepDefinition,
 } from '../types/validated/step-definition';
 
-import { StepStateError, causeMessage, extractErrorMessage } from '../errors';
+import {
+  StepStateError,
+  WorkflowExecutorError,
+  causeMessage,
+  extractErrorMessage,
+} from '../errors';
 import SchemaResolver from '../schema-resolver';
 import ActivityLog from './activity-log';
 import AgentWithLog from './agent-with-log';
@@ -114,7 +119,10 @@ export default class StepExecutorFactory {
             stepId: step.stepId,
             stepIndex: step.stepIndex,
             status: 'error',
-            error: 'An unexpected error occurred.',
+            error:
+              error instanceof WorkflowExecutorError
+                ? error.userMessage
+                : 'An unexpected error occurred.',
           },
         }),
       };

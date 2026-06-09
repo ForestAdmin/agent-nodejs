@@ -9,6 +9,7 @@ import type { StepDefinition } from '../src/types/validated/step-definition';
 import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 import {
+  AiModelPortError,
   ConfigurationError,
   MalformedRunError,
   RunAlreadyInFlightError,
@@ -1665,7 +1666,7 @@ describe('StepExecutorFactory.create — factory', () => {
     );
     const { stepOutcome } = await executor.execute();
     expect(stepOutcome.status).toBe('error');
-    expect(stepOutcome.error).toBe('An unexpected error occurred.');
+    expect(stepOutcome.error).toBe('An unexpected error occurred while processing this step.');
   });
 
   it('returns an executor with an error outcome when loadTools rejects for a McpTask step', async () => {
@@ -1703,6 +1704,30 @@ describe('StepExecutorFactory.create — factory', () => {
     expect(logger.error).toHaveBeenCalledWith(
       'Step execution failed unexpectedly',
       expect.objectContaining({ cause: 'root cause' }),
+    );
+  });
+
+  it('surfaces the userMessage when construction throws a WorkflowExecutorError', async () => {
+    const contextConfig: StepContextConfig = {
+      ...makeContextConfig(),
+      aiModelPort: {
+        getModel: jest.fn().mockImplementationOnce(() => {
+          throw new AiModelPortError('getModel', new Error('boom'));
+        }),
+      } as unknown as AiModelPort,
+    };
+
+    const executor = await StepExecutorFactory.create(
+      makePendingStep(),
+      contextConfig,
+      makeRunLogger(),
+      jest.fn(),
+    );
+    const { stepOutcome } = await executor.execute();
+
+    expect(stepOutcome.status).toBe('error');
+    expect(stepOutcome.error).toBe(
+      'The AI service is unavailable. Please try again or contact your administrator.',
     );
   });
 
