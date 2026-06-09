@@ -1,26 +1,7 @@
-/**
- * TDD (red) for PRD-496 — workflow-executor must enforce and communicate a minimum Node.js version.
- *
- * These tests define the contract for a new, *intentionally dependency-free* preflight module
- * `src/check-node-version.ts`. It must have no heavy imports (no koa, no @langchain/openai, no
- * build-workflow-executor) so the CLI entry can run the guard BEFORE those modules are evaluated —
- * otherwise an old runtime crashes on those imports first, which is the bug being fixed.
- *
- * Expected public surface (to be implemented in a later step):
- *   - export const MINIMUM_NODE_MAJOR: number
- *   - export function isSupportedNodeVersion(currentVersion: string, minimumMajor?: number): boolean
- *   - export function unsupportedNodeVersionMessage(currentVersion: string, minimumMajor?: number): string
- *   - export default function checkNodeVersion(deps?: {
- *       currentVersion?: string;          // defaults to the running version
- *       minimumMajor?: number;            // defaults to MINIMUM_NODE_MAJOR
- *       printError?: (message: string) => void;  // defaults to writing to stderr
- *       exit?: (code: number) => void;           // defaults to process.exit
- *     }): void
- *
- * The floor value itself (20 vs 22 vs 24) is an open product decision, so these tests never assert
- * an absolute floor: pure-function tests pass the minimum explicitly, and the engines check asserts
- * agreement with MINIMUM_NODE_MAJOR rather than a literal.
- */
+// The guard's module must stay dependency-free so the CLI entry can run it before the heavy
+// imports (koa, @langchain/openai) are evaluated; on an old runtime those imports crash first.
+// The floor is asserted only relative to MINIMUM_NODE_MAJOR, never as a literal, since the chosen
+// version is a product decision.
 import checkNodeVersion, {
   MINIMUM_NODE_MAJOR,
   isSupportedNodeVersion,
@@ -133,20 +114,4 @@ describe('package.json engines', () => {
 
     expect(enginesMajor).toBe(MINIMUM_NODE_MAJOR);
   });
-});
-
-describe('robustness to malformed version input (policy undecided)', () => {
-  // process.version is always well-formed, so these only matter if the pure function is reused.
-  // The desired behaviour — throw a clear error vs. fail closed (treat as unsupported) — is an
-  // implementation decision; left as titles until that is settled.
-  it.todo('rejects an empty version string');
-
-  it.todo('rejects a non-version string such as "garbage"');
-});
-
-describe('preflight ordering (verified end-to-end, not in unit scope)', () => {
-  // The guard only fixes the bug if it runs before the heavy CLI imports (koa, @langchain/openai)
-  // are evaluated. The exact wiring (separate bootstrap module vs. inline in the bin) is an
-  // implementation decision and is best validated on a real old Node runtime by hand.
-  it.todo('runs the version guard before requiring build-workflow-executor / koa / @langchain');
 });
