@@ -1,9 +1,7 @@
 import type { AiModelPort } from '../ports/ai-model-port';
-import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { AiConfiguration, BaseChatModel, RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
 import { AiClient } from '@forestadmin/ai-proxy';
-import { ChatOpenAI } from '@langchain/openai';
 
 import { AiModelPortError, WorkflowExecutorError } from '../errors';
 
@@ -13,37 +11,17 @@ export interface ServerAiAdapterOptions {
 }
 
 export default class ServerAiAdapter implements AiModelPort {
-  private readonly forestServerUrl: string;
-  private readonly envSecret: string;
   private readonly aiClient: AiClient;
 
   constructor(options: ServerAiAdapterOptions) {
-    this.forestServerUrl = options.forestServerUrl;
-    this.envSecret = options.envSecret;
-    this.aiClient = new AiClient();
+    this.aiClient = new AiClient({
+      aiConfigurations: [ServerAiAdapter.buildProxyConfiguration(options)],
+    });
   }
 
   getModel(): BaseChatModel {
     try {
-      const aiProxyUrl = `${this.forestServerUrl}/liana/v1/ai-proxy`;
-      const { envSecret } = this;
-
-      return new ChatOpenAI({
-        // Model has no effect — the server uses its own configured model.
-        // Set here only because ChatOpenAI requires it.
-        model: 'gpt-4.1',
-        maxRetries: 2,
-        configuration: {
-          apiKey: 'unused',
-          fetch: (_url: RequestInfo | URL, init?: RequestInit) => {
-            const headers = new Headers(init?.headers);
-            headers.delete('authorization');
-            headers.set('forest-secret-key', envSecret);
-
-            return fetch(aiProxyUrl, { ...init, headers });
-          },
-        },
-      });
+      return this.aiClient.getModel();
     } catch (cause) {
       if (cause instanceof WorkflowExecutorError) throw cause;
       throw new AiModelPortError('getModel', cause);
@@ -56,6 +34,33 @@ export default class ServerAiAdapter implements AiModelPort {
 
   closeConnections(): Promise<void> {
     return this.callPort('closeConnections', () => this.aiClient.closeConnections());
+  }
+
+  // Every call is routed to the Forest server's AI proxy, which picks the real provider/model.
+  // The model name is therefore a placeholder, and fetch is rewritten to hit the proxy with the
+  // env secret instead of an OpenAI Authorization header.
+  private static buildProxyConfiguration({
+    forestServerUrl,
+    envSecret,
+  }: ServerAiAdapterOptions): AiConfiguration {
+    const aiProxyUrl = `${forestServerUrl}/liana/v1/ai-proxy`;
+
+    return {
+      name: 'forest-server',
+      provider: 'openai',
+      model: 'gpt-4.1',
+      maxRetries: 2,
+      configuration: {
+        apiKey: 'unused',
+        fetch: (_url: RequestInfo | URL, init?: RequestInit) => {
+          const headers = new Headers(init?.headers);
+          headers.delete('authorization');
+          headers.set('forest-secret-key', envSecret);
+
+          return fetch(aiProxyUrl, { ...init, headers });
+        },
+      },
+    };
   }
 
   private async callPort<T>(operation: string, fn: () => Promise<T>): Promise<T> {

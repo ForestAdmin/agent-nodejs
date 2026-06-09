@@ -1,5 +1,4 @@
-import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { BaseChatModel, RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
 export interface AiModelPort {
   getModel(aiConfigName?: string): BaseChatModel;

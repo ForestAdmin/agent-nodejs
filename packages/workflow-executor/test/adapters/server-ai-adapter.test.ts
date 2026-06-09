@@ -1,15 +1,12 @@
+import { AiClient } from '@forestadmin/ai-proxy';
+
 import ServerAiAdapter from '../../src/adapters/server-ai-adapter';
 
 jest.mock('@forestadmin/ai-proxy', () => ({
   AiClient: jest.fn().mockImplementation(() => ({
+    getModel: jest.fn().mockReturnValue({ id: 'fake-model' }),
     loadRemoteTools: jest.fn().mockResolvedValue([]),
     closeConnections: jest.fn().mockResolvedValue(undefined),
-  })),
-}));
-
-jest.mock('@langchain/openai', () => ({
-  ChatOpenAI: jest.fn().mockImplementation((opts: Record<string, unknown>) => ({
-    mockOpts: opts,
   })),
 }));
 
@@ -21,38 +18,43 @@ describe('ServerAiAdapter', () => {
     envSecret: ENV_SECRET,
   });
 
-  describe('getModel', () => {
-    it('returns a ChatOpenAI configured for the FA server', () => {
-      const model = adapter.getModel() as unknown as { mockOpts: Record<string, unknown> };
+  const aiClientMock = AiClient as unknown as jest.Mock;
+  const proxyConfig = () => aiClientMock.mock.calls[0][0].aiConfigurations[0];
+  const aiClientInstance = () => aiClientMock.mock.results[0].value;
 
-      expect(model.mockOpts).toEqual(
+  describe('constructor', () => {
+    it('configures AiClient with a single openai config targeting the FA server', () => {
+      expect(proxyConfig()).toEqual(
         expect.objectContaining({
+          provider: 'openai',
           model: 'gpt-4.1',
           maxRetries: 2,
-          configuration: expect.objectContaining({
-            fetch: expect.any(Function),
-          }),
+          configuration: expect.objectContaining({ fetch: expect.any(Function) }),
         }),
       );
     });
+  });
 
-    it('sends forest-secret-key header instead of Authorization', () => {
-      const model = adapter.getModel() as unknown as { mockOpts: Record<string, unknown> };
+  describe('getModel', () => {
+    it('delegates to the internal AiClient', () => {
+      expect(adapter.getModel()).toEqual({ id: 'fake-model' });
+      expect(aiClientInstance().getModel).toHaveBeenCalled();
+    });
 
-      const { fetch: customFetch } = model.mockOpts.configuration as {
+    it('rewrites fetch to the proxy URL with forest-secret-key instead of Authorization', () => {
+      const { fetch: customFetch } = proxyConfig().configuration as {
         fetch: (url: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
       };
 
-      const mockInit = {
-        method: 'POST',
-        body: '{}',
-        headers: { Authorization: 'Bearer unused' },
-      } as RequestInit;
       const originalFetch = global.fetch;
       global.fetch = jest.fn().mockResolvedValue(new Response('{}', { status: 200 }));
 
       try {
-        customFetch('https://ignored.com/chat/completions', mockInit);
+        customFetch('https://ignored.com/chat/completions', {
+          method: 'POST',
+          body: '{}',
+          headers: { Authorization: 'Bearer unused' },
+        });
 
         const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
         expect(url).toBe('https://api.forestadmin.com/liana/v1/ai-proxy');
