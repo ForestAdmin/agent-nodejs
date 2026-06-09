@@ -14,6 +14,7 @@ import ConsoleLogger from './adapters/console-logger';
 import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_MS } from './defaults';
 import {
   MalformedRunError,
+  RunAlreadyInFlightError,
   RunNotFoundError,
   UserMismatchError,
   causeMessage,
@@ -164,6 +165,12 @@ export default class Runner {
     runId: string,
     options?: { pendingData?: unknown; bearerUserId?: number },
   ): Promise<void> {
+    // Best-effort local short-circuit: skip the orchestrator round-trip when THIS instance is
+    // already running the run. It is NOT a concurrency guard — inFlightRuns is per-instance and a
+    // deployment can run several executors, so genuine duplicate-execution prevention is the
+    // orchestrator's job (it atomically claims a pending run; concurrent triggers get nothing).
+    this.assertRunNotInFlight(runId);
+
     let dispatch: AvailableRunDispatch | null;
 
     try {
@@ -184,16 +191,15 @@ export default class Runner {
       throw new UserMismatchError(runId);
     }
 
-    if (this.inFlightRuns.has(step.runId)) {
-      this.logger.info('Trigger ignored — run already in flight', {
-        runId: step.runId,
-        stepIndex: step.stepIndex,
-      });
-
-      return;
-    }
-
     await this.executeStep(step, auth.forestServerToken, options?.pendingData);
+  }
+
+  private assertRunNotInFlight(runId: string): void {
+    if (this.inFlightRuns.has(runId)) {
+      this.logger.info('Trigger ignored — run already in flight', { runId });
+
+      throw new RunAlreadyInFlightError(runId);
+    }
   }
 
   private schedulePoll(): void {

@@ -11,6 +11,7 @@ import type { BaseChatModel } from '@forestadmin/ai-proxy';
 import {
   ConfigurationError,
   MalformedRunError,
+  RunAlreadyInFlightError,
   RunNotFoundError,
   UserMismatchError,
 } from '../src/errors';
@@ -624,8 +625,7 @@ describe('deduplication', () => {
     const poll1 = runner.triggerPoll('run-1');
     await Promise.resolve(); // let getAvailableRun resolve and step key get added
 
-    // Second poll: step is in-flight → should be skipped
-    await runner.triggerPoll('run-1');
+    await expect(runner.triggerPoll('run-1')).rejects.toThrow(RunAlreadyInFlightError);
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
 
@@ -680,6 +680,104 @@ describe('deduplication', () => {
 });
 
 // ---------------------------------------------------------------------------
+// PRD-468 — concurrent / duplicate triggers of the same run
+// ---------------------------------------------------------------------------
+
+describe('PRD-468 concurrent duplicate triggers', () => {
+  it('executes only ONCE for concurrent triggers — the orchestrator denies the second dispatch', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-concurrent' });
+    workflowPort.getAvailableRun
+      .mockResolvedValueOnce({ step, auth: { forestServerToken: 'test-forest-token' } })
+      .mockResolvedValueOnce(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    const results = await Promise.allSettled([
+      runner.triggerPoll('run-1'),
+      runner.triggerPoll('run-1'),
+    ]);
+
+    expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.filter(r => r.status === 'rejected');
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0] as PromiseRejectedResult).reason).toBeInstanceOf(RunNotFoundError);
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a duplicate trigger of an in-flight run WITHOUT an orchestrator round-trip', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-inflight-dup' });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+
+    const unblockRef = { fn: (): void => {} };
+    executeSpy.mockReturnValueOnce(
+      new Promise(resolve => {
+        unblockRef.fn = () =>
+          resolve({
+            stepOutcome: {
+              type: 'record',
+              stepId: 'step-inflight-dup',
+              stepIndex: 0,
+              status: 'success',
+            },
+          });
+      }),
+    );
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    const poll1 = runner.triggerPoll('run-1');
+    await flushPromises();
+
+    await expect(runner.triggerPoll('run-1')).rejects.toThrow(RunAlreadyInFlightError);
+
+    expect(workflowPort.getAvailableRun).toHaveBeenCalledTimes(1);
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+
+    unblockRef.fn();
+    await poll1;
+  });
+
+  it('signals a conflict (does not silently resolve) for a duplicate trigger of an in-flight run', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-inflight-conflict' });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+
+    const unblockRef = { fn: (): void => {} };
+    executeSpy.mockReturnValueOnce(
+      new Promise(resolve => {
+        unblockRef.fn = () =>
+          resolve({
+            stepOutcome: {
+              type: 'record',
+              stepId: 'step-inflight-conflict',
+              stepIndex: 0,
+              status: 'success',
+            },
+          });
+      }),
+    );
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    const poll1 = runner.triggerPoll('run-1');
+    await flushPromises();
+
+    await expect(runner.triggerPoll('run-1')).rejects.toThrow(RunAlreadyInFlightError);
+
+    unblockRef.fn();
+    await poll1;
+  });
+});
+
+// ---------------------------------------------------------------------------
 // triggerPoll
 // ---------------------------------------------------------------------------
 
@@ -729,7 +827,7 @@ describe('triggerPoll', () => {
     const poll1 = runner.triggerPoll('run-1');
     await Promise.resolve();
 
-    await runner.triggerPoll('run-1');
+    await expect(runner.triggerPoll('run-1')).rejects.toThrow(RunAlreadyInFlightError);
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
 
@@ -951,9 +1049,9 @@ describe('chain', () => {
     const first = runner.triggerPoll('run-1');
     await Promise.resolve();
     // Concurrent trigger arrives — even though the chain will advance stepId, dedup is by runId.
-    await runner.triggerPoll('run-1');
+    await expect(runner.triggerPoll('run-1')).rejects.toThrow(RunAlreadyInFlightError);
 
-    // Only the initial step ran so far; the concurrent trigger was dropped.
+    // Only the initial step ran so far; the concurrent trigger was rejected.
     expect(executeSpy).toHaveBeenCalledTimes(1);
 
     unblockRef.fn();
