@@ -61,9 +61,9 @@ function isEmbeddedColumnType(type: FieldSchema['type']): boolean {
   return typeof type === 'object';
 }
 
-// An object (Mongo sub-document) or array-of-objects columnType. These render through the
-// embedded-document widget, which the orchestrator engine cannot display — so, matching the
-// browser engine (which excludes them too), they are not offered as readable/editable fields.
+// An object (Mongo sub-document) or array-of-objects columnType. Displaying embedded documents
+// in workflow steps is not supported yet, so these fields are excluded from read/update field
+// selection rather than read and returned to the frontend.
 export function isEmbeddedField(field: FieldSchema): boolean {
   return isEmbeddedColumnType(field.type);
 }
