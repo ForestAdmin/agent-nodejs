@@ -875,6 +875,110 @@ describe('UpdateRecordStepExecutor', () => {
     });
   });
 
+  describe('embedded-document fields excluded', () => {
+    it('does not offer an embedded-document field to the AI, so a scalar field still updates', async () => {
+      // Given: a scalar field and an object/embedded-document field on the same collection.
+      const agentPort = makeMockAgentPort({ status: 'active' });
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            { fieldName: 'status', displayName: 'Status', isRelationship: false, type: 'String' },
+            {
+              fieldName: 'identity',
+              displayName: 'Identity',
+              isRelationship: false,
+              type: { ssn: 'String', nationality: 'String' },
+            },
+          ],
+        }),
+      });
+      const mockModel = makeMockModel({
+        input: { fieldName: 'Status', value: 'active', reasoning: 'r' },
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then: the scalar updates, and the embedded field is not an accepted choice on the tool.
+      // (value: null is valid for any field — `.nullable()` — so a throw isolates the field-name rejection.)
+      expect(result.stepOutcome.status).toBe('success');
+      const tool = mockModel.bindTools.mock.calls[0][0][0];
+      expect(() =>
+        tool.schema.parse({ input: { fieldName: 'Status', value: null, reasoning: 'r' } }),
+      ).not.toThrow();
+      expect(() =>
+        tool.schema.parse({ input: { fieldName: 'Identity', value: null, reasoning: 'r' } }),
+      ).toThrow();
+    });
+
+    it('returns the no-editable-fields error when the only non-relationship field is an embedded document', async () => {
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            {
+              fieldName: 'identity',
+              displayName: 'Identity',
+              isRelationship: false,
+              type: { ssn: 'String', nationality: 'String' },
+            },
+          ],
+        }),
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This record type has no editable fields configured in Forest Admin.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('returns the no-editable-fields error when the only non-relationship field is an embedded array', async () => {
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            {
+              fieldName: 'bills',
+              displayName: 'Bills',
+              isRelationship: false,
+              type: [{ title: 'String', amount: 'Number' }],
+            },
+          ],
+        }),
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        runStore,
+        workflowPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This record type has no editable fields configured in Forest Admin.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
+
   describe('resolveFieldName failure', () => {
     it('returns error when field is not found during executionType=FullyAutomated (Branch B)', async () => {
       // AI returns a display name that doesn't match any field in the schema

@@ -14,6 +14,7 @@ import {
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { isEmbeddedField } from '../types/validated/collection';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
 const UPDATE_RECORD_SYSTEM_PROMPT = `You are an AI agent updating a field on a record based on a user request.
@@ -312,7 +313,9 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     // Exclude type-less fields: they can't be coerced/written, so offering them to the AI would
     // let a single drifted field fail the whole step. The override path still rejects an explicit
     // type-less target via FieldTypeMissingError.
-    const nonRelationFields = schema.fields.filter(f => !f.isRelationship && f.type != null);
+    const nonRelationFields = schema.fields.filter(
+      f => !f.isRelationship && f.type != null && !isEmbeddedField(f),
+    );
 
     if (nonRelationFields.length === 0) {
       throw new NoWritableFieldsError(schema.collectionName);
