@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.10.1...@forestadmin/ai-proxy@1.11.0) (2026-06-09)
+
+
+### Features
+
+* **executor:** introduce workflow executor ([#1564](https://github.com/ForestAdmin/agent-nodejs/issues/1564)) ([1545069](https://github.com/ForestAdmin/agent-nodejs/commit/15450694043f0394f3d3ec00330df9ccc71cc8d9))
+
 ## @forestadmin/ai-proxy [1.10.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.10.0...@forestadmin/ai-proxy@1.10.1) (2026-05-20)
 
 
