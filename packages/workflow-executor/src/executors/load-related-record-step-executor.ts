@@ -174,8 +174,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target);
 
+    // Polymorphic relations carry no relatedCollectionName (the orchestrator omits it) and can't be
+    // followed — exclude them so we never offer a relation that would fail in buildTarget.
     const availableFields: RelationRef[] = sourceSchema.fields
-      .filter(f => f.isRelationship)
+      .filter(f => f.isRelationship && f.relatedCollectionName)
       .map(f => ({ name: f.fieldName, displayName: f.displayName }));
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -490,7 +492,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   }
 
   private buildSelectRelationTool(schema: CollectionSchema): DynamicStructuredTool {
-    const relationFields = schema.fields.filter(f => f.isRelationship);
+    // Skip unfollowable (polymorphic) relations, same as availableFields — never offer them to the AI.
+    const relationFields = schema.fields.filter(f => f.isRelationship && f.relatedCollectionName);
 
     if (relationFields.length === 0) {
       throw new NoRelationshipFieldsError(schema.collectionName);

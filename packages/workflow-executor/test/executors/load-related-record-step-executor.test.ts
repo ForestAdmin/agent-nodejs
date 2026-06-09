@@ -788,6 +788,54 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
+    it('excludes relationship fields without a relatedCollectionName (polymorphic) from availableFields', async () => {
+      const agentPort = makeMockAgentPort(); // returns 1 record: orders #99
+      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'User requested order' });
+      const runStore = makeMockRunStore();
+      // Polymorphic relations carry no relatedCollectionName (the orchestrator omits it because
+      // their apimap reference points at a non-collection association). They have no resolvable
+      // target, so they must not be offered as a followable relation.
+      const schemaWithPolymorphic = makeCollectionSchema({
+        fields: [
+          { fieldName: 'email', displayName: 'Email', isRelationship: false },
+          {
+            fieldName: 'order',
+            displayName: 'Order',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'orders',
+          },
+          {
+            fieldName: 'imageable',
+            displayName: 'Imageable',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            // no relatedCollectionName → polymorphic, unfollowable
+          },
+        ],
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: schemaWithPolymorphic }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({
+            // 'imageable' is excluded; only the followable 'order' relation remains.
+            availableFields: [{ name: 'order', displayName: 'Order' }],
+          }),
+        }),
+      );
+    });
+
     // Uses HasMany ('Address') because BelongsTo/HasOne now short-circuit to a single
     // xToOne candidate (no select-fields/select-record-by-content AI calls).
     it('runs field-selection + record-selection AI calls when multiple related records exist', async () => {
@@ -2062,12 +2110,44 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
       expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
+
+    it('returns error when the only relation is polymorphic (no followable relations)', async () => {
+      // A relation without relatedCollectionName is polymorphic and unfollowable. When it's the
+      // only relation, there's nothing to offer → same outcome as having no relations at all.
+      const schema = makeCollectionSchema({
+        fields: [
+          { fieldName: 'email', displayName: 'Email', isRelationship: false },
+          {
+            fieldName: 'imageable',
+            displayName: 'Imageable',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+          },
+        ],
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: makeMockModel().model,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: schema }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This record type has no relations configured in Forest Admin.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
   });
 
   describe('StepStateError on malformed schema', () => {
-    // A relationship field with no relatedCollectionName can't be followed — throw rather than
-    // silently falling back to the field name (which would 404 later as a bogus collection).
-    it('returns error when the selected relation has no relatedCollectionName', async () => {
+    // The AI can no longer pick a relation without relatedCollectionName (selectRelation filters
+    // them out), but the pre-recorded path bypasses that filter — so buildTarget stays the safety
+    // net: it throws rather than falling back to the field name (which would 404 as a bogus collection).
+    it('returns error when a pre-recorded relation has no relatedCollectionName', async () => {
       const schema = makeCollectionSchema({
         fields: [
           {
@@ -2078,13 +2158,15 @@ describe('LoadRelatedRecordStepExecutor', () => {
           },
         ],
       });
-      const mockModel = makeMockModel({ relationName: 'Order', reasoning: 'test' });
       const runStore = makeMockRunStore();
       const context = makeContext({
-        model: mockModel.model,
+        model: makeMockModel().model,
         runStore,
         workflowPort: makeMockWorkflowPort({ customers: schema }),
-        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { relationName: 'order' },
+        }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
 
