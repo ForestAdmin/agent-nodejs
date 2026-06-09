@@ -1,3 +1,19 @@
+# @forestadmin/agent [1.79.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.13...@forestadmin/agent@1.79.0) (2026-06-09)
+
+
+### Features
+
+* **executor:** introduce workflow executor ([#1564](https://github.com/ForestAdmin/agent-nodejs/issues/1564)) ([1545069](https://github.com/ForestAdmin/agent-nodejs/commit/15450694043f0394f3d3ec00330df9ccc71cc8d9))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.40.0
+* **@forestadmin/mcp-server:** upgraded to 1.12.0
+
 ## @forestadmin/agent [1.78.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.78.12...@forestadmin/agent@1.78.13) (2026-05-20)
 
 
