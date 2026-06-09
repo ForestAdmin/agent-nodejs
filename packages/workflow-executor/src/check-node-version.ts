@@ -1,7 +1,5 @@
-// The minimum Node major is the single source of truth in package.json `engines.node` (which npm
-// also reads at install time); derive it here so the runtime guard can never drift from it.
-// Requiring a JSON file keeps this module free of heavy imports, so the CLI entry can run the guard
-// before koa / @langchain/openai are evaluated — on an unsupported runtime those would crash first.
+// Single source of truth for the floor: read it from package.json `engines.node` so the runtime
+// guard can't drift from the version npm enforces at install time.
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { engines } = require('../package.json') as { engines?: { node?: string } };
 
