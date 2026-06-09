@@ -171,23 +171,12 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  // Fetch a single record by its (possibly composite) id via the agent's by-id route. The id is
-  // serialized opaquely (serializeRecordId), so the agent — the only party that knows the primary
-  // key column order — does the matching. Returns null when the record does not exist (404, or a
-  // 200 with an empty payload, which some agents return for a missing composite-key record).
-  async getOne<Data = unknown>(id: RecordId, options?: SelectOptions): Promise<Data | null> {
-    try {
-      const record = await this.httpRequester.query<Data>({
-        method: 'get',
-        path: `/forest/${this.name}/${serializeRecordId(id)}`,
-        query: QuerySerializer.serialize(options, this.name),
-      });
-
-      return record && Object.keys(record as object).length > 0 ? record : null;
-    } catch (error) {
-      if ((this.httpRequester.constructor as typeof HttpRequester).is404Error(error)) return null;
-      throw error;
-    }
+  async getOne<Data = unknown>(id: RecordId, options?: SelectOptions): Promise<Data> {
+    return this.httpRequester.query<Data>({
+      method: 'get',
+      path: `/forest/${this.name}/${serializeRecordId(id)}`,
+      query: QuerySerializer.serialize(options, this.name),
+    });
   }
 
   private getActionInfo(

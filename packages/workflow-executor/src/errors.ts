@@ -1,5 +1,6 @@
 /* eslint-disable max-classes-per-file */
 import type { MalformedRunInfo } from './ports/workflow-port';
+import type { RecordId } from './types/validated/collection';
 import type { z } from 'zod';
 
 export function causeMessage(error: unknown): string | undefined {
@@ -57,9 +58,9 @@ export class MalformedToolCallError extends WorkflowExecutorError {
 }
 
 export class RecordNotFoundError extends WorkflowExecutorError {
-  constructor(collectionName: string, recordId: string) {
+  constructor(collectionName: string, recordId: RecordId) {
     super(
-      `Record not found: collection "${collectionName}", id "${recordId}"`,
+      `Record not found: collection "${collectionName}", id "${recordId.join('|')}"`,
       'The record no longer exists. It may have been deleted.',
     );
   }
