@@ -11,10 +11,8 @@ export interface CreateActivityLogArgs {
   label?: string;
 }
 
-export interface ActivityLogHandle {
-  id: string;
-  index: string;
-}
+// `{ id: null }` = server declined to persist (see createPending); guards narrow on `id`.
+export type ActivityLogHandle = { id: string; index: string } | { id: null };
 
 // Per-run scoped port: token baked into the adapter's constructor. markSucceeded/markFailed
 // retry transient failures internally and are invoked with `void` from AgentWithLog.

@@ -39,6 +39,16 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
         { logger: this.logger },
       );
 
+      // 200 with id:null → server declined to persist; skip the later status PATCH (PRD-428).
+      if (!response.id) {
+        this.logger.warn('activity log not persisted by server — skipping status update', {
+          action: args.action,
+          collectionId: args.collectionId,
+        });
+
+        return { id: null };
+      }
+
       return { id: response.id, index: response.attributes.index };
     } catch (cause) {
       this.logger.error('activity log create failed', {
@@ -52,6 +62,11 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
   }
 
   async markSucceeded(handle: ActivityLogHandle): Promise<void> {
+    // Not persisted (see createPending) → nothing to patch; skip to avoid a permanent-404 storm.
+    if (!('index' in handle)) return undefined;
+
+    const { id, index } = handle;
+
     return this.drainer.track(async () => {
       try {
         await withRetry(
@@ -59,14 +74,14 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           () =>
             this.service.updateActivityLogStatus({
               forestServerToken: this.forestServerToken,
-              activityLog: { id: handle.id, attributes: { index: handle.index } },
+              activityLog: { id, attributes: { index } },
               status: 'completed',
             }),
           { logger: this.logger, extraRetryStatuses: [404] },
         );
       } catch (err) {
         this.logger.error('activity log mark-as-completed failed', {
-          handleId: handle.id,
+          handleId: id,
           error: extractErrorMessage(err),
         });
       }
@@ -74,6 +89,11 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
   }
 
   async markFailed(handle: ActivityLogHandle): Promise<void> {
+    // Not persisted (see markSucceeded) → skip.
+    if (!('index' in handle)) return undefined;
+
+    const { id, index } = handle;
+
     return this.drainer.track(async () => {
       try {
         await withRetry(
@@ -81,14 +101,14 @@ export default class ForestadminClientActivityLogPort implements ActivityLogPort
           () =>
             this.service.updateActivityLogStatus({
               forestServerToken: this.forestServerToken,
-              activityLog: { id: handle.id, attributes: { index: handle.index } },
+              activityLog: { id, attributes: { index } },
               status: 'failed',
             }),
           { logger: this.logger, extraRetryStatuses: [404] },
         );
       } catch (err) {
         this.logger.error('activity log mark-as-failed failed', {
-          handleId: handle.id,
+          handleId: id,
           error: extractErrorMessage(err),
         });
       }

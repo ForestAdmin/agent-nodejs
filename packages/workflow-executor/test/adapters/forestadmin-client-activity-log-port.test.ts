@@ -200,6 +200,29 @@ describe('ForestadminClientActivityLogPort', () => {
       );
     });
 
+    it('returns a no-id handle and warns once when the server declines to persist (id:null)', async () => {
+      const service = makeService();
+      service.createActivityLog.mockResolvedValue({
+        id: null,
+        attributes: { index: '0' },
+      } as never);
+      const logger = makeLogger();
+      const port = makePort(service, { logger });
+
+      const handle = await port.createPending({
+        renderingId: 5,
+        action: 'update',
+        type: 'write',
+        collectionId: 'col-1',
+      });
+
+      expect(handle).toEqual({ id: null });
+      expect(logger.warn).toHaveBeenCalledWith(
+        'activity log not persisted by server — skipping status update',
+        { action: 'update', collectionId: 'col-1' },
+      );
+    });
+
     it('feeds args.collectionId into the lib collectionName slot (JSON:API relationship id)', async () => {
       const service = makeService();
       service.createActivityLog.mockResolvedValue({
@@ -264,6 +287,17 @@ describe('ForestadminClientActivityLogPort', () => {
       await expect(promise).resolves.toBeUndefined();
       expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
     });
+
+    it('skips the status update for a not-persisted (id:null) handle', async () => {
+      const service = makeService();
+      const drainer = new ActivityLogDrainer();
+      const trackSpy = jest.spyOn(drainer, 'track');
+      const port = makePort(service, { drainer });
+
+      await expect(port.markSucceeded({ id: null })).resolves.toBeUndefined();
+      expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
+      expect(trackSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('markFailed', () => {
@@ -315,6 +349,17 @@ describe('ForestadminClientActivityLogPort', () => {
       await jest.advanceTimersByTimeAsync(100);
       await expect(promise).resolves.toBeUndefined();
       expect(service.updateActivityLogStatus).toHaveBeenCalledTimes(2);
+    });
+
+    it('skips the status update for a not-persisted (id:null) handle', async () => {
+      const service = makeService();
+      const drainer = new ActivityLogDrainer();
+      const trackSpy = jest.spyOn(drainer, 'track');
+      const port = makePort(service, { drainer });
+
+      await expect(port.markFailed({ id: null })).resolves.toBeUndefined();
+      expect(service.updateActivityLogStatus).not.toHaveBeenCalled();
+      expect(trackSpy).not.toHaveBeenCalled();
     });
   });
 
