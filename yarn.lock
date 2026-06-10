@@ -2470,17 +2470,17 @@
     "@anthropic-ai/sdk" "^0.73.0"
     zod "^3.25.76 || ^4"
 
-"@langchain/core@1.1.15":
-  version "1.1.15"
-  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-1.1.15.tgz#31a933f4b445101ad1aa441b4f29b74e5994986e"
-  integrity sha512-b8RN5DkWAmDAlMu/UpTZEluYwCLpm63PPWniRKlE8ie3KkkE7IuMQ38pf4kV1iaiI+d99BEQa2vafQHfCujsRA==
+"@langchain/core@1.1.21":
+  version "1.1.21"
+  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-1.1.21.tgz#cd1b9917ca1b386664f53a1b85de4ca58e4370a3"
+  integrity sha512-lF6hFd5th27UkxxYJmt2fAvbLiFq52aYAU0dE/m9Nwg/p3St1JoMF1E/43e8C0Zwp+kMT7gM/et4Hgq6oO3C9g==
   dependencies:
     "@cfworker/json-schema" "^4.0.2"
     ansi-styles "^5.0.0"
     camelcase "6"
     decamelize "1.2.0"
     js-tiktoken "^1.0.12"
-    langsmith ">=0.4.0 <1.0.0"
+    langsmith ">=0.5.0 <1.0.0"
     mustache "^4.2.0"
     p-queue "^6.6.2"
     uuid "^10.0.0"
@@ -11573,7 +11573,7 @@ koa@^3.0.1:
     type-is "^2.0.1"
     vary "^1.1.2"
 
-"langsmith@>=0.4.0 <1.0.0", langsmith@^0.6.0:
+"langsmith@>=0.5.0 <1.0.0", langsmith@^0.6.0:
   version "0.6.3"
   resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.6.3.tgz#a3d8ad58d66a47d3697e3c69b2be3f6df5233190"
   integrity sha512-pXrQ4/4myQvjFFOAUmt5pWRrLEZR20gzIJD7MNdUH+5/S5nLI4ZRBo/SYKC6coaYj9pYTfQdBIzcs+3kfJ5uDA==
