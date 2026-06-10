@@ -62,6 +62,7 @@ function makeDeps(overrides: Partial<AgentWithLogDeps> = {}) {
       .mockResolvedValue({ collectionName: 'customers', recordId: [42], values: {} }),
     getRelatedData: jest.fn().mockResolvedValue([]),
     getSingleRelatedData: jest.fn().mockResolvedValue(null),
+    resolvePolymorphicType: jest.fn().mockResolvedValue({ type: 'orders', id: '99' }),
     executeAction: jest.fn().mockResolvedValue({ ok: true }),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: true }),
   } as unknown as AgentPort;
@@ -262,6 +263,26 @@ describe('AgentWithLog', () => {
         expect.objectContaining({ id: 1 }),
       );
       expect(result).toEqual({ hasForm: true });
+      expect(activityLogPort.createPending).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resolvePolymorphicType (unaudited passthrough)', () => {
+    it('forwards to the agent port with the injected user and emits no activity log', async () => {
+      const { deps, agentPort, activityLogPort } = makeDeps();
+      const agent = new AgentWithLog(deps);
+
+      const result = await agent.resolvePolymorphicType({
+        collection: 'comments',
+        id: [7],
+        relation: 'commentable',
+      });
+
+      expect(agentPort.resolvePolymorphicType).toHaveBeenCalledWith(
+        { collection: 'comments', id: [7], relation: 'commentable' },
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(result).toEqual({ type: 'orders', id: '99' });
       expect(activityLogPort.createPending).not.toHaveBeenCalled();
     });
   });

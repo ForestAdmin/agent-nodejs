@@ -86,6 +86,7 @@ function makeMockAgentPort(relatedData: RecordData[] = [makeRelatedRecordData()]
     updateRecord: jest.fn(),
     getRelatedData: jest.fn().mockResolvedValue(relatedData),
     getSingleRelatedData,
+    resolvePolymorphicType: jest.fn().mockResolvedValue(null),
     executeAction: jest.fn(),
   } as unknown as AgentPort;
 }
@@ -325,6 +326,152 @@ describe('LoadRelatedRecordStepExecutor', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('multi-target polymorphic relation (resolved per record)', () => {
+    // Customers' only relation is polymorphic: no relatedCollectionName, just the discriminator
+    // column + candidate models. The concrete target is read per record at follow time.
+    function makePolymorphicSchema(models: string[] = ['orders', 'addresses']): CollectionSchema {
+      return makeCollectionSchema({
+        fields: [
+          { fieldName: 'email', displayName: 'Email', isRelationship: false },
+          {
+            fieldName: 'imageable',
+            displayName: 'Imageable',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            polymorphicTypeField: 'imageable_type',
+            polymorphicReferencedModels: models,
+          },
+        ],
+      });
+    }
+
+    it('reads the discriminator linkage and follows into the resolved collection', async () => {
+      const agentPort = makeMockAgentPort(); // getSingleRelatedData → orders #99
+      (agentPort.resolvePolymorphicType as jest.Mock).mockResolvedValue({
+        type: 'orders',
+        id: '99',
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: makePolymorphicSchema() }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // The discriminator is read from the linkage on the source record...
+      expect(agentPort.resolvePolymorphicType).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], relation: 'imageable' },
+        expect.objectContaining({ id: 1 }),
+      );
+      // ...and "orders" becomes the target collection the record is fetched from.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relation: 'imageable',
+          relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
+        }),
+        expect.anything(),
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ collectionName: 'orders', recordId: ['99'] }),
+          }),
+        }),
+      );
+    });
+
+    it('maps the discriminator to a candidate case-insensitively (e.g. "Orders" → "orders")', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.resolvePolymorphicType as jest.Mock).mockResolvedValue({
+        type: 'Orders',
+        id: '99',
+      });
+      const context = makeContext({
+        agentPort,
+        workflowPort: makeMockWorkflowPort({ customers: makePolymorphicSchema(['orders']) }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('errors when the only relation is polymorphic and has no linked target on the record', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.resolvePolymorphicType as jest.Mock).mockResolvedValue(null); // no linkage
+      const context = makeContext({
+        agentPort,
+        workflowPort: makeMockWorkflowPort({ customers: makePolymorphicSchema() }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(agentPort.getSingleRelatedData).not.toHaveBeenCalled();
+    });
+
+    it('errors when the discriminator value is not among the candidate models', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.resolvePolymorphicType as jest.Mock).mockResolvedValue({
+        type: 'comments',
+        id: '1',
+      });
+      const context = makeContext({
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makePolymorphicSchema(['orders', 'addresses']),
+        }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(agentPort.getSingleRelatedData).not.toHaveBeenCalled();
+    });
+
+    it('does not offer an unfollowable relation (no relatedCollectionName, not polymorphic)', async () => {
+      const agentPort = makeMockAgentPort();
+      const schema = makeCollectionSchema({
+        fields: [
+          { fieldName: 'email', displayName: 'Email', isRelationship: false },
+          // Relationship with neither a static target nor a polymorphic discriminator → unfollowable.
+          {
+            fieldName: 'ghost',
+            displayName: 'Ghost',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+          },
+        ],
+      });
+      const context = makeContext({
+        agentPort,
+        workflowPort: makeMockWorkflowPort({ customers: schema }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(agentPort.resolvePolymorphicType).not.toHaveBeenCalled();
+      expect(agentPort.getSingleRelatedData).not.toHaveBeenCalled();
     });
   });
 

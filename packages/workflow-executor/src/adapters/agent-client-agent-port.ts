@@ -5,6 +5,7 @@ import type {
   GetRecordQuery,
   GetRelatedDataQuery,
   GetSingleRelatedDataQuery,
+  ResolvePolymorphicTypeQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
 import type SchemaCache from '../schema-cache';
@@ -222,9 +223,9 @@ export default class AgentClientAgentPort implements AgentPort {
     }
   }
 
-  private createClient(user: StepUser) {
+  private mintToken(user: StepUser): string {
     // snake_case aliases: Ruby/Python agents splat JWT claims into Caller.new (snake_case kwargs).
-    const token = jsonwebtoken.sign(
+    return jsonwebtoken.sign(
       {
         ...user,
         first_name: user.firstName,
@@ -236,11 +237,46 @@ export default class AgentClientAgentPort implements AgentPort {
       this.authSecret,
       { expiresIn: '5m' },
     );
+  }
 
+  private createClient(user: StepUser) {
     return createRemoteAgentClient({
       url: this.agentUrl,
-      token,
+      token: this.mintToken(user),
       actionEndpoints: this.buildActionEndpoints(),
+    });
+  }
+
+  // The agent-client deserializer drops relationship `type`, so read the raw record-with-projection
+  // response: `data.relationships.<relation>.data = { type, id }`. No UI-exposed discriminator needed.
+  async resolvePolymorphicType(
+    { collection, id, relation }: ResolvePolymorphicTypeQuery,
+    user: StepUser,
+  ): Promise<{ type: string; id: string } | null> {
+    return this.callAgent('resolvePolymorphicType', async () => {
+      const recordId = id.map(String).join('|');
+      const params = new URLSearchParams({
+        [`fields[${collection}]`]: relation,
+        [`fields[${relation}]`]: 'id',
+        timezone: 'Europe/Paris', // matches HttpRequester's default
+      });
+      const base = this.agentUrl.replace(/\/+$/, '');
+      const response = await fetch(`${base}/forest/${collection}/${recordId}?${params}`, {
+        headers: { Authorization: `Bearer ${this.mintToken(user)}`, Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `resolvePolymorphicType ${collection}/${recordId}: HTTP ${response.status}`,
+        );
+      }
+
+      const body = (await response.json()) as {
+        data?: { relationships?: Record<string, { data?: { type?: string; id?: string } | null }> };
+      };
+      const linkage = body?.data?.relationships?.[relation]?.data;
+
+      return linkage?.type ? { type: String(linkage.type), id: String(linkage.id) } : null;
     });
   }
 
