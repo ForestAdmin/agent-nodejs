@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.0.0...@forestadmin/workflow-executor@1.0.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **workflow-executor:** enforce a minimum Node.js version ([#1641](https://github.com/ForestAdmin/agent-nodejs/issues/1641)) ([23c594a](https://github.com/ForestAdmin/agent-nodejs/commit/23c594ad7838602d54b1cd5b4139a18a5d9410ba))
+
 # @forestadmin/workflow-executor 1.0.0 (2026-06-10)
 
 
