@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.0.1...@forestadmin/workflow-executor@1.1.0) (2026-06-10)
+
+
+### Features
+
+* **workflow-executor:** handle polymorphic relations in load-related (skip + follow) [PRD-493] ([#1647](https://github.com/ForestAdmin/agent-nodejs/issues/1647)) ([f7eef97](https://github.com/ForestAdmin/agent-nodejs/commit/f7eef97a2ae17860a2ba1e0a3d682af5042aa663))
+
 ## @forestadmin/workflow-executor [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.0.0...@forestadmin/workflow-executor@1.0.1) (2026-06-10)
 
 
