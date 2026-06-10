@@ -164,6 +164,7 @@ function createMockAgentPort(): jest.Mocked<AgentPort> {
     }),
     getRelatedData: jest.fn().mockResolvedValue([]),
     getSingleRelatedData: jest.fn().mockResolvedValue(null),
+    resolvePolymorphicType: jest.fn().mockResolvedValue(null),
     executeAction: jest.fn().mockResolvedValue(undefined),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
     probe: jest.fn().mockResolvedValue(undefined),

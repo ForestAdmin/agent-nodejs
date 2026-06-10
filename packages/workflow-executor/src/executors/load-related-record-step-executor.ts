@@ -62,11 +62,18 @@ interface RelationTarget extends RelationRef {
 }
 
 // A relationship reachable from one available record — the unit the AI chooses among.
-// `relatedCollectionName` is guaranteed non-null (buildRelationCandidates filters on it).
+// `relatedCollectionName` is guaranteed non-null (buildRelationCandidates resolves it, statically
+// or — for polymorphic relations — per record from the discriminator).
 interface RelationCandidate {
   record: RecordRef;
   schema: CollectionSchema;
   field: FieldSchema & { relatedCollectionName: string };
+}
+
+// Followable = has a static target (relatedCollectionName) or is a polymorphic relation resolvable
+// per record (polymorphicTypeField names the discriminator). The concrete target is resolved later.
+function isFollowableRelation(field: FieldSchema): boolean {
+  return field.isRelationship && Boolean(field.relatedCollectionName || field.polymorphicTypeField);
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
@@ -101,7 +108,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     const schema = await this.getCollectionSchema(execution.selectedRecordRef.collectionName);
-    const target = this.buildTarget(schema, fieldName, execution.selectedRecordRef);
+    const target = await this.buildTarget(schema, fieldName, execution.selectedRecordRef);
     const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -198,12 +205,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       const schema = await this.getCollectionSchema(record.collectionName);
 
       for (const field of schema.fields) {
-        if (field.isRelationship && field.relatedCollectionName) {
-          candidates.push({
-            record,
-            schema,
-            field: { ...field, relatedCollectionName: field.relatedCollectionName },
-          });
+        if (isFollowableRelation(field)) {
+          // eslint-disable-next-line no-await-in-loop
+          const relatedCollectionName = await this.resolveTargetCollection(field, record);
+
+          // A polymorphic relation with no linked target on this record can't be followed → skip it.
+          if (relatedCollectionName) {
+            candidates.push({ record, schema, field: { ...field, relatedCollectionName } });
+          }
         }
       }
     }
@@ -211,18 +220,48 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return candidates;
   }
 
-  private buildTarget(
+  // Resolves the concrete target collection of a relation for a given source record, or null when
+  // it can't be followed. Static relations expose `relatedCollectionName`; multi-target polymorphic
+  // ones expose only `polymorphicTypeField` + candidate models, so the linkage type is read per
+  // record and mapped to one of the candidates.
+  private async resolveTargetCollection(
+    field: FieldSchema,
+    record: RecordRef,
+  ): Promise<string | null> {
+    if (field.relatedCollectionName) return field.relatedCollectionName;
+    if (!field.polymorphicTypeField) return null;
+
+    const linkage = await this.context.agent.resolvePolymorphicType({
+      collection: record.collectionName,
+      id: record.recordId,
+      relation: field.fieldName,
+    });
+    const discriminator = linkage?.type;
+    if (!discriminator) return null;
+
+    const models = field.polymorphicReferencedModels ?? [];
+
+    return (
+      models.find(m => m === discriminator) ??
+      models.find(m => m.toLowerCase() === discriminator.toLowerCase()) ??
+      null
+    );
+  }
+
+  private async buildTarget(
     schema: CollectionSchema,
     relationName: string,
     selectedRecordRef: RecordRef,
-  ): RelationTarget {
+  ): Promise<RelationTarget> {
     const field = this.findFieldByTechnicalName(schema, relationName);
 
     if (!field) {
       throw new RelationNotFoundError(relationName, schema.collectionName);
     }
 
-    if (!field.relatedCollectionName) {
+    const relatedCollectionName = await this.resolveTargetCollection(field, selectedRecordRef);
+
+    if (!relatedCollectionName) {
       throw new StepStateError(
         `Step at index ${this.context.stepIndex} could not resolve relatedCollectionName for relation "${relationName}"`,
       );
@@ -233,7 +272,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       displayName: field.displayName,
       name: field.fieldName,
       relationType: field.relationType,
-      relatedCollectionName: field.relatedCollectionName,
+      relatedCollectionName,
     };
   }
 
@@ -248,7 +287,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target);
 
     const availableFields: RelationRef[] = sourceSchema.fields
-      .filter(f => f.isRelationship)
+      .filter(isFollowableRelation)
       .map(f => ({ name: f.fieldName, displayName: f.displayName }));
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
@@ -395,18 +434,21 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new RelatedRecordNotFoundError(selectedRecordRef.collectionName, name);
     }
 
-    // Re-derive relatedCollectionName from the live schema — frontend never sends it.
+    // Re-derive the target collection from the live schema — frontend never sends it. Handles both
+    // static relations and polymorphic ones (resolved per record from the discriminator).
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const field = schema.fields.find(f => f.fieldName === name);
+    const relatedCollectionName =
+      field && (await this.resolveTargetCollection(field, selectedRecordRef));
 
-    if (!field?.relatedCollectionName) {
+    if (!relatedCollectionName) {
       throw new StepStateError(
         `Step at index ${this.context.stepIndex} could not resolve relatedCollectionName for relation "${name}"`,
       );
     }
 
     const record: RecordRef = {
-      collectionName: field.relatedCollectionName,
+      collectionName: relatedCollectionName,
       recordId: selectedRecordId,
       stepIndex: this.context.stepIndex,
     };

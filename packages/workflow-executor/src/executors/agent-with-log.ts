@@ -6,6 +6,7 @@ import type {
   GetRecordQuery,
   GetRelatedDataQuery,
   GetSingleRelatedDataQuery,
+  ResolvePolymorphicTypeQuery,
   UpdateRecordQuery,
 } from '../ports/agent-port';
 import type SchemaResolver from '../schema-resolver';
@@ -114,6 +115,14 @@ export default class AgentWithLog {
   // not a data access, so unlike the methods above it records NO activity-log entry.
   getActionFormInfo(query: GetActionFormInfoQuery): Promise<{ hasForm: boolean }> {
     return this.agentPort.getActionFormInfo(query, this.user);
+  }
+
+  // Unaudited passthrough: resolves a polymorphic relation's target type (metadata probe). The
+  // actual related-record load is audited separately, so this records NO activity-log entry.
+  resolvePolymorphicType(
+    query: ResolvePolymorphicTypeQuery,
+  ): Promise<{ type: string; id: string } | null> {
+    return this.agentPort.resolvePolymorphicType(query, this.user);
   }
 
   // ISO with the browser engine: `list relation "<displayName>"`. The query carries the technical
