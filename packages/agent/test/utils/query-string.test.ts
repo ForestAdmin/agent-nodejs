@@ -418,6 +418,46 @@ describe('QueryStringParser', () => {
         );
       });
     });
+
+    describe('when the live query segment is provided in the bulk action subset query', () => {
+      test('should parse it from all_records_subset_query', () => {
+        const context = {
+          request: {
+            query: {},
+            body: {
+              data: {
+                attributes: {
+                  all_records_subset_query: {
+                    segmentQuery: 'SELECT * FROM toto',
+                    connectionName: 'main',
+                  },
+                },
+              },
+            },
+          },
+        } as unknown as Context;
+
+        expect(QueryStringParser.parseLiveQuerySegment(context)).toEqual({
+          query: 'SELECT * FROM toto',
+          connectionName: 'main',
+        });
+      });
+
+      test('should throw when connectionName is missing in the subset query', () => {
+        const context = {
+          request: {
+            query: {},
+            body: {
+              data: { attributes: { all_records_subset_query: { segmentQuery: 'SELECT 1' } } },
+            },
+          },
+        } as unknown as Context;
+
+        expect(() => QueryStringParser.parseLiveQuerySegment(context)).toThrow(
+          new UnprocessableError('Missing native query connection attribute'),
+        );
+      });
+    });
   });
 
   describe('parseCaller', () => {
