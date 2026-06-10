@@ -33,7 +33,7 @@
     "@forestadmin/ai-proxy": "1.11.1",
     "@forestadmin/forestadmin-client": "1.40.1",
     "@koa/bodyparser": "^6.1.0",
-    "@koa/router": "^13.1.0",
+    "@koa/router": "^15.6.0",
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",
     "koa-jwt": "^4.0.4",
