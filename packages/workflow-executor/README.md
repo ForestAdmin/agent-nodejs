@@ -24,7 +24,7 @@ npm install -g @forestadmin/workflow-executor
 | `DATABASE_URL` | ✓* | — | Postgres connection string (*not needed with `--in-memory`) |
 | `HTTP_PORT` | — | `3400` | Port for the executor HTTP server |
 | `FOREST_SERVER_URL` | — | `https://api.forestadmin.com` | Orchestrator URL |
-| `POLLING_INTERVAL_MS` | — | `5000` | Poll cadence for pending steps |
+| `POLLING_INTERVAL_MS` | — | `30000` | Poll cadence for pending steps |
 | `STOP_TIMEOUT_MS` | — | `30000` | Graceful shutdown deadline |
 
 Optional AI configuration (all-or-nothing — falls back to server AI if any is missing):
@@ -44,9 +44,10 @@ forest-workflow-executor
 You should see (pretty format when stdout is a TTY):
 
 ```
-13:33:42 info  Workflow executor starting mode="database" forestServerUrl="https://api.forestadmin.com" agentUrl="http://localhost:3351" httpPort=3400 pollingIntervalMs=5000 aiConfig="server fallback"
+13:33:42 info  Workflow executor starting mode="database" forestServerUrl="https://api.forestadmin.com" agentUrl="http://localhost:3351" httpPort=3400 pollingIntervalMs=30000 aiConfig="server fallback"
+13:33:42 info  Agent probe passed
 13:33:42 info  Workflow executor ready url="http://localhost:3400"
-13:33:47 info  Poll cycle completed fetched=0 dispatching=0
+13:34:12 info  Poll cycle completed fetched=0 dispatching=0 malformed=0
 ```
 
 When stdout is piped, redirected or inside a container, logs are emitted as
@@ -54,7 +55,7 @@ structured JSON instead — ready to be ingested by Datadog, CloudWatch, Loki, e
 
 ```json
 {"message":"Workflow executor ready","timestamp":"2026-04-20T13:33:42.000Z","url":"http://localhost:3400"}
-{"message":"Poll cycle completed","timestamp":"2026-04-20T13:33:47.000Z","fetched":0,"dispatching":0}
+{"message":"Poll cycle completed","timestamp":"2026-04-20T13:34:12.000Z","fetched":0,"dispatching":0,"malformed":0}
 ```
 
 ### Log format overrides
@@ -76,16 +77,19 @@ curl http://localhost:3400/health
 
 ### Graceful shutdown
 
-Send `SIGTERM` or `SIGINT`. The executor drains in-flight steps, closes the HTTP
-server, and exits with code `0`. Steps that don't drain within `STOP_TIMEOUT_MS`
-are force-killed and the process exits with code `1`.
+Send `SIGTERM` or `SIGINT`. The executor stops polling, drains in-flight steps,
+closes the HTTP server, and exits with code `0`. Steps still running after
+`STOP_TIMEOUT_MS` are not awaited — the executor logs a `Drain timeout` error and
+completes the shutdown anyway (they are abandoned, not force-killed). Interrupted
+steps are safe to replay: a write-ahead idempotency log prevents duplicate side
+effects on the next run.
 
 ### Exit codes
 
 | Code | Meaning |
 |------|---------|
-| `0` | Graceful shutdown |
-| `1` | Startup error (missing env, invalid config) or forced shutdown |
+| `0` | Graceful shutdown (including when a drain timed out) |
+| `1` | Startup error (missing env, invalid config) or resource cleanup failure during shutdown |
 
 ### In-memory mode (dev only)
 
