@@ -33,7 +33,9 @@ import { StepExecutionMode, StepType } from '../src/types/validated/step-definit
 // Helpers
 // ---------------------------------------------------------------------------
 
-const POLLING_INTERVAL_MS = 1000;
+const POLLING_INTERVAL_S = 1;
+// The runner schedules its poll timer at pollingIntervalS * 1000, so advance fake timers in ms.
+const POLLING_INTERVAL_MS = POLLING_INTERVAL_S * 1000;
 
 const flushPromises = async () => {
   await Promise.resolve();
@@ -87,7 +89,7 @@ function createRunnerConfig(
     envSecret: string;
     authSecret: string;
     schemaCache: SchemaCache;
-    stopTimeoutMs: number;
+    stopTimeoutS: number;
     maxChainDepth: number;
   }> = {},
 ) {
@@ -100,7 +102,7 @@ function createRunnerConfig(
       getStepExecutions: jest.fn().mockResolvedValue([]),
       saveStepExecution: jest.fn().mockResolvedValue(undefined),
     } as unknown as RunStore,
-    pollingIntervalMs: POLLING_INTERVAL_MS,
+    pollingIntervalS: POLLING_INTERVAL_S,
     aiModelPort: createMockAiClient() as unknown as AiModelPort,
     activityLogPortFactory: {
       forRun: jest.fn().mockReturnValue({
@@ -413,7 +415,8 @@ describe('graceful shutdown', () => {
       execute: () => new Promise(() => {}), // never resolves
     } as never);
 
-    runner = new Runner(createRunnerConfig({ workflowPort, logger, stopTimeoutMs: 50 }));
+    // 0.05s → 50ms drain timeout (runner multiplies by 1000); keeps the real-timer stop() fast.
+    runner = new Runner(createRunnerConfig({ workflowPort, logger, stopTimeoutS: 0.05 }));
     await runner.start();
 
     jest.advanceTimersByTime(POLLING_INTERVAL_MS);
@@ -427,7 +430,7 @@ describe('graceful shutdown', () => {
       'Drain timeout — runs still in flight',
       expect.objectContaining({
         remainingRuns: ['run-1'],
-        timeoutMs: 50,
+        timeoutS: 0.05,
       }),
     );
     expect(runner.state).toBe('stopped');
@@ -521,7 +524,7 @@ describe('graceful shutdown', () => {
 // ---------------------------------------------------------------------------
 
 describe('polling loop', () => {
-  it('schedules a poll after pollingIntervalMs', async () => {
+  it('schedules a poll after pollingIntervalS', async () => {
     const workflowPort = createMockWorkflowPort();
     runner = new Runner(createRunnerConfig({ workflowPort }));
     await runner.start();

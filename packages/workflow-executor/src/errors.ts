@@ -212,9 +212,9 @@ export class ActivityLogCreationError extends WorkflowExecutorError {
 }
 
 export class StepTimeoutError extends WorkflowExecutorError {
-  constructor(timeoutMs: number) {
+  constructor(timeoutS: number) {
     super(
-      `Step execution exceeded timeout of ${timeoutMs}ms`,
+      `Step execution exceeded timeout of ${timeoutS}s`,
       'The step took too long to complete. Please try again, or contact your administrator if the problem persists.',
     );
   }
@@ -224,9 +224,9 @@ export class StepTimeoutError extends WorkflowExecutorError {
 // StepTimeoutError so we can surface a provider-specific message and tune the AI timeout
 // independently of the step timeout (AI hangs are common; record fetches are not).
 export class AiInvokeTimeoutError extends WorkflowExecutorError {
-  constructor(timeoutMs: number) {
+  constructor(timeoutS: number) {
     super(
-      `AI provider did not respond within ${timeoutMs}ms`,
+      `AI provider did not respond within ${timeoutS}s`,
       'The AI provider did not respond in time. Please try again, or contact your administrator if the problem persists.',
     );
   }

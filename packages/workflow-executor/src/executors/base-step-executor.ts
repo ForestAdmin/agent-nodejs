@@ -71,7 +71,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
       if (error instanceof StepTimeoutError) {
         this.context.logger.error(error.message, {
           ...this.logCtx,
-          timeoutMs: this.context.stepTimeoutMs,
+          timeoutS: this.context.stepTimeoutS,
         });
 
         return this.buildOutcomeResult({ status: 'error', error: error.userMessage });
@@ -112,8 +112,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   // on execPromise must be attached BEFORE the race so a late rejection doesn't trigger
   // UnhandledPromiseRejection. Late resolutions are silently discarded.
   private async runWithTimeout(): Promise<StepExecutionResult> {
-    const timeoutMs = this.context.stepTimeoutMs;
-    if (!timeoutMs || timeoutMs <= 0) return this.doExecute();
+    const timeoutS = this.context.stepTimeoutS;
+    if (!timeoutS || timeoutS <= 0) return this.doExecute();
 
     let timer: NodeJS.Timeout | undefined;
     let hasTimeoutFired = false;
@@ -133,8 +133,8 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => {
             hasTimeoutFired = true;
-            reject(new StepTimeoutError(timeoutMs));
-          }, timeoutMs);
+            reject(new StepTimeoutError(timeoutS));
+          }, timeoutS * 1000);
         }),
       ]);
     } finally {
@@ -314,9 +314,9 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     BaseStepExecutor.assertNoMidArraySystemMessages(messages);
     const modelWithTools = this.context.model.bindTools(tools, { tool_choice: 'any' });
     const preparedMessages = BaseStepExecutor.mergeLeadingSystemMessages(messages);
-    const aiTimeoutMs = this.context.aiInvokeTimeoutMs;
-    const timeoutMs = aiTimeoutMs && aiTimeoutMs > 0 ? aiTimeoutMs : undefined;
-    const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
+    const aiTimeoutS = this.context.aiInvokeTimeoutS;
+    const timeoutS = aiTimeoutS && aiTimeoutS > 0 ? aiTimeoutS : undefined;
+    const signal = timeoutS ? AbortSignal.timeout(timeoutS * 1000) : undefined;
 
     let response;
 
@@ -326,7 +326,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     } catch (err) {
       // Detect the timeout via our own signal, not the thrown error's name: providers wrap an
       // aborted request differently (AbortError, TimeoutError, APIUserAbortError, …).
-      if (timeoutMs !== undefined && signal?.aborted) throw new AiInvokeTimeoutError(timeoutMs);
+      if (timeoutS !== undefined && signal?.aborted) throw new AiInvokeTimeoutError(timeoutS);
       throw err;
     }
 
