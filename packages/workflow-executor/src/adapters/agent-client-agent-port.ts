@@ -247,8 +247,7 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  // Reads the polymorphic relation's target via agent-client's raw linkage read (the deserializer
-  // drops relationship `type`). agent-client owns URL/auth/projection — no hand-rolled fetch here.
+  // Delegates to the lib's raw linkage read — agent-client owns URL/auth/projection.
   async resolvePolymorphicType(
     { collection, id, relation }: ResolvePolymorphicTypeQuery,
     user: StepUser,

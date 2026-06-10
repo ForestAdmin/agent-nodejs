@@ -34,8 +34,7 @@ export default class HttpRequester {
     query?: Record<string, unknown>;
     maxTimeAllowed?: number;
     contentType?: 'application/json' | 'text/csv';
-    // Return the raw JSON:API body instead of deserializing. The deserializer drops relationship
-    // `type`, so callers needing the polymorphic discriminator read the raw linkage themselves.
+    // Return the raw JSON:API body (skip deserialization, which drops relationship `type`).
     raw?: boolean;
   }): Promise<Data> {
     try {

@@ -179,9 +179,8 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  // Reads a to-one relation's raw JSON:API linkage ({ type, id }) via a `<relation>@@@id` projection.
-  // Used for polymorphic relations where the target `type` is the discriminator: the deserializer
-  // drops relationship types, so the raw body is read. Returns null when there is no linked record.
+  // Raw JSON:API linkage { type, id } of a to-one relation (via a `<relation>@@@id` projection) —
+  // needed for polymorphic relations, where the deserializer drops the `type`. Null if no target.
   async getRelationLinkage(
     id: RecordId,
     relation: string,
