@@ -65,6 +65,7 @@ function makeMockAgentPort(relatedData: RecordData[] = [makeRelatedRecordData()]
     updateRecord: jest.fn(),
     getRelatedData: jest.fn().mockResolvedValue(relatedData),
     getSingleRelatedData,
+    resolvePolymorphicType: jest.fn().mockResolvedValue(null),
     executeAction: jest.fn(),
   } as unknown as AgentPort;
 }
@@ -285,11 +286,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
         ],
       });
       const agentPort = makeMockAgentPort(); // getSingleRelatedData → orders #99
-      (agentPort.getRecord as jest.Mock).mockResolvedValue({
-        collectionName: 'customers',
-        recordId: [42],
-        values: { imageable_type: discriminator },
-      });
+      // The target type comes from the raw relationship linkage (no UI-exposed discriminator field).
+      (agentPort.resolvePolymorphicType as jest.Mock).mockResolvedValue(
+        discriminator == null ? null : { type: String(discriminator), id: '99' },
+      );
       const runStore = makeMockRunStore();
       const context = makeContext({
         model: makeMockModel({ relationName: 'Imageable', reasoning: 'load it' }).model,
@@ -310,9 +310,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // The discriminator column is read on the source record...
-      expect(agentPort.getRecord).toHaveBeenCalledWith(
-        expect.objectContaining({ collection: 'customers', id: [42], fields: ['imageable_type'] }),
+      // The target type is read from the relationship linkage on the source record...
+      expect(agentPort.resolvePolymorphicType).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42], relation: 'imageable' }),
         expect.anything(),
       );
       // ...and its value ("orders") becomes the target collection used to fetch + label the record.

@@ -183,27 +183,27 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       return field.relatedCollectionName;
     }
 
-    const typeField = field.polymorphicTypeField;
-
-    if (!typeField) {
+    if (!field.polymorphicTypeField) {
       throw new StepStateError(
         `Step at index ${this.context.stepIndex} could not resolve relatedCollectionName for relation "${field.fieldName}"`,
       );
     }
 
-    const source = await this.context.agentPort.getRecord(
+    // Read the target type from the raw relationship linkage (the discriminator column is not a
+    // UI-exposed field). The agent resolves the polymorphic association per record.
+    const linkage = await this.context.agentPort.resolvePolymorphicType(
       {
         collection: selectedRecordRef.collectionName,
         id: selectedRecordRef.recordId,
-        fields: [typeField],
+        relation: field.fieldName,
       },
       this.context.user,
     );
-    const discriminator = source.values[typeField];
+    const discriminator = linkage?.type;
 
-    if (typeof discriminator !== 'string' || discriminator.length === 0) {
+    if (!discriminator) {
       throw new StepStateError(
-        `Step at index ${this.context.stepIndex}: polymorphic relation "${field.fieldName}" has no "${typeField}" value on the selected record`,
+        `Step at index ${this.context.stepIndex}: polymorphic relation "${field.fieldName}" has no resolvable target on the selected record`,
       );
     }
 

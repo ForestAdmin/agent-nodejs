@@ -37,6 +37,8 @@ export type GetSingleRelatedDataQuery = {
   fields?: string[];
 };
 
+export type ResolvePolymorphicTypeQuery = { collection: string; id: Id[]; relation: string };
+
 export type ExecuteActionQuery = { collection: string; action: string; id?: Id[] };
 
 export type GetActionFormInfoQuery = { collection: string; action: string; id: Id[] };
@@ -50,6 +52,13 @@ export interface AgentPort {
     query: GetSingleRelatedDataQuery,
     user: StepUser,
   ): Promise<RecordData | null>;
+  // Resolves a polymorphic relation's target from the raw JSON:API linkage
+  // (data.relationships.<relation>.data = { type, id }), which the agent-client deserializer drops.
+  // Returns null when the record has no linked target. Needs no UI-exposed discriminator field.
+  resolvePolymorphicType(
+    query: ResolvePolymorphicTypeQuery,
+    user: StepUser,
+  ): Promise<{ type: string; id: string } | null>;
   executeAction(query: ExecuteActionQuery, user: StepUser): Promise<unknown>;
   // Old Ruby agents with hooks.load=false return 404; agent-client falls back to the fields
   // passed via ActionEndpointsByCollection (populated from the orchestrator's schema).
