@@ -109,7 +109,7 @@ describe('MINIMUM_NODE_MAJOR', () => {
     expect(pkg.engines?.node).toMatch(/\d/);
   });
 
-  it('is derived from package.json engines as the current floor of 20', () => {
-    expect(MINIMUM_NODE_MAJOR).toBe(20);
+  it('is derived from package.json engines as the current floor of 22', () => {
+    expect(MINIMUM_NODE_MAJOR).toBe(22);
   });
 });
