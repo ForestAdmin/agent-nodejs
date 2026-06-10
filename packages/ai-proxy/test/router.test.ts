@@ -2,7 +2,6 @@ import type { DispatchBody, InvokeRemoteToolArgs } from '../src';
 import type { ToolProvider } from '../src/tool-provider';
 
 import { AIModelNotSupportedError, Router } from '../src';
-import BraveToolProvider from '../src/integrations/brave/brave-tool-provider';
 import ProviderDispatcher from '../src/provider-dispatcher';
 import { createToolProviders } from '../src/tool-provider-factory';
 
@@ -20,17 +19,6 @@ jest.mock('../src/remote-tools', () => {
 });
 
 jest.mock('../src/tool-provider-factory');
-
-jest.mock('../src/integrations/brave/brave-tool-provider', () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      loadTools: jest.fn().mockResolvedValue([]),
-      checkConnection: jest.fn().mockResolvedValue(true),
-      dispose: jest.fn().mockResolvedValue(undefined),
-    })),
-  };
-});
 
 const dispatchMock = jest.fn();
 jest.mock('../src/provider-dispatcher', () => {
@@ -317,36 +305,6 @@ describe('route', () => {
           toolConfigs: dummyMcpServerConfigs,
         }),
       ).rejects.toThrow(dispatchError);
-    });
-  });
-
-  describe('Local tool providers', () => {
-    it('creates a BraveToolProvider when API key is provided', () => {
-      // eslint-disable-next-line no-new
-      new Router({
-        localToolsApiKeys: { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'test-key' },
-      });
-
-      expect(BraveToolProvider).toHaveBeenCalledWith({ apiKey: 'test-key' });
-    });
-
-    it('does not create BraveToolProvider when no API key', () => {
-      // eslint-disable-next-line no-new
-      new Router({});
-
-      expect(BraveToolProvider).not.toHaveBeenCalled();
-    });
-
-    it('does not dispose local tool providers after a request', async () => {
-      const router = new Router({
-        localToolsApiKeys: { AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'test-key' },
-      });
-
-      const braveInstance = jest.mocked(BraveToolProvider).mock.results[0].value;
-
-      await router.route({ route: 'remote-tools' });
-
-      expect(braveInstance.dispose).not.toHaveBeenCalled();
     });
   });
 

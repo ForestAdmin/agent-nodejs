@@ -5,7 +5,6 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import type { z } from 'zod';
 
 import { AIBadRequestError, AIModelNotSupportedError } from './errors';
-import BraveToolProvider from './integrations/brave/brave-tool-provider';
 import ProviderDispatcher from './provider-dispatcher';
 import { RemoteTools } from './remote-tools';
 import { routeArgsSchema } from './schemas/route';
@@ -37,22 +36,17 @@ export class Router {
     logger?: Logger;
   }) {
     this.aiConfigurations = params?.aiConfigurations ?? [];
-    this.localToolProviders = Router.createLocalToolProviders(params?.localToolsApiKeys);
+    this.localToolProviders = Router.createLocalToolProviders();
     this.logger = params?.logger;
 
     this.validateConfigurations();
   }
 
-  private static createLocalToolProviders(apiKeys?: Record<string, string>): ToolProvider[] {
-    const providers: ToolProvider[] = [];
-
-    if (apiKeys?.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY) {
-      providers.push(
-        new BraveToolProvider({ apiKey: apiKeys.AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY }),
-      );
-    }
-
-    return providers;
+  // Extension point for server-side tool providers. Currently empty — the Brave Search provider
+  // was removed (deprecated, unused). The `localToolsApiKeys` constructor param is kept so callers
+  // don't break and future local tools can be wired here from those keys.
+  private static createLocalToolProviders(): ToolProvider[] {
+    return [];
   }
 
   private validateConfigurations(): void {

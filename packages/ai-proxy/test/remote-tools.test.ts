@@ -86,7 +86,7 @@ describe('RemoteTools', () => {
     });
 
     it('should find tool by sanitized name', async () => {
-      const tool = createMockTool('brave search');
+      const tool = createMockTool('web search');
       tool.base.invoke = jest.fn().mockResolvedValue('response');
       const remoteTools = new RemoteTools([tool]);
 

@@ -556,29 +556,6 @@ describeWithOpenAI('Router integration tests', () => {
 
       expect(response).toEqual([]);
     });
-
-    it('should return brave search tool when API key is configured', async () => {
-      const routerWithBrave = new Router({
-        localToolsApiKeys: {
-          AI_REMOTE_TOOL_BRAVE_SEARCH_API_KEY: 'fake-key-for-definition-test',
-        },
-      });
-
-      const response = await routerWithBrave.route({
-        route: 'remote-tools',
-      });
-
-      expect(response).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: 'brave-search',
-            description: expect.any(String),
-            sourceId: 'brave_search',
-            sourceType: 'server',
-          }),
-        ]),
-      );
-    });
   });
 
   describe('route: invoke-remote-tool', () => {
