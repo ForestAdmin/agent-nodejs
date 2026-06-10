@@ -1,7 +1,9 @@
-// Pulls the leading major out of any version-ish string: a version (`v20.1.0`) or an engines
-// range (`>=20.0.0`) both yield 20.
-function parseMajor(version: string): number {
-  return Number.parseInt(/\d+/.exec(version)?.[0] ?? '', 10);
+// Pulls [major, minor, patch] out of any version-ish string: a version (`v22.11.0`) or an engines
+// range (`>=22.12.0`) both parse to their numeric parts.
+function parseVersion(version: string): [number, number, number] {
+  const [major = 0, minor = 0, patch = 0] = (version.match(/\d+/g) ?? []).map(Number);
+
+  return [major, minor, patch];
 }
 
 // Single source of truth for the floor: read it from package.json `engines.node` so the runtime
@@ -9,28 +11,34 @@ function parseMajor(version: string): number {
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { engines } = require('../package.json') as { engines?: { node?: string } };
 
-export const MINIMUM_NODE_MAJOR = parseMajor(engines?.node ?? '');
+export const MINIMUM_NODE_VERSION = (engines?.node ?? '').replace(/^\D*/, '');
 
 export function isSupportedNodeVersion(
   currentVersion: string,
-  minimumMajor: number = MINIMUM_NODE_MAJOR,
+  minimumVersion: string = MINIMUM_NODE_VERSION,
 ): boolean {
-  return parseMajor(currentVersion) >= minimumMajor;
+  const [curMajor, curMinor, curPatch] = parseVersion(currentVersion);
+  const [minMajor, minMinor, minPatch] = parseVersion(minimumVersion);
+
+  if (curMajor !== minMajor) return curMajor > minMajor;
+  if (curMinor !== minMinor) return curMinor > minMinor;
+
+  return curPatch >= minPatch;
 }
 
 export function unsupportedNodeVersionMessage(
   currentVersion: string,
-  minimumMajor: number = MINIMUM_NODE_MAJOR,
+  minimumVersion: string = MINIMUM_NODE_VERSION,
 ): string {
   return (
-    `The Forest workflow executor requires Node.js ${minimumMajor} or higher, ` +
+    `The Forest workflow executor requires Node.js ${minimumVersion} or higher, ` +
     `but the current version is ${currentVersion}. Please upgrade Node.js to continue.`
   );
 }
 
 interface CheckNodeVersionDeps {
   currentVersion?: string;
-  minimumMajor?: number;
+  minimumVersion?: string;
   printError?: (message: string) => void;
   exit?: (code: number) => void;
 }
@@ -38,15 +46,15 @@ interface CheckNodeVersionDeps {
 export default function checkNodeVersion(deps: CheckNodeVersionDeps = {}): void {
   const {
     currentVersion = process.version,
-    minimumMajor = MINIMUM_NODE_MAJOR,
+    minimumVersion = MINIMUM_NODE_VERSION,
     printError = (message: string) => {
       process.stderr.write(`${message}\n`);
     },
     exit = (code: number) => process.exit(code),
   } = deps;
 
-  if (isSupportedNodeVersion(currentVersion, minimumMajor)) return;
+  if (isSupportedNodeVersion(currentVersion, minimumVersion)) return;
 
-  printError(unsupportedNodeVersionMessage(currentVersion, minimumMajor));
+  printError(unsupportedNodeVersionMessage(currentVersion, minimumVersion));
   exit(1);
 }

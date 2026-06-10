@@ -1,53 +1,46 @@
-// The minimum Node major is read from package.json `engines.node`, so the guard's module is the
+// The minimum Node version is read from package.json `engines.node`, so the guard's module is the
 // single source of truth shared with the install-time engines declaration. Version inputs below
-// are expressed relative to MINIMUM_NODE_MAJOR so the suite stays correct whatever floor is set.
+// are expressed relative to the parsed floor so the suite stays correct whatever floor is set.
 import checkNodeVersion, {
-  MINIMUM_NODE_MAJOR,
+  MINIMUM_NODE_VERSION,
   isSupportedNodeVersion,
   unsupportedNodeVersionMessage,
 } from '../src/check-node-version';
 
+const [FLOOR_MAJOR, FLOOR_MINOR] = MINIMUM_NODE_VERSION.split('.').map(Number);
+
 describe('isSupportedNodeVersion', () => {
   it('returns true when the major version is above the minimum', () => {
-    expect(isSupportedNodeVersion(`${MINIMUM_NODE_MAJOR + 2}.3.0`, MINIMUM_NODE_MAJOR)).toBe(true);
+    expect(isSupportedNodeVersion(`${FLOOR_MAJOR + 1}.0.0`)).toBe(true);
   });
 
-  it('returns true at the minimum major regardless of minor/patch (boundary)', () => {
-    expect(isSupportedNodeVersion(`${MINIMUM_NODE_MAJOR}.0.0`, MINIMUM_NODE_MAJOR)).toBe(true);
-    expect(isSupportedNodeVersion(`${MINIMUM_NODE_MAJOR}.0.1`, MINIMUM_NODE_MAJOR)).toBe(true);
-    expect(isSupportedNodeVersion(`${MINIMUM_NODE_MAJOR}.1.0`, MINIMUM_NODE_MAJOR)).toBe(true);
+  it('returns true at the exact minimum major.minor (boundary)', () => {
+    expect(isSupportedNodeVersion(`${FLOOR_MAJOR}.${FLOOR_MINOR}.0`)).toBe(true);
   });
 
-  it('returns false one major below the minimum (boundary)', () => {
-    expect(isSupportedNodeVersion(`${MINIMUM_NODE_MAJOR - 1}.9.9`, MINIMUM_NODE_MAJOR)).toBe(false);
+  it('returns true above the minimum minor within the same major', () => {
+    expect(isSupportedNodeVersion(`${FLOOR_MAJOR}.${FLOOR_MINOR + 1}.0`)).toBe(true);
   });
 
-  it('returns false for a much older major', () => {
-    expect(isSupportedNodeVersion(`${MINIMUM_NODE_MAJOR - 4}.20.2`, MINIMUM_NODE_MAJOR)).toBe(
-      false,
-    );
+  it('returns false below the minimum minor within the same major', () => {
+    expect(isSupportedNodeVersion(`${FLOOR_MAJOR}.${FLOOR_MINOR - 1}.9`)).toBe(false);
   });
 
-  it('compares by major only, so an old major with a high minor is still unsupported', () => {
-    expect(isSupportedNodeVersion(`${MINIMUM_NODE_MAJOR - 2}.99.99`, MINIMUM_NODE_MAJOR)).toBe(
-      false,
-    );
+  it('returns false one major below the minimum', () => {
+    expect(isSupportedNodeVersion(`${FLOOR_MAJOR - 1}.99.9`)).toBe(false);
   });
 
   it("ignores a leading 'v', matching both process.version and process.versions.node forms", () => {
-    expect(isSupportedNodeVersion(`v${MINIMUM_NODE_MAJOR}.0.0`, MINIMUM_NODE_MAJOR)).toBe(true);
-    expect(isSupportedNodeVersion(`v${MINIMUM_NODE_MAJOR}.0.0`, MINIMUM_NODE_MAJOR)).toBe(
-      isSupportedNodeVersion(`${MINIMUM_NODE_MAJOR}.0.0`, MINIMUM_NODE_MAJOR),
-    );
+    expect(isSupportedNodeVersion(`v${FLOOR_MAJOR}.${FLOOR_MINOR}.0`)).toBe(true);
   });
 });
 
 describe('unsupportedNodeVersionMessage', () => {
   it('names both the required minimum and the detected version, with actionable wording', () => {
-    const detected = `v${MINIMUM_NODE_MAJOR - 2}.20.0`;
-    const message = unsupportedNodeVersionMessage(detected, MINIMUM_NODE_MAJOR);
+    const detected = `v${FLOOR_MAJOR}.${FLOOR_MINOR - 1}.0`;
+    const message = unsupportedNodeVersionMessage(detected);
 
-    expect(message).toContain(String(MINIMUM_NODE_MAJOR));
+    expect(message).toContain(MINIMUM_NODE_VERSION);
     expect(message).toContain(detected);
     expect(message).toMatch(/required|higher/i);
   });
@@ -58,14 +51,14 @@ describe('checkNodeVersion', () => {
     const printError = jest.fn();
     const exit = jest.fn();
 
-    checkNodeVersion({ currentVersion: `v${MINIMUM_NODE_MAJOR}.0.0`, printError, exit });
+    checkNodeVersion({ currentVersion: `v${FLOOR_MAJOR}.${FLOOR_MINOR}.0`, printError, exit });
 
     expect(printError).not.toHaveBeenCalled();
     expect(exit).not.toHaveBeenCalled();
   });
 
-  it('prints the unsupported-version message and exits with code 1 when too old', () => {
-    const detected = `v${MINIMUM_NODE_MAJOR - 2}.20.0`;
+  it('prints the unsupported-version message and exits with code 1 below the minimum minor', () => {
+    const detected = `v${FLOOR_MAJOR}.${FLOOR_MINOR - 1}.0`;
     const printError = jest.fn();
     const exit = jest.fn();
 
@@ -76,14 +69,10 @@ describe('checkNodeVersion', () => {
     expect(exit).toHaveBeenCalledWith(1);
   });
 
-  it('treats one major below the floor as unsupported', () => {
+  it('exits with code 1 when a full major below the minimum', () => {
     const exit = jest.fn();
 
-    checkNodeVersion({
-      currentVersion: `${MINIMUM_NODE_MAJOR - 1}.9.9`,
-      printError: jest.fn(),
-      exit,
-    });
+    checkNodeVersion({ currentVersion: `${FLOOR_MAJOR - 1}.99.9`, printError: jest.fn(), exit });
 
     expect(exit).toHaveBeenCalledWith(1);
   });
@@ -92,15 +81,15 @@ describe('checkNodeVersion', () => {
     const printError = jest.fn();
     const exit = jest.fn();
 
-    checkNodeVersion({ currentVersion: `v${MINIMUM_NODE_MAJOR + 2}.0.0`, printError, exit });
-    checkNodeVersion({ currentVersion: `v${MINIMUM_NODE_MAJOR + 2}.0.0`, printError, exit });
+    checkNodeVersion({ currentVersion: `v${FLOOR_MAJOR + 1}.0.0`, printError, exit });
+    checkNodeVersion({ currentVersion: `v${FLOOR_MAJOR + 1}.0.0`, printError, exit });
 
     expect(printError).not.toHaveBeenCalled();
     expect(exit).not.toHaveBeenCalled();
   });
 });
 
-describe('MINIMUM_NODE_MAJOR', () => {
+describe('MINIMUM_NODE_VERSION', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
   const pkg = require('../package.json') as { engines?: { node?: string } };
 
@@ -109,7 +98,7 @@ describe('MINIMUM_NODE_MAJOR', () => {
     expect(pkg.engines?.node).toMatch(/\d/);
   });
 
-  it('is derived from package.json engines as the current floor of 22', () => {
-    expect(MINIMUM_NODE_MAJOR).toBe(22);
+  it('is derived from package.json engines as the current floor of 22.12', () => {
+    expect(MINIMUM_NODE_VERSION).toBe('22.12.0');
   });
 });
