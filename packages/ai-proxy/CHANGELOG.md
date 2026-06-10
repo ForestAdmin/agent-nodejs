@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.11.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.11.1...@forestadmin/ai-proxy@1.11.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* **langchain:** bump dependencies to remove warning  ([#1650](https://github.com/ForestAdmin/agent-nodejs/issues/1650)) ([2bede42](https://github.com/ForestAdmin/agent-nodejs/commit/2bede42b91157e6f2b90c093e26523c37f4aa4d1))
+
 ## @forestadmin/ai-proxy [1.11.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.11.0...@forestadmin/ai-proxy@1.11.1) (2026-06-10)
 
 
