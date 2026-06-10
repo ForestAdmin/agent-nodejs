@@ -33,6 +33,10 @@ describe('isSupportedNodeVersion', () => {
   it("ignores a leading 'v', matching both process.version and process.versions.node forms", () => {
     expect(isSupportedNodeVersion(`v${FLOOR_MAJOR}.${FLOOR_MINOR}.0`)).toBe(true);
   });
+
+  it('treats an unparseable version as unsupported (fail closed)', () => {
+    expect(isSupportedNodeVersion('not-a-version')).toBe(false);
+  });
 });
 
 describe('unsupportedNodeVersionMessage', () => {
@@ -86,6 +90,19 @@ describe('checkNodeVersion', () => {
 
     expect(printError).not.toHaveBeenCalled();
     expect(exit).not.toHaveBeenCalled();
+  });
+
+  it('writes to stderr and calls process.exit(1) by default on an unsupported runtime', () => {
+    const stderrSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+
+    checkNodeVersion({ currentVersion: `v${FLOOR_MAJOR - 1}.0.0` });
+
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(MINIMUM_NODE_VERSION));
+    expect(exitSpy).toHaveBeenCalledWith(1);
+
+    stderrSpy.mockRestore();
+    exitSpy.mockRestore();
   });
 });
 

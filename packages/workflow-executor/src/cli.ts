@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
+// CLI entrypoint with side effects, not unit-testable; the guard and run wiring it composes are
+// unit-tested in check-node-version and cli-core.
+/* istanbul ignore file */
 
 import checkNodeVersion from './check-node-version';
 
