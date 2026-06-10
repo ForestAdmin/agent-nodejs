@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.0...@forestadmin/workflow-executor@1.1.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **workflow-executor:** fix warnings during installation ([#1649](https://github.com/ForestAdmin/agent-nodejs/issues/1649)) ([69175b6](https://github.com/ForestAdmin/agent-nodejs/commit/69175b6909608f24ac5fa3fd0873b3aa306f2c2b))
+
 # @forestadmin/workflow-executor [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.0.1...@forestadmin/workflow-executor@1.1.0) (2026-06-10)
 
 
