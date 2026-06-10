@@ -44,6 +44,11 @@ export const FieldSchemaSchema = z.object({
   isRelationship: z.boolean(),
   relationType: z.enum(['BelongsTo', 'HasMany', 'HasOne', 'BelongsToMany']).optional(),
   relatedCollectionName: z.string().optional(),
+  // Polymorphic relations: no single static target. `polymorphicTypeField` names the discriminator
+  // column on the source record (e.g. "imageable_type"); `polymorphicReferencedModels` lists the
+  // candidate target collections. The executor resolves the actual target per record at follow time.
+  polymorphicTypeField: z.string().optional(),
+  polymorphicReferencedModels: z.array(z.string()).optional(),
   type: ColumnTypeSchema.nullable().optional(),
   enumValues: z.array(z.string()).min(1).optional(),
 });

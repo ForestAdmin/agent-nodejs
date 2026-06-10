@@ -264,6 +264,94 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
+  describe('multi-target polymorphic relation (resolved per record)', () => {
+    // A polymorphic relation carries no relatedCollectionName: only the discriminator column name
+    // (polymorphicTypeField) + the candidate models. The target is read per record at follow time.
+    function makePolymorphicContext(
+      discriminator: unknown,
+      extra: Partial<ExecutionContext<LoadRelatedRecordStepDefinition>> = {},
+    ) {
+      const polymorphicSchema = makeCollectionSchema({
+        fields: [
+          { fieldName: 'email', displayName: 'Email', isRelationship: false },
+          {
+            fieldName: 'imageable',
+            displayName: 'Imageable',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            polymorphicTypeField: 'imageable_type',
+            polymorphicReferencedModels: ['orders', 'addresses'],
+          },
+        ],
+      });
+      const agentPort = makeMockAgentPort(); // getSingleRelatedData → orders #99
+      (agentPort.getRecord as jest.Mock).mockResolvedValue({
+        collectionName: 'customers',
+        recordId: [42],
+        values: { imageable_type: discriminator },
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: makeMockModel({ relationName: 'Imageable', reasoning: 'load it' }).model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: polymorphicSchema }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        ...extra,
+      });
+
+      return { agentPort, runStore, context };
+    }
+
+    it('reads the discriminator and follows the relation into the resolved collection', async () => {
+      const { agentPort, runStore, context } = makePolymorphicContext('orders');
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // The discriminator column is read on the source record...
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42], fields: ['imageable_type'] }),
+        expect.anything(),
+      );
+      // ...and its value ("orders") becomes the target collection used to fetch + label the record.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relation: 'imageable',
+          relatedSchema: expect.objectContaining({ collectionName: 'orders' }),
+        }),
+        expect.anything(),
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ collectionName: 'orders', recordId: ['99'] }),
+          }),
+        }),
+      );
+    });
+
+    it('returns an error when the discriminator value is not among the candidate models', async () => {
+      const { context } = makePolymorphicContext('comments'); // not in ['orders','addresses']
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
+    it('returns an error when the discriminator value is missing on the record', async () => {
+      const { context } = makePolymorphicContext(null);
+      const executor = new LoadRelatedRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+  });
+
   describe('executionType=FullyAutomated: HasMany — 2 AI calls (Branch B)', () => {
     it('runs selectRelevantFields + selectBestRecord to pick the best candidate', async () => {
       const hasManySchema = makeCollectionSchema({
