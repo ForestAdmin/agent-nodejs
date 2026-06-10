@@ -1,5 +1,3 @@
-// Pulls [major, minor, patch] out of any version-ish string: a version (`v22.11.0`) or an engines
-// range (`>=22.12.0`) both parse to their numeric parts.
 function parseVersion(version: string): [number, number, number] {
   const [major = 0, minor = 0, patch = 0] = (version.match(/\d+/g) ?? []).map(Number);
 

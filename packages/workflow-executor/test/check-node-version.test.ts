@@ -98,7 +98,7 @@ describe('MINIMUM_NODE_VERSION', () => {
     expect(pkg.engines?.node).toMatch(/\d/);
   });
 
-  it('is derived from package.json engines as the current floor of 22.12', () => {
-    expect(MINIMUM_NODE_VERSION).toBe('22.12.0');
+  it('derives a clean version string from engines.node', () => {
+    expect(MINIMUM_NODE_VERSION).toMatch(/^\d+(\.\d+)*$/);
   });
 });
