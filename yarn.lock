@@ -1925,6 +1925,18 @@
     openid-client "^5.7.1"
     superagent "^10.3.0"
 
+"@forestadmin/forestadmin-client@1.40.1":
+  version "1.40.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.40.1.tgz#67ce5af2d58aab0b6ff194634b5188312e899856"
+  integrity sha512-HB1tWfktO6spXJXu0Riq40zee9o3WAaGwSsSUXIhLTC+V8VsZHMCvfpghPPdoHPeNtTuu2nVRORA7osAfUyg7w==
+  dependencies:
+    eventsource "2.0.2"
+    json-api-serializer "^2.6.6"
+    jsonwebtoken "^9.0.3"
+    object-hash "^3.0.0"
+    openid-client "^5.7.1"
+    superagent "^10.3.0"
+
 "@forestadmin/mcp-server@1.11.11":
   version "1.11.11"
   resolved "https://registry.yarnpkg.com/@forestadmin/mcp-server/-/mcp-server-1.11.11.tgz#7a194b92eacaf16cd3add7f1f07167870292bfcb"
