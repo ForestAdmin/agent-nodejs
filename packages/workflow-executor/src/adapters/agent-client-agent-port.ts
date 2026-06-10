@@ -247,37 +247,15 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  // The agent-client deserializer drops relationship `type`, so read the raw record-with-projection
-  // response: `data.relationships.<relation>.data = { type, id }`. No UI-exposed discriminator needed.
+  // Reads the polymorphic relation's target via agent-client's raw linkage read (the deserializer
+  // drops relationship `type`). agent-client owns URL/auth/projection — no hand-rolled fetch here.
   async resolvePolymorphicType(
     { collection, id, relation }: ResolvePolymorphicTypeQuery,
     user: StepUser,
   ): Promise<{ type: string; id: string } | null> {
-    return this.callAgent('resolvePolymorphicType', async () => {
-      const recordId = id.map(String).join('|');
-      const params = new URLSearchParams({
-        [`fields[${collection}]`]: relation,
-        [`fields[${relation}]`]: 'id',
-        timezone: 'Europe/Paris', // matches HttpRequester's default
-      });
-      const base = this.agentUrl.replace(/\/+$/, '');
-      const response = await fetch(`${base}/forest/${collection}/${recordId}?${params}`, {
-        headers: { Authorization: `Bearer ${this.mintToken(user)}`, Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `resolvePolymorphicType ${collection}/${recordId}: HTTP ${response.status}`,
-        );
-      }
-
-      const body = (await response.json()) as {
-        data?: { relationships?: Record<string, { data?: { type?: string; id?: string } | null }> };
-      };
-      const linkage = body?.data?.relationships?.[relation]?.data;
-
-      return linkage?.type ? { type: String(linkage.type), id: String(linkage.id) } : null;
-    });
+    return this.callAgent('resolvePolymorphicType', async () =>
+      this.createClient(user).collection(collection).getRelationLinkage(id, relation),
+    );
   }
 
   // Hits GET /forest/ (public, no auth required across all agent versions). A 4xx here means

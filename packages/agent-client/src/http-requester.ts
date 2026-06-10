@@ -26,6 +26,7 @@ export default class HttpRequester {
     query,
     maxTimeAllowed,
     contentType,
+    raw,
   }: {
     method: 'get' | 'post' | 'put' | 'delete';
     path: string;
@@ -33,6 +34,9 @@ export default class HttpRequester {
     query?: Record<string, unknown>;
     maxTimeAllowed?: number;
     contentType?: 'application/json' | 'text/csv';
+    // Return the raw JSON:API body instead of deserializing. The deserializer drops relationship
+    // `type`, so callers needing the polymorphic discriminator read the raw linkage themselves.
+    raw?: boolean;
   }): Promise<Data> {
     try {
       const url = this.buildUrl(path);
@@ -47,6 +51,10 @@ export default class HttpRequester {
       if (body) req.send(body);
 
       const response = await req;
+
+      if (raw) {
+        return response.body as Data;
+      }
 
       try {
         return (await this.deserializer.deserialize(response.body)) as Data;

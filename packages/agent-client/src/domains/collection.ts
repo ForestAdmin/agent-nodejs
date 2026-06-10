@@ -179,6 +179,27 @@ export default class Collection extends CollectionChart {
     });
   }
 
+  // Reads a to-one relation's raw JSON:API linkage ({ type, id }) via a `<relation>@@@id` projection.
+  // Used for polymorphic relations where the target `type` is the discriminator: the deserializer
+  // drops relationship types, so the raw body is read. Returns null when there is no linked record.
+  async getRelationLinkage(
+    id: RecordId,
+    relation: string,
+  ): Promise<{ type: string; id: string } | null> {
+    const body = await this.httpRequester.query<{
+      data?: { relationships?: Record<string, { data?: { type?: string; id?: string } | null }> };
+    }>({
+      method: 'get',
+      path: `/forest/${this.name}/${serializeRecordId(id)}`,
+      query: QuerySerializer.serialize({ fields: [`${relation}@@@id`] }, this.name),
+      raw: true,
+    });
+
+    const linkage = body?.data?.relationships?.[relation]?.data;
+
+    return linkage?.type ? { type: String(linkage.type), id: String(linkage.id) } : null;
+  }
+
   private getActionInfo(
     actionEndpoints: ActionEndpointsByCollection,
     collectionName: string,

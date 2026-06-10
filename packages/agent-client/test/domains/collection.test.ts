@@ -174,6 +174,41 @@ describe('Collection', () => {
     });
   });
 
+  describe('getRelationLinkage', () => {
+    it('reads the raw linkage via a <relation>@@@id projection and returns { type, id }', async () => {
+      httpRequester.query.mockResolvedValue({
+        data: { relationships: { commentable: { data: { type: 'orders', id: '99' } } } },
+      });
+
+      const result = await collection.getRelationLinkage(7, 'commentable');
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ method: 'get', path: '/forest/users/7', raw: true }),
+      );
+      expect(result).toEqual({ type: 'orders', id: '99' });
+    });
+
+    it('pipe-encodes composite ids', async () => {
+      httpRequester.query.mockResolvedValue({
+        data: { relationships: { commentable: { data: { type: 'orders', id: '1|2' } } } },
+      });
+
+      await collection.getRelationLinkage([1, 'abc'], 'commentable');
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/users/1|abc', raw: true }),
+      );
+    });
+
+    it('returns null when there is no linked record', async () => {
+      httpRequester.query.mockResolvedValue({
+        data: { relationships: { commentable: { data: null } } },
+      });
+
+      expect(await collection.getRelationLinkage(7, 'commentable')).toBeNull();
+    });
+  });
+
   describe('delete', () => {
     it('should call httpRequester.query with DELETE method and correct body', async () => {
       httpRequester.query.mockResolvedValue({});
