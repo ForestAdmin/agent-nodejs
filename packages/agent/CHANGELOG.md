@@ -1,3 +1,18 @@
+## @forestadmin/agent [1.79.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.79.1...@forestadmin/agent@1.79.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* align internal dependency versions to published releases ([#1653](https://github.com/ForestAdmin/agent-nodejs/issues/1653)) ([317fea9](https://github.com/ForestAdmin/agent-nodejs/commit/317fea90390df38a384d1d17d04ec9a05566ed49))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.12.2
+
 ## @forestadmin/agent [1.79.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.79.0...@forestadmin/agent@1.79.1) (2026-06-10)
 
 
