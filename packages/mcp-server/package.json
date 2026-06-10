@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@forestadmin/agent-client": "1.6.1",
-    "@forestadmin/forestadmin-client": "1.40.1",
+    "@forestadmin/forestadmin-client": "1.40.2",
     "@modelcontextprotocol/sdk": "^1.28.0",
     "cors": "^2.8.5",
     "express": "^5.2.1",

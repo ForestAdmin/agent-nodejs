@@ -29,7 +29,7 @@
     "@forestadmin/agent-client": "1.6.1",
     "@forestadmin/datasource-customizer": "1.69.3",
     "@forestadmin/datasource-toolkit": "1.53.1",
-    "@forestadmin/forestadmin-client": "1.40.1",
+    "@forestadmin/forestadmin-client": "1.40.2",
     "jsonapi-serializer": "^3.6.9",
     "jsonwebtoken": "^9.0.3",
     "superagent": "^10.3.0"
