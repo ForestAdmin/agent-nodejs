@@ -16,10 +16,10 @@ import {
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_HTTP_PORT,
   DEFAULT_MAX_CHAIN_DEPTH,
-  DEFAULT_POLLING_INTERVAL_MS,
-  DEFAULT_SCHEMA_CACHE_TTL_MS,
-  DEFAULT_STEP_TIMEOUT_MS,
-  DEFAULT_STOP_TIMEOUT_MS,
+  DEFAULT_POLLING_INTERVAL_S,
+  DEFAULT_SCHEMA_CACHE_TTL_S,
+  DEFAULT_STEP_TIMEOUT_S,
+  DEFAULT_STOP_TIMEOUT_S,
 } from '../src/defaults';
 
 const baseEnv: NodeJS.ProcessEnv = {
@@ -138,39 +138,39 @@ describe('readEnvConfig', () => {
       {
         ...baseEnv,
         HTTP_PORT: '5000',
-        POLLING_INTERVAL_MS: '1000',
-        STOP_TIMEOUT_MS: '10000',
-        STEP_TIMEOUT_MS: '60000',
+        POLLING_INTERVAL_S: '1000',
+        STOP_TIMEOUT_S: '10000',
+        STEP_TIMEOUT_S: '60000',
         MAX_CHAIN_DEPTH: '10',
-        SCHEMA_CACHE_TTL_MS: '120000',
+        SCHEMA_CACHE_TTL_S: '120000',
       },
       args,
     );
 
     expect(config.executorOptions.httpPort).toBe(5000);
-    expect(config.executorOptions.pollingIntervalMs).toBe(1000);
-    expect(config.executorOptions.stopTimeoutMs).toBe(10000);
-    expect(config.executorOptions.stepTimeoutMs).toBe(60000);
+    expect(config.executorOptions.pollingIntervalS).toBe(1000);
+    expect(config.executorOptions.stopTimeoutS).toBe(10000);
+    expect(config.executorOptions.stepTimeoutS).toBe(60000);
     expect(config.executorOptions.maxChainDepth).toBe(10);
-    expect(config.executorOptions.schemaCacheTtlMs).toBe(120000);
+    expect(config.executorOptions.schemaCacheTtlS).toBe(120000);
   });
 
-  it('leaves schemaCacheTtlMs undefined when SCHEMA_CACHE_TTL_MS is unset (default applied downstream in build)', () => {
+  it('leaves schemaCacheTtlS undefined when SCHEMA_CACHE_TTL_S is unset (default applied downstream in build)', () => {
     const config = readEnvConfig(baseEnv, args);
 
-    expect(config.executorOptions.schemaCacheTtlMs).toBeUndefined();
+    expect(config.executorOptions.schemaCacheTtlS).toBeUndefined();
   });
 
-  it('throws ConfigurationError when SCHEMA_CACHE_TTL_MS is non-numeric', () => {
-    expect(() => readEnvConfig({ ...baseEnv, SCHEMA_CACHE_TTL_MS: 'abc' }, args)).toThrow(
-      /SCHEMA_CACHE_TTL_MS must be a positive integer/,
+  it('throws ConfigurationError when SCHEMA_CACHE_TTL_S is non-numeric', () => {
+    expect(() => readEnvConfig({ ...baseEnv, SCHEMA_CACHE_TTL_S: 'abc' }, args)).toThrow(
+      /SCHEMA_CACHE_TTL_S must be a positive integer/,
     );
   });
 
-  it('leaves stepTimeoutMs undefined when STEP_TIMEOU_MS is unset (default applied downstream in build)', () => {
+  it('leaves stepTimeoutS undefined when STEP_TIMEOUT_S is unset (default applied downstream in build)', () => {
     const config = readEnvConfig(baseEnv, args);
 
-    expect(config.executorOptions.stepTimeoutMs).toBeUndefined();
+    expect(config.executorOptions.stepTimeoutS).toBeUndefined();
   });
 
   it('leaves maxChainDepth undefined when MAX_CHAIN_DEPTH is unset (default applied downstream in build)', () => {
@@ -180,29 +180,29 @@ describe('readEnvConfig', () => {
   });
 
   it.each(['abc', '30s', '1_000', 'NaN'])(
-    'throws ConfigurationError when STEP_TIMEOUT_MS is non-numeric (%s)',
+    'throws ConfigurationError when STEP_TIMEOUT_S is non-numeric (%s)',
     value => {
-      expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_MS: value }, args)).toThrow(
-        /STEP_TIMEOUT_MS must be a positive integer/,
+      expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_S: value }, args)).toThrow(
+        /STEP_TIMEOUT_S must be a positive integer/,
       );
     },
   );
 
-  it('throws ConfigurationError when STEP_TIMEOUT_MS is 0', () => {
-    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_MS: '0' }, args)).toThrow(
-      /STEP_TIMEOUT_MS must be a positive integer/,
+  it('throws ConfigurationError when STEP_TIMEOUT_S is 0', () => {
+    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_S: '0' }, args)).toThrow(
+      /STEP_TIMEOUT_S must be a positive integer/,
     );
   });
 
-  it('throws ConfigurationError when STEP_TIMEOUT_MS is negative', () => {
-    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_MS: '-100' }, args)).toThrow(
-      /STEP_TIMEOUT_MS must be a positive integer/,
+  it('throws ConfigurationError when STEP_TIMEOUT_S is negative', () => {
+    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_S: '-100' }, args)).toThrow(
+      /STEP_TIMEOUT_S must be a positive integer/,
     );
   });
 
-  it('throws ConfigurationError when STEP_TIMEOUT_MS is a float', () => {
-    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_MS: '1.5' }, args)).toThrow(
-      /STEP_TIMEOUT_MS must be a positive integer/,
+  it('throws ConfigurationError when STEP_TIMEOUT_S is a float', () => {
+    expect(() => readEnvConfig({ ...baseEnv, STEP_TIMEOUT_S: '1.5' }, args)).toThrow(
+      /STEP_TIMEOUT_S must be a positive integer/,
     );
   });
 
@@ -303,11 +303,11 @@ describe('printHelp / printVersion', () => {
 
     expect(output).toContain(`Default: ${DEFAULT_HTTP_PORT}`);
     expect(output).toContain(`Default: ${DEFAULT_FOREST_SERVER_URL}`);
-    expect(output).toContain(`Default: ${DEFAULT_POLLING_INTERVAL_MS}`);
-    expect(output).toContain(`Default: ${DEFAULT_STOP_TIMEOUT_MS}`);
-    expect(output).toContain(`default: ${DEFAULT_STEP_TIMEOUT_MS}`);
+    expect(output).toContain(`Default: ${DEFAULT_POLLING_INTERVAL_S}`);
+    expect(output).toContain(`Default: ${DEFAULT_STOP_TIMEOUT_S}`);
+    expect(output).toContain(`default: ${DEFAULT_STEP_TIMEOUT_S}`);
     expect(output).toContain(`default: ${DEFAULT_MAX_CHAIN_DEPTH}`);
-    expect(output).toContain(`default: ${DEFAULT_SCHEMA_CACHE_TTL_MS}`);
+    expect(output).toContain(`default: ${DEFAULT_SCHEMA_CACHE_TTL_S}`);
   });
 
   it('printVersion prints a version string', () => {
@@ -340,7 +340,7 @@ describe('logStartup', () => {
       'Workflow executor starting',
       expect.objectContaining({
         forestServerUrl: DEFAULT_FOREST_SERVER_URL,
-        pollingIntervalMs: DEFAULT_POLLING_INTERVAL_MS,
+        pollingIntervalS: DEFAULT_POLLING_INTERVAL_S,
       }),
     );
   });

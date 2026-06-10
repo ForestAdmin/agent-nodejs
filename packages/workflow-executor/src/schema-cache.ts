@@ -1,14 +1,14 @@
 import type { CollectionSchema } from './types/validated/collection';
 
-import { DEFAULT_SCHEMA_CACHE_TTL_MS } from './defaults';
+import { DEFAULT_SCHEMA_CACHE_TTL_S } from './defaults';
 
 export default class SchemaCache {
   private readonly store = new Map<string, { schema: CollectionSchema; fetchedAt: number }>();
-  private readonly ttlMs: number;
+  private readonly ttlS: number;
   private readonly now: () => number;
 
-  constructor(ttlMs: number = DEFAULT_SCHEMA_CACHE_TTL_MS, now: () => number = Date.now) {
-    this.ttlMs = ttlMs;
+  constructor(ttlS: number = DEFAULT_SCHEMA_CACHE_TTL_S, now: () => number = Date.now) {
+    this.ttlS = ttlS;
     this.now = now;
   }
 
@@ -17,7 +17,7 @@ export default class SchemaCache {
 
     if (!entry) return undefined;
 
-    if (this.now() - entry.fetchedAt > this.ttlMs) {
+    if (this.now() - entry.fetchedAt > this.ttlS * 1000) {
       this.store.delete(collectionName);
 
       return undefined;
@@ -35,7 +35,7 @@ export default class SchemaCache {
     const now = this.now();
 
     for (const [key, entry] of this.store) {
-      if (now - entry.fetchedAt <= this.ttlMs) {
+      if (now - entry.fetchedAt <= this.ttlS * 1000) {
         yield [key, entry.schema];
       } else {
         this.store.delete(key);

@@ -179,7 +179,7 @@ function createIntegrationSetup(overrides?: {
   model?: BaseChatModel;
   agentPort?: jest.Mocked<AgentPort>;
   aiClient?: AiModelPort;
-  pollingIntervalMs?: number;
+  pollingIntervalS?: number;
 }) {
   const model = overrides?.model ?? createMockModel({ fieldNames: ['Email'] });
   const aiClient = overrides?.aiClient ?? createMockAiClient(model);
@@ -202,7 +202,7 @@ function createIntegrationSetup(overrides?: {
       }),
       drain: jest.fn().mockResolvedValue(undefined),
     },
-    pollingIntervalMs: overrides?.pollingIntervalMs ?? 60_000,
+    pollingIntervalS: overrides?.pollingIntervalS ?? 60,
     envSecret: ENV_SECRET,
     authSecret: AUTH_SECRET,
   });
@@ -834,7 +834,7 @@ describe('workflow execution (integration)', () => {
     const { runner, runStore } = createIntegrationSetup({
       workflowPort,
       model,
-      pollingIntervalMs: 50,
+      pollingIntervalS: 0.05,
     });
 
     await runStore.init();
