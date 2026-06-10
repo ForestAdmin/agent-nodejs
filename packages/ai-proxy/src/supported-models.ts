@@ -77,10 +77,7 @@ const ANTHROPIC_UNSUPPORTED_MODELS = [
   'claude-3-7-sonnet-20250219', // EOL 2026-02-19
   'claude-opus-4-20250514', // Requires streaming (non-streaming times out)
   'claude-opus-4-1-20250805', // Requires streaming (non-streaming times out)
-  // Always-on thinking: rejects the `thinking: {type: 'disabled'}` LangChain sends by default,
-  // and requires thinking blocks to be replayed verbatim on multi-turn tool calls — our
-  // OpenAI-format message conversion drops them, so follow-up turns would be rejected too.
-  'claude-fable-5',
+  'claude-fable-5', // Always-on thinking (rejects 'disabled'; proxy drops required thinking blocks)
 ];
 
 function isAnthropicModelSupported(model: string): boolean {
