@@ -127,15 +127,18 @@ export function toHttpError(err: unknown): BaseHttpError | null {
   // koa-jwt rejects with an error object carrying status 401.
   if ((err as { status?: number })?.status === 401) return new MissingOrInvalidTokenHttpError();
 
+  // All branches below match WorkflowExecutorError subtypes and MUST precede the catch-all:
+  // each maps to a specific status (404/400/403/503), otherwise it would fall into the 400.
   if (err instanceof RunNotFoundError) return new RunNotFoundHttpError();
   if (err instanceof RunAlreadyInFlightError) return new RunAlreadyInFlightHttpError(err);
   if (err instanceof UserMismatchError) return new UserMismatchHttpError(err);
 
-  // Must precede the WorkflowExecutorError catch-all: both extend it.
   if (err instanceof RunStorePortError || err instanceof WorkflowPortError) {
     return new UpstreamUnavailableHttpError(err);
   }
 
+  // Catch-all for any other domain error: 400 with its userMessage (safe fallback — a new
+  // WorkflowExecutorError subtype is never a silent 500).
   if (err instanceof WorkflowExecutorError) return new WorkflowStepFailedHttpError(err);
 
   return null;

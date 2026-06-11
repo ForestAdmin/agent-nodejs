@@ -312,29 +312,31 @@ export class ConfigurationError extends Error {
   }
 }
 
-export class RunNotFoundError extends Error {
-  cause?: unknown;
-
+// Run lifecycle/access errors raised by the Runner (not step-execution failures). They extend
+// WorkflowExecutorError so they belong to the single domain-error family: toHttpError maps each
+// to its own status via an explicit branch, but any forgotten mapping still degrades to a 400
+// with the userMessage instead of a silent 500.
+export class RunNotFoundError extends WorkflowExecutorError {
   constructor(runId: string, cause?: unknown) {
-    super(`Run "${runId}" not found or unavailable`);
-    this.name = 'RunNotFoundError';
+    super(`Run "${runId}" not found or unavailable`, 'Run not found or unavailable');
     if (cause !== undefined) this.cause = cause;
   }
 }
 
-export class UserMismatchError extends Error {
-  // bearerUserId/ownerUserId are kept in the message (not the HTTP body) so the centralized
-  // request log retains who attempted to act on a run they don't own — an authz forensic signal.
+export class UserMismatchError extends WorkflowExecutorError {
+  // The bearer/owner ids stay in the technical `message` (logged via the cause) but NOT in the
+  // userMessage — the HTTP body must never leak who owns a run.
   constructor(runId: string, bearerUserId: number, ownerUserId: number) {
-    super(`User ${bearerUserId} not authorized for run "${runId}" (owned by user ${ownerUserId})`);
-    this.name = 'UserMismatchError';
+    super(
+      `User ${bearerUserId} not authorized for run "${runId}" (owned by user ${ownerUserId})`,
+      'You are not authorized to access this run.',
+    );
   }
 }
 
-export class RunAlreadyInFlightError extends Error {
+export class RunAlreadyInFlightError extends WorkflowExecutorError {
   constructor(runId: string) {
     super(`Run "${runId}" is already being processed`);
-    this.name = 'RunAlreadyInFlightError';
   }
 }
 
