@@ -13,14 +13,14 @@ import {
   type WorkflowExecutor,
 } from './build-workflow-executor';
 import {
-  DEFAULT_AI_INVOKE_TIMEOUT_MS,
+  DEFAULT_AI_INVOKE_TIMEOUT_S,
   DEFAULT_FOREST_SERVER_URL,
   DEFAULT_HTTP_PORT,
   DEFAULT_MAX_CHAIN_DEPTH,
-  DEFAULT_POLLING_INTERVAL_MS,
-  DEFAULT_SCHEMA_CACHE_TTL_MS,
-  DEFAULT_STEP_TIMEOUT_MS,
-  DEFAULT_STOP_TIMEOUT_MS,
+  DEFAULT_POLLING_INTERVAL_S,
+  DEFAULT_SCHEMA_CACHE_TTL_S,
+  DEFAULT_STEP_TIMEOUT_S,
+  DEFAULT_STOP_TIMEOUT_S,
 } from './defaults';
 import { ConfigurationError, extractErrorMessage } from './errors';
 
@@ -157,12 +157,12 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     agentUrl: env.AGENT_URL as string,
     httpPort: parsePositiveIntEnv('HTTP_PORT', env.HTTP_PORT) ?? DEFAULT_HTTP_PORT,
     forestServerUrl: env.FOREST_SERVER_URL,
-    pollingIntervalMs: parsePositiveIntEnv('POLLING_INTERVAL_MS', env.POLLING_INTERVAL_MS),
-    stopTimeoutMs: parsePositiveIntEnv('STOP_TIMEOUT_MS', env.STOP_TIMEOUT_MS),
-    stepTimeoutMs: parsePositiveIntEnv('STEP_TIMEOUT_MS', env.STEP_TIMEOUT_MS),
-    aiInvokeTimeoutMs: parsePositiveIntEnv('AI_INVOKE_TIMEOUT_MS', env.AI_INVOKE_TIMEOUT_MS),
+    pollingIntervalS: parsePositiveIntEnv('POLLING_INTERVAL_S', env.POLLING_INTERVAL_S),
+    stopTimeoutS: parsePositiveIntEnv('STOP_TIMEOUT_S', env.STOP_TIMEOUT_S),
+    stepTimeoutS: parsePositiveIntEnv('STEP_TIMEOUT_S', env.STEP_TIMEOUT_S),
+    aiInvokeTimeoutS: parsePositiveIntEnv('AI_INVOKE_TIMEOUT_S', env.AI_INVOKE_TIMEOUT_S),
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
-    schemaCacheTtlMs: parsePositiveIntEnv('SCHEMA_CACHE_TTL_MS', env.SCHEMA_CACHE_TTL_MS),
+    schemaCacheTtlS: parsePositiveIntEnv('SCHEMA_CACHE_TTL_S', env.SCHEMA_CACHE_TTL_S),
     ...(aiConfigurations && { aiConfigurations }),
     ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
   };
@@ -195,12 +195,12 @@ Required environment variables:
 Optional environment variables:
   HTTP_PORT              Default: ${DEFAULT_HTTP_PORT}
   FOREST_SERVER_URL      Default: ${DEFAULT_FOREST_SERVER_URL}
-  POLLING_INTERVAL_MS    Default: ${DEFAULT_POLLING_INTERVAL_MS}
-  STOP_TIMEOUT_MS        Default: ${DEFAULT_STOP_TIMEOUT_MS}
-  STEP_TIMEOUT_MS        Max duration of a step in ms (default: ${DEFAULT_STEP_TIMEOUT_MS})
-  AI_INVOKE_TIMEOUT_MS   Max duration of a single AI provider invocation in ms (default: ${DEFAULT_AI_INVOKE_TIMEOUT_MS})
+  POLLING_INTERVAL_S    Default: ${DEFAULT_POLLING_INTERVAL_S}
+  STOP_TIMEOUT_S        Default: ${DEFAULT_STOP_TIMEOUT_S}
+  STEP_TIMEOUT_S        Max duration of a step in seconds (default: ${DEFAULT_STEP_TIMEOUT_S})
+  AI_INVOKE_TIMEOUT_S   Max duration of a single AI provider invocation in seconds (default: ${DEFAULT_AI_INVOKE_TIMEOUT_S})
   MAX_CHAIN_DEPTH        Max steps auto-executed per run before yielding (default: ${DEFAULT_MAX_CHAIN_DEPTH})
-  SCHEMA_CACHE_TTL_MS    Collection schema cache TTL in ms (default: ${DEFAULT_SCHEMA_CACHE_TTL_MS})
+  SCHEMA_CACHE_TTL_S    Collection schema cache TTL in seconds (default: ${DEFAULT_SCHEMA_CACHE_TTL_S})
   NO_COLOR               Set to any value to disable ANSI colors in pretty logs
   FORCE_AI_ERROR         Set to "true" to make every AI call fail (dev only, to test error paths)
 
@@ -234,7 +234,7 @@ export function logStartup(logger: Logger, config: CliConfig): void {
     forestServerUrl: opts.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL,
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,
-    pollingIntervalMs: opts.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,
+    pollingIntervalS: opts.pollingIntervalS ?? DEFAULT_POLLING_INTERVAL_S,
     aiConfig: aiLabel,
   });
 }

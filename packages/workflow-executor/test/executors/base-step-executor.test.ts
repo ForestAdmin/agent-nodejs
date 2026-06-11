@@ -578,11 +578,12 @@ describe('BaseStepExecutor', () => {
       }
     }
 
-    it('returns error outcome with timeout userMessage when step exceeds stepTimeoutMs', async () => {
+    it('returns error outcome with timeout userMessage when step exceeds stepTimeoutS', async () => {
       jest.useFakeTimers();
 
       try {
-        const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 50 }), 10_000);
+        // 0.05s → 50ms after the executor's *1000 conversion.
+        const executor = new SlowExecutor(makeContext({ stepTimeoutS: 0.05 }), 10_000);
         const resultPromise = executor.execute();
         await Promise.resolve(); // flush checkIdempotency microtask so timers are registered
         jest.advanceTimersByTime(60);
@@ -597,18 +598,18 @@ describe('BaseStepExecutor', () => {
       }
     });
 
-    it('returns success when step finishes before stepTimeoutMs', async () => {
-      const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 5_000 }), 5);
+    it('returns success when step finishes before stepTimeoutS', async () => {
+      const executor = new SlowExecutor(makeContext({ stepTimeoutS: 5 }), 5);
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
     });
 
-    it('does not apply a timeout when stepTimeoutMs is unset', async () => {
+    it('does not apply a timeout when stepTimeoutS is unset', async () => {
       jest.useFakeTimers();
 
       try {
-        const executor = new SlowExecutor(makeContext({ stepTimeoutMs: undefined }), 1_000);
+        const executor = new SlowExecutor(makeContext({ stepTimeoutS: undefined }), 1_000);
         const resultPromise = executor.execute();
         // Advance past a hypothetical default; no timeout should fire
         jest.advanceTimersByTime(10_000);
@@ -620,32 +621,33 @@ describe('BaseStepExecutor', () => {
       }
     });
 
-    it('ignores stepTimeoutMs <= 0 (treated as disabled)', async () => {
-      const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 0 }), 5);
+    it('ignores stepTimeoutS <= 0 (treated as disabled)', async () => {
+      const executor = new SlowExecutor(makeContext({ stepTimeoutS: 0 }), 5);
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
     });
 
-    it('logs structured context (runId/stepId/timeoutMs/stepType) when a step times out', async () => {
+    it('logs structured context (runId/stepId/timeoutS/stepType) when a step times out', async () => {
       jest.useFakeTimers();
 
       try {
         const logger = makeMockLogger();
-        const executor = new SlowExecutor(makeContext({ stepTimeoutMs: 50, logger }), 10_000);
+        // 0.05s → 50ms after the executor's *1000 conversion.
+        const executor = new SlowExecutor(makeContext({ stepTimeoutS: 0.05, logger }), 10_000);
         const resultPromise = executor.execute();
         await Promise.resolve(); // flush checkIdempotency microtask so timers are registered
         jest.advanceTimersByTime(60);
         await resultPromise;
 
         expect(logger.error).toHaveBeenCalledWith(
-          'Step execution exceeded timeout of 50ms',
+          'Step execution exceeded timeout of 0.05s',
           expect.objectContaining({
             runId: 'run-1',
             stepId: 'step-0',
             stepIndex: 0,
             stepType: StepType.Condition,
-            timeoutMs: 50,
+            timeoutS: 0.05,
           }),
         );
       } finally {
@@ -684,7 +686,8 @@ describe('BaseStepExecutor', () => {
       try {
         const logger = makeMockLogger();
         const executor = new FailingAfterTimeoutExecutor(
-          makeContext({ stepTimeoutMs: 10, logger }),
+          // 0.01s → 10ms; fires before doExecute()'s 1s delay.
+          makeContext({ stepTimeoutS: 0.01, logger }),
         );
 
         await executor.execute();
@@ -711,7 +714,7 @@ describe('BaseStepExecutor', () => {
     it('does not log discard message when step rejects before timeout', async () => {
       const logger = makeMockLogger();
       const executor = new TestableExecutor(
-        makeContext({ stepTimeoutMs: 5_000, logger }),
+        makeContext({ stepTimeoutS: 5, logger }),
         new Error('normal step error'),
       );
 
@@ -908,14 +911,15 @@ describe('BaseStepExecutor', () => {
         };
       }
 
-      it('throws AiInvokeTimeoutError when the model invoke hangs past aiInvokeTimeoutMs', async () => {
+      it('throws AiInvokeTimeoutError when the model invoke hangs past aiInvokeTimeoutS', async () => {
         const { model } = makeAbortAwareModel();
-        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 20 }));
+        // 0.02s → 20ms after the executor's *1000 conversion.
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutS: 0.02 }));
 
         const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
 
         expect(err).toBeInstanceOf(AiInvokeTimeoutError);
-        expect((err as Error).message).toContain('20ms');
+        expect((err as Error).message).toContain('0.02s');
       });
 
       it('maps to AiInvokeTimeoutError even when the provider wraps the abort under its own error name', async () => {
@@ -925,7 +929,7 @@ describe('BaseStepExecutor', () => {
           name: 'APIUserAbortError',
         });
         const { model } = makeAbortAwareModel(providerErr);
-        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 20 }));
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutS: 0.02 }));
 
         const err = await executor.invokeWithTool(dummyMessages, dummyTool).catch(e => e);
 
@@ -936,7 +940,7 @@ describe('BaseStepExecutor', () => {
         const { model, invoke } = makeMockModel({
           tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
         });
-        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 5_000 }));
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutS: 5 }));
 
         await executor.invokeWithTool(dummyMessages, dummyTool);
 
@@ -945,11 +949,11 @@ describe('BaseStepExecutor', () => {
         });
       });
 
-      it('passes an undefined signal (un-timed) when aiInvokeTimeoutMs is unset', async () => {
+      it('passes an undefined signal (un-timed) when aiInvokeTimeoutS is unset', async () => {
         const { model, invoke } = makeMockModel({
           tool_calls: [{ name: 'tool', args: {}, id: 'c1' }],
         });
-        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: undefined }));
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutS: undefined }));
 
         await executor.invokeWithTool(dummyMessages, dummyTool);
 
@@ -957,7 +961,7 @@ describe('BaseStepExecutor', () => {
         expect(invoke).toHaveBeenCalledWith(expect.any(Array), { signal: undefined });
       });
 
-      it('treats aiInvokeTimeoutMs <= 0 as disabled (signal undefined, abort not mapped)', async () => {
+      it('treats aiInvokeTimeoutS <= 0 as disabled (signal undefined, abort not mapped)', async () => {
         const abortErr = Object.assign(new Error('Aborted'), { name: 'AbortError' });
         const invoke = jest
           .fn()
@@ -966,7 +970,7 @@ describe('BaseStepExecutor', () => {
         const model = {
           bindTools: jest.fn().mockReturnValue({ invoke }),
         } as unknown as ExecutionContext['model'];
-        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 0 }));
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutS: 0 }));
 
         await executor.invokeWithTool(dummyMessages, dummyTool);
         expect(invoke.mock.calls[0]).toEqual([expect.any(Array), { signal: undefined }]);
@@ -978,7 +982,7 @@ describe('BaseStepExecutor', () => {
       it('rethrows non-abort errors without wrapping them', async () => {
         const apiError = Object.assign(new Error('OpenAI 503'), { status: 503, name: 'APIError' });
         const { model } = makeRejectingModel(apiError);
-        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutMs: 5_000 }));
+        const executor = new TestableExecutor(makeContext({ model, aiInvokeTimeoutS: 5 }));
 
         await expect(executor.invokeWithTool(dummyMessages, dummyTool)).rejects.toBe(apiError);
       });
@@ -994,7 +998,7 @@ describe('BaseStepExecutor', () => {
           }
         }
         const { model } = makeAbortAwareModel();
-        const executor = new InvokingExecutor(makeContext({ model, aiInvokeTimeoutMs: 20 }));
+        const executor = new InvokingExecutor(makeContext({ model, aiInvokeTimeoutS: 0.02 }));
 
         const result = await executor.execute();
 

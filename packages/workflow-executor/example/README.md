@@ -52,7 +52,7 @@ Expected output:
   Forest server    : https://api.forestadmin.com
   Agent URL        : http://localhost:3351
   HTTP port        : 3400
-  Polling interval : 5000ms
+  Polling interval : 5s
   AI config        : server fallback (no local AI)
 [forest-workflow-executor] Ready on http://localhost:3400
 {"message":"Poll cycle completed","timestamp":"...","fetched":0,"dispatching":0}
@@ -67,7 +67,7 @@ curl http://localhost:3400/health
 
 The executor will:
 - Auto-create the `workflow_step_executions` table via Umzug migrations
-- Poll the Forest Admin orchestrator every `POLLING_INTERVAL_MS` (5s default)
+- Poll the Forest Admin orchestrator every `POLLING_INTERVAL_S` (5s default)
 - Execute steps locally and report results back
 
 ## Available scripts

@@ -14,11 +14,11 @@ import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
 import {
-  DEFAULT_AI_INVOKE_TIMEOUT_MS,
+  DEFAULT_AI_INVOKE_TIMEOUT_S,
   DEFAULT_FOREST_SERVER_URL,
-  DEFAULT_POLLING_INTERVAL_MS,
-  DEFAULT_SCHEMA_CACHE_TTL_MS,
-  DEFAULT_STEP_TIMEOUT_MS,
+  DEFAULT_POLLING_INTERVAL_S,
+  DEFAULT_SCHEMA_CACHE_TTL_S,
+  DEFAULT_STEP_TIMEOUT_S,
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
 import Runner from './runner';
@@ -26,7 +26,7 @@ import SchemaCache from './schema-cache';
 import DatabaseStore from './stores/database-store';
 import InMemoryStore from './stores/in-memory-store';
 
-const FORCE_EXIT_DELAY_MS = 5000;
+const FORCE_EXIT_DELAY_S = 5;
 
 export interface WorkflowExecutor {
   start(): Promise<void>;
@@ -41,15 +41,15 @@ export interface ExecutorOptions {
   httpPort: number;
   forestServerUrl?: string;
   aiConfigurations?: AiConfiguration[];
-  pollingIntervalMs?: number;
+  pollingIntervalS?: number;
   logger?: Logger;
-  stopTimeoutMs?: number;
-  stepTimeoutMs?: number;
-  aiInvokeTimeoutMs?: number;
+  stopTimeoutS?: number;
+  stepTimeoutS?: number;
+  aiInvokeTimeoutS?: number;
   // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
   maxChainDepth?: number;
-  // Collection schema cache TTL in ms. Lower it to pick up orchestrator schema changes sooner.
-  schemaCacheTtlMs?: number;
+  // Collection schema cache TTL in seconds. Lower it to pick up orchestrator schema changes sooner.
+  schemaCacheTtlS?: number;
   // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
   forceAiError?: boolean;
 }
@@ -96,7 +96,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
 
   // A TTL of 0/negative/non-finite would silently make the cache always-stale, so fall back.
   const schemaCache = new SchemaCache(
-    positiveOrDefault(options.schemaCacheTtlMs, DEFAULT_SCHEMA_CACHE_TTL_MS),
+    positiveOrDefault(options.schemaCacheTtlS, DEFAULT_SCHEMA_CACHE_TTL_S),
   );
 
   const agentPort = new AgentClientAgentPort({
@@ -121,12 +121,12 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiModelPort,
     activityLogPortFactory,
     logger,
-    pollingIntervalMs: options.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS,
+    pollingIntervalS: options.pollingIntervalS ?? DEFAULT_POLLING_INTERVAL_S,
     envSecret: options.envSecret,
     authSecret: options.authSecret,
-    stopTimeoutMs: options.stopTimeoutMs,
-    stepTimeoutMs: positiveOrDefault(options.stepTimeoutMs, DEFAULT_STEP_TIMEOUT_MS),
-    aiInvokeTimeoutMs: positiveOrDefault(options.aiInvokeTimeoutMs, DEFAULT_AI_INVOKE_TIMEOUT_MS),
+    stopTimeoutS: options.stopTimeoutS,
+    stepTimeoutS: positiveOrDefault(options.stepTimeoutS, DEFAULT_STEP_TIMEOUT_S),
+    aiInvokeTimeoutS: positiveOrDefault(options.aiInvokeTimeoutS, DEFAULT_AI_INVOKE_TIMEOUT_S),
     maxChainDepth: options.maxChainDepth,
   };
 }
@@ -169,7 +169,7 @@ function createWorkflowExecutor(
     setTimeout(() => {
       logger.error('Process did not exit after shutdown — forcing exit', {});
       process.exit(process.exitCode ?? 1);
-    }, FORCE_EXIT_DELAY_MS).unref();
+    }, FORCE_EXIT_DELAY_S * 1000).unref();
   };
 
   return {

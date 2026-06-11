@@ -45,7 +45,8 @@ describe('SchemaCache', () => {
   describe('TTL expiration', () => {
     it('returns the schema before TTL expires', () => {
       let time = 0;
-      const cache = new SchemaCache(1000, () => time);
+      // TTL is 1s; the injected clock returns ms, so the expiry boundary is 1000ms.
+      const cache = new SchemaCache(1, () => time);
       const schema = makeSchema('customers');
 
       cache.set('customers', schema);
@@ -56,7 +57,7 @@ describe('SchemaCache', () => {
 
     it('returns undefined after TTL expires', () => {
       let time = 0;
-      const cache = new SchemaCache(1000, () => time);
+      const cache = new SchemaCache(1, () => time);
 
       cache.set('customers', makeSchema('customers'));
       time = 1001;
@@ -66,7 +67,7 @@ describe('SchemaCache', () => {
 
     it('deletes the expired entry from the store on get', () => {
       let time = 0;
-      const cache = new SchemaCache(1000, () => time);
+      const cache = new SchemaCache(1, () => time);
 
       cache.set('customers', makeSchema('customers'));
       time = 1001;
@@ -79,7 +80,7 @@ describe('SchemaCache', () => {
 
     it('refreshes TTL when entry is re-set', () => {
       let time = 0;
-      const cache = new SchemaCache(1000, () => time);
+      const cache = new SchemaCache(1, () => time);
 
       cache.set('customers', makeSchema('customers'));
       time = 800;
@@ -106,7 +107,7 @@ describe('SchemaCache', () => {
 
     it('skips and deletes expired entries', () => {
       let time = 0;
-      const cache = new SchemaCache(1000, () => time);
+      const cache = new SchemaCache(1, () => time);
 
       cache.set('fresh', makeSchema('fresh'));
       time = 500;

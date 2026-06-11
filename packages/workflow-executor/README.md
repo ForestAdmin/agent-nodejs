@@ -24,8 +24,8 @@ npm install -g @forestadmin/workflow-executor
 | `DATABASE_URL` | ✓* | — | Postgres connection string (*not needed with `--in-memory`) |
 | `HTTP_PORT` | — | `3400` | Port for the executor HTTP server |
 | `FOREST_SERVER_URL` | — | `https://api.forestadmin.com` | Orchestrator URL |
-| `POLLING_INTERVAL_MS` | — | `5000` | Poll cadence for pending steps |
-| `STOP_TIMEOUT_MS` | — | `30000` | Graceful shutdown deadline |
+| `POLLING_INTERVAL_S` | — | `30` | Poll cadence for pending steps |
+| `STOP_TIMEOUT_S` | — | `30` | Graceful shutdown deadline |
 
 Optional AI configuration (all-or-nothing — falls back to server AI if any is missing):
 
@@ -44,7 +44,7 @@ forest-workflow-executor
 You should see (pretty format when stdout is a TTY):
 
 ```
-13:33:42 info  Workflow executor starting mode="database" forestServerUrl="https://api.forestadmin.com" agentUrl="http://localhost:3351" httpPort=3400 pollingIntervalMs=5000 aiConfig="server fallback"
+13:33:42 info  Workflow executor starting mode="database" forestServerUrl="https://api.forestadmin.com" agentUrl="http://localhost:3351" httpPort=3400 pollingIntervalS=5 aiConfig="server fallback"
 13:33:42 info  Workflow executor ready url="http://localhost:3400"
 13:33:47 info  Poll cycle completed fetched=0 dispatching=0
 ```
@@ -77,7 +77,7 @@ curl http://localhost:3400/health
 ### Graceful shutdown
 
 Send `SIGTERM` or `SIGINT`. The executor drains in-flight steps, closes the HTTP
-server, and exits with code `0`. Steps that don't drain within `STOP_TIMEOUT_MS`
+server, and exits with code `0`. Steps that don't drain within `STOP_TIMEOUT_S`
 are force-killed and the process exits with code `1`.
 
 ### Exit codes

@@ -1,6 +1,6 @@
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
-import { DEFAULT_SCHEMA_CACHE_TTL_MS } from '../src/defaults';
+import { DEFAULT_SCHEMA_CACHE_TTL_S } from '../src/defaults';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
 import DatabaseStore from '../src/stores/database-store';
@@ -151,72 +151,66 @@ describe('buildInMemoryExecutor', () => {
     }
   });
 
-  it('passes pollingIntervalMs with default value of 30000', () => {
+  it('passes pollingIntervalS with default value of 30', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(MockedRunner).toHaveBeenCalledWith(
-      expect.objectContaining({ pollingIntervalMs: 30000 }),
-    );
+    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ pollingIntervalS: 30 }));
   });
 
-  it('passes custom pollingIntervalMs', () => {
-    buildInMemoryExecutor({ ...BASE_OPTIONS, pollingIntervalMs: 1000 });
+  it('passes custom pollingIntervalS', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, pollingIntervalS: 1 });
 
-    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ pollingIntervalMs: 1000 }));
+    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ pollingIntervalS: 1 }));
   });
 
-  it('applies a 5-minute default when stepTimeoutMs is not configured', () => {
+  it('applies a 5-minute default when stepTimeoutS is not configured', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(MockedRunner).toHaveBeenCalledWith(
-      expect.objectContaining({ stepTimeoutMs: 5 * 60_000 }),
-    );
+    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ stepTimeoutS: 5 * 60 }));
   });
 
-  it('respects a caller-provided stepTimeoutMs over the default', () => {
-    buildInMemoryExecutor({ ...BASE_OPTIONS, stepTimeoutMs: 30_000 });
+  it('respects a caller-provided stepTimeoutS over the default', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, stepTimeoutS: 30 });
 
-    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ stepTimeoutMs: 30_000 }));
+    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ stepTimeoutS: 30 }));
   });
 
-  it('builds the SchemaCache with the default TTL when schemaCacheTtlMs is not configured', () => {
+  it('builds the SchemaCache with the default TTL when schemaCacheTtlS is not configured', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(MockedSchemaCache).toHaveBeenCalledWith(DEFAULT_SCHEMA_CACHE_TTL_MS);
+    expect(MockedSchemaCache).toHaveBeenCalledWith(DEFAULT_SCHEMA_CACHE_TTL_S);
   });
 
-  it('builds the SchemaCache with a caller-provided schemaCacheTtlMs over the default', () => {
-    buildInMemoryExecutor({ ...BASE_OPTIONS, schemaCacheTtlMs: 5_000 });
+  it('builds the SchemaCache with a caller-provided schemaCacheTtlS over the default', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, schemaCacheTtlS: 5 });
 
-    expect(MockedSchemaCache).toHaveBeenCalledWith(5_000);
+    expect(MockedSchemaCache).toHaveBeenCalledWith(5);
   });
 
-  it('falls back to the default TTL for a non-positive or non-finite schemaCacheTtlMs', () => {
-    buildInMemoryExecutor({ ...BASE_OPTIONS, schemaCacheTtlMs: 0 });
+  it('falls back to the default TTL for a non-positive or non-finite schemaCacheTtlS', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, schemaCacheTtlS: 0 });
 
     // A 0/negative/Infinity TTL must not silently make the cache always-stale.
-    expect(MockedSchemaCache).toHaveBeenCalledWith(DEFAULT_SCHEMA_CACHE_TTL_MS);
+    expect(MockedSchemaCache).toHaveBeenCalledWith(DEFAULT_SCHEMA_CACHE_TTL_S);
   });
 
   it('falls back to the default timeouts for non-positive or non-finite values', () => {
     buildInMemoryExecutor({
       ...BASE_OPTIONS,
-      stepTimeoutMs: 0,
-      aiInvokeTimeoutMs: Number.POSITIVE_INFINITY,
+      stepTimeoutS: 0,
+      aiInvokeTimeoutS: Number.POSITIVE_INFINITY,
     });
 
     // A bad config must never silently disable the timeout — 0/negative/Infinity fall back.
     expect(MockedRunner).toHaveBeenCalledWith(
-      expect.objectContaining({ stepTimeoutMs: 5 * 60_000, aiInvokeTimeoutMs: 30_000 }),
+      expect.objectContaining({ stepTimeoutS: 5 * 60, aiInvokeTimeoutS: 30 }),
     );
   });
 
-  it('applies the 30s default when aiInvokeTimeoutMs is not configured', () => {
+  it('applies the 30s default when aiInvokeTimeoutS is not configured', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(MockedRunner).toHaveBeenCalledWith(
-      expect.objectContaining({ aiInvokeTimeoutMs: 30_000 }),
-    );
+    expect(MockedRunner).toHaveBeenCalledWith(expect.objectContaining({ aiInvokeTimeoutS: 30 }));
   });
 
   it('passes secrets to Runner config', () => {

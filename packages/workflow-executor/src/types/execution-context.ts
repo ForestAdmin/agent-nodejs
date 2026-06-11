@@ -37,6 +37,6 @@ export interface ExecutionContext<TStep extends StepDefinition = StepDefinition>
   readonly previousSteps: ReadonlyArray<Readonly<Step>>;
   readonly logger: Logger;
   readonly incomingPendingData?: unknown;
-  readonly stepTimeoutMs?: number;
-  readonly aiInvokeTimeoutMs?: number;
+  readonly stepTimeoutS?: number;
+  readonly aiInvokeTimeoutS?: number;
 }

@@ -11,7 +11,7 @@ import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
 
 import ConsoleLogger from './adapters/console-logger';
-import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_MS } from './defaults';
+import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_S } from './defaults';
 import {
   MalformedRunError,
   RunAlreadyInFlightError,
@@ -33,20 +33,20 @@ export interface RunnerConfig {
   workflowPort: WorkflowPort;
   runStore: RunStore;
   schemaCache: SchemaCache;
-  pollingIntervalMs: number;
+  pollingIntervalS: number;
   aiModelPort: AiModelPort;
   activityLogPortFactory: ActivityLogPortFactory;
   envSecret: string;
   authSecret: string;
   logger?: Logger;
-  stopTimeoutMs?: number;
+  stopTimeoutS?: number;
   // On timeout the step reports status:error; the underlying work is not aborted (Promise.race
   // limitation). Late rejections are caught and logged; late resolutions are silently discarded.
-  stepTimeoutMs?: number;
+  stepTimeoutS?: number;
   // Per-AI-invocation timeout (used by BaseStepExecutor.invokeWithTools). Aborts the underlying
-  // HTTP request via AbortSignal so a hanging provider is killed quickly, before stepTimeoutMs
+  // HTTP request via AbortSignal so a hanging provider is killed quickly, before stepTimeoutS
   // would fire. 0/undefined disables.
-  aiInvokeTimeoutMs?: number;
+  aiInvokeTimeoutS?: number;
   // Max number of ADDITIONAL steps auto-chained via /update-step response before yielding to the
   // next poll cycle (counted after the initial step). 0 disables chaining entirely. Default 50.
   maxChainDepth?: number;
@@ -112,7 +112,7 @@ export default class Runner {
           runs: [...this.inFlightRuns.keys()],
         });
 
-        const timeout = this.config.stopTimeoutMs ?? DEFAULT_STOP_TIMEOUT_MS;
+        const timeoutS = this.config.stopTimeoutS ?? DEFAULT_STOP_TIMEOUT_S;
         let drainTimer: NodeJS.Timeout | undefined;
         const drainResult = await Promise.race([
           this.inFlightRuns.drain().then(() => {
@@ -121,14 +121,14 @@ export default class Runner {
             return 'drained' as const;
           }),
           new Promise<'timeout'>(resolve => {
-            drainTimer = setTimeout(() => resolve('timeout'), timeout);
+            drainTimer = setTimeout(() => resolve('timeout'), timeoutS * 1000);
           }),
         ]);
 
         if (drainResult === 'timeout') {
           this.logger.error('Drain timeout — runs still in flight', {
             remainingRuns: [...this.inFlightRuns.keys()],
-            timeoutMs: timeout,
+            timeoutS,
           });
         } else {
           this.logger.info('All in-flight runs drained', {});
@@ -204,7 +204,7 @@ export default class Runner {
 
   private schedulePoll(): void {
     if (this._state !== 'running') return;
-    this.pollingTimer = setTimeout(() => this.runPollCycle(), this.config.pollingIntervalMs);
+    this.pollingTimer = setTimeout(() => this.runPollCycle(), this.config.pollingIntervalS * 1000);
   }
 
   private async runPollCycle(): Promise<void> {
@@ -424,8 +424,8 @@ export default class Runner {
       runStore: this.config.runStore,
       schemaCache: this.config.schemaCache,
       logger: this.logger,
-      stepTimeoutMs: this.config.stepTimeoutMs,
-      aiInvokeTimeoutMs: this.config.aiInvokeTimeoutMs,
+      stepTimeoutS: this.config.stepTimeoutS,
+      aiInvokeTimeoutS: this.config.aiInvokeTimeoutS,
     };
   }
 }
