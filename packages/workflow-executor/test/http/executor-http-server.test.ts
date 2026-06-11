@@ -493,7 +493,7 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ error: 'Forbidden' });
     });
 
-    it('returns 400 when triggerPoll rejects with RunAlreadyInFlightError', async () => {
+    it('returns 409 (conflict) when triggerPoll rejects with RunAlreadyInFlightError', async () => {
       const runner = createMockRunner({
         triggerPoll: jest.fn().mockRejectedValue(new RunAlreadyInFlightError('run-1')),
       });
@@ -505,7 +505,7 @@ describe('ExecutorHttpServer', () => {
         .post('/runs/run-1/trigger')
         .set('Authorization', `Bearer ${token}`);
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(409);
       expect(response.body).toEqual({ error: 'Run "run-1" is already being processed' });
     });
 

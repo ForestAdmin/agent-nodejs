@@ -11,9 +11,9 @@ import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
 import {
-  InvalidTokenUserIdHttpError,
-  RunAccessCheckUnavailableHttpError,
-  RunAccessDeniedHttpError,
+  BadRequestHttpError,
+  ForbiddenHttpError,
+  ServiceUnavailableHttpError,
   toHttpError,
 } from './http-errors';
 import serializeStepForWire from './step-serializer';
@@ -162,10 +162,11 @@ export default class ExecutorHttpServer {
         stack: err instanceof Error ? err.stack : undefined,
       });
 
-      throw new RunAccessCheckUnavailableHttpError(err);
+      // log:false — already logged above with the richer runId context.
+      throw new ServiceUnavailableHttpError('Service unavailable', { cause: err });
     }
 
-    if (!allowed) throw new RunAccessDeniedHttpError();
+    if (!allowed) throw new ForbiddenHttpError();
 
     await next();
   }
@@ -180,7 +181,9 @@ export default class ExecutorHttpServer {
     const rawId = (ctx.state.user as { id?: unknown })?.id;
     const bearerUserId = typeof rawId === 'number' ? rawId : Number(rawId);
 
-    if (!Number.isFinite(bearerUserId)) throw new InvalidTokenUserIdHttpError();
+    if (!Number.isFinite(bearerUserId)) {
+      throw new BadRequestHttpError('Missing or invalid user id in token');
+    }
 
     const pendingData = (ctx.request.body as { pendingData?: unknown })?.pendingData;
 

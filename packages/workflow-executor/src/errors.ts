@@ -36,6 +36,16 @@ export abstract class WorkflowExecutorError extends Error {
   }
 }
 
+// Domain error CATEGORIES (transport-agnostic). toHttpError maps each category to one HTTP status,
+// so a new request-level error gets the right status simply by extending the right category — no
+// per-error binding in the HTTP layer. These are for Runner/request-level outcomes that surface
+// over HTTP; step-execution failures (RecordNotFoundError, …) stay plain WorkflowExecutorError —
+// they never reach toHttpError (the step executor turns them into a step error outcome).
+export abstract class NotFoundError extends WorkflowExecutorError {}
+export abstract class ConflictError extends WorkflowExecutorError {}
+export abstract class AccessDeniedError extends WorkflowExecutorError {}
+export abstract class UnavailableError extends WorkflowExecutorError {}
+
 export class MissingToolCallError extends WorkflowExecutorError {
   constructor() {
     super(
@@ -117,7 +127,7 @@ export class UnsupportedActionFormError extends WorkflowExecutorError {
   }
 }
 
-export class RunStorePortError extends WorkflowExecutorError {
+export class RunStorePortError extends UnavailableError {
   constructor(operation: string, cause: unknown) {
     super(
       `Run store "${operation}" failed: ${cause instanceof Error ? cause.message : String(cause)}`,
@@ -271,7 +281,7 @@ export class SchemaNotCachedError extends WorkflowExecutorError {
   }
 }
 
-export class WorkflowPortError extends WorkflowExecutorError {
+export class WorkflowPortError extends UnavailableError {
   constructor(operation: string, cause: unknown) {
     super(
       `Workflow port "${operation}" failed: ${
@@ -312,18 +322,16 @@ export class ConfigurationError extends Error {
   }
 }
 
-// Run lifecycle/access errors raised by the Runner (not step-execution failures). They extend
-// WorkflowExecutorError so they belong to the single domain-error family: toHttpError maps each
-// to its own status via an explicit branch, but any forgotten mapping still degrades to a 400
-// with the userMessage instead of a silent 500.
-export class RunNotFoundError extends WorkflowExecutorError {
+// Run lifecycle/access errors raised by the Runner. Each extends a domain category, so toHttpError
+// maps them by category (404/409/403) — no per-error HTTP binding.
+export class RunNotFoundError extends NotFoundError {
   constructor(runId: string, cause?: unknown) {
     super(`Run "${runId}" not found or unavailable`, 'Run not found or unavailable');
     if (cause !== undefined) this.cause = cause;
   }
 }
 
-export class UserMismatchError extends WorkflowExecutorError {
+export class UserMismatchError extends AccessDeniedError {
   // The bearer/owner ids stay in the technical `message` (logged via the cause) but NOT in the
   // userMessage — the HTTP body must never leak who owns a run.
   constructor(runId: string, bearerUserId: number, ownerUserId: number) {
@@ -334,7 +342,7 @@ export class UserMismatchError extends WorkflowExecutorError {
   }
 }
 
-export class RunAlreadyInFlightError extends WorkflowExecutorError {
+export class RunAlreadyInFlightError extends ConflictError {
   constructor(runId: string) {
     super(`Run "${runId}" is already being processed`);
   }
