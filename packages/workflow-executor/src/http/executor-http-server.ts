@@ -10,15 +10,15 @@ import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
+import {
+  InvalidTokenUserIdHttpError,
+  RunAccessCheckUnavailableHttpError,
+  RunAccessDeniedHttpError,
+  toHttpError,
+} from './http-errors';
 import serializeStepForWire from './step-serializer';
 import ConsoleLogger from '../adapters/console-logger';
-import {
-  RunAlreadyInFlightError,
-  RunNotFoundError,
-  UserMismatchError,
-  WorkflowExecutorError,
-  extractErrorMessage,
-} from '../errors';
+import { extractErrorMessage } from '../errors';
 
 export interface ExecutorHttpServerOptions {
   port: number;
@@ -39,28 +39,39 @@ export default class ExecutorHttpServer {
     this.logger = options.logger ?? new ConsoleLogger();
     this.app = new Koa();
 
-    // Error middleware — catches all errors (including JWT 401) and returns structured JSON
+    // Error-translation middleware — the single place converting thrown errors (typed HTTP
+    // errors, domain errors via toHttpError, JWT 401) into HTTP responses. Handlers just throw.
     this.app.use(async (ctx, next) => {
       try {
         await next();
       } catch (err: unknown) {
-        const { status } = err as { status?: number };
+        const httpError = toHttpError(err);
 
-        if (status === 401) {
-          ctx.status = 401;
-          ctx.body = { error: 'Unauthorized' };
+        if (!httpError) {
+          this.logger.error('Unhandled HTTP error', {
+            method: ctx.method,
+            path: ctx.path,
+            error: extractErrorMessage(err),
+            stack: err instanceof Error ? err.stack : undefined,
+          });
+          ctx.status = 500;
+          ctx.body = { error: 'Internal server error' };
 
           return;
         }
 
-        this.logger.error('Unhandled HTTP error', {
-          method: ctx.method,
-          path: ctx.path,
-          error: extractErrorMessage(err),
-          stack: err instanceof Error ? err.stack : undefined,
-        });
-        ctx.status = 500;
-        ctx.body = { error: 'Internal server error' };
+        if (httpError.log) {
+          this.logger.error('HTTP request failed', {
+            method: ctx.method,
+            path: ctx.path,
+            status: httpError.status,
+            error: extractErrorMessage(httpError.cause ?? httpError),
+            stack: httpError.cause instanceof Error ? httpError.cause.stack : undefined,
+          });
+        }
+
+        ctx.status = httpError.status;
+        ctx.body = { error: httpError.userMessage };
       }
     });
 
@@ -133,17 +144,12 @@ export default class ExecutorHttpServer {
 
   private async hasRunAccessMiddleware(ctx: Koa.Context, next: Koa.Next): Promise<void> {
     const user = ctx.state.user as StepUser;
+    let allowed: boolean;
 
     try {
-      const allowed = await this.options.workflowPort.hasRunAccess(ctx.params.runId, user);
-
-      if (!allowed) {
-        ctx.status = 403;
-        ctx.body = { error: 'Forbidden' };
-
-        return;
-      }
+      allowed = await this.options.workflowPort.hasRunAccess(ctx.params.runId, user);
     } catch (err) {
+      // Logged here rather than by the translation middleware: the runId context lives here.
       this.logger.error('Failed to check run access', {
         runId: ctx.params.runId,
         method: ctx.method,
@@ -151,11 +157,11 @@ export default class ExecutorHttpServer {
         error: extractErrorMessage(err),
         stack: err instanceof Error ? err.stack : undefined,
       });
-      ctx.status = 503;
-      ctx.body = { error: 'Service unavailable' };
 
-      return;
+      throw new RunAccessCheckUnavailableHttpError(err);
     }
+
+    if (!allowed) throw new RunAccessDeniedHttpError();
 
     await next();
   }
@@ -170,58 +176,11 @@ export default class ExecutorHttpServer {
     const rawId = (ctx.state.user as { id?: unknown })?.id;
     const bearerUserId = typeof rawId === 'number' ? rawId : Number(rawId);
 
-    if (!Number.isFinite(bearerUserId)) {
-      ctx.status = 400;
-      ctx.body = { error: 'Missing or invalid user id in token' };
-
-      return;
-    }
+    if (!Number.isFinite(bearerUserId)) throw new InvalidTokenUserIdHttpError();
 
     const pendingData = (ctx.request.body as { pendingData?: unknown })?.pendingData;
 
-    try {
-      await this.options.runner.triggerPoll(runId, {
-        pendingData,
-        bearerUserId,
-      });
-    } catch (err) {
-      if (err instanceof RunNotFoundError) {
-        ctx.status = 404;
-        ctx.body = { error: 'Run not found or unavailable' };
-
-        return;
-      }
-
-      if (err instanceof RunAlreadyInFlightError) {
-        ctx.status = 400;
-        ctx.body = { error: err.message };
-
-        return;
-      }
-
-      if (err instanceof UserMismatchError) {
-        this.logger.error('User mismatch on trigger', { runId, bearerUserId });
-        ctx.status = 403;
-        ctx.body = { error: 'Forbidden' };
-
-        return;
-      }
-
-      if (err instanceof WorkflowExecutorError) {
-        this.logger.error('Malformed run on trigger', {
-          runId,
-          bearerUserId,
-          error: extractErrorMessage(err),
-          stack: err.stack,
-        });
-        ctx.status = 400;
-        ctx.body = { error: err.userMessage };
-
-        return;
-      }
-
-      throw err;
-    }
+    await this.options.runner.triggerPoll(runId, { pendingData, bearerUserId });
 
     ctx.status = 200;
     ctx.body = { triggered: true };
