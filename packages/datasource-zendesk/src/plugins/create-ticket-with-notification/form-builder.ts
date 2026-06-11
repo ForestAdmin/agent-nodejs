@@ -53,10 +53,24 @@ export function interpolate(template: string, record: RecordData): string {
   });
 }
 
+// The column field names of the action's collection. `getRecord` only loads the fields it is
+// asked for, so an empty projection would yield a record with no usable values to interpolate.
+function recordColumns(ctx: Ctx): string[] {
+  const fields = (
+    ctx as unknown as { collection?: { schema?: { fields?: Record<string, { type?: string }> } } }
+  ).collection?.schema?.fields;
+
+  if (!fields) return [];
+
+  return Object.entries(fields)
+    .filter(([, schema]) => schema?.type === 'Column')
+    .map(([name]) => name);
+}
+
 async function getSingleRecord(ctx: Ctx): Promise<RecordData> {
   if ('getRecord' in ctx && typeof ctx.getRecord === 'function') {
     try {
-      return ((await ctx.getRecord([])) ?? {}) as RecordData;
+      return ((await ctx.getRecord(recordColumns(ctx))) ?? {}) as RecordData;
     } catch {
       return {};
     }

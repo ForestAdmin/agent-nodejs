@@ -116,6 +116,59 @@ describe('buildForm', () => {
   });
 });
 
+describe('record interpolation on the form', () => {
+  type FormField = { label?: string; defaultValue?: unknown; value?: unknown };
+
+  function findField(form: DynamicForm, label: string): FormField {
+    const pages = Array.isArray(form) ? form : [form];
+
+    for (const page of pages) {
+      const elements = ((page as { elements?: FormField[] }).elements ?? [page]) as FormField[];
+      const found = elements.find(element => element.label === label);
+      if (found) return found;
+    }
+
+    throw new Error(`Field '${label}' not found`);
+  }
+
+  function ctxWithRecord(
+    record: Record<string, unknown>,
+    formValues: Record<string, unknown> = {},
+  ): ActionContextSingle {
+    return {
+      formValues,
+      getRecord: jest.fn().mockResolvedValue(record),
+      collection: { schema: { fields: { email: { type: 'Column' }, job: { type: 'Column' } } } },
+    } as unknown as ActionContextSingle;
+  }
+
+  it('pre-fills the requester email from the selected record', async () => {
+    const form = buildForm({
+      emailTemplates: [{ title: 'Welcome', content: 'Hi' }],
+      requesterEmailDefault: record => String(record.email ?? ''),
+    });
+    const field = findField(form, FORM_FIELDS.requesterEmail);
+    const ctx = ctxWithRecord({ email: 'a@b.com' });
+
+    const value = await (field.defaultValue as (c: ActionContextSingle) => Promise<string>)(ctx);
+
+    expect(ctx.getRecord).toHaveBeenCalledWith(['email', 'job']);
+    expect(value).toBe('a@b.com');
+  });
+
+  it('interpolates the record into the selected template message', async () => {
+    const form = buildForm({
+      emailTemplates: [{ title: 'Welcome', content: 'Hi {{ record.email }}!' }],
+    });
+    const field = findField(form, FORM_FIELDS.message);
+    const ctx = ctxWithRecord({ email: 'a@b.com' }, { [FORM_FIELDS.template]: 'Welcome' });
+
+    const value = await (field.value as (c: ActionContextSingle) => Promise<string>)(ctx);
+
+    expect(value).toBe('Hi a@b.com!');
+  });
+});
+
 describe('createTicketWithNotificationPlugin', () => {
   it('throws when called on the datasource (no collection)', async () => {
     await expect(
