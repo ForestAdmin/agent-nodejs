@@ -1,7 +1,6 @@
 import type { Logger } from '../ports/logger-port';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
-import type { StepUser } from '../types/execution-context';
 import type { Server } from 'http';
 
 import bodyParser from '@koa/bodyparser';
@@ -105,7 +104,20 @@ export default class ExecutorHttpServer {
     // claims once, here, so every handler downstream gets a user with a guaranteed numeric id.
     this.app.use(async (ctx, next) => {
       const claims = BearerClaimsSchema.safeParse(ctx.state.user);
-      if (!claims.success) throw new UnauthorizedHttpError();
+
+      if (!claims.success) {
+        // A token koa-jwt accepted (valid signature) but whose payload is malformed is rare and
+        // high-signal (token-issuance regression / version skew / forgery probe) — log it, unlike
+        // ordinary expired-token churn. Only the issue paths/codes, never the payload (PII).
+        this.logger.warn('Bearer token has invalid claims', {
+          method: ctx.method,
+          path: ctx.path,
+          issues: claims.error.issues.map(issue => ({ path: issue.path, code: issue.code })),
+        });
+
+        throw new UnauthorizedHttpError();
+      }
+
       ctx.state.user = { ...ctx.state.user, ...claims.data };
 
       await next();
@@ -158,7 +170,7 @@ export default class ExecutorHttpServer {
   }
 
   private async hasRunAccessMiddleware(ctx: Koa.Context, next: Koa.Next): Promise<void> {
-    const user = ctx.state.user as StepUser;
+    const user = ctx.state.user as BearerClaims;
     let allowed: boolean;
 
     try {

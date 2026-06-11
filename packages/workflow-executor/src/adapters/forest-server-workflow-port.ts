@@ -6,7 +6,6 @@ import type {
   MalformedRunInfo,
   WorkflowPort,
 } from '../ports/workflow-port';
-import type { StepUser } from '../types/execution-context';
 import type { CollectionSchema } from '../types/validated/collection';
 import type { StepOutcome } from '../types/validated/step-outcome';
 import type { ToolConfig } from '@forestadmin/ai-proxy';
@@ -226,7 +225,7 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     );
   }
 
-  async hasRunAccess(runId: string, user: StepUser): Promise<boolean> {
+  async hasRunAccess(runId: string, user: { id: number }): Promise<boolean> {
     return this.callPort('hasRunAccess', async () => {
       const { hasAccess } = await ServerUtils.query<{ hasAccess: boolean }>(
         this.options,

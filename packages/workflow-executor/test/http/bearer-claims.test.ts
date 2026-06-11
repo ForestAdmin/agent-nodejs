@@ -24,6 +24,7 @@ describe('BearerClaimsSchema', () => {
     ['no id', { email: 'no-id@forest.com' }],
     ['non-numeric id', { id: 'user-42' }],
     ['null id', { id: null }],
+    ['a non-integer id', { id: 1.5 }],
     ['empty payload', {}],
   ])('rejects a payload with %s', (_, payload) => {
     expect(BearerClaimsSchema.safeParse(payload).success).toBe(false);

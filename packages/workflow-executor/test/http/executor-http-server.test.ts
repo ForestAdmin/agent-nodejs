@@ -206,6 +206,20 @@ describe('ExecutorHttpServer', () => {
   });
 
   describe('run access authorization', () => {
+    it('returns 401 on GET /runs/:runId when the token has invalid claims, before the access check', async () => {
+      const workflowPort = createMockWorkflowPort();
+      const server = createServer({ workflowPort });
+      const token = signToken({ email: 'no-id@example.com' });
+
+      const response = await request(server.callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Unauthorized' });
+      expect(workflowPort.hasRunAccess).not.toHaveBeenCalled();
+    });
+
     it('returns 403 when hasRunAccess returns false on GET /runs/:runId', async () => {
       const workflowPort = createMockWorkflowPort({
         hasRunAccess: jest.fn().mockResolvedValue(false),
@@ -430,9 +444,10 @@ describe('ExecutorHttpServer', () => {
       });
     });
 
-    it('returns 401 when the token carries no numeric id (invalid claims)', async () => {
+    it('returns 401 and logs the invalid claims when the token carries no numeric id', async () => {
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
       const runner = createMockRunner();
-      const server = createServer({ runner });
+      const server = createServer({ runner, logger });
       const token = signToken({ email: 'no-id@example.com' });
 
       const response = await request(server.callback)
@@ -442,6 +457,15 @@ describe('ExecutorHttpServer', () => {
       expect(response.status).toBe(401);
       expect(response.body).toEqual({ error: 'Unauthorized' });
       expect(runner.triggerPoll).not.toHaveBeenCalled();
+      // The malformed-but-signed token is surfaced (issue paths/codes only, never the payload).
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Bearer token has invalid claims',
+        expect.objectContaining({
+          method: 'POST',
+          path: '/runs/run-1/trigger',
+          issues: [expect.objectContaining({ path: ['id'], code: 'invalid_type' })],
+        }),
+      );
     });
 
     it('accepts a token carrying extra claims beyond id (non-strict validation)', async () => {

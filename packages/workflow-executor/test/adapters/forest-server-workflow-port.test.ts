@@ -1055,19 +1055,7 @@ describe('ForestServerWorkflowPort', () => {
     it('propagates errors from hasRunAccess', async () => {
       mockQuery.mockRejectedValue(new Error('Network error'));
 
-      await expect(
-        port.hasRunAccess('run-42', {
-          id: 1,
-          email: 'test@example.com',
-          firstName: 'Test',
-          lastName: 'User',
-          team: 'admin',
-          renderingId: 1,
-          role: 'admin',
-          permissionLevel: 'admin',
-          tags: {},
-        }),
-      ).rejects.toThrow('Network error');
+      await expect(port.hasRunAccess('run-42', { id: 1 })).rejects.toThrow('Network error');
     });
 
     it('propagates errors from updateStepExecution', async () => {
