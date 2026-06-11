@@ -4,17 +4,27 @@ import type { Operator } from '@forestadmin/datasource-toolkit';
  * Operator vocabularies supported by the Zendesk Search API, declared once and shared by
  * the static collection schemas and the custom-field introspector so the two can never drift.
  *
- * Zendesk Search has no `OR` operator, so multi-value membership (`In`/`NotIn`) cannot be
- * expressed for fields resolved through Search. Only the primary key advertises `In`, because
- * id lookups bypass Search entirely (see {@link BaseZendeskCollection.extractIdLookup}).
+ * `In`/`NotIn` are advertised so the operators-equivalence decorator does not rewrite them into
+ * an `Or` tree (which the translator cannot express — Zendesk Search has no `OR`). Zendesk treats
+ * the resulting terms as a conjunction, so multi-value membership on Search-resolved fields is a
+ * known limitation; only the primary key matches each value exactly, via the id-lookup path.
  */
 export const ID_OPS = new Set<Operator>(['Equal', 'In']);
 
-export const STRING_OPS = new Set<Operator>(['Equal', 'NotEqual', 'Present', 'Blank']);
+export const STRING_OPS = new Set<Operator>([
+  'Equal',
+  'NotEqual',
+  'In',
+  'NotIn',
+  'Present',
+  'Blank',
+]);
 
 export const NUMBER_OPS = new Set<Operator>([
   'Equal',
   'NotEqual',
+  'In',
+  'NotIn',
   'Present',
   'Blank',
   'GreaterThan',

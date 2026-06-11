@@ -76,12 +76,12 @@ createZendeskDataSource({ subdomain, email, apiToken });
 Zendesk Search supports a restricted set of operators. The datasource exposes:
 
 - `Equal`, `In` for the primary key (`id`), resolved by id lookup outside of Search
-- `Equal`, `NotEqual`, `Present`, `Blank` for strings and enums
+- `Equal`, `NotEqual`, `In`, `NotIn`, `Present`, `Blank` for strings and enums
 - `Equal`, `NotEqual` for booleans
-- `Equal`, `NotEqual`, `Present`, `Blank`, `GreaterThan`, `LessThan` for numbers
+- `Equal`, `NotEqual`, `In`, `NotIn`, `Present`, `Blank`, `GreaterThan`, `LessThan` for numbers
 - `Equal`, `Before`, `After`, `Present`, `Blank` for dates
 
-Zendesk Search has no `OR` operator, so multi-value membership (`In`/`NotIn`) is only available on `id`. Unsupported operators (`Contains`, `Or` aggregator, …) raise `UnsupportedOperatorError`. The Zendesk Search API caps result pagination at 1000 records — large skips raise the same error.
+Zendesk Search has no `OR` operator. Multi-value membership (`In`/`NotIn`) on the primary key matches each value exactly (id lookup), but on other fields Zendesk ANDs the terms — so `status In ['open', 'pending']` returns nothing. Unsupported operators (`Contains`, `Or` aggregator, …) raise `UnsupportedOperatorError`. The Zendesk Search API caps result pagination at 1000 records — large skips raise the same error.
 
 ### Custom fields
 
