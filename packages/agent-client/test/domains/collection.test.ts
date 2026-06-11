@@ -175,26 +175,36 @@ describe('Collection', () => {
   });
 
   describe('getOne', () => {
-    it('deserializes by default (raw not set)', async () => {
+    it('deserializes by default (skipDeserialization not set)', async () => {
       httpRequester.query.mockResolvedValue({ id: 7, name: 'Alice' });
 
       const result = await collection.getOne(7);
 
       expect(httpRequester.query).toHaveBeenCalledWith(
-        expect.objectContaining({ method: 'get', path: '/forest/users/7', raw: false }),
+        expect.objectContaining({
+          method: 'get',
+          path: '/forest/users/7',
+          skipDeserialization: false,
+        }),
       );
       expect(result).toEqual({ id: 7, name: 'Alice' });
     });
 
-    it('returns the raw JSON:API body when raw is set (e.g. to read a relationship type)', async () => {
+    it('returns the raw JSON:API body when skipDeserialization is set', async () => {
       const body = {
         data: { relationships: { commentable: { data: { type: 'orders', id: '99' } } } },
       };
       httpRequester.query.mockResolvedValue(body);
 
-      const result = await collection.getOne(7, { fields: ['commentable@@@id'] }, { raw: true });
+      const result = await collection.getOne(
+        7,
+        { fields: ['commentable@@@id'] },
+        { skipDeserialization: true },
+      );
 
-      expect(httpRequester.query).toHaveBeenCalledWith(expect.objectContaining({ raw: true }));
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ skipDeserialization: true }),
+      );
       expect(result).toEqual(body);
     });
   });

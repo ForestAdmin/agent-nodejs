@@ -26,7 +26,7 @@ export default class HttpRequester {
     query,
     maxTimeAllowed,
     contentType,
-    raw,
+    skipDeserialization,
   }: {
     method: 'get' | 'post' | 'put' | 'delete';
     path: string;
@@ -34,8 +34,7 @@ export default class HttpRequester {
     query?: Record<string, unknown>;
     maxTimeAllowed?: number;
     contentType?: 'application/json' | 'text/csv';
-    // Return the raw JSON:API body (skip deserialization, which drops relationship `type`).
-    raw?: boolean;
+    skipDeserialization?: boolean;
   }): Promise<Data> {
     try {
       const url = this.buildUrl(path);
@@ -51,7 +50,7 @@ export default class HttpRequester {
 
       const response = await req;
 
-      if (raw) {
+      if (skipDeserialization) {
         return response.body as Data;
       }
 

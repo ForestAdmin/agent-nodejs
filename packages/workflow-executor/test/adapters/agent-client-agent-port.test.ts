@@ -841,7 +841,7 @@ describe('AgentClientAgentPort', () => {
       expect(mockCollection.getOne).toHaveBeenCalledWith(
         [7],
         { fields: ['commentable@@@id'] },
-        { raw: true },
+        { skipDeserialization: true },
       );
     });
 
@@ -856,7 +856,7 @@ describe('AgentClientAgentPort', () => {
       expect(mockCollection.getOne).toHaveBeenCalledWith(
         ['tenant-1', 5],
         { fields: ['commentable@@@id'] },
-        { raw: true },
+        { skipDeserialization: true },
       );
     });
 

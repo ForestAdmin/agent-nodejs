@@ -171,18 +171,16 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  // `raw` returns the undeserialized JSON:API body (the deserializer drops relationship `type`,
-  // which callers reading a polymorphic relation's linkage need).
   async getOne<Data = unknown>(
     id: RecordId,
     options?: SelectOptions,
-    { raw = false }: { raw?: boolean } = {},
+    { skipDeserialization = false }: { skipDeserialization?: boolean } = {},
   ): Promise<Data> {
     return this.httpRequester.query<Data>({
       method: 'get',
       path: `/forest/${this.name}/${serializeRecordId(id)}`,
       query: QuerySerializer.serialize(options, this.name),
-      raw,
+      skipDeserialization,
     });
   }
 

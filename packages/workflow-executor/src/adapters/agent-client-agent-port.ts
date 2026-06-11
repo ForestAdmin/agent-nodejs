@@ -261,7 +261,7 @@ export default class AgentClientAgentPort implements AgentPort {
           data?: {
             relationships?: Record<string, { data?: { type?: string; id?: string } | null }>;
           };
-        }>(id, { fields: [`${relation}@@@id`] }, { raw: true });
+        }>(id, { fields: [`${relation}@@@id`] }, { skipDeserialization: true });
 
       const linkage = body?.data?.relationships?.[relation]?.data;
 
