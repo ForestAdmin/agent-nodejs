@@ -479,7 +479,7 @@ describe('ExecutorHttpServer', () => {
 
     it('returns 403 when triggerPoll rejects with UserMismatchError', async () => {
       const runner = createMockRunner({
-        triggerPoll: jest.fn().mockRejectedValue(new UserMismatchError('run-1')),
+        triggerPoll: jest.fn().mockRejectedValue(new UserMismatchError('run-1', 999, 1)),
       });
 
       const server = createServer({ runner });
@@ -546,10 +546,13 @@ describe('ExecutorHttpServer', () => {
       });
     });
 
-    it('logs translated errors flagged for logging (user mismatch) through the middleware', async () => {
+    it('logs translated errors flagged for logging, with the offending user id and the cause stack', async () => {
       const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      // The domain error is the `cause`; the centralized log must surface its message (carrying
+      // the offending/owner user ids) and ITS stack — not the synthetic HTTP wrapper's stack.
+      const domainError = new UserMismatchError('run-1', 999, 1);
       const runner = createMockRunner({
-        triggerPoll: jest.fn().mockRejectedValue(new UserMismatchError('run-1')),
+        triggerPoll: jest.fn().mockRejectedValue(domainError),
       });
 
       const server = createServer({ runner, logger });
@@ -565,7 +568,8 @@ describe('ExecutorHttpServer', () => {
           method: 'POST',
           path: '/runs/run-1/trigger',
           status: 403,
-          error: 'User not authorized for run "run-1"',
+          error: 'User 999 not authorized for run "run-1" (owned by user 1)',
+          stack: domainError.stack,
         }),
       );
     });

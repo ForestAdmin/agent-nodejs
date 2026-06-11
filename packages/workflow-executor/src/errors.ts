@@ -323,8 +323,10 @@ export class RunNotFoundError extends Error {
 }
 
 export class UserMismatchError extends Error {
-  constructor(runId: string) {
-    super(`User not authorized for run "${runId}"`);
+  // bearerUserId/ownerUserId are kept in the message (not the HTTP body) so the centralized
+  // request log retains who attempted to act on a run they don't own — an authz forensic signal.
+  constructor(runId: string, bearerUserId: number, ownerUserId: number) {
+    super(`User ${bearerUserId} not authorized for run "${runId}" (owned by user ${ownerUserId})`);
     this.name = 'UserMismatchError';
   }
 }

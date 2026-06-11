@@ -66,7 +66,11 @@ export default class ExecutorHttpServer {
             path: ctx.path,
             status: httpError.status,
             error: extractErrorMessage(httpError.cause ?? httpError),
-            stack: httpError.cause instanceof Error ? httpError.cause.stack : undefined,
+            // Prefer the cause's stack (points at the real fault site); fall back to the HTTP
+            // error's own stack so a log:true error without a cause never logs an empty stack.
+            stack:
+              (httpError.cause instanceof Error ? httpError.cause.stack : undefined) ??
+              httpError.stack,
           });
         }
 

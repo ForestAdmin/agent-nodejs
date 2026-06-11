@@ -80,7 +80,7 @@ describe('toHttpError', () => {
   });
 
   it('maps UserMismatchError to a logged 403 Forbidden', () => {
-    const domainError = new UserMismatchError('run-1');
+    const domainError = new UserMismatchError('run-1', 7, 42);
     const result = toHttpError(domainError);
 
     expect(result).toBeInstanceOf(UserMismatchHttpError);
@@ -126,7 +126,7 @@ describe('toHttpError', () => {
 describe('status classes hierarchy coverage', () => {
   it.each([
     [new InvalidTokenUserIdHttpError(), BadRequestHttpError],
-    [new UserMismatchHttpError(new UserMismatchError('run-1')), ForbiddenHttpError],
+    [new UserMismatchHttpError(new UserMismatchError('run-1', 7, 42)), ForbiddenHttpError],
     [
       new UpstreamUnavailableHttpError(new WorkflowPortError('op', new Error('x'))),
       ServiceUnavailableHttpError,
