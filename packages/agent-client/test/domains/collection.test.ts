@@ -174,6 +174,41 @@ describe('Collection', () => {
     });
   });
 
+  describe('getOne', () => {
+    it('deserializes by default (skipDeserialization not set)', async () => {
+      httpRequester.query.mockResolvedValue({ id: 7, name: 'Alice' });
+
+      const result = await collection.getOne(7);
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'get',
+          path: '/forest/users/7',
+          skipDeserialization: false,
+        }),
+      );
+      expect(result).toEqual({ id: 7, name: 'Alice' });
+    });
+
+    it('returns the raw JSON:API body when skipDeserialization is set', async () => {
+      const body = {
+        data: { relationships: { commentable: { data: { type: 'orders', id: '99' } } } },
+      };
+      httpRequester.query.mockResolvedValue(body);
+
+      const result = await collection.getOne(
+        7,
+        { fields: ['commentable@@@id'] },
+        { skipDeserialization: true },
+      );
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ skipDeserialization: true }),
+      );
+      expect(result).toEqual(body);
+    });
+  });
+
   describe('delete', () => {
     it('should call httpRequester.query with DELETE method and correct body', async () => {
       httpRequester.query.mockResolvedValue({});

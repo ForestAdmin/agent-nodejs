@@ -247,33 +247,22 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  // The agent-client deserializer drops relationship `type`, so read the raw record-with-projection
-  // response: `data.relationships.<relation>.data = { type, id }`. No UI-exposed discriminator needed.
+  // Resolves a polymorphic relation's target from the raw JSON:API linkage. The deserializer drops
+  // relationship `type`, so we read the raw body (getOne `raw`) via a `<relation>@@@id` projection
+  // and extract the linkage here — agent-client stays generic (URL/auth/serialization).
   async resolvePolymorphicType(
     { collection, id, relation }: ResolvePolymorphicTypeQuery,
     user: StepUser,
   ): Promise<{ type: string; id: string } | null> {
     return this.callAgent('resolvePolymorphicType', async () => {
-      const recordId = id.map(String).join('|');
-      const params = new URLSearchParams({
-        [`fields[${collection}]`]: relation,
-        [`fields[${relation}]`]: 'id',
-        timezone: 'Europe/Paris', // matches HttpRequester's default
-      });
-      const base = this.agentUrl.replace(/\/+$/, '');
-      const response = await fetch(`${base}/forest/${collection}/${recordId}?${params}`, {
-        headers: { Authorization: `Bearer ${this.mintToken(user)}`, Accept: 'application/json' },
-      });
+      const body = await this.createClient(user)
+        .collection(collection)
+        .getOne<{
+          data?: {
+            relationships?: Record<string, { data?: { type?: string; id?: string } | null }>;
+          };
+        }>(id, { fields: [`${relation}@@@id`] }, { skipDeserialization: true });
 
-      if (!response.ok) {
-        throw new Error(
-          `resolvePolymorphicType ${collection}/${recordId}: HTTP ${response.status}`,
-        );
-      }
-
-      const body = (await response.json()) as {
-        data?: { relationships?: Record<string, { data?: { type?: string; id?: string } | null }> };
-      };
       const linkage = body?.data?.relationships?.[relation]?.data;
 
       return linkage?.type ? { type: String(linkage.type), id: String(linkage.id) } : null;

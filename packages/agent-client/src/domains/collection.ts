@@ -171,11 +171,16 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  async getOne<Data = unknown>(id: RecordId, options?: SelectOptions): Promise<Data> {
+  async getOne<Data = unknown>(
+    id: RecordId,
+    options?: SelectOptions,
+    { skipDeserialization = false }: { skipDeserialization?: boolean } = {},
+  ): Promise<Data> {
     return this.httpRequester.query<Data>({
       method: 'get',
       path: `/forest/${this.name}/${serializeRecordId(id)}`,
       query: QuerySerializer.serialize(options, this.name),
+      skipDeserialization,
     });
   }
 

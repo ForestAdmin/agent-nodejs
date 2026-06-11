@@ -824,24 +824,12 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('resolvePolymorphicType', () => {
-    let fetchSpy: jest.SpyInstance;
-
-    beforeEach(() => {
-      fetchSpy = jest.spyOn(globalThis, 'fetch').mockImplementation(jest.fn());
-    });
-
-    afterEach(() => {
-      fetchSpy.mockRestore();
-    });
-
-    function linkageResponse(data: unknown) {
-      return new Response(JSON.stringify({ data: { relationships: { commentable: { data } } } }), {
-        status: 200,
-      });
+    function linkageBody(data: unknown) {
+      return { data: { relationships: { commentable: { data } } } };
     }
 
-    it('reads the linkage type/id and projects the relation on the by-id route', async () => {
-      fetchSpy.mockResolvedValue(linkageResponse({ type: 'orders', id: '99' }));
+    it('reads the raw linkage via getOne and extracts { type, id }', async () => {
+      mockCollection.getOne.mockResolvedValue(linkageBody({ type: 'orders', id: '99' }));
 
       const result = await port.resolvePolymorphicType(
         { collection: 'comments', id: [7], relation: 'commentable' },
@@ -849,27 +837,31 @@ describe('AgentClientAgentPort', () => {
       );
 
       expect(result).toEqual({ type: 'orders', id: '99' });
-
-      const [url, options] = fetchSpy.mock.calls[0];
-      expect(url).toContain('http://localhost:3310/forest/comments/7?');
-      expect(url).toContain(`${encodeURIComponent('fields[comments]')}=commentable`);
-      expect(url).toContain(`${encodeURIComponent('fields[commentable]')}=id`);
-      expect(options.headers.Authorization).toMatch(/^Bearer /);
+      // raw projection read on the source record, parsing done here in the adapter.
+      expect(mockCollection.getOne).toHaveBeenCalledWith(
+        [7],
+        { fields: ['commentable@@@id'] },
+        { skipDeserialization: true },
+      );
     });
 
-    it('joins composite ids with "|" in the by-id route', async () => {
-      fetchSpy.mockResolvedValue(linkageResponse({ type: 'orders', id: '1|2' }));
+    it('passes composite ids through to the raw read', async () => {
+      mockCollection.getOne.mockResolvedValue(linkageBody({ type: 'orders', id: '1|2' }));
 
       await port.resolvePolymorphicType(
         { collection: 'comments', id: ['tenant-1', 5], relation: 'commentable' },
         user,
       );
 
-      expect(fetchSpy.mock.calls[0][0]).toContain('/forest/comments/tenant-1|5?');
+      expect(mockCollection.getOne).toHaveBeenCalledWith(
+        ['tenant-1', 5],
+        { fields: ['commentable@@@id'] },
+        { skipDeserialization: true },
+      );
     });
 
     it('returns null when the relation has no linkage', async () => {
-      fetchSpy.mockResolvedValue(linkageResponse(null));
+      mockCollection.getOne.mockResolvedValue(linkageBody(null));
 
       const result = await port.resolvePolymorphicType(
         { collection: 'comments', id: [7], relation: 'commentable' },
@@ -879,8 +871,8 @@ describe('AgentClientAgentPort', () => {
       expect(result).toBeNull();
     });
 
-    it('throws AgentPortError when the agent responds non-2xx', async () => {
-      fetchSpy.mockResolvedValue(new Response(null, { status: 500 }));
+    it('wraps agent errors in AgentPortError', async () => {
+      mockCollection.getOne.mockRejectedValue(new Error('boom'));
 
       await expect(
         port.resolvePolymorphicType(
