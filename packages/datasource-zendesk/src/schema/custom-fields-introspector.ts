@@ -2,19 +2,7 @@ import type { RawCustomFieldDefinition, ZendeskClient } from '../client';
 import type { CustomFieldEntry } from '../types';
 import type { ColumnSchema, Logger, Operator } from '@forestadmin/datasource-toolkit';
 
-const STRING_OPS = new Set<Operator>(['Equal', 'NotEqual', 'In', 'NotIn', 'Present', 'Blank']);
-const NUMBER_OPS = new Set<Operator>([
-  'Equal',
-  'NotEqual',
-  'In',
-  'NotIn',
-  'Present',
-  'Blank',
-  'GreaterThan',
-  'LessThan',
-]);
-const DATE_OPS = new Set<Operator>(['Equal', 'Before', 'After', 'Present', 'Blank']);
-const BOOLEAN_OPS = new Set<Operator>(['Equal', 'NotEqual']);
+import { BOOLEAN_OPS, DATE_OPS, NUMBER_OPS, STRING_OPS } from '../query/operators';
 
 type FieldKind = 'ticket' | 'user' | 'organization';
 

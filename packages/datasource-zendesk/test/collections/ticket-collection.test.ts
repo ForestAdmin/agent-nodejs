@@ -152,6 +152,25 @@ describe('TicketCollection', () => {
       expect(records).toEqual([{ id: 5, subject: 'hello', ticket_type: 'question' }]);
     });
 
+    it('applies sort and pagination in memory on an id-lookup list', async () => {
+      const client = makeClient();
+      client.findTicket.mockImplementation(async id => ({ id, subject: `s${id}` }));
+      const collection = buildCollection(client);
+
+      const records = await collection.list(
+        CALLER,
+        new PaginatedFilter({
+          conditionTree: new ConditionTreeLeaf('id', 'In', [1, 2, 3]),
+          page: new Page(1, 1),
+          sort: new Sort({ field: 'id', ascending: false }),
+        }),
+        new Projection('id'),
+      );
+
+      expect(client.search).not.toHaveBeenCalled();
+      expect(records).toEqual([{ id: 2 }]);
+    });
+
     it('uses search and translates the condition tree when no id lookup', async () => {
       const client = makeClient();
       client.search.mockResolvedValue([
@@ -326,6 +345,19 @@ describe('TicketCollection', () => {
       expect(client.updateTicket).toHaveBeenCalledWith(2, { status: 'solved' });
       expect(client.updateTicket).toHaveBeenCalledTimes(2);
     });
+
+    it('ignores description on update since Zendesk cannot edit it after creation', async () => {
+      const client = makeClient();
+      const collection = buildCollection(client);
+
+      await collection.update(
+        CALLER,
+        new Filter({ conditionTree: new ConditionTreeLeaf('id', 'Equal', 7) }),
+        { status: 'solved', description: 'new body' },
+      );
+
+      expect(client.updateTicket).toHaveBeenCalledWith(7, { status: 'solved' });
+    });
   });
 
   describe('delete', () => {
@@ -340,11 +372,47 @@ describe('TicketCollection', () => {
 
       expect(client.deleteTicket).toHaveBeenCalledWith(42);
     });
+
+    it('does not delete an id that fails a sibling (scope) condition', async () => {
+      const client = makeClient();
+      client.findTicket.mockResolvedValue({ id: 5, status: 'open' });
+      const collection = buildCollection(client);
+
+      await collection.delete(
+        CALLER,
+        new Filter({
+          conditionTree: new ConditionTreeBranch('And', [
+            new ConditionTreeLeaf('id', 'Equal', 5),
+            new ConditionTreeLeaf('status', 'Equal', 'closed'),
+          ]),
+        }),
+      );
+
+      expect(client.findTicket).toHaveBeenCalledWith(5);
+      expect(client.deleteTicket).not.toHaveBeenCalled();
+    });
+
+    it('paginates through every matching page when the filter is not an id-lookup', async () => {
+      const client = makeClient();
+      const firstPage = Array.from({ length: 100 }, (_unused, index) => ({ id: index + 1 }));
+      const secondPage = Array.from({ length: 50 }, (_unused, index) => ({ id: index + 101 }));
+      client.search.mockResolvedValueOnce(firstPage).mockResolvedValueOnce(secondPage);
+      const collection = buildCollection(client);
+
+      await collection.delete(
+        CALLER,
+        new Filter({ conditionTree: new ConditionTreeLeaf('status', 'Equal', 'open') }),
+      );
+
+      expect(client.search).toHaveBeenCalledTimes(2);
+      expect(client.deleteTicket).toHaveBeenCalledTimes(150);
+    });
   });
 
   describe('aggregate', () => {
-    it('returns ids.length when the filter is an exact id-lookup', async () => {
+    it('counts only the ids that actually exist on an id-lookup', async () => {
       const client = makeClient();
+      client.findTicket.mockImplementation(async id => (id === 3 ? null : { id }));
       const collection = buildCollection(client);
 
       const result = await collection.aggregate(
@@ -354,7 +422,7 @@ describe('TicketCollection', () => {
       );
 
       expect(client.count).not.toHaveBeenCalled();
-      expect(result).toEqual([{ value: 3, group: {} }]);
+      expect(result).toEqual([{ value: 2, group: {} }]);
     });
 
     it('calls client.count with the translated query for non-id filters', async () => {

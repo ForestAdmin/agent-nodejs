@@ -1,7 +1,5 @@
-import type { ZendeskRecord } from '../types';
 import type {
   Caller,
-  Filter,
   PaginatedFilter,
   Projection,
   RecordData,
@@ -15,58 +13,17 @@ export default abstract class SearchableCollection extends BaseZendeskCollection
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const rawRecords = await this.fetchRawRecords(filter);
-    const records = rawRecords.map(raw => this.serializeRecord(raw));
-
-    return projection.apply(records);
-  }
-
-  protected override async aggregateCount(caller: Caller, filter: Filter): Promise<number> {
     const ids = this.extractIdLookup(filter?.conditionTree);
 
     if (ids) {
-      const records = await Promise.all(ids.map(id => this.findOne(id)));
+      const raw = await this.fetchRecordsByIds(ids);
+      const records = raw.map(record => this.serializeRecord(record));
 
-      return records.filter(Boolean).length;
+      return projection.apply(this.refine(records, filter, caller.timezone));
     }
 
-    return this.client.count(this.resource, this.buildZendeskQuery(filter));
+    const raw = await this.searchRecords(filter);
+
+    return projection.apply(raw.map(record => this.serializeRecord(record)));
   }
-
-  protected async resolveIds(filter: Filter): Promise<number[]> {
-    const direct = this.extractIdLookup(filter?.conditionTree);
-    if (direct) return direct;
-
-    const records = await this.client.search(this.resource, {
-      query: this.buildZendeskQuery(filter),
-      perPage: 100,
-    });
-
-    return records.map(record => Number(record.id)).filter(id => Number.isFinite(id));
-  }
-
-  protected async fetchRawRecords(filter: PaginatedFilter): Promise<ZendeskRecord[]> {
-    const ids = this.extractIdLookup(filter?.conditionTree);
-
-    if (ids) {
-      const results = await Promise.all(ids.map(id => this.findOne(id)));
-
-      return results.filter((record): record is ZendeskRecord => record !== null);
-    }
-
-    const { page, perPage } = this.translatePage(filter?.page);
-    const { sortBy, sortOrder } = this.translateSort(filter?.sort);
-
-    return this.client.search(this.resource, {
-      query: this.buildZendeskQuery(filter),
-      page,
-      perPage,
-      sortBy,
-      sortOrder,
-    });
-  }
-
-  protected abstract findOne(id: number | string): Promise<ZendeskRecord | null>;
-
-  protected abstract serializeRecord(record: ZendeskRecord): RecordData;
 }

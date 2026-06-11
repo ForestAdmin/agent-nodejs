@@ -1,6 +1,6 @@
 import type { ZendeskClient } from '../client';
 import type ZendeskDataSource from '../datasource';
-import type { CustomFieldEntry, ZendeskResource } from '../types';
+import type { CustomFieldEntry, ZendeskRecord, ZendeskResource } from '../types';
 import type {
   AggregateResult,
   Aggregation,
@@ -10,8 +10,6 @@ import type {
   DataSource,
   Filter,
   Logger,
-  Operator,
-  Page,
   PaginatedFilter,
   Projection,
   RecordData,
@@ -24,31 +22,11 @@ import {
   ConditionTreeLeaf,
 } from '@forestadmin/datasource-toolkit';
 
-import { MAX_TOTAL_RESULTS } from '../client';
+import { MAX_PER_PAGE, MAX_TOTAL_RESULTS } from '../client';
 import { UnsupportedOperatorError } from '../errors';
 import { translateConditionTree } from '../query/condition-tree-translator';
 
-export const STRING_OPS = new Set<Operator>([
-  'Equal',
-  'NotEqual',
-  'In',
-  'NotIn',
-  'Present',
-  'Blank',
-]);
-export const NUMBER_OPS = new Set<Operator>([
-  'Equal',
-  'NotEqual',
-  'In',
-  'NotIn',
-  'Present',
-  'Blank',
-  'GreaterThan',
-  'LessThan',
-]);
-export const DATE_OPS = new Set<Operator>(['Equal', 'Before', 'After', 'Present', 'Blank']);
-
-export type TranslatedPage = { page: number; perPage: number };
+export { BOOLEAN_OPS, DATE_OPS, ID_OPS, NUMBER_OPS, STRING_OPS } from '../query/operators';
 
 export default abstract class BaseZendeskCollection extends BaseCollection {
   protected readonly client: ZendeskClient;
@@ -113,9 +91,35 @@ export default abstract class BaseZendeskCollection extends BaseCollection {
     return typeof limit === 'number' ? results.slice(0, limit) : results;
   }
 
+  // ===== Resource access implemented by the concrete collections =====
+
+  /** Fetch a single resource by primary key, or null when it does not exist (404). */
+  protected abstract findOne(id: number | string): Promise<ZendeskRecord | null>;
+
+  /** Convert a raw Zendesk payload into the Forest column layout this collection exposes. */
+  protected abstract serializeRecord(record: ZendeskRecord): RecordData;
+
   // ===== Helpers used by subclasses =====
 
-  protected abstract aggregateCount(caller: Caller, filter: Filter): Promise<number>;
+  /**
+   * Count the records matching the filter. An exact id-lookup is resolved by fetching the
+   * referenced records and re-applying the full condition tree in memory, so that non-existent
+   * ids and sibling conditions (scope/segment) are honored rather than blindly trusted.
+   */
+  protected async aggregateCount(caller: Caller, filter: Filter): Promise<number> {
+    const ids = this.extractIdLookup(filter?.conditionTree);
+
+    if (ids) {
+      const records = (await this.fetchRecordsByIds(ids)).map(raw => this.serializeRecord(raw));
+      const matching = filter?.conditionTree
+        ? filter.conditionTree.apply(records, this, caller.timezone)
+        : records;
+
+      return matching.length;
+    }
+
+    return this.client.count(this.resource, this.buildZendeskQuery(filter));
+  }
 
   protected addCustomFields(customFields: CustomFieldEntry[]): void {
     for (const entry of customFields) {
@@ -144,9 +148,11 @@ export default abstract class BaseZendeskCollection extends BaseCollection {
     return { sortBy: zendeskField, sortOrder: first.ascending ? 'asc' : 'desc' };
   }
 
-  protected translatePage(page: Page | undefined): TranslatedPage {
-    const skip = page?.skip ?? 0;
-    const limit = page?.limit ?? 100;
+  // Zendesk Search is page-based; a window not aligned to a page boundary is satisfied by
+  // fetching the covering pages and slicing in memory rather than snapping to a boundary.
+  protected async searchRecords(filter: PaginatedFilter | undefined): Promise<ZendeskRecord[]> {
+    const skip = filter?.page?.skip ?? 0;
+    const limit = filter?.page?.limit ?? MAX_PER_PAGE;
 
     if (skip + limit > MAX_TOTAL_RESULTS) {
       throw new UnsupportedOperatorError(
@@ -156,10 +162,51 @@ export default abstract class BaseZendeskCollection extends BaseCollection {
       );
     }
 
-    const perPage = Math.max(1, Math.min(limit, 100));
-    const pageNumber = Math.floor(skip / perPage) + 1;
+    const perPage = Math.max(1, Math.min(limit, MAX_PER_PAGE));
+    const firstPage = Math.floor(skip / perPage) + 1;
+    const offset = skip - (firstPage - 1) * perPage;
+    const pageCount = Math.max(1, Math.ceil((offset + limit) / perPage));
+    const { sortBy, sortOrder } = this.translateSort(filter?.sort);
+    const query = this.buildZendeskQuery(filter);
 
-    return { page: pageNumber, perPage };
+    const pages = await Promise.all(
+      Array.from({ length: pageCount }, (_unused, index) =>
+        this.client.search(this.resource, {
+          query,
+          page: firstPage + index,
+          perPage,
+          sortBy,
+          sortOrder,
+        }),
+      ),
+    );
+
+    const records = pages.flat();
+
+    return offset === 0 && pageCount === 1 ? records : records.slice(offset, offset + limit);
+  }
+
+  // Drops ids that no longer exist (findOne returns null on 404).
+  protected async fetchRecordsByIds(ids: number[]): Promise<ZendeskRecord[]> {
+    const results = await Promise.all(ids.map(id => this.findOne(id)));
+
+    return results.filter((record): record is ZendeskRecord => record !== null);
+  }
+
+  // Re-apply the filter, sort and pagination in memory (used on the id-lookup path, which
+  // bypasses the Search API and therefore never had them applied server-side).
+  protected refine(
+    records: RecordData[],
+    filter: PaginatedFilter | undefined,
+    timezone: string,
+  ): RecordData[] {
+    let result = records;
+
+    if (filter?.conditionTree) result = filter.conditionTree.apply(result, this, timezone);
+    if (filter?.sort) result = filter.sort.apply(result);
+    if (filter?.page) result = filter.page.apply(result);
+
+    return result;
   }
 
   protected buildZendeskQuery(filter: Filter | PaginatedFilter | undefined): string {
@@ -203,5 +250,59 @@ export default abstract class BaseZendeskCollection extends BaseCollection {
     }
 
     return null;
+  }
+
+  /**
+   * Resolve the primary keys targeted by update/delete. A pure id-lookup is authoritative; an
+   * id-lookup combined with other conditions (scope/segment) is re-checked in memory so we never
+   * mutate a record outside the caller's perimeter. Otherwise every matching page is collected.
+   */
+  protected async resolveIds(filter: Filter | undefined, timezone: string): Promise<number[]> {
+    const ids = this.extractIdLookup(filter?.conditionTree);
+
+    if (ids) {
+      const onlyIds = filter?.conditionTree?.everyLeaf(leaf => leaf.field === 'id') ?? true;
+      if (onlyIds) return ids;
+
+      const records = (await this.fetchRecordsByIds(ids)).map(raw => this.serializeRecord(raw));
+
+      return filter.conditionTree
+        .apply(records, this, timezone)
+        .map(record => Number(record.id))
+        .filter(id => Number.isFinite(id));
+    }
+
+    return this.searchAllIds(filter);
+  }
+
+  // Page through every matching result up to the Zendesk Search cap, warning if it is exceeded
+  // rather than silently affecting only the first page.
+  private async searchAllIds(filter: Filter | undefined): Promise<number[]> {
+    const query = this.buildZendeskQuery(filter);
+    const maxPages = Math.ceil(MAX_TOTAL_RESULTS / MAX_PER_PAGE);
+    const ids: number[] = [];
+
+    for (let page = 1; page <= maxPages; page += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      const records = await this.client.search(this.resource, {
+        query,
+        page,
+        perPage: MAX_PER_PAGE,
+      });
+
+      for (const record of records) {
+        const id = Number(record.id);
+        if (Number.isFinite(id)) ids.push(id);
+      }
+
+      if (records.length < MAX_PER_PAGE) return ids;
+    }
+
+    this.logger?.(
+      'Warn',
+      `[datasource-zendesk] A bulk operation on '${this.name}' matched more than ${MAX_TOTAL_RESULTS} records; Zendesk Search only returns the first ${MAX_TOTAL_RESULTS}, so the rest are left untouched.`,
+    );
+
+    return ids;
   }
 }

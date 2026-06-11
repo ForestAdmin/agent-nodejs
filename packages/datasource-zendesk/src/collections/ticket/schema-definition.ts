@@ -2,7 +2,7 @@ import type { FieldSchema } from '@forestadmin/datasource-toolkit';
 
 import { COLLECTION_NAMES } from '../../datasource';
 import { TICKET_PRIORITIES, TICKET_STATUSES, TICKET_TYPES } from '../../enums';
-import { DATE_OPS, NUMBER_OPS, STRING_OPS } from '../base-zendesk-collection';
+import { DATE_OPS, ID_OPS, NUMBER_OPS, STRING_OPS } from '../base-zendesk-collection';
 
 export const TICKET_SORTABLE: Record<string, string> = {
   updated_at: 'updated_at',
@@ -30,7 +30,7 @@ export function getTicketFieldSchemas(): Record<string, FieldSchema> {
       isPrimaryKey: true,
       isReadOnly: true,
       isSortable: false,
-      filterOperators: new Set(NUMBER_OPS),
+      filterOperators: new Set(ID_OPS),
     },
     subject: {
       type: 'Column',
@@ -66,25 +66,21 @@ export function getTicketFieldSchemas(): Record<string, FieldSchema> {
     requester_id: {
       type: 'Column',
       columnType: 'Number',
-      isSortable: true,
       filterOperators: new Set(NUMBER_OPS),
     },
     assignee_id: {
       type: 'Column',
       columnType: 'Number',
-      isSortable: true,
       filterOperators: new Set(NUMBER_OPS),
     },
     group_id: {
       type: 'Column',
       columnType: 'Number',
-      isSortable: true,
       filterOperators: new Set(NUMBER_OPS),
     },
     organization_id: {
       type: 'Column',
       columnType: 'Number',
-      isSortable: true,
       filterOperators: new Set(NUMBER_OPS),
     },
     external_id: {

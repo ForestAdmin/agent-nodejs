@@ -11,7 +11,7 @@ import type {
 
 import { COLLECTION_NAMES } from '../datasource';
 import { USER_ROLES } from '../enums';
-import { DATE_OPS, NUMBER_OPS, STRING_OPS } from './base-zendesk-collection';
+import { BOOLEAN_OPS, DATE_OPS, ID_OPS, NUMBER_OPS, STRING_OPS } from './base-zendesk-collection';
 import SearchableCollection from './searchable-collection';
 import { serializeUser } from './ticket/serializer';
 
@@ -31,7 +31,7 @@ function getUserFieldSchemas(): Record<string, FieldSchema> {
       isPrimaryKey: true,
       isReadOnly: true,
       isSortable: false,
-      filterOperators: new Set(NUMBER_OPS),
+      filterOperators: new Set(ID_OPS),
     },
     email: {
       type: 'Column',
@@ -73,12 +73,12 @@ function getUserFieldSchemas(): Record<string, FieldSchema> {
     verified: {
       type: 'Column',
       columnType: 'Boolean',
-      filterOperators: new Set(STRING_OPS),
+      filterOperators: new Set(BOOLEAN_OPS),
     },
     suspended: {
       type: 'Column',
       columnType: 'Boolean',
-      filterOperators: new Set(STRING_OPS),
+      filterOperators: new Set(BOOLEAN_OPS),
     },
     created_at: {
       type: 'Column',
@@ -138,7 +138,7 @@ export default class UserCollection extends SearchableCollection {
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    const ids = await this.resolveIds(filter);
+    const ids = await this.resolveIds(filter, caller.timezone);
     const payload = this.buildPayload(patch);
 
     for (const id of ids) {
@@ -148,7 +148,7 @@ export default class UserCollection extends SearchableCollection {
   }
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
-    const ids = await this.resolveIds(filter);
+    const ids = await this.resolveIds(filter, caller.timezone);
 
     for (const id of ids) {
       // eslint-disable-next-line no-await-in-loop

@@ -62,16 +62,20 @@ export default class TicketCollection extends BaseZendeskCollection {
     filter: PaginatedFilter,
     projection: Projection,
   ): Promise<RecordData[]> {
-    const tickets = await this.fetchRawTickets(filter);
+    const ids = this.extractIdLookup(filter?.conditionTree);
+    const tickets = ids ? await this.fetchRecordsByIds(ids) : await this.searchRecords(filter);
 
     const needsEmail = projection.includes('requester_email');
     const emails = needsEmail
       ? await this.client.fetchUserEmails(collectIds(tickets, 'requester_id'))
       : new Map<number, string>();
 
-    const records = tickets.map(ticket =>
+    let records = tickets.map(ticket =>
       serializeTicket(ticket, emails, this.zendeskIdToColumnName),
     );
+
+    // The id-lookup path bypassed Zendesk Search, so honor the filter, sort and pagination here.
+    if (ids) records = this.refine(records, filter, caller.timezone);
 
     const relations = findRequestedRelations(projection);
 
@@ -99,7 +103,7 @@ export default class TicketCollection extends BaseZendeskCollection {
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    const ids = await this.resolveIds(filter);
+    const ids = await this.resolveIds(filter, caller.timezone);
     const payload = this.buildPayload(patch, { onCreate: false });
 
     for (const id of ids) {
@@ -109,7 +113,7 @@ export default class TicketCollection extends BaseZendeskCollection {
   }
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
-    const ids = await this.resolveIds(filter);
+    const ids = await this.resolveIds(filter, caller.timezone);
 
     for (const id of ids) {
       // eslint-disable-next-line no-await-in-loop
@@ -117,47 +121,15 @@ export default class TicketCollection extends BaseZendeskCollection {
     }
   }
 
-  protected override async aggregateCount(caller: Caller, filter: Filter): Promise<number> {
-    const ids = this.extractIdLookup(filter?.conditionTree);
-    if (ids) return ids.length;
+  protected override findOne(id: number | string): Promise<ZendeskRecord | null> {
+    return this.client.findTicket(id);
+  }
 
-    return this.client.count('ticket', this.buildZendeskQuery(filter));
+  protected override serializeRecord(record: ZendeskRecord): RecordData {
+    return serializeTicket(record, new Map(), this.zendeskIdToColumnName);
   }
 
   // ===== Helpers =====
-
-  private async fetchRawTickets(filter: PaginatedFilter): Promise<ZendeskRecord[]> {
-    const ids = this.extractIdLookup(filter?.conditionTree);
-
-    if (ids) {
-      const results = await Promise.all(ids.map(id => this.client.findTicket(id)));
-
-      return results.filter((ticket): ticket is ZendeskRecord => ticket !== null);
-    }
-
-    const { page, perPage } = this.translatePage(filter?.page);
-    const { sortBy, sortOrder } = this.translateSort(filter?.sort);
-
-    return this.client.search('ticket', {
-      query: this.buildZendeskQuery(filter),
-      page,
-      perPage,
-      sortBy,
-      sortOrder,
-    });
-  }
-
-  private async resolveIds(filter: Filter): Promise<number[]> {
-    const direct = this.extractIdLookup(filter?.conditionTree);
-    if (direct) return direct;
-
-    const records = await this.client.search('ticket', {
-      query: this.buildZendeskQuery(filter),
-      perPage: 100,
-    });
-
-    return records.map(record => Number(record.id)).filter(id => Number.isFinite(id));
-  }
 
   private buildPayload(data: RecordData, { onCreate }: { onCreate: boolean }): ZendeskRecord {
     const payload: ZendeskRecord = {};
@@ -166,6 +138,16 @@ export default class TicketCollection extends BaseZendeskCollection {
     for (const [key, value] of Object.entries(data)) {
       if (READ_ONLY_INPUTS.has(key)) {
         // ignore read-only inputs
+      } else if (key === 'description') {
+        // Zendesk derives `description` from the first comment; it can only be set at creation.
+        if (onCreate) {
+          payload.description = value;
+        } else {
+          this.logger?.(
+            'Warn',
+            `[datasource-zendesk] 'description' cannot be edited after creation; ignoring it.`,
+          );
+        }
       } else if (key === 'ticket_type') {
         payload.type = value;
       } else {

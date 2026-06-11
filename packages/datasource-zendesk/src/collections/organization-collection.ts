@@ -10,7 +10,7 @@ import type {
 } from '@forestadmin/datasource-toolkit';
 
 import { COLLECTION_NAMES } from '../datasource';
-import { DATE_OPS, NUMBER_OPS, STRING_OPS } from './base-zendesk-collection';
+import { DATE_OPS, ID_OPS, NUMBER_OPS, STRING_OPS } from './base-zendesk-collection';
 import SearchableCollection from './searchable-collection';
 import { serializeOrganization } from './ticket/serializer';
 
@@ -29,7 +29,7 @@ function getOrganizationFieldSchemas(): Record<string, FieldSchema> {
       columnType: 'Number',
       isPrimaryKey: true,
       isReadOnly: true,
-      filterOperators: new Set(NUMBER_OPS),
+      filterOperators: new Set(ID_OPS),
     },
     name: {
       type: 'Column',
@@ -120,7 +120,7 @@ export default class OrganizationCollection extends SearchableCollection {
   }
 
   override async update(caller: Caller, filter: Filter, patch: RecordData): Promise<void> {
-    const ids = await this.resolveIds(filter);
+    const ids = await this.resolveIds(filter, caller.timezone);
     const payload = this.buildPayload(patch);
 
     for (const id of ids) {
@@ -130,7 +130,7 @@ export default class OrganizationCollection extends SearchableCollection {
   }
 
   override async delete(caller: Caller, filter: Filter): Promise<void> {
-    const ids = await this.resolveIds(filter);
+    const ids = await this.resolveIds(filter, caller.timezone);
 
     for (const id of ids) {
       // eslint-disable-next-line no-await-in-loop
