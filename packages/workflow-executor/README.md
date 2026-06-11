@@ -24,7 +24,7 @@ npm install -g @forestadmin/workflow-executor
 | `DATABASE_URL` | ✓* | — | Postgres connection string (*not needed with `--in-memory`) |
 | `HTTP_PORT` | — | `3400` | Port for the executor HTTP server |
 | `FOREST_SERVER_URL` | — | `https://api.forestadmin.com` | Orchestrator URL |
-| `POLLING_INTERVAL_S` | — | `5` | Poll cadence for pending steps |
+| `POLLING_INTERVAL_S` | — | `30` | Poll cadence for pending steps |
 | `STOP_TIMEOUT_S` | — | `30` | Graceful shutdown deadline |
 
 Optional AI configuration (all-or-nothing — falls back to server AI if any is missing):
