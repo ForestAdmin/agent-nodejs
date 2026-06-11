@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.11.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.11.2...@forestadmin/ai-proxy@1.11.3) (2026-06-11)
+
+
+### Bug Fixes
+
+* **ai-proxy:** remove unused @langchain/community dependency ([#1655](https://github.com/ForestAdmin/agent-nodejs/issues/1655)) ([fc4a942](https://github.com/ForestAdmin/agent-nodejs/commit/fc4a942df0e39de5f3db62f49aa79a14187b5345))
+
 ## @forestadmin/ai-proxy [1.11.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.11.1...@forestadmin/ai-proxy@1.11.2) (2026-06-10)
 
 

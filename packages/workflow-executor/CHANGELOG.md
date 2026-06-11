@@ -1,3 +1,30 @@
+## @forestadmin/workflow-executor [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.2...@forestadmin/workflow-executor@1.1.3) (2026-06-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.6.3
+* **@forestadmin/ai-proxy:** upgraded to 1.11.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.40.3
+
+## @forestadmin/workflow-executor [1.1.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.1...@forestadmin/workflow-executor@1.1.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* align internal dependency versions to published releases ([#1653](https://github.com/ForestAdmin/agent-nodejs/issues/1653)) ([317fea9](https://github.com/ForestAdmin/agent-nodejs/commit/317fea90390df38a384d1d17d04ec9a05566ed49))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.6.2
+
 ## @forestadmin/workflow-executor [1.1.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.0...@forestadmin/workflow-executor@1.1.1) (2026-06-10)
 
 

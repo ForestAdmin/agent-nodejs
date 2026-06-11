@@ -1,3 +1,20 @@
+## @forestadmin/agent-client [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.6.2...@forestadmin/agent-client@1.6.3) (2026-06-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.40.3
+
+## @forestadmin/agent-client [1.6.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.6.1...@forestadmin/agent-client@1.6.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* align internal dependency versions to published releases ([#1653](https://github.com/ForestAdmin/agent-nodejs/issues/1653)) ([317fea9](https://github.com/ForestAdmin/agent-nodejs/commit/317fea90390df38a384d1d17d04ec9a05566ed49))
+
 ## @forestadmin/agent-client [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.6.0...@forestadmin/agent-client@1.6.1) (2026-06-10)
 
 

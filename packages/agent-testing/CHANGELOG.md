@@ -1,3 +1,31 @@
+## @forestadmin/agent-testing [1.1.27](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.26...@forestadmin/agent-testing@1.1.27) (2026-06-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.6.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.40.3
+* **@forestadmin/agent:** upgraded to 1.79.3
+
+## @forestadmin/agent-testing [1.1.26](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.25...@forestadmin/agent-testing@1.1.26) (2026-06-10)
+
+
+### Bug Fixes
+
+* align internal dependency versions to published releases ([#1653](https://github.com/ForestAdmin/agent-nodejs/issues/1653)) ([317fea9](https://github.com/ForestAdmin/agent-nodejs/commit/317fea90390df38a384d1d17d04ec9a05566ed49))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.6.2
+* **@forestadmin/agent:** upgraded to 1.79.2
+
 ## @forestadmin/agent-testing [1.1.25](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.24...@forestadmin/agent-testing@1.1.25) (2026-06-10)
 
 

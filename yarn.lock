@@ -1842,43 +1842,6 @@
     path-to-regexp "^6.3.0"
     reusify "^1.0.4"
 
-"@forestadmin/agent-client@1.5.10":
-  version "1.5.10"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent-client/-/agent-client-1.5.10.tgz#104166288155689f405489c71d91fc5573a6b775"
-  integrity sha512-156Y4FSsifd0UiPOzszqFeVr86rNE2pXRPPFC6g1fRd3RIFOSJBG8GScP+luj48poLwVBRfC1FaeFwkd6GSwYA==
-  dependencies:
-    "@forestadmin/datasource-toolkit" "1.53.1"
-    "@forestadmin/forestadmin-client" "1.39.9"
-    jsonapi-serializer "^3.6.9"
-    superagent "^10.3.0"
-
-"@forestadmin/agent@1.78.13":
-  version "1.78.13"
-  resolved "https://registry.yarnpkg.com/@forestadmin/agent/-/agent-1.78.13.tgz#3a2db3c55f75e241d3cd1d156e77acfdbd1d7fe0"
-  integrity sha512-LJygWzAJHFWFNL6ZUgn8ZW2EGm30k9OO6I+lbiLxMwRYwEyjUkeSVnQMPqqpDvv92CGuwPzeDhSUGrCd4p4l8g==
-  dependencies:
-    "@fast-csv/format" "^4.3.5"
-    "@forestadmin/agent-toolkit" "1.2.0"
-    "@forestadmin/datasource-customizer" "1.69.3"
-    "@forestadmin/datasource-toolkit" "1.53.1"
-    "@forestadmin/forestadmin-client" "1.39.9"
-    "@forestadmin/mcp-server" "1.11.11"
-    "@koa/bodyparser" "^6.0.0"
-    "@koa/cors" "^5.0.0"
-    "@koa/router" "^13.1.0"
-    "@paralleldrive/cuid2" "2.2.2"
-    "@types/koa__router" "^12.0.4"
-    forest-ip-utils "^1.0.1"
-    json-api-serializer "^2.6.6"
-    json-stringify-pretty-compact "^3.0.0"
-    jsonwebtoken "^9.0.3"
-    koa "^3.0.1"
-    koa-jwt "^4.0.4"
-    luxon "^3.2.1"
-    object-hash "^3.0.0"
-    superagent "^10.3.0"
-    uuid "11.1.1"
-
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"
@@ -1912,32 +1875,6 @@
     luxon "^3.2.1"
     object-hash "^3.0.0"
     uuid "^9.0.0"
-
-"@forestadmin/forestadmin-client@1.39.9":
-  version "1.39.9"
-  resolved "https://registry.yarnpkg.com/@forestadmin/forestadmin-client/-/forestadmin-client-1.39.9.tgz#626f89d85ae5a0caa8f99261176616ceef7d2eb0"
-  integrity sha512-ODSqDnR9c9S8lH97+ftLW6qvpId7OSOkrEL3J1rNT37U4GAmUzNHBU7c8XWQMpnWhAtMcibKd9ksn1NftAmXrQ==
-  dependencies:
-    eventsource "2.0.2"
-    json-api-serializer "^2.6.6"
-    jsonwebtoken "^9.0.3"
-    object-hash "^3.0.0"
-    openid-client "^5.7.1"
-    superagent "^10.3.0"
-
-"@forestadmin/mcp-server@1.11.11":
-  version "1.11.11"
-  resolved "https://registry.yarnpkg.com/@forestadmin/mcp-server/-/mcp-server-1.11.11.tgz#7a194b92eacaf16cd3add7f1f07167870292bfcb"
-  integrity sha512-gbACZqwzEqCjQVNWR7hF9s42Wa5k1CBDHQHe/QEq6ZaLh97itEtQ9HrOYq/6WmaWBjGeYa2llCanYcT7uYOHNw==
-  dependencies:
-    "@forestadmin/agent-client" "1.5.10"
-    "@forestadmin/forestadmin-client" "1.39.9"
-    "@modelcontextprotocol/sdk" "^1.28.0"
-    cors "^2.8.5"
-    express "^5.2.1"
-    jsonapi-serializer "^3.6.9"
-    jsonwebtoken "^9.0.3"
-    zod "^4.3.5"
 
 "@gar/promisify@^1.0.1":
   version "1.1.3"
@@ -2481,37 +2418,6 @@
     "@anthropic-ai/sdk" "^0.95.1"
     zod "^3.25.76 || ^4"
 
-"@langchain/classic@^1.0.27":
-  version "1.0.34"
-  resolved "https://registry.yarnpkg.com/@langchain/classic/-/classic-1.0.34.tgz#d358ac24ea45a3fca54e501c5f3eaf6061902a01"
-  integrity sha512-4VG+3QRFBDwYWW4UdVDsbUoeaeTo0XED7wYkeZDc4wa3ZlP4r6GJ/KZlQfHq2AS+CxjW8OQZw2ha6tESesjawQ==
-  dependencies:
-    "@langchain/openai" "1.4.7"
-    "@langchain/textsplitters" "1.0.1"
-    handlebars "^4.7.9"
-    js-yaml "^4.1.1"
-    jsonpointer "^5.0.1"
-    openapi-types "^12.1.3"
-    yaml "^2.8.3"
-    zod "^3.25.76 || ^4"
-  optionalDependencies:
-    langsmith ">=0.4.0 <1.0.0"
-
-"@langchain/community@^1.1.19":
-  version "1.1.29"
-  resolved "https://registry.yarnpkg.com/@langchain/community/-/community-1.1.29.tgz#b4570301b7080e51594eaaa48d3465ed465d0220"
-  integrity sha512-eJbE0IARueEg+Lljk7SIGGeiSnu5u0mcT0MPIF7UG6jYPNXOpSebwiXsS3aIKOyJZSj0DlmBPv7q0hkLrxDtHA==
-  dependencies:
-    "@langchain/classic" "^1.0.27"
-    "@langchain/openai" "^1.4.1"
-    binary-extensions "^2.2.0"
-    flat "^5.0.2"
-    js-yaml "^4.1.1"
-    langsmith ">=0.4.0 <1.0.0"
-    math-expression-evaluator "^2.0.0"
-    uuid "^14.0.0"
-    zod "^3.25.76 || ^4"
-
 "@langchain/core@1.1.48":
   version "1.1.48"
   resolved "https://registry.yarnpkg.com/@langchain/core/-/core-1.1.48.tgz#dfe7f6a64b0e3e79e5357ed4b402c021ee315a7f"
@@ -2565,7 +2471,7 @@
   optionalDependencies:
     extended-eventsource "^1.7.0"
 
-"@langchain/openai@1.4.7", "@langchain/openai@^1.4.1":
+"@langchain/openai@1.4.7":
   version "1.4.7"
   resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-1.4.7.tgz#8af279497ead6f5ac3a97dd0f4f5faccf2b31614"
   integrity sha512-i1YLV4pWbGC6W8m0ZNpLObJuf1nyU4o8aWyX4AF9fHn7eM67HfIJWQ5n5XzcCpuSa41otrxA9jvH5XRKwI1qDA==
@@ -2578,13 +2484,6 @@
   version "0.0.16"
   resolved "https://registry.yarnpkg.com/@langchain/protocol/-/protocol-0.0.16.tgz#68b63d58feaf4f0acf77405cb8fb16f9c3f09b60"
   integrity sha512-ws+J7MaHyhO5dG7f0vdyHQiUn9hoCnki0f3crJPa4MCTGzcRC39jYSCghyrGtBPYQnZbUQiGyRVpW3z3M8IpJg==
-
-"@langchain/textsplitters@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@langchain/textsplitters/-/textsplitters-1.0.1.tgz#292f9c93239178c248b3338acf7b68aa47aa9830"
-  integrity sha512-rheJlB01iVtrOUzttscutRgLybPH9qR79EyzBEbf1u97ljWyuxQfCwIWK+SjoQTM9O8M7GGLLRBSYE26Jmcoww==
-  dependencies:
-    js-tiktoken "^1.0.12"
 
 "@lerna/create@8.2.3":
   version "8.2.3"
@@ -5925,11 +5824,6 @@ binary-extensions@^2.0.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"
   integrity sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==
-
-binary-extensions@^2.2.0:
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.3.0.tgz#f6e14a97858d327252200242d4ccfe522c445522"
-  integrity sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==
 
 binary-extensions@^3.0.0:
   version "3.1.0"
@@ -9596,7 +9490,7 @@ graphql@14.5.7:
   dependencies:
     iterall "^1.2.2"
 
-handlebars@4.7.9, handlebars@^4.7.9:
+handlebars@4.7.9:
   version "4.7.9"
   resolved "https://registry.yarnpkg.com/handlebars/-/handlebars-4.7.9.tgz#6f139082ab58dc4e5a0e51efe7db5ae890d56a0f"
   integrity sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==
@@ -11276,13 +11170,6 @@ js-yaml@^3.10.0, js-yaml@^3.13.1, js-yaml@^3.14.1:
     argparse "^1.0.7"
     esprima "^4.0.0"
 
-js-yaml@^4.1.1:
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-4.2.0.tgz#2bd9e85682dd91bd469afb809d816043b3d49524"
-  integrity sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw==
-  dependencies:
-    argparse "^2.0.1"
-
 jsbn@1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/jsbn/-/jsbn-1.1.0.tgz#b01307cb29b618a1ed26ec79e911f803c4da0040"
@@ -11447,11 +11334,6 @@ jsonparse@^1.2.0, jsonparse@^1.3.1:
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/jsonparse/-/jsonparse-1.3.1.tgz#3f4dae4a91fac315f71062f8521cc239f1366280"
   integrity sha512-POQXvpdL69+CluYsillJ7SUhKvytYjW9vG/GKpnf+xP8UWgYEM/RaMzHHofbALDiKbbP1W8UEYmgGl39WkPZsg==
-
-jsonpointer@^5.0.1:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/jsonpointer/-/jsonpointer-5.0.1.tgz#2110e0af0900fd37467b5907ecd13a7884a1b559"
-  integrity sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==
 
 jsonwebtoken@9.0.3, jsonwebtoken@^9.0.3:
   version "9.0.3"
@@ -11653,7 +11535,7 @@ koa@^3.0.1:
     type-is "^2.0.1"
     vary "^1.1.2"
 
-"langsmith@>=0.4.0 <1.0.0", "langsmith@>=0.5.0 <1.0.0", langsmith@^0.6.0:
+"langsmith@>=0.5.0 <1.0.0", langsmith@^0.6.0:
   version "0.6.3"
   resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.6.3.tgz#a3d8ad58d66a47d3697e3c69b2be3f6df5233190"
   integrity sha512-pXrQ4/4myQvjFFOAUmt5pWRrLEZR20gzIJD7MNdUH+5/S5nLI4ZRBo/SYKC6coaYj9pYTfQdBIzcs+3kfJ5uDA==
@@ -12435,11 +12317,6 @@ marked@^4.1.0:
   version "4.3.0"
   resolved "https://registry.yarnpkg.com/marked/-/marked-4.3.0.tgz#796362821b019f734054582038b116481b456cf3"
   integrity sha512-PRsaiG84bK+AMvxziE/lCFss8juXjNaWzVbN5tXAm4XjeaS9NAHhop+PjQxz2A9h8Q4M/xGmzP8vqNwy6JeK0A==
-
-math-expression-evaluator@^2.0.0:
-  version "2.0.7"
-  resolved "https://registry.yarnpkg.com/math-expression-evaluator/-/math-expression-evaluator-2.0.7.tgz#dc99a80ce2bf7f9b7df878126feb5c506c1fdf5f"
-  integrity sha512-uwliJZ6BPHRq4eiqNWxZBDzKUiS5RIynFFcgchqhBOloVLVBpZpNG8jRYkedLcBvhph8TnRyWEuxPqiQcwIdog==
 
 math-intrinsics@^1.1.0:
   version "1.1.0"
@@ -13980,11 +13857,6 @@ openai@^6.37.0:
   version "6.42.0"
   resolved "https://registry.yarnpkg.com/openai/-/openai-6.42.0.tgz#497bb98294a2aadcc90a655736c1d43c32ffd5d9"
   integrity sha512-1WFEt/uXMXOLhYRNkgJWo08Y2YNvNwpVU72K7ibrWgWpNOXd4VojXLbe6SQ4bLiUQ3Y8jz4IiyVkylJCL1DtZg==
-
-openapi-types@^12.1.3:
-  version "12.1.3"
-  resolved "https://registry.yarnpkg.com/openapi-types/-/openapi-types-12.1.3.tgz#471995eb26c4b97b7bd356aacf7b91b73e777dd3"
-  integrity sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw==
 
 openid-client@^5.7.1:
   version "5.7.1"
@@ -18217,11 +18089,6 @@ yaml@^2.8.2:
   version "2.8.3"
   resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.8.3.tgz#a0d6bd2efb3dd03c59370223701834e60409bd7d"
   integrity sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg==
-
-yaml@^2.8.3:
-  version "2.9.0"
-  resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.9.0.tgz#78274afd93598a1dfdd6130df6a566defcbf9aa4"
-  integrity sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==
 
 yargs-parser@21.1.1, yargs-parser@^21.0.1, yargs-parser@^21.1.1:
   version "21.1.1"

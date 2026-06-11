@@ -1,3 +1,29 @@
+## @forestadmin/mcp-server [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.12.2...@forestadmin/mcp-server@1.12.3) (2026-06-11)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.6.3
+* **@forestadmin/forestadmin-client:** upgraded to 1.40.3
+
+## @forestadmin/mcp-server [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.12.1...@forestadmin/mcp-server@1.12.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* align internal dependency versions to published releases ([#1653](https://github.com/ForestAdmin/agent-nodejs/issues/1653)) ([317fea9](https://github.com/ForestAdmin/agent-nodejs/commit/317fea90390df38a384d1d17d04ec9a05566ed49))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.6.2
+
 ## @forestadmin/mcp-server [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.12.0...@forestadmin/mcp-server@1.12.1) (2026-06-10)
 
 
