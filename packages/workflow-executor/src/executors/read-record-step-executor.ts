@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { NoReadableFieldsError, NoResolvedFieldsError } from '../errors';
 import RecordStepExecutor from './record-step-executor';
+import { isEmbeddedField } from '../types/validated/collection';
 
 const READ_RECORD_SYSTEM_PROMPT = `You are an AI agent reading fields from a record to answer a user request.
 Select the field(s) that best answer the request. You can read one field or multiple fields at once.
@@ -85,7 +86,7 @@ export default class ReadRecordStepExecutor extends RecordStepExecutor<ReadRecor
   }
 
   private buildReadFieldTool(schema: CollectionSchema): DynamicStructuredTool {
-    const nonRelationFields = schema.fields.filter(f => !f.isRelationship);
+    const nonRelationFields = schema.fields.filter(f => !f.isRelationship && !isEmbeddedField(f));
 
     if (nonRelationFields.length === 0) {
       throw new NoReadableFieldsError(schema.collectionName);

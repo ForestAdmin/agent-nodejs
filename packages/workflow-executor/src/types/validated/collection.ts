@@ -54,6 +54,20 @@ export const FieldSchemaSchema = z.object({
 });
 export type FieldSchema = z.infer<typeof FieldSchemaSchema>;
 
+function isEmbeddedColumnType(type: FieldSchema['type']): boolean {
+  if (type === null || type === undefined) return false;
+  if (Array.isArray(type)) return isEmbeddedColumnType(type[0]);
+
+  return typeof type === 'object';
+}
+
+// An object (Mongo sub-document) or array-of-objects columnType. Displaying embedded documents
+// in workflow steps is not supported yet, so these fields are excluded from read/update field
+// selection rather than read and returned to the frontend.
+export function isEmbeddedField(field: FieldSchema): boolean {
+  return isEmbeddedColumnType(field.type);
+}
+
 // ActionSchema.fields / hooks content is a discriminated union owned by the upstream
 // `@forestadmin/forestadmin-client` lib and consumed downstream by `@forestadmin/agent-client`.
 // We validate the envelope shape only — detail re-validation would duplicate the lib's job.

@@ -1369,4 +1369,96 @@ describe('ReadRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
     });
   });
+
+  describe('embedded-document fields excluded', () => {
+    it('excludes an embedded-document field from the field list advertised to the AI', async () => {
+      // Given: a scalar field and an object/embedded-document field on the same collection.
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            { fieldName: 'email', displayName: 'Email', isRelationship: false },
+            {
+              fieldName: 'identity',
+              displayName: 'Identity',
+              isRelationship: false,
+              type: { ssn: 'String', nationality: 'String' },
+            },
+          ],
+        }),
+      });
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
+      const context = makeContext({ model: mockModel.model, workflowPort });
+      const executor = new ReadRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then: the scalar reads successfully and the embedded field was never offered to the AI.
+      expect(result.stepOutcome.status).toBe('success');
+      const tool = mockModel.bindTools.mock.calls[0][0][0];
+      const advertisedFields = tool.schema.shape.fieldNames.description;
+      expect(advertisedFields).toContain('"Email"');
+      expect(advertisedFields).not.toContain('Identity');
+    });
+
+    it('returns the no-readable-fields error when the only non-relationship field is an embedded document', async () => {
+      // Given: a collection whose sole non-relationship field is an object/embedded-document.
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            {
+              fieldName: 'identity',
+              displayName: 'Identity',
+              isRelationship: false,
+              type: { ssn: 'String', nationality: 'String' },
+            },
+          ],
+        }),
+      });
+      const mockModel = makeMockModel({ fieldNames: ['identity'] });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, runStore, workflowPort });
+      const executor = new ReadRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This record type has no readable fields configured in Forest Admin.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+
+    it('returns the no-readable-fields error when the only non-relationship field is an embedded array', async () => {
+      // Given: a collection whose sole non-relationship field is an array-of-embedded-documents.
+      const workflowPort = makeMockWorkflowPort({
+        customers: makeCollectionSchema({
+          fields: [
+            {
+              fieldName: 'bills',
+              displayName: 'Bills',
+              isRelationship: false,
+              type: [{ title: 'String', amount: 'Number' }],
+            },
+          ],
+        }),
+      });
+      const mockModel = makeMockModel({ fieldNames: ['bills'] });
+      const runStore = makeMockRunStore();
+      const context = makeContext({ model: mockModel.model, runStore, workflowPort });
+      const executor = new ReadRecordStepExecutor(context);
+
+      // When
+      const result = await executor.execute();
+
+      // Then
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'This record type has no readable fields configured in Forest Admin.',
+      );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+    });
+  });
 });
