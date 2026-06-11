@@ -9,7 +9,6 @@ import {
 import {
   BadRequestHttpError,
   BaseHttpError,
-  ConflictHttpError,
   ForbiddenHttpError,
   NotFoundHttpError,
   ServiceUnavailableHttpError,
@@ -23,7 +22,6 @@ describe('http status classes', () => {
     [new UnauthorizedHttpError(), 401, 'Unauthorized'],
     [new ForbiddenHttpError(), 403, 'Forbidden'],
     [new NotFoundHttpError('gone'), 404, 'gone'],
-    [new ConflictHttpError('busy'), 409, 'busy'],
     [new ServiceUnavailableHttpError('down'), 503, 'down'],
   ] as const)('%s carries its status and userMessage', (err, status, message) => {
     expect(err).toBeInstanceOf(BaseHttpError);
@@ -74,12 +72,12 @@ describe('toHttpError', () => {
     expect(result?.cause).toBe(domainError);
   });
 
-  it('maps a ConflictError category to 409 with its userMessage (not logged)', () => {
+  it('maps RunAlreadyInFlightError to 400 with its message, not logged (expected churn)', () => {
     const domainError = new RunAlreadyInFlightError('run-1');
     const result = toHttpError(domainError);
 
-    expect(result).toBeInstanceOf(ConflictHttpError);
-    expect(result?.status).toBe(409);
+    expect(result).toBeInstanceOf(BadRequestHttpError);
+    expect(result?.status).toBe(400);
     expect(result?.userMessage).toBe('Run "run-1" is already being processed');
     expect(result?.log).toBe(false);
     expect(result?.cause).toBe(domainError);

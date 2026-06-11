@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
 import {
   AccessDeniedError,
-  ConflictError,
   NotFoundError,
+  RunAlreadyInFlightError,
   UnavailableError,
   WorkflowExecutorError,
 } from '../errors';
@@ -58,12 +58,6 @@ export class NotFoundHttpError extends BaseHttpError {
   }
 }
 
-export class ConflictHttpError extends BaseHttpError {
-  constructor(userMessage: string, options?: { log?: boolean; cause?: unknown }) {
-    super(409, userMessage, options);
-  }
-}
-
 export class ServiceUnavailableHttpError extends BaseHttpError {
   constructor(userMessage: string, options?: { log?: boolean; cause?: unknown }) {
     super(503, userMessage, options);
@@ -82,8 +76,12 @@ export function toHttpError(err: unknown): BaseHttpError | null {
 
   // Category branches MUST precede the WorkflowExecutorError catch-all: every category extends it.
   if (err instanceof NotFoundError) return new NotFoundHttpError(err.userMessage, { cause: err });
-  if (err instanceof ConflictError) return new ConflictHttpError(err.userMessage, { cause: err });
   if (err instanceof AccessDeniedError) return new ForbiddenHttpError({ log: true, cause: err });
+
+  // Expected client churn (a double trigger): 400, not logged. Precedes the catch-all, which logs.
+  if (err instanceof RunAlreadyInFlightError) {
+    return new BadRequestHttpError(err.userMessage, { cause: err });
+  }
 
   if (err instanceof UnavailableError) {
     return new ServiceUnavailableHttpError(err.userMessage, { log: true, cause: err });

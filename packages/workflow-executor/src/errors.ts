@@ -42,7 +42,6 @@ export abstract class WorkflowExecutorError extends Error {
 // over HTTP; step-execution failures (RecordNotFoundError, …) stay plain WorkflowExecutorError —
 // they never reach toHttpError (the step executor turns them into a step error outcome).
 export abstract class NotFoundError extends WorkflowExecutorError {}
-export abstract class ConflictError extends WorkflowExecutorError {}
 export abstract class AccessDeniedError extends WorkflowExecutorError {}
 export abstract class UnavailableError extends WorkflowExecutorError {}
 
@@ -342,7 +341,9 @@ export class UserMismatchError extends AccessDeniedError {
   }
 }
 
-export class RunAlreadyInFlightError extends ConflictError {
+// Stays uncategorized: it maps to 400 (see toHttpError) rather than a category status. Kept as a
+// distinct class so toHttpError can flag it as expected churn (a double trigger isn't log-worthy).
+export class RunAlreadyInFlightError extends WorkflowExecutorError {
   constructor(runId: string) {
     super(`Run "${runId}" is already being processed`);
   }
