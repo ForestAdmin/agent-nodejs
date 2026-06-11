@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.79.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.79.3...@forestadmin/agent@1.79.4) (2026-06-11)
+
+
+### Bug Fixes
+
+* compute livequery segment on SA routes ([#1651](https://github.com/ForestAdmin/agent-nodejs/issues/1651)) ([db0a476](https://github.com/ForestAdmin/agent-nodejs/commit/db0a476b59f7e0dc9cc6fe8a1e6e55899bfda06c))
+
 ## @forestadmin/agent [1.79.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.79.2...@forestadmin/agent@1.79.3) (2026-06-11)
 
 
