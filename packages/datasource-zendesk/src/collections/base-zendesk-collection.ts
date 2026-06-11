@@ -110,7 +110,7 @@ export default abstract class BaseZendeskCollection extends BaseCollection {
     const ids = this.extractIdLookup(filter?.conditionTree);
 
     if (ids) {
-      const records = (await this.fetchRecordsByIds(ids)).map(raw => this.serializeRecord(raw));
+      const records = await this.serializeForFilter(await this.fetchRecordsByIds(ids));
       const matching = filter?.conditionTree
         ? filter.conditionTree.apply(records, this, caller.timezone)
         : records;
@@ -193,6 +193,11 @@ export default abstract class BaseZendeskCollection extends BaseCollection {
     return results.filter((record): record is ZendeskRecord => record !== null);
   }
 
+  // Overridable so collections can resolve derived columns before in-memory filtering.
+  protected async serializeForFilter(records: ZendeskRecord[]): Promise<RecordData[]> {
+    return records.map(record => this.serializeRecord(record));
+  }
+
   // Re-apply the filter, sort and pagination in memory (used on the id-lookup path, which
   // bypasses the Search API and therefore never had them applied server-side).
   protected refine(
@@ -264,7 +269,7 @@ export default abstract class BaseZendeskCollection extends BaseCollection {
       const onlyIds = filter?.conditionTree?.everyLeaf(leaf => leaf.field === 'id') ?? true;
       if (onlyIds) return ids;
 
-      const records = (await this.fetchRecordsByIds(ids)).map(raw => this.serializeRecord(raw));
+      const records = await this.serializeForFilter(await this.fetchRecordsByIds(ids));
 
       return filter.conditionTree
         .apply(records, this, timezone)

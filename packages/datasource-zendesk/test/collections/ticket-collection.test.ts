@@ -392,6 +392,26 @@ describe('TicketCollection', () => {
       expect(client.deleteTicket).not.toHaveBeenCalled();
     });
 
+    it('resolves a requester_email scope condition against fetched emails on an id-lookup', async () => {
+      const client = makeClient();
+      client.findTicket.mockResolvedValue({ id: 5, requester_id: 99 });
+      client.fetchUserEmails.mockResolvedValue(new Map([[99, 'vip@acme.com']]));
+      const collection = buildCollection(client);
+
+      await collection.delete(
+        CALLER,
+        new Filter({
+          conditionTree: new ConditionTreeBranch('And', [
+            new ConditionTreeLeaf('id', 'Equal', 5),
+            new ConditionTreeLeaf('requester_email', 'Equal', 'vip@acme.com'),
+          ]),
+        }),
+      );
+
+      expect(client.fetchUserEmails).toHaveBeenCalledWith([99]);
+      expect(client.deleteTicket).toHaveBeenCalledWith(5);
+    });
+
     it('paginates through every matching page when the filter is not an id-lookup', async () => {
       const client = makeClient();
       const firstPage = Array.from({ length: 100 }, (_unused, index) => ({ id: index + 1 }));

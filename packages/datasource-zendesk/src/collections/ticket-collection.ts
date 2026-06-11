@@ -65,7 +65,9 @@ export default class TicketCollection extends BaseZendeskCollection {
     const ids = this.extractIdLookup(filter?.conditionTree);
     const tickets = ids ? await this.fetchRecordsByIds(ids) : await this.searchRecords(filter);
 
-    const needsEmail = projection.includes('requester_email');
+    const needsEmail =
+      projection.includes('requester_email') ||
+      (ids !== null && this.filtersOnRequesterEmail(filter));
     const emails = needsEmail
       ? await this.client.fetchUserEmails(collectIds(tickets, 'requester_id'))
       : new Map<number, string>();
@@ -129,7 +131,18 @@ export default class TicketCollection extends BaseZendeskCollection {
     return serializeTicket(record, new Map(), this.zendeskIdToColumnName);
   }
 
+  // Resolve requester_email so scope/segment conditions on it are honored when filtering in memory.
+  protected override async serializeForFilter(records: ZendeskRecord[]): Promise<RecordData[]> {
+    const emails = await this.client.fetchUserEmails(collectIds(records, 'requester_id'));
+
+    return records.map(record => serializeTicket(record, emails, this.zendeskIdToColumnName));
+  }
+
   // ===== Helpers =====
+
+  private filtersOnRequesterEmail(filter: PaginatedFilter | undefined): boolean {
+    return filter?.conditionTree?.someLeaf(leaf => leaf.field === 'requester_email') ?? false;
+  }
 
   private buildPayload(data: RecordData, { onCreate }: { onCreate: boolean }): ZendeskRecord {
     const payload: ZendeskRecord = {};
