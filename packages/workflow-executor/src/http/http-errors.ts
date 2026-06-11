@@ -21,7 +21,7 @@ export abstract class BaseHttpError extends Error {
   readonly log: boolean;
   cause?: unknown;
 
-  protected constructor(
+  constructor(
     status: number,
     userMessage: string,
     options: { log?: boolean; cause?: unknown } = {},
@@ -36,31 +36,31 @@ export abstract class BaseHttpError extends Error {
 }
 
 export abstract class BadRequestHttpError extends BaseHttpError {
-  protected constructor(userMessage: string, options?: { log?: boolean; cause?: unknown }) {
+  constructor(userMessage: string, options?: { log?: boolean; cause?: unknown }) {
     super(400, userMessage, options);
   }
 }
 
 export abstract class UnauthorizedHttpError extends BaseHttpError {
-  protected constructor() {
+  constructor() {
     super(401, 'Unauthorized');
   }
 }
 
 export abstract class ForbiddenHttpError extends BaseHttpError {
-  protected constructor(options?: { log?: boolean; cause?: unknown }) {
+  constructor(options?: { log?: boolean; cause?: unknown }) {
     super(403, 'Forbidden', options);
   }
 }
 
 export abstract class NotFoundHttpError extends BaseHttpError {
-  protected constructor(userMessage: string) {
+  constructor(userMessage: string) {
     super(404, userMessage);
   }
 }
 
 export abstract class ServiceUnavailableHttpError extends BaseHttpError {
-  protected constructor(userMessage: string, options?: { log?: boolean; cause?: unknown }) {
+  constructor(userMessage: string, options?: { log?: boolean; cause?: unknown }) {
     super(503, userMessage, options);
   }
 }
@@ -85,18 +85,11 @@ export class WorkflowStepFailedHttpError extends BadRequestHttpError {
   }
 }
 
-export class MissingOrInvalidTokenHttpError extends UnauthorizedHttpError {
-  // Widens the inherited protected constructor: leaves are the only instantiable classes.
-  public constructor() {
-    super();
-  }
-}
+// Concrete leaves: the abstract status classes above can't be instantiated, so every emitted
+// response is one of these named leaf types.
+export class MissingOrInvalidTokenHttpError extends UnauthorizedHttpError {}
 
-export class RunAccessDeniedHttpError extends ForbiddenHttpError {
-  public constructor() {
-    super();
-  }
-}
+export class RunAccessDeniedHttpError extends ForbiddenHttpError {}
 
 export class UserMismatchHttpError extends ForbiddenHttpError {
   constructor(error: UserMismatchError) {
