@@ -117,9 +117,11 @@ export default class QueryStringParser {
   }
 
   static parseLiveQuerySegment(context: Context) {
-    const { query } = context.request as any;
-    const segmentQuery = query.segmentQuery?.toString();
-    const connectionName = query.connectionName?.toString();
+    const { query, body } = context.request as any;
+    const subsetQuery = body?.data?.attributes?.all_records_subset_query;
+    const segmentQuery = subsetQuery?.segmentQuery?.toString() ?? query.segmentQuery?.toString();
+    const connectionName =
+      subsetQuery?.connectionName?.toString() ?? query.connectionName?.toString();
 
     if (!segmentQuery) {
       return null;
