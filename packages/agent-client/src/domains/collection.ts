@@ -171,32 +171,19 @@ export default class Collection extends CollectionChart {
     });
   }
 
-  async getOne<Data = unknown>(id: RecordId, options?: SelectOptions): Promise<Data> {
+  // `raw` returns the undeserialized JSON:API body (the deserializer drops relationship `type`,
+  // which callers reading a polymorphic relation's linkage need).
+  async getOne<Data = unknown>(
+    id: RecordId,
+    options?: SelectOptions,
+    { raw = false }: { raw?: boolean } = {},
+  ): Promise<Data> {
     return this.httpRequester.query<Data>({
       method: 'get',
       path: `/forest/${this.name}/${serializeRecordId(id)}`,
       query: QuerySerializer.serialize(options, this.name),
+      raw,
     });
-  }
-
-  // Raw JSON:API linkage { type, id } of a to-one relation (via a `<relation>@@@id` projection) —
-  // needed for polymorphic relations, where the deserializer drops the `type`. Null if no target.
-  async getRelationLinkage(
-    id: RecordId,
-    relation: string,
-  ): Promise<{ type: string; id: string } | null> {
-    const body = await this.httpRequester.query<{
-      data?: { relationships?: Record<string, { data?: { type?: string; id?: string } | null }> };
-    }>({
-      method: 'get',
-      path: `/forest/${this.name}/${serializeRecordId(id)}`,
-      query: QuerySerializer.serialize({ fields: [`${relation}@@@id`] }, this.name),
-      raw: true,
-    });
-
-    const linkage = body?.data?.relationships?.[relation]?.data;
-
-    return linkage?.type ? { type: String(linkage.type), id: String(linkage.id) } : null;
   }
 
   private getActionInfo(

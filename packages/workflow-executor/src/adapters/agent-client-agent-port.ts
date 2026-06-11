@@ -247,14 +247,26 @@ export default class AgentClientAgentPort implements AgentPort {
     });
   }
 
-  // Delegates to the lib's raw linkage read — agent-client owns URL/auth/projection.
+  // Resolves a polymorphic relation's target from the raw JSON:API linkage. The deserializer drops
+  // relationship `type`, so we read the raw body (getOne `raw`) via a `<relation>@@@id` projection
+  // and extract the linkage here — agent-client stays generic (URL/auth/serialization).
   async resolvePolymorphicType(
     { collection, id, relation }: ResolvePolymorphicTypeQuery,
     user: StepUser,
   ): Promise<{ type: string; id: string } | null> {
-    return this.callAgent('resolvePolymorphicType', async () =>
-      this.createClient(user).collection(collection).getRelationLinkage(id, relation),
-    );
+    return this.callAgent('resolvePolymorphicType', async () => {
+      const body = await this.createClient(user)
+        .collection(collection)
+        .getOne<{
+          data?: {
+            relationships?: Record<string, { data?: { type?: string; id?: string } | null }>;
+          };
+        }>(id, { fields: [`${relation}@@@id`] }, { raw: true });
+
+      const linkage = body?.data?.relationships?.[relation]?.data;
+
+      return linkage?.type ? { type: String(linkage.type), id: String(linkage.id) } : null;
+    });
   }
 
   // Hits GET /forest/ (public, no auth required across all agent versions). A 4xx here means

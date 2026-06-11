@@ -26,7 +26,6 @@ function createMockClient() {
     list: jest.fn(),
     getOne: jest.fn(),
     update: jest.fn(),
-    getRelationLinkage: jest.fn(),
     relation: jest.fn().mockReturnValue(mockRelation),
     action: jest.fn().mockResolvedValue(mockAction),
   };
@@ -825,8 +824,12 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('resolvePolymorphicType', () => {
-    it('delegates to agent-client getRelationLinkage on the source collection', async () => {
-      mockCollection.getRelationLinkage.mockResolvedValue({ type: 'orders', id: '99' });
+    function linkageBody(data: unknown) {
+      return { data: { relationships: { commentable: { data } } } };
+    }
+
+    it('reads the raw linkage via getOne and extracts { type, id }', async () => {
+      mockCollection.getOne.mockResolvedValue(linkageBody({ type: 'orders', id: '99' }));
 
       const result = await port.resolvePolymorphicType(
         { collection: 'comments', id: [7], relation: 'commentable' },
@@ -834,25 +837,31 @@ describe('AgentClientAgentPort', () => {
       );
 
       expect(result).toEqual({ type: 'orders', id: '99' });
-      expect(mockCollection.getRelationLinkage).toHaveBeenCalledWith([7], 'commentable');
+      // raw projection read on the source record, parsing done here in the adapter.
+      expect(mockCollection.getOne).toHaveBeenCalledWith(
+        [7],
+        { fields: ['commentable@@@id'] },
+        { raw: true },
+      );
     });
 
-    it('passes composite ids through to the linkage read', async () => {
-      mockCollection.getRelationLinkage.mockResolvedValue({ type: 'orders', id: '1|2' });
+    it('passes composite ids through to the raw read', async () => {
+      mockCollection.getOne.mockResolvedValue(linkageBody({ type: 'orders', id: '1|2' }));
 
       await port.resolvePolymorphicType(
         { collection: 'comments', id: ['tenant-1', 5], relation: 'commentable' },
         user,
       );
 
-      expect(mockCollection.getRelationLinkage).toHaveBeenCalledWith(
+      expect(mockCollection.getOne).toHaveBeenCalledWith(
         ['tenant-1', 5],
-        'commentable',
+        { fields: ['commentable@@@id'] },
+        { raw: true },
       );
     });
 
     it('returns null when the relation has no linkage', async () => {
-      mockCollection.getRelationLinkage.mockResolvedValue(null);
+      mockCollection.getOne.mockResolvedValue(linkageBody(null));
 
       const result = await port.resolvePolymorphicType(
         { collection: 'comments', id: [7], relation: 'commentable' },
@@ -863,7 +872,7 @@ describe('AgentClientAgentPort', () => {
     });
 
     it('wraps agent errors in AgentPortError', async () => {
-      mockCollection.getRelationLinkage.mockRejectedValue(new Error('boom'));
+      mockCollection.getOne.mockRejectedValue(new Error('boom'));
 
       await expect(
         port.resolvePolymorphicType(

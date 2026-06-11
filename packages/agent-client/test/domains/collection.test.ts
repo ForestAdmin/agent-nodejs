@@ -174,38 +174,28 @@ describe('Collection', () => {
     });
   });
 
-  describe('getRelationLinkage', () => {
-    it('reads the raw linkage via a <relation>@@@id projection and returns { type, id }', async () => {
-      httpRequester.query.mockResolvedValue({
+  describe('getOne', () => {
+    it('deserializes by default (raw not set)', async () => {
+      httpRequester.query.mockResolvedValue({ id: 7, name: 'Alice' });
+
+      const result = await collection.getOne(7);
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ method: 'get', path: '/forest/users/7', raw: false }),
+      );
+      expect(result).toEqual({ id: 7, name: 'Alice' });
+    });
+
+    it('returns the raw JSON:API body when raw is set (e.g. to read a relationship type)', async () => {
+      const body = {
         data: { relationships: { commentable: { data: { type: 'orders', id: '99' } } } },
-      });
+      };
+      httpRequester.query.mockResolvedValue(body);
 
-      const result = await collection.getRelationLinkage(7, 'commentable');
+      const result = await collection.getOne(7, { fields: ['commentable@@@id'] }, { raw: true });
 
-      expect(httpRequester.query).toHaveBeenCalledWith(
-        expect.objectContaining({ method: 'get', path: '/forest/users/7', raw: true }),
-      );
-      expect(result).toEqual({ type: 'orders', id: '99' });
-    });
-
-    it('pipe-encodes composite ids', async () => {
-      httpRequester.query.mockResolvedValue({
-        data: { relationships: { commentable: { data: { type: 'orders', id: '1|2' } } } },
-      });
-
-      await collection.getRelationLinkage([1, 'abc'], 'commentable');
-
-      expect(httpRequester.query).toHaveBeenCalledWith(
-        expect.objectContaining({ path: '/forest/users/1|abc', raw: true }),
-      );
-    });
-
-    it('returns null when there is no linked record', async () => {
-      httpRequester.query.mockResolvedValue({
-        data: { relationships: { commentable: { data: null } } },
-      });
-
-      expect(await collection.getRelationLinkage(7, 'commentable')).toBeNull();
+      expect(httpRequester.query).toHaveBeenCalledWith(expect.objectContaining({ raw: true }));
+      expect(result).toEqual(body);
     });
   });
 
