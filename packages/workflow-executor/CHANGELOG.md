@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.3...@forestadmin/workflow-executor@1.1.4) (2026-06-11)
+
+
+### Bug Fixes
+
+* **workflow:** set durations to seconds ([#1646](https://github.com/ForestAdmin/agent-nodejs/issues/1646)) ([7766363](https://github.com/ForestAdmin/agent-nodejs/commit/7766363e0753beca99a0d27a0e65220549ea8f8c))
+
 ## @forestadmin/workflow-executor [1.1.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.2...@forestadmin/workflow-executor@1.1.3) (2026-06-11)
 
 
