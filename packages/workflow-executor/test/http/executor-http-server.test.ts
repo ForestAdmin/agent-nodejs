@@ -430,7 +430,7 @@ describe('ExecutorHttpServer', () => {
       });
     });
 
-    it('returns 400 when token has no numeric id', async () => {
+    it('returns 401 when the token carries no numeric id (invalid claims)', async () => {
       const runner = createMockRunner();
       const server = createServer({ runner });
       const token = signToken({ email: 'no-id@example.com' });
@@ -439,9 +439,25 @@ describe('ExecutorHttpServer', () => {
         .post('/runs/run-1/trigger')
         .set('Authorization', `Bearer ${token}`);
 
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Missing or invalid user id in token' });
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Unauthorized' });
       expect(runner.triggerPoll).not.toHaveBeenCalled();
+    });
+
+    it('accepts a token carrying extra claims beyond id (non-strict validation)', async () => {
+      const runner = createMockRunner();
+      const server = createServer({ runner });
+      const token = signToken({ id: 1, role: 'admin', team: 'ops' });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(runner.triggerPoll).toHaveBeenCalledWith('run-1', {
+        pendingData: undefined,
+        bearerUserId: 1,
+      });
     });
 
     it('passes pendingData from request body to runner.triggerPoll', async () => {

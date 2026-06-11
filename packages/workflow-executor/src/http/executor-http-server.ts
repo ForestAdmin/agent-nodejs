@@ -10,10 +10,11 @@ import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
+import { type BearerClaims, BearerClaimsSchema } from './bearer-claims';
 import {
-  BadRequestHttpError,
   ForbiddenHttpError,
   ServiceUnavailableHttpError,
+  UnauthorizedHttpError,
   toHttpError,
 } from './http-errors';
 import serializeStepForWire from './step-serializer';
@@ -100,6 +101,16 @@ export default class ExecutorHttpServer {
       koaJwt({ secret: options.authSecret, cookie: 'forest_session_token', tokenKey: 'rawToken' }),
     );
 
+    // koa-jwt only validates the token's signature/expiry, not its payload shape. Validate the
+    // claims once, here, so every handler downstream gets a user with a guaranteed numeric id.
+    this.app.use(async (ctx, next) => {
+      const claims = BearerClaimsSchema.safeParse(ctx.state.user);
+      if (!claims.success) throw new UnauthorizedHttpError();
+      ctx.state.user = { ...ctx.state.user, ...claims.data };
+
+      await next();
+    });
+
     const router = new Router();
 
     // hasRunAccess authorization — only on GET (read-only route).
@@ -178,12 +189,8 @@ export default class ExecutorHttpServer {
 
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
-    const rawId = (ctx.state.user as { id?: unknown })?.id;
-    const bearerUserId = typeof rawId === 'number' ? rawId : Number(rawId);
-
-    if (!Number.isFinite(bearerUserId)) {
-      throw new BadRequestHttpError('Missing or invalid user id in token');
-    }
+    // Guaranteed a number by the bearer-claims middleware.
+    const bearerUserId = (ctx.state.user as BearerClaims).id;
 
     const pendingData = (ctx.request.body as { pendingData?: unknown })?.pendingData;
 
