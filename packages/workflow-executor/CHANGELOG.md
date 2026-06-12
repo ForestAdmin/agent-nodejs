@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.1.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.4...@forestadmin/workflow-executor@1.1.5) (2026-06-12)
+
+
+### Bug Fixes
+
+* **workflow-executor:** scope collection schema cache by rendering [PRD-440] ([#1660](https://github.com/ForestAdmin/agent-nodejs/issues/1660)) ([1284c9b](https://github.com/ForestAdmin/agent-nodejs/commit/1284c9b3a92b85334be2e6df5f258693b2f59d1a))
+
 ## @forestadmin/workflow-executor [1.1.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.3...@forestadmin/workflow-executor@1.1.4) (2026-06-11)
 
 
