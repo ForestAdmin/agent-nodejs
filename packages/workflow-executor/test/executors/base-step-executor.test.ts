@@ -154,7 +154,7 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId, 1),
     previousSteps: [],
     logger: makeMockLogger(),
     ...overrides,

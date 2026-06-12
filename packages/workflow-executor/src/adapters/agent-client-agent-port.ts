@@ -243,7 +243,7 @@ export default class AgentClientAgentPort implements AgentPort {
     return createRemoteAgentClient({
       url: this.agentUrl,
       token: this.mintToken(user),
-      actionEndpoints: this.buildActionEndpoints(),
+      actionEndpoints: this.buildActionEndpoints(user.renderingId),
     });
   }
 
@@ -291,10 +291,10 @@ export default class AgentClientAgentPort implements AgentPort {
     }
   }
 
-  private buildActionEndpoints(): ActionEndpointsByCollection {
+  private buildActionEndpoints(renderingId: number): ActionEndpointsByCollection {
     const endpoints: ActionEndpointsByCollection = {};
 
-    for (const [collectionName, schema] of this.schemaCache) {
+    for (const [collectionName, schema] of this.schemaCache.entriesForRendering(renderingId)) {
       endpoints[collectionName] = {};
 
       for (const action of schema.actions) {

@@ -52,7 +52,7 @@ describe('AgentClientAgentPort', () => {
     mockedCreateRemoteAgentClient.mockReturnValue(mocks.client as any);
 
     const schemaCache = new SchemaCache();
-    schemaCache.set('users', {
+    schemaCache.set(1, 'users', {
       collectionName: 'users',
       collectionId: 'col-users',
       collectionDisplayName: 'Users',
@@ -66,7 +66,7 @@ describe('AgentClientAgentPort', () => {
         { name: 'archive', displayName: 'Archive', endpoint: '/forest/actions/archive' },
       ],
     });
-    schemaCache.set('orders', {
+    schemaCache.set(1, 'orders', {
       collectionName: 'orders',
       collectionId: 'col-orders',
       collectionDisplayName: 'Orders',
@@ -77,7 +77,7 @@ describe('AgentClientAgentPort', () => {
       ],
       actions: [],
     });
-    schemaCache.set('posts', {
+    schemaCache.set(1, 'posts', {
       collectionName: 'posts',
       collectionId: 'col-posts',
       collectionDisplayName: 'Posts',
@@ -764,7 +764,7 @@ describe('AgentClientAgentPort', () => {
   describe('buildActionEndpoints', () => {
     it('passes fields and hooks from schema to agent-client (supports Ruby agent fallback)', async () => {
       const schemaCache = new SchemaCache();
-      schemaCache.set('users', {
+      schemaCache.set(1, 'users', {
         collectionName: 'users',
         collectionId: 'col-users',
         collectionDisplayName: 'Users',

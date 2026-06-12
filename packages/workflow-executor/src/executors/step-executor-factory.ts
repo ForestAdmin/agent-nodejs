@@ -135,7 +135,12 @@ export default class StepExecutorFactory {
     activityLogPort: ActivityLogPort,
     incomingPendingData?: unknown,
   ): ExecutionContext {
-    const schemaResolver = new SchemaResolver(cfg.schemaCache, cfg.workflowPort, step.runId);
+    const schemaResolver = new SchemaResolver(
+      cfg.schemaCache,
+      cfg.workflowPort,
+      step.runId,
+      step.user.renderingId,
+    );
     const activityLog = new ActivityLog(activityLogPort, step.user);
 
     return {

@@ -144,7 +144,7 @@ function makeContext(
       permissionLevel: 'admin',
       tags: {},
     },
-    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId),
+    schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId, 1),
     previousSteps: [],
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
     ...overrides,
