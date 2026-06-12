@@ -130,7 +130,7 @@ function makeContext(
   const workflowPort = overrides.workflowPort ?? makeMockWorkflowPort();
   const schemaCache = new SchemaCache();
   const schemaResolver =
-    overrides.schemaResolver ?? new SchemaResolver(schemaCache, workflowPort, runId);
+    overrides.schemaResolver ?? new SchemaResolver(schemaCache, workflowPort, runId, 1);
 
   const base: Omit<ExecutionContext<ReadRecordStepDefinition>, 'agent' | 'activityLog'> = {
     runId,
