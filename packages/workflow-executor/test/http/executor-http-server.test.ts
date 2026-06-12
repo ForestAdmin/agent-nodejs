@@ -8,7 +8,9 @@ import {
   MalformedRunError,
   RunAlreadyInFlightError,
   RunNotFoundError,
+  RunStorePortError,
   UserMismatchError,
+  WorkflowPortError,
 } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
@@ -305,6 +307,26 @@ describe('ExecutorHttpServer', () => {
       expect(runner.getRunStepExecutions).toHaveBeenCalledWith('run-1');
     });
 
+    it('returns 503 with userMessage when getRunStepExecutions rejects with RunStorePortError', async () => {
+      const runner = createMockRunner({
+        getRunStepExecutions: jest
+          .fn()
+          .mockRejectedValue(new RunStorePortError('getStepExecutions', new Error('db down'))),
+      });
+
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(503);
+      expect(response.body).toEqual({
+        error: 'The step state could not be accessed. Please retry.',
+      });
+    });
+
     it('should return 500 when getRunStepExecutions rejects', async () => {
       const runner = createMockRunner({
         getRunStepExecutions: jest.fn().mockRejectedValue(new Error('db error')),
@@ -457,7 +479,7 @@ describe('ExecutorHttpServer', () => {
 
     it('returns 403 when triggerPoll rejects with UserMismatchError', async () => {
       const runner = createMockRunner({
-        triggerPoll: jest.fn().mockRejectedValue(new UserMismatchError('run-1')),
+        triggerPoll: jest.fn().mockRejectedValue(new UserMismatchError('run-1', 999, 1)),
       });
 
       const server = createServer({ runner });
@@ -501,6 +523,71 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
+    it('returns 503 with userMessage when triggerPoll rejects with WorkflowPortError', async () => {
+      const runner = createMockRunner({
+        triggerPoll: jest
+          .fn()
+          .mockRejectedValue(new WorkflowPortError('getAvailableRun', new Error('http 502'))),
+      });
+
+      const server = createServer({ runner });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(503);
+      expect(response.body).toEqual({
+        error:
+          "This step couldn't be completed. Please try again, and contact your administrator if the problem continues.",
+      });
+    });
+
+    it('logs translated errors flagged for logging, with the offending user id and the cause stack', async () => {
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      // The domain error is the `cause`; the centralized log must surface its message (carrying
+      // the offending/owner user ids) and ITS stack — not the synthetic HTTP wrapper's stack.
+      const domainError = new UserMismatchError('run-1', 999, 1);
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(domainError),
+      });
+
+      const server = createServer({ runner, logger });
+      const token = signToken({ id: 1 });
+
+      await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'HTTP request failed',
+        expect.objectContaining({
+          method: 'POST',
+          path: '/runs/run-1/trigger',
+          status: 403,
+          error: 'User 999 not authorized for run "run-1" (owned by user 1)',
+          stack: domainError.stack,
+        }),
+      );
+    });
+
+    it('does not log expected client churn (RunNotFoundError) through the middleware', async () => {
+      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const runner = createMockRunner({
+        triggerPoll: jest.fn().mockRejectedValue(new RunNotFoundError('run-1')),
+      });
+
+      const server = createServer({ runner, logger });
+      const token = signToken({ id: 1 });
+
+      await request(server.callback)
+        .post('/runs/run-1/trigger')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('returns 400 with userMessage when triggerPoll rejects with MalformedRunError', async () => {

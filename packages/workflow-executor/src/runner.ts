@@ -188,7 +188,7 @@ export default class Runner {
     const { step, auth } = dispatch;
 
     if (options?.bearerUserId !== undefined && step.user.id !== options.bearerUserId) {
-      throw new UserMismatchError(runId);
+      throw new UserMismatchError(runId, options.bearerUserId, step.user.id);
     }
 
     await this.executeStep(step, auth.forestServerToken, options?.pendingData);
