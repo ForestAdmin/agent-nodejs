@@ -1,4 +1,4 @@
-import type { AvailableStepExecution, StepUser } from '../types/execution-context';
+import type { AvailableStepExecution } from '../types/execution-context';
 import type { CollectionSchema } from '../types/validated/collection';
 import type { StepOutcome } from '../types/validated/step-outcome';
 import type { ToolConfig } from '@forestadmin/ai-proxy';
@@ -36,5 +36,7 @@ export interface WorkflowPort {
   ): Promise<AvailableRunDispatch | null>;
   getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema>;
   getMcpServerConfigs(): Promise<Record<string, ToolConfig>>;
-  hasRunAccess(runId: string, user: StepUser): Promise<boolean>;
+  // Only the user id is needed (the access check is `?userId=`); kept narrow so callers don't
+  // have to produce a full StepUser.
+  hasRunAccess(runId: string, user: { id: number }): Promise<boolean>;
 }

@@ -1,7 +1,6 @@
 import type { Logger } from '../ports/logger-port';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
-import type { StepUser } from '../types/execution-context';
 import type { Server } from 'http';
 
 import bodyParser from '@koa/bodyparser';
@@ -10,10 +9,11 @@ import http from 'http';
 import Koa from 'koa';
 import koaJwt from 'koa-jwt';
 
+import { type BearerClaims, BearerClaimsSchema } from './bearer-claims';
 import {
-  BadRequestHttpError,
   ForbiddenHttpError,
   ServiceUnavailableHttpError,
+  UnauthorizedHttpError,
   toHttpError,
 } from './http-errors';
 import serializeStepForWire from './step-serializer';
@@ -100,6 +100,29 @@ export default class ExecutorHttpServer {
       koaJwt({ secret: options.authSecret, cookie: 'forest_session_token', tokenKey: 'rawToken' }),
     );
 
+    // koa-jwt only validates the token's signature/expiry, not its payload shape. Validate the
+    // claims once, here, so every handler downstream gets a user with a guaranteed numeric id.
+    this.app.use(async (ctx, next) => {
+      const claims = BearerClaimsSchema.safeParse(ctx.state.user);
+
+      if (!claims.success) {
+        // A token koa-jwt accepted (valid signature) but whose payload is malformed is rare and
+        // high-signal (token-issuance regression / version skew / forgery probe) — log it, unlike
+        // ordinary expired-token churn. Only the issue paths/codes, never the payload (PII).
+        this.logger.warn('Bearer token has invalid claims', {
+          method: ctx.method,
+          path: ctx.path,
+          issues: claims.error.issues.map(issue => ({ path: issue.path, code: issue.code })),
+        });
+
+        throw new UnauthorizedHttpError();
+      }
+
+      ctx.state.user = { ...ctx.state.user, ...claims.data };
+
+      await next();
+    });
+
     const router = new Router();
 
     // hasRunAccess authorization — only on GET (read-only route).
@@ -147,7 +170,7 @@ export default class ExecutorHttpServer {
   }
 
   private async hasRunAccessMiddleware(ctx: Koa.Context, next: Koa.Next): Promise<void> {
-    const user = ctx.state.user as StepUser;
+    const user = ctx.state.user as BearerClaims;
     let allowed: boolean;
 
     try {
@@ -178,12 +201,8 @@ export default class ExecutorHttpServer {
 
   private async handleTrigger(ctx: Koa.Context): Promise<void> {
     const { runId } = ctx.params;
-    const rawId = (ctx.state.user as { id?: unknown })?.id;
-    const bearerUserId = typeof rawId === 'number' ? rawId : Number(rawId);
-
-    if (!Number.isFinite(bearerUserId)) {
-      throw new BadRequestHttpError('Missing or invalid user id in token');
-    }
+    // Guaranteed a number by the bearer-claims middleware.
+    const bearerUserId = (ctx.state.user as BearerClaims).id;
 
     const pendingData = (ctx.request.body as { pendingData?: unknown })?.pendingData;
 
