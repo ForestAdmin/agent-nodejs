@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.5...@forestadmin/workflow-executor@1.2.0) (2026-06-12)
+
+
+### Features
+
+* **workflow-executor:** validate bearer claims via a zod middleware [PRD-508] ([#1659](https://github.com/ForestAdmin/agent-nodejs/issues/1659)) ([5a0a63c](https://github.com/ForestAdmin/agent-nodejs/commit/5a0a63c8dc490218bd2e46175b016f55e5ff9b80))
+
 ## @forestadmin/workflow-executor [1.1.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.4...@forestadmin/workflow-executor@1.1.5) (2026-06-12)
 
 
