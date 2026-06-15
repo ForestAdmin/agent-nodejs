@@ -978,6 +978,22 @@ describe('ForestServerWorkflowPort', () => {
     });
   });
 
+  describe('reportExecutorVersion', () => {
+    it('posts the version to the executor-version route', async () => {
+      mockQuery.mockResolvedValue(undefined);
+
+      await port.reportExecutorVersion('1.2.3');
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        options,
+        'post',
+        '/api/workflow-orchestrator/executor-version',
+        {},
+        { version: '1.2.3' },
+      );
+    });
+  });
+
   describe('hasRunAccess', () => {
     const user = {
       id: 1,

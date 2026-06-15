@@ -23,6 +23,10 @@ jest.mock('sequelize', () => ({
 
 const MockedRunner = Runner as jest.MockedClass<typeof Runner>;
 const MockedSchemaCache = SchemaCache as jest.MockedClass<typeof SchemaCache>;
+const MockedPort = ForestServerWorkflowPort as jest.MockedClass<typeof ForestServerWorkflowPort>;
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+const { version: EXECUTOR_VERSION } = require('../package.json') as { version: string };
 
 const BASE_OPTIONS = {
   envSecret: 'a'.repeat(64),
@@ -352,6 +356,7 @@ describe('WorkflowExecutor lifecycle', () => {
     // Setup Runner mock to have start/stop/state
     MockedRunner.prototype.start = jest.fn().mockResolvedValue(undefined);
     MockedRunner.prototype.stop = jest.fn().mockResolvedValue(undefined);
+    MockedPort.prototype.reportExecutorVersion = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(MockedRunner.prototype, 'state', {
       get: () => 'running',
       configurable: true,
@@ -371,6 +376,23 @@ describe('WorkflowExecutor lifecycle', () => {
   it('start() calls runner.start and server.start', async () => {
     await executor.start();
 
+    expect(MockedRunner.prototype.start).toHaveBeenCalled();
+  });
+
+  it('start() reports the executor version to the orchestrator', async () => {
+    await executor.start();
+
+    expect(MockedPort.prototype.reportExecutorVersion).toHaveBeenCalledWith(EXECUTOR_VERSION);
+  });
+
+  it('start() resolves even when reporting the version fails', async () => {
+    MockedPort.prototype.reportExecutorVersion = jest
+      .fn()
+      .mockRejectedValue(new Error('orchestrator down'));
+
+    const exec = buildInMemoryExecutor(BASE_OPTIONS);
+
+    await expect(exec.start()).resolves.toBeUndefined();
     expect(MockedRunner.prototype.start).toHaveBeenCalled();
   });
 

@@ -36,6 +36,8 @@ export interface WorkflowPort {
   ): Promise<AvailableRunDispatch | null>;
   getCollectionSchema(collectionName: string, runId: string): Promise<CollectionSchema>;
   getMcpServerConfigs(): Promise<Record<string, ToolConfig>>;
+  // Pushes the running executor's version to the orchestrator (last-write-wins, stored per env).
+  reportExecutorVersion(version: string): Promise<void>;
   // Only the user id is needed (the access check is `?userId=`); kept narrow so callers don't
   // have to produce a full StepUser.
   hasRunAccess(runId: string, user: { id: number }): Promise<boolean>;
