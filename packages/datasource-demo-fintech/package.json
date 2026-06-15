@@ -1,0 +1,30 @@
+{
+  "name": "@forestadmin/datasource-demo-fintech",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForestAdmin/agent-nodejs.git",
+    "directory": "packages/datasource-demo-fintech"
+  },
+  "dependencies": {
+    "@forestadmin/datasource-customizer": "1.69.3",
+    "@forestadmin/datasource-toolkit": "1.53.1"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf coverage dist",
+    "generate": "TS_NODE_TRANSPILE_ONLY=1 ts-node scripts/generate.ts",
+    "lint": "eslint src test",
+    "test": "jest"
+  }
+}
