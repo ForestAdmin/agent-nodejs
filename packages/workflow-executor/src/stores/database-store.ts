@@ -1,9 +1,9 @@
 import type { Logger } from '../ports/logger-port';
-import type { RunStore } from '../ports/run-store';
+import type { ClaimOutcome, RunStore } from '../ports/run-store';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { QueryInterface, Sequelize } from 'sequelize';
+import type { QueryInterface, Sequelize, Transaction } from 'sequelize';
 
-import { DataTypes } from 'sequelize';
+import { DataTypes, UniqueConstraintError } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
 
 import { RunStorePortError, WorkflowExecutorError, extractErrorMessage } from '../errors';
@@ -104,22 +104,127 @@ export default class DatabaseStore implements RunStore {
 
   async saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void> {
     return this.callPort('saveStepExecution', async () => {
-      await this.sequelize.transaction(async transaction => {
-        const now = new Date();
-        const data = JSON.stringify(stepExecution);
-        const replacements = { runId, stepIndex: stepExecution.stepIndex, data, now };
-
-        // Delete + insert in transaction: dialect-agnostic upsert (avoids ON CONFLICT / ON DUPLICATE)
-        await this.sequelize.query(
-          `DELETE FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex`,
-          { replacements, transaction },
-        );
-        await this.sequelize.query(
-          `INSERT INTO ${TABLE_NAME} (run_id, step_index, data, created_at, updated_at) VALUES (:runId, :stepIndex, :data, :now, :now)`,
-          { replacements, transaction },
-        );
-      });
+      // Delete + insert in transaction: dialect-agnostic upsert (avoids ON CONFLICT / ON DUPLICATE)
+      await this.sequelize.transaction(transaction =>
+        this.writeData(runId, stepExecution, transaction),
+      );
     });
+  }
+
+  async claimStepExecution(runId: string, seed: StepExecutionData): Promise<ClaimOutcome> {
+    return this.callPort('claimStepExecution', async () => {
+      try {
+        return await this.sequelize.transaction(async transaction => {
+          const row = await this.readPhaseForUpdate(runId, seed.stepIndex, transaction);
+
+          if (row.phase === 'done' || row.phase === 'executing') return row.phase;
+
+          // Existing but unclaimed row is locked by FOR UPDATE: overwrite in place. No row: plain
+          // INSERT so a concurrent claimer loses on the unique (run_id, step_index) index — a
+          // delete+insert here would erase the rival's row and let both win.
+          if (row.exists) await this.updateData(runId, seed, transaction);
+          else await this.insertData(runId, seed, transaction);
+
+          return 'won';
+        });
+      } catch (error) {
+        if (error instanceof UniqueConstraintError) {
+          return (await this.readPhase(runId, seed.stepIndex)) === 'done' ? 'done' : 'executing';
+        }
+
+        throw error;
+      }
+    });
+  }
+
+  // FOR UPDATE locks an existing row so a concurrent claimer blocks until commit; omitted on
+  // dialects without row locking (sqlite), which serialize writes anyway.
+  private async readPhaseForUpdate(
+    runId: string,
+    stepIndex: number,
+    transaction: Transaction,
+  ): Promise<{ exists: boolean; phase?: 'executing' | 'done' }> {
+    const lock = ['postgres', 'mysql', 'mariadb'].includes(this.sequelize.getDialect())
+      ? ' FOR UPDATE'
+      : '';
+    const [rows] = await this.sequelize.query(
+      `SELECT data FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex${lock}`,
+      { replacements: { runId, stepIndex }, transaction },
+    );
+    const typed = rows as Array<{ data: string | StepExecutionData }>;
+
+    return { exists: typed.length > 0, phase: this.extractPhase(typed) };
+  }
+
+  private async readPhase(
+    runId: string,
+    stepIndex: number,
+  ): Promise<'executing' | 'done' | undefined> {
+    const [rows] = await this.sequelize.query(
+      `SELECT data FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex`,
+      { replacements: { runId, stepIndex } },
+    );
+
+    return this.extractPhase(rows as Array<{ data: string | StepExecutionData }>);
+  }
+
+  private extractPhase(
+    rows: Array<{ data: string | StepExecutionData }>,
+  ): 'executing' | 'done' | undefined {
+    if (!rows.length) return undefined;
+    const data = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+
+    return (data as { idempotencyPhase?: 'executing' | 'done' }).idempotencyPhase;
+  }
+
+  private async writeData(
+    runId: string,
+    stepExecution: StepExecutionData,
+    transaction: Transaction,
+  ): Promise<void> {
+    await this.sequelize.query(
+      `DELETE FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex`,
+      { replacements: { runId, stepIndex: stepExecution.stepIndex }, transaction },
+    );
+    await this.insertData(runId, stepExecution, transaction);
+  }
+
+  private async insertData(
+    runId: string,
+    stepExecution: StepExecutionData,
+    transaction: Transaction,
+  ): Promise<void> {
+    const now = new Date();
+    const replacements = {
+      runId,
+      stepIndex: stepExecution.stepIndex,
+      data: JSON.stringify(stepExecution),
+      now,
+    };
+
+    await this.sequelize.query(
+      `INSERT INTO ${TABLE_NAME} (run_id, step_index, data, created_at, updated_at) VALUES (:runId, :stepIndex, :data, :now, :now)`,
+      { replacements, transaction },
+    );
+  }
+
+  private async updateData(
+    runId: string,
+    stepExecution: StepExecutionData,
+    transaction: Transaction,
+  ): Promise<void> {
+    await this.sequelize.query(
+      `UPDATE ${TABLE_NAME} SET data = :data, updated_at = :now WHERE run_id = :runId AND step_index = :stepIndex`,
+      {
+        replacements: {
+          runId,
+          stepIndex: stepExecution.stepIndex,
+          data: JSON.stringify(stepExecution),
+          now: new Date(),
+        },
+        transaction,
+      },
+    );
   }
 
   async close(logger?: Logger): Promise<void> {

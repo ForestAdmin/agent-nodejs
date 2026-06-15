@@ -1,4 +1,4 @@
-import type { RunStore } from '../ports/run-store';
+import type { ClaimOutcome, RunStore } from '../ports/run-store';
 import type { StepExecutionData } from '../types/step-execution-data';
 
 import { RunStorePortError, WorkflowExecutorError } from '../errors';
@@ -38,6 +38,29 @@ export default class InMemoryStore implements RunStore {
       }
 
       runData.set(stepExecution.stepIndex, stepExecution);
+    });
+  }
+
+  // Single-threaded read-modify-write: the synchronous body runs without interleaving.
+  async claimStepExecution(runId: string, seed: StepExecutionData): Promise<ClaimOutcome> {
+    return this.callPort('claimStepExecution', async () => {
+      const existing = this.data.get(runId)?.get(seed.stepIndex) as
+        | { idempotencyPhase?: 'executing' | 'done' }
+        | undefined;
+
+      if (existing?.idempotencyPhase === 'done') return 'done';
+      if (existing?.idempotencyPhase === 'executing') return 'executing';
+
+      let runData = this.data.get(runId);
+
+      if (!runData) {
+        runData = new Map();
+        this.data.set(runId, runData);
+      }
+
+      runData.set(seed.stepIndex, seed);
+
+      return 'won';
     });
   }
 

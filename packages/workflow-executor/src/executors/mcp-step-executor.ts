@@ -115,6 +115,14 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const tool = tools.find(t => t.base.name === target.name && t.sourceId === target.sourceId);
     if (!tool) throw new McpToolNotFoundError(target.name);
 
+    const replay = await this.claimForExecution({
+      ...existingExecution,
+      type: 'mcp',
+      stepIndex: this.context.stepIndex,
+      idempotencyPhase: 'executing',
+    });
+    if (replay) return replay;
+
     const toolResult = await this.context.activityLog.track(
       {
         action: 'action',
@@ -131,13 +139,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
             throw new McpToolInvocationError(target.name, cause);
           }
         },
-        beforeCall: () =>
-          this.context.runStore.saveStepExecution(this.context.runId, {
-            ...existingExecution,
-            type: 'mcp',
-            stepIndex: this.context.stepIndex,
-            idempotencyPhase: 'executing',
-          }),
       },
     );
 

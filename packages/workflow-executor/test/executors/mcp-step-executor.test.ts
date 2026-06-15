@@ -58,6 +58,7 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
     close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    claimStepExecution: jest.fn().mockResolvedValue('won'),
     ...overrides,
   };
 }
@@ -237,24 +238,23 @@ describe('McpStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(modelInvoke).toHaveBeenCalledTimes(2);
-      // First save: executing marker (before tool call)
-      expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        1,
+      // Executing marker is the atomic claim, written before the tool call.
+      expect(runStore.claimStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ idempotencyPhase: 'executing' }),
       );
-      // Second save: raw result with done marker
+      // First save: raw result with done marker
       expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        2,
+        1,
         'run-1',
         expect.objectContaining({
           executionResult: { success: true, toolResult },
           idempotencyPhase: 'done',
         }),
       );
-      // Third save: raw result + formattedResponse
+      // Second save: raw result + formattedResponse
       expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        3,
+        2,
         'run-1',
         expect.objectContaining({
           executionResult: { success: true, toolResult, formattedResponse: 'Found 3 results.' },
@@ -289,10 +289,10 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // Two saves: executing marker, then raw result with done marker (no third save since formatting failed)
-      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(2);
+      // One save: raw result with done marker (executing is the claim; no third save since formatting failed)
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
       expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        2,
+        1,
         'run-1',
         expect.objectContaining({
           executionResult: { success: true, toolResult: { result: 'ok' } },
@@ -325,10 +325,10 @@ describe('McpStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       // Model called only once (tool selection) — no formatting call for null result
       expect(modelInvoke).toHaveBeenCalledTimes(1);
-      // Two saves: executing marker, then raw result with done marker
-      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(2);
+      // One save: raw result with done marker (executing is the claim)
+      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
       expect(runStore.saveStepExecution).toHaveBeenNthCalledWith(
-        2,
+        1,
         'run-1',
         expect.objectContaining({
           executionResult: { success: true, toolResult: null },
@@ -754,11 +754,12 @@ describe('McpStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
-      expect(mockRunStore.saveStepExecution).toHaveBeenCalledTimes(1);
-      expect(mockRunStore.saveStepExecution).toHaveBeenCalledWith(
+      // The claim wrote the executing marker before the failed side effect; no done save follows.
+      expect(mockRunStore.claimStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ idempotencyPhase: 'executing' }),
       );
+      expect(mockRunStore.saveStepExecution).not.toHaveBeenCalled();
     });
 
     it('returns error and logs when tool invocation throws an infrastructure error', async () => {
@@ -965,15 +966,19 @@ describe('McpStepExecutor', () => {
 
       await executor.execute();
 
-      const { calls } = (runStore.saveStepExecution as jest.Mock).mock;
-      // First: 'executing'; Second: 'done' with executionResult (no formattedResponse model call)
-      expect(calls[0][1]).toMatchObject({
+      // The 'executing' marker is the atomic claim, written before the side effect.
+      const claimCalls = (runStore.claimStepExecution as jest.Mock).mock.calls;
+      expect(claimCalls).toHaveLength(1);
+      expect(claimCalls[0][1]).toMatchObject({
         type: 'mcp',
         stepIndex: 0,
         idempotencyPhase: 'executing',
       });
-      expect(calls[0][1]).not.toHaveProperty('executionResult');
-      expect(calls[1][1]).toMatchObject({
+      expect(claimCalls[0][1]).not.toHaveProperty('executionResult');
+
+      // 'done' with executionResult is persisted via saveStepExecution after the side effect.
+      const { calls } = (runStore.saveStepExecution as jest.Mock).mock;
+      expect(calls[0][1]).toMatchObject({
         type: 'mcp',
         stepIndex: 0,
         idempotencyPhase: 'done',

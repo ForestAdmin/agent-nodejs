@@ -72,6 +72,7 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
     close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    claimStepExecution: jest.fn().mockResolvedValue('won'),
     ...overrides,
   };
 }

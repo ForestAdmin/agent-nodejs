@@ -55,61 +55,14 @@ describe('ActivityLog', () => {
       expect(port.markFailed).not.toHaveBeenCalled();
     });
 
-    it('runs beforeCall between createPending and the operation', async () => {
-      const order: string[] = [];
-      const port = makeActivityLogPort();
-      (port.createPending as jest.Mock).mockImplementation(async () => {
-        order.push('createPending');
-
-        return { id: 'log-1', index: '0' };
-      });
-      const activityLog = new ActivityLog(port, makeUser());
-
-      await activityLog.track(TARGET, {
-        operation: async () => {
-          order.push('operation');
-
-          return 'x';
-        },
-        beforeCall: async () => {
-          order.push('beforeCall');
-        },
-      });
-
-      expect(order).toEqual(['createPending', 'beforeCall', 'operation']);
-    });
-
-    it('does not run beforeCall or the operation when createPending throws', async () => {
+    it('does not run the operation when createPending throws', async () => {
       const port = makeActivityLogPort();
       (port.createPending as jest.Mock).mockRejectedValue(new Error('audit down'));
-      const beforeCall = jest.fn().mockResolvedValue(undefined);
       const operation = jest.fn().mockResolvedValue('x');
       const activityLog = new ActivityLog(port, makeUser());
 
-      await expect(activityLog.track(TARGET, { operation, beforeCall })).rejects.toThrow(
-        'audit down',
-      );
-      expect(beforeCall).not.toHaveBeenCalled();
+      await expect(activityLog.track(TARGET, { operation })).rejects.toThrow('audit down');
       expect(operation).not.toHaveBeenCalled();
-    });
-
-    it('marks failed and rethrows when beforeCall throws — the operation never runs', async () => {
-      const port = makeActivityLogPort();
-      const operation = jest.fn().mockResolvedValue('x');
-      const activityLog = new ActivityLog(port, makeUser());
-
-      await expect(
-        activityLog.track(TARGET, {
-          operation,
-          beforeCall: async () => {
-            throw new Error('marker save failed');
-          },
-        }),
-      ).rejects.toThrow('marker save failed');
-
-      expect(operation).not.toHaveBeenCalled();
-      expect(port.markFailed).toHaveBeenCalledWith({ id: 'log-1', index: '0' });
-      expect(port.markSucceeded).not.toHaveBeenCalled();
     });
 
     it('marks failed (not succeeded) and rethrows the original error', async () => {

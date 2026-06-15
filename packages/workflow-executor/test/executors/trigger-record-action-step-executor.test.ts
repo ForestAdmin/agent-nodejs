@@ -74,6 +74,7 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
     close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    claimStepExecution: jest.fn().mockResolvedValue('won'),
     ...overrides,
   };
 }
@@ -762,11 +763,12 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         'An unexpected error occurred while processing this step.',
       );
-      expect(runStore.saveStepExecution).toHaveBeenCalledTimes(1);
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+      // The claim wrote the executing marker before the failed side effect; no done save follows.
+      expect(runStore.claimStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ idempotencyPhase: 'executing' }),
       );
+      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
     });
   });
 
@@ -1427,15 +1429,18 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       await executor.execute();
 
-      const { calls } = (runStore.saveStepExecution as jest.Mock).mock;
-      expect(calls).toHaveLength(2);
-      expect(calls[0][1]).toMatchObject({
+      const claimCalls = (runStore.claimStepExecution as jest.Mock).mock.calls;
+      expect(claimCalls).toHaveLength(1);
+      expect(claimCalls[0][1]).toMatchObject({
         type: 'trigger-action',
         stepIndex: 0,
         idempotencyPhase: 'executing',
       });
-      expect(calls[0][1]).not.toHaveProperty('executionResult');
-      expect(calls[1][1]).toMatchObject({
+      expect(claimCalls[0][1]).not.toHaveProperty('executionResult');
+
+      const saveCalls = (runStore.saveStepExecution as jest.Mock).mock.calls;
+      expect(saveCalls).toHaveLength(1);
+      expect(saveCalls[0][1]).toMatchObject({
         type: 'trigger-action',
         stepIndex: 0,
         idempotencyPhase: 'done',

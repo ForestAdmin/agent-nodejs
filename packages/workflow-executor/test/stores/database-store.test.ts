@@ -138,4 +138,55 @@ describe('DatabaseStore (SQLite)', () => {
       expect.objectContaining({ error: 'close failed' }),
     );
   });
+
+  describe('claimStepExecution', () => {
+    const seed = (phase: 'executing' | 'done' = 'executing') =>
+      makeStepExecution({ stepIndex: 0, idempotencyPhase: phase } as never);
+
+    it("returns 'won' and persists the executing marker when no row exists", async () => {
+      expect(await store.claimStepExecution('run-1', seed())).toBe('won');
+      expect(await store.getStepExecutions('run-1')).toEqual([
+        expect.objectContaining({ stepIndex: 0, idempotencyPhase: 'executing' }),
+      ]);
+    });
+
+    it("returns 'won' and claims a pre-existing unclaimed row (confirmation flow)", async () => {
+      await store.saveStepExecution('run-1', {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        selectedRecordRef: { collectionName: 'users', recordId: ['42'], stepIndex: 0 },
+      } as never);
+
+      expect(await store.claimStepExecution('run-1', seed())).toBe('won');
+      expect(await store.getStepExecutions('run-1')).toEqual([
+        expect.objectContaining({ idempotencyPhase: 'executing' }),
+      ]);
+    });
+
+    it("returns 'executing' when the step is already claimed", async () => {
+      await store.claimStepExecution('run-1', seed());
+
+      expect(await store.claimStepExecution('run-1', seed())).toBe('executing');
+    });
+
+    it("returns 'done' when the step already completed", async () => {
+      await store.saveStepExecution('run-1', seed('done'));
+
+      expect(await store.claimStepExecution('run-1', seed())).toBe('done');
+    });
+
+    // True concurrent claims (FOR UPDATE + unique index) need separate connections, which SQLite
+    // ':memory:' cannot provide — concurrency is covered by InMemoryStore and the executor tests.
+    // Here we assert sequential claims converge: first wins, the rest see 'executing'.
+    it('lets only the first of repeated claims win', async () => {
+      const outcomes = [
+        await store.claimStepExecution('run-1', seed()),
+        await store.claimStepExecution('run-1', seed()),
+        await store.claimStepExecution('run-1', seed()),
+      ];
+
+      expect(outcomes).toEqual(['won', 'executing', 'executing']);
+    });
+  });
 });

@@ -19,6 +19,7 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
+import InMemoryStore from '../../src/stores/in-memory-store';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<UpdateRecordStepDefinition> = {}): UpdateRecordStepDefinition {
@@ -77,6 +78,7 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
     close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    claimStepExecution: jest.fn().mockResolvedValue('won'),
     ...overrides,
   };
 }
@@ -195,6 +197,38 @@ function makeLoadRelatedPreviousStep(stepIndex: number, originalStepIndex?: numb
 }
 
 describe('UpdateRecordStepExecutor', () => {
+  describe('concurrent dispatch (PRD-451)', () => {
+    it('updates the record and emits the activity log exactly once when dispatched twice', async () => {
+      // Repro: AutomatedWithConfirmation + confirmed, two consumers race the same Started run.
+      // The atomic claim must let exactly one execution mutate and log.
+      const runStore = new InMemoryStore();
+      await runStore.init();
+      await runStore.saveStepExecution('run-1', {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+        userConfirmation: { userConfirmed: true },
+        selectedRecordRef: makeRecordRef(),
+      });
+
+      const agentPort = makeMockAgentPort();
+      const createPending = jest.fn().mockResolvedValue({ id: 'log-1', index: '0' });
+      const activityLogPort = {
+        createPending,
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const makeExecutor = () =>
+        new UpdateRecordStepExecutor(makeContext({ runStore, agentPort, activityLogPort }));
+
+      const results = await Promise.all([makeExecutor().execute(), makeExecutor().execute()]);
+
+      expect(results.map(r => r.stepOutcome.status).sort()).toEqual(['error', 'success']);
+      expect(agentPort.updateRecord).toHaveBeenCalledTimes(1);
+      expect(createPending).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('executionType=FullyAutomated: update direct (Branch B)', () => {
     it('updates the record and returns success', async () => {
       const updatedValues = { status: 'active', name: 'John Doe' };
@@ -361,8 +395,9 @@ describe('UpdateRecordStepExecutor', () => {
       });
     });
 
-    it('does not persist the executing marker when the activity log cannot be created', async () => {
+    it('claims the step before the log, so the update never fires when the log cannot be created', async () => {
       const runStore = makeMockRunStore();
+      const agentPort = makeMockAgentPort();
       const activityLogPort = {
         createPending: jest
           .fn()
@@ -372,6 +407,7 @@ describe('UpdateRecordStepExecutor', () => {
       };
       const context = makeContext({
         runStore,
+        agentPort,
         activityLogPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
@@ -382,10 +418,13 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         'Could not record this step in the audit log. Please try again, or contact your administrator if the problem persists.',
       );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalledWith(
+      // The atomic claim is the write-ahead marker and now precedes createPending: the record is
+      // never mutated when the log fails (fail-safe — the orphan claim forces a manual retry).
+      expect(runStore.claimStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ idempotencyPhase: 'executing' }),
       );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
   });
 
@@ -1939,15 +1978,18 @@ describe('UpdateRecordStepExecutor', () => {
 
       await executor.execute();
 
-      const { calls } = (runStore.saveStepExecution as jest.Mock).mock;
-      expect(calls).toHaveLength(2);
-      expect(calls[0][1]).toMatchObject({
+      const claimCalls = (runStore.claimStepExecution as jest.Mock).mock.calls;
+      expect(claimCalls).toHaveLength(1);
+      expect(claimCalls[0][1]).toMatchObject({
         type: 'update-record',
         stepIndex: 0,
         idempotencyPhase: 'executing',
       });
-      expect(calls[0][1]).not.toHaveProperty('executionResult');
-      expect(calls[1][1]).toMatchObject({
+      expect(claimCalls[0][1]).not.toHaveProperty('executionResult');
+
+      const saveCalls = (runStore.saveStepExecution as jest.Mock).mock.calls;
+      expect(saveCalls).toHaveLength(1);
+      expect(saveCalls[0][1]).toMatchObject({
         type: 'update-record',
         stepIndex: 0,
         idempotencyPhase: 'done',

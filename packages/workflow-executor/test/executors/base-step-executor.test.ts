@@ -98,6 +98,7 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
     close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue(stepExecutions),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    claimStepExecution: jest.fn().mockResolvedValue('won'),
   };
 }
 

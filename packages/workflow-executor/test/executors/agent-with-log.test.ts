@@ -173,10 +173,7 @@ describe('AgentWithLog', () => {
       const { deps, activityLogPort } = makeDeps();
       const agent = new AgentWithLog(deps);
 
-      await agent.updateRecord(
-        { collection: 'customers', id: [42], values: { name: 'X' } },
-        { beforeCall: async () => undefined },
-      );
+      await agent.updateRecord({ collection: 'customers', id: [42], values: { name: 'X' } });
 
       expect(activityLogPort.createPending).toHaveBeenCalledWith({
         renderingId: 1,
@@ -192,10 +189,7 @@ describe('AgentWithLog', () => {
       const { deps, activityLogPort } = makeDeps();
       const agent = new AgentWithLog(deps);
 
-      await agent.executeAction(
-        { collection: 'customers', action: 'send_email', id: [42] },
-        { beforeCall: async () => undefined },
-      );
+      await agent.executeAction({ collection: 'customers', action: 'send_email', id: [42] });
 
       expect(activityLogPort.createPending).toHaveBeenCalledWith({
         renderingId: 1,
@@ -207,39 +201,11 @@ describe('AgentWithLog', () => {
       });
     });
 
-    it('runs beforeCall between createPending and the agent call (audit precedes the side effect)', async () => {
-      const order: string[] = [];
-      const { deps, agentPort, activityLogPort } = makeDeps();
-      (agentPort.updateRecord as jest.Mock).mockImplementation(async () => {
-        order.push('updateRecord');
-
-        return { collectionName: 'customers', recordId: [42], values: {} };
-      });
-      const agent = new AgentWithLog(deps);
-
-      await agent.updateRecord(
-        { collection: 'customers', id: [42], values: { name: 'X' } },
-        {
-          beforeCall: async () => {
-            order.push('beforeCall');
-          },
-        },
-      );
-
-      expect(order).toEqual(['beforeCall', 'updateRecord']);
-      expect(activityLogPort.createPending).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'update', type: 'write', recordId: [42] }),
-      );
-    });
-
     it('logs executeAction as action/write', async () => {
       const { deps, activityLogPort } = makeDeps();
       const agent = new AgentWithLog(deps);
 
-      await agent.executeAction(
-        { collection: 'customers', action: 'send-email', id: [42] },
-        { beforeCall: async () => undefined },
-      );
+      await agent.executeAction({ collection: 'customers', action: 'send-email', id: [42] });
 
       expect(activityLogPort.createPending).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'action', type: 'write', recordId: [42] }),

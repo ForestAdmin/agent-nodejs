@@ -13,8 +13,6 @@ import type SchemaResolver from '../schema-resolver';
 import type { StepUser } from '../types/execution-context';
 import type { CollectionSchema, RecordData } from '../types/validated/collection';
 
-type WriteOptions = { beforeCall: () => Promise<void> };
-
 export interface AgentWithLogDeps {
   agentPort: AgentPort;
   schemaResolver: SchemaResolver;
@@ -25,7 +23,7 @@ export interface AgentWithLogDeps {
 // Wraps AgentPort and runs each data-access call through the ActivityLog so it records an
 // activity-log entry. The audit target is derived from the call: the numeric collectionId is
 // resolved from the call's collection name, the recordId from its id. Idempotency stays in the
-// executors: write methods forward a `beforeCall` thunk (the executor's write-ahead marker).
+// executors: they claim the step (write-ahead marker) before invoking these write methods.
 export default class AgentWithLog {
   private readonly agentPort: AgentPort;
 
@@ -81,19 +79,16 @@ export default class AgentWithLog {
     );
   }
 
-  async updateRecord(query: UpdateRecordQuery, opts: WriteOptions): Promise<RecordData> {
+  async updateRecord(query: UpdateRecordQuery): Promise<RecordData> {
     const { collectionId } = await this.resolveSchema(query.collection);
 
     return this.activityLog.track(
       { action: 'update', type: 'write', collectionId, recordId: query.id, label: 'updated' },
-      {
-        operation: () => this.agentPort.updateRecord(query, this.user),
-        beforeCall: opts.beforeCall,
-      },
+      { operation: () => this.agentPort.updateRecord(query, this.user) },
     );
   }
 
-  async executeAction(query: ExecuteActionQuery, opts: WriteOptions): Promise<unknown> {
+  async executeAction(query: ExecuteActionQuery): Promise<unknown> {
     const { collectionId } = await this.resolveSchema(query.collection);
 
     return this.activityLog.track(
@@ -104,10 +99,7 @@ export default class AgentWithLog {
         recordId: query.id,
         label: `triggered the action "${query.action}"`,
       },
-      {
-        operation: () => this.agentPort.executeAction(query, this.user),
-        beforeCall: opts.beforeCall,
-      },
+      { operation: () => this.agentPort.executeAction(query, this.user) },
     );
   }
 

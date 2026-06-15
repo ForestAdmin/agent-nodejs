@@ -108,6 +108,25 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     return Promise.resolve(null);
   }
 
+  // 'done' → replay success; 'executing' → another claimer holds the step, surface a retryable error.
+  protected idempotencyOutcome(phase?: 'executing' | 'done'): StepExecutionResult | null {
+    if (phase === 'done') return this.buildOutcomeResult({ status: 'success' });
+
+    if (phase === 'executing') {
+      throw new StepStateError('Step execution was interrupted. Please retry the step manually.');
+    }
+
+    return null;
+  }
+
+  // Atomic write-ahead claim run immediately before a side effect: only the winner proceeds, so the
+  // activity log and the mutation fire at most once across concurrent or re-dispatched executions.
+  protected async claimForExecution(seed: StepExecutionData): Promise<StepExecutionResult | null> {
+    const outcome = await this.context.runStore.claimStepExecution(this.context.runId, seed);
+
+    return this.idempotencyOutcome(outcome === 'won' ? undefined : outcome);
+  }
+
   // Promise.race doesn't abort the losing branch — it keeps running in the background. The .catch()
   // on execPromise must be attached BEFORE the race so a late rejection doesn't trigger
   // UnhandledPromiseRejection. Late resolutions are silently discarded.

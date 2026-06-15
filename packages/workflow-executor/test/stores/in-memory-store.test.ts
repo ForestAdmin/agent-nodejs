@@ -96,4 +96,37 @@ describe('InMemoryStore', () => {
 
     await expect(store.getStepExecutions('run-1')).rejects.toBe(domainError);
   });
+
+  describe('claimStepExecution', () => {
+    const seed = (phase: 'executing' | 'done' = 'executing') =>
+      makeStepExecution({ stepIndex: 0, idempotencyPhase: phase } as never);
+
+    it("returns 'won' and persists the executing marker when unclaimed", async () => {
+      expect(await store.claimStepExecution('run-1', seed())).toBe('won');
+      expect(await store.getStepExecutions('run-1')).toEqual([
+        expect.objectContaining({ stepIndex: 0, idempotencyPhase: 'executing' }),
+      ]);
+    });
+
+    it("returns 'executing' when the step is already claimed", async () => {
+      await store.claimStepExecution('run-1', seed());
+
+      expect(await store.claimStepExecution('run-1', seed())).toBe('executing');
+    });
+
+    it("returns 'done' when the step already completed", async () => {
+      await store.saveStepExecution('run-1', seed('done'));
+
+      expect(await store.claimStepExecution('run-1', seed())).toBe('done');
+    });
+
+    it('lets exactly one of many concurrent claims win', async () => {
+      const outcomes = await Promise.all(
+        Array.from({ length: 8 }, () => store.claimStepExecution('run-1', seed())),
+      );
+
+      expect(outcomes.filter(o => o === 'won')).toHaveLength(1);
+      expect(outcomes.filter(o => o === 'executing')).toHaveLength(7);
+    });
+  });
 });
