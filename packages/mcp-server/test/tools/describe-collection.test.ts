@@ -32,7 +32,12 @@ describe('declareDescribeCollectionTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: unknown;
+    annotations?: { readOnlyHint?: boolean };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -74,6 +79,12 @@ describe('declareDescribeCollectionTool', () => {
       );
       expect(registeredToolConfig.description).toContain('Actions properties:');
       expect(registeredToolConfig.description).toContain('download:');
+    });
+
+    it('should be annotated as read-only', () => {
+      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
+
+      expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
     });
 
     it('should define correct input schema', () => {

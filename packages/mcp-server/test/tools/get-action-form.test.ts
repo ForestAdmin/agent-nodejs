@@ -24,7 +24,12 @@ const mockBuildClientWithActions = buildClientWithActions as jest.MockedFunction
 describe('declareGetActionFormTool', () => {
   let mcpServer: McpServer;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: unknown;
+    annotations?: { readOnlyHint?: boolean };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -56,6 +61,12 @@ describe('declareGetActionFormTool', () => {
         'Retrieve and validate the form for a specific action',
       );
       expect(registeredToolConfig.description).toContain('canExecute');
+    });
+
+    it('should be annotated as read-only', () => {
+      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+
+      expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
     });
 
     it('should define correct input schema', () => {

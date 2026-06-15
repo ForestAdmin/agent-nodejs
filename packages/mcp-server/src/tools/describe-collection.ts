@@ -90,6 +90,7 @@ export default function declareDescribeCollectionTool(
     mcpServer,
     'describeCollection',
     {
+      annotations: { readOnlyHint: true },
       title: 'Describe a collection',
       description: `Discover a collection's schema: fields, types, operators, relations, and available actions. Always call this first before querying or modifying data.
 

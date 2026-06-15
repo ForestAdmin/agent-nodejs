@@ -21,7 +21,12 @@ describe('declareCreateTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: unknown;
+    annotations?: { readOnlyHint?: boolean };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -57,6 +62,12 @@ describe('declareCreateTool', () => {
       expect(registeredToolConfig.description).toBe(
         'Create a new record in the specified collection.',
       );
+    });
+
+    it('should not be annotated as read-only', () => {
+      declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
+
+      expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {

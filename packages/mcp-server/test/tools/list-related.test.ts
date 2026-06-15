@@ -28,7 +28,12 @@ describe('declareListRelatedTool', () => {
   let mockLogger: Logger;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: {
+    title: string;
+    description: string;
+    inputSchema: unknown;
+    annotations?: { readOnlyHint?: boolean };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -96,6 +101,12 @@ describe('declareListRelatedTool', () => {
       expect(registeredToolConfig.description).toBe(
         'Retrieve a list of records from a one-to-many or many-to-many relation.',
       );
+    });
+
+    it('should be annotated as read-only', () => {
+      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+
+      expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
     });
 
     it('should define correct input schema', () => {

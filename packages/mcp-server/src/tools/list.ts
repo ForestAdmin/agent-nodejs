@@ -87,6 +87,7 @@ export default function declareListTool(
     mcpServer,
     'list',
     {
+      annotations: { readOnlyHint: true },
       title: 'List records from a collection',
       description: 'Retrieve a list of records from the specified collection.',
       inputSchema: listArgumentShape,

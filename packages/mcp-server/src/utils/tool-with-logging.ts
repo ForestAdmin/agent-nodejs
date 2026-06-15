@@ -5,6 +5,7 @@ import type {
   CallToolResult,
   ServerNotification,
   ServerRequest,
+  ToolAnnotations,
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { z } from 'zod';
@@ -19,6 +20,7 @@ interface ToolConfig<TSchema extends ZodRawShape> {
   title: string;
   description: string;
   inputSchema: TSchema;
+  annotations?: ToolAnnotations;
 }
 
 type RegisterToolConfig = Parameters<McpServer['registerTool']>[1];
