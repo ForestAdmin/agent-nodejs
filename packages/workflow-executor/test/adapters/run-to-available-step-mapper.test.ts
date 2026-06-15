@@ -21,8 +21,6 @@ const logger = jest.fn();
 
 beforeEach(() => {
   logger.mockClear();
-  logger.mockClear();
-  logger.mockClear();
 });
 
 function makeTaskStepDef(
