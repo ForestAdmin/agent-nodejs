@@ -1,8 +1,6 @@
 import type { WorkflowExecutor } from '../src/build-workflow-executor';
 import type { CliFactories } from '../src/cli-core';
 
-import ConsoleLogger from '../src/adapters/console-logger';
-import PrettyLogger from '../src/adapters/pretty-logger';
 import {
   logStartup,
   parseArgs,
@@ -21,6 +19,17 @@ import {
   DEFAULT_STEP_TIMEOUT_S,
   DEFAULT_STOP_TIMEOUT_S,
 } from '../src/defaults';
+import { ConfigurationError } from '../src/errors';
+
+function isJsonLogger(out: string): boolean {
+  try {
+    JSON.parse(out);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const baseEnv: NodeJS.ProcessEnv = {
   FOREST_ENV_SECRET: 'env-secret',
@@ -89,29 +98,51 @@ describe('parseArgs', () => {
 
 describe('pickLogger', () => {
   const baseArgs = { help: false, version: false, inMemory: false, pretty: false, json: false };
+  let infoSpy: jest.SpyInstance;
 
-  it('returns PrettyLogger when stdout is a TTY', () => {
-    expect(pickLogger(baseArgs, fakeStream(true))).toBeInstanceOf(PrettyLogger);
+  beforeEach(() => {
+    infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
+  });
+  afterEach(() => infoSpy.mockRestore());
+
+  const sample = (logger: ReturnType<typeof pickLogger>): string => {
+    logger('Info', 'sample', { k: 'v' });
+
+    return infoSpy.mock.calls[0][0] as string;
+  };
+
+  it('returns a pretty (formatted) logger when stdout is a TTY', () => {
+    const out = sample(pickLogger(baseArgs, 'Info', fakeStream(true)));
+    expect(isJsonLogger(out)).toBe(false);
+    expect(out).toContain('sample');
   });
 
-  it('returns ConsoleLogger when stdout is not a TTY', () => {
-    expect(pickLogger(baseArgs, fakeStream(false))).toBeInstanceOf(ConsoleLogger);
+  it('returns a JSON (console) logger when stdout is not a TTY', () => {
+    const out = sample(pickLogger(baseArgs, 'Info', fakeStream(false)));
+    expect(isJsonLogger(out)).toBe(true);
   });
 
-  it('forces PrettyLogger with --pretty even when stdout is not a TTY', () => {
-    expect(pickLogger({ ...baseArgs, pretty: true }, fakeStream(false))).toBeInstanceOf(
-      PrettyLogger,
-    );
+  it('forces a pretty logger with --pretty even when stdout is not a TTY', () => {
+    const out = sample(pickLogger({ ...baseArgs, pretty: true }, 'Info', fakeStream(false)));
+    expect(isJsonLogger(out)).toBe(false);
   });
 
-  it('forces ConsoleLogger with --json even when stdout is a TTY', () => {
-    expect(pickLogger({ ...baseArgs, json: true }, fakeStream(true))).toBeInstanceOf(ConsoleLogger);
+  it('forces a JSON logger with --json even when stdout is a TTY', () => {
+    const out = sample(pickLogger({ ...baseArgs, json: true }, 'Info', fakeStream(true)));
+    expect(isJsonLogger(out)).toBe(true);
   });
 
   it('gives --json precedence when both flags are set', () => {
-    expect(pickLogger({ ...baseArgs, pretty: true, json: true }, fakeStream(true))).toBeInstanceOf(
-      ConsoleLogger,
+    const out = sample(
+      pickLogger({ ...baseArgs, pretty: true, json: true }, 'Info', fakeStream(true)),
     );
+    expect(isJsonLogger(out)).toBe(true);
+  });
+
+  it('filters log calls below the requested level', () => {
+    const logger = pickLogger({ ...baseArgs, json: true }, 'Warn', fakeStream(false));
+    logger('Info', 'noisy');
+    expect(infoSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -271,6 +302,42 @@ describe('readEnvConfig', () => {
       readEnvConfig({ ...baseEnv, AI_PROVIDER: 'bogus', AI_MODEL: 'm', AI_API_KEY: 'k' }, args),
     ).toThrow('AI_PROVIDER must be "anthropic" or "openai"');
   });
+
+  it.each(['Debug', 'Info', 'Warn', 'Error'] as const)(
+    'parses LOG_LEVEL=%s into loggerLevel',
+    level => {
+      const config = readEnvConfig({ ...baseEnv, LOG_LEVEL: level }, args);
+
+      expect(config.executorOptions.loggerLevel).toBe(level);
+    },
+  );
+
+  it('falls back to default loggerLevel (Info) when LOG_LEVEL is unset', () => {
+    const config = readEnvConfig(baseEnv, args);
+
+    expect(config.executorOptions.loggerLevel).toBe('Info');
+  });
+
+  it('falls back to default loggerLevel when LOG_LEVEL is empty string', () => {
+    const config = readEnvConfig({ ...baseEnv, LOG_LEVEL: '' }, args);
+
+    expect(config.executorOptions.loggerLevel).toBe('Info');
+  });
+
+  it.each(['debug', 'info', 'trace', 'fatal', 'verbose', 'xxx'])(
+    'throws ConfigurationError on invalid LOG_LEVEL=%s',
+    value => {
+      expect(() => readEnvConfig({ ...baseEnv, LOG_LEVEL: value }, args)).toThrow(
+        `LOG_LEVEL must be one of Debug, Info, Warn, Error (got "${value}")`,
+      );
+    },
+  );
+
+  it('LOG_LEVEL error is a ConfigurationError instance (typed boundary error)', () => {
+    expect(() => readEnvConfig({ ...baseEnv, LOG_LEVEL: 'oops' }, args)).toThrow(
+      ConfigurationError,
+    );
+  });
 });
 
 describe('printHelp / printVersion', () => {
@@ -320,7 +387,7 @@ describe('printHelp / printVersion', () => {
 
 describe('logStartup', () => {
   function makeLogger() {
-    return { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
+    return jest.fn();
   }
 
   it('logs resolved defaults when env-derived options are undefined', () => {
@@ -336,7 +403,8 @@ describe('logStartup', () => {
       },
     });
 
-    expect(logger.info).toHaveBeenCalledWith(
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
       'Workflow executor starting',
       expect.objectContaining({
         forestServerUrl: DEFAULT_FOREST_SERVER_URL,
@@ -406,20 +474,26 @@ describe('runCli', () => {
     expect(executor.start).toHaveBeenCalled();
   });
 
-  it('injects the picked logger into executorOptions', async () => {
+  it('injects a JSON logger into executorOptions when --json is set', async () => {
     const { factories } = makeFactories();
     await runCli(['--json'], baseEnv, factories);
 
     const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
-    expect(call.logger).toBeInstanceOf(ConsoleLogger);
+    expect(typeof call.logger).toBe('function');
+    call.logger('Info', 'probe', { k: 'v' });
+    const out = infoSpy.mock.calls.at(-1)?.[0] as string;
+    expect(isJsonLogger(out)).toBe(true);
   });
 
-  it('injects a PrettyLogger when --pretty is set', async () => {
+  it('injects a pretty logger when --pretty is set', async () => {
     const { factories } = makeFactories();
     await runCli(['--pretty'], baseEnv, factories);
 
     const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
-    expect(call.logger).toBeInstanceOf(PrettyLogger);
+    expect(typeof call.logger).toBe('function');
+    call.logger('Info', 'probe', { k: 'v' });
+    const out = infoSpy.mock.calls.at(-1)?.[0] as string;
+    expect(isJsonLogger(out)).toBe(false);
   });
 
   it('builds an in-memory executor with --in-memory', async () => {

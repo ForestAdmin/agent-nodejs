@@ -160,7 +160,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     try {
       formattedResponse = await this.formatToolResult(target, toolResult);
     } catch (cause) {
-      this.context.logger.error(
+      this.context.logger(
+        'Error',
         'Failed to format MCP tool result, persisting raw result without summary',
         {
           runId: this.context.runId,
@@ -178,7 +179,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
           executionResult: { ...baseExecutionResult, formattedResponse },
         });
       } catch (cause) {
-        this.context.logger.error(
+        this.context.logger(
+          'Error',
           'MCP tool result formatted but enriched state could not be persisted',
           {
             runId: this.context.runId,

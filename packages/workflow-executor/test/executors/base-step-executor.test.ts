@@ -102,7 +102,7 @@ function makeMockRunStore(stepExecutions: StepExecutionData[] = []): RunStore {
 }
 
 function makeMockLogger(): Logger {
-  return { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  return jest.fn();
 }
 
 function makeMockActivityLogPort(): ActivityLogPort {
@@ -430,7 +430,8 @@ describe('BaseStepExecutor', () => {
           new Error('db connection refused'),
         );
         await executor.execute();
-        expect(logger.error).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
           'Unexpected error during step execution',
           expect.objectContaining({
             runId: 'run-1',
@@ -445,11 +446,13 @@ describe('BaseStepExecutor', () => {
         const logger = makeMockLogger();
         const executor = new TestableExecutor(makeContext({ logger }));
         await executor.execute();
-        expect(logger.info).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Info',
           'Step execution started',
           expect.objectContaining({ stepType: StepType.Condition }),
         );
-        expect(logger.info).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Info',
           'Step execution completed',
           expect.objectContaining({ stepType: StepType.Condition }),
         );
@@ -464,7 +467,8 @@ describe('BaseStepExecutor', () => {
         const logger = makeMockLogger();
         const executor = new CachedExecutor(makeContext({ logger }));
         await executor.execute();
-        expect(logger.info).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Info',
           'Step execution completed (replayed from cache)',
           expect.objectContaining({ stepType: StepType.Condition }),
         );
@@ -475,7 +479,8 @@ describe('BaseStepExecutor', () => {
         const err = new Error('db connection refused');
         const executor = new TestableExecutor(makeContext({ logger }), err);
         await executor.execute();
-        expect(logger.error).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
           'Unexpected error during step execution',
           expect.objectContaining({ stack: err.stack }),
         );
@@ -493,7 +498,8 @@ describe('BaseStepExecutor', () => {
         const error = Object.assign(new Error('wrapper error'), { cause });
         const executor = new TestableExecutor(makeContext({ logger }), error);
         await executor.execute();
-        expect(logger.error).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
           'Unexpected error during step execution',
           expect.objectContaining({ cause: 'root cause' }),
         );
@@ -503,7 +509,8 @@ describe('BaseStepExecutor', () => {
         const logger = makeMockLogger();
         const executor = new TestableExecutor(makeContext({ logger }), new Error('no cause'));
         await executor.execute();
-        expect(logger.error).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
           'Unexpected error during step execution',
           expect.objectContaining({ cause: undefined }),
         );
@@ -513,7 +520,8 @@ describe('BaseStepExecutor', () => {
         const logger = makeMockLogger();
         const executor = new TestableExecutor(makeContext({ logger }), new Error('boom'));
         await executor.execute();
-        expect(logger.error).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
           'Unexpected error during step execution',
           expect.objectContaining({ stepType: StepType.Condition }),
         );
@@ -526,7 +534,8 @@ describe('BaseStepExecutor', () => {
       const error = new RunStorePortError('saveStepExecution', cause);
       const executor = new TestableExecutor(makeContext({ logger }), error);
       await executor.execute();
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Run store "saveStepExecution" failed: db timeout',
         expect.objectContaining({
           cause: 'db timeout',
@@ -541,7 +550,8 @@ describe('BaseStepExecutor', () => {
       const err = new MissingToolCallError();
       const executor = new TestableExecutor(makeContext({ logger }), err);
       await executor.execute();
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         err.message,
         expect.not.objectContaining({ cause: expect.anything() }),
       );
@@ -640,7 +650,8 @@ describe('BaseStepExecutor', () => {
         jest.advanceTimersByTime(60);
         await resultPromise;
 
-        expect(logger.error).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Error',
           'Step execution exceeded timeout of 0.05s',
           expect.objectContaining({
             runId: 'run-1',
@@ -696,7 +707,8 @@ describe('BaseStepExecutor', () => {
           setTimeout(resolve, 1_100);
         });
 
-        expect(logger.warn).toHaveBeenCalledWith(
+        expect(logger).toHaveBeenCalledWith(
+          'Warn',
           'Step work rejected after timeout — result discarded',
           expect.objectContaining({
             runId: 'run-1',
@@ -720,7 +732,8 @@ describe('BaseStepExecutor', () => {
 
       await executor.execute();
 
-      expect(logger.warn).not.toHaveBeenCalledWith(
+      expect(logger).not.toHaveBeenCalledWith(
+        'Warn',
         'Step work rejected after timeout — result discarded',
         expect.anything(),
       );

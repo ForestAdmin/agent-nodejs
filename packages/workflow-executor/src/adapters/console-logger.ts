@@ -1,15 +1,22 @@
-import type { Logger } from '../ports/logger-port';
+import type { Logger, LoggerLevel } from '../ports/logger-port';
 
-export default class ConsoleLogger implements Logger {
-  error(message: string, context: Record<string, unknown>): void {
-    console.error(JSON.stringify({ message, timestamp: new Date().toISOString(), ...context }));
-  }
+const ORDER: LoggerLevel[] = ['Debug', 'Info', 'Warn', 'Error'];
 
-  warn(message: string, context: Record<string, unknown>): void {
-    console.warn(JSON.stringify({ message, timestamp: new Date().toISOString(), ...context }));
-  }
+export default function createConsoleLogger(minLevel: LoggerLevel = 'Info'): Logger {
+  const minIndex = ORDER.indexOf(minLevel);
 
-  info(message: string, context: Record<string, unknown>): void {
-    console.info(JSON.stringify({ message, timestamp: new Date().toISOString(), ...context }));
-  }
+  return (level, message, context) => {
+    if (ORDER.indexOf(level) < minIndex) return;
+
+    const payload = JSON.stringify({
+      level,
+      message,
+      timestamp: new Date().toISOString(),
+      ...(context ?? {}),
+    });
+
+    if (level === 'Error') console.error(payload);
+    else if (level === 'Warn') console.warn(payload);
+    else console.info(payload);
+  };
 }

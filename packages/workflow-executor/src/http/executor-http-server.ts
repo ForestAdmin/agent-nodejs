@@ -17,7 +17,7 @@ import {
   toHttpError,
 } from './http-errors';
 import serializeStepForWire from './step-serializer';
-import ConsoleLogger from '../adapters/console-logger';
+import createConsoleLogger from '../adapters/console-logger';
 import { extractErrorMessage } from '../errors';
 
 export interface ExecutorHttpServerOptions {
@@ -36,7 +36,7 @@ export default class ExecutorHttpServer {
 
   constructor(options: ExecutorHttpServerOptions) {
     this.options = options;
-    this.logger = options.logger ?? new ConsoleLogger();
+    this.logger = options.logger ?? createConsoleLogger();
     this.app = new Koa();
 
     // Error-translation middleware — the single place converting thrown errors (typed HTTP
@@ -48,7 +48,7 @@ export default class ExecutorHttpServer {
         const httpError = toHttpError(err);
 
         if (!httpError) {
-          this.logger.error('Unhandled HTTP error', {
+          this.logger('Error', 'Unhandled HTTP error', {
             method: ctx.method,
             path: ctx.path,
             error: extractErrorMessage(err),
@@ -61,7 +61,7 @@ export default class ExecutorHttpServer {
         }
 
         if (httpError.log) {
-          this.logger.error('HTTP request failed', {
+          this.logger('Error', 'HTTP request failed', {
             method: ctx.method,
             path: ctx.path,
             status: httpError.status,
@@ -109,7 +109,7 @@ export default class ExecutorHttpServer {
         // A token koa-jwt accepted (valid signature) but whose payload is malformed is rare and
         // high-signal (token-issuance regression / version skew / forgery probe) — log it, unlike
         // ordinary expired-token churn. Only the issue paths/codes, never the payload (PII).
-        this.logger.warn('Bearer token has invalid claims', {
+        this.logger('Warn', 'Bearer token has invalid claims', {
           method: ctx.method,
           path: ctx.path,
           issues: claims.error.issues.map(issue => ({ path: issue.path, code: issue.code })),
@@ -176,8 +176,7 @@ export default class ExecutorHttpServer {
     try {
       allowed = await this.options.workflowPort.hasRunAccess(ctx.params.runId, user);
     } catch (err) {
-      // Logged here rather than by the translation middleware: the runId context lives here.
-      this.logger.error('Failed to check run access', {
+      this.logger('Error', 'Failed to check run access', {
         runId: ctx.params.runId,
         method: ctx.method,
         path: ctx.path,

@@ -22,6 +22,7 @@ x-executor-env: &executor-env
   POLLING_INTERVAL_S: ${POLLING_INTERVAL_S:-5}
   HTTP_PORT: "3400"
   NODE_TLS_REJECT_UNAUTHORIZED: 0
+  LOG_LEVEL: ${LOG_LEVEL}
 
 x-executor-common: &executor-common
   image: forest-workflow-executor:local

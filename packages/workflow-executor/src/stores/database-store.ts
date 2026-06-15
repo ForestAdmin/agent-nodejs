@@ -81,7 +81,7 @@ export default class DatabaseStore implements RunStore {
       try {
         await umzug.up();
       } catch (error) {
-        logger?.error('Database migration failed', {
+        logger?.('Error', 'Database migration failed', {
           error: extractErrorMessage(error),
         });
         throw error;
@@ -127,7 +127,7 @@ export default class DatabaseStore implements RunStore {
       try {
         await this.sequelize.close();
       } catch (error) {
-        logger?.error('Failed to close database connection', {
+        logger?.('Error', 'Failed to close database connection', {
           error: extractErrorMessage(error),
         });
       }

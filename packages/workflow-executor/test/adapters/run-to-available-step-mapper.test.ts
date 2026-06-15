@@ -17,12 +17,10 @@ import {
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
 import { StepType } from '../../src/types/validated/step-definition';
 
-const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+const logger = jest.fn();
 
 beforeEach(() => {
-  logger.info.mockClear();
-  logger.warn.mockClear();
-  logger.error.mockClear();
+  logger.mockClear();
 });
 
 function makeTaskStepDef(

@@ -148,7 +148,7 @@ function makeContext(
     },
     schemaResolver: new SchemaResolver(schemaCache, workflowPort, runId, 1),
     previousSteps: [],
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+    logger: jest.fn(),
     ...overrides,
   };
 
@@ -1150,7 +1150,7 @@ describe('UpdateRecordStepExecutor', () => {
     });
 
     it('returns user message and logs cause when agentPort.updateRecord throws an infra error', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const agentPort = makeMockAgentPort();
       (agentPort.updateRecord as jest.Mock).mockRejectedValue(
         new AgentPortError('updateRecord', new Error('DB connection lost')),
@@ -1172,7 +1172,8 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe(
         'An error occurred while accessing your data. Please try again.',
       );
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Agent port "updateRecord" failed: DB connection lost',
         expect.objectContaining({ cause: 'DB connection lost' }),
       );

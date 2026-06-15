@@ -58,7 +58,8 @@ export default class RemoteToolFetcher {
       .map(cfg => cfg.id)
       .filter((id): id is string => Boolean(id));
 
-    this.logger.warn(
+    this.logger(
+      'Warn',
       Object.keys(configs).length === 0
         ? 'MCP step targets a server but orchestrator returned no MCP configs'
         : 'MCP step targets a server not advertised by the orchestrator',
@@ -82,7 +83,7 @@ export default class RemoteToolFetcher {
 
     if (failedConfigNames.length === 0) return;
 
-    this.logger.error('MCP servers failed to load tools', {
+    this.logger('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: mcpServerId,
       mcpServerName,
       failedConfigNames,

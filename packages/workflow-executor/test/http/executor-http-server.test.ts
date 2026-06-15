@@ -1,3 +1,4 @@
+import type { Logger } from '../../src/ports/logger-port';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type Runner from '../../src/runner';
 
@@ -47,7 +48,7 @@ function createServer(
   overrides: {
     runner?: Runner;
     workflowPort?: WorkflowPort;
-    logger?: { info: jest.Mock; warn: jest.Mock; error: jest.Mock };
+    logger?: jest.MockedFunction<Logger>;
   } = {},
 ) {
   return new ExecutorHttpServer({
@@ -268,7 +269,7 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('returns 503 when hasRunAccess throws', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const workflowPort = createMockWorkflowPort({
         hasRunAccess: jest.fn().mockRejectedValue(new Error('orchestrator down')),
       });
@@ -281,7 +282,8 @@ describe('ExecutorHttpServer', () => {
 
       expect(response.status).toBe(503);
       expect(response.body).toEqual({ error: 'Service unavailable' });
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'Failed to check run access',
         expect.objectContaining({ runId: 'run-1', error: 'orchestrator down' }),
       );
@@ -445,7 +447,7 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('returns 401 and logs the invalid claims when the token carries no numeric id', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const runner = createMockRunner();
       const server = createServer({ runner, logger });
       const token = signToken({ email: 'no-id@example.com' });
@@ -458,7 +460,8 @@ describe('ExecutorHttpServer', () => {
       expect(response.body).toEqual({ error: 'Unauthorized' });
       expect(runner.triggerPoll).not.toHaveBeenCalled();
       // The malformed-but-signed token is surfaced (issue paths/codes only, never the payload).
-      expect(logger.warn).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
         'Bearer token has invalid claims',
         expect.objectContaining({
           method: 'POST',
@@ -587,7 +590,7 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('logs translated errors flagged for logging, with the offending user id and the cause stack', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       // The domain error is the `cause`; the centralized log must surface its message (carrying
       // the offending/owner user ids) and ITS stack — not the synthetic HTTP wrapper's stack.
       const domainError = new UserMismatchError('run-1', 999, 1);
@@ -602,7 +605,8 @@ describe('ExecutorHttpServer', () => {
         .post('/runs/run-1/trigger')
         .set('Authorization', `Bearer ${token}`);
 
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
         'HTTP request failed',
         expect.objectContaining({
           method: 'POST',
@@ -615,7 +619,7 @@ describe('ExecutorHttpServer', () => {
     });
 
     it('does not log expected client churn (RunNotFoundError) through the middleware', async () => {
-      const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+      const logger = jest.fn();
       const runner = createMockRunner({
         triggerPoll: jest.fn().mockRejectedValue(new RunNotFoundError('run-1')),
       });
@@ -627,7 +631,7 @@ describe('ExecutorHttpServer', () => {
         .post('/runs/run-1/trigger')
         .set('Authorization', `Bearer ${token}`);
 
-      expect(logger.error).not.toHaveBeenCalled();
+      expect(logger).not.toHaveBeenCalled();
     });
 
     it('returns 400 with userMessage when triggerPoll rejects with MalformedRunError', async () => {

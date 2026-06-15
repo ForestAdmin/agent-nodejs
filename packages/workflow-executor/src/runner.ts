@@ -10,7 +10,7 @@ import type { AvailableStepExecution, StepExecutionResult } from './types/execut
 import type { StepExecutionData } from './types/step-execution-data';
 import type { StepOutcome } from './types/validated/step-outcome';
 
-import ConsoleLogger from './adapters/console-logger';
+import createConsoleLogger from './adapters/console-logger';
 import { DEFAULT_MAX_CHAIN_DEPTH, DEFAULT_STOP_TIMEOUT_S } from './defaults';
 import {
   MalformedRunError,
@@ -62,7 +62,7 @@ export default class Runner {
 
   constructor(config: RunnerConfig) {
     this.config = config;
-    this.logger = config.logger ?? new ConsoleLogger();
+    this.logger = config.logger ?? createConsoleLogger();
     this.remoteToolFetcher = new RemoteToolFetcher(
       config.workflowPort,
       config.aiModelPort,
@@ -85,7 +85,7 @@ export default class Runner {
 
     // Probe the agent first so we fail fast without opening DB connections when unreachable.
     await this.config.agentPort.probe();
-    this.logger.info('Agent probe passed', {});
+    this.logger('Info', 'Agent probe passed', {});
     await this.config.runStore.init(this.logger);
 
     this._state = 'running';
@@ -97,7 +97,7 @@ export default class Runner {
     if (this._state === 'idle' || this._state === 'stopped' || this._state === 'draining') return;
 
     this._state = 'draining';
-    this.logger.info('Graceful shutdown initiated', { inFlightRuns: this.inFlightRuns.size });
+    this.logger('Info', 'Graceful shutdown initiated', { inFlightRuns: this.inFlightRuns.size });
 
     if (this.pollingTimer !== null) {
       clearTimeout(this.pollingTimer);
@@ -107,7 +107,7 @@ export default class Runner {
     try {
       // Drain in-flight runs (each entry may cover a whole auto-chain).
       if (this.inFlightRuns.size > 0) {
-        this.logger.info('Draining in-flight runs', {
+        this.logger('Info', 'Draining in-flight runs', {
           count: this.inFlightRuns.size,
           runs: [...this.inFlightRuns.keys()],
         });
@@ -126,12 +126,12 @@ export default class Runner {
         ]);
 
         if (drainResult === 'timeout') {
-          this.logger.error('Drain timeout — runs still in flight', {
+          this.logger('Error', 'Drain timeout — runs still in flight', {
             remainingRuns: [...this.inFlightRuns.keys()],
             timeoutS,
           });
         } else {
-          this.logger.info('All in-flight runs drained', {});
+          this.logger('Info', 'All in-flight runs drained', {});
         }
       }
 
@@ -146,14 +146,14 @@ export default class Runner {
 
       for (const result of results) {
         if (result.status === 'rejected') {
-          this.logger.error('Resource cleanup failed during shutdown', {
+          this.logger('Error', 'Resource cleanup failed during shutdown', {
             error: result.reason instanceof Error ? result.reason.message : String(result.reason),
           });
         }
       }
     } finally {
       this._state = 'stopped';
-      this.logger.info('Workflow executor stopped', {});
+      this.logger('Info', 'Workflow executor stopped', {});
     }
   }
 
@@ -196,7 +196,7 @@ export default class Runner {
 
   private assertRunNotInFlight(runId: string): void {
     if (this.inFlightRuns.has(runId)) {
-      this.logger.info('Trigger ignored — run already in flight', { runId });
+      this.logger('Info', 'Trigger ignored — run already in flight', { runId });
 
       throw new RunAlreadyInFlightError(runId);
     }
@@ -214,7 +214,7 @@ export default class Runner {
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
       const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
-      this.logger.info('Poll cycle completed', {
+      this.logger('Info', 'Poll cycle completed', {
         fetched: pending.length,
         dispatching: dispatchable.length,
         malformed: malformed.length,
@@ -223,7 +223,7 @@ export default class Runner {
         dispatchable.map(d => this.executeStep(d.step, d.auth.forestServerToken)),
       );
     } catch (error) {
-      this.logger.error('Poll cycle failed', {
+      this.logger('Error', 'Poll cycle failed', {
         error: extractErrorMessage(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
@@ -237,7 +237,7 @@ export default class Runner {
   // ops has to clean up manually.
   private async reportMalformedRun(info: MalformedRunInfo): Promise<void> {
     if (info.stepId === null || info.stepIndex === null) {
-      this.logger.error('Malformed run cannot be reported — no available step identified', {
+      this.logger('Error', 'Malformed run cannot be reported — no available step identified', {
         runId: info.runId,
         error: info.technicalMessage,
       });
@@ -253,13 +253,13 @@ export default class Runner {
         status: 'error',
         error: info.userMessage,
       });
-      this.logger.error('Malformed run reported as error', {
+      this.logger('Error', 'Malformed run reported as error', {
         runId: info.runId,
         stepIndex: info.stepIndex,
         error: info.technicalMessage,
       });
     } catch (reportErr) {
-      this.logger.error('Malformed run — also failed to report', {
+      this.logger('Error', 'Malformed run — also failed to report', {
         runId: info.runId,
         mappingError: info.technicalMessage,
         reportError: extractErrorMessage(reportErr),
@@ -309,12 +309,16 @@ export default class Runner {
         );
         result = await executor.execute();
       } catch (error) {
-        this.logger.error('FATAL: executor contract violated — reporting synthetic error outcome', {
-          runId: currentStep.runId,
-          stepId: currentStep.stepId,
-          stepIndex: currentStep.stepIndex,
-          error: extractErrorMessage(error),
-        });
+        this.logger(
+          'Error',
+          'FATAL: executor contract violated — reporting synthetic error outcome',
+          {
+            runId: currentStep.runId,
+            stepId: currentStep.stepId,
+            stepIndex: currentStep.stepIndex,
+            error: extractErrorMessage(error),
+          },
+        );
 
         // Report a synthetic error outcome so the orchestrator marks the run failed and stops
         // re-dispatching — without this, the contract-violating step loops forever.
@@ -329,7 +333,7 @@ export default class Runner {
         try {
           await this.config.workflowPort.updateStepExecution(currentStep.runId, syntheticOutcome);
         } catch (reportErr) {
-          this.logger.error('FATAL: also failed to report synthetic error outcome', {
+          this.logger('Error', 'FATAL: also failed to report synthetic error outcome', {
             runId: currentStep.runId,
             stepId: currentStep.stepId,
             reportError: extractErrorMessage(reportErr),
@@ -347,7 +351,7 @@ export default class Runner {
           result.stepOutcome,
         );
       } catch (error) {
-        this.logger.error('Failed to report step outcome', {
+        this.logger('Error', 'Failed to report step outcome', {
           runId: currentStep.runId,
           stepId: currentStep.stepId,
           stepIndex: currentStep.stepIndex,
@@ -360,7 +364,7 @@ export default class Runner {
       }
 
       if (nextDispatch === null) {
-        this.logger.info('Chain completed — orchestrator returned no further step', {
+        this.logger('Info', 'Chain completed — orchestrator returned no further step', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
         });
@@ -376,7 +380,7 @@ export default class Runner {
         nextDispatch.step.runId !== currentStep.runId ||
         nextDispatch.step.stepIndex <= currentStep.stepIndex
       ) {
-        this.logger.error('Server returned non-progressing next step — exiting chain', {
+        this.logger('Error', 'Server returned non-progressing next step — exiting chain', {
           runId: currentStep.runId,
           currentStepIndex: currentStep.stepIndex,
           returnedRunId: nextDispatch.step.runId,
@@ -389,7 +393,7 @@ export default class Runner {
       // Cap check BEFORE incrementing: chainedCount counts chained steps we've already executed.
       // maxDepth=2 means "run up to 2 chained steps after the initial one" (3 total).
       if (chainedCount >= maxDepth) {
-        this.logger.info('Chain depth cap reached — yielding to next poll', {
+        this.logger('Info', 'Chain depth cap reached — yielding to next poll', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
           maxDepth,
@@ -400,7 +404,7 @@ export default class Runner {
 
       // Graceful stop: finish the current step, then yield instead of chaining further.
       if (this._state === 'draining') {
-        this.logger.info('Chain interrupted by stop() — yielding', {
+        this.logger('Info', 'Chain interrupted by stop() — yielding', {
           runId: currentStep.runId,
           stepIndex: currentStep.stepIndex,
         });
