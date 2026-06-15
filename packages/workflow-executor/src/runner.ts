@@ -2,7 +2,7 @@ import type { StepContextConfig } from './executors/step-executor-factory';
 import type { ActivityLogPortFactory } from './ports/activity-log-port';
 import type { AgentPort } from './ports/agent-port';
 import type { AiModelPort } from './ports/ai-model-port';
-import type { Logger } from './ports/logger-port';
+import type { Logger, LoggerLevel } from './ports/logger-port';
 import type { RunStore } from './ports/run-store';
 import type { AvailableRunDispatch, MalformedRunInfo, WorkflowPort } from './ports/workflow-port';
 import type SchemaCache from './schema-cache';
@@ -214,7 +214,12 @@ export default class Runner {
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
       const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
-      this.logger('Info', 'Poll cycle completed', {
+      const logLevel = Runner.getPollingLogLevel({
+        pending: pending.length,
+        dispatched: dispatchable.length,
+        malformed: malformed.length,
+      });
+      this.logger(logLevel, 'Poll cycle completed', {
         fetched: pending.length,
         dispatching: dispatchable.length,
         malformed: malformed.length,
@@ -431,5 +436,17 @@ export default class Runner {
       stepTimeoutS: this.config.stepTimeoutS,
       aiInvokeTimeoutS: this.config.aiInvokeTimeoutS,
     };
+  }
+
+  private static getPollingLogLevel({
+    pending,
+    dispatched,
+    malformed,
+  }: {
+    pending: number;
+    dispatched: number;
+    malformed: number;
+  }): Extract<LoggerLevel, 'Debug' | 'Info'> {
+    return pending === 0 && dispatched === 0 && malformed === 0 ? 'Debug' : 'Info';
   }
 }

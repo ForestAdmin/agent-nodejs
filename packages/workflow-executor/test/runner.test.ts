@@ -2043,7 +2043,7 @@ describe('error handling', () => {
     );
   });
 
-  it('emits Poll cycle completed with fetched/dispatching counts on each cycle', async () => {
+  it('emits Poll cycle completed at debug level on an empty poll', async () => {
     const workflowPort = createMockWorkflowPort();
     const mockLogger = createMockLogger();
     workflowPort.getAvailableRuns.mockResolvedValue({ pending: [], malformed: [] });
@@ -2054,11 +2054,12 @@ describe('error handling', () => {
     jest.advanceTimersByTime(POLLING_INTERVAL_MS);
     await flushPromises();
 
-    expect(mockLogger).toHaveBeenCalledWith('Info', 'Poll cycle completed', {
+    expect(mockLogger).toHaveBeenCalledWith('Debug', 'Poll cycle completed', {
       fetched: 0,
       dispatching: 0,
       malformed: 0,
     });
+    expect(mockLogger).not.toHaveBeenCalledWith('Info', 'Poll cycle completed', expect.anything());
   });
 
   it('catches getAvailableRuns failure, logs it, and reschedules', async () => {
