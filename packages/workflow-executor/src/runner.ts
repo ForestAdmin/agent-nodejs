@@ -214,11 +214,11 @@ export default class Runner {
       await Promise.allSettled(malformed.map(info => this.reportMalformedRun(info)));
 
       const dispatchable = pending.filter(d => !this.inFlightRuns.has(d.step.runId));
-      const logLevel = Runner.getPollingLogLevel(
-        pending.length,
-        dispatchable.length,
-        malformed.length,
-      );
+      const logLevel = Runner.getPollingLogLevel({
+        pending: pending.length,
+        dispatched: dispatchable.length,
+        malformed: malformed.length,
+      });
       this.logger(logLevel, 'Poll cycle completed', {
         fetched: pending.length,
         dispatching: dispatchable.length,
@@ -438,11 +438,15 @@ export default class Runner {
     };
   }
 
-  private static getPollingLogLevel(
-    pending: number,
-    dispatched: number,
-    malformed: number,
-  ): Extract<LoggerLevel, 'Debug' | 'Info'> {
+  private static getPollingLogLevel({
+    pending,
+    dispatched,
+    malformed,
+  }: {
+    pending: number;
+    dispatched: number;
+    malformed: number;
+  }): Extract<LoggerLevel, 'Debug' | 'Info'> {
     return pending === 0 && dispatched === 0 && malformed === 0 ? 'Debug' : 'Info';
   }
 }
