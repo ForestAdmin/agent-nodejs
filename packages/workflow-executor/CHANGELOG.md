@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.2.0...@forestadmin/workflow-executor@1.3.0) (2026-06-15)
+
+
+### Features
+
+* **workflow-executor:** configurable log level via LOG_LEVEL env (PRD-407) ([#1624](https://github.com/ForestAdmin/agent-nodejs/issues/1624)) ([30b0ea7](https://github.com/ForestAdmin/agent-nodejs/commit/30b0ea729c98c59a45aad11727b270c3e0f2f075))
+
 # @forestadmin/workflow-executor [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.1.5...@forestadmin/workflow-executor@1.2.0) (2026-06-12)
 
 
