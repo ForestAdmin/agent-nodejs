@@ -1,7 +1,9 @@
 import type CredentialEncryption from '../../src/crypto/credential-encryption';
 import type { RefreshGrantParams, RefreshGrantResult } from '../../src/oauth/refresh-grant';
-import type McpOAuthCredentialsStore from '../../src/stores/mcp-oauth-credentials-store';
-import type { StoredMcpOAuthCredential } from '../../src/stores/mcp-oauth-credentials-store';
+import type {
+  McpOAuthCredentialsStore,
+  StoredMcpOAuthCredential,
+} from '../../src/ports/mcp-oauth-credentials-store';
 
 import {
   OAuthInvalidGrantError,
