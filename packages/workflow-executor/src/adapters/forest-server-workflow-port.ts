@@ -33,7 +33,7 @@ const ROUTES = {
   availableRun: (runId: string) =>
     `/api/workflow-orchestrator/available-run/${encodeURIComponent(runId)}`,
   updateStep: '/api/workflow-orchestrator/update-step',
-  executorVersion: '/api/workflow-orchestrator/executor-version',
+  executorVersion: '/api/workflow-orchestrator/executor-metadata',
   collectionSchema: (collectionName: string, runId: string) =>
     `/api/workflow-orchestrator/collection-schema/${encodeURIComponent(
       collectionName,

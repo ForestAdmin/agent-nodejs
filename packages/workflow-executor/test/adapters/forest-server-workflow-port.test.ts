@@ -979,7 +979,7 @@ describe('ForestServerWorkflowPort', () => {
   });
 
   describe('reportExecutorVersion', () => {
-    it('posts the version to the executor-version route', async () => {
+    it('posts the version to the executor-metadata route', async () => {
       mockQuery.mockResolvedValue(undefined);
 
       await port.reportExecutorVersion('1.2.3');
@@ -987,7 +987,7 @@ describe('ForestServerWorkflowPort', () => {
       expect(mockQuery).toHaveBeenCalledWith(
         options,
         'post',
-        '/api/workflow-orchestrator/executor-version',
+        '/api/workflow-orchestrator/executor-metadata',
         {},
         { version: '1.2.3' },
       );
