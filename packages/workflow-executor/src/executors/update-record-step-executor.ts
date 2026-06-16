@@ -131,15 +131,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       'update-record',
     );
 
-    if (existing?.idempotencyPhase === 'done') {
-      return this.buildOutcomeResult({ status: 'success' });
-    }
-
-    if (existing?.idempotencyPhase === 'executing') {
-      throw new StepStateError('Step execution was interrupted. Please retry the step manually.');
-    }
-
-    return null;
+    return this.idempotencyOutcome(existing?.idempotencyPhase);
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {

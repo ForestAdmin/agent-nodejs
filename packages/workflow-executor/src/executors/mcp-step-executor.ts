@@ -7,12 +7,7 @@ import type { RemoteTool } from '@forestadmin/ai-proxy';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import {
-  McpToolInvocationError,
-  McpToolNotFoundError,
-  NoMcpToolsError,
-  StepStateError,
-} from '../errors';
+import { McpToolInvocationError, McpToolNotFoundError, NoMcpToolsError } from '../errors';
 import BaseStepExecutor from './base-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
 
@@ -62,15 +57,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
     const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');
 
-    if (existing?.idempotencyPhase === 'done') {
-      return this.buildOutcomeResult({ status: 'success' });
-    }
-
-    if (existing?.idempotencyPhase === 'executing') {
-      throw new StepStateError('Step execution was interrupted. Please retry the step manually.');
-    }
-
-    return null;
+    return this.idempotencyOutcome(existing?.idempotencyPhase);
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
