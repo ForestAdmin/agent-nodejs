@@ -51,9 +51,9 @@ export interface RunnerConfig {
   // Max number of ADDITIONAL steps auto-chained via /update-step response before yielding to the
   // next poll cycle (counted after the initial step). 0 disables chaining entirely. Default 50.
   maxChainDepth?: number;
-  // Wired only by the database-backed executor; absent in-memory, where the fetcher raises a
-  // ConfigurationError for oauth2 steps.
-  mcpOAuthTokenService?: OAuthTokenService;
+  // Per-user OAuth access-token service for oauth2 MCP steps. Wired by both the in-memory and
+  // database executors, sharing the credential store the HTTP deposit endpoint writes to.
+  mcpOAuthTokenService: OAuthTokenService;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require

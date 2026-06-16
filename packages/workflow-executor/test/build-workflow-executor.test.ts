@@ -3,6 +3,7 @@ import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workf
 import CredentialEncryption from '../src/crypto/credential-encryption';
 import { DEFAULT_SCHEMA_CACHE_TTL_S } from '../src/defaults';
 import ExecutorHttpServer from '../src/http/executor-http-server';
+import OAuthTokenService from '../src/oauth/token-service';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
 import DatabaseMcpOAuthCredentialsStore from '../src/stores/database-mcp-oauth-credentials-store';
@@ -68,6 +69,14 @@ describe('buildInMemoryExecutor', () => {
         mcpOAuthCredentialsStore: expect.any(InMemoryMcpOAuthCredentialsStore),
         credentialEncryption: expect.any(CredentialEncryption),
       }),
+    );
+  });
+
+  it('wires an OAuth token service into the in-memory runner', () => {
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ mcpOAuthTokenService: expect.any(OAuthTokenService) }),
     );
   });
 

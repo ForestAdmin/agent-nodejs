@@ -6,7 +6,7 @@ import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
 import { injectOauthTokens } from '@forestadmin/ai-proxy';
 
-import { ConfigurationError, OAuthReauthRequiredError } from './errors';
+import { OAuthReauthRequiredError } from './errors';
 
 const OAUTH2_AUTH_TYPE = 'oauth2';
 
@@ -35,13 +35,13 @@ export default class RemoteToolFetcher {
   private readonly workflowPort: WorkflowPort;
   private readonly aiModelPort: AiModelPort;
   private readonly logger: Logger;
-  private readonly oauthTokenService?: OAuthTokenService;
+  private readonly oauthTokenService: OAuthTokenService;
 
   constructor(
     workflowPort: WorkflowPort,
     aiModelPort: AiModelPort,
     logger: Logger,
-    oauthTokenService?: OAuthTokenService,
+    oauthTokenService: OAuthTokenService,
   ) {
     this.workflowPort = workflowPort;
     this.aiModelPort = aiModelPort;
@@ -77,13 +77,6 @@ export default class RemoteToolFetcher {
     mcpServerId: string,
     userId: number,
   ): Promise<FetchRemoteToolsResult> {
-    if (!this.oauthTokenService) {
-      throw new ConfigurationError(
-        `OAuth-protected MCP server "${mcpServerId}" requires the database-backed executor ` +
-          `(no credential store is configured)`,
-      );
-    }
-
     const tokenService = this.oauthTokenService;
 
     const attemptLoad = async (
