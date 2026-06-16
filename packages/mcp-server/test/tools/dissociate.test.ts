@@ -1,5 +1,6 @@
 import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
+import type { RegisteredToolConfig } from '../helpers/registered-tool-config';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
@@ -21,7 +22,7 @@ describe('declareDissociateTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: RegisteredToolConfig;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -57,6 +58,12 @@ describe('declareDissociateTool', () => {
       expect(registeredToolConfig.description).toBe(
         'Unlink records from a one-to-many or many-to-many relation. For many-to-many relations, this removes entries from the join table without deleting the target records.',
       );
+    });
+
+    it('should not be annotated as read-only', () => {
+      declareDissociateTool(mcpServer, mockForestServerClient, mockLogger);
+
+      expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {

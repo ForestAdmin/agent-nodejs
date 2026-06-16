@@ -1,5 +1,6 @@
 import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
+import type { RegisteredToolConfig } from '../helpers/registered-tool-config';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
@@ -28,12 +29,7 @@ describe('declareListRelatedTool', () => {
   let mockLogger: Logger;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: {
-    title: string;
-    description: string;
-    inputSchema: unknown;
-    annotations?: { readOnlyHint?: boolean };
-  };
+  let registeredToolConfig: RegisteredToolConfig;
 
   beforeEach(() => {
     jest.clearAllMocks();

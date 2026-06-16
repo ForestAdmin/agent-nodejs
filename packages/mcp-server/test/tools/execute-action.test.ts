@@ -1,5 +1,6 @@
 import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
+import type { RegisteredToolConfig } from '../helpers/registered-tool-config';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
@@ -27,7 +28,7 @@ const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withAc
 describe('declareExecuteActionTool', () => {
   let mcpServer: McpServer;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: RegisteredToolConfig;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,6 +63,12 @@ describe('declareExecuteActionTool', () => {
         'Execute a specific action on one or more records',
       );
       expect(registeredToolConfig.description).toContain('MUST call getActionForm first');
+    });
+
+    it('should not be annotated as read-only', () => {
+      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+
+      expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {
