@@ -33,6 +33,7 @@ const ROUTES = {
   availableRun: (runId: string) =>
     `/api/workflow-orchestrator/available-run/${encodeURIComponent(runId)}`,
   updateStep: '/api/workflow-orchestrator/update-step',
+  executorMetadata: '/api/workflow-orchestrator/executor-metadata',
   collectionSchema: (collectionName: string, runId: string) =>
     `/api/workflow-orchestrator/collection-schema/${encodeURIComponent(
       collectionName,
@@ -212,6 +213,14 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
           throw err;
         }
       },
+      { retry: true },
+    );
+  }
+
+  async reportExecutorMetadata({ version }: { version: string }): Promise<void> {
+    await this.callPort(
+      'reportExecutorMetadata',
+      () => ServerUtils.query<void>(this.options, 'post', ROUTES.executorMetadata, {}, { version }),
       { retry: true },
     );
   }

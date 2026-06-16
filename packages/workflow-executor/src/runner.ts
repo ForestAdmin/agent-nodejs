@@ -52,6 +52,9 @@ export interface RunnerConfig {
   maxChainDepth?: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
+const { version: EXECUTOR_VERSION } = require('../package.json') as { version: string };
+
 export default class Runner {
   private readonly config: RunnerConfig;
   private pollingTimer: NodeJS.Timeout | null = null;
@@ -90,6 +93,7 @@ export default class Runner {
 
     this._state = 'running';
 
+    this.pushMetadataToOrchestrator();
     this.schedulePoll();
   }
 
@@ -448,5 +452,14 @@ export default class Runner {
     malformed: number;
   }): Extract<LoggerLevel, 'Debug' | 'Info'> {
     return pending === 0 && dispatched === 0 && malformed === 0 ? 'Debug' : 'Info';
+  }
+
+  private pushMetadataToOrchestrator(): void {
+    this.config.workflowPort.reportExecutorMetadata({ version: EXECUTOR_VERSION }).catch(error => {
+      this.logger('Warn', 'Failed to report executor version to orchestrator', {
+        version: EXECUTOR_VERSION,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
   }
 }

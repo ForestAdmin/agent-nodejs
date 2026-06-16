@@ -51,6 +51,7 @@ function createMockWorkflowPort(): jest.Mocked<WorkflowPort> {
     getCollectionSchema: jest.fn(),
     getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
+    reportExecutorMetadata: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -68,6 +69,9 @@ function createMockLogger(): jest.MockedFunction<Logger> {
 
 const VALID_ENV_SECRET = 'a'.repeat(64);
 const VALID_AUTH_SECRET = 'test-auth-secret';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
+const { version: EXECUTOR_VERSION } = require('../package.json') as { version: string };
 
 function createMockRunStore(overrides: Partial<RunStore> = {}): jest.Mocked<RunStore> {
   return {
@@ -276,6 +280,65 @@ describe('start', () => {
     await expect(runner.start()).rejects.toThrow('cannot reach agent');
     expect(config.runStore.init).not.toHaveBeenCalled();
     expect(runner.state).toBe('idle');
+  });
+
+  it('reports the executor version to the orchestrator on start', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
+
+    await runner.start();
+
+    expect(config.workflowPort.reportExecutorMetadata).toHaveBeenCalledWith({
+      version: EXECUTOR_VERSION,
+    });
+  });
+
+  it('does not fail start and logs a warning when reporting the version rejects', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.reportExecutorMetadata.mockRejectedValueOnce(new Error('orchestrator down'));
+    const logger = createMockLogger();
+    runner = new Runner(createRunnerConfig({ workflowPort, logger }));
+
+    await expect(runner.start()).resolves.toBeUndefined();
+    expect(runner.state).toBe('running');
+
+    await flushPromises();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Failed to report executor version to orchestrator',
+      {
+        version: EXECUTOR_VERSION,
+        error: 'orchestrator down',
+      },
+    );
+  });
+
+  it('stringifies a non-Error rejection when logging the report failure', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.reportExecutorMetadata.mockRejectedValueOnce('boom');
+    const logger = createMockLogger();
+    runner = new Runner(createRunnerConfig({ workflowPort, logger }));
+
+    await runner.start();
+
+    await flushPromises();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Failed to report executor version to orchestrator',
+      {
+        version: EXECUTOR_VERSION,
+        error: 'boom',
+      },
+    );
+  });
+
+  it('does not block start when the report never settles', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.reportExecutorMetadata.mockReturnValue(new Promise<void>(() => {}));
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(runner.start()).resolves.toBeUndefined();
+    expect(runner.state).toBe('running');
   });
 });
 

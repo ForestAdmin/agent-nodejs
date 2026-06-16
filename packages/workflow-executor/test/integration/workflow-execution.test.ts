@@ -146,6 +146,7 @@ function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): jest.Moc
     getCollectionSchema: jest.fn().mockResolvedValue(COLLECTION_SCHEMA),
     getMcpServerConfigs: jest.fn().mockResolvedValue({}),
     hasRunAccess: jest.fn().mockResolvedValue(true),
+    reportExecutorMetadata: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as jest.Mocked<WorkflowPort>;
 }
