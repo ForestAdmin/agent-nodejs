@@ -247,6 +247,33 @@ describe('OAuthTokenService.getAccessToken', () => {
       );
     });
 
+    it('persists the rotated token onto the re-read credential fields, not the stale ones', async () => {
+      const original = makeCredential({ scopes: 'a b' });
+      const latest = makeCredential({
+        refreshTokenEnc: Buffer.from('enc-rt-rotated'),
+        scopes: 'a b c',
+      });
+      const get = jest.fn().mockResolvedValueOnce(original).mockResolvedValueOnce(latest);
+      const upsert = jest.fn().mockResolvedValue(undefined);
+      const refresh = jest
+        .fn()
+        .mockRejectedValueOnce(new OAuthInvalidGrantError())
+        .mockResolvedValueOnce({ accessToken: 'at', expiresInS: 3600, refreshToken: 'rt-3' });
+
+      const service = new OAuthTokenService({
+        store: { get, upsert } as unknown as McpOAuthCredentialsStore,
+        encryption: {
+          decrypt: (buf: Buffer) => buf.toString(),
+          encrypt: () => ({ ciphertext: Buffer.from('enc:rt-3'), encKeyVersion: 2 }),
+        } as unknown as CredentialEncryption,
+        refreshAccessToken: refresh,
+      });
+
+      await service.getAccessToken(USER_ID, SERVER_ID);
+
+      expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ scopes: 'a b c' }));
+    });
+
     it('raises OAuthReauthRequiredError when the re-read shows the same (unrotated) token', async () => {
       const refresh = jest.fn().mockRejectedValue(new OAuthInvalidGrantError());
       const { service } = setup({ refresh });

@@ -84,7 +84,11 @@ export default class OAuthTokenService {
     const credential = await this.store.get(userId, mcpServerId);
     if (!credential) throw new OAuthReauthRequiredError(mcpServerId);
 
-    const result = await this.runGrantWithRotationRetry(credential, userId, mcpServerId);
+    const { result, credential: grantedCredential } = await this.runGrantWithRotationRetry(
+      credential,
+      userId,
+      mcpServerId,
+    );
 
     this.cache.set(key, {
       accessToken: result.accessToken,
@@ -93,22 +97,25 @@ export default class OAuthTokenService {
     });
 
     if (result.refreshToken) {
-      await this.persistRotatedRefreshToken(credential, result.refreshToken);
+      await this.persistRotatedRefreshToken(grantedCredential, result.refreshToken);
     }
 
     return result.accessToken;
   }
 
   // On invalid_grant a peer instance likely rotated the refresh token out from under us: re-read the
-  // row and retry once with the current token. A second invalid_grant — or an unchanged token, which
-  // means no peer rotated it — is a genuine revocation and forces re-auth.
+  // row and retry once with the current token; a second invalid_grant (or an unchanged token) is a
+  // genuine revocation and forces re-auth. Returns the credential whose token produced the grant so
+  // the caller writes the rotated token back onto that (current) row, not the stale one.
   private async runGrantWithRotationRetry(
     credential: StoredMcpOAuthCredential,
     userId: number,
     mcpServerId: string,
-  ): Promise<RefreshGrantResult> {
+  ): Promise<{ result: RefreshGrantResult; credential: StoredMcpOAuthCredential }> {
     try {
-      return await this.refreshAccessToken(this.toGrantParams(credential));
+      const result = await this.refreshAccessToken(this.toGrantParams(credential));
+
+      return { result, credential };
     } catch (error) {
       if (!(error instanceof OAuthInvalidGrantError)) throw error;
 
@@ -123,7 +130,9 @@ export default class OAuthTokenService {
       }
 
       try {
-        return await this.refreshAccessToken(this.toGrantParams(latest));
+        const result = await this.refreshAccessToken(this.toGrantParams(latest));
+
+        return { result, credential: latest };
       } catch (retryError) {
         if (retryError instanceof OAuthInvalidGrantError) {
           throw new OAuthReauthRequiredError(mcpServerId);
