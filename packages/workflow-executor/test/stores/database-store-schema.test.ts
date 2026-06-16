@@ -4,8 +4,7 @@ import { SequelizeStorage, Umzug } from 'umzug';
 
 import DatabaseStore from '../../src/stores/database-store';
 
-// Mock umzug so we can assert how the store wires the migration registry and the
-// migration itself, without a real Postgres connection (CI has none for this pkg).
+// Mock umzug to assert the schema wiring without a real Postgres connection.
 jest.mock('umzug', () => ({
   Umzug: jest.fn().mockImplementation(() => ({ up: jest.fn().mockResolvedValue(undefined) })),
   SequelizeStorage: jest.fn(),

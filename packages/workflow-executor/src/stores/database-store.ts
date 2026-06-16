@@ -9,11 +9,8 @@ import { SequelizeStorage, Umzug } from 'umzug';
 import { RunStorePortError, WorkflowExecutorError, extractErrorMessage } from '../errors';
 
 const TABLE_NAME = 'workflow_step_executions';
-// Dedicated schema namespacing the executor's table AND its umzug migration
-// registry (SequelizeMeta), so the executor is safe to share a database with the
-// agent / server — each tool keeps its own schema (as Datadog or Heroku do).
-// Applied only on dialects with real schema support; skipped on SQLite, which the
-// test suite uses.
+// Dedicated schema so the executor (table + SequelizeMeta) is safe to share a
+// database with the agent/server.
 const SCHEMA_NAME = 'forest';
 
 export interface DatabaseStoreOptions {
@@ -27,18 +24,15 @@ export default class DatabaseStore implements RunStore {
     this.sequelize = options.sequelize;
   }
 
-  // SQLite emulates schemas as attached databases, so we skip it there and stay in
-  // the default schema; every other dialect gets the dedicated `forest` schema.
+  // SQLite has no real schema support, so we skip it there.
   private get schema(): string | undefined {
     return this.sequelize.getDialect() === 'sqlite' ? undefined : SCHEMA_NAME;
   }
 
-  // Table identifier accepted by the QueryInterface (Sequelize handles quoting).
   private get tableId(): string | { tableName: string; schema: string } {
     return this.schema ? { tableName: TABLE_NAME, schema: this.schema } : TABLE_NAME;
   }
 
-  // Schema-qualified, quoted table reference for raw SQL.
   private get tableReference(): string {
     return this.schema ? `"${this.schema}"."${TABLE_NAME}"` : `"${TABLE_NAME}"`;
   }
@@ -107,8 +101,6 @@ export default class DatabaseStore implements RunStore {
     return this.callPort('init', async () => {
       try {
         if (schema) {
-          // Create the schema up front (idempotent) so both the table and the
-          // umzug SequelizeMeta registry land in it.
           await this.sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
         }
 
