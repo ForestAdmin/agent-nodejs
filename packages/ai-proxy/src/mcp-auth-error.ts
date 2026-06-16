@@ -1,8 +1,10 @@
-// Classifies errors surfaced while connecting to or calling an MCP server. The MCP SDK / HTTP
+// Classifies errors surfaced while connecting to or calling an MCP server. Only 401 (the token was
+// rejected) is a refreshable auth failure; 403 is a permission/scope problem a token refresh or
+// re-consent cannot resolve, so it is left to surface as an ordinary failure. The MCP SDK / HTTP
 // transport reports failures in several shapes (a numeric status field, or only a message string),
 // so the checks walk the cause chain and inspect both structured status and the message text.
-const AUTH_STATUSES = new Set([401, 403]);
-const AUTH_PATTERN = /\b40[13]\b|unauthorized|forbidden/i;
+const AUTH_STATUSES = new Set([401]);
+const AUTH_PATTERN = /\b401\b|unauthorized/i;
 const CONNECTION_PATTERN =
   /econnrefused|econnreset|etimedout|enotfound|eai_again|fetch failed|network|socket|timeout|connect/i;
 
