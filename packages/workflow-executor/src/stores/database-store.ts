@@ -9,6 +9,12 @@ import { SequelizeStorage, Umzug } from 'umzug';
 import { RunStorePortError, WorkflowExecutorError, extractErrorMessage } from '../errors';
 
 const TABLE_NAME = 'workflow_step_executions';
+// Dedicated schema namespacing the executor's table AND its umzug migration
+// registry (SequelizeMeta), so the executor is safe to share a database with the
+// agent / server — each tool keeps its own schema (as Datadog or Heroku do).
+// Applied only on dialects with real schema support; skipped on SQLite, which the
+// test suite uses.
+const SCHEMA_NAME = 'forest';
 
 export interface DatabaseStoreOptions {
   sequelize: Sequelize;
@@ -21,13 +27,31 @@ export default class DatabaseStore implements RunStore {
     this.sequelize = options.sequelize;
   }
 
+  // SQLite emulates schemas as attached databases, so we skip it there and stay in
+  // the default schema; every other dialect gets the dedicated `forest` schema.
+  private get schema(): string | undefined {
+    return this.sequelize.getDialect() === 'sqlite' ? undefined : SCHEMA_NAME;
+  }
+
+  // Table identifier accepted by the QueryInterface (Sequelize handles quoting).
+  private get tableId(): string | { tableName: string; schema: string } {
+    return this.schema ? { tableName: TABLE_NAME, schema: this.schema } : TABLE_NAME;
+  }
+
+  // Schema-qualified, quoted table reference for raw SQL.
+  private get tableReference(): string {
+    return this.schema ? `"${this.schema}"."${TABLE_NAME}"` : `"${TABLE_NAME}"`;
+  }
+
   async init(logger?: Logger): Promise<void> {
+    const { schema, tableId } = this;
+
     const umzug = new Umzug({
       migrations: [
         {
           name: '001_create_workflow_step_executions',
           up: async ({ context }: { context: QueryInterface }) => {
-            await context.createTable(TABLE_NAME, {
+            await context.createTable(tableId, {
               id: {
                 type: DataTypes.INTEGER,
                 primaryKey: true,
@@ -61,24 +85,33 @@ export default class DatabaseStore implements RunStore {
               },
             });
 
-            await context.addIndex(TABLE_NAME, ['run_id'], { name: 'idx_run_id' });
-            await context.addIndex(TABLE_NAME, ['run_id', 'step_index'], {
+            await context.addIndex(tableId, ['run_id'], { name: 'idx_run_id' });
+            await context.addIndex(tableId, ['run_id', 'step_index'], {
               unique: true,
               name: 'idx_run_id_step_index',
             });
           },
           down: async ({ context }: { context: QueryInterface }) => {
-            await context.dropTable(TABLE_NAME);
+            await context.dropTable(tableId);
           },
         },
       ],
       context: this.sequelize.getQueryInterface(),
-      storage: new SequelizeStorage({ sequelize: this.sequelize }),
+      storage: new SequelizeStorage({
+        sequelize: this.sequelize,
+        ...(schema ? { schema } : {}),
+      }),
       logger: undefined,
     });
 
     return this.callPort('init', async () => {
       try {
+        if (schema) {
+          // Create the schema up front (idempotent) so both the table and the
+          // umzug SequelizeMeta registry land in it.
+          await this.sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+        }
+
         await umzug.up();
       } catch (error) {
         logger?.('Error', 'Database migration failed', {
@@ -92,7 +125,7 @@ export default class DatabaseStore implements RunStore {
   async getStepExecutions(runId: string): Promise<StepExecutionData[]> {
     return this.callPort('getStepExecutions', async () => {
       const [rows] = await this.sequelize.query(
-        `SELECT data FROM ${TABLE_NAME} WHERE run_id = :runId ORDER BY step_index ASC`,
+        `SELECT data FROM ${this.tableReference} WHERE run_id = :runId ORDER BY step_index ASC`,
         { replacements: { runId } },
       );
 
@@ -111,11 +144,11 @@ export default class DatabaseStore implements RunStore {
 
         // Delete + insert in transaction: dialect-agnostic upsert (avoids ON CONFLICT / ON DUPLICATE)
         await this.sequelize.query(
-          `DELETE FROM ${TABLE_NAME} WHERE run_id = :runId AND step_index = :stepIndex`,
+          `DELETE FROM ${this.tableReference} WHERE run_id = :runId AND step_index = :stepIndex`,
           { replacements, transaction },
         );
         await this.sequelize.query(
-          `INSERT INTO ${TABLE_NAME} (run_id, step_index, data, created_at, updated_at) VALUES (:runId, :stepIndex, :data, :now, :now)`,
+          `INSERT INTO ${this.tableReference} (run_id, step_index, data, created_at, updated_at) VALUES (:runId, :stepIndex, :data, :now, :now)`,
           { replacements, transaction },
         );
       });
