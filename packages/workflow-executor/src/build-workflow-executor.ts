@@ -223,9 +223,21 @@ function createWorkflowExecutor(
 export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecutor {
   const deps = buildCommonDependencies(options);
 
+  const mcpOAuthCredentialsStore = new InMemoryMcpOAuthCredentialsStore();
+  const credentialEncryption = new CredentialEncryption();
+  // Shares the store + encryption with the deposit endpoint so runtime reads and writes (rotation)
+  // go through the same instance the HTTP server exposes. In-memory is dev-only: credentials live
+  // only for the process lifetime, but oauth2 steps work end-to-end just like the database executor.
+  const mcpOAuthTokenService = new OAuthTokenService({
+    store: mcpOAuthCredentialsStore,
+    encryption: credentialEncryption,
+    logger: deps.logger,
+  });
+
   const runner = new Runner({
     ...deps,
     runStore: new InMemoryStore(),
+    mcpOAuthTokenService,
   });
 
   const server = new ExecutorHttpServer({
@@ -234,8 +246,8 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
-    mcpOAuthCredentialsStore: new InMemoryMcpOAuthCredentialsStore(),
-    credentialEncryption: new CredentialEncryption(),
+    mcpOAuthCredentialsStore,
+    credentialEncryption,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);

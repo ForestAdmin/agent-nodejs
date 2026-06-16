@@ -4,7 +4,7 @@ import type { Logger } from '../src/ports/logger-port';
 import type { WorkflowPort } from '../src/ports/workflow-port';
 import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
-import { ConfigurationError, OAuthReauthRequiredError } from '../src/errors';
+import { OAuthReauthRequiredError } from '../src/errors';
 import RemoteToolFetcher, { scopeConfigsToServer } from '../src/remote-tool-fetcher';
 
 const USER_ID = 1;
@@ -39,11 +39,16 @@ function makeFetcher(overrides?: {
   const workflowPort = { ...createMockWorkflowPort(), ...overrides?.workflowPort };
   const aiModelPort = { ...createMockAiModelPort(), ...overrides?.aiModelPort };
   const logger = overrides?.logger ?? createMockLogger();
+  const tokenService =
+    overrides?.tokenService ??
+    ({
+      getAccessToken: jest.fn().mockResolvedValue('access-token'),
+    } as unknown as OAuthTokenService);
   const fetcher = new RemoteToolFetcher(
     workflowPort as unknown as WorkflowPort,
     aiModelPort as unknown as AiModelPort,
     logger,
-    overrides?.tokenService,
+    tokenService,
   );
 
   return { fetcher, workflowPort, aiModelPort, logger };
@@ -334,16 +339,6 @@ describe('RemoteToolFetcher.fetch — OAuth2 servers', () => {
     });
     expect(result.tools).toEqual([tool]);
     expect(typeof result.reloadWithFreshAuth).toBe('function');
-  });
-
-  it('throws ConfigurationError when no token service is wired (in-memory executor)', async () => {
-    const { fetcher } = makeFetcher({
-      workflowPort: {
-        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': oauthCfg('id-A') }),
-      },
-    });
-
-    await expect(fetcher.fetch('id-A', USER_ID)).rejects.toBeInstanceOf(ConfigurationError);
   });
 
   it('force-refreshes and retries list-tools once on an auth failure, then succeeds', async () => {
