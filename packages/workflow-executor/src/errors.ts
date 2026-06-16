@@ -1,6 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import type { MalformedRunInfo } from './ports/workflow-port';
 import type { RecordId } from './types/validated/collection';
+import type { AwaitingInputReason } from './types/validated/step-outcome';
 import type { z } from 'zod';
 
 export function causeMessage(error: unknown): string | undefined {
@@ -347,6 +348,44 @@ export class ConfigurationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ConfigurationError';
+  }
+}
+
+// Carries the typed pause reason so the step executor can emit an awaiting-input outcome (and the
+// orchestrator/front can prompt the user to reconnect) instead of a generic error.
+export class OAuthReauthRequiredError extends WorkflowExecutorError {
+  readonly awaitingInputReason: AwaitingInputReason;
+
+  constructor(
+    mcpServerId: string,
+    awaitingInputReason: AwaitingInputReason = 'needs-oauth-reauth',
+  ) {
+    super(
+      `OAuth re-authentication required for mcpServerId="${mcpServerId}"`,
+      'This tool needs to be reconnected before it can run. Please re-authorize it and try again.',
+    );
+    this.awaitingInputReason = awaitingInputReason;
+  }
+}
+
+// Transient refresh failure (network error, 5xx, malformed response). Surfaces as a retryable step
+// error rather than a re-auth pause — re-authenticating would not fix a temporarily unreachable endpoint.
+export class OAuthRefreshError extends WorkflowExecutorError {
+  constructor(message: string, cause?: unknown) {
+    super(
+      `OAuth token refresh failed: ${message}`,
+      'Could not refresh the connection to this tool. Please try again.',
+    );
+    if (cause !== undefined) this.cause = cause;
+  }
+}
+
+// The token endpoint rejected the refresh token (RFC 6749 invalid_grant). Internal control-flow
+// signal: the token service catches it to drive the re-read + single-retry, then converts a genuine
+// failure into OAuthReauthRequiredError.
+export class OAuthInvalidGrantError extends WorkflowExecutorError {
+  constructor(detail?: string) {
+    super(`OAuth refresh token rejected${detail ? `: ${detail}` : ''}`);
   }
 }
 

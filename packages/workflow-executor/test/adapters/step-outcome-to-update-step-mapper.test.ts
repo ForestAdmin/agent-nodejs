@@ -179,4 +179,50 @@ describe('toUpdateStepRequest', () => {
 
     expect(body.stepUpdate.stepIndex).toBe(7);
   });
+
+  describe('awaitingInputReason propagation', () => {
+    it('puts awaitingInputReason in the update-step context (done=false) when an mcp step pauses for reauth', () => {
+      const outcome: StepOutcome = {
+        type: 'mcp',
+        stepId: 'step-1',
+        stepIndex: 4,
+        status: 'awaiting-input',
+        awaitingInputReason: 'needs-oauth-reauth',
+      };
+
+      const body = toUpdateStepRequest('42', outcome);
+
+      expect(body.stepUpdate.attributes).toEqual({
+        done: false,
+        context: { status: 'awaiting-input', awaitingInputReason: 'needs-oauth-reauth' },
+      });
+      expect(body.executionStatus).toEqual({ type: 'awaiting-input' });
+    });
+
+    it('omits awaitingInputReason for an awaiting-input pause without a reason', () => {
+      const outcome: StepOutcome = {
+        type: 'mcp',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'awaiting-input',
+      };
+
+      const body = toUpdateStepRequest('42', outcome);
+
+      expect(body.stepUpdate.attributes.context).toEqual({ status: 'awaiting-input' });
+    });
+
+    it('omits awaitingInputReason for a success outcome', () => {
+      const outcome: StepOutcome = {
+        type: 'mcp',
+        stepId: 'step-1',
+        stepIndex: 0,
+        status: 'success',
+      };
+
+      const body = toUpdateStepRequest('42', outcome);
+
+      expect(body.stepUpdate.attributes.context).toEqual({ status: 'success' });
+    });
+  });
 });

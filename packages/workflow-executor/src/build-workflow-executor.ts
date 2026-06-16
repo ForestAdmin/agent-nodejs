@@ -25,6 +25,7 @@ import {
   DEFAULT_STEP_TIMEOUT_S,
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
+import OAuthTokenService from './oauth/token-service';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
 import DatabaseMcpOAuthCredentialsStore from './stores/database-mcp-oauth-credentials-store';
@@ -252,9 +253,23 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
   if (mergedOptions.logging === undefined) mergedOptions.logging = false;
   const sequelize = uri ? new Sequelize(uri, mergedOptions) : new Sequelize(mergedOptions);
 
+  const mcpOAuthCredentialsStore = new DatabaseMcpOAuthCredentialsStore({
+    sequelize,
+    schema: mergedOptions.schema,
+  });
+  const credentialEncryption = new CredentialEncryption();
+  // Shares the store + encryption with the deposit endpoint so runtime reads and writes (rotation)
+  // go through the same instance the HTTP server migrates on start.
+  const mcpOAuthTokenService = new OAuthTokenService({
+    store: mcpOAuthCredentialsStore,
+    encryption: credentialEncryption,
+    logger: deps.logger,
+  });
+
   const runner = new Runner({
     ...deps,
     runStore: new DatabaseStore({ sequelize, schema: mergedOptions.schema }),
+    mcpOAuthTokenService,
   });
 
   const server = new ExecutorHttpServer({
@@ -263,11 +278,8 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
-    mcpOAuthCredentialsStore: new DatabaseMcpOAuthCredentialsStore({
-      sequelize,
-      schema: mergedOptions.schema,
-    }),
-    credentialEncryption: new CredentialEncryption(),
+    mcpOAuthCredentialsStore,
+    credentialEncryption,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);

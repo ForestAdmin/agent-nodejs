@@ -1,6 +1,7 @@
 import type { McpConfiguration } from '../src';
 
 import { tool } from '@langchain/core/tools';
+import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 import { McpConnectionError } from '../src';
 import McpClient from '../src/mcp-client';
@@ -485,5 +486,98 @@ describe('McpClient', () => {
         },
       });
     });
+  });
+});
+
+// Additive auth-error classification: loadToolsWithFailures exposes per-server failures alongside
+// the loaded tools so a token holder can tell a revoked token from an unreachable server.
+describe('McpClient.loadToolsWithFailures', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const makeTool = (name: string) =>
+    tool(() => {}, { name, description: name, schema: undefined, responseFormat: 'content' });
+
+  const singleServer = (id?: string) =>
+    ({
+      configs: {
+        slack: { transport: 'stdio', command: 'npx', args: [], env: {}, ...(id ? { id } : {}) },
+      },
+    } as unknown as McpConfiguration);
+
+  it('returns the loaded tools and no failures when every server loads', async () => {
+    getToolsMock.mockResolvedValue([makeTool('t1')]);
+
+    const result = await new McpClient(singleServer()).loadToolsWithFailures();
+
+    expect(result.tools).toHaveLength(1);
+    expect(result.failures).toEqual([]);
+  });
+
+  it("classifies a 401 as an 'auth' failure tagged with server and mcpServerId, keeping other tools", async () => {
+    getToolsMock
+      .mockRejectedValueOnce(new Error('Request failed: 401 Unauthorized'))
+      .mockResolvedValueOnce([makeTool('t2')]);
+    const client = new McpClient({
+      configs: {
+        slack: { transport: 'stdio', command: 'npx', args: [], env: {}, id: 'srv-a' },
+        github: { transport: 'stdio', command: 'npx', args: [], env: {} },
+      },
+    } as unknown as McpConfiguration);
+
+    const result = await client.loadToolsWithFailures();
+
+    expect(result.tools).toHaveLength(1);
+    expect(result.failures).toEqual([
+      expect.objectContaining({ server: 'slack', mcpServerId: 'srv-a', kind: 'auth' }),
+    ]);
+  });
+
+  it("classifies a connection error as 'connection', not 'auth'", async () => {
+    getToolsMock.mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:3000'));
+
+    const result = await new McpClient(singleServer()).loadToolsWithFailures();
+
+    expect(result.failures[0].kind).toBe('connection');
+  });
+
+  it('logs the aggregated failure summary and does not throw on a per-server failure', async () => {
+    const logger = jest.fn();
+    getToolsMock.mockRejectedValue(new Error('401'));
+
+    const result = await new McpClient(singleServer(), logger).loadToolsWithFailures();
+
+    expect(result.tools).toEqual([]);
+    expect(logger).toHaveBeenCalledWith(
+      'Error',
+      expect.stringContaining('Failed to load tools from 1/1'),
+    );
+  });
+
+  it('loadTools delegates and returns only the tools', async () => {
+    getToolsMock.mockResolvedValue([makeTool('t3')]);
+
+    const tools = await new McpClient(singleServer()).loadTools();
+
+    expect(tools).toHaveLength(1);
+  });
+});
+
+// authType is an executor-side routing hint; like id it must be stripped in the constructor so it
+// never reaches MultiServerMCPClient.
+describe('McpClient constructor — authType stripping', () => {
+  it('strips authType and id, passing only the transport config to MultiServerMCPClient', () => {
+    (MultiServerMCPClient as jest.Mock).mockClear();
+
+    // eslint-disable-next-line no-new
+    new McpClient({
+      configs: {
+        slack: { type: 'http', url: 'https://example.com/mcp', id: 'srv-a', authType: 'oauth2' },
+      },
+    } as unknown as McpConfiguration);
+
+    const passedConfig = (MultiServerMCPClient as jest.Mock).mock.calls[0][0].mcpServers.slack;
+    expect(passedConfig).toEqual({ type: 'http', url: 'https://example.com/mcp' });
   });
 });
