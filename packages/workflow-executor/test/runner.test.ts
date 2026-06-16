@@ -306,8 +306,39 @@ describe('start', () => {
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       'Failed to report executor version to orchestrator',
-      expect.objectContaining({ version: EXECUTOR_VERSION }),
+      {
+        version: EXECUTOR_VERSION,
+        error: 'orchestrator down',
+      },
     );
+  });
+
+  it('stringifies a non-Error rejection when logging the report failure', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.reportExecutorMetadata.mockRejectedValueOnce('boom');
+    const logger = createMockLogger();
+    runner = new Runner(createRunnerConfig({ workflowPort, logger }));
+
+    await runner.start();
+
+    await flushPromises();
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Failed to report executor version to orchestrator',
+      {
+        version: EXECUTOR_VERSION,
+        error: 'boom',
+      },
+    );
+  });
+
+  it('does not block start when the report never settles', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.reportExecutorMetadata.mockReturnValue(new Promise<void>(() => {}));
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(runner.start()).resolves.toBeUndefined();
+    expect(runner.state).toBe('running');
   });
 });
 
