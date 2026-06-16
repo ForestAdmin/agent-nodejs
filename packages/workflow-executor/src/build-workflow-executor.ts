@@ -1,5 +1,4 @@
 import type { Logger, LoggerLevel } from './ports/logger-port';
-import type { WorkflowPort } from './ports/workflow-port';
 import type { RunnerState } from './runner';
 import type { AiConfiguration } from '@forestadmin/ai-proxy';
 import type { Options as SequelizeOptions } from 'sequelize';
@@ -29,9 +28,6 @@ import DatabaseStore from './stores/database-store';
 import InMemoryStore from './stores/in-memory-store';
 
 const FORCE_EXIT_DELAY_S = 5;
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
-const { version: EXECUTOR_VERSION } = require('../package.json') as { version: string };
 
 export interface WorkflowExecutor {
   start(): Promise<void>;
@@ -141,7 +137,6 @@ function createWorkflowExecutor(
   runner: Runner,
   server: ExecutorHttpServer,
   logger: Logger,
-  workflowPort: WorkflowPort,
 ): WorkflowExecutor {
   let shutdownPromise: Promise<void> | null = null;
 
@@ -188,15 +183,6 @@ function createWorkflowExecutor(
       await runner.start();
       await server.start();
 
-      // Fire-and-forget: report our version to the orchestrator (last-write-wins per env).
-      // Must never block or crash startup, so swallow failures after logging.
-      workflowPort.reportExecutorMetadata(EXECUTOR_VERSION).catch(error => {
-        logger('Warn', 'Failed to report executor version to orchestrator', {
-          version: EXECUTOR_VERSION,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      });
-
       process.on('SIGTERM', onSignal);
       process.on('SIGINT', onSignal);
     },
@@ -227,7 +213,7 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     logger: deps.logger,
   });
 
-  return createWorkflowExecutor(runner, server, deps.logger, deps.workflowPort);
+  return createWorkflowExecutor(runner, server, deps.logger);
 }
 
 export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
@@ -255,5 +241,5 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     logger: deps.logger,
   });
 
-  return createWorkflowExecutor(runner, server, deps.logger, deps.workflowPort);
+  return createWorkflowExecutor(runner, server, deps.logger);
 }
