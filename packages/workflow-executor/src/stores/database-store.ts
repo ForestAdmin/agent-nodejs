@@ -24,7 +24,6 @@ export default class DatabaseStore implements RunStore {
     this.sequelize = options.sequelize;
   }
 
-  // SQLite has no real schema support, so we skip it there.
   private get schema(): string | undefined {
     return this.sequelize.getDialect() === 'sqlite' ? undefined : SCHEMA_NAME;
   }
