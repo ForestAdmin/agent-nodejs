@@ -1,5 +1,10 @@
 import type { AiModelPort } from '../ports/ai-model-port';
-import type { BaseChatModel, RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
+import type {
+  BaseChatModel,
+  McpServerLoadFailure,
+  RemoteTool,
+  ToolConfig,
+} from '@forestadmin/ai-proxy';
 
 import { AiModelPortError } from '../errors';
 
@@ -20,6 +25,13 @@ export default class AlwaysErrorAiModelPort implements AiModelPort {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   loadRemoteTools(_configs: Record<string, ToolConfig>): Promise<RemoteTool[]> {
     return Promise.resolve([]);
+  }
+
+  loadRemoteToolsWithFailures(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _configs: Record<string, ToolConfig>,
+  ): Promise<{ tools: RemoteTool[]; failures: McpServerLoadFailure[] }> {
+    return Promise.resolve({ tools: [], failures: [] });
   }
 
   closeConnections(): Promise<void> {

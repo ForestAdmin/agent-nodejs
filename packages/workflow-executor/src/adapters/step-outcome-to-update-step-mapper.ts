@@ -32,6 +32,10 @@ export default function toUpdateStepRequest(
     context.selectedOption = outcome.selectedOption;
   }
 
+  if (outcome.type === 'mcp' && outcome.awaitingInputReason !== undefined) {
+    context.awaitingInputReason = outcome.awaitingInputReason;
+  }
+
   const attributes: ServerStepHistoryUpdate = {
     done: outcome.status !== 'awaiting-input',
     context,

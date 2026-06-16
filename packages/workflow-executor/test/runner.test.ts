@@ -1711,7 +1711,7 @@ describe('StepExecutorFactory.create — factory', () => {
       fetchRemoteTools,
     );
     expect(executor).toBeInstanceOf(McpStepExecutor);
-    expect(fetchRemoteTools).toHaveBeenCalledWith('srv-42');
+    expect(fetchRemoteTools).toHaveBeenCalledWith('srv-42', 1);
     expect(
       (
         executor as unknown as { getExtraLogContext(): Record<string, unknown> }

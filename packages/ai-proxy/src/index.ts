@@ -20,6 +20,7 @@ export * from './remote-tools';
 export { default as RemoteTool } from './remote-tool';
 export * from './router';
 export * from './mcp-client';
+export * from './mcp-auth-error';
 export * from './oauth-token-injector';
 export * from './errors';
 export * from './tool-provider';
