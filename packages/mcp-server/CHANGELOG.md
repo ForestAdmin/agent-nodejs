@@ -1,3 +1,10 @@
+# @forestadmin/mcp-server [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.12.3...@forestadmin/mcp-server@1.13.0) (2026-06-16)
+
+
+### Features
+
+* **mcp-server:** annotate read-only tools with readOnlyHint ([#1661](https://github.com/ForestAdmin/agent-nodejs/issues/1661)) ([ec2c8ad](https://github.com/ForestAdmin/agent-nodejs/commit/ec2c8ad74bba0769143106e98be1a08b1133ae1b))
+
 ## @forestadmin/mcp-server [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.12.2...@forestadmin/mcp-server@1.12.3) (2026-06-11)
 
 
