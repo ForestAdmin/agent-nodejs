@@ -64,6 +64,21 @@ describe('DatabaseStore — schema namespacing', () => {
       );
     });
 
+    it('drops the table from the "forest" schema on rollback', async () => {
+      const sequelize = makeSequelize('postgres');
+
+      await new DatabaseStore({ sequelize }).init();
+
+      const { migrations } = MockedUmzug.mock.calls[0][0];
+      const dropTable = jest.fn().mockResolvedValue(undefined);
+      await migrations[0].down({ context: { dropTable } });
+
+      expect(dropTable).toHaveBeenCalledWith({
+        tableName: 'workflow_step_executions',
+        schema: 'forest',
+      });
+    });
+
     it('schema-qualifies raw reads', async () => {
       const sequelize = makeSequelize('postgres');
 
