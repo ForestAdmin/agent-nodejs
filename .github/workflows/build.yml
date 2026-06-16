@@ -69,6 +69,7 @@ jobs:
           - forest-cloud
           - mcp-server
           - datasource-customizer
+          - datasource-demo-fintech
           - datasource-dummy
           - datasource-mongoose
           - datasource-replica
