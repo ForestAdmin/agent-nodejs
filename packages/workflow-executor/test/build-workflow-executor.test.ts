@@ -356,7 +356,7 @@ describe('WorkflowExecutor lifecycle', () => {
     // Setup Runner mock to have start/stop/state
     MockedRunner.prototype.start = jest.fn().mockResolvedValue(undefined);
     MockedRunner.prototype.stop = jest.fn().mockResolvedValue(undefined);
-    MockedPort.prototype.reportExecutorVersion = jest.fn().mockResolvedValue(undefined);
+    MockedPort.prototype.reportExecutorMetadata = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(MockedRunner.prototype, 'state', {
       get: () => 'running',
       configurable: true,
@@ -382,11 +382,11 @@ describe('WorkflowExecutor lifecycle', () => {
   it('start() reports the executor version to the orchestrator', async () => {
     await executor.start();
 
-    expect(MockedPort.prototype.reportExecutorVersion).toHaveBeenCalledWith(EXECUTOR_VERSION);
+    expect(MockedPort.prototype.reportExecutorMetadata).toHaveBeenCalledWith(EXECUTOR_VERSION);
   });
 
   it('start() resolves even when reporting the version fails', async () => {
-    MockedPort.prototype.reportExecutorVersion = jest
+    MockedPort.prototype.reportExecutorMetadata = jest
       .fn()
       .mockRejectedValue(new Error('orchestrator down'));
 

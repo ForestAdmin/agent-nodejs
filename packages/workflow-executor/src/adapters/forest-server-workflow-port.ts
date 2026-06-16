@@ -217,9 +217,9 @@ export default class ForestServerWorkflowPort implements WorkflowPort {
     );
   }
 
-  async reportExecutorVersion(version: string): Promise<void> {
+  async reportExecutorMetadata(version: string): Promise<void> {
     await this.callPort(
-      'reportExecutorVersion',
+      'reportExecutorMetadata',
       () => ServerUtils.query<void>(this.options, 'post', ROUTES.executorVersion, {}, { version }),
       { retry: true },
     );

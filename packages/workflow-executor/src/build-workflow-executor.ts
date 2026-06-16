@@ -190,7 +190,7 @@ function createWorkflowExecutor(
 
       // Fire-and-forget: report our version to the orchestrator (last-write-wins per env).
       // Must never block or crash startup, so swallow failures after logging.
-      workflowPort.reportExecutorVersion(EXECUTOR_VERSION).catch(error => {
+      workflowPort.reportExecutorMetadata(EXECUTOR_VERSION).catch(error => {
         logger('Warn', 'Failed to report executor version to orchestrator', {
           version: EXECUTOR_VERSION,
           error: error instanceof Error ? error.message : String(error),
