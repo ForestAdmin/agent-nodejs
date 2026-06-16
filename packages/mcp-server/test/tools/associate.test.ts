@@ -1,5 +1,6 @@
 import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
+import type { RegisteredToolConfig } from '../helpers/registered-tool-config';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
@@ -21,7 +22,7 @@ describe('declareAssociateTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: RegisteredToolConfig;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -57,6 +58,12 @@ describe('declareAssociateTool', () => {
       expect(registeredToolConfig.description).toBe(
         'Link a record to another through a one-to-many or many-to-many relation. For many-to-many relations, this creates a new entry in the join table.',
       );
+    });
+
+    it('should not be annotated as read-only', () => {
+      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
+
+      expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {

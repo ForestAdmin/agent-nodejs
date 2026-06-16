@@ -25,6 +25,7 @@ export default function declareGetActionFormTool(
     mcpServer,
     'getActionForm',
     {
+      annotations: { readOnlyHint: true },
       title: 'Retrieve action form',
       description: `Retrieve and validate the form for a specific action. This tool MUST be called before executeAction to ensure all required fields are filled.
 

@@ -82,6 +82,7 @@ export default function declareListRelatedTool(
     mcpServer,
     'listRelated',
     {
+      annotations: { readOnlyHint: true },
       title: 'List records from a relation',
       description: 'Retrieve a list of records from a one-to-many or many-to-many relation.',
       inputSchema: listArgumentShape,

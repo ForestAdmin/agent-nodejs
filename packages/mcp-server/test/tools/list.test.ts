@@ -1,5 +1,6 @@
 import type { ForestServerClient } from '../../src/http-client';
 import type { Logger } from '../../src/server';
+import type { RegisteredToolConfig } from '../helpers/registered-tool-config';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
@@ -29,7 +30,7 @@ describe('declareListTool', () => {
   let mcpServer: McpServer;
   let mockForestServerClient: jest.Mocked<ForestServerClient>;
   let registeredToolHandler: (options: unknown, extra: unknown) => Promise<unknown>;
-  let registeredToolConfig: { title: string; description: string; inputSchema: unknown };
+  let registeredToolConfig: RegisteredToolConfig;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -94,6 +95,12 @@ describe('declareListTool', () => {
       expect(registeredToolConfig.description).toBe(
         'Retrieve a list of records from the specified collection.',
       );
+    });
+
+    it('should be annotated as read-only', () => {
+      declareListTool(mcpServer, mockForestServerClient, mockLogger);
+
+      expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
     });
 
     it('should define correct input schema', () => {
