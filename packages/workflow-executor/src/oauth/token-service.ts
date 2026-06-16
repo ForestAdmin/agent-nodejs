@@ -1,8 +1,10 @@
 import type { RefreshGrantParams, RefreshGrantResult } from './refresh-grant';
 import type CredentialEncryption from '../crypto/credential-encryption';
 import type { Logger } from '../ports/logger-port';
-import type { StoredMcpOAuthCredential } from '../stores/mcp-oauth-credentials-store';
-import type McpOAuthCredentialsStore from '../stores/mcp-oauth-credentials-store';
+import type {
+  McpOAuthCredentialsStore,
+  StoredMcpOAuthCredential,
+} from '../ports/mcp-oauth-credentials-store';
 
 import { DEFAULT_OAUTH_EXPIRY_SKEW_S } from '../defaults';
 import { OAuthInvalidGrantError, OAuthReauthRequiredError } from '../errors';
