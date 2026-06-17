@@ -10,10 +10,7 @@ import type { Caller, CompositeId, RecordData } from '@forestadmin/datasource-to
 
 import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
-const pendingSnapshots = new Map<string, RecordData[]>();
-
-const snapshotKey = (caller: Caller, collection: string): string =>
-  `${caller.requestId}::${collection}`;
+const pendingSnapshots = new WeakMap<object, RecordData[]>();
 
 const toActor = (caller: Caller): AuditActor => ({
   id: caller.id,
@@ -85,13 +82,12 @@ function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink)
 
   collection.addHook('Before', 'Update', async (context: HookBeforeUpdateContext) => {
     const before = await context.collection.list(context.filter as never, columns as never[]);
-    pendingSnapshots.set(snapshotKey(context.caller, name), before as RecordData[]);
+    pendingSnapshots.set(context.filter, before as RecordData[]);
   });
 
   collection.addHook('After', 'Update', async (context: HookBeforeUpdateContext) => {
-    const key = snapshotKey(context.caller, name);
-    const before = pendingSnapshots.get(key) ?? [];
-    pendingSnapshots.delete(key);
+    const before = pendingSnapshots.get(context.filter) ?? [];
+    pendingSnapshots.delete(context.filter);
 
     const patch = context.patch as RecordData;
     await Promise.all(
@@ -113,13 +109,12 @@ function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink)
 
   collection.addHook('Before', 'Delete', async (context: HookBeforeDeleteContext) => {
     const before = await context.collection.list(context.filter as never, columns as never[]);
-    pendingSnapshots.set(snapshotKey(context.caller, name), before as RecordData[]);
+    pendingSnapshots.set(context.filter, before as RecordData[]);
   });
 
   collection.addHook('After', 'Delete', async (context: HookBeforeDeleteContext) => {
-    const key = snapshotKey(context.caller, name);
-    const before = pendingSnapshots.get(key) ?? [];
-    pendingSnapshots.delete(key);
+    const before = pendingSnapshots.get(context.filter) ?? [];
+    pendingSnapshots.delete(context.filter);
 
     await Promise.all(
       before.map(record =>

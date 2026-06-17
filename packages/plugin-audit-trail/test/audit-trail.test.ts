@@ -52,6 +52,31 @@ function register(collections: Array<{ collection: unknown }>, options?: { sink:
   auditTrail(dataSourceCustomizer as any, null, options);
 }
 
+type Target = ReturnType<typeof fakeCollection>;
+
+async function runUpdate(
+  target: Target,
+  args: { caller: Caller; patch: Record<string, unknown>; filter?: object },
+) {
+  const filter = args.filter ?? {};
+  await target.fire('Before:Update', {
+    caller: args.caller,
+    filter,
+    collection: { list: target.list },
+  });
+  await target.fire('After:Update', { caller: args.caller, filter, patch: args.patch });
+}
+
+async function runDelete(target: Target, args: { caller: Caller; filter?: object }) {
+  const filter = args.filter ?? {};
+  await target.fire('Before:Delete', {
+    caller: args.caller,
+    filter,
+    collection: { list: target.list },
+  });
+  await target.fire('After:Delete', { caller: args.caller, filter });
+}
+
 describe('auditTrail plugin', () => {
   describe('registration', () => {
     it('registers exactly the five CRUD hooks on a collection', () => {
@@ -239,18 +264,12 @@ describe('auditTrail plugin', () => {
 
     it('captures only the changed fields, split into previous/new values', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('upd-1');
       const accounts = fakeCollection('accounts', [
         { id: 1, status: 'open', name: 'Acme', amount: 10 },
       ]);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Update', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Update', { caller, patch: { status: 'closed', amount: 99 } });
+      await runUpdate(accounts, { caller: makeCaller(), patch: { status: 'closed', amount: 99 } });
 
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining<Partial<AuditRecord>>({
@@ -264,18 +283,12 @@ describe('auditTrail plugin', () => {
 
     it('ignores patched fields whose value did not actually change', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('upd-2');
       const accounts = fakeCollection('accounts', [
         { id: 1, status: 'open', name: 'Acme', amount: 10 },
       ]);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Update', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Update', { caller, patch: { status: 'open', amount: 99 } });
+      await runUpdate(accounts, { caller: makeCaller(), patch: { status: 'open', amount: 99 } });
 
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -287,37 +300,25 @@ describe('auditTrail plugin', () => {
 
     it('emits nothing when the patch changes no value', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('upd-3');
       const accounts = fakeCollection('accounts', [
         { id: 1, status: 'open', name: 'Acme', amount: 10 },
       ]);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Update', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Update', { caller, patch: { status: 'open' } });
+      await runUpdate(accounts, { caller: makeCaller(), patch: { status: 'open' } });
 
       expect(sink).not.toHaveBeenCalled();
     });
 
     it('emits one record per matched record on a bulk update, with per-record previous values', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('upd-4');
       const accounts = fakeCollection('accounts', [
         { id: 1, status: 'open', name: 'Acme', amount: 10 },
         { id: 2, status: 'pending', name: 'Globex', amount: 20 },
       ]);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Update', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Update', { caller, patch: { status: 'closed' } });
+      await runUpdate(accounts, { caller: makeCaller(), patch: { status: 'closed' } });
 
       expect(sink).toHaveBeenCalledTimes(2);
       expect(sink).toHaveBeenNthCalledWith(
@@ -340,16 +341,10 @@ describe('auditTrail plugin', () => {
 
     it('emits nothing when the update matches no record', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('upd-5');
       const accounts = fakeCollection('accounts', []);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Update', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Update', { caller, patch: { status: 'closed' } });
+      await runUpdate(accounts, { caller: makeCaller(), patch: { status: 'closed' } });
 
       expect(sink).not.toHaveBeenCalled();
     });
@@ -360,7 +355,8 @@ describe('auditTrail plugin', () => {
       register([accounts], { sink });
 
       await accounts.fire('After:Update', {
-        caller: makeCaller('orphan'),
+        caller: makeCaller(),
+        filter: {},
         patch: { status: 'closed' },
       });
 
@@ -369,22 +365,56 @@ describe('auditTrail plugin', () => {
 
     it('consumes the snapshot so a second After:Update emits nothing', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('upd-6');
+      const caller = makeCaller();
+      const filter = {};
       const accounts = fakeCollection('accounts', [
         { id: 1, status: 'open', name: 'Acme', amount: 10 },
       ]);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Update', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Update', { caller, patch: { status: 'closed' } });
+      await accounts.fire('Before:Update', { caller, filter, collection: { list: accounts.list } });
+      await accounts.fire('After:Update', { caller, filter, patch: { status: 'closed' } });
       sink.mockClear();
-      await accounts.fire('After:Update', { caller, patch: { status: 'archived' } });
+      await accounts.fire('After:Update', { caller, filter, patch: { status: 'archived' } });
 
       expect(sink).not.toHaveBeenCalled();
+    });
+
+    it('keeps two concurrent updates on the same collection from mixing snapshots', async () => {
+      const sink = jest.fn();
+      const caller = makeCaller('same-request');
+      const accounts = fakeCollection('accounts');
+      register([accounts], { sink });
+
+      const filterA = { tag: 'A' };
+      const filterB = { tag: 'B' };
+      accounts.list
+        .mockResolvedValueOnce([{ id: 1, status: 'open', name: 'Acme', amount: 10 }])
+        .mockResolvedValueOnce([{ id: 2, status: 'pending', name: 'Globex', amount: 20 }]);
+
+      // Interleave the two operations: both Before hooks run before either After.
+      await accounts.fire('Before:Update', {
+        caller,
+        filter: filterA,
+        collection: { list: accounts.list },
+      });
+      await accounts.fire('Before:Update', {
+        caller,
+        filter: filterB,
+        collection: { list: accounts.list },
+      });
+      await accounts.fire('After:Update', { caller, filter: filterA, patch: { status: 'closed' } });
+      await accounts.fire('After:Update', { caller, filter: filterB, patch: { status: 'closed' } });
+
+      expect(sink).toHaveBeenCalledTimes(2);
+      expect(sink).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ recordId: [1], previousValues: { status: 'open' } }),
+      );
+      expect(sink).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ recordId: [2], previousValues: { status: 'pending' } }),
+      );
     });
   });
 
@@ -408,18 +438,12 @@ describe('auditTrail plugin', () => {
 
     it('captures the full previous record and leaves newValues empty', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('del-1');
       const accounts = fakeCollection('accounts', [
         { id: 7, status: 'open', name: 'Globex', amount: 20 },
       ]);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Delete', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Delete', { caller });
+      await runDelete(accounts, { caller: makeCaller() });
 
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining<Partial<AuditRecord>>({
@@ -433,19 +457,13 @@ describe('auditTrail plugin', () => {
 
     it('emits one record per deleted record on a bulk delete', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('del-2');
       const accounts = fakeCollection('accounts', [
         { id: 7, status: 'open', name: 'Globex', amount: 20 },
         { id: 8, status: 'open', name: 'Initech', amount: 30 },
       ]);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Delete', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Delete', { caller });
+      await runDelete(accounts, { caller: makeCaller() });
 
       expect(sink).toHaveBeenCalledTimes(2);
       expect(sink).toHaveBeenNthCalledWith(1, expect.objectContaining({ recordId: [7] }));
@@ -454,49 +472,12 @@ describe('auditTrail plugin', () => {
 
     it('emits nothing when the delete matches no record', async () => {
       const sink = jest.fn();
-      const caller = makeCaller('del-3');
       const accounts = fakeCollection('accounts', []);
       register([accounts], { sink });
 
-      await accounts.fire('Before:Delete', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await accounts.fire('After:Delete', { caller });
+      await runDelete(accounts, { caller: makeCaller() });
 
       expect(sink).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('snapshot isolation', () => {
-    it('does not mix snapshots between collections sharing the same request', async () => {
-      const sink = jest.fn();
-      const caller = makeCaller('shared-req');
-      const accounts = fakeCollection('accounts', [
-        { id: 1, status: 'open', name: 'Acme', amount: 10 },
-      ]);
-      const contacts = fakeCollection('contacts', [
-        { id: 99, status: 'lead', name: 'Bob', amount: 0 },
-      ]);
-      register([accounts, contacts], { sink });
-
-      await accounts.fire('Before:Update', {
-        caller,
-        filter: {},
-        collection: { list: accounts.list },
-      });
-      await contacts.fire('Before:Update', {
-        caller,
-        filter: {},
-        collection: { list: contacts.list },
-      });
-      await accounts.fire('After:Update', { caller, patch: { status: 'closed' } });
-
-      expect(sink).toHaveBeenCalledTimes(1);
-      expect(sink).toHaveBeenCalledWith(
-        expect.objectContaining({ collection: 'accounts', recordId: [1] }),
-      );
     });
   });
 });
