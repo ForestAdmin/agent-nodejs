@@ -31,7 +31,7 @@ describe('AuditTrailRoute', () => {
   });
 
   test('returns the record history read from the store', async () => {
-    const history = [{ operation: 'update', recordId: [2] }];
+    const history = [{ operation: 'update', recordId: '2' }];
     const { services, dataSource, options, store } = setup(history);
     const route = new AuditTrailRoute(services, options, dataSource, 'books');
     const context = createMockContext({
@@ -41,7 +41,7 @@ describe('AuditTrailRoute', () => {
 
     await route.handleHistory(context);
 
-    expect(store.listByRecord).toHaveBeenCalledWith({ collection: 'books', recordId: [2] });
+    expect(store.listByRecord).toHaveBeenCalledWith({ collection: 'books', recordId: '2' });
     expect(context.response.body).toEqual({ data: history });
   });
 

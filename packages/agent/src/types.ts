@@ -61,10 +61,7 @@ export type AgentOptions = {
 };
 
 export type AuditTrailRecordReader = {
-  listByRecord(query: {
-    collection: string;
-    recordId: CompositeId;
-  }): Promise<unknown[]> | unknown[];
+  listByRecord(query: { collection: string; recordId: string }): Promise<unknown[]> | unknown[];
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
