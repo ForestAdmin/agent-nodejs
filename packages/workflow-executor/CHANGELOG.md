@@ -1,3 +1,16 @@
+# @forestadmin/workflow-executor [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.3.0...@forestadmin/workflow-executor@1.4.0) (2026-06-17)
+
+
+### Bug Fixes
+
+* **workflow-executor:** coerce numeric-string bearer id to number ([#1669](https://github.com/ForestAdmin/agent-nodejs/issues/1669)) ([a44136d](https://github.com/ForestAdmin/agent-nodejs/commit/a44136dba91b8a0886fb148e3afdfae51031611b))
+* **workflow:** save ai reasoning in loadRelatedRecord steps ([#1668](https://github.com/ForestAdmin/agent-nodejs/issues/1668)) ([48a7e47](https://github.com/ForestAdmin/agent-nodejs/commit/48a7e4763c37c8d4ddcbe7f4af7a0f5197714cbe))
+
+
+### Features
+
+* **workflow-executor:** report executor version to orchestrator at startup ([#1662](https://github.com/ForestAdmin/agent-nodejs/issues/1662)) ([acf71df](https://github.com/ForestAdmin/agent-nodejs/commit/acf71dfdd8b0f8fa9583bbe95e5842e60c28765b))
+
 # @forestadmin/workflow-executor [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.2.0...@forestadmin/workflow-executor@1.3.0) (2026-06-15)
 
 
