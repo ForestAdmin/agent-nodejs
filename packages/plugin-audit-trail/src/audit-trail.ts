@@ -83,7 +83,13 @@ function instrumentCollection(
   redactedFields: string[],
 ): void {
   const { schema } = collection;
-  const columns = Object.keys(schema.fields).filter(name => schema.fields[name].type === 'Column');
+  // Writable columns only: Forest audits what it writes. Read-only fields cover both computed
+  // /virtual fields and DB-managed columns, none of which Forest mutates.
+  const columns = Object.keys(schema.fields).filter(name => {
+    const field = schema.fields[name];
+
+    return field.type === 'Column' && !field.isReadOnly;
+  });
   const primaryKeys = SchemaUtils.getPrimaryKeys(schema);
   const { name } = collection;
 

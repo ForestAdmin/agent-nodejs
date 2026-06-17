@@ -230,6 +230,26 @@ describe('auditTrail plugin', () => {
       expect((sink.mock.calls[0][0] as AuditRecord).newValues).not.toHaveProperty('owner');
     });
 
+    it('excludes read-only (computed/virtual) columns', async () => {
+      const sink = jest.fn();
+      const schema = {
+        fields: {
+          id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+          name: { type: 'Column', columnType: 'String' },
+          fullName: { type: 'Column', columnType: 'String', isReadOnly: true },
+        },
+      };
+      const users = fakeCollection('users', [], schema);
+      register([users], { sink });
+
+      await users.fire('After:Create', {
+        caller: makeCaller(),
+        records: [{ id: 1, name: 'Jane', fullName: 'Jane Doe' }],
+      });
+
+      expect((sink.mock.calls[0][0] as AuditRecord).newValues).toEqual({ id: 1, name: 'Jane' });
+    });
+
     it('records a missing column as null', async () => {
       const sink = jest.fn();
       const accounts = fakeCollection('accounts');
@@ -316,6 +336,33 @@ describe('auditTrail plugin', () => {
           recordId: '1',
           previousValues: { status: 'open', amount: 10 },
           newValues: { status: 'closed', amount: 99 },
+        }),
+      );
+    });
+
+    it('neither reads nor captures read-only columns', async () => {
+      const sink = jest.fn();
+      const schema = {
+        fields: {
+          id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+          name: { type: 'Column', columnType: 'String' },
+          fullName: { type: 'Column', columnType: 'String', isReadOnly: true },
+        },
+      };
+      const users = fakeCollection(
+        'users',
+        [{ id: 1, name: 'Jane', fullName: 'Jane Doe' }],
+        schema,
+      );
+      register([users], { sink });
+
+      await runUpdate(users, { caller: makeCaller(), patch: { name: 'Janet', fullName: 'X' } });
+
+      expect(users.list).toHaveBeenCalledWith(expect.anything(), ['id', 'name']);
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { name: 'Jane' },
+          newValues: { name: 'Janet' },
         }),
       );
     });
