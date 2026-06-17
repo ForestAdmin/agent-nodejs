@@ -28,7 +28,7 @@ export function defineAuditLogModel(
       timestamp: { type: DataTypes.DATE, allowNull: false },
       operation: { type: DataTypes.STRING, allowNull: false },
       collection: { type: DataTypes.STRING, allowNull: false },
-      recordId: { type: DataTypes.JSON, allowNull: false },
+      recordId: { type: DataTypes.STRING, allowNull: false },
       userId: { type: DataTypes.INTEGER, allowNull: true },
       correlationKey: { type: DataTypes.STRING, allowNull: true },
       previousValues: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
