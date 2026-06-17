@@ -224,7 +224,12 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          executionParams: {
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            reasoning: 'User requested status change',
+          },
           executionResult: { updatedValues },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
@@ -410,7 +415,12 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: {
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            reasoning: 'User requested status change',
+          },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -789,6 +799,7 @@ describe('UpdateRecordStepExecutor', () => {
             displayName: 'Order Status',
             name: 'status',
             value: 'shipped',
+            reasoning: 'Mark as shipped',
           },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],
