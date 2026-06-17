@@ -1,12 +1,10 @@
-import type { CompositeId } from '@forestadmin/datasource-toolkit';
-
 export type AuditOperation = 'create' | 'update' | 'delete';
 
 export type AuditRecord = {
   timestamp: string;
   operation: AuditOperation;
   collection: string;
-  recordId: CompositeId;
+  recordId: string;
   userId: number;
   correlationKey: string;
   previousValues: Record<string, unknown>;
@@ -17,7 +15,7 @@ export type AuditSink = (record: AuditRecord) => void | Promise<void>;
 
 export type AuditHistoryQuery = {
   collection: string;
-  recordId: CompositeId;
+  recordId: string;
 };
 
 export interface AuditStore {
@@ -28,6 +26,12 @@ export interface AuditStore {
 export type AuditTrailOptions = {
   sink?: AuditSink;
   store?: AuditStore;
+  /**
+   * Field values to mask, keyed by collection name. A redacted field still produces an
+   * audit entry when it changes (so the change is recorded), but its value is replaced
+   * with a sentinel instead of being stored.
+   */
+  redact?: Record<string, string[]>;
 };
 
 export type AuditStorageOptions = {

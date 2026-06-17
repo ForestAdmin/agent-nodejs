@@ -8,12 +8,8 @@ export default class InMemoryAuditStore implements AuditStore {
   }
 
   listByRecord({ collection, recordId }: AuditHistoryQuery): AuditRecord[] {
-    const target = JSON.stringify(recordId);
-
     return this.records
-      .filter(
-        record => record.collection === collection && JSON.stringify(record.recordId) === target,
-      )
+      .filter(record => record.collection === collection && record.recordId === recordId)
       .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   }
 }

@@ -1,7 +1,7 @@
 import type { AuditRecord, AuditTrailOptions } from '../src';
 import type { Caller } from '@forestadmin/datasource-toolkit';
 
-import { InMemoryAuditStore, auditTrail } from '../src';
+import { InMemoryAuditStore, REDACTED, auditTrail } from '../src';
 
 type Handler = (context: unknown) => Promise<void>;
 
@@ -122,7 +122,7 @@ describe('auditTrail plugin', () => {
         records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
       });
 
-      expect(store.listByRecord({ collection: 'accounts', recordId: [1] })).toEqual([
+      expect(store.listByRecord({ collection: 'accounts', recordId: '1' })).toEqual([
         expect.objectContaining({ operation: 'create', newValues: expect.anything() }),
       ]);
     });
@@ -163,7 +163,7 @@ describe('auditTrail plugin', () => {
       expect(record.correlationKey).toBe('req-abc');
     });
 
-    it('builds a composite recordId from every primary key', async () => {
+    it('packs a composite recordId from every primary key', async () => {
       const sink = jest.fn();
       const memberships = fakeCollection('memberships', [], compositeSchema);
       register([memberships], { sink });
@@ -173,7 +173,7 @@ describe('auditTrail plugin', () => {
         records: [{ organizationId: 3, userId: 7, role: 'admin' }],
       });
 
-      expect(sink).toHaveBeenCalledWith(expect.objectContaining({ recordId: [3, 7] }));
+      expect(sink).toHaveBeenCalledWith(expect.objectContaining({ recordId: '3|7' }));
     });
 
     it('builds a string recordId for a varchar primary key', async () => {
@@ -192,7 +192,7 @@ describe('auditTrail plugin', () => {
         records: [{ slug: 'home', name: 'Home' }],
       });
 
-      expect(sink).toHaveBeenCalledWith(expect.objectContaining({ recordId: ['home'] }));
+      expect(sink).toHaveBeenCalledWith(expect.objectContaining({ recordId: 'home' }));
     });
   });
 
@@ -210,7 +210,7 @@ describe('auditTrail plugin', () => {
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining<Partial<AuditRecord>>({
           operation: 'create',
-          recordId: [1],
+          recordId: '1',
           previousValues: {},
           newValues: { id: 1, status: 'open', name: 'Acme', amount: 10 },
         }),
@@ -278,8 +278,8 @@ describe('auditTrail plugin', () => {
       });
 
       expect(sink).toHaveBeenCalledTimes(2);
-      expect(sink).toHaveBeenNthCalledWith(1, expect.objectContaining({ recordId: [1] }));
-      expect(sink).toHaveBeenNthCalledWith(2, expect.objectContaining({ recordId: [2] }));
+      expect(sink).toHaveBeenNthCalledWith(1, expect.objectContaining({ recordId: '1' }));
+      expect(sink).toHaveBeenNthCalledWith(2, expect.objectContaining({ recordId: '2' }));
     });
   });
 
@@ -313,7 +313,7 @@ describe('auditTrail plugin', () => {
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining<Partial<AuditRecord>>({
           operation: 'update',
-          recordId: [1],
+          recordId: '1',
           previousValues: { status: 'open', amount: 10 },
           newValues: { status: 'closed', amount: 99 },
         }),
@@ -363,7 +363,7 @@ describe('auditTrail plugin', () => {
       expect(sink).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
-          recordId: [1],
+          recordId: '1',
           previousValues: { status: 'open' },
           newValues: { status: 'closed' },
         }),
@@ -371,7 +371,7 @@ describe('auditTrail plugin', () => {
       expect(sink).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
-          recordId: [2],
+          recordId: '2',
           previousValues: { status: 'pending' },
           newValues: { status: 'closed' },
         }),
@@ -448,11 +448,11 @@ describe('auditTrail plugin', () => {
       expect(sink).toHaveBeenCalledTimes(2);
       expect(sink).toHaveBeenNthCalledWith(
         1,
-        expect.objectContaining({ recordId: [1], previousValues: { status: 'open' } }),
+        expect.objectContaining({ recordId: '1', previousValues: { status: 'open' } }),
       );
       expect(sink).toHaveBeenNthCalledWith(
         2,
-        expect.objectContaining({ recordId: [2], previousValues: { status: 'pending' } }),
+        expect.objectContaining({ recordId: '2', previousValues: { status: 'pending' } }),
       );
     });
   });
@@ -529,6 +529,83 @@ describe('auditTrail plugin', () => {
     });
   });
 
+  describe('redaction', () => {
+    it('masks a redacted field on create, keeping the others', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts');
+      register([accounts], { sink, redact: { accounts: ['name'] } });
+
+      await accounts.fire('After:Create', {
+        caller: makeCaller(),
+        records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
+      });
+
+      expect((sink.mock.calls[0][0] as AuditRecord).newValues).toEqual({
+        id: 1,
+        status: 'open',
+        name: REDACTED,
+        amount: 10,
+      });
+    });
+
+    it('still records that a redacted field changed, but masks both values', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts', [
+        { id: 1, status: 'open', name: 'Acme', amount: 10 },
+      ]);
+      register([accounts], { sink, redact: { accounts: ['name'] } });
+
+      await runUpdate(accounts, { caller: makeCaller(), patch: { name: 'Globex' } });
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { name: REDACTED },
+          newValues: { name: REDACTED },
+        }),
+      );
+    });
+
+    it('does not emit when only a redacted field is patched with an unchanged value', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts', [
+        { id: 1, status: 'open', name: 'Acme', amount: 10 },
+      ]);
+      register([accounts], { sink, redact: { accounts: ['name'] } });
+
+      await runUpdate(accounts, { caller: makeCaller(), patch: { name: 'Acme' } });
+
+      expect(sink).not.toHaveBeenCalled();
+    });
+
+    it('masks a redacted field on delete', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts', [
+        { id: 7, status: 'open', name: 'Globex', amount: 20 },
+      ]);
+      register([accounts], { sink, redact: { accounts: ['name'] } });
+
+      await runDelete(accounts, { caller: makeCaller() });
+
+      expect((sink.mock.calls[0][0] as AuditRecord).previousValues).toMatchObject({
+        name: REDACTED,
+      });
+    });
+
+    it('only redacts the configured collection, not a same-named field elsewhere', async () => {
+      const sink = jest.fn();
+      const accounts = fakeCollection('accounts');
+      const contacts = fakeCollection('contacts');
+      register([accounts, contacts], { sink, redact: { accounts: ['name'] } });
+
+      await contacts.fire('After:Create', {
+        caller: makeCaller(),
+        records: [{ id: 1, status: 'open', name: 'Bob', amount: 0 }],
+      });
+
+      expect((sink.mock.calls[0][0] as AuditRecord).newValues).toMatchObject({ name: 'Bob' });
+    });
+  });
+
   describe('delete', () => {
     it('reads the affected records before the write through the collection API', async () => {
       const sink = jest.fn();
@@ -559,7 +636,7 @@ describe('auditTrail plugin', () => {
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining<Partial<AuditRecord>>({
           operation: 'delete',
-          recordId: [7],
+          recordId: '7',
           previousValues: { id: 7, status: 'open', name: 'Globex', amount: 20 },
           newValues: {},
         }),
@@ -577,8 +654,8 @@ describe('auditTrail plugin', () => {
       await runDelete(accounts, { caller: makeCaller() });
 
       expect(sink).toHaveBeenCalledTimes(2);
-      expect(sink).toHaveBeenNthCalledWith(1, expect.objectContaining({ recordId: [7] }));
-      expect(sink).toHaveBeenNthCalledWith(2, expect.objectContaining({ recordId: [8] }));
+      expect(sink).toHaveBeenNthCalledWith(1, expect.objectContaining({ recordId: '7' }));
+      expect(sink).toHaveBeenNthCalledWith(2, expect.objectContaining({ recordId: '8' }));
     });
 
     it('emits nothing when the delete matches no record', async () => {

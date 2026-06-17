@@ -6,14 +6,16 @@ import type {
   HookBeforeDeleteContext,
   HookBeforeUpdateContext,
 } from '@forestadmin/datasource-customizer';
-import type { Caller, CompositeId, RecordData } from '@forestadmin/datasource-toolkit';
+import type { Caller, RecordData } from '@forestadmin/datasource-toolkit';
 
 import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 const pendingSnapshots = new WeakMap<object, RecordData[]>();
 
-const toRecordId = (record: RecordData, primaryKeys: string[]): CompositeId =>
-  primaryKeys.map(pk => record[pk] as number | string);
+// Forest's canonical record identity: primary keys stringified and joined, matching
+// IdUtils.packId and the record ids stored in the Elasticsearch activity logs.
+const toRecordId = (record: RecordData, primaryKeys: string[]): string =>
+  primaryKeys.map(pk => String(record[pk])).join('|');
 
 const pick = (record: RecordData, columns: string[]): Record<string, unknown> =>
   Object.fromEntries(columns.map(column => [column, record[column] ?? null]));
@@ -56,12 +58,30 @@ const changedValues = (
   return { previousValues, newValues };
 };
 
+export const REDACTED = '[redacted]';
+
+const redactValues = (
+  values: Record<string, unknown>,
+  redactedFields: string[],
+): Record<string, unknown> => {
+  if (!redactedFields.length) return values;
+
+  const result = { ...values };
+  for (const field of redactedFields) if (field in result) result[field] = REDACTED;
+
+  return result;
+};
+
 const defaultSink: AuditSink = record => {
   // eslint-disable-next-line no-console
   console.info('[audit-trail]', JSON.stringify(record));
 };
 
-function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink): void {
+function instrumentCollection(
+  collection: CollectionCustomizer,
+  sink: AuditSink,
+  redactedFields: string[],
+): void {
   const { schema } = collection;
   const columns = Object.keys(schema.fields).filter(name => schema.fields[name].type === 'Column');
   const primaryKeys = SchemaUtils.getPrimaryKeys(schema);
@@ -70,7 +90,7 @@ function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink)
   const emit = (
     caller: Caller,
     operation: AuditRecord['operation'],
-    recordId: CompositeId,
+    recordId: string,
     previousValues: Record<string, unknown>,
     newValues: Record<string, unknown>,
   ): Promise<void> | void =>
@@ -81,8 +101,8 @@ function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink)
       recordId,
       userId: caller.id,
       correlationKey: caller.requestId,
-      previousValues,
-      newValues,
+      previousValues: redactValues(previousValues, redactedFields),
+      newValues: redactValues(newValues, redactedFields),
     });
 
   collection.addHook('After', 'Create', async (context: HookAfterCreateContext) => {
@@ -142,10 +162,10 @@ export default function auditTrail(
   _collectionCustomizer: CollectionCustomizer | null,
   options?: AuditTrailOptions,
 ): void {
-  const { sink, store } = options ?? {};
+  const { sink, store, redact } = options ?? {};
   const append = sink ?? (store ? record => store.append(record) : defaultSink);
 
   for (const collection of dataSourceCustomizer.collections) {
-    instrumentCollection(collection, append);
+    instrumentCollection(collection, append, redact?.[collection.name] ?? []);
   }
 }
