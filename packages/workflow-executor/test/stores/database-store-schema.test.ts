@@ -13,12 +13,11 @@ jest.mock('umzug', () => ({
 const MockedUmzug = Umzug as unknown as jest.Mock;
 const MockedSequelizeStorage = SequelizeStorage as unknown as jest.Mock;
 
-function makeSequelize(dialect: 'postgres' | 'sqlite', schema?: string): Sequelize {
+function makeSequelize(dialect: 'postgres' | 'sqlite'): Sequelize {
   return {
     getDialect: () => dialect,
     getQueryInterface: () => ({} as QueryInterface),
     query: jest.fn().mockResolvedValue([[], {}]),
-    options: { schema },
   } as unknown as Sequelize;
 }
 
@@ -34,10 +33,10 @@ describe('DatabaseStore — schema namespacing', () => {
       expect(sequelize.query).toHaveBeenCalledWith('CREATE SCHEMA IF NOT EXISTS "forest"');
     });
 
-    it('uses the schema configured on the Sequelize instance over the default', async () => {
-      const sequelize = makeSequelize('postgres', 'custom');
+    it('uses the configured schema over the default', async () => {
+      const sequelize = makeSequelize('postgres');
 
-      await new DatabaseStore({ sequelize }).init();
+      await new DatabaseStore({ sequelize, schema: 'custom' }).init();
 
       expect(sequelize.query).toHaveBeenCalledWith('CREATE SCHEMA IF NOT EXISTS "custom"');
       expect(MockedSequelizeStorage).toHaveBeenCalledWith(

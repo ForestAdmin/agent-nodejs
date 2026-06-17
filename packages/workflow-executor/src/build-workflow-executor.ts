@@ -230,7 +230,7 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
 
   const runner = new Runner({
     ...deps,
-    runStore: new DatabaseStore({ sequelize }),
+    runStore: new DatabaseStore({ sequelize, schema: mergedOptions.schema }),
   });
 
   const server = new ExecutorHttpServer({

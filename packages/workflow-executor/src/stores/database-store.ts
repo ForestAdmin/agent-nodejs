@@ -13,23 +13,23 @@ const DEFAULT_SCHEMA = 'forest';
 
 export interface DatabaseStoreOptions {
   sequelize: Sequelize;
+  schema?: string;
 }
 
 export default class DatabaseStore implements RunStore {
   private readonly sequelize: Sequelize;
 
+  private readonly configuredSchema?: string;
+
   constructor(options: DatabaseStoreOptions) {
     this.sequelize = options.sequelize;
+    this.configuredSchema = options.schema;
   }
 
   private get schema(): string | undefined {
     if (this.sequelize.getDialect() === 'sqlite') return undefined;
 
-    // ponytail: sequelize v6 keeps the configured schema on `.options`, not in its public types
-    const configured = (this.sequelize as unknown as { options: { schema?: string } }).options
-      .schema;
-
-    return configured || DEFAULT_SCHEMA;
+    return this.configuredSchema || DEFAULT_SCHEMA;
   }
 
   private get tableId(): string | { tableName: string; schema: string } {
