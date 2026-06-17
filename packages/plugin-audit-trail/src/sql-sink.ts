@@ -1,0 +1,115 @@
+import type { AuditRecord, AuditSink, AuditStorageOptions } from './types';
+import type { Model, ModelStatic } from 'sequelize';
+
+import { DataTypes, Sequelize } from 'sequelize';
+
+export const DEFAULT_SCHEMA = 'forest';
+export const DEFAULT_TABLE = 'audit_logs';
+
+/** Dialects that support real schemas (namespaces). Elsewhere the table lives in the default schema. */
+const SCHEMA_DIALECTS = new Set(['postgres', 'mssql']);
+
+const MODEL_NAME = 'ForestAuditLog';
+
+/**
+ * Declare the audit-log model on a connection. Does not touch the database.
+ *
+ * Only the actor's `userId` is stored; the rest of the actor identity is persisted elsewhere and
+ * correlated through `correlationKey`.
+ */
+export function defineAuditLogModel(
+  sequelize: Sequelize,
+  options: { schema?: string; tableName: string },
+): ModelStatic<Model> {
+  return sequelize.define(
+    MODEL_NAME,
+    {
+      id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
+      timestamp: { type: DataTypes.DATE, allowNull: false },
+      operation: { type: DataTypes.STRING, allowNull: false },
+      collection: { type: DataTypes.STRING, allowNull: false },
+      recordId: { type: DataTypes.JSON, allowNull: false },
+      userId: { type: DataTypes.INTEGER, allowNull: true },
+      correlationKey: { type: DataTypes.STRING, allowNull: true },
+      previousValues: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
+      newValues: { type: DataTypes.JSON, allowNull: false, defaultValue: {} },
+    },
+    {
+      schema: options.schema,
+      tableName: options.tableName,
+      timestamps: false,
+      underscored: true,
+      freezeTableName: true,
+    },
+  );
+}
+
+/**
+ * Ensure the schema and the audit table exist, then return the model.
+ *
+ * - empty database          → schema (when supported) and table are created;
+ * - database without schema  → schema is created next to the existing tables, table is created;
+ * - database with the schema → both steps are no-ops.
+ */
+export async function ensureAuditStorage(
+  sequelize: Sequelize,
+  options: { schema?: string; tableName: string },
+): Promise<ModelStatic<Model>> {
+  const queryInterface = sequelize.getQueryInterface();
+  const useSchema = SCHEMA_DIALECTS.has(sequelize.getDialect()) ? options.schema : undefined;
+
+  if (useSchema) {
+    // showAllSchemas keeps the operation idempotent regardless of the server version,
+    // since CREATE SCHEMA only emits IF NOT EXISTS on recent databases.
+    const schemas = (await queryInterface.showAllSchemas()) as unknown as string[];
+
+    if (!schemas.includes(useSchema)) {
+      await queryInterface.createSchema(useSchema);
+    }
+  }
+
+  const model = defineAuditLogModel(sequelize, { schema: useSchema, tableName: options.tableName });
+  await model.sync(); // CREATE TABLE IF NOT EXISTS; never alters an existing table
+
+  return model;
+}
+
+/** Map an audit record to a database row. */
+export function toRow(record: AuditRecord): Record<string, unknown> {
+  return {
+    timestamp: record.timestamp,
+    operation: record.operation,
+    collection: record.collection,
+    recordId: record.recordId,
+    userId: record.userId,
+    correlationKey: record.correlationKey,
+    previousValues: record.previousValues,
+    newValues: record.newValues,
+  };
+}
+
+/**
+ * Connect to the database described by `connectionString`, bootstrap the `forest` schema and the
+ * audit table, and return a sink that persists every audit record into it.
+ */
+export async function createSqlAuditSink(
+  options: AuditStorageOptions,
+): Promise<{ sink: AuditSink; close: () => Promise<void> }> {
+  const { connectionString, schema = DEFAULT_SCHEMA, tableName = DEFAULT_TABLE } = options;
+
+  const sequelize = new Sequelize(connectionString, { logging: false });
+
+  try {
+    await sequelize.authenticate();
+    const model = await ensureAuditStorage(sequelize, { schema, tableName });
+
+    const sink: AuditSink = async record => {
+      await model.create(toRow(record));
+    };
+
+    return { sink, close: () => sequelize.close() };
+  } catch (error) {
+    await sequelize.close();
+    throw error;
+  }
+}

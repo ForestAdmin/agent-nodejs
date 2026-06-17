@@ -29,3 +29,17 @@ export type AuditTrailOptions = {
   sink?: AuditSink;
   store?: AuditStore;
 };
+
+export type AuditStorageOptions = {
+  /**
+   * Connection string (Postgres or plain SQL) of the database that will hold the audit log.
+   * It may point to an empty database, the database already used by the agent, or a database
+   * that already contains the `forest` schema. The schema and the table are created on the fly
+   * when missing.
+   */
+  connectionString: string;
+  /** Schema that namespaces Forest-owned tables. Defaults to `forest`. */
+  schema?: string;
+  /** Name of the audit table. Defaults to `audit_logs`. */
+  tableName?: string;
+};
