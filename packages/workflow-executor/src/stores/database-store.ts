@@ -9,9 +9,6 @@ import { SequelizeStorage, Umzug } from 'umzug';
 import { RunStorePortError, WorkflowExecutorError, extractErrorMessage } from '../errors';
 
 const TABLE_NAME = 'workflow_step_executions';
-// Dedicated schema so the executor (table + SequelizeMeta) is safe to share a
-// database with the agent/server. Honors a schema configured on the Sequelize
-// instance (e.g. `database: { schema: '...' }`), defaulting to `forest`.
 const DEFAULT_SCHEMA = 'forest';
 
 export interface DatabaseStoreOptions {
