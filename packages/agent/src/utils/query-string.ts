@@ -14,9 +14,9 @@ import {
   UnprocessableError,
   ValidationError,
 } from '@forestadmin/datasource-toolkit';
-import { v4 as uuidv4 } from 'uuid';
 
 import ConditionTreeParser from './condition-tree-parser';
+import { getRequestId } from './correlation-id';
 
 const DEFAULT_ITEMS_PER_PAGE = 15;
 const DEFAULT_PAGE_TO_SKIP = 1;
@@ -172,7 +172,7 @@ export default class QueryStringParser {
     return {
       ...context.state.user,
       timezone,
-      requestId: uuidv4(),
+      requestId: getRequestId(context),
       project,
       environment,
       request: { ip },
