@@ -55,51 +55,76 @@ yarn start
 
 `start:with-executor` launches both the agent and the workflow executor side-by-side using `concurrently`. The executor waits for the agent to be ready before starting.
 
-### 1. Start the executor's Postgres database
+### Quick start (in-memory, no database required)
 
-```bash
-yarn db:executor:up
-```
-
-Starts a dedicated Postgres container on `localhost:5452` (separate from the agent databases).
-
-### 2. Add executor variables to `.env`
-
-The script sources the `_example` `.env` file and maps two variables to the executor's expected names. Add these to your `.env`:
+#### 1. Add executor variables to `.env`
 
 ```dotenv
 # Workflow executor
-EXECUTOR_AGENT_URL=http://localhost:3310   # must match the port your agent listens on
-EXECUTOR_DATABASE_URL=postgres://executor:password@localhost:5452/workflow_executor
+EXECUTOR_AGENT_URL=http://localhost:3351  # must match the port your agent listens on
+OPENAI_API_KEY=sk-...                     # or ANTHROPIC_API_KEY
 ```
 
 `FOREST_ENV_SECRET` and `FOREST_AUTH_SECRET` are already required by the agent and are reused by the executor automatically.
 
-### 3. Install `tsx` (if not already available)
-
-The executor CLI uses `tsx` for fast TypeScript execution without a build step:
+#### 2. Install `tsx` (if not already available)
 
 ```bash
 npm install -g tsx
 ```
 
-### 4. Start both processes
+#### 3. Start both processes
 
 ```bash
-yarn start:with-executor
+yarn start:with-executor:with-openai:in-memory
+# or
+yarn start:with-executor:with-anthropic:in-memory
 ```
 
-Expected output (two prefixed streams):
+Run state is kept in memory and lost on restart. Use this for local development and testing.
+
+---
+
+### Persistent mode (Postgres)
+
+Use the database-backed scripts when you need run history to survive restarts.
+
+#### 1. Start the executor's Postgres database
+
+```bash
+yarn db:executor:up
+```
+
+Starts a dedicated Postgres container on `localhost:5459` (separate from the agent databases).
+
+#### 2. Add executor variables to `.env`
+
+```dotenv
+# Workflow executor
+EXECUTOR_AGENT_URL=http://localhost:3351
+EXECUTOR_DATABASE_URL=postgres://executor:password@localhost:5459/workflow_executor
+OPENAI_API_KEY=sk-...                     # or ANTHROPIC_API_KEY
+```
+
+#### 3. Start both processes
+
+```bash
+yarn start:with-executor:with-openai
+# or
+yarn start:with-executor:with-anthropic
+```
+
+Expected output:
 
 ```
-[agent]    Forest Admin agent listening on port 3310
+[agent]    Forest Admin agent listening on port 3351
 [executor] [forest-workflow-executor] Starting (database mode)
 [executor] [forest-workflow-executor] Ready on http://localhost:3400
 [executor] {"message":"Poll cycle completed","fetched":0,"dispatching":0}
 ```
 
-### Teardown
+#### Teardown
 
 ```bash
-yarn db:executor:down   # stop the executor DB container
+yarn db:executor:down
 ```
