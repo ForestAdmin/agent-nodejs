@@ -8,7 +8,7 @@ import type {
   SearchOptionsHandler,
   ValueOrHandler,
 } from './types/fields';
-import type { TSchema } from '../../templates';
+import type { TFilter, TSchema } from '../../templates';
 import type {
   ActionFormElement,
   ActionResult,
@@ -18,7 +18,6 @@ import type {
   Filter,
   GetFormMetas,
   LayoutElementPageWithField,
-  PlainFilter,
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
@@ -177,7 +176,7 @@ export default class ActionCollectionDecorator extends CollectionDecorator {
       Global: ActionContext,
       Bulk: ActionContext,
       Single: ActionContextSingle,
-    }[action.scope](this, caller, formValues, filter as unknown as PlainFilter, used, changedField);
+    }[action.scope](this, caller, formValues, filter as unknown as TFilter, used, changedField);
   }
 
   private getSearchedField(element: DynamicFormElementOrPage, search: string): DynamicField | null {
