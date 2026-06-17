@@ -1,4 +1,4 @@
-import type { AuditActor, AuditRecord, AuditSink, AuditTrailOptions, FieldChange } from './types';
+import type { AuditActor, AuditRecord, AuditSink, AuditTrailOptions } from './types';
 import type {
   CollectionCustomizer,
   DataSourceCustomizer,
@@ -25,20 +25,25 @@ const toActor = (caller: Caller): AuditActor => ({
 const toRecordId = (record: RecordData, primaryKeys: string[]): CompositeId =>
   primaryKeys.map(pk => record[pk] as number | string);
 
-const diff = (
+const pick = (record: RecordData, columns: string[]): Record<string, unknown> =>
+  Object.fromEntries(columns.map(column => [column, record[column] ?? null]));
+
+const changedValues = (
   before: RecordData,
-  after: RecordData,
+  patch: RecordData,
   columns: string[],
-): Record<string, FieldChange> => {
-  const changes: Record<string, FieldChange> = {};
+): Pick<AuditRecord, 'previousValues' | 'newValues'> => {
+  const previousValues: Record<string, unknown> = {};
+  const newValues: Record<string, unknown> = {};
 
   for (const column of columns) {
-    if (before[column] !== after[column]) {
-      changes[column] = { before: before[column] ?? null, after: after[column] ?? null };
+    if (column in patch && before[column] !== patch[column]) {
+      previousValues[column] = before[column] ?? null;
+      newValues[column] = patch[column] ?? null;
     }
   }
 
-  return changes;
+  return { previousValues, newValues };
 };
 
 const defaultSink: AuditSink = record => {
@@ -52,28 +57,29 @@ function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink)
   const primaryKeys = SchemaUtils.getPrimaryKeys(schema);
   const { name } = collection;
 
-  const emit = async (
+  const emit = (
     caller: Caller,
     operation: AuditRecord['operation'],
-    before: RecordData | null,
-    after: RecordData | null,
-  ): Promise<void> => {
-    await sink({
+    recordId: CompositeId,
+    previousValues: Record<string, unknown>,
+    newValues: Record<string, unknown>,
+  ): Promise<void> | void =>
+    sink({
       timestamp: new Date().toISOString(),
       operation,
       collection: name,
-      recordId: toRecordId((after ?? before) as RecordData, primaryKeys),
+      recordId,
       actor: toActor(caller),
       correlationKey: caller.requestId,
-      before,
-      after,
-      changes: before && after ? diff(before, after, columns) : {},
+      previousValues,
+      newValues,
     });
-  };
 
   collection.addHook('After', 'Create', async (context: HookAfterCreateContext) => {
     await Promise.all(
-      context.records.map(record => emit(context.caller, 'create', null, record as RecordData)),
+      context.records.map(record =>
+        emit(context.caller, 'create', toRecordId(record, primaryKeys), {}, pick(record, columns)),
+      ),
     );
   });
 
@@ -89,7 +95,19 @@ function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink)
 
     const patch = context.patch as RecordData;
     await Promise.all(
-      before.map(record => emit(context.caller, 'update', record, { ...record, ...patch })),
+      before.map(record => {
+        const { previousValues, newValues } = changedValues(record, patch, columns);
+
+        if (Object.keys(newValues).length === 0) return undefined;
+
+        return emit(
+          context.caller,
+          'update',
+          toRecordId(record, primaryKeys),
+          previousValues,
+          newValues,
+        );
+      }),
     );
   });
 
@@ -103,7 +121,11 @@ function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink)
     const before = pendingSnapshots.get(key) ?? [];
     pendingSnapshots.delete(key);
 
-    await Promise.all(before.map(record => emit(context.caller, 'delete', record, null)));
+    await Promise.all(
+      before.map(record =>
+        emit(context.caller, 'delete', toRecordId(record, primaryKeys), pick(record, columns), {}),
+      ),
+    );
   });
 }
 
