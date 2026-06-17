@@ -7,7 +7,7 @@ const record = (over: Partial<AuditRecord>): AuditRecord => ({
   operation: 'update',
   collection: 'accounts',
   recordId: [1],
-  actor: { id: 1, email: 'a@b.c', role: 'admin', requestId: 'r' },
+  userId: 1,
   correlationKey: 'r',
   previousValues: {},
   newValues: {},

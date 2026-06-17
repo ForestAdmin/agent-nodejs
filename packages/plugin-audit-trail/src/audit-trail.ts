@@ -1,4 +1,4 @@
-import type { AuditActor, AuditRecord, AuditSink, AuditTrailOptions } from './types';
+import type { AuditRecord, AuditSink, AuditTrailOptions } from './types';
 import type {
   CollectionCustomizer,
   DataSourceCustomizer,
@@ -12,18 +12,31 @@ import { SchemaUtils } from '@forestadmin/datasource-toolkit';
 
 const pendingSnapshots = new WeakMap<object, RecordData[]>();
 
-const toActor = (caller: Caller): AuditActor => ({
-  id: caller.id,
-  email: caller.email,
-  role: caller.role,
-  requestId: caller.requestId,
-});
-
 const toRecordId = (record: RecordData, primaryKeys: string[]): CompositeId =>
   primaryKeys.map(pk => record[pk] as number | string);
 
 const pick = (record: RecordData, columns: string[]): Record<string, unknown> =>
   Object.fromEntries(columns.map(column => [column, record[column] ?? null]));
+
+const sortObjectKeys = (key: string, value: unknown): unknown => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return Object.keys(value as Record<string, unknown>)
+      .sort()
+      .reduce<Record<string, unknown>>((sorted, name) => {
+        sorted[name] = (value as Record<string, unknown>)[name];
+
+        return sorted;
+      }, {});
+  }
+
+  return value;
+};
+
+// Value-equality across scalars, nested objects/arrays, Dates and BSON types.
+// JSON.stringify reduces Dates/BSON to their canonical form via toJSON before the
+// replacer runs, and the replacer makes plain-object key order irrelevant.
+const equals = (a: unknown, b: unknown): boolean =>
+  JSON.stringify(a, sortObjectKeys) === JSON.stringify(b, sortObjectKeys);
 
 const changedValues = (
   before: RecordData,
@@ -34,7 +47,7 @@ const changedValues = (
   const newValues: Record<string, unknown> = {};
 
   for (const column of columns) {
-    if (column in patch && before[column] !== patch[column]) {
+    if (column in patch && !equals(before[column], patch[column])) {
       previousValues[column] = before[column] ?? null;
       newValues[column] = patch[column] ?? null;
     }
@@ -66,7 +79,7 @@ function instrumentCollection(collection: CollectionCustomizer, sink: AuditSink)
       operation,
       collection: name,
       recordId,
-      actor: toActor(caller),
+      userId: caller.id,
       correlationKey: caller.requestId,
       previousValues,
       newValues,

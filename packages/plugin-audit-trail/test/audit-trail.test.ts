@@ -26,6 +26,16 @@ const compositeSchema = {
   },
 };
 
+const complexSchema = {
+  fields: {
+    id: { type: 'Column', columnType: 'Number', isPrimaryKey: true },
+    payload: { type: 'Column', columnType: 'Json' },
+    tags: { type: 'Column', columnType: ['String'] },
+    seenAt: { type: 'Column', columnType: 'Date' },
+    ref: { type: 'Column', columnType: 'String' },
+  },
+};
+
 function fakeCollection(
   name: string,
   listResult: Record<string, unknown>[] = [],
@@ -136,7 +146,7 @@ describe('auditTrail plugin', () => {
   });
 
   describe('common record shape', () => {
-    it('stamps timestamp, actor and correlation key from the caller', async () => {
+    it('stamps timestamp, user id and correlation key from the caller', async () => {
       const sink = jest.fn();
       const accounts = fakeCollection('accounts');
       register([accounts], { sink });
@@ -149,12 +159,7 @@ describe('auditTrail plugin', () => {
       const record = sink.mock.calls[0][0] as AuditRecord;
       expect(record.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T.*Z$/);
       expect(record.collection).toBe('accounts');
-      expect(record.actor).toEqual({
-        id: 42,
-        email: 'jane@forest.dev',
-        role: 'admin',
-        requestId: 'req-abc',
-      });
+      expect(record.userId).toBe(42);
       expect(record.correlationKey).toBe('req-abc');
     });
 
@@ -169,6 +174,25 @@ describe('auditTrail plugin', () => {
       });
 
       expect(sink).toHaveBeenCalledWith(expect.objectContaining({ recordId: [3, 7] }));
+    });
+
+    it('builds a string recordId for a varchar primary key', async () => {
+      const sink = jest.fn();
+      const schema = {
+        fields: {
+          slug: { type: 'Column', columnType: 'String', isPrimaryKey: true },
+          name: { type: 'Column', columnType: 'String' },
+        },
+      };
+      const pages = fakeCollection('pages', [], schema);
+      register([pages], { sink });
+
+      await pages.fire('After:Create', {
+        caller: makeCaller(),
+        records: [{ slug: 'home', name: 'Home' }],
+      });
+
+      expect(sink).toHaveBeenCalledWith(expect.objectContaining({ recordId: ['home'] }));
     });
   });
 
@@ -430,6 +454,78 @@ describe('auditTrail plugin', () => {
         2,
         expect.objectContaining({ recordId: [2], previousValues: { status: 'pending' } }),
       );
+    });
+  });
+
+  describe('complex and BSON values', () => {
+    const update = (before: Record<string, unknown>, patch: Record<string, unknown>) => {
+      const sink = jest.fn();
+      const records = fakeCollection('records', [{ id: 1, ...before }], complexSchema);
+      register([records], { sink });
+
+      return { sink, run: () => runUpdate(records, { caller: makeCaller(), patch }) };
+    };
+
+    it('does not flag a structurally equal object (different instance, reordered keys)', async () => {
+      const { sink, run } = update({ payload: { a: 1, b: 2 } }, { payload: { b: 2, a: 1 } });
+      await run();
+
+      expect(sink).not.toHaveBeenCalled();
+    });
+
+    it('captures a real change inside a nested object', async () => {
+      const { sink, run } = update({ payload: { a: 1, b: 2 } }, { payload: { a: 1, b: 3 } });
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { payload: { a: 1, b: 2 } },
+          newValues: { payload: { a: 1, b: 3 } },
+        }),
+      );
+    });
+
+    it('does not flag an equal array, but flags a reorder', async () => {
+      const equal = update({ tags: ['x', 'y'] }, { tags: ['x', 'y'] });
+      await equal.run();
+      expect(equal.sink).not.toHaveBeenCalled();
+
+      const reordered = update({ tags: ['x', 'y'] }, { tags: ['y', 'x'] });
+      await reordered.run();
+      expect(reordered.sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { tags: ['x', 'y'] },
+          newValues: { tags: ['y', 'x'] },
+        }),
+      );
+    });
+
+    it('does not flag an equal Date, but flags a different one', async () => {
+      const same = update(
+        { seenAt: new Date('2026-01-01T00:00:00Z') },
+        { seenAt: new Date('2026-01-01T00:00:00Z') },
+      );
+      await same.run();
+      expect(same.sink).not.toHaveBeenCalled();
+
+      const changed = update(
+        { seenAt: new Date('2026-01-01T00:00:00Z') },
+        { seenAt: new Date('2026-02-01T00:00:00Z') },
+      );
+      await changed.run();
+      expect(changed.sink).toHaveBeenCalledTimes(1);
+    });
+
+    it('compares BSON-like values by their canonical toJSON', async () => {
+      const objectId = (hex: string) => ({ toJSON: () => hex });
+
+      const same = update({ ref: objectId('abc') }, { ref: objectId('abc') });
+      await same.run();
+      expect(same.sink).not.toHaveBeenCalled();
+
+      const changed = update({ ref: objectId('abc') }, { ref: objectId('def') });
+      await changed.run();
+      expect(changed.sink).toHaveBeenCalledTimes(1);
     });
   });
 
