@@ -147,6 +147,44 @@ describe('RemoteAgentClient Integration', () => {
           return;
         }
 
+        // Upload file action - load
+        if (req.method === 'POST' && pathname === '/forest/actions/upload-file/hooks/load') {
+          res.statusCode = 200;
+          res.end(
+            JSON.stringify({
+              fields: [
+                { field: 'document', type: 'File', value: null },
+                { field: 'attachments', type: 'FileList', value: null },
+              ],
+              layout: [],
+            }),
+          );
+
+          return;
+        }
+
+        // Upload file action - change hook
+        if (req.method === 'POST' && pathname === '/forest/actions/upload-file/hooks/change') {
+          const parsedBody = JSON.parse(body);
+          res.statusCode = 200;
+          res.end(
+            JSON.stringify({
+              fields: parsedBody.data.attributes.fields,
+              layout: [],
+            }),
+          );
+
+          return;
+        }
+
+        // Upload file action - execute
+        if (req.method === 'POST' && pathname === '/forest/actions/upload-file') {
+          res.statusCode = 200;
+          res.end(JSON.stringify({ success: 'Files uploaded successfully' }));
+
+          return;
+        }
+
         // Default 404
         res.statusCode = 404;
         res.end(JSON.stringify({ error: 'Not found' }));
@@ -379,6 +417,118 @@ describe('RemoteAgentClient Integration', () => {
       await client.collection('users').list();
 
       expect(requestLog[0].headers['content-type']).toBe('application/json');
+    });
+  });
+
+  describe('File action fields', () => {
+    const createClient = () =>
+      createRemoteAgentClient({
+        url: `http://localhost:${serverPort}`,
+        token: 'test-token',
+        actionEndpoints: {
+          users: {
+            'upload-file': {
+              name: 'upload-file',
+              endpoint: '/forest/actions/upload-file',
+            },
+          },
+        },
+      });
+
+    it('should fill a File field and execute the action with the correct data URI', async () => {
+      const client = createClient();
+      const action = await client.collection('users').action('upload-file', { recordId: '1' });
+
+      const fileField = action.getFileField('document');
+      await fileField.fill({
+        mimeType: 'application/pdf',
+        buffer: Buffer.from('pdf-content'),
+        name: 'report.pdf',
+      });
+
+      const result = await action.execute();
+
+      expect(result).toEqual({ success: 'Files uploaded successfully' });
+
+      const executeRequest = requestLog[requestLog.length - 1];
+      const executeBody = JSON.parse(executeRequest.body);
+      const expectedUri = `data:application/pdf;name=report.pdf;base64,${Buffer.from(
+        'pdf-content',
+      ).toString('base64')}`;
+      expect(executeBody.data.attributes.values.document).toBe(expectedUri);
+    });
+
+    it('should add multiple files to a FileList field and execute the action', async () => {
+      const client = createClient();
+      const action = await client.collection('users').action('upload-file', { recordId: '1' });
+
+      const fileListField = action.getFileListField('attachments');
+      await fileListField.add({
+        mimeType: 'image/png',
+        buffer: Buffer.from('img1'),
+        name: 'photo.png',
+      });
+      await fileListField.add({
+        mimeType: 'image/jpeg',
+        buffer: Buffer.from('img2'),
+        name: 'avatar.jpg',
+      });
+
+      const result = await action.execute();
+
+      expect(result).toEqual({ success: 'Files uploaded successfully' });
+
+      const executeRequest = requestLog[requestLog.length - 1];
+      const executeBody = JSON.parse(executeRequest.body);
+      const { attachments } = executeBody.data.attributes.values;
+      expect(attachments).toHaveLength(2);
+      expect(attachments[0]).toBe(
+        `data:image/png;name=photo.png;base64,${Buffer.from('img1').toString('base64')}`,
+      );
+      expect(attachments[1]).toBe(
+        `data:image/jpeg;name=avatar.jpg;base64,${Buffer.from('img2').toString('base64')}`,
+      );
+    });
+
+    it('should add and remove files from a FileList field', async () => {
+      const client = createClient();
+      const action = await client.collection('users').action('upload-file', { recordId: '1' });
+
+      const fileListField = action.getFileListField('attachments');
+      await fileListField.add({
+        mimeType: 'image/png',
+        buffer: Buffer.from('img1'),
+        name: 'photo.png',
+      });
+      await fileListField.add({
+        mimeType: 'image/jpeg',
+        buffer: Buffer.from('img2'),
+        name: 'avatar.jpg',
+      });
+      await fileListField.remove('photo.png');
+
+      const result = await action.execute();
+
+      expect(result).toEqual({ success: 'Files uploaded successfully' });
+
+      const executeRequest = requestLog[requestLog.length - 1];
+      const executeBody = JSON.parse(executeRequest.body);
+      const { attachments } = executeBody.data.attributes.values;
+      expect(attachments).toHaveLength(1);
+      expect(attachments[0]).toBe(
+        `data:image/jpeg;name=avatar.jpg;base64,${Buffer.from('img2').toString('base64')}`,
+      );
+    });
+
+    it('should route File and FileList types correctly via getField', async () => {
+      const client = createClient();
+      const action = await client.collection('users').action('upload-file', { recordId: '1' });
+
+      const docField = action.getField('document');
+      const attachField = action.getField('attachments');
+
+      expect(docField.getType()).toBe('File');
+      expect(attachField.getType()).toBe('FileList');
     });
   });
 });
