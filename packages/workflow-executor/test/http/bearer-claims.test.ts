@@ -7,6 +7,13 @@ describe('BearerClaimsSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('coerces a numeric string id (Forest sends the user id as a string) to a number', () => {
+    const result = BearerClaimsSchema.safeParse({ id: '245' });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe(245);
+  });
+
   it('tolerates standard JWT claims and extra Forest claims (not strict)', () => {
     // jsonwebtoken adds iat/exp to the decoded payload — a strict schema would wrongly reject it.
     const result = BearerClaimsSchema.safeParse({
