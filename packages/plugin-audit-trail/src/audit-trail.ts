@@ -129,9 +129,10 @@ export default function auditTrail(
   _collectionCustomizer: CollectionCustomizer | null,
   options?: AuditTrailOptions,
 ): void {
-  const sink = options?.sink ?? defaultSink;
+  const { sink, store } = options ?? {};
+  const append = sink ?? (store ? record => store.append(record) : defaultSink);
 
   for (const collection of dataSourceCustomizer.collections) {
-    instrumentCollection(collection, sink);
+    instrumentCollection(collection, append);
   }
 }

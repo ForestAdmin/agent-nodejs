@@ -22,6 +22,17 @@ export type AuditRecord = {
 
 export type AuditSink = (record: AuditRecord) => void | Promise<void>;
 
+export type AuditHistoryQuery = {
+  collection: string;
+  recordId: CompositeId;
+};
+
+export interface AuditStore {
+  append(record: AuditRecord): void | Promise<void>;
+  listByRecord(query: AuditHistoryQuery): AuditRecord[] | Promise<AuditRecord[]>;
+}
+
 export type AuditTrailOptions = {
   sink?: AuditSink;
+  store?: AuditStore;
 };

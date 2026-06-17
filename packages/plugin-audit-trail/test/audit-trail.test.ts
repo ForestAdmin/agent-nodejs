@@ -1,7 +1,7 @@
-import type { AuditRecord, AuditSink } from '../src';
+import type { AuditRecord, AuditTrailOptions } from '../src';
 import type { Caller } from '@forestadmin/datasource-toolkit';
 
-import { auditTrail } from '../src';
+import { InMemoryAuditStore, auditTrail } from '../src';
 
 type Handler = (context: unknown) => Promise<void>;
 
@@ -46,7 +46,7 @@ function fakeCollection(
   return { collection, handlers, list, fire };
 }
 
-function register(collections: Array<{ collection: unknown }>, options?: { sink: AuditSink }) {
+function register(collections: Array<{ collection: unknown }>, options?: AuditTrailOptions) {
   const dataSourceCustomizer = { collections: collections.map(c => c.collection) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   auditTrail(dataSourceCustomizer as any, null, options);
@@ -100,6 +100,21 @@ describe('auditTrail plugin', () => {
 
       expect(accounts.handlers.size).toBe(5);
       expect(contacts.handlers.size).toBe(5);
+    });
+
+    it('writes captured records to the provided store', async () => {
+      const store = new InMemoryAuditStore();
+      const accounts = fakeCollection('accounts');
+      register([accounts], { store });
+
+      await accounts.fire('After:Create', {
+        caller: makeCaller(),
+        records: [{ id: 1, status: 'open', name: 'Acme', amount: 10 }],
+      });
+
+      expect(store.listByRecord({ collection: 'accounts', recordId: [1] })).toEqual([
+        expect.objectContaining({ operation: 'create', newValues: expect.anything() }),
+      ]);
     });
 
     it('falls back to a console sink when no sink is provided', async () => {
