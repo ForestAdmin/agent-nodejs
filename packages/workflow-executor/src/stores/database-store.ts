@@ -10,8 +10,9 @@ import { RunStorePortError, WorkflowExecutorError, extractErrorMessage } from '.
 
 const TABLE_NAME = 'workflow_step_executions';
 // Dedicated schema so the executor (table + SequelizeMeta) is safe to share a
-// database with the agent/server.
-const SCHEMA_NAME = 'forest';
+// database with the agent/server. Honors a schema configured on the Sequelize
+// instance (e.g. `database: { schema: '...' }`), defaulting to `forest`.
+const DEFAULT_SCHEMA = 'forest';
 
 export interface DatabaseStoreOptions {
   sequelize: Sequelize;
@@ -25,7 +26,13 @@ export default class DatabaseStore implements RunStore {
   }
 
   private get schema(): string | undefined {
-    return this.sequelize.getDialect() === 'sqlite' ? undefined : SCHEMA_NAME;
+    if (this.sequelize.getDialect() === 'sqlite') return undefined;
+
+    // ponytail: sequelize v6 keeps the configured schema on `.options`, not in its public types
+    const configured = (this.sequelize as unknown as { options: { schema?: string } }).options
+      .schema;
+
+    return configured || DEFAULT_SCHEMA;
   }
 
   private get tableId(): string | { tableName: string; schema: string } {
