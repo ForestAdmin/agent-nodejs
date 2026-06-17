@@ -1,5 +1,9 @@
 import type { StepExecutionResult } from '../types/execution-context';
-import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
+import type {
+  FieldWithValue,
+  FieldWithValueAndReasoning,
+  UpdateRecordStepExecutionData,
+} from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../types/validated/step-definition';
 
@@ -121,7 +125,7 @@ function coerceFieldValue(
   return parsed.data;
 }
 
-interface UpdateTarget extends FieldWithValue {
+interface UpdateTarget extends FieldWithValueAndReasoning {
   selectedRecordRef: RecordRef;
 }
 
@@ -208,9 +212,10 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     }
 
     const recordedField = preRecordedArgs?.fieldName;
-    const { fieldName, value } =
+    // Pre-recorded args bypass the AI, so there is no reasoning to persist on that path.
+    const { fieldName, value, reasoning } =
       recordedField !== undefined
-        ? { fieldName: recordedField, value: preRecordedArgs?.value }
+        ? { fieldName: recordedField, value: preRecordedArgs?.value, reasoning: undefined }
         : await this.selectFieldAndValue(schema, step.prompt);
     const field = this.findFieldByTechnicalName(schema, fieldName);
 
@@ -223,6 +228,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       displayName: field.displayName,
       name: field.fieldName,
       value,
+      reasoning,
     };
 
     // Branch B -- fully automated execution
@@ -238,6 +244,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         displayName: target.displayName,
         name: target.name,
         value: target.value,
+        reasoning: target.reasoning,
       },
       selectedRecordRef: target.selectedRecordRef,
     });
@@ -250,7 +257,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     target: UpdateTarget,
     existingExecution?: UpdateRecordStepExecutionData,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, displayName, name, value } = target;
+    const { selectedRecordRef, displayName, name, value, reasoning } = target;
 
     const updated = await this.context.agent.updateRecord(
       {
@@ -274,7 +281,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       ...existingExecution,
       type: 'update-record',
       stepIndex: this.context.stepIndex,
-      executionParams: { displayName, name, value },
+      executionParams: { displayName, name, value, reasoning },
       executionResult: { updatedValues: updated.values },
       selectedRecordRef,
       idempotencyPhase: 'done',
@@ -286,7 +293,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ fieldName: string; value: unknown }> {
+  ): Promise<{ fieldName: string; value: unknown; reasoning: string }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -305,6 +312,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     return {
       fieldName: this.resolveAiFieldName(schema, input.fieldName),
       value: input.value,
+      reasoning: input.reasoning,
     };
   }
 
