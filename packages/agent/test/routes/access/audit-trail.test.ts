@@ -198,6 +198,81 @@ describe('AuditTrailRoute', () => {
     );
   });
 
+  test('forwards a comma-separated fields filter to the store', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', fields: 'title,author' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ fields: ['title', 'author'] }),
+    );
+    expect(store.countByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ fields: ['title', 'author'] }),
+    );
+  });
+
+  test('trims whitespace around field tokens and drops empty ones', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', fields: ' title , , author ' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ fields: ['title', 'author'] }),
+    );
+  });
+
+  test('omits the fields filter when the parameter is empty', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', fields: '' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.not.objectContaining({ fields: expect.anything() }),
+    );
+  });
+
+  test('omits the fields filter when every token is whitespace', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', fields: ' , , ' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.not.objectContaining({ fields: expect.anything() }),
+    );
+  });
+
   test('converts startDate/endDate to inclusive UTC instants in the request timezone', async () => {
     const { services, dataSource, options, store } = setup();
     const route = new AuditTrailRoute(services, options, dataSource, 'books');

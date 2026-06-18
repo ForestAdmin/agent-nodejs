@@ -26,6 +26,7 @@ export type AuditHistoryQuery = {
   startTimestamp?: string;
   /** Keep only entries whose `timestamp` is <= this UTC ISO instant (inclusive). */
   endTimestamp?: string;
+  fields?: string[];
   /** Sort direction on `timestamp` (ties broken by insertion order). Defaults to `'asc'`. */
   order?: 'asc' | 'desc';
 };
