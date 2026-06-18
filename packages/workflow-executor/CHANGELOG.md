@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.4.1...@forestadmin/workflow-executor@1.5.0) (2026-06-18)
+
+
+### Features
+
+* **workflow-executor:** namespace DB store under a dedicated "forest" schema ([#1667](https://github.com/ForestAdmin/agent-nodejs/issues/1667)) ([b0e0da7](https://github.com/ForestAdmin/agent-nodejs/commit/b0e0da7b28466e192e3eed51a644ce8eeabd8808))
+
 ## @forestadmin/workflow-executor [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.4.0...@forestadmin/workflow-executor@1.4.1) (2026-06-18)
 
 
