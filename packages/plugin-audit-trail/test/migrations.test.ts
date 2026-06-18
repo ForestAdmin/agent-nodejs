@@ -43,13 +43,35 @@ describe('runAuditMigrations (sqlite)', () => {
     const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
     await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
-    // A second run must not throw nor re-apply the migration.
+    // A second run must not throw nor re-apply the migrations.
     await expect(
       runAuditMigrations(sequelize, { tableName: 'audit_logs' }),
     ).resolves.toBeUndefined();
 
-    const [applied] = await sequelize.query('SELECT name FROM "SequelizeMeta"');
-    expect(applied).toEqual([{ name: '001-create-audit-logs' }]);
+    const [applied] = await sequelize.query('SELECT name FROM "SequelizeMeta" ORDER BY name');
+    expect(applied).toEqual([
+      { name: '001-create-audit-logs' },
+      { name: '002-index-record-and-correlation' },
+    ]);
+
+    await sequelize.close();
+  });
+
+  it('indexes record_id, correlation_key and user_id', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
+
+    await runAuditMigrations(sequelize, { tableName: 'audit_logs' });
+
+    const indexes = (await sequelize.getQueryInterface().showIndex('audit_logs')) as Array<{
+      name: string;
+    }>;
+    expect(indexes.map(index => index.name)).toEqual(
+      expect.arrayContaining([
+        'audit_logs_record_id',
+        'audit_logs_correlation_key',
+        'audit_logs_user_id',
+      ]),
+    );
 
     await sequelize.close();
   });

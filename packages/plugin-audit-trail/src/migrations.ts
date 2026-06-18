@@ -43,6 +43,31 @@ const migrations = [
       });
     },
   },
+  {
+    name: '002-index-record-and-correlation',
+    up: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+
+      // record_id powers the per-record history lookup, correlation_key groups a request's changes,
+      // user_id filters the log by the user who made the change.
+      await context.queryInterface.addIndex(table, ['record_id'], {
+        name: `${context.tableName}_record_id`,
+      });
+      await context.queryInterface.addIndex(table, ['correlation_key'], {
+        name: `${context.tableName}_correlation_key`,
+      });
+      await context.queryInterface.addIndex(table, ['user_id'], {
+        name: `${context.tableName}_user_id`,
+      });
+    },
+    down: async ({ context }: { context: MigrationContext }) => {
+      const table = { tableName: context.tableName, schema: context.schema };
+
+      await context.queryInterface.removeIndex(table, `${context.tableName}_record_id`);
+      await context.queryInterface.removeIndex(table, `${context.tableName}_correlation_key`);
+      await context.queryInterface.removeIndex(table, `${context.tableName}_user_id`);
+    },
+  },
 ];
 
 function buildUmzug(sequelize: Sequelize, options: { schema?: string; tableName: string }) {
