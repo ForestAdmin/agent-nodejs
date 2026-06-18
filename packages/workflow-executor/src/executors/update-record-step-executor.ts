@@ -122,6 +122,16 @@ function coerceFieldValue(
   return parsed.data;
 }
 
+// Field values are primitives, strings, or arrays of those (Json is stored as a string), so a
+// recursive primitive/array compare is enough — no plain objects to deep-compare.
+function valuesEqual(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((item, i) => valuesEqual(item, b[i]));
+  }
+
+  return a === b;
+}
+
 interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
   reasoning?: string;
@@ -156,19 +166,24 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
         // A user override of `null` (clearing the field) must win over the AI suggestion, so
         // distinguish "no override" (undefined) from "override to null".
         const overrideValue = userConfirmation?.value;
-        const valueOverridden = overrideValue !== undefined;
-        const rawValue = valueOverridden ? overrideValue : pendingData!.value;
+        const hasOverride = overrideValue !== undefined;
+        const rawValue = hasOverride ? overrideValue : pendingData!.value;
 
-        const target: UpdateTarget = {
-          selectedRecordRef,
-          ...pendingData!,
-          // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
-          // it to the field's native type before updating. Idempotent on already-typed values.
-          value: await this.coerceOverride(selectedRecordRef, pendingData, rawValue),
-        };
+        // The value comes from an `unknown` HTTP value (may be a boolean or array), so coerce
+        // it to the field's native type before updating. Idempotent on already-typed values.
+        const value = await this.coerceOverride(selectedRecordRef, pendingData, rawValue);
 
-        // The AI reasoning justifies the AI value; drop it when the user picked their own.
-        if (valueOverridden) target.reasoning = undefined;
+        const target: UpdateTarget = { selectedRecordRef, ...pendingData!, value };
+
+        // Keep the reasoning when the written value matches the AI suggestion, drop it otherwise.
+        if (hasOverride) {
+          const aiValue = await this.coerceOverride(
+            selectedRecordRef,
+            pendingData,
+            pendingData!.value,
+          );
+          if (!valuesEqual(value, aiValue)) target.reasoning = undefined;
+        }
 
         return this.resolveAndUpdate(target, exec);
       });

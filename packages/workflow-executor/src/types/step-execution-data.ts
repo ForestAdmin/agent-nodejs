@@ -67,7 +67,7 @@ export interface UpdateRecordStepExecutionData
     WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
   executionParams?: FieldWithValue;
-  // `reasoning` is absent when the user overrode the AI value (the choice is then theirs).
+  // `reasoning` is absent when the user changed the AI value to a different one.
   executionResult?:
     | { updatedValues: Record<string, unknown>; reasoning?: string }
     | { skipped: true };

@@ -572,6 +572,40 @@ describe('UpdateRecordStepExecutor', () => {
       );
       expect(finalSave.executionResult.reasoning).toBeUndefined();
     });
+
+    it('keeps the AI reasoning when the user re-submits the suggested value unchanged', async () => {
+      const execution: UpdateRecordStepExecutionData = {
+        type: 'update-record',
+        stepIndex: 0,
+        pendingData: {
+          displayName: 'Status',
+          name: 'status',
+          value: 'active',
+          reasoning: 'AI judged the record active',
+        },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      // User confirms echoing the AI value: 'active'.
+      const context = makeContext({
+        agentPort,
+        runStore,
+        incomingPendingData: { userConfirmed: true, value: 'active' },
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      await executor.execute();
+
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave.executionResult).toEqual({
+        updatedValues,
+        reasoning: 'AI judged the record active',
+      });
+    });
   });
 
   describe('accept-via-PATCH without value override (Branch A)', () => {
