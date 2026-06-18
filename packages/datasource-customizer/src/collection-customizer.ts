@@ -271,14 +271,8 @@ export default class CollectionCustomizer<
   }
 
   /**
-   * Register a hook on the decorator layer that sits *below* the action decorator.
-   *
-   * Unlike {@link addHook}, hooks registered here also fire for writes initiated from inside a
-   * smart action (`context.collection.update`/`create`/`delete`) — those start at the action
-   * layer and would otherwise skip the public hook layer above it.
-   *
-   * Intended for instrumentation plugins (audit-trail, logging, etc.). Application code should
-   * keep using {@link addHook}.
+   * Like {@link addHook} but also fires for writes initiated from inside a smart action
+   * (`context.collection.update`/`create`/`delete`). Intended for instrumentation plugins.
    */
   addInternalHook<P extends HookPosition, T extends HookType>(
     position: P,
