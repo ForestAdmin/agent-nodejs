@@ -19,30 +19,53 @@ yarn add @forestadmin/plugin-audit-trail
 
 ## Use it in an agent
 
-The SQL sink connects, ensures the `forest` schema exists and runs any pending migrations
-asynchronously, so it is built inside an **async plugin** — Forest awaits queued plugins when the
-agent starts.
+`createSqlAuditStore` returns a store that both **writes** every audited change and **reads**
+the per-record history back. Pass the same instance to `createAgent` (so the record-history route
+is exposed) and to the plugin (so the writes land in the same table the route reads from).
 
 ```ts
-import { auditTrail, createSqlAuditSink } from '@forestadmin/plugin-audit-trail';
+import { createAgent } from '@forestadmin/agent';
+import { auditTrail, createSqlAuditStore } from '@forestadmin/plugin-audit-trail';
 
 // `connectionString` may point to an empty database, the database already used by the agent,
 // or a database that already contains the `forest` schema — the schema and table are created
 // only when missing.
-const connectionString = process.env.AUDIT_TRAIL_DATABASE_URL;
+const { store } = createSqlAuditStore({
+  connectionString: process.env.AUDIT_TRAIL_DATABASE_URL,
+});
 
-if (connectionString) {
-  agent.use(async (dataSourceCustomizer, collectionCustomizer) => {
-    const { sink } = await createSqlAuditSink({ connectionString });
+const agent = createAgent({
+  /* ...your usual options... */
+  auditTrail: { store }, // exposes GET /forest/_audit-trail/{collection}/:id
+});
 
-    await auditTrail(dataSourceCustomizer, collectionCustomizer, { sink });
-  });
-}
+agent.use((dataSourceCustomizer, collectionCustomizer) =>
+  auditTrail(dataSourceCustomizer, collectionCustomizer, { store }),
+);
 ```
 
-That's the whole integration. On startup the plugin ensures the `forest` schema exists and runs any
-pending migrations to create/upgrade `forest.audit_logs`; every create / update / delete performed
-through Forest then writes one row per record.
+That's the whole integration. On the first write or read the store ensures the `forest` schema
+exists and runs any pending migrations to create/upgrade `forest.audit_logs`; every create /
+update / delete performed through Forest then writes one row per record, and the **Historic**
+tab in the UI reads from the same table.
+
+### Write-only setup
+
+If you only need persistence and do not want to expose the record-history route, use the
+write-only `createSqlAuditSink` instead — it connects eagerly so connection errors (and any
+pending migration errors) surface at agent startup:
+
+```ts
+import { auditTrail, createSqlAuditSink } from '@forestadmin/plugin-audit-trail';
+
+agent.use(async (dataSourceCustomizer, collectionCustomizer) => {
+  const { sink } = await createSqlAuditSink({
+    connectionString: process.env.AUDIT_TRAIL_DATABASE_URL,
+  });
+
+  await auditTrail(dataSourceCustomizer, collectionCustomizer, { sink });
+});
+```
 
 ### Recommended: gate it behind an environment variable
 
@@ -50,21 +73,30 @@ Keeping the connection string in an env var lets you enable the audit trail per 
 it inactive (with a warning) when unset:
 
 ```ts
-const addAuditTrailCustomizations = (agent, { env, logger }) => {
+const buildAuditTrail = ({ env, logger }) => {
   const connectionString = env.AUDIT_TRAIL_DATABASE_URL;
 
   if (!connectionString) {
     logger.warn('Audit trail disabled: set AUDIT_TRAIL_DATABASE_URL to enable it.');
 
-    return;
+    return null;
   }
 
-  agent.use(async (dataSourceCustomizer, collectionCustomizer) => {
-    const { sink } = await createSqlAuditSink({ connectionString });
-
-    await auditTrail(dataSourceCustomizer, collectionCustomizer, { sink });
-  });
+  return createSqlAuditStore({ connectionString });
 };
+
+const auditTrailHandle = buildAuditTrail({ env: process.env, logger: console });
+
+const agent = createAgent({
+  /* ...your usual options... */
+  auditTrail: auditTrailHandle ? { store: auditTrailHandle.store } : null,
+});
+
+if (auditTrailHandle) {
+  agent.use((dataSourceCustomizer, collectionCustomizer) =>
+    auditTrail(dataSourceCustomizer, collectionCustomizer, { store: auditTrailHandle.store }),
+  );
+}
 ```
 
 ## What gets stored
@@ -112,7 +144,7 @@ connection string may point at the customer's own database.
 
 ## Options
 
-`createSqlAuditSink(options)`:
+`createSqlAuditStore(options)` / `createSqlAuditSink(options)`:
 
 | option             | default       | description                                       |
 | ------------------ | ------------- | ------------------------------------------------- |
@@ -131,6 +163,10 @@ connection string may point at the customer's own database.
 ## Notes
 
 - **Source vs storage are independent.** You can audit a **Mongo** datasource and persist the trail
-  into **Postgres** via the SQL sink — the SQL columns are decoupled from the audited source.
-- The SQL sink is **write-only**. The record-history agent route reads from a `store.listByRecord`,
-  so use a readable `store` if you need that route.
+  into **Postgres** via the SQL store — the SQL columns are decoupled from the audited source.
+- `createSqlAuditStore` is constructed **synchronously** and connects lazily on the first append or
+  read, so it can be built at module top level and handed to `createAgent({ auditTrail: { store } })`.
+  Pair it with `agent.use((ds, cc) => auditTrail(ds, cc, { store }))` so writes and the
+  record-history route share the same table.
+- `createSqlAuditSink` is **write-only** and connects eagerly. Use it when you only want
+  persistence and do not need the record-history route in the UI.

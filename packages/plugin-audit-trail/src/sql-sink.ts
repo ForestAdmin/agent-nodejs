@@ -1,4 +1,4 @@
-import type { AuditRecord, AuditSink, AuditStorageOptions } from './types';
+import type { AuditRecord, AuditSink, AuditStorageOptions, AuditStore } from './types';
 import type { Model, ModelStatic } from 'sequelize';
 
 import { DataTypes, Sequelize } from 'sequelize';
@@ -82,6 +82,23 @@ export function toRow(record: AuditRecord): Record<string, unknown> {
   };
 }
 
+/** Map a database row back to an audit record. Inverse of {@link toRow}. */
+export function fromRow(row: Model): AuditRecord {
+  const plain = row.get({ plain: true }) as Record<string, unknown>;
+  const { timestamp } = plain;
+
+  return {
+    timestamp: timestamp instanceof Date ? timestamp.toISOString() : String(timestamp),
+    operation: plain.operation as AuditRecord['operation'],
+    collection: plain.collection as string,
+    recordId: plain.recordId as string,
+    userId: plain.userId as number,
+    correlationKey: plain.correlationKey as string,
+    previousValues: (plain.previousValues as Record<string, unknown>) ?? {},
+    newValues: (plain.newValues as Record<string, unknown>) ?? {},
+  };
+}
+
 /**
  * Connect to the database described by `connectionString`, bootstrap the `forest` schema and the
  * audit table, and return a sink that persists every audit record into it.
@@ -106,4 +123,67 @@ export async function createSqlAuditSink(
     await sequelize.close();
     throw error;
   }
+}
+
+/**
+ * Return a SQL-backed audit store that both writes and reads from `forest.audit_logs`.
+ *
+ * Construction is synchronous so the store can be passed to `createAgent({ auditTrail: { store } })`
+ * at module top level; the connection is opened lazily on the first append or read. Pass the same
+ * store to the plugin (`auditTrail(ds, cc, { store })`) so writes and the record-history route
+ * agree on storage.
+ */
+export function createSqlAuditStore(options: AuditStorageOptions): {
+  store: AuditStore;
+  close: () => Promise<void>;
+} {
+  const { connectionString, schema = DEFAULT_SCHEMA, tableName = DEFAULT_TABLE } = options;
+
+  let sequelize: Sequelize | null = null;
+  let modelPromise: Promise<ModelStatic<Model>> | null = null;
+
+  const getModel = (): Promise<ModelStatic<Model>> => {
+    if (modelPromise) return modelPromise;
+
+    const connection = new Sequelize(connectionString, { logging: false });
+    sequelize = connection;
+    modelPromise = (async () => {
+      try {
+        await connection.authenticate();
+
+        return await ensureAuditStorage(connection, { schema, tableName });
+      } catch (error) {
+        // Reset so a later call can retry once the database is reachable.
+        await connection.close().catch(() => undefined);
+        sequelize = null;
+        modelPromise = null;
+        throw error;
+      }
+    })();
+
+    return modelPromise;
+  };
+
+  return {
+    store: {
+      async append(record) {
+        const model = await getModel();
+        await model.create(toRow(record));
+      },
+      async listByRecord({ collection, recordId }) {
+        const model = await getModel();
+        const rows = await model.findAll({
+          where: { collection, recordId },
+          order: [['timestamp', 'ASC']],
+        });
+
+        return rows.map(fromRow);
+      },
+    },
+    close: async () => {
+      if (sequelize) await sequelize.close();
+      sequelize = null;
+      modelPromise = null;
+    },
+  };
 }

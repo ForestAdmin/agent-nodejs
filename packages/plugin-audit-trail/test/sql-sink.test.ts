@@ -1,8 +1,9 @@
 import type { AuditRecord } from '../src';
+import type * as MigrationsModule from '../src/migrations';
 
 import { Sequelize } from 'sequelize';
 
-import { createSqlAuditSink, ensureAuditStorage, toRow } from '../src';
+import { createSqlAuditSink, createSqlAuditStore, ensureAuditStorage, toRow } from '../src';
 import { runAuditMigrations } from '../src/migrations';
 
 jest.mock('../src/migrations', () => ({
@@ -76,6 +77,57 @@ describe('createSqlAuditSink', () => {
 
     expect(typeof sink).toBe('function');
     expect(runAuditMigrations).toHaveBeenCalled();
+
+    await close();
+  });
+});
+
+describe('createSqlAuditStore (sqlite round-trip)', () => {
+  // The module-level mock turns runAuditMigrations into a no-op, but the round-trip tests need
+  // the real migrations so the audit_logs table actually exists in the sqlite database.
+  beforeAll(() => {
+    const actual = jest.requireActual<typeof MigrationsModule>('../src/migrations');
+    (runAuditMigrations as jest.Mock).mockImplementation(actual.runAuditMigrations);
+  });
+
+  afterAll(() => {
+    (runAuditMigrations as jest.Mock).mockReset();
+    (runAuditMigrations as jest.Mock).mockResolvedValue(undefined);
+  });
+
+  it('returns rows previously appended, sorted by timestamp, scoped to a single record', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    const first = record({ timestamp: '2026-01-02T03:04:05.000Z', recordId: '1' });
+    const second = record({
+      timestamp: '2026-01-02T03:04:06.000Z',
+      recordId: '1',
+      previousValues: { status: 'closed' },
+      newValues: { status: 'open' },
+    });
+    const otherRecord = record({ recordId: '2' });
+
+    await store.append(second);
+    await store.append(first);
+    await store.append(otherRecord);
+
+    const history = await store.listByRecord({ collection: 'accounts', recordId: '1' });
+
+    expect(history).toEqual([
+      expect.objectContaining({ timestamp: '2026-01-02T03:04:05.000Z' }),
+      expect.objectContaining({ timestamp: '2026-01-02T03:04:06.000Z' }),
+    ]);
+    expect(history).toHaveLength(2);
+
+    await close();
+  });
+
+  it('returns an empty array when no row matches the queried record', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(record());
+
+    expect(await store.listByRecord({ collection: 'accounts', recordId: 'missing' })).toEqual([]);
 
     await close();
   });
