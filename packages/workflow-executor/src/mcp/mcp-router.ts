@@ -1,10 +1,10 @@
-import type { BearerClaims } from './bearer-claims';
-import type McpExecutionService from '../mcp/mcp-execution-service';
+import type McpExecutionService from './mcp-execution-service';
+import type { BearerClaims } from '../http/bearer-claims';
 
 import Router from '@koa/router';
 import { z } from 'zod';
 
-import { BadRequestHttpError } from './http-errors';
+import { BadRequestHttpError } from '../http/http-errors';
 
 const listToolsBodySchema = z.object({ mcpServerIds: z.array(z.string()).optional() });
 

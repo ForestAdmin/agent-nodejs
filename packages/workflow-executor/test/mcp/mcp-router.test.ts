@@ -8,9 +8,9 @@ import request from 'supertest';
 import { z } from 'zod';
 
 import ExecutorHttpServer from '../../src/http/executor-http-server';
-import buildMcpRouter from '../../src/http/mcp-router';
 import McpExecutionService from '../../src/mcp/mcp-execution-service';
 import PendingMcpPermissionResolver from '../../src/mcp/mcp-permission-resolver';
+import buildMcpRouter from '../../src/mcp/mcp-router';
 
 const AUTH_SECRET = 'test-auth-secret';
 const VERSION = '9.9.9';

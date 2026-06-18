@@ -9,7 +9,7 @@ import {
   McpNeedsConsentError,
   McpServerUnavailableError,
   McpUnknownToolError,
-} from '../../src/errors';
+} from '../../src/mcp/errors';
 import McpExecutionService from '../../src/mcp/mcp-execution-service';
 import PendingMcpPermissionResolver from '../../src/mcp/mcp-permission-resolver';
 

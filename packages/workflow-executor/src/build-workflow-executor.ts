@@ -22,9 +22,9 @@ import {
   DEFAULT_STEP_TIMEOUT_S,
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
-import buildMcpRouter from './http/mcp-router';
 import McpExecutionService from './mcp/mcp-execution-service';
 import PendingMcpPermissionResolver from './mcp/mcp-permission-resolver';
+import buildMcpRouter from './mcp/mcp-router';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
 import DatabaseStore from './stores/database-store';

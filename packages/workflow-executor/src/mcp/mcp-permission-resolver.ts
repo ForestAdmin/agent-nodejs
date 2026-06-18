@@ -1,4 +1,4 @@
-import type { CanExecuteOperation, CanExecuteVerdict } from '../types/mcp';
+import type { CanExecuteOperation, CanExecuteVerdict } from './types';
 
 export interface McpPermissionResolver {
   resolve(userId: number, operation: CanExecuteOperation): Promise<CanExecuteVerdict>;

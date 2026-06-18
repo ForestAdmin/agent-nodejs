@@ -1,7 +1,4 @@
 import type { McpPermissionResolver } from './mcp-permission-resolver';
-import type { AiModelPort } from '../ports/ai-model-port';
-import type { Logger } from '../ports/logger-port';
-import type { WorkflowPort } from '../ports/workflow-port';
 import type {
   CanExecuteOperation,
   CanExecuteVerdict,
@@ -9,12 +6,15 @@ import type {
   ListToolsResult,
   RegisteredTool,
   ToolResult,
-} from '../types/mcp';
+} from './types';
+import type { AiModelPort } from '../ports/ai-model-port';
+import type { Logger } from '../ports/logger-port';
+import type { WorkflowPort } from '../ports/workflow-port';
 import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
 import { toJsonSchema } from '@forestadmin/ai-proxy';
 
-import { McpNeedsConsentError, McpServerUnavailableError, McpUnknownToolError } from '../errors';
+import { McpNeedsConsentError, McpServerUnavailableError, McpUnknownToolError } from './errors';
 import { scopeConfigsToServer } from '../remote-tool-fetcher';
 
 export interface McpExecutionServiceDeps {
