@@ -1,4 +1,4 @@
-import type { QueryInterface, Sequelize, Transaction } from 'sequelize';
+import type { QueryInterface, Sequelize } from 'sequelize';
 
 import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
@@ -94,43 +94,59 @@ function buildUmzug(sequelize: Sequelize, options: { schema?: string; tableName:
   });
 }
 
+// Postgres error codes raised when the schema already exists by the time we create it: a concurrent
+// instance won the race. `CREATE SCHEMA` only emits IF NOT EXISTS once Sequelize knows the server is
+// >= 9.2, so a plain create can still collide — tolerate both the explicit duplicate and the
+// underlying unique violation on pg_namespace.
+const SCHEMA_ALREADY_EXISTS_CODES = new Set(['42P06', '23505']); // duplicate_schema, unique_violation
+
+function isSchemaAlreadyExistsError(error: unknown): boolean {
+  const code = (error as { original?: { code?: string } })?.original?.code;
+
+  return code !== undefined && SCHEMA_ALREADY_EXISTS_CODES.has(code);
+}
+
 /**
- * Create the schema (namespace) when it is missing. No-op when no schema is requested — dialects
- * without schema support pass `undefined`. When a transaction is given the work runs inside it, so
- * on Postgres it is covered by the migration advisory lock.
+ * Create the schema (namespace) when it is missing, and commit it. No-op when no schema is requested
+ * — dialects without schema support pass `undefined`.
+ *
+ * This must run (and commit) on its own, before Umzug: Umzug's storage opens its own connection to
+ * create the meta table, so it would not see a `CREATE SCHEMA` still pending inside an open
+ * transaction. The create is therefore not covered by the advisory lock; instead it is made
+ * idempotent (existence check + tolerating the concurrent "already exists" error).
  */
-async function ensureSchema(
-  sequelize: Sequelize,
-  schema: string | undefined,
-  transaction?: Transaction,
-): Promise<void> {
+async function ensureSchema(sequelize: Sequelize, schema: string | undefined): Promise<void> {
   if (!schema) return;
 
   const queryInterface = sequelize.getQueryInterface();
-  // showAllSchemas keeps the operation idempotent regardless of the server version, since
-  // CREATE SCHEMA only emits IF NOT EXISTS on recent databases.
-  const schemas = (await queryInterface.showAllSchemas({ transaction })) as unknown as string[];
+  const schemas = (await queryInterface.showAllSchemas()) as unknown as string[];
 
-  if (!schemas.includes(schema)) {
-    await queryInterface.createSchema(schema, { transaction });
+  if (schemas.includes(schema)) return;
+
+  try {
+    await queryInterface.createSchema(schema);
+  } catch (error) {
+    // Another instance created the schema between the check and now — treat as success.
+    if (!isSchemaAlreadyExistsError(error)) throw error;
   }
 }
 
 /**
  * Create the schema then apply every pending audit-table migration.
  *
- * On Postgres the schema creation, the meta-table creation and every migration run together inside a
- * single transaction-scoped advisory lock, so several agent instances booting at once perform the
- * whole bootstrap one after another instead of racing on the same DDL — the losers block on the
- * lock, then find the migrations already applied and continue. Other dialects have no cross-instance
- * lock; their individual statements are idempotent.
+ * The schema is created and committed first (see {@link ensureSchema}). On Postgres the migrations
+ * then run inside a transaction-scoped advisory lock, so several agent instances booting at once
+ * apply them one after another instead of racing on the same DDL — the losers block on the lock,
+ * then find the migrations already applied and continue. Other dialects have no cross-instance lock;
+ * their individual statements are idempotent.
  */
 export async function runAuditMigrations(
   sequelize: Sequelize,
   options: { schema?: string; tableName: string },
 ): Promise<void> {
+  await ensureSchema(sequelize, options.schema);
+
   if (sequelize.getDialect() !== 'postgres') {
-    await ensureSchema(sequelize, options.schema);
     await buildUmzug(sequelize, options).up();
 
     return;
@@ -142,7 +158,6 @@ export async function runAuditMigrations(
       replacements: { a: ADVISORY_LOCK[0], b: ADVISORY_LOCK[1] },
     });
 
-    await ensureSchema(sequelize, options.schema, transaction);
     await buildUmzug(sequelize, options).up();
   });
 }

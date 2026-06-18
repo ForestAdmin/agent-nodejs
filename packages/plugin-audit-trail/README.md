@@ -98,10 +98,12 @@ actually applied to existing databases (a plain "create if not exists" would sil
   the same database (e.g. the workflow executor keeps its own `SequelizeMeta`, or the customer may
   own one in their default schema).
 - Pending migrations run automatically when the sink is built (on agent start).
-- **Multiple instances:** on Postgres the schema creation, the meta-table creation and every
-  migration run together inside a single transaction-scoped advisory lock, so several agents booting
-  at once perform the whole bootstrap one after another instead of racing on the same DDL. The
-  losers block on the lock, then find the migrations already applied and continue.
+- **Multiple instances:** on Postgres the migrations run inside a transaction-scoped advisory lock,
+  so several agents booting at once apply them one after another instead of racing on the same DDL —
+  the losers block on the lock, then find the migrations already applied and continue. The `forest`
+  schema is created (and committed) first, before the lock, since the migration runner opens its own
+  connection and would not see an uncommitted `CREATE SCHEMA`; that step is made idempotent instead
+  (existence check + tolerating a concurrent "already exists").
 
 **Evolving the table (maintainers):** append a new entry to the `migrations` array in
 `src/migrations.ts` (e.g. an `addColumn`) and update the model in `src/sql-sink.ts` to match. Never
