@@ -113,6 +113,8 @@ export interface McpStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<McpConfirmation> {
   type: 'mcp';
+  // Privacy-sensitive: stays client-side, never sent in the StepOutcome.
+  toolSelectionReasoning?: string;
   executionParams?: McpToolCall;
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
