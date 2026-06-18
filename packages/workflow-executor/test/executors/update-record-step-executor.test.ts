@@ -225,13 +225,60 @@ describe('UpdateRecordStepExecutor', () => {
           type: 'update-record',
           stepIndex: 0,
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
-          executionResult: { updatedValues },
+          executionResult: { updatedValues, reasoning: 'User requested status change' },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
           }),
         }),
       );
+    });
+
+    it('handles a model that returns the field selection without the "input" wrapper', async () => {
+      const updatedValues = { status: 'active' };
+      const agentPort = makeMockAgentPort(updatedValues);
+      // Flattened args: no `input` key, the field object is at the top level.
+      const mockModel = makeMockModel({
+        fieldName: 'Status',
+        value: 'active',
+        reasoning: 'User requested status change',
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        { collection: 'customers', id: [42], values: { status: 'active' } },
+        expect.objectContaining({ id: 1 }),
+      );
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionParams: { displayName: 'Status', name: 'status', value: 'active' },
+          executionResult: { updatedValues, reasoning: 'User requested status change' },
+        }),
+      );
+    });
+
+    it('returns an error outcome when the model selects no field', async () => {
+      const mockModel = makeMockModel({ reasoning: 'unsure' });
+      const context = makeContext({
+        model: mockModel.model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new UpdateRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
@@ -410,7 +457,12 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({
           type: 'update-record',
           stepIndex: 0,
-          pendingData: { displayName: 'Status', name: 'status', value: 'active' },
+          pendingData: {
+            displayName: 'Status',
+            name: 'status',
+            value: 'active',
+            reasoning: 'User requested status change',
+          },
           selectedRecordRef: expect.objectContaining({
             collectionName: 'customers',
             recordId: [42],
@@ -431,6 +483,7 @@ describe('UpdateRecordStepExecutor', () => {
           displayName: 'Status',
           name: 'status',
           value: 'active',
+          reasoning: 'User requested status change',
         },
         userConfirmation: { userConfirmed: true },
         selectedRecordRef: makeRecordRef(),
@@ -448,16 +501,18 @@ describe('UpdateRecordStepExecutor', () => {
         { collection: 'customers', id: [42], values: { status: 'active' } },
         expect.objectContaining({ id: 1 }),
       );
+      // Accepted without override → AI reasoning is persisted in the result.
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
           type: 'update-record',
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
-          executionResult: { updatedValues },
+          executionResult: { updatedValues, reasoning: 'User requested status change' },
           pendingData: {
             displayName: 'Status',
             name: 'status',
             value: 'active',
+            reasoning: 'User requested status change',
           },
         }),
       );
@@ -465,8 +520,8 @@ describe('UpdateRecordStepExecutor', () => {
   });
 
   describe('confirmation with user override (Branch A)', () => {
-    it('preserves AI suggestion in pendingData and writes user value to executionParams', async () => {
-      // Persisted state: AI proposed 'inactive', awaiting confirmation.
+    it('writes the user value and drops the now-stale AI reasoning from the result', async () => {
+      // Persisted state: AI proposed 'inactive' with a reasoning, awaiting confirmation.
       const execution: UpdateRecordStepExecutionData = {
         type: 'update-record',
         stepIndex: 0,
@@ -474,6 +529,7 @@ describe('UpdateRecordStepExecutor', () => {
           displayName: 'Status',
           name: 'status',
           value: 'inactive',
+          reasoning: 'AI judged the record inactive',
         },
         selectedRecordRef: makeRecordRef(),
       };
@@ -498,8 +554,8 @@ describe('UpdateRecordStepExecutor', () => {
         expect.objectContaining({ id: 1 }),
       );
 
-      // Final persisted execution must keep AI suggestion in pendingData
-      // and the user value in executionParams.
+      // The AI suggestion + reasoning stays in pendingData, but the result must NOT carry the
+      // reasoning since the written value is the user's, not the AI's.
       const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(finalSave).toEqual(
         expect.objectContaining({
@@ -508,11 +564,13 @@ describe('UpdateRecordStepExecutor', () => {
             displayName: 'Status',
             name: 'status',
             value: 'inactive', // AI suggestion preserved
+            reasoning: 'AI judged the record inactive',
           }),
           executionParams: { displayName: 'Status', name: 'status', value: 'active' },
           executionResult: { updatedValues },
         }),
       );
+      expect(finalSave.executionResult.reasoning).toBeUndefined();
     });
   });
 
@@ -789,6 +847,7 @@ describe('UpdateRecordStepExecutor', () => {
             displayName: 'Order Status',
             name: 'status',
             value: 'shipped',
+            reasoning: 'Mark as shipped',
           },
           selectedRecordRef: expect.objectContaining({
             recordId: [99],

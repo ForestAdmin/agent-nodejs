@@ -67,9 +67,11 @@ export interface UpdateRecordStepExecutionData
     WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
   executionParams?: FieldWithValue;
-  // User confirmed → values returned by updateRecord. User rejected → skipped.
-  executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  pendingData?: FieldWithValue;
+  // `reasoning` is absent when the user overrode the AI value (the choice is then theirs).
+  executionResult?:
+    | { updatedValues: Record<string, unknown>; reasoning?: string }
+    | { skipped: true };
+  pendingData?: FieldWithValue & { reasoning?: string };
   selectedRecordRef: RecordRef;
 }
 
