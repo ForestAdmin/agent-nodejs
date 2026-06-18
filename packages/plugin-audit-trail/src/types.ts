@@ -20,6 +20,12 @@ export type AuditHistoryQuery = {
   skip?: number;
   /** Maximum number of entries to return. Unbounded when omitted. */
   limit?: number;
+  /** Keep only entries whose `userId` is in this list. No filter when omitted. */
+  userIds?: number[];
+  /** Keep only entries whose `timestamp` is >= this UTC ISO instant (inclusive). */
+  startTimestamp?: string;
+  /** Keep only entries whose `timestamp` is <= this UTC ISO instant (inclusive). */
+  endTimestamp?: string;
 };
 
 export interface AuditStore {

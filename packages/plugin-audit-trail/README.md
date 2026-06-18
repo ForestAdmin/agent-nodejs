@@ -50,6 +50,39 @@ migration fails fast at startup rather than on the first audited write. Every cr
 delete performed through Forest then writes one row per record, and the **Historic** tab in the
 UI reads from the same table.
 
+### Record-history route
+
+`GET /forest/_audit-trail/{collection}/{recordId}` returns `{ data: AuditRecord[] }`, oldest first.
+It paginates through the standard `page[size]` / `page[number]` query params and accepts the
+following **optional** filters (all combine with `AND`; omitting them keeps the full history):
+
+| query param | format                            | effect                                                       |
+| ----------- | --------------------------------- | ------------------------------------------------------------ |
+| `userIds`   | comma-separated integers `12,45`  | keep only entries whose `userId` is in the list              |
+| `startDate` | `YYYY-MM-DD` or datetime (incl.)  | keep entries from this lower bound onward                    |
+| `endDate`   | `YYYY-MM-DD` or datetime (incl.)  | keep entries up to this upper bound                          |
+
+`startDate` / `endDate` are interpreted as **local wall-clock time** in the request `timezone` (the
+existing query param, e.g. `Europe/Paris`); the route converts each bound to a UTC instant before
+querying the store, so filtering happens at the SQL level rather than in memory. Two shapes are
+accepted:
+
+- **Bare day** `YYYY-MM-DD` — `startDate` snaps to the start of the day (`00:00:00.000`), `endDate`
+  to the end (`23:59:59.999`).
+- **Datetime** `YYYY-MM-DD[T| ]HH:mm[:ss]` — `T` or a space separator, seconds optional. The given
+  time is used as-is; when seconds are omitted, `endDate` is completed to `:59.999` (so the minute
+  stays inclusive) and `startDate` stays at `:00.000`.
+
+Both bounds are **inclusive**.
+
+Defensive parsing:
+
+- `userIds`: non-numeric tokens are dropped (`12,abc,45` → `12,45`); if nothing numeric remains the
+  filter is ignored.
+- `startDate` / `endDate`: a value matching none of the accepted formats returns **HTTP 400**
+  (`ValidationError`).
+
+
 ### Recommended: gate it behind an environment variable
 
 Keeping the connection string in an env var lets you enable the audit trail per environment and keeps

@@ -69,6 +69,54 @@ describe('InMemoryAuditStore', () => {
     expect(store.listByRecord({ collection: 'accounts', recordId: '3|8' })).toHaveLength(0);
   });
 
+  it('keeps only the records whose userId is in the userIds filter', () => {
+    const store = new InMemoryAuditStore();
+    store.append(record({ userId: 1, newValues: { n: 1 } }));
+    store.append(record({ userId: 2, newValues: { n: 2 } }));
+    store.append(record({ userId: 3, newValues: { n: 3 } }));
+
+    const history = store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      userIds: [1, 3],
+    });
+
+    expect(history.map(r => r.userId)).toEqual([1, 3]);
+  });
+
+  it('keeps only records within the inclusive startTimestamp/endTimestamp range', () => {
+    const store = new InMemoryAuditStore();
+    store.append(record({ timestamp: '2026-01-01T00:00:00.000Z', newValues: { n: 1 } }));
+    store.append(record({ timestamp: '2026-01-02T00:00:00.000Z', newValues: { n: 2 } }));
+    store.append(record({ timestamp: '2026-01-03T00:00:00.000Z', newValues: { n: 3 } }));
+
+    const history = store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      startTimestamp: '2026-01-02T00:00:00.000Z',
+      endTimestamp: '2026-01-03T00:00:00.000Z',
+    });
+
+    expect(history.map(r => r.newValues)).toEqual([{ n: 2 }, { n: 3 }]);
+  });
+
+  it('combines the userIds and the timestamp range filters (AND)', () => {
+    const store = new InMemoryAuditStore();
+    store.append(record({ userId: 1, timestamp: '2026-01-01T00:00:00.000Z', newValues: { n: 1 } }));
+    store.append(record({ userId: 1, timestamp: '2026-01-05T00:00:00.000Z', newValues: { n: 2 } }));
+    store.append(record({ userId: 2, timestamp: '2026-01-02T00:00:00.000Z', newValues: { n: 3 } }));
+
+    const history = store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      userIds: [1],
+      startTimestamp: '2026-01-01T00:00:00.000Z',
+      endTimestamp: '2026-01-03T00:00:00.000Z',
+    });
+
+    expect(history.map(r => r.newValues)).toEqual([{ n: 1 }]);
+  });
+
   it('returns an empty list for an unknown record', () => {
     expect(
       new InMemoryAuditStore().listByRecord({ collection: 'accounts', recordId: '99' }),

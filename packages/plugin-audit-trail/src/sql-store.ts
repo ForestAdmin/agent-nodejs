@@ -1,7 +1,7 @@
 import type { AuditRecord, AuditStorageOptions, AuditStore } from './types';
 import type { Model, ModelStatic } from 'sequelize';
 
-import { DataTypes, Sequelize } from 'sequelize';
+import { DataTypes, Op, Sequelize } from 'sequelize';
 
 import { runAuditMigrations } from './migrations';
 
@@ -148,10 +148,27 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         const model = await init();
         await model.create(toRow(record));
       },
-      async listByRecord({ collection, recordId, limit, skip = 0 }) {
+      async listByRecord({
+        collection,
+        recordId,
+        userIds,
+        startTimestamp,
+        endTimestamp,
+        limit,
+        skip = 0,
+      }) {
         const model = await init();
+        const where: Record<string | symbol, unknown> = { collection, recordId };
+
+        if (userIds) where.userId = { [Op.in]: userIds };
+
+        const timestampRange: Record<symbol, Date> = {};
+        if (startTimestamp) timestampRange[Op.gte] = new Date(startTimestamp);
+        if (endTimestamp) timestampRange[Op.lte] = new Date(endTimestamp);
+        if (Object.getOwnPropertySymbols(timestampRange).length) where.timestamp = timestampRange;
+
         const rows = await model.findAll({
-          where: { collection, recordId },
+          where,
           order: [['timestamp', 'ASC']],
           offset: skip,
           limit,

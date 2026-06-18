@@ -153,4 +153,44 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
 
     await close();
   });
+
+  it('filters by userIds at the query level', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(record({ recordId: '1', userId: 1 }));
+    await store.append(record({ recordId: '1', userId: 2 }));
+    await store.append(record({ recordId: '1', userId: 3 }));
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      userIds: [1, 3],
+    });
+
+    expect(history.map(r => r.userId)).toEqual([1, 3]);
+
+    await close();
+  });
+
+  it('filters by the inclusive startTimestamp/endTimestamp range at the query level', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
+    await store.append(record({ recordId: '1', timestamp: '2026-01-02T00:00:00.000Z' }));
+    await store.append(record({ recordId: '1', timestamp: '2026-01-03T00:00:00.000Z' }));
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      startTimestamp: '2026-01-02T00:00:00.000Z',
+      endTimestamp: '2026-01-03T00:00:00.000Z',
+    });
+
+    expect(history.map(r => r.timestamp)).toEqual([
+      '2026-01-02T00:00:00.000Z',
+      '2026-01-03T00:00:00.000Z',
+    ]);
+
+    await close();
+  });
 });

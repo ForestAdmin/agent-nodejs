@@ -66,6 +66,9 @@ export type AuditTrailRecordReader = {
     recordId: string;
     skip?: number;
     limit?: number;
+    userIds?: number[];
+    startTimestamp?: string;
+    endTimestamp?: string;
   }): Promise<unknown[]> | unknown[];
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
