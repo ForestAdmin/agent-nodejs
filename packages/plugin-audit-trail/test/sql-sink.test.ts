@@ -3,7 +3,7 @@ import type * as MigrationsModule from '../src/migrations';
 
 import { Sequelize } from 'sequelize';
 
-import { createSqlAuditSink, createSqlAuditStore, ensureAuditStorage, toRow } from '../src';
+import { createSqlAuditStore, ensureAuditStorage, toRow } from '../src';
 import { runAuditMigrations } from '../src/migrations';
 
 jest.mock('../src/migrations', () => ({
@@ -63,22 +63,6 @@ describe('ensureAuditStorage', () => {
     });
 
     await sequelize.close();
-  });
-});
-
-describe('createSqlAuditSink', () => {
-  afterEach(() => jest.clearAllMocks());
-
-  it('connects, runs the migrations and returns a sink + close', async () => {
-    const { sink, close } = await createSqlAuditSink({
-      connectionString: 'sqlite::memory:',
-      tableName: 'audit_logs',
-    });
-
-    expect(typeof sink).toBe('function');
-    expect(runAuditMigrations).toHaveBeenCalled();
-
-    await close();
   });
 });
 

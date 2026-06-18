@@ -1,7 +1,6 @@
 export { default as auditTrail, REDACTED } from './audit-trail';
 export { default as InMemoryAuditStore } from './in-memory-store';
 export {
-  createSqlAuditSink,
   createSqlAuditStore,
   ensureAuditStorage,
   defineAuditLogModel,

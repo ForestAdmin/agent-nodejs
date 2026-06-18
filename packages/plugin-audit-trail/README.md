@@ -7,7 +7,7 @@ The plugin has two decoupled parts:
 
 - **Capture** — datasource-agnostic. It instruments every collection through the Forest customizer
   hooks, so it works the same whether the audited datasource is SQL, Sequelize or Mongo.
-- **Storage** — where the audit records are written. This package ships a **SQL sink** that creates
+- **Storage** — where the audit records are written. This package ships a **SQL store** that creates
   the `forest` schema and creates/evolves the `audit_logs` table through versioned migrations, plus
   an in-memory store for tests.
 
@@ -48,24 +48,6 @@ That's the whole integration. On the first write or read the store ensures the `
 exists and runs any pending migrations to create/upgrade `forest.audit_logs`; every create /
 update / delete performed through Forest then writes one row per record, and the **Historic**
 tab in the UI reads from the same table.
-
-### Write-only setup
-
-If you only need persistence and do not want to expose the record-history route, use the
-write-only `createSqlAuditSink` instead — it connects eagerly so connection errors (and any
-pending migration errors) surface at agent startup:
-
-```ts
-import { auditTrail, createSqlAuditSink } from '@forestadmin/plugin-audit-trail';
-
-agent.use(async (dataSourceCustomizer, collectionCustomizer) => {
-  const { sink } = await createSqlAuditSink({
-    connectionString: process.env.AUDIT_TRAIL_DATABASE_URL,
-  });
-
-  await auditTrail(dataSourceCustomizer, collectionCustomizer, { sink });
-});
-```
 
 ### Recommended: gate it behind an environment variable
 
@@ -129,7 +111,7 @@ actually applied to existing databases (a plain "create if not exists" would sil
   the default `SequelizeMeta` so it never shares migration state with another component writing to
   the same database (e.g. the workflow executor keeps its own `SequelizeMeta`, or the customer may
   own one in their default schema).
-- Pending migrations run automatically when the sink is built (on agent start).
+- Pending migrations run automatically on the first append or read.
 - **Multiple instances:** on Postgres the migrations run inside a transaction-scoped advisory lock,
   so several agents booting at once apply them one after another instead of racing on the same DDL —
   the losers block on the lock, then find the migrations already applied and continue. The `forest`
@@ -144,7 +126,7 @@ connection string may point at the customer's own database.
 
 ## Options
 
-`createSqlAuditStore(options)` / `createSqlAuditSink(options)`:
+`createSqlAuditStore(options)`:
 
 | option             | default       | description                                       |
 | ------------------ | ------------- | ------------------------------------------------- |
@@ -156,7 +138,7 @@ connection string may point at the customer's own database.
 
 | option   | description                                                                            |
 | -------- | ------------------------------------------------------------------------------------- |
-| `sink`   | where records are written (e.g. the SQL sink above)                                    |
+| `sink`   | a custom callback called for every audited change (e.g. write to console or syslog)    |
 | `store`  | a readable store (`append` + `listByRecord`) — used by the record-history agent route |
 | `redact` | `{ [collection]: string[] }` — field values to mask while still recording the change   |
 
@@ -168,5 +150,3 @@ connection string may point at the customer's own database.
   read, so it can be built at module top level and handed to `createAgent({ auditTrail: { store } })`.
   Pair it with `agent.use((ds, cc) => auditTrail(ds, cc, { store }))` so writes and the
   record-history route share the same table.
-- `createSqlAuditSink` is **write-only** and connects eagerly. Use it when you only want
-  persistence and do not need the record-history route in the UI.

@@ -1,4 +1,4 @@
-import type { AuditRecord, AuditSink, AuditStorageOptions, AuditStore } from './types';
+import type { AuditRecord, AuditStorageOptions, AuditStore } from './types';
 import type { Model, ModelStatic } from 'sequelize';
 
 import { DataTypes, Sequelize } from 'sequelize';
@@ -97,32 +97,6 @@ export function fromRow(row: Model): AuditRecord {
     previousValues: (plain.previousValues as Record<string, unknown>) ?? {},
     newValues: (plain.newValues as Record<string, unknown>) ?? {},
   };
-}
-
-/**
- * Connect to the database described by `connectionString`, bootstrap the `forest` schema and the
- * audit table, and return a sink that persists every audit record into it.
- */
-export async function createSqlAuditSink(
-  options: AuditStorageOptions,
-): Promise<{ sink: AuditSink; close: () => Promise<void> }> {
-  const { connectionString, schema = DEFAULT_SCHEMA, tableName = DEFAULT_TABLE } = options;
-
-  const sequelize = new Sequelize(connectionString, { logging: false });
-
-  try {
-    await sequelize.authenticate();
-    const model = await ensureAuditStorage(sequelize, { schema, tableName });
-
-    const sink: AuditSink = async record => {
-      await model.create(toRow(record));
-    };
-
-    return { sink, close: () => sequelize.close() };
-  } catch (error) {
-    await sequelize.close();
-    throw error;
-  }
 }
 
 /**
