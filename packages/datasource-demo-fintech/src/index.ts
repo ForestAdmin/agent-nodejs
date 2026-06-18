@@ -7,6 +7,7 @@ import type {
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
+import { rm } from 'fs/promises';
 
 import customizeAmlAlerts from './customizations/aml_alerts';
 import customizeCards from './customizations/cards';
@@ -98,6 +99,7 @@ async function buildSeededSqlDataSource(
   restartAgent: () => Promise<void>,
 ): Promise<DataSource> {
   const storage = 'db.sqlite';
+  await rm(storage, { force: true });
 
   await seed(storage);
 
