@@ -272,7 +272,7 @@ export default class CollectionCustomizer<
 
   /**
    * Like {@link addHook} but also fires for writes initiated from inside a smart action
-   * (`context.collection.update`/`create`/`delete`). Intended for instrumentation plugins.
+   * (`context.collection.update`/`create`/`delete`). Used by the audit-trail plugin.
    */
   addInternalHook<P extends HookPosition, T extends HookType>(
     position: P,
