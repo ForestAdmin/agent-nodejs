@@ -7,9 +7,6 @@ import type {
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import { createSqlDataSource } from '@forestadmin/datasource-sql';
-import { mkdtempSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
 
 import customizeAmlAlerts from './customizations/aml_alerts';
 import customizeCards from './customizations/cards';
