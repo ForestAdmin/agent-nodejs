@@ -59,9 +59,11 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 export interface UpdateRecordStepExecutionData extends MutatingStepExecutionData {
   type: 'update-record';
   executionParams?: FieldWithValue;
-  // User confirmed → values returned by updateRecord. User rejected → skipped.
-  executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  pendingData?: FieldWithValue;
+  // `reasoning` is absent when the user changed the AI value to a different one.
+  executionResult?:
+    | { updatedValues: Record<string, unknown>; reasoning?: string }
+    | { skipped: true };
+  pendingData?: FieldWithValue & { reasoning?: string };
   selectedRecordRef: RecordRef;
   userConfirmation?: UpdateRecordConfirmation;
 }
