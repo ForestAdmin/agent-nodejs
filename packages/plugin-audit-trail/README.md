@@ -93,6 +93,14 @@ Pagination follows JSON:API: `page[number]` is 1-based (default `1`) and `page[s
 `20`, capped at `100`. Out-of-bound or non-numeric values fall back to the defaults rather than
 erroring. `skip` / `limit` are pushed down to the store query (`offset = (number - 1) * size`).
 
+Sorting follows JSON:API `sort` on `timestamp`:
+
+- `sort=-timestamp` — newest first. **Default** when the param is absent (or unrecognized).
+- `sort=timestamp` — oldest first.
+
+Ties on equal timestamps fall back to insertion order (the SQL store's auto-increment `id`), so the
+order is deterministic and stable across pages whatever the direction and filters.
+
 
 ### Recommended: gate it behind an environment variable
 

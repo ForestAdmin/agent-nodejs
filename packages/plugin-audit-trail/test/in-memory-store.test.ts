@@ -123,6 +123,30 @@ describe('InMemoryAuditStore', () => {
     ).toEqual([]);
   });
 
+  it('orders newest first when order is desc', () => {
+    const store = new InMemoryAuditStore();
+    store.append(record({ timestamp: '2026-01-01T00:00:00.000Z', newValues: { n: 1 } }));
+    store.append(record({ timestamp: '2026-01-02T00:00:00.000Z', newValues: { n: 2 } }));
+
+    const history = store.listByRecord({ collection: 'accounts', recordId: '1', order: 'desc' });
+
+    expect(history.map(r => r.newValues)).toEqual([{ n: 2 }, { n: 1 }]);
+  });
+
+  it('keeps equal-timestamp entries in insertion order, stable across pages', () => {
+    const store = new InMemoryAuditStore();
+    const timestamp = '2026-01-01T00:00:00.000Z';
+    store.append(record({ timestamp, newValues: { n: 1 } }));
+    store.append(record({ timestamp, newValues: { n: 2 } }));
+    store.append(record({ timestamp, newValues: { n: 3 } }));
+
+    const page1 = store.listByRecord({ collection: 'accounts', recordId: '1', skip: 0, limit: 2 });
+    const page2 = store.listByRecord({ collection: 'accounts', recordId: '1', skip: 2, limit: 2 });
+
+    expect(page1.map(r => r.newValues)).toEqual([{ n: 1 }, { n: 2 }]);
+    expect(page2.map(r => r.newValues)).toEqual([{ n: 3 }]);
+  });
+
   describe('countByRecord', () => {
     it('counts all matching entries, ignoring skip and limit', () => {
       const store = new InMemoryAuditStore();

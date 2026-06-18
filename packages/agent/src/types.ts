@@ -68,6 +68,7 @@ type AuditTrailQuery = {
   userIds?: number[];
   startTimestamp?: string;
   endTimestamp?: string;
+  order?: 'asc' | 'desc';
 };
 
 export type AuditTrailRecordReader = {

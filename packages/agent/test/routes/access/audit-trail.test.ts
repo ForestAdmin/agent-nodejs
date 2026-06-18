@@ -49,6 +49,7 @@ describe('AuditTrailRoute', () => {
       recordId: '2',
       skip: 0,
       limit: 20,
+      order: 'desc',
     });
     expect(context.response.body).toEqual({ data: history, meta: { count: 1 } });
   });
@@ -71,6 +72,7 @@ describe('AuditTrailRoute', () => {
       recordId: '2',
       skip: 20,
       limit: 10,
+      order: 'desc',
     });
   });
 
@@ -259,7 +261,53 @@ describe('AuditTrailRoute', () => {
       recordId: '2',
       skip: 0,
       limit: 20,
+      order: 'desc',
     });
+  });
+
+  test('defaults to newest-first (desc) when no sort is given', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(expect.objectContaining({ order: 'desc' }));
+  });
+
+  test('maps sort=-timestamp to a descending order', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', sort: '-timestamp' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(expect.objectContaining({ order: 'desc' }));
+  });
+
+  test('maps sort=timestamp to an ascending order', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', sort: 'timestamp' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(expect.objectContaining({ order: 'asc' }));
   });
 
   test('rejects a malformed date with a validation error', async () => {

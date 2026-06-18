@@ -170,11 +170,17 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
       },
       async listByRecord(query) {
         const model = await init();
-        const { skip = 0, limit } = query;
+        const { skip = 0, limit, order = 'asc' } = query;
+        const direction = order === 'desc' ? 'DESC' : 'ASC';
 
+        // `id` (insertion order) breaks ties on equal timestamps, keeping the order deterministic
+        // and stable across pages regardless of the chosen direction.
         const rows = await model.findAll({
           where: buildWhere(query),
-          order: [['timestamp', 'ASC']],
+          order: [
+            ['timestamp', direction],
+            ['id', 'ASC'],
+          ],
           offset: skip,
           limit,
         });

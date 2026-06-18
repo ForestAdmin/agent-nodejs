@@ -232,4 +232,41 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
 
     await close();
   });
+
+  it('orders newest first when order is desc', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(record({ recordId: '1', timestamp: '2026-01-01T00:00:00.000Z' }));
+    await store.append(record({ recordId: '1', timestamp: '2026-01-02T00:00:00.000Z' }));
+    await store.append(record({ recordId: '1', timestamp: '2026-01-03T00:00:00.000Z' }));
+
+    const history = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      order: 'desc',
+    });
+
+    expect(history.map(r => r.timestamp)).toEqual([
+      '2026-01-03T00:00:00.000Z',
+      '2026-01-02T00:00:00.000Z',
+      '2026-01-01T00:00:00.000Z',
+    ]);
+
+    await close();
+  });
+
+  it('keeps equal-timestamp rows in insertion order (id tie-breaker)', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+    const timestamp = '2026-01-01T00:00:00.000Z';
+
+    await store.append(record({ recordId: '1', timestamp, correlationKey: 'first' }));
+    await store.append(record({ recordId: '1', timestamp, correlationKey: 'second' }));
+    await store.append(record({ recordId: '1', timestamp, correlationKey: 'third' }));
+
+    const history = await store.listByRecord({ collection: 'accounts', recordId: '1' });
+
+    expect(history.map(r => r.correlationKey)).toEqual(['first', 'second', 'third']);
+
+    await close();
+  });
 });

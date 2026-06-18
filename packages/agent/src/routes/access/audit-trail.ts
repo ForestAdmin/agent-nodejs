@@ -29,6 +29,7 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     const { store } = this.options.auditTrail;
     const { skip, limit } = AuditTrailRoute.parsePagination(context);
+    const order = AuditTrailRoute.parseSort(context);
     const { userIds, startTimestamp, endTimestamp } = AuditTrailRoute.parseFilters(context);
 
     // context.params.id is already Forest's packed id, the form the audit store keys on.
@@ -42,11 +43,19 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     // `count` reflects the active filters (not the absolute total) and is independent of the page.
     const [data, count] = await Promise.all([
-      store.listByRecord({ ...filters, skip, limit }),
+      store.listByRecord({ ...filters, skip, limit, order }),
       store.countByRecord(filters),
     ]);
 
     context.response.body = { data, meta: { count } };
+  }
+
+  // JSON:API `sort`: `timestamp` → oldest first, `-timestamp` → newest first. Anything else
+  // (absent or unsupported) defaults to newest first.
+  private static parseSort(context: Context): 'asc' | 'desc' {
+    const sort = (context.request.query as Record<string, unknown>).sort?.toString();
+
+    return sort === 'timestamp' ? 'asc' : 'desc';
   }
 
   // JSON:API pagination: 1-based `page[number]` (default 1) and `page[size]` (default 20, capped

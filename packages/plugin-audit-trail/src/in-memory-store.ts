@@ -24,12 +24,17 @@ export default class InMemoryAuditStore implements AuditStore {
     userIds,
     startTimestamp,
     endTimestamp,
+    order = 'asc',
   }: AuditHistoryQuery): AuditRecord[] {
+    const direction = order === 'desc' ? -1 : 1;
+
+    // Ties on equal timestamps fall back to append order (the stable sort keeps it), which is the
+    // in-memory equivalent of the SQL store's auto-increment id — deterministic and chronological.
     return this.records
       .filter(record => record.collection === collection && record.recordId === recordId)
       .filter(record => !userIds || userIds.includes(record.userId))
       .filter(record => !startTimestamp || record.timestamp >= startTimestamp)
       .filter(record => !endTimestamp || record.timestamp <= endTimestamp)
-      .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      .sort((a, b) => direction * a.timestamp.localeCompare(b.timestamp));
   }
 }
