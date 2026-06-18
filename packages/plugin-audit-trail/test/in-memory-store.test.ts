@@ -1,6 +1,6 @@
 import type { AuditRecord } from '../src';
 
-import { InMemoryAuditStore } from '../src';
+import InMemoryAuditStore from '../src/in-memory-store';
 
 const record = (over: Partial<AuditRecord>): AuditRecord => ({
   timestamp: '2026-01-01T00:00:00.000Z',

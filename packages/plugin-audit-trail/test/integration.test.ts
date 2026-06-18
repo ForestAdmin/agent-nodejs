@@ -15,7 +15,8 @@ import {
   Filter,
 } from '@forestadmin/datasource-toolkit';
 
-import { InMemoryAuditStore, auditTrail } from '../src';
+import InMemoryAuditStore from '../src/in-memory-store';
+import { auditTrail } from '../src';
 
 const operators = new Set(['Equal', 'In', 'NotEqual', 'GreaterThan', 'LessThan', 'Present']);
 

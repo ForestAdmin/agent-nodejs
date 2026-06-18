@@ -1,7 +1,8 @@
 import type { AuditRecord, AuditTrailOptions } from '../src';
 import type { Caller } from '@forestadmin/datasource-toolkit';
 
-import { InMemoryAuditStore, REDACTED, auditTrail } from '../src';
+import InMemoryAuditStore from '../src/in-memory-store';
+import { REDACTED, auditTrail } from '../src';
 
 type Handler = (context: unknown) => Promise<void>;
 
