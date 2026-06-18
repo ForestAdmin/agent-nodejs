@@ -1,4 +1,3 @@
-import type { AiModelPort } from '../ports/ai-model-port';
 import type { Logger } from '../ports/logger-port';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
@@ -17,21 +16,19 @@ import {
   UnauthorizedHttpError,
   toHttpError,
 } from './http-errors';
-import buildMcpRouter from './mcp-router';
 import serializeStepForWire from './step-serializer';
 import createConsoleLogger from '../adapters/console-logger';
 import { extractErrorMessage } from '../errors';
-import McpExecutionService from '../mcp/mcp-execution-service';
-import PendingMcpPermissionResolver from '../mcp/mcp-permission-resolver';
 
 export interface ExecutorHttpServerOptions {
   port: number;
   runner: Runner;
   authSecret: string;
   workflowPort: WorkflowPort;
-  aiModelPort: AiModelPort;
-  executorVersion: string;
   logger?: Logger;
+  // Independent route groups (e.g. the MCP plane) mounted after auth. The server hosts them but
+  // stays agnostic of their domain — they're assembled and injected by the composition root.
+  extraRouters?: Router[];
 }
 
 export default class ExecutorHttpServer {
@@ -143,21 +140,11 @@ export default class ExecutorHttpServer {
     this.app.use(router.routes());
     this.app.use(router.allowedMethods());
 
-    // Decoupled /mcp/* plane (PRD-514): discovery/execution/authorization for the project's MCP
-    // integrations. Shares auth + error middleware; references only the MCP service (no runner).
-    const mcpService = new McpExecutionService({
-      workflowPort: options.workflowPort,
-      aiModelPort: options.aiModelPort,
-      permissionResolver: new PendingMcpPermissionResolver(),
-      logger: this.logger,
-    });
-    const mcpRouter = buildMcpRouter({
-      service: mcpService,
-      executorVersion: options.executorVersion,
-    });
-
-    this.app.use(mcpRouter.routes());
-    this.app.use(mcpRouter.allowedMethods());
+    // Independent route groups (e.g. the /mcp/* plane) — mounted after auth, hosted but not owned.
+    for (const extraRouter of options.extraRouters ?? []) {
+      this.app.use(extraRouter.routes());
+      this.app.use(extraRouter.allowedMethods());
+    }
   }
 
   async start(): Promise<void> {

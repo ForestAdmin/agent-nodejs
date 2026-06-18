@@ -8,6 +8,9 @@ import request from 'supertest';
 import { z } from 'zod';
 
 import ExecutorHttpServer from '../../src/http/executor-http-server';
+import buildMcpRouter from '../../src/http/mcp-router';
+import McpExecutionService from '../../src/mcp/mcp-execution-service';
+import PendingMcpPermissionResolver from '../../src/mcp/mcp-permission-resolver';
 
 const AUTH_SECRET = 'test-auth-secret';
 const VERSION = '9.9.9';
@@ -37,14 +40,23 @@ function createServer(
     loadRemoteTools: jest.fn().mockResolvedValue(overrides.tools ?? []),
   } as unknown as AiModelPort;
 
+  const mcpRouter = buildMcpRouter({
+    service: new McpExecutionService({
+      workflowPort,
+      aiModelPort,
+      permissionResolver: new PendingMcpPermissionResolver(),
+      logger: jest.fn(),
+    }),
+    executorVersion: VERSION,
+  });
+
   return new ExecutorHttpServer({
     port: 0,
     runner,
     authSecret: AUTH_SECRET,
     workflowPort,
-    aiModelPort,
-    executorVersion: VERSION,
     logger: jest.fn(),
+    extraRouters: [mcpRouter],
   });
 }
 

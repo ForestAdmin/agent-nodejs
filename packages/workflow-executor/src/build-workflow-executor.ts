@@ -22,6 +22,9 @@ import {
   DEFAULT_STEP_TIMEOUT_S,
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
+import buildMcpRouter from './http/mcp-router';
+import McpExecutionService from './mcp/mcp-execution-service';
+import PendingMcpPermissionResolver from './mcp/mcp-permission-resolver';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
 import DatabaseStore from './stores/database-store';
@@ -136,6 +139,19 @@ function buildCommonDependencies(options: ExecutorOptions) {
   };
 }
 
+// Composes the independent /mcp/* plane. Lives in the composition root so the runs HTTP server
+// never references MCP code — it only hosts the injected router.
+function buildMcpPlaneRouter(deps: ReturnType<typeof buildCommonDependencies>) {
+  const service = new McpExecutionService({
+    workflowPort: deps.workflowPort,
+    aiModelPort: deps.aiModelPort,
+    permissionResolver: new PendingMcpPermissionResolver(),
+    logger: deps.logger,
+  });
+
+  return buildMcpRouter({ service, executorVersion: EXECUTOR_VERSION });
+}
+
 function createWorkflowExecutor(
   runner: Runner,
   server: ExecutorHttpServer,
@@ -213,9 +229,8 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     runner,
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
-    aiModelPort: deps.aiModelPort,
-    executorVersion: EXECUTOR_VERSION,
     logger: deps.logger,
+    extraRouters: [buildMcpPlaneRouter(deps)],
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);
@@ -243,9 +258,8 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     runner,
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
-    aiModelPort: deps.aiModelPort,
-    executorVersion: EXECUTOR_VERSION,
     logger: deps.logger,
+    extraRouters: [buildMcpPlaneRouter(deps)],
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);
