@@ -134,6 +134,8 @@ describe('auditTrail plugin', () => {
         append: jest.fn(),
         listByRecord: jest.fn().mockResolvedValue([]),
         countByRecord: jest.fn().mockResolvedValue(0),
+        listByCorrelation: jest.fn().mockResolvedValue([]),
+        listByCorrelations: jest.fn().mockResolvedValue([]),
       };
       const accounts = fakeCollection('accounts');
 

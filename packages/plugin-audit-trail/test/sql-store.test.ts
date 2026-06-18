@@ -269,4 +269,69 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
 
     await close();
   });
+
+  it('returns rows recorded under a correlationKey for a record, scoped and oldest first', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(
+      record({ recordId: '1', correlationKey: 'req-1', timestamp: '2026-01-01T00:00:02.000Z' }),
+    );
+    await store.append(
+      record({ recordId: '1', correlationKey: 'req-1', timestamp: '2026-01-01T00:00:01.000Z' }),
+    );
+    await store.append(record({ recordId: '1', correlationKey: 'req-2' }));
+    await store.append(record({ recordId: '2', correlationKey: 'req-1' }));
+
+    const history = await store.listByCorrelation({
+      collection: 'accounts',
+      recordId: '1',
+      correlationKey: 'req-1',
+    });
+
+    expect(history.map(r => r.timestamp)).toEqual([
+      '2026-01-01T00:00:01.000Z',
+      '2026-01-01T00:00:02.000Z',
+    ]);
+
+    await close();
+  });
+
+  it('returns a flat list across multiple correlationKeys for a record, oldest first', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(
+      record({ recordId: '1', correlationKey: 'a', timestamp: '2026-01-01T00:00:03.000Z' }),
+    );
+    await store.append(
+      record({ recordId: '1', correlationKey: 'b', timestamp: '2026-01-01T00:00:01.000Z' }),
+    );
+    await store.append(record({ recordId: '1', correlationKey: 'c' }));
+    await store.append(record({ recordId: '2', correlationKey: 'a' }));
+
+    const history = await store.listByCorrelations({
+      collection: 'accounts',
+      recordId: '1',
+      correlationKeys: ['a', 'b'],
+    });
+
+    expect(history.map(r => r.correlationKey)).toEqual(['b', 'a']);
+
+    await close();
+  });
+
+  it('returns an empty array for an empty key list without querying', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(record({ recordId: '1', correlationKey: 'a' }));
+
+    expect(
+      await store.listByCorrelations({
+        collection: 'accounts',
+        recordId: '1',
+        correlationKeys: [],
+      }),
+    ).toEqual([]);
+
+    await close();
+  });
 });

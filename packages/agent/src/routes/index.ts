@@ -7,6 +7,7 @@ import type { DataSource } from '@forestadmin/datasource-toolkit';
 import CollectionApiChartRoute from './access/api-chart-collection';
 import DataSourceApiChartRoute from './access/api-chart-datasource';
 import AuditTrailRoute from './access/audit-trail';
+import AuditTrailCorrelationRoute from './access/audit-trail-correlation';
 import Chart from './access/chart';
 import Count from './access/count';
 import CountRelated from './access/count-related';
@@ -187,9 +188,12 @@ function getAuditTrailRoutes(
 ): BaseRoute[] {
   if (!options.auditTrail?.store) return [];
 
-  return dataSource.collections.map(
-    collection => new AuditTrailRoute(services, options, dataSource, collection.name),
-  );
+  return [
+    ...dataSource.collections.map(
+      collection => new AuditTrailRoute(services, options, dataSource, collection.name),
+    ),
+    new AuditTrailCorrelationRoute(services, options, dataSource),
+  ];
 }
 
 export default function makeRoutes(

@@ -74,6 +74,16 @@ type AuditTrailQuery = {
 export type AuditTrailRecordReader = {
   listByRecord(query: AuditTrailQuery): Promise<unknown[]> | unknown[];
   countByRecord(query: AuditTrailQuery): Promise<number> | number;
+  listByCorrelation(query: {
+    collection: string;
+    recordId: string;
+    correlationKey: string;
+  }): Promise<unknown[]> | unknown[];
+  listByCorrelations(query: {
+    collection: string;
+    recordId: string;
+    correlationKeys: string[];
+  }): Promise<unknown[]> | unknown[];
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

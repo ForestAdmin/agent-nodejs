@@ -177,4 +177,110 @@ describe('InMemoryAuditStore', () => {
       expect(count).toBe(1);
     });
   });
+
+  describe('listByCorrelation', () => {
+    it('returns the entries recorded under a correlationKey for a record, oldest first', () => {
+      const store = new InMemoryAuditStore();
+      store.append(
+        record({
+          correlationKey: 'req-1',
+          timestamp: '2026-01-02T00:00:00.000Z',
+          newValues: { n: 2 },
+        }),
+      );
+      store.append(
+        record({
+          correlationKey: 'req-1',
+          timestamp: '2026-01-01T00:00:00.000Z',
+          newValues: { n: 1 },
+        }),
+      );
+      store.append(record({ correlationKey: 'req-2', newValues: { n: 9 } }));
+
+      const history = store.listByCorrelation({
+        collection: 'accounts',
+        recordId: '1',
+        correlationKey: 'req-1',
+      });
+
+      expect(history.map(r => r.newValues)).toEqual([{ n: 1 }, { n: 2 }]);
+    });
+
+    it('scopes to the given record and collection', () => {
+      const store = new InMemoryAuditStore();
+      store.append(record({ correlationKey: 'req-1', recordId: '1' }));
+      store.append(record({ correlationKey: 'req-1', recordId: '2' }));
+      store.append(record({ correlationKey: 'req-1', collection: 'contacts', recordId: '1' }));
+
+      const history = store.listByCorrelation({
+        collection: 'accounts',
+        recordId: '1',
+        correlationKey: 'req-1',
+      });
+
+      expect(history).toHaveLength(1);
+      expect(history[0]).toMatchObject({ collection: 'accounts', recordId: '1' });
+    });
+
+    it('returns an empty array when nothing matches', () => {
+      expect(
+        new InMemoryAuditStore().listByCorrelation({
+          collection: 'accounts',
+          recordId: '1',
+          correlationKey: 'nope',
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  describe('listByCorrelations', () => {
+    it('returns a flat list of entries under any of the keys, oldest first', () => {
+      const store = new InMemoryAuditStore();
+      store.append(
+        record({ correlationKey: 'a', timestamp: '2026-01-03T00:00:00.000Z', newValues: { n: 3 } }),
+      );
+      store.append(
+        record({ correlationKey: 'b', timestamp: '2026-01-01T00:00:00.000Z', newValues: { n: 1 } }),
+      );
+      store.append(
+        record({ correlationKey: 'a', timestamp: '2026-01-02T00:00:00.000Z', newValues: { n: 2 } }),
+      );
+      store.append(
+        record({ correlationKey: 'c', timestamp: '2026-01-04T00:00:00.000Z', newValues: { n: 9 } }),
+      );
+
+      const history = store.listByCorrelations({
+        collection: 'accounts',
+        recordId: '1',
+        correlationKeys: ['a', 'b'],
+      });
+
+      expect(history.map(r => r.newValues)).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }]);
+    });
+
+    it('scopes to the given record and collection', () => {
+      const store = new InMemoryAuditStore();
+      store.append(record({ correlationKey: 'a', recordId: '1' }));
+      store.append(record({ correlationKey: 'a', recordId: '2' }));
+      store.append(record({ correlationKey: 'a', collection: 'contacts', recordId: '1' }));
+
+      const history = store.listByCorrelations({
+        collection: 'accounts',
+        recordId: '1',
+        correlationKeys: ['a'],
+      });
+
+      expect(history).toHaveLength(1);
+      expect(history[0]).toMatchObject({ collection: 'accounts', recordId: '1' });
+    });
+
+    it('returns an empty array for an empty key list', () => {
+      const store = new InMemoryAuditStore();
+      store.append(record({ correlationKey: 'a' }));
+
+      expect(
+        store.listByCorrelations({ collection: 'accounts', recordId: '1', correlationKeys: [] }),
+      ).toEqual([]);
+    });
+  });
 });

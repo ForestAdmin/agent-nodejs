@@ -101,6 +101,38 @@ Sorting follows JSON:API `sort` on `timestamp`:
 Ties on equal timestamps fall back to insertion order (the SQL store's auto-increment `id`), so the
 order is deterministic and stable across pages whatever the direction and filters.
 
+### Correlation route
+
+`GET /forest/_audit-trail/correlation/{correlationKey}` returns `{ data: AuditRecord[] }` — the
+operation(s) recorded under one `correlationKey` for a single record (usually one), oldest first, or
+an empty array if none. It is scoped through query params and shares the per-record route's auth
+(`assertCanRead` on the collection) and gating (mounted only when a store is configured).
+
+| query param    | required | effect                                                       |
+| -------------- | -------- | ------------------------------------------------------------ |
+| `collection`   | yes      | collection the record belongs to (also the permission scope) |
+| `recordId`     | yes      | packed record id to scope the lookup                         |
+| `timezone`     | no       | accepted for parity with the per-record route                |
+
+A missing `collection` or `recordId` returns **HTTP 400** (`ValidationError`).
+
+### Batch correlation route
+
+`GET /forest/_audit-trail/correlations` returns `{ data: AuditRecord[] }` — a **flat** list of every
+record whose `correlationKey` is in `correlationKeys`, scoped to one record (the client groups by
+`correlationKey`). Same auth and gating as the routes above; empty array when nothing matches.
+
+| query param       | required | effect                                                       |
+| ----------------- | -------- | ------------------------------------------------------------ |
+| `correlationKeys` | yes\*    | comma-separated keys; blank tokens are dropped               |
+| `collection`      | yes      | collection the record belongs to (also the permission scope) |
+| `recordId`        | yes      | packed record id to scope the lookup                         |
+| `timezone`        | no       | accepted for parity with the per-record route                |
+
+\* `correlationKeys` is bounded by the page size (≈20). To avoid any URL length limit, the same route
+also accepts **`POST`** with a JSON body `{ "correlationKeys": [...], "collection", "recordId" }`
+(the body takes precedence over the query). An empty/absent key list returns `{ data: [] }` without
+hitting the store. A missing `collection` or `recordId` returns **HTTP 400** (`ValidationError`).
 
 ### Recommended: gate it behind an environment variable
 

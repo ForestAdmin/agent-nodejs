@@ -30,11 +30,27 @@ export type AuditHistoryQuery = {
   order?: 'asc' | 'desc';
 };
 
+export type AuditCorrelationQuery = {
+  collection: string;
+  recordId: string;
+  correlationKey: string;
+};
+
+export type AuditCorrelationsQuery = {
+  collection: string;
+  recordId: string;
+  correlationKeys: string[];
+};
+
 export interface AuditStore {
   append(record: AuditRecord): void | Promise<void>;
   listByRecord(query: AuditHistoryQuery): AuditRecord[] | Promise<AuditRecord[]>;
   /** Total number of entries matching the query filters, ignoring `skip` / `limit`. */
   countByRecord(query: AuditHistoryQuery): number | Promise<number>;
+  /** Entries recorded under one `correlationKey` for a given record, oldest first. */
+  listByCorrelation(query: AuditCorrelationQuery): AuditRecord[] | Promise<AuditRecord[]>;
+  /** Flat list of entries recorded under any of `correlationKeys` for a record, oldest first. */
+  listByCorrelations(query: AuditCorrelationsQuery): AuditRecord[] | Promise<AuditRecord[]>;
   /**
    * Optional one-shot bootstrap (e.g. open a connection, run migrations). The audit-trail plugin
    * awaits it during agent start, so any failure surfaces before the agent serves requests.

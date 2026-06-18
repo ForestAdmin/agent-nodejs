@@ -192,6 +192,34 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
 
         return model.count({ where: buildWhere(query) });
       },
+      async listByCorrelation({ collection, recordId, correlationKey }) {
+        const model = await init();
+
+        const rows = await model.findAll({
+          where: { collection, recordId, correlationKey },
+          order: [
+            ['timestamp', 'ASC'],
+            ['id', 'ASC'],
+          ],
+        });
+
+        return rows.map(fromRow);
+      },
+      async listByCorrelations({ collection, recordId, correlationKeys }) {
+        if (!correlationKeys.length) return [];
+
+        const model = await init();
+
+        const rows = await model.findAll({
+          where: { collection, recordId, correlationKey: { [Op.in]: correlationKeys } },
+          order: [
+            ['timestamp', 'ASC'],
+            ['id', 'ASC'],
+          ],
+        });
+
+        return rows.map(fromRow);
+      },
     },
     close: async () => {
       if (sequelize) await sequelize.close();

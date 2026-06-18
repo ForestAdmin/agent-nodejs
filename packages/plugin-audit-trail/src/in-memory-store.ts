@@ -1,4 +1,10 @@
-import type { AuditHistoryQuery, AuditRecord, AuditStore } from './types';
+import type {
+  AuditCorrelationQuery,
+  AuditCorrelationsQuery,
+  AuditHistoryQuery,
+  AuditRecord,
+  AuditStore,
+} from './types';
 
 export default class InMemoryAuditStore implements AuditStore {
   private readonly records: AuditRecord[] = [];
@@ -16,6 +22,38 @@ export default class InMemoryAuditStore implements AuditStore {
 
   countByRecord(query: AuditHistoryQuery): number {
     return this.matching(query).length;
+  }
+
+  listByCorrelation({
+    collection,
+    recordId,
+    correlationKey,
+  }: AuditCorrelationQuery): AuditRecord[] {
+    return this.records
+      .filter(
+        record =>
+          record.collection === collection &&
+          record.recordId === recordId &&
+          record.correlationKey === correlationKey,
+      )
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  }
+
+  listByCorrelations({
+    collection,
+    recordId,
+    correlationKeys,
+  }: AuditCorrelationsQuery): AuditRecord[] {
+    const keys = new Set(correlationKeys);
+
+    return this.records
+      .filter(
+        record =>
+          record.collection === collection &&
+          record.recordId === recordId &&
+          keys.has(record.correlationKey),
+      )
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   }
 
   private matching({
