@@ -1,3 +1,10 @@
+## @forestadmin/datasource-demo-fintech [1.0.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-demo-fintech@1.0.0...@forestadmin/datasource-demo-fintech@1.0.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* **demo fintech ds:** allow multiple restart ([#1681](https://github.com/ForestAdmin/agent-nodejs/issues/1681)) ([983b9b8](https://github.com/ForestAdmin/agent-nodejs/commit/983b9b89db61ea14c8f288901a13b2e708bdf3b9))
+
 # @forestadmin/datasource-demo-fintech 1.0.0 (2026-06-18)
 
 
