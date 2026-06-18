@@ -47,7 +47,7 @@ function fakeCollection(
   const collection = {
     name,
     schema,
-    addHook: (position: string, type: string, handler: Handler) => {
+    addInternalHook: (position: string, type: string, handler: Handler) => {
       handlers.set(`${position}:${type}`, handler);
     },
   };

@@ -166,7 +166,7 @@ function instrumentCollection(
       newValues: redactValues(newValues, redactedFields),
     });
 
-  collection.addHook('After', 'Create', async (context: HookAfterCreateContext) => {
+  collection.addInternalHook('After', 'Create', async (context: HookAfterCreateContext) => {
     await Promise.all(
       context.records.map(record =>
         emit(context.caller, 'create', toRecordId(record, primaryKeys), {}, pick(record, columns)),
@@ -174,12 +174,12 @@ function instrumentCollection(
     );
   });
 
-  collection.addHook('Before', 'Update', async (context: HookBeforeUpdateContext) => {
+  collection.addInternalHook('Before', 'Update', async (context: HookBeforeUpdateContext) => {
     const before = await context.collection.list(context.filter as never, projection as never[]);
     pendingSnapshots.set(context.filter, before as RecordData[]);
   });
 
-  collection.addHook('After', 'Update', async (context: HookBeforeUpdateContext) => {
+  collection.addInternalHook('After', 'Update', async (context: HookBeforeUpdateContext) => {
     const before = pendingSnapshots.get(context.filter) ?? [];
     pendingSnapshots.delete(context.filter);
 
@@ -201,12 +201,12 @@ function instrumentCollection(
     );
   });
 
-  collection.addHook('Before', 'Delete', async (context: HookBeforeDeleteContext) => {
+  collection.addInternalHook('Before', 'Delete', async (context: HookBeforeDeleteContext) => {
     const before = await context.collection.list(context.filter as never, projection as never[]);
     pendingSnapshots.set(context.filter, before as RecordData[]);
   });
 
-  collection.addHook('After', 'Delete', async (context: HookBeforeDeleteContext) => {
+  collection.addInternalHook('After', 'Delete', async (context: HookBeforeDeleteContext) => {
     const before = pendingSnapshots.get(context.filter) ?? [];
     pendingSnapshots.delete(context.filter);
 

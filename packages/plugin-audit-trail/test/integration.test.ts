@@ -182,6 +182,50 @@ describe('auditTrail against a real DataSourceCustomizer stack', () => {
     });
   });
 
+  it('captures updates triggered from inside a smart action', async () => {
+    const store = new InMemoryAuditStore();
+    const customizer = new DataSourceCustomizer();
+    customizer.addDataSource(async () => {
+      const dataSource = new BaseDataSource();
+      dataSource.addCollection(new AccountsCollection(dataSource));
+
+      return dataSource;
+    });
+    customizer.customizeCollection('accounts', accounts => {
+      accounts.addAction('Mark closed', {
+        scope: 'Bulk',
+        execute: async context => {
+          await context.collection.update(context.filter, { status: 'closed' });
+        },
+      });
+    });
+    customizer.use(auditTrail, { store });
+
+    const dataSource = await customizer.getDataSource(() => {});
+    const collection = dataSource.getCollection('accounts');
+    await collection.create(caller('r-seed'), [
+      { status: 'open', name: 'Acme' },
+      { status: 'pending', name: 'Globex' },
+    ]);
+
+    await collection.execute(caller('r-action'), 'Mark closed', {}, new Filter({}));
+
+    const first = store.listByRecord({ collection: 'accounts', recordId: '1' });
+    const second = store.listByRecord({ collection: 'accounts', recordId: '2' });
+    expect(first[first.length - 1]).toMatchObject({
+      operation: 'update',
+      correlationKey: 'r-action',
+      previousValues: { status: 'open' },
+      newValues: { status: 'closed' },
+    });
+    expect(second[second.length - 1]).toMatchObject({
+      operation: 'update',
+      correlationKey: 'r-action',
+      previousValues: { status: 'pending' },
+      newValues: { status: 'closed' },
+    });
+  });
+
   it('groups a bulk update under one correlation key, one row per matched record', async () => {
     const { store, collection } = await buildCollection();
     await collection.create(caller('r-create'), [
