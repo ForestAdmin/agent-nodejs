@@ -33,8 +33,8 @@ npx @forestadmin/workflow-executor
 
 **Where to find your credentials:**
 
-1. Open [app.forestadmin.com](https://app.forestadmin.com) → your project
-2. Go to **Settings** → **Environments** → click your environment
-3. Copy the **Environment secret** (`FOREST_ENV_SECRET`) and the **Auth secret** (`FOREST_AUTH_SECRET`)
+They are the same values already used by your Forest Admin agent. You can either:
+- Copy them from your agent's environment variables (`FOREST_ENV_SECRET`, `FOREST_AUTH_SECRET`)
+- Or find them in [app.forestadmin.com](https://app.forestadmin.com) → **Settings** → **Environments** → click your environment
 
 `AGENT_URL` is the URL where your Forest Admin agent is running (e.g. `http://localhost:3351`).
