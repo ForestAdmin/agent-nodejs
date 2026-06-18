@@ -122,7 +122,7 @@ actually applied to existing databases (a plain "create if not exists" would sil
   (existence check + tolerating a concurrent "already exists").
 
 **Evolving the table (maintainers):** append a new entry to the `migrations` array in
-`src/migrations.ts` (e.g. an `addColumn`) and update the model in `src/sql-sink.ts` to match. Never
+`src/migrations.ts` (e.g. an `addColumn`) and update the model in `src/sql-store.ts` to match. Never
 edit, reorder or delete an existing migration, and keep changes additive/backward-compatible — the
 connection string may point at the customer's own database.
 

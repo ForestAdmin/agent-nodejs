@@ -8,6 +8,6 @@ export {
   fromRow,
   DEFAULT_SCHEMA,
   DEFAULT_TABLE,
-} from './sql-sink';
+} from './sql-store';
 export { runAuditMigrations } from './migrations';
 export * from './types';
