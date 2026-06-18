@@ -543,14 +543,66 @@ describe('auditTrail plugin', () => {
       expect(sink).not.toHaveBeenCalled();
     });
 
-    it('captures a real change inside a nested object', async () => {
+    it('captures only the changed leaf inside a nested object, dropping unchanged siblings', async () => {
       const { sink, run } = update({ payload: { a: 1, b: 2 } }, { payload: { a: 1, b: 3 } });
       await run();
 
       expect(sink).toHaveBeenCalledWith(
         expect.objectContaining({
-          previousValues: { payload: { a: 1, b: 2 } },
-          newValues: { payload: { a: 1, b: 3 } },
+          previousValues: { payload: { b: 2 } },
+          newValues: { payload: { b: 3 } },
+        }),
+      );
+    });
+
+    it('keeps only the deepest changed leaf of a deeply nested object', async () => {
+      const { sink, run } = update(
+        { payload: { theme: 'dark', layout: { sidebar: true, density: 'compact' } } },
+        { payload: { theme: 'dark', layout: { sidebar: false, density: 'compact' } } },
+      );
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { payload: { layout: { sidebar: true } } },
+          newValues: { payload: { layout: { sidebar: false } } },
+        }),
+      );
+    });
+
+    it('diffs an array of objects element-wise, keeping only the changed index and leaf', async () => {
+      const { sink, run } = update(
+        {
+          payload: [
+            { step: 'a', done: true },
+            { step: 'b', done: false },
+          ],
+        },
+        {
+          payload: [
+            { step: 'a', done: true },
+            { step: 'b', done: true },
+          ],
+        },
+      );
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { payload: { 1: { done: false } } },
+          newValues: { payload: { 1: { done: true } } },
+        }),
+      );
+    });
+
+    it('keeps a primitive array whole instead of diffing it element-wise', async () => {
+      const { sink, run } = update({ tags: ['x', 'y'] }, { tags: ['x', 'z'] });
+      await run();
+
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          previousValues: { tags: ['x', 'y'] },
+          newValues: { tags: ['x', 'z'] },
         }),
       );
     });

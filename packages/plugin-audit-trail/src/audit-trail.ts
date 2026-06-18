@@ -40,6 +40,56 @@ const sortObjectKeys = (key: string, value: unknown): unknown => {
 const equals = (a: unknown, b: unknown): boolean =>
   JSON.stringify(a, sortObjectKeys) === JSON.stringify(b, sortObjectKeys);
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date);
+
+// Arrays whose every element is a plain object (record-like collections such as a workflow history).
+// These are diffed element-wise; primitive or mixed arrays are kept whole.
+const isObjectArray = (value: unknown): value is Record<string, unknown>[] =>
+  Array.isArray(value) && value.length > 0 && value.every(isPlainObject);
+
+// Minimal structural diff. Nested plain objects and arrays of objects are recursed into, so only the
+// keys/indexes whose leaf value actually changed are kept — a single sub-field change does not store
+// the whole object/array. Array diffs are reported as index-keyed objects. Scalars, primitive arrays,
+// Dates and BSON values are compared and kept as a whole.
+const diff = (before: unknown, after: unknown): { previous: unknown; next: unknown } | null => {
+  if (equals(before, after)) return null;
+
+  if (isPlainObject(before) && isPlainObject(after)) {
+    const previous: Record<string, unknown> = {};
+    const next: Record<string, unknown> = {};
+
+    for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
+      const subDiff = diff(before[key], after[key]);
+
+      if (subDiff) {
+        previous[key] = subDiff.previous;
+        next[key] = subDiff.next;
+      }
+    }
+
+    return { previous, next };
+  }
+
+  if (isObjectArray(before) && isObjectArray(after)) {
+    const previous: Record<number, unknown> = {};
+    const next: Record<number, unknown> = {};
+
+    for (let index = 0; index < Math.max(before.length, after.length); index += 1) {
+      const subDiff = diff(before[index], after[index]);
+
+      if (subDiff) {
+        previous[index] = subDiff.previous;
+        next[index] = subDiff.next;
+      }
+    }
+
+    return { previous, next };
+  }
+
+  return { previous: before ?? null, next: after ?? null };
+};
+
 const changedValues = (
   before: RecordData,
   patch: RecordData,
@@ -49,9 +99,11 @@ const changedValues = (
   const newValues: Record<string, unknown> = {};
 
   for (const column of columns) {
-    if (column in patch && !equals(before[column], patch[column])) {
-      previousValues[column] = before[column] ?? null;
-      newValues[column] = patch[column] ?? null;
+    const delta = column in patch ? diff(before[column], patch[column]) : null;
+
+    if (delta) {
+      previousValues[column] = delta.previous;
+      newValues[column] = delta.next;
     }
   }
 
