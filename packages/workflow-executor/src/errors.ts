@@ -259,6 +259,37 @@ export class McpToolNotFoundError extends WorkflowExecutorError {
   }
 }
 
+// /mcp/* route errors (PRD-514). Categorized so toHttpError maps them to the right status.
+export class McpNeedsConsentError extends AccessDeniedError {
+  constructor(mcpServerId: string) {
+    super(
+      `MCP server "${mcpServerId}" has no usable credential`,
+      'This integration is not connected. Connect it in Forest settings, then retry.',
+    );
+  }
+}
+
+export class McpUnknownToolError extends NotFoundError {
+  constructor(mcpServerId: string, toolName: string) {
+    super(
+      `MCP tool "${toolName}" not found on server "${mcpServerId}"`,
+      'The requested tool does not exist on this integration.',
+    );
+  }
+}
+
+export class McpServerUnavailableError extends UnavailableError {
+  constructor(mcpServerId: string, cause?: unknown) {
+    super(
+      `MCP server "${mcpServerId}" call failed: ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+      'The integration is temporarily unavailable. Please try again.',
+    );
+    this.cause = cause;
+  }
+}
+
 export class AgentPortError extends WorkflowExecutorError {
   constructor(operation: string, cause: unknown) {
     super(

@@ -29,6 +29,9 @@ import InMemoryStore from './stores/in-memory-store';
 
 const FORCE_EXIT_DELAY_S = 5;
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
+const { version: EXECUTOR_VERSION } = require('../package.json') as { version: string };
+
 export interface WorkflowExecutor {
   start(): Promise<void>;
   stop(): Promise<void>;
@@ -210,6 +213,8 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     runner,
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
+    aiModelPort: deps.aiModelPort,
+    executorVersion: EXECUTOR_VERSION,
     logger: deps.logger,
   });
 
@@ -238,6 +243,8 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     runner,
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
+    aiModelPort: deps.aiModelPort,
+    executorVersion: EXECUTOR_VERSION,
     logger: deps.logger,
   });
 

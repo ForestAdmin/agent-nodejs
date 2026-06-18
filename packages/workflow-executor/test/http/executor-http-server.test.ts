@@ -1,3 +1,4 @@
+import type { AiModelPort } from '../../src/ports/ai-model-port';
 import type { Logger } from '../../src/ports/logger-port';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type Runner from '../../src/runner';
@@ -45,10 +46,19 @@ function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): Workflow
   } as unknown as WorkflowPort;
 }
 
+function createMockAiModelPort(): AiModelPort {
+  return {
+    getModel: jest.fn(),
+    loadRemoteTools: jest.fn().mockResolvedValue([]),
+    closeConnections: jest.fn().mockResolvedValue(undefined),
+  } as unknown as AiModelPort;
+}
+
 function createServer(
   overrides: {
     runner?: Runner;
     workflowPort?: WorkflowPort;
+    aiModelPort?: AiModelPort;
     logger?: jest.MockedFunction<Logger>;
   } = {},
 ) {
@@ -57,6 +67,8 @@ function createServer(
     runner: overrides.runner ?? createMockRunner(),
     authSecret: AUTH_SECRET,
     workflowPort: overrides.workflowPort ?? createMockWorkflowPort(),
+    aiModelPort: overrides.aiModelPort ?? createMockAiModelPort(),
+    executorVersion: '9.9.9',
     logger: overrides.logger,
   });
 }

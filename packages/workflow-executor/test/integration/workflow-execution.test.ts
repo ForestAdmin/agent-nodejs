@@ -214,6 +214,8 @@ function createIntegrationSetup(overrides?: {
     runner,
     authSecret: AUTH_SECRET,
     workflowPort,
+    aiModelPort: aiClient,
+    executorVersion: '9.9.9',
   });
 
   return { runner, server, workflowPort, agentPort, runStore, aiClient, model };
