@@ -105,6 +105,8 @@ export interface McpToolCall extends McpToolRef {
 
 export interface McpStepExecutionData extends MutatingStepExecutionData {
   type: 'mcp';
+  // Privacy-sensitive: stays client-side, never sent in the StepOutcome.
+  toolSelectionReasoning?: string;
   executionParams?: McpToolCall;
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
