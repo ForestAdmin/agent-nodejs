@@ -6,6 +6,25 @@ The executor polls the Forest orchestrator for pending steps, runs them locally
 (with access to your data via the Forest agent), and reports results back. No
 client data ever leaves your infrastructure.
 
+## Prerequisites
+
+- **Latest version of your Forest Admin agent** (Node.js, Ruby, Python…) — older versions do not support the executor
+- **Executor enabled in your agent config** — add `workflowExecutorUrl` pointing to where the executor will run:
+
+```js
+// Node.js example
+createAgent({
+  envSecret: process.env.FOREST_ENV_SECRET,
+  authSecret: process.env.FOREST_AUTH_SECRET,
+  workflowExecutorUrl: 'http://localhost:3400', // URL of this executor
+  // ...
+})
+```
+
+> For other languages, refer to your agent's documentation for the equivalent option.
+
+---
+
 ## Quick Setup
 
 ### In-memory (no database)
