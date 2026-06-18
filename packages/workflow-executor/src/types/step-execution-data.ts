@@ -141,12 +141,6 @@ export interface LoadRelatedRecordPendingData {
   availableRecordIds: LoadRelatedRecordCandidate[];
   // Absent when the relation has no linked record(s): the list is empty and there's nothing to suggest.
   suggestedRecord?: LoadRelatedRecordCandidate;
-  // Technical names of the fields the AI judged most relevant to identify the record.
-  suggestedFields?: string[];
-  // AI justification for the selected fields (selectRelevantFields).
-  fieldsReasoning?: string;
-  // AI justification for the suggested record (selectBestRecordIndex).
-  reasoning?: string;
 }
 
 export interface LoadRelatedRecordStepExecutionData
