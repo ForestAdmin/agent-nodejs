@@ -1,9 +1,5 @@
 import type { StepExecutionResult } from '../types/execution-context';
-import type {
-  FieldWithValue,
-  FieldWithValueAndReasoning,
-  UpdateRecordStepExecutionData,
-} from '../types/step-execution-data';
+import type { FieldWithValue, UpdateRecordStepExecutionData } from '../types/step-execution-data';
 import type { CollectionSchema, FieldSchema, RecordRef } from '../types/validated/collection';
 import type { UpdateRecordStepDefinition } from '../types/validated/step-definition';
 
@@ -125,7 +121,7 @@ function coerceFieldValue(
   return parsed.data;
 }
 
-interface UpdateTarget extends FieldWithValueAndReasoning {
+interface UpdateTarget extends FieldWithValue {
   selectedRecordRef: RecordRef;
 }
 
@@ -293,7 +289,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async selectFieldAndValue(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ fieldName: string; value: unknown; reasoning: string }> {
+  ): Promise<{ reasoning: string; fieldName: string; value: unknown }> {
     const tool = this.buildUpdateFieldTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -306,13 +302,13 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     ];
 
     const { input } = await this.invokeWithTool<{
-      input: { fieldName: string; value: unknown; reasoning: string };
+      input: { reasoning: string; fieldName: string; value: unknown };
     }>(messages, tool);
 
     return {
+      reasoning: input.reasoning,
       fieldName: this.resolveAiFieldName(schema, input.fieldName),
       value: input.value,
-      reasoning: input.reasoning,
     };
   }
 
@@ -327,16 +323,17 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     }
 
     type FieldObject = z.ZodObject<{
+      reasoning: z.ZodString;
       fieldName: z.ZodLiteral<string>;
       value: z.ZodNullable<z.ZodTypeAny>;
-      reasoning: z.ZodString;
     }>;
 
+    // `reasoning` first so the AI reasons toward the choice instead of justifying it afterwards.
     const fieldObjects = nonRelationFields.map(f =>
       z.object({
+        reasoning: z.string().describe('Why this field and value were chosen'),
         fieldName: z.literal(f.displayName),
         value: buildZodSchemaForField(f, schema.collectionName).nullable(),
-        reasoning: z.string().describe('Why this field and value were chosen'),
       }),
     ) as FieldObject[];
 

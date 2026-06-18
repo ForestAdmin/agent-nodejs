@@ -39,11 +39,7 @@ export interface FieldRef {
   displayName: string;
 }
 
-export type FieldWithValue = FieldRef & { value: unknown };
-
-// AI-suggested field/value plus the reasoning behind the choice. `reasoning` is privacy-sensitive
-// (AI internals) so it lives in StepExecutionData only — never in the StepOutcome sent upstream.
-export type FieldWithValueAndReasoning = FieldWithValue & { reasoning?: string };
+export type FieldWithValue = FieldRef & { value: unknown; reasoning?: string };
 
 // -- Read Record --
 
@@ -70,10 +66,10 @@ export interface UpdateRecordStepExecutionData
   extends MutatingStepExecutionData,
     WithUserConfirmation<UpdateRecordConfirmation> {
   type: 'update-record';
-  executionParams?: FieldWithValueAndReasoning;
+  executionParams?: FieldWithValue;
   // User confirmed → values returned by updateRecord. User rejected → skipped.
   executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  pendingData?: FieldWithValueAndReasoning;
+  pendingData?: FieldWithValue;
   selectedRecordRef: RecordRef;
 }
 
