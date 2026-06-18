@@ -93,12 +93,15 @@ The `audit_logs` table is created and evolved through versioned
 [Umzug](https://github.com/sequelize/umzug) migrations rather than `sync()`, so schema changes are
 actually applied to existing databases (a plain "create if not exists" would silently skip them).
 
-- Applied migrations are tracked in the standard `SequelizeMeta` table, namespaced inside the
-  `forest` schema (`forest.SequelizeMeta`) so it never collides with a `SequelizeMeta` the customer
-  may already own in their default schema.
+- Applied migrations are tracked in a dedicated `forest.audit_migrations` table, kept separate from
+  the default `SequelizeMeta` so it never shares migration state with another component writing to
+  the same database (e.g. the workflow executor keeps its own `SequelizeMeta`, or the customer may
+  own one in their default schema).
 - Pending migrations run automatically when the sink is built (on agent start).
-- On Postgres the run is guarded by a transaction-scoped advisory lock, so several agent instances
-  starting at once migrate one after another instead of racing on the DDL.
+- **Multiple instances:** on Postgres the schema creation, the meta-table creation and every
+  migration run together inside a single transaction-scoped advisory lock, so several agents booting
+  at once perform the whole bootstrap one after another instead of racing on the same DDL. The
+  losers block on the lock, then find the migrations already applied and continue.
 
 **Evolving the table (maintainers):** append a new entry to the `migrations` array in
 `src/migrations.ts` (e.g. an `addColumn`) and update the model in `src/sql-sink.ts` to match. Never

@@ -48,7 +48,7 @@ describe('runAuditMigrations (sqlite)', () => {
       runAuditMigrations(sequelize, { tableName: 'audit_logs' }),
     ).resolves.toBeUndefined();
 
-    const [applied] = await sequelize.query('SELECT name FROM "SequelizeMeta" ORDER BY name');
+    const [applied] = await sequelize.query('SELECT name FROM "audit_migrations" ORDER BY name');
     expect(applied).toEqual([
       { name: '001-create-audit-logs' },
       { name: '002-index-record-and-correlation' },

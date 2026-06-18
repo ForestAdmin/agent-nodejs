@@ -1,4 +1,4 @@
-import type { QueryInterface, Sequelize } from 'sequelize';
+import type { QueryInterface, Sequelize, Transaction } from 'sequelize';
 
 import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
@@ -8,6 +8,12 @@ export type MigrationContext = {
   schema?: string;
   tableName: string;
 };
+
+// Dedicated table tracking which audit migrations have been applied. Kept separate from the default
+// `SequelizeMeta` (and namespaced in the `forest` schema) so it never shares migration state with
+// another component writing to the same database — e.g. the workflow executor, which keeps its own
+// `SequelizeMeta` in the default schema.
+const MIGRATIONS_TABLE = 'audit_migrations';
 
 // Arbitrary but stable key pair identifying the audit-trail migration critical section. It only has
 // to be unique enough not to collide with other advisory locks the application might take.
@@ -78,28 +84,54 @@ function buildUmzug(sequelize: Sequelize, options: { schema?: string; tableName:
       schema: options.schema,
       tableName: options.tableName,
     },
-    // Default tracking table (`SequelizeMeta`), namespaced in the `forest` schema so it never
-    // collides with a `SequelizeMeta` the customer might own in their default schema.
-    storage: new SequelizeStorage({ sequelize, schema: options.schema }),
+    // Dedicated tracking table, namespaced in the `forest` schema (see MIGRATIONS_TABLE).
+    storage: new SequelizeStorage({
+      sequelize,
+      schema: options.schema,
+      tableName: MIGRATIONS_TABLE,
+    }),
     logger: undefined,
   });
 }
 
 /**
- * Apply every pending audit-table migration.
+ * Create the schema (namespace) when it is missing. No-op when no schema is requested — dialects
+ * without schema support pass `undefined`. When a transaction is given the work runs inside it, so
+ * on Postgres it is covered by the migration advisory lock.
+ */
+async function ensureSchema(
+  sequelize: Sequelize,
+  schema: string | undefined,
+  transaction?: Transaction,
+): Promise<void> {
+  if (!schema) return;
+
+  const queryInterface = sequelize.getQueryInterface();
+  // showAllSchemas keeps the operation idempotent regardless of the server version, since
+  // CREATE SCHEMA only emits IF NOT EXISTS on recent databases.
+  const schemas = (await queryInterface.showAllSchemas({ transaction })) as unknown as string[];
+
+  if (!schemas.includes(schema)) {
+    await queryInterface.createSchema(schema, { transaction });
+  }
+}
+
+/**
+ * Create the schema then apply every pending audit-table migration.
  *
- * On Postgres the run is wrapped in a transaction-scoped advisory lock so that several agent
- * instances booting at once migrate one after another instead of racing on the same DDL. The schema
- * (namespace) is expected to already exist — it is a prerequisite for the migrations storage table.
+ * On Postgres the schema creation, the meta-table creation and every migration run together inside a
+ * single transaction-scoped advisory lock, so several agent instances booting at once perform the
+ * whole bootstrap one after another instead of racing on the same DDL — the losers block on the
+ * lock, then find the migrations already applied and continue. Other dialects have no cross-instance
+ * lock; their individual statements are idempotent.
  */
 export async function runAuditMigrations(
   sequelize: Sequelize,
   options: { schema?: string; tableName: string },
 ): Promise<void> {
-  const umzug = buildUmzug(sequelize, options);
-
   if (sequelize.getDialect() !== 'postgres') {
-    await umzug.up();
+    await ensureSchema(sequelize, options.schema);
+    await buildUmzug(sequelize, options).up();
 
     return;
   }
@@ -110,6 +142,7 @@ export async function runAuditMigrations(
       replacements: { a: ADVISORY_LOCK[0], b: ADVISORY_LOCK[1] },
     });
 
-    await umzug.up();
+    await ensureSchema(sequelize, options.schema, transaction);
+    await buildUmzug(sequelize, options).up();
   });
 }

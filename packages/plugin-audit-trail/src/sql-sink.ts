@@ -49,9 +49,9 @@ export function defineAuditLogModel(
 /**
  * Ensure the schema and the audit table exist, then return the model.
  *
- * The schema (namespace) is created here as a prerequisite; the table itself is created and evolved
- * through versioned migrations (see {@link runAuditMigrations}), so later schema changes are applied
- * instead of being silently skipped the way `sync()` would.
+ * The schema (when the dialect supports it) and the table are both created and evolved through
+ * versioned migrations (see {@link runAuditMigrations}) — so later schema changes are applied instead
+ * of being silently skipped the way `sync()` would, and concurrent agent instances bootstrap safely.
  *
  * - empty database          → schema (when supported) and table are created;
  * - database without schema  → schema is created next to the existing tables, table is created;
@@ -61,18 +61,7 @@ export async function ensureAuditStorage(
   sequelize: Sequelize,
   options: { schema?: string; tableName: string },
 ): Promise<ModelStatic<Model>> {
-  const queryInterface = sequelize.getQueryInterface();
   const useSchema = SCHEMA_DIALECTS.has(sequelize.getDialect()) ? options.schema : undefined;
-
-  if (useSchema) {
-    // showAllSchemas keeps the operation idempotent regardless of the server version,
-    // since CREATE SCHEMA only emits IF NOT EXISTS on recent databases.
-    const schemas = (await queryInterface.showAllSchemas()) as unknown as string[];
-
-    if (!schemas.includes(useSchema)) {
-      await queryInterface.createSchema(useSchema);
-    }
-  }
 
   await runAuditMigrations(sequelize, { schema: useSchema, tableName: options.tableName });
 

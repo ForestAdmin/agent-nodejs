@@ -39,53 +39,29 @@ describe('toRow', () => {
 describe('ensureAuditStorage', () => {
   afterEach(() => jest.clearAllMocks());
 
-  describe('on a dialect with schemas (postgres)', () => {
-    it('creates the schema when missing, then runs the migrations', async () => {
-      const sequelize = new Sequelize('postgres://user:pwd@localhost:5432/db', { logging: false });
-      const qi = sequelize.getQueryInterface();
-      jest.spyOn(qi, 'showAllSchemas').mockResolvedValue([] as never);
-      const createSchema = jest.spyOn(qi, 'createSchema').mockResolvedValue(undefined as never);
+  it('runs the migrations with the schema on a dialect that supports schemas (postgres)', async () => {
+    const sequelize = new Sequelize('postgres://user:pwd@localhost:5432/db', { logging: false });
 
-      await ensureAuditStorage(sequelize, { schema: 'forest', tableName: 'audit_logs' });
+    await ensureAuditStorage(sequelize, { schema: 'forest', tableName: 'audit_logs' });
 
-      expect(createSchema).toHaveBeenCalledWith('forest');
-      expect(runAuditMigrations).toHaveBeenCalledWith(sequelize, {
-        schema: 'forest',
-        tableName: 'audit_logs',
-      });
-    });
-
-    it('does not recreate the schema when it already exists, but still runs migrations', async () => {
-      const sequelize = new Sequelize('postgres://user:pwd@localhost:5432/db', { logging: false });
-      const qi = sequelize.getQueryInterface();
-      jest.spyOn(qi, 'showAllSchemas').mockResolvedValue(['public', 'forest'] as never);
-      const createSchema = jest.spyOn(qi, 'createSchema').mockResolvedValue(undefined as never);
-
-      await ensureAuditStorage(sequelize, { schema: 'forest', tableName: 'audit_logs' });
-
-      expect(createSchema).not.toHaveBeenCalled();
-      expect(runAuditMigrations).toHaveBeenCalledWith(sequelize, {
-        schema: 'forest',
-        tableName: 'audit_logs',
-      });
+    expect(runAuditMigrations).toHaveBeenCalledWith(sequelize, {
+      schema: 'forest',
+      tableName: 'audit_logs',
     });
   });
 
-  describe('on a dialect without schemas (sqlite)', () => {
-    it('skips schema creation and runs migrations without a schema', async () => {
-      const sequelize = new Sequelize('sqlite::memory:', { logging: false });
-      const createSchema = jest.spyOn(sequelize.getQueryInterface(), 'createSchema');
+  it('runs the migrations without a schema on a dialect without schemas (sqlite)', async () => {
+    const sequelize = new Sequelize('sqlite::memory:', { logging: false });
 
-      await ensureAuditStorage(sequelize, { schema: 'forest', tableName: 'audit_logs' });
+    await ensureAuditStorage(sequelize, { schema: 'forest', tableName: 'audit_logs' });
 
-      expect(createSchema).not.toHaveBeenCalled();
-      expect(runAuditMigrations).toHaveBeenCalledWith(sequelize, {
-        schema: undefined,
-        tableName: 'audit_logs',
-      });
-
-      await sequelize.close();
+    // sqlite has no schemas: the namespace must be dropped so the table lands in the default schema.
+    expect(runAuditMigrations).toHaveBeenCalledWith(sequelize, {
+      schema: undefined,
+      tableName: 'audit_logs',
     });
+
+    await sequelize.close();
   });
 });
 
