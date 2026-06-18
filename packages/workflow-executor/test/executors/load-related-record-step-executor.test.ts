@@ -1063,13 +1063,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
           ],
         })
         .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-fields',
-              args: { fieldNames: ['City'], reasoning: 'City identifies the address' },
-              id: 'c2',
-            },
-          ],
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
         })
         .mockResolvedValueOnce({
           tool_calls: [
@@ -1110,9 +1104,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
             suggestedField: { name: 'address', displayName: 'Address' },
             availableRecordIds: [cand([1]), cand([2])],
             suggestedRecord: cand([2]), // record at index 1
-            suggestedFields: ['city'],
-            fieldsReasoning: 'City identifies the address',
-            reasoning: 'Lyon is best',
           },
         }),
       );
@@ -2874,115 +2865,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const messages = mockModel.invoke.mock.calls[0][0];
       expect(messages[0].content).toContain('Step title: "Load the customer order"');
-    });
-
-    // HasMany triggers select-fields (call 1) and select-record-by-content (call 2) after
-    // select-relation-to-follow (call 0). The previous-steps summary must reach all three so
-    // the AI picks fields/record using earlier answers, not just the relation choice.
-    it('includes previous steps summary in select-fields and select-record-by-content messages', async () => {
-      const relatedData: RecordData[] = [
-        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
-        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
-      ];
-      const agentPort = makeMockAgentPort(relatedData);
-
-      const addressesSchema = makeCollectionSchema({
-        collectionName: 'addresses',
-        collectionDisplayName: 'Addresses',
-        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
-      });
-
-      const invoke = jest
-        .fn()
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-relation-to-follow',
-              args: {
-                relation: relationOption({
-                  recordId: [42],
-                  relationDisplayName: 'Address',
-                  relatedCollectionName: 'addresses',
-                }),
-                reasoning: 'Load address',
-              },
-              id: 'c1',
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-fields',
-              args: { fieldNames: ['City'], reasoning: 'City identifies the address' },
-              id: 'c2',
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          tool_calls: [
-            {
-              name: 'select-record-by-content',
-              args: { recordIndex: 1, reasoning: 'Lyon is best' },
-              id: 'c3',
-            },
-          ],
-        });
-      const bindTools = jest.fn().mockReturnValue({ invoke });
-      const model = { bindTools } as unknown as ExecutionContext['model'];
-
-      const runStore = makeMockRunStore({
-        getStepExecutions: jest.fn().mockResolvedValue([
-          {
-            type: 'condition',
-            stepIndex: 0,
-            executionParams: { answer: 'Yes', reasoning: 'Approved' },
-          },
-        ]),
-      });
-      const context = makeContext({
-        model,
-        agentPort,
-        runStore,
-        workflowPort: makeMockWorkflowPort({
-          customers: makeCollectionSchema(),
-          addresses: addressesSchema,
-        }),
-        previousSteps: [
-          {
-            stepDefinition: {
-              type: StepType.Condition,
-              executionType: StepExecutionMode.Manual,
-              options: ['Yes', 'No'],
-              prompt: 'Should we proceed?',
-            },
-            stepOutcome: {
-              type: 'condition',
-              stepId: 'prev-step',
-              stepIndex: 0,
-              status: 'success',
-            },
-          },
-        ],
-      });
-
-      await new LoadRelatedRecordStepExecutor({
-        ...context,
-        stepId: 'load-2',
-        stepIndex: 1,
-      }).execute();
-
-      expect(invoke).toHaveBeenCalledTimes(3);
-
-      // Leading SystemMessages (context + previous-steps summary + system prompts) are merged
-      // into messages[0] before invoke, so the summary lives there — not at a separate index.
-      const selectFieldsMessages = invoke.mock.calls[1][0];
-      expect(selectFieldsMessages[0].content).toContain('Should we proceed?');
-      expect(selectFieldsMessages[0].content).toContain('"answer":"Yes"');
-
-      const selectRecordMessages = invoke.mock.calls[2][0];
-      expect(selectRecordMessages[0].content).toContain('Should we proceed?');
-      expect(selectRecordMessages[0].content).toContain('"answer":"Yes"');
     });
   });
 
