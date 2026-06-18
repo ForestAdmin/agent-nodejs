@@ -34,6 +34,10 @@ export default abstract class DecoratorsStackBase {
   earlyComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   earlyOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   hook: DataSourceDecorator<HookCollectionDecorator>;
+  // Hooks installed here observe writes from both the UI and from inside smart actions, because
+  // this layer sits below `action` in the decorator stack. The public `hook` layer is above
+  // `action`, so it misses writes that originate from `context.collection.update(...)`.
+  internalHook: DataSourceDecorator<HookCollectionDecorator>;
   lateComputed: DataSourceDecorator<ComputedCollectionDecorator>;
   lateOpEmulate: DataSourceDecorator<OperatorsEmulateCollectionDecorator>;
   publication: PublicationDataSourceDecorator;
@@ -64,6 +68,7 @@ export default abstract class DecoratorsStackBase {
       earlyComputed: this.earlyComputed,
       earlyOpEmulate: this.earlyOpEmulate,
       hook: this.hook,
+      internalHook: this.internalHook,
       lateComputed: this.lateComputed,
       lateOpEmulate: this.lateOpEmulate,
       publication: this.publication,
@@ -86,6 +91,7 @@ export default abstract class DecoratorsStackBase {
     this.earlyComputed = stack.earlyComputed;
     this.earlyOpEmulate = stack.earlyOpEmulate;
     this.hook = stack.hook;
+    this.internalHook = stack.internalHook;
     this.lateComputed = stack.lateComputed;
     this.lateOpEmulate = stack.lateOpEmulate;
     this.publication = stack.publication;

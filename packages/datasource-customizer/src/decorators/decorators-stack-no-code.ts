@@ -4,6 +4,7 @@ import { DataSourceDecorator } from '@forestadmin/datasource-toolkit';
 
 import ActionCollectionDecorator from './actions/collection';
 import DecoratorsStackBase from './decorators-stack-base';
+import HookCollectionDecorator from './hook/collection';
 import SchemaCollectionDecorator from './schema/collection';
 import ValidationCollectionDecorator from './validation/collection';
 
@@ -15,6 +16,7 @@ export default class DecoratorsStackNoCode extends DecoratorsStackBase {
     // We only need those for the No Code use cases.
 
     /* eslint-disable no-multi-assign */
+    last = this.internalHook = new DataSourceDecorator(last, HookCollectionDecorator);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.validation = new DataSourceDecorator(last, ValidationCollectionDecorator);

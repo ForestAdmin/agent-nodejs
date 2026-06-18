@@ -271,6 +271,28 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Register a hook on the decorator layer that sits *below* the action decorator.
+   *
+   * Unlike {@link addHook}, hooks registered here also fire for writes initiated from inside a
+   * smart action (`context.collection.update`/`create`/`delete`) — those start at the action
+   * layer and would otherwise skip the public hook layer above it.
+   *
+   * Intended for instrumentation plugins (audit-trail, logging, etc.). Application code should
+   * keep using {@link addHook}.
+   */
+  addInternalHook<P extends HookPosition, T extends HookType>(
+    position: P,
+    type: T,
+    handler: HookHandler<HooksContext<S, N>[P][T]>,
+  ): this {
+    return this.pushCustomization(async () => {
+      this.stack.internalHook
+        .getCollection(this.name)
+        .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
+    });
+  }
+
+  /**
    * Add a many to one relation to the collection
    * @param name name of the new relation
    * @param foreignCollection name of the targeted collection

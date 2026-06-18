@@ -52,6 +52,10 @@ export default class DecoratorsStack extends DecoratorsStackBase {
 
     // Step 3: Access to all fields AND emulated capabilities
     last = this.chart = new ChartDataSourceDecorator(last);
+    // `internalHook` sits *below* `action` so writes emitted from inside a smart action
+    // (`context.collection.update/create/delete`) still pass through it. The public `hook`
+    // decorator below is above `action` and would miss those writes.
+    last = this.internalHook = new DataSourceDecorator(last, HookCollectionDecorator);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.write = new WriteDataSourceDecorator(last);
