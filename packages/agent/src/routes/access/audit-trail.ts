@@ -1,9 +1,20 @@
+import type { CollectionSchema } from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
-import { ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  ConditionTreeFactory,
+  PaginatedFilter,
+  Projection,
+  SchemaUtils,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
 
+import revertRecord from './audit-trail-revert';
+import { HttpCode } from '../../types';
+import IdUtils from '../../utils/id';
+import QueryStringParser from '../../utils/query-string';
 import CollectionRoute from '../collection-route';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -22,6 +33,7 @@ type AuditHistoryFilters = {
 export default class AuditTrailRoute extends CollectionRoute {
   setupRoutes(router: Router): void {
     router.get(`/_audit-trail/${this.collectionUrlSlug}/:id`, this.handleHistory.bind(this));
+    router.get(`/_audit-trail/${this.collectionUrlSlug}/:id/state`, this.handleStateAt.bind(this));
   }
 
   public async handleHistory(context: Context): Promise<void> {
@@ -48,6 +60,83 @@ export default class AuditTrailRoute extends CollectionRoute {
     ]);
 
     context.response.body = { data, meta: { count } };
+  }
+
+  // Rebuild the state of a record at a target instant by reading the current value and replaying
+  // every audit entry with `timestamp >= target` in reverse. Only the audited columns (writable
+  // columns and primary keys) are returned — read-only/computed fields are not captured in the
+  // audit log and can't be reconstructed.
+  public async handleStateAt(context: Context): Promise<void> {
+    await this.services.authorization.assertCanRead(context, this.collection.name);
+
+    const targetTimestamp = AuditTrailRoute.parseTargetTimestamp(context);
+    const auditedColumns = AuditTrailRoute.auditedColumns(this.collection.schema);
+    const current = await this.fetchCurrentRecord(context, auditedColumns);
+
+    const { store } = this.options.auditTrail;
+    const entries = await store.listByRecord({
+      collection: this.collection.name,
+      recordId: context.params.id,
+      startTimestamp: targetTimestamp,
+      order: 'desc',
+    });
+
+    const state = revertRecord(current, entries as Parameters<typeof revertRecord>[1]);
+
+    if (!state) context.throw(HttpCode.NotFound, 'Record did not exist at this timestamp');
+
+    context.response.body = { data: state };
+  }
+
+  // Read the record through the regular collection API so authorization scopes are honored. Only
+  // the audited columns are projected; the primary keys come along so the row matches the id.
+  private async fetchCurrentRecord(
+    context: Context,
+    auditedColumns: string[],
+  ): Promise<Record<string, unknown> | null> {
+    const id = IdUtils.unpackId(this.collection.schema, context.params.id);
+    const filter = new PaginatedFilter({
+      conditionTree: ConditionTreeFactory.intersect(
+        ConditionTreeFactory.matchIds(this.collection.schema, [id]),
+        await this.services.authorization.getScope(this.collection, context),
+      ),
+    });
+
+    const records = await this.collection.list(
+      QueryStringParser.parseCaller(context),
+      filter,
+      new Projection(...auditedColumns),
+    );
+
+    return records[0] ?? null;
+  }
+
+  // Mirrors the column selection of the audit-trail plugin: writable columns plus the primary keys
+  // (audited so the record id can be packed even when a PK is read-only).
+  private static auditedColumns(schema: CollectionSchema): string[] {
+    const writable = Object.keys(schema.fields).filter(name => {
+      const field = schema.fields[name];
+
+      return field.type === 'Column' && !field.isReadOnly;
+    });
+
+    return [...new Set([...SchemaUtils.getPrimaryKeys(schema), ...writable])];
+  }
+
+  // `timestamp` is mandatory and accepts the same forms as the history route's `startDate`/`endDate`
+  // (`YYYY-MM-DD` or `YYYY-MM-DD[T| ]HH:mm[:ss]`). The bare-day form anchors at the start of day,
+  // matching the inclusive `>= T` semantics applied by the audit store.
+  private static parseTargetTimestamp(context: Context): string {
+    const query = context.request.query as Record<string, unknown>;
+    const raw = query.timestamp?.toString();
+
+    if (!raw) throw new ValidationError('Missing timestamp');
+
+    const timezone = query.timezone?.toString() || 'UTC';
+    const instant = AuditTrailRoute.parseDateBoundary(raw, timezone, 'start');
+
+    // parseDateBoundary returns undefined only when raw is empty, which we've already rejected.
+    return instant as string;
   }
 
   // JSON:API `sort`: `timestamp` → oldest first, `-timestamp` → newest first. Anything else
