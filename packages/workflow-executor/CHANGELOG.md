@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.4.0...@forestadmin/workflow-executor@1.4.1) (2026-06-18)
+
+
+### Reverts
+
+* Revert "fix(workflow): save ai reasoning in loadRelatedRecord steps ([#1668](https://github.com/ForestAdmin/agent-nodejs/issues/1668))" ([#1672](https://github.com/ForestAdmin/agent-nodejs/issues/1672)) ([4128bd2](https://github.com/ForestAdmin/agent-nodejs/commit/4128bd2b1fa89ab2e637911d198035f43d24c071))
+
 # @forestadmin/workflow-executor [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.3.0...@forestadmin/workflow-executor@1.4.0) (2026-06-17)
 
 
