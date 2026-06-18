@@ -1,8 +1,10 @@
-import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
 import { RESOLVED_CHARGEBACK_STATUSES as RESOLVED, byId, now } from './utils';
 
-export default function customizeChargebacks(collection: CollectionCustomizer): void {
+export default function customizeChargebacks(
+  collection: CollectionCustomizer<TSchema, 'chargebacks'>,
+): void {
   // Relationships
   collection
     .addManyToOneRelation('customer', 'customers', { foreignKey: 'customer_id' })

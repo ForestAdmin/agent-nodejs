@@ -1,8 +1,10 @@
-import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
 import { byId, now } from './utils';
 
-export default function customizeSarReports(collection: CollectionCustomizer): void {
+export default function customizeSarReports(
+  collection: CollectionCustomizer<TSchema, 'sar_reports'>,
+): void {
   // Relationships
   collection
     .addManyToOneRelation('customer', 'customers', { foreignKey: 'customer_id' })

@@ -1,7 +1,9 @@
-import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
 // customers is the hub: everything links back to a customer.
-export default function customizeCustomers(collection: CollectionCustomizer): void {
+export default function customizeCustomers(
+  collection: CollectionCustomizer<TSchema, 'customers'>,
+): void {
   collection
     .addOneToManyRelation('cards', 'cards', { originKey: 'customer_id' })
     .addOneToManyRelation('amlAlerts', 'aml_alerts', { originKey: 'customer_id' })

@@ -1,4 +1,4 @@
-import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
 import { byId, now } from './utils';
 
@@ -26,7 +26,9 @@ const REASON_MAPPING: Record<string, Record<string, [string, string]>> = {
   },
 };
 
-export default function customizeRefundRequests(collection: CollectionCustomizer): void {
+export default function customizeRefundRequests(
+  collection: CollectionCustomizer<TSchema, 'refund_requests'>,
+): void {
   // Relationships
   collection
     .addManyToOneRelation('customer', 'customers', { foreignKey: 'customer_id' })

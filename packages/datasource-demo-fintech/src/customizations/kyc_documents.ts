@@ -1,4 +1,4 @@
-import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
 import { byId, now } from './utils';
 
@@ -28,7 +28,9 @@ function badgeOutcome(text: string, color: string): string {
   return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${color};color:#fff;">${text}</span>`;
 }
 
-export default function customizeKycDocuments(collection: CollectionCustomizer): void {
+export default function customizeKycDocuments(
+  collection: CollectionCustomizer<TSchema, 'kyc_documents'>,
+): void {
   // Relationships
   collection
     .addManyToOneRelation('customer', 'customers', { foreignKey: 'customer_id' })

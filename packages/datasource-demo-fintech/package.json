@@ -12,8 +12,12 @@
     "directory": "packages/datasource-demo-fintech"
   },
   "dependencies": {
+    "@faker-js/faker": "^9.0.0",
     "@forestadmin/datasource-customizer": "1.69.3",
-    "@forestadmin/datasource-toolkit": "1.53.1"
+    "@forestadmin/datasource-sql": "1.17.10",
+    "@forestadmin/datasource-toolkit": "1.53.1",
+    "knex": "^3.1.0",
+    "sqlite3": "^5.1.7"
   },
   "files": [
     "dist/**/*.js",
@@ -23,7 +27,6 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "clean": "rm -rf coverage dist",
-    "generate": "TS_NODE_TRANSPILE_ONLY=1 ts-node scripts/generate.ts",
     "lint": "eslint src test",
     "test": "jest"
   }

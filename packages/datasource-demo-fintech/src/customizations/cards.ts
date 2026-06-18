@@ -1,8 +1,8 @@
-import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
 import { byId, byIds, now } from './utils';
 
-export default function customizeCards(collection: CollectionCustomizer): void {
+export default function customizeCards(collection: CollectionCustomizer<TSchema, 'cards'>): void {
   // Relationships
   collection
     .addManyToOneRelation('customer', 'customers', { foreignKey: 'customer_id' })

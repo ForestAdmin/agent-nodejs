@@ -1,4 +1,4 @@
-import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
 import { byId, now } from './utils';
 
@@ -24,7 +24,9 @@ function row(label: string, value: unknown): string {
   }</td></tr>`;
 }
 
-export default function customizeKycCases(collection: CollectionCustomizer): void {
+export default function customizeKycCases(
+  collection: CollectionCustomizer<TSchema, 'kyc_cases'>,
+): void {
   // Relationships
   collection
     .addManyToOneRelation('customer', 'customers', { foreignKey: 'customer_id' })

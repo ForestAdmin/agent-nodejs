@@ -1,8 +1,10 @@
-import type { CollectionCustomizer } from '@forestadmin/datasource-customizer';
+import type { CollectionCustomizer, TSchema } from '@forestadmin/datasource-customizer';
 
 import { byId, now } from './utils';
 
-export default function customizeAmlAlerts(collection: CollectionCustomizer): void {
+export default function customizeAmlAlerts(
+  collection: CollectionCustomizer<TSchema, 'aml_alerts'>,
+): void {
   // Relationships
   collection
     .addManyToOneRelation('customer', 'customers', { foreignKey: 'customer_id' })
