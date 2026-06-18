@@ -27,6 +27,11 @@ npm install -g @forestadmin/workflow-executor
 | `POLLING_INTERVAL_S` | — | `30` | Poll cadence for pending steps |
 | `STOP_TIMEOUT_S` | — | `30` | Graceful shutdown deadline |
 
+> **Database schema** — On Postgres, the executor keeps its table and its migration
+> registry in a dedicated `forest` schema (created automatically). It is therefore
+> safe to point `DATABASE_URL` at a database shared with your agent/server: nothing
+> is created in `public`.
+
 Optional AI configuration (all-or-nothing — falls back to server AI if any is missing):
 
 | Variable | Description |
