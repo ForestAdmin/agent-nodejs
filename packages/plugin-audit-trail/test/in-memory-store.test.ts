@@ -25,6 +25,30 @@ describe('InMemoryAuditStore', () => {
     expect(history.map(r => r.newValues)).toEqual([{ status: 'a' }, { status: 'b' }]);
   });
 
+  it('paginates with skip and limit, oldest first', () => {
+    const store = new InMemoryAuditStore();
+
+    for (let i = 1; i <= 5; i += 1) {
+      store.append(record({ timestamp: `2026-01-0${i}T00:00:00.000Z`, newValues: { n: i } }));
+    }
+
+    const page = store.listByRecord({ collection: 'accounts', recordId: '1', skip: 1, limit: 2 });
+
+    expect(page.map(r => r.newValues)).toEqual([{ n: 2 }, { n: 3 }]);
+  });
+
+  it('returns all entries from skip to the end when no limit is given', () => {
+    const store = new InMemoryAuditStore();
+
+    for (let i = 1; i <= 3; i += 1) {
+      store.append(record({ timestamp: `2026-01-0${i}T00:00:00.000Z`, newValues: { n: i } }));
+    }
+
+    const page = store.listByRecord({ collection: 'accounts', recordId: '1', skip: 1 });
+
+    expect(page.map(r => r.newValues)).toEqual([{ n: 2 }, { n: 3 }]);
+  });
+
   it('filters out records of other ids and other collections', () => {
     const store = new InMemoryAuditStore();
     store.append(record({ recordId: '1' }));

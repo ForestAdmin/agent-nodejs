@@ -7,9 +7,11 @@ export default class InMemoryAuditStore implements AuditStore {
     this.records.push(record);
   }
 
-  listByRecord({ collection, recordId }: AuditHistoryQuery): AuditRecord[] {
-    return this.records
+  listByRecord({ collection, recordId, skip = 0, limit }: AuditHistoryQuery): AuditRecord[] {
+    const matches = this.records
       .filter(record => record.collection === collection && record.recordId === recordId)
       .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+    return matches.slice(skip, limit === undefined ? undefined : skip + limit);
   }
 }

@@ -16,6 +16,10 @@ export type AuditSink = (record: AuditRecord) => void | Promise<void>;
 export type AuditHistoryQuery = {
   collection: string;
   recordId: string;
+  /** Number of (oldest-first) entries to skip. Defaults to 0. */
+  skip?: number;
+  /** Maximum number of entries to return. Unbounded when omitted. */
+  limit?: number;
 };
 
 export interface AuditStore {

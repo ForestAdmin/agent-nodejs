@@ -41,8 +41,34 @@ describe('AuditTrailRoute', () => {
 
     await route.handleHistory(context);
 
-    expect(store.listByRecord).toHaveBeenCalledWith({ collection: 'books', recordId: '2' });
+    expect(store.listByRecord).toHaveBeenCalledWith({
+      collection: 'books',
+      recordId: '2',
+      skip: 0,
+      limit: 15,
+    });
     expect(context.response.body).toEqual({ data: history });
+  });
+
+  test('forwards pagination from page[size]/page[number] to the store', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', 'page[size]': '10', 'page[number]': '3' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith({
+      collection: 'books',
+      recordId: '2',
+      skip: 20,
+      limit: 10,
+    });
   });
 
   test('asserts the user can read the collection before returning history', async () => {
