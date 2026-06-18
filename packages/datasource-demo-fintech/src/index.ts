@@ -100,7 +100,7 @@ async function buildSeededSqlDataSource(
   logger: Logger,
   restartAgent: () => Promise<void>,
 ): Promise<DataSource> {
-  const storage = join(mkdtempSync(join(tmpdir(), 'forest-demo-fintech-')), 'demo.sqlite');
+  const storage = 'db.sqlite';
 
   await seed(storage);
 
