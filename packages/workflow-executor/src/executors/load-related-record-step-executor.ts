@@ -1,7 +1,6 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
   LoadRelatedRecordCandidate,
-  LoadRelatedRecordPendingData,
   LoadRelatedRecordStepExecutionData,
   RelationRef,
 } from '../types/step-execution-data';
@@ -9,7 +8,6 @@ import type {
   CollectionSchema,
   FieldSchema,
   RecordData,
-  RecordId,
   RecordRef,
 } from '../types/validated/collection';
 import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-definition';
@@ -95,10 +93,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     );
 
     if (pending) {
-      const conf = pending.userConfirmation;
+      const { userConfirmation } = pending;
 
-      if (conf?.userConfirmed === undefined && conf?.fieldName !== undefined) {
-        return this.refreshCandidatesForField(pending, conf.fieldName);
+      if (
+        userConfirmation?.userConfirmed === undefined &&
+        userConfirmation?.fieldName !== undefined
+      ) {
+        return this.refreshCandidatesForField(pending, userConfirmation.fieldName);
       }
 
       return this.handleConfirmationFlow<LoadRelatedRecordStepExecutionData>(pending, async exec =>
@@ -478,13 +479,14 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     // Carry the AI reasoning into executionResult only when the user kept the AI's suggestion
     // intact — both the relation and the record. A change to either makes the reasoning
     // (which justified the original record) misleading, so it is dropped.
-    const clearReasoning =
-      userConfirmation &&
-      (userConfirmation.fieldName !== pendingData.suggestedField.name ||
-        JSON.stringify(userConfirmation.selectedRecordId) !==
+    const suggestionChanged =
+      (userConfirmation?.fieldName &&
+        userConfirmation.fieldName !== pendingData.suggestedField.name) ||
+      (userConfirmation?.selectedRecordId &&
+        JSON.stringify(userConfirmation?.selectedRecordId) !==
           JSON.stringify(pendingData.suggestedRecord?.recordId));
 
-    const recordWithReasoning: RecordWithReasoning = clearReasoning
+    const recordWithReasoning: RecordWithReasoning = suggestionChanged
       ? { record }
       : {
           record,
