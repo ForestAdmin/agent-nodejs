@@ -15,7 +15,10 @@ describe('AuditTrailRoute', () => {
         }),
       }),
     ]);
-    const store = { listByRecord: jest.fn().mockResolvedValue(history) };
+    const store = {
+      listByRecord: jest.fn().mockResolvedValue(history),
+      countByRecord: jest.fn().mockResolvedValue(history.length),
+    };
     const options = factories.forestAdminHttpDriverOptions.build({ auditTrail: { store } });
 
     return { services, dataSource, options, store };
@@ -45,9 +48,9 @@ describe('AuditTrailRoute', () => {
       collection: 'books',
       recordId: '2',
       skip: 0,
-      limit: 15,
+      limit: 20,
     });
-    expect(context.response.body).toEqual({ data: history });
+    expect(context.response.body).toEqual({ data: history, meta: { count: 1 } });
   });
 
   test('forwards pagination from page[size]/page[number] to the store', async () => {
@@ -69,6 +72,78 @@ describe('AuditTrailRoute', () => {
       skip: 20,
       limit: 10,
     });
+  });
+
+  test('defaults to page 1 with a size of 20 when no pagination is given', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 0, limit: 20 }),
+    );
+  });
+
+  test('reads the last page', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', 'page[size]': '50', 'page[number]': '3' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 100, limit: 50 }),
+    );
+  });
+
+  test('caps page[size] at 100', async () => {
+    const { services, dataSource, options, store } = setup();
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'Europe/Paris', 'page[size]': '500', 'page[number]': '1' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.listByRecord).toHaveBeenCalledWith(expect.objectContaining({ limit: 100 }));
+  });
+
+  test('returns the filtered total in meta.count, independent of the page', async () => {
+    const { services, dataSource, options, store } = setup();
+    store.countByRecord.mockResolvedValue(137);
+    const route = new AuditTrailRoute(services, options, dataSource, 'books');
+    const context = createMockContext({
+      state: { user: { email: 'john.doe@domain.com' } },
+      customProperties: {
+        query: { timezone: 'UTC', userIds: '7', 'page[size]': '20', 'page[number]': '2' },
+        params: { id: '2' },
+      },
+    });
+
+    await route.handleHistory(context);
+
+    expect(store.countByRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ collection: 'books', recordId: '2', userIds: [7] }),
+    );
+    expect(store.countByRecord).toHaveBeenCalledWith(
+      expect.not.objectContaining({ skip: expect.anything(), limit: expect.anything() }),
+    );
+    expect(context.response.body).toMatchObject({ meta: { count: 137 } });
   });
 
   test('forwards a comma-separated userIds filter as a list of integers', async () => {
@@ -183,7 +258,7 @@ describe('AuditTrailRoute', () => {
       collection: 'books',
       recordId: '2',
       skip: 0,
-      limit: 15,
+      limit: 20,
     });
   });
 
@@ -341,7 +416,7 @@ describe('AuditTrailRoute', () => {
     test('mounts one audit-trail route per collection when a store is configured', () => {
       const services = factories.forestAdminHttpDriverServices.build();
       const dataSource = buildDataSource();
-      const store = { listByRecord: jest.fn() };
+      const store = { listByRecord: jest.fn(), countByRecord: jest.fn() };
       const options = factories.forestAdminHttpDriverOptions.build({ auditTrail: { store } });
 
       const routes = makeRoutes(dataSource, options, services);

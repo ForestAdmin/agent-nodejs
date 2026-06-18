@@ -122,4 +122,35 @@ describe('InMemoryAuditStore', () => {
       new InMemoryAuditStore().listByRecord({ collection: 'accounts', recordId: '99' }),
     ).toEqual([]);
   });
+
+  describe('countByRecord', () => {
+    it('counts all matching entries, ignoring skip and limit', () => {
+      const store = new InMemoryAuditStore();
+
+      for (let i = 1; i <= 5; i += 1) {
+        store.append(record({ timestamp: `2026-01-0${i}T00:00:00.000Z` }));
+      }
+
+      expect(
+        store.countByRecord({ collection: 'accounts', recordId: '1', skip: 2, limit: 1 }),
+      ).toBe(5);
+    });
+
+    it('reflects the active filters', () => {
+      const store = new InMemoryAuditStore();
+      store.append(record({ userId: 1, timestamp: '2026-01-01T00:00:00.000Z' }));
+      store.append(record({ userId: 2, timestamp: '2026-01-02T00:00:00.000Z' }));
+      store.append(record({ userId: 1, timestamp: '2026-01-05T00:00:00.000Z' }));
+
+      const count = store.countByRecord({
+        collection: 'accounts',
+        recordId: '1',
+        userIds: [1],
+        startTimestamp: '2026-01-01T00:00:00.000Z',
+        endTimestamp: '2026-01-03T00:00:00.000Z',
+      });
+
+      expect(count).toBe(1);
+    });
+  });
 });

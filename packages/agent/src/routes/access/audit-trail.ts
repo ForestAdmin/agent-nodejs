@@ -4,12 +4,14 @@ import type { Context } from 'koa';
 import { ValidationError } from '@forestadmin/datasource-toolkit';
 import { DateTime } from 'luxon';
 
-import QueryStringParser from '../../utils/query-string';
 import CollectionRoute from '../collection-route';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 // Date with a wall-clock time, `T` or space separator, seconds optional: `YYYY-MM-DD[T| ]HH:mm[:ss]`.
 const DATE_TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/;
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
 
 type AuditHistoryFilters = {
   userIds?: number[];
@@ -26,23 +28,49 @@ export default class AuditTrailRoute extends CollectionRoute {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
     const { store } = this.options.auditTrail;
-    const { skip, limit } = QueryStringParser.parsePagination(context);
+    const { skip, limit } = AuditTrailRoute.parsePagination(context);
     const { userIds, startTimestamp, endTimestamp } = AuditTrailRoute.parseFilters(context);
 
     // context.params.id is already Forest's packed id, the form the audit store keys on.
-    const query = {
+    const filters = {
       collection: this.collection.name,
       recordId: context.params.id,
-      skip,
-      limit,
       ...(userIds && { userIds }),
       ...(startTimestamp && { startTimestamp }),
       ...(endTimestamp && { endTimestamp }),
     };
 
-    const history = await store.listByRecord(query);
+    // `count` reflects the active filters (not the absolute total) and is independent of the page.
+    const [data, count] = await Promise.all([
+      store.listByRecord({ ...filters, skip, limit }),
+      store.countByRecord(filters),
+    ]);
 
-    context.response.body = { data: history };
+    context.response.body = { data, meta: { count } };
+  }
+
+  // JSON:API pagination: 1-based `page[number]` (default 1) and `page[size]` (default 20, capped
+  // at 100). Out-of-bound or non-numeric values fall back to the defaults rather than erroring.
+  private static parsePagination(context: Context): { skip: number; limit: number } {
+    const query = context.request.query as Record<string, unknown>;
+    const size = AuditTrailRoute.parsePageSize(query['page[size]']?.toString());
+    const number = AuditTrailRoute.parsePageNumber(query['page[number]']?.toString());
+
+    return { skip: (number - 1) * size, limit: size };
+  }
+
+  private static parsePageSize(raw?: string): number {
+    const size = Number.parseInt(raw ?? '', 10);
+
+    if (Number.isNaN(size) || size < 1) return DEFAULT_PAGE_SIZE;
+
+    return Math.min(size, MAX_PAGE_SIZE);
+  }
+
+  private static parsePageNumber(raw?: string): number {
+    const number = Number.parseInt(raw ?? '', 10);
+
+    return Number.isNaN(number) || number < 1 ? 1 : number;
   }
 
   private static parseFilters(context: Context): AuditHistoryFilters {

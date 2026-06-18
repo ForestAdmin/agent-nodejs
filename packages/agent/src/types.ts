@@ -60,16 +60,19 @@ export type AgentOptions = {
   auditTrail?: { store: AuditTrailRecordReader } | null;
 };
 
+type AuditTrailQuery = {
+  collection: string;
+  recordId: string;
+  skip?: number;
+  limit?: number;
+  userIds?: number[];
+  startTimestamp?: string;
+  endTimestamp?: string;
+};
+
 export type AuditTrailRecordReader = {
-  listByRecord(query: {
-    collection: string;
-    recordId: string;
-    skip?: number;
-    limit?: number;
-    userIds?: number[];
-    startTimestamp?: string;
-    endTimestamp?: string;
-  }): Promise<unknown[]> | unknown[];
+  listByRecord(query: AuditTrailQuery): Promise<unknown[]> | unknown[];
+  countByRecord(query: AuditTrailQuery): Promise<number> | number;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

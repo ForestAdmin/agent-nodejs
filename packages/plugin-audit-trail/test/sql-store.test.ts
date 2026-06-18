@@ -193,4 +193,43 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
 
     await close();
   });
+
+  it('counts all matching rows in countByRecord, ignoring skip and limit', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await Promise.all(
+      [1, 2, 3, 4].map(i =>
+        store.append(record({ recordId: '1', timestamp: `2026-01-0${i}T00:00:00.000Z` })),
+      ),
+    );
+
+    const count = await store.countByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      skip: 2,
+      limit: 1,
+    });
+
+    expect(count).toBe(4);
+
+    await close();
+  });
+
+  it('counts only the rows matching the active filters', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(record({ recordId: '1', userId: 1 }));
+    await store.append(record({ recordId: '1', userId: 2 }));
+    await store.append(record({ recordId: '1', userId: 1 }));
+
+    const count = await store.countByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      userIds: [1],
+    });
+
+    expect(count).toBe(2);
+
+    await close();
+  });
 });

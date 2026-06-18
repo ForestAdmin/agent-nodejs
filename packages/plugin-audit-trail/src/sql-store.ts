@@ -1,4 +1,4 @@
-import type { AuditRecord, AuditStorageOptions, AuditStore } from './types';
+import type { AuditHistoryQuery, AuditRecord, AuditStorageOptions, AuditStore } from './types';
 import type { Model, ModelStatic } from 'sequelize';
 
 import { DataTypes, Op, Sequelize } from 'sequelize';
@@ -82,6 +82,26 @@ export function toRow(record: AuditRecord): Record<string, unknown> {
   };
 }
 
+/** Build the Sequelize `where` clause shared by `listByRecord` and `countByRecord`. */
+function buildWhere({
+  collection,
+  recordId,
+  userIds,
+  startTimestamp,
+  endTimestamp,
+}: AuditHistoryQuery): Record<string | symbol, unknown> {
+  const where: Record<string | symbol, unknown> = { collection, recordId };
+
+  if (userIds) where.userId = { [Op.in]: userIds };
+
+  const timestampRange: Record<symbol, Date> = {};
+  if (startTimestamp) timestampRange[Op.gte] = new Date(startTimestamp);
+  if (endTimestamp) timestampRange[Op.lte] = new Date(endTimestamp);
+  if (Object.getOwnPropertySymbols(timestampRange).length) where.timestamp = timestampRange;
+
+  return where;
+}
+
 /** Map a database row back to an audit record. Inverse of {@link toRow}. */
 export function fromRow(row: Model): AuditRecord {
   const plain = row.get({ plain: true }) as Record<string, unknown>;
@@ -148,33 +168,23 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         const model = await init();
         await model.create(toRow(record));
       },
-      async listByRecord({
-        collection,
-        recordId,
-        userIds,
-        startTimestamp,
-        endTimestamp,
-        limit,
-        skip = 0,
-      }) {
+      async listByRecord(query) {
         const model = await init();
-        const where: Record<string | symbol, unknown> = { collection, recordId };
-
-        if (userIds) where.userId = { [Op.in]: userIds };
-
-        const timestampRange: Record<symbol, Date> = {};
-        if (startTimestamp) timestampRange[Op.gte] = new Date(startTimestamp);
-        if (endTimestamp) timestampRange[Op.lte] = new Date(endTimestamp);
-        if (Object.getOwnPropertySymbols(timestampRange).length) where.timestamp = timestampRange;
+        const { skip = 0, limit } = query;
 
         const rows = await model.findAll({
-          where,
+          where: buildWhere(query),
           order: [['timestamp', 'ASC']],
           offset: skip,
           limit,
         });
 
         return rows.map(fromRow);
+      },
+      async countByRecord(query) {
+        const model = await init();
+
+        return model.count({ where: buildWhere(query) });
       },
     },
     close: async () => {

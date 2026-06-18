@@ -52,9 +52,16 @@ UI reads from the same table.
 
 ### Record-history route
 
-`GET /forest/_audit-trail/{collection}/{recordId}` returns `{ data: AuditRecord[] }`, oldest first.
-It paginates through the standard `page[size]` / `page[number]` query params and accepts the
-following **optional** filters (all combine with `AND`; omitting them keeps the full history):
+`GET /forest/_audit-trail/{collection}/{recordId}` returns the current page of history (oldest
+first) together with the filtered total:
+
+```json
+{ "data": [ /* current page rows */ ], "meta": { "count": 137 } }
+```
+
+`meta.count` is the number of rows matching the active filters (not the absolute total) and is
+independent of the page. It accepts the following **optional** filters (all combine with `AND`;
+omitting them keeps the full history):
 
 | query param | format                            | effect                                                       |
 | ----------- | --------------------------------- | ------------------------------------------------------------ |
@@ -81,6 +88,10 @@ Defensive parsing:
   filter is ignored.
 - `startDate` / `endDate`: a value matching none of the accepted formats returns **HTTP 400**
   (`ValidationError`).
+
+Pagination follows JSON:API: `page[number]` is 1-based (default `1`) and `page[size]` defaults to
+`20`, capped at `100`. Out-of-bound or non-numeric values fall back to the defaults rather than
+erroring. `skip` / `limit` are pushed down to the store query (`offset = (number - 1) * size`).
 
 
 ### Recommended: gate it behind an environment variable

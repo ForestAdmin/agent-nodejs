@@ -31,6 +31,8 @@ export type AuditHistoryQuery = {
 export interface AuditStore {
   append(record: AuditRecord): void | Promise<void>;
   listByRecord(query: AuditHistoryQuery): AuditRecord[] | Promise<AuditRecord[]>;
+  /** Total number of entries matching the query filters, ignoring `skip` / `limit`. */
+  countByRecord(query: AuditHistoryQuery): number | Promise<number>;
   /**
    * Optional one-shot bootstrap (e.g. open a connection, run migrations). The audit-trail plugin
    * awaits it during agent start, so any failure surfaces before the agent serves requests.
