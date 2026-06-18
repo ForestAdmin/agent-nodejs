@@ -321,6 +321,29 @@ describe('auditTrail plugin', () => {
       expect(accounts.list).toHaveBeenCalledWith(filter, ['id', 'status', 'name', 'amount']);
     });
 
+    it('still builds the recordId when the primary key is read-only', async () => {
+      const sink = jest.fn();
+      const schema = {
+        fields: {
+          id: { type: 'Column', columnType: 'Number', isPrimaryKey: true, isReadOnly: true },
+          name: { type: 'Column', columnType: 'String' },
+        },
+      };
+      const users = fakeCollection('users', [{ id: 17, name: 'Jane' }], schema);
+      register([users], { sink });
+
+      await runUpdate(users, { caller: makeCaller(), patch: { name: 'Janet' } });
+
+      expect(users.list).toHaveBeenCalledWith(expect.anything(), ['id', 'name']);
+      expect(sink).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recordId: '17',
+          previousValues: { name: 'Jane' },
+          newValues: { name: 'Janet' },
+        }),
+      );
+    });
+
     it('captures only the changed fields, split into previous/new values', async () => {
       const sink = jest.fn();
       const accounts = fakeCollection('accounts', [

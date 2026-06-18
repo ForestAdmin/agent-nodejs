@@ -91,6 +91,9 @@ function instrumentCollection(
     return field.type === 'Column' && !field.isReadOnly;
   });
   const primaryKeys = SchemaUtils.getPrimaryKeys(schema);
+  // Reads must carry the primary keys (even read-only ones) so the record id can be built;
+  // the diff itself stays restricted to the writable columns.
+  const projection = [...new Set([...primaryKeys, ...columns])];
   const { name } = collection;
 
   const emit = (
@@ -120,7 +123,7 @@ function instrumentCollection(
   });
 
   collection.addHook('Before', 'Update', async (context: HookBeforeUpdateContext) => {
-    const before = await context.collection.list(context.filter as never, columns as never[]);
+    const before = await context.collection.list(context.filter as never, projection as never[]);
     pendingSnapshots.set(context.filter, before as RecordData[]);
   });
 
@@ -147,7 +150,7 @@ function instrumentCollection(
   });
 
   collection.addHook('Before', 'Delete', async (context: HookBeforeDeleteContext) => {
-    const before = await context.collection.list(context.filter as never, columns as never[]);
+    const before = await context.collection.list(context.filter as never, projection as never[]);
     pendingSnapshots.set(context.filter, before as RecordData[]);
   });
 
