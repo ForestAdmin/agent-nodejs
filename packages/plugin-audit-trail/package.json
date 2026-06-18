@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@forestadmin/datasource-toolkit": "1.53.1",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "umzug": "^3.8.2"
   }
 }

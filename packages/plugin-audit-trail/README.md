@@ -8,7 +8,8 @@ The plugin has two decoupled parts:
 - **Capture** — datasource-agnostic. It instruments every collection through the Forest customizer
   hooks, so it works the same whether the audited datasource is SQL, Sequelize or Mongo.
 - **Storage** — where the audit records are written. This package ships a **SQL sink** that creates
-  the `forest` schema and the `audit_logs` table on the fly, plus an in-memory store for tests.
+  the `forest` schema and creates/evolves the `audit_logs` table through versioned migrations, plus
+  an in-memory store for tests.
 
 ## Install
 
@@ -18,8 +19,9 @@ yarn add @forestadmin/plugin-audit-trail
 
 ## Use it in an agent
 
-The SQL sink connects and bootstraps its schema/table asynchronously, so it is built inside an
-**async plugin** — Forest awaits queued plugins when the agent starts.
+The SQL sink connects, ensures the `forest` schema exists and runs any pending migrations
+asynchronously, so it is built inside an **async plugin** — Forest awaits queued plugins when the
+agent starts.
 
 ```ts
 import { auditTrail, createSqlAuditSink } from '@forestadmin/plugin-audit-trail';
@@ -38,8 +40,9 @@ if (connectionString) {
 }
 ```
 
-That's the whole integration. On startup the plugin creates `forest.audit_logs` if it does not
-exist; every create / update / delete performed through Forest then writes one row per record.
+That's the whole integration. On startup the plugin ensures the `forest` schema exists and runs any
+pending migrations to create/upgrade `forest.audit_logs`; every create / update / delete performed
+through Forest then writes one row per record.
 
 ### Recommended: gate it behind an environment variable
 
@@ -79,6 +82,28 @@ The `forest.audit_logs` table has one row per audited change:
 | `correlation_key` | per-request correlation id (groups one request together) |
 | `previous_values` | values before the change (JSON)                          |
 | `new_values`      | values after the change (JSON)                           |
+
+`previous_values` / `new_values` store **only the parts that actually changed**: for a JSON column,
+nested objects and arrays of objects are diffed structurally, so a single sub-field change records
+just that leaf rather than the whole document.
+
+## Schema migrations
+
+The `audit_logs` table is created and evolved through versioned
+[Umzug](https://github.com/sequelize/umzug) migrations rather than `sync()`, so schema changes are
+actually applied to existing databases (a plain "create if not exists" would silently skip them).
+
+- Applied migrations are tracked in the standard `SequelizeMeta` table, namespaced inside the
+  `forest` schema (`forest.SequelizeMeta`) so it never collides with a `SequelizeMeta` the customer
+  may already own in their default schema.
+- Pending migrations run automatically when the sink is built (on agent start).
+- On Postgres the run is guarded by a transaction-scoped advisory lock, so several agent instances
+  starting at once migrate one after another instead of racing on the DDL.
+
+**Evolving the table (maintainers):** append a new entry to the `migrations` array in
+`src/migrations.ts` (e.g. an `addColumn`) and update the model in `src/sql-sink.ts` to match. Never
+edit, reorder or delete an existing migration, and keep changes additive/backward-compatible — the
+connection string may point at the customer's own database.
 
 ## Options
 

@@ -3,6 +3,8 @@ import type { Model, ModelStatic } from 'sequelize';
 
 import { DataTypes, Sequelize } from 'sequelize';
 
+import { runAuditMigrations } from './migrations';
+
 export const DEFAULT_SCHEMA = 'forest';
 export const DEFAULT_TABLE = 'audit_logs';
 
@@ -47,9 +49,13 @@ export function defineAuditLogModel(
 /**
  * Ensure the schema and the audit table exist, then return the model.
  *
+ * The schema (namespace) is created here as a prerequisite; the table itself is created and evolved
+ * through versioned migrations (see {@link runAuditMigrations}), so later schema changes are applied
+ * instead of being silently skipped the way `sync()` would.
+ *
  * - empty database          → schema (when supported) and table are created;
  * - database without schema  → schema is created next to the existing tables, table is created;
- * - database with the schema → both steps are no-ops.
+ * - database with the schema → schema creation is a no-op, only pending migrations run.
  */
 export async function ensureAuditStorage(
   sequelize: Sequelize,
@@ -68,10 +74,9 @@ export async function ensureAuditStorage(
     }
   }
 
-  const model = defineAuditLogModel(sequelize, { schema: useSchema, tableName: options.tableName });
-  await model.sync(); // CREATE TABLE IF NOT EXISTS; never alters an existing table
+  await runAuditMigrations(sequelize, { schema: useSchema, tableName: options.tableName });
 
-  return model;
+  return defineAuditLogModel(sequelize, { schema: useSchema, tableName: options.tableName });
 }
 
 /** Map an audit record to a database row. */

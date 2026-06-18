@@ -8,4 +8,5 @@ export {
   DEFAULT_SCHEMA,
   DEFAULT_TABLE,
 } from './sql-sink';
+export { runAuditMigrations } from './migrations';
 export * from './types';
