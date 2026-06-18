@@ -4,9 +4,7 @@ Model Context Protocol (MCP) server for Forest Admin with OAuth authentication s
 
 ## Quick Setup
 
-### Without a local database (30 seconds)
-
-If you already have a Forest Admin project, start the MCP server immediately — no installation, no database:
+Start the MCP server in seconds — no installation required:
 
 ```bash
 FOREST_ENV_SECRET="your-env-secret" \
@@ -25,52 +23,6 @@ http://localhost:3931/mcp
 1. Open [app.forestadmin.com](https://app.forestadmin.com) → your project
 2. Go to **Settings** → **Environments** → click your environment
 3. Copy the **Environment secret** (`FOREST_ENV_SECRET`) and the **Auth secret** (`FOREST_AUTH_SECRET`)
-
----
-
-### With a local database
-
-If you want the MCP server to query your own database, you need a Forest Admin agent running locally.
-
-**1. Create an agent project** (one-time setup):
-
-```bash
-mkdir my-forest-agent && cd my-forest-agent
-npm init -y
-npm install @forestadmin/agent @forestadmin/datasource-sql
-```
-
-**2. Create `agent.js`:**
-
-```javascript
-const { createAgent } = require('@forestadmin/agent');
-const { createSqlDatasource } = require('@forestadmin/datasource-sql');
-
-createAgent({
-  envSecret: process.env.FOREST_ENV_SECRET,
-  authSecret: process.env.FOREST_AUTH_SECRET,
-  isProduction: false,
-  loggerLevel: 'Info',
-})
-  .addDataSource(
-    createSqlDatasource(process.env.DATABASE_URL), // e.g. postgres://user:pass@localhost:5432/mydb
-  )
-  .start();
-```
-
-> For MongoDB use `@forestadmin/datasource-mongo`, for Mongoose use `@forestadmin/datasource-mongoose`.
-
-**3. Start both:**
-
-```bash
-# Terminal 1 — agent (port 3351 by default)
-FOREST_ENV_SECRET="..." FOREST_AUTH_SECRET="..." DATABASE_URL="postgres://..." node agent.js
-
-# Terminal 2 — MCP server (port 3931)
-FOREST_ENV_SECRET="..." FOREST_AUTH_SECRET="..." npx @forestadmin/mcp-server
-```
-
-The MCP server routes requests through the Forest Admin cloud to your local agent, which queries your database. No data ever leaves your infrastructure.
 
 ---
 
