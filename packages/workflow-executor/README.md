@@ -8,20 +8,14 @@ client data ever leaves your infrastructure.
 
 ## Prerequisites
 
-- **Latest version of your Forest Admin agent** (Node.js, Ruby, Python…) — older versions do not support the executor
-- **Executor enabled in your agent config** — add `workflowExecutorUrl` pointing to where the executor will run:
+Make sure you are on the latest version of your Forest Admin agent (Node.js/JS or Ruby), then add `workflowExecutorUrl` to your agent config:
 
 ```js
-// Node.js example
 createAgent({
-  envSecret: process.env.FOREST_ENV_SECRET,
-  authSecret: process.env.FOREST_AUTH_SECRET,
-  workflowExecutorUrl: 'http://localhost:3400', // URL of this executor
   // ...
+  workflowExecutorUrl: 'http://localhost:3400',
 })
 ```
-
-> For other languages, refer to your agent's documentation for the equivalent option.
 
 ---
 
