@@ -7,9 +7,7 @@ type AuditEntry = {
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date);
 
-// Audit diffs are structural: when both `previous` and `next` are plain objects, the diff is nested
-// (object keys or numeric array indexes) and we recurse; otherwise the leaf has been replaced
-// wholesale and `previous` is the value to write back.
+// Plain object on both sides ⇒ nested diff; otherwise `previous` is the leaf to write back.
 const revertValue = (current: unknown, previous: unknown, next: unknown): unknown => {
   if (!isPlainObject(previous) || !isPlainObject(next)) return previous;
 
@@ -51,15 +49,8 @@ const revertOne = (
   return result;
 };
 
-/**
- * Reconstruct the state of a record at a target instant by replaying audit entries in reverse.
- *
- * `current` is the record as it stands today (or `null` if it does not exist anymore); `entries`
- * are the audit logs for that record with `timestamp >= target`, sorted newest-first. The walk
- * stops on the first terminal event: a `create` returns `null` (the record did not exist yet at
- * the target instant), a `delete` returns its `previousValues` snapshot and ignores anything
- * older (the snapshot already contains everything that happened before the deletion).
- */
+// `entries` must arrive newest-first. Walking stops on the first terminal event: `create` ⇒ `null`
+// (record did not exist yet), `delete` ⇒ its `previousValues` snapshot (older entries are ignored).
 export default function revertRecord(
   current: Record<string, unknown> | null,
   entries: AuditEntry[],

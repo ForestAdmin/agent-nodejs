@@ -62,10 +62,7 @@ export default class AuditTrailRoute extends CollectionRoute {
     context.response.body = { data, meta: { count } };
   }
 
-  // Rebuild the state of a record at a target instant by reading the current value and replaying
-  // every audit entry with `timestamp >= target` in reverse. Only the audited columns (writable
-  // columns and primary keys) are returned — read-only/computed fields are not captured in the
-  // audit log and can't be reconstructed.
+  // Only audited columns are returned; read-only/computed fields are not captured in the log.
   public async handleStateAt(context: Context): Promise<void> {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
@@ -88,8 +85,6 @@ export default class AuditTrailRoute extends CollectionRoute {
     context.response.body = { data: state };
   }
 
-  // Read the record through the regular collection API so authorization scopes are honored. Only
-  // the audited columns are projected; the primary keys come along so the row matches the id.
   private async fetchCurrentRecord(
     context: Context,
     auditedColumns: string[],
@@ -111,8 +106,8 @@ export default class AuditTrailRoute extends CollectionRoute {
     return records[0] ?? null;
   }
 
-  // Mirrors the column selection of the audit-trail plugin: writable columns plus the primary keys
-  // (audited so the record id can be packed even when a PK is read-only).
+  // Must mirror the audit-trail plugin's column selection (writable + primary keys, including
+  // read-only PKs) so the reconstructed record carries the same columns the log captured.
   private static auditedColumns(schema: CollectionSchema): string[] {
     const writable = Object.keys(schema.fields).filter(name => {
       const field = schema.fields[name];
@@ -123,9 +118,6 @@ export default class AuditTrailRoute extends CollectionRoute {
     return [...new Set([...SchemaUtils.getPrimaryKeys(schema), ...writable])];
   }
 
-  // `timestamp` is mandatory and accepts the same forms as the history route's `startDate`/`endDate`
-  // (`YYYY-MM-DD` or `YYYY-MM-DD[T| ]HH:mm[:ss]`). The bare-day form anchors at the start of day,
-  // matching the inclusive `>= T` semantics applied by the audit store.
   private static parseTargetTimestamp(context: Context): string {
     const query = context.request.query as Record<string, unknown>;
     const raw = query.timestamp?.toString();
@@ -133,10 +125,8 @@ export default class AuditTrailRoute extends CollectionRoute {
     if (!raw) throw new ValidationError('Missing timestamp');
 
     const timezone = query.timezone?.toString() || 'UTC';
-    const instant = AuditTrailRoute.parseDateBoundary(raw, timezone, 'start');
 
-    // parseDateBoundary returns undefined only when raw is empty, which we've already rejected.
-    return instant as string;
+    return AuditTrailRoute.parseDateBoundary(raw, timezone, 'start') as string;
   }
 
   // JSON:API `sort`: `timestamp` → oldest first, `-timestamp` → newest first. Anything else

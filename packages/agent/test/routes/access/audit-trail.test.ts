@@ -470,8 +470,6 @@ describe('AuditTrailRoute', () => {
               id: factories.columnSchema.numericPrimaryKey().build(),
               status: factories.columnSchema.build({ columnType: 'String' }),
               name: factories.columnSchema.build({ columnType: 'String' }),
-              // Read-only / computed columns are not audited, so they must be excluded from the
-              // projection used to read the current record.
               displayName: factories.columnSchema.build({ columnType: 'String', isReadOnly: true }),
             },
           }),
@@ -505,7 +503,6 @@ describe('AuditTrailRoute', () => {
       expect(store.listByRecord).toHaveBeenCalledWith({
         collection: 'books',
         recordId: '2',
-        // Paris is UTC+2 in June, so 12:00 local → 10:00 UTC.
         startTimestamp: '2026-06-18T10:00:00.000Z',
         order: 'desc',
       });
@@ -571,7 +568,6 @@ describe('AuditTrailRoute', () => {
 
       await route.handleStateAt(context);
 
-      // Read-only `displayName` is not in the projection — it can't be reconstructed.
       expect(list).toHaveBeenCalledWith(expect.anything(), expect.anything(), [
         'id',
         'status',

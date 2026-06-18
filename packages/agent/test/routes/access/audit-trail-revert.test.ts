@@ -24,7 +24,6 @@ describe('revertRecord', () => {
   });
 
   test('applies entries newest-first to walk back through multiple updates', () => {
-    // Audit entries arrive desc. Walking back: current (archived) → closed → open.
     const current = { id: 1, status: 'archived' };
     const entries = [
       update({ status: 'closed' }, { status: 'archived' }, '2026-06-18T13:00:00Z'),
@@ -90,7 +89,6 @@ describe('revertRecord', () => {
   });
 
   test('stops at a delete and returns its previousValues snapshot, ignoring older entries', () => {
-    // The record was deleted (current is null) and then we ignore anything older than the delete.
     const entries = [
       {
         operation: 'delete' as const,
@@ -104,8 +102,6 @@ describe('revertRecord', () => {
   });
 
   test('drops the accumulated reverts when walking back hits a delete (recreated record)', () => {
-    // Record currently exists (recreated). Walking back, we hit the delete from before the
-    // re-creation and adopt its previousValues as the snapshot for the target instant.
     const current = { id: 1, status: 'fresh' };
     const entries = [
       update({ status: 'fresh-was' }, { status: 'fresh' }),
