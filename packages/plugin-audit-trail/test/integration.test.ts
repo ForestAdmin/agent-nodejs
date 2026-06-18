@@ -156,6 +156,31 @@ describe('auditTrail against a real DataSourceCustomizer stack', () => {
     });
   });
 
+  it('groups a bulk delete (one request, N ids) under one correlation key, one row per record', async () => {
+    const { store, collection } = await buildCollection();
+    await collection.create(caller('r-create'), [
+      { status: 'open', name: 'Acme' },
+      { status: 'open', name: 'Globex' },
+    ]);
+
+    await collection.delete(caller('r-bulk-del'), new Filter({}));
+
+    const first = store.listByRecord({ collection: 'accounts', recordId: '1' });
+    const second = store.listByRecord({ collection: 'accounts', recordId: '2' });
+    expect(first[first.length - 1]).toMatchObject({
+      operation: 'delete',
+      correlationKey: 'r-bulk-del',
+      previousValues: { id: 1, status: 'open', name: 'Acme' },
+      newValues: {},
+    });
+    expect(second[second.length - 1]).toMatchObject({
+      operation: 'delete',
+      correlationKey: 'r-bulk-del',
+      previousValues: { id: 2, status: 'open', name: 'Globex' },
+      newValues: {},
+    });
+  });
+
   it('groups a bulk update under one correlation key, one row per matched record', async () => {
     const { store, collection } = await buildCollection();
     await collection.create(caller('r-create'), [
