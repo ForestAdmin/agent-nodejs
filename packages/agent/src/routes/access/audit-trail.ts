@@ -17,6 +17,7 @@ type AuditHistoryFilters = {
   userIds?: number[];
   startTimestamp?: string;
   endTimestamp?: string;
+  fields?: string[];
 };
 
 export default class AuditTrailRoute extends CollectionRoute {
@@ -30,7 +31,7 @@ export default class AuditTrailRoute extends CollectionRoute {
     const { store } = this.options.auditTrail;
     const { skip, limit } = AuditTrailRoute.parsePagination(context);
     const order = AuditTrailRoute.parseSort(context);
-    const { userIds, startTimestamp, endTimestamp } = AuditTrailRoute.parseFilters(context);
+    const { userIds, startTimestamp, endTimestamp, fields } = AuditTrailRoute.parseFilters(context);
 
     // context.params.id is already Forest's packed id, the form the audit store keys on.
     const filters = {
@@ -39,6 +40,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       ...(userIds && { userIds }),
       ...(startTimestamp && { startTimestamp }),
       ...(endTimestamp && { endTimestamp }),
+      ...(fields && { fields }),
     };
 
     // `count` reflects the active filters (not the absolute total) and is independent of the page.
@@ -94,6 +96,7 @@ export default class AuditTrailRoute extends CollectionRoute {
         'start',
       ),
       endTimestamp: AuditTrailRoute.parseDateBoundary(query.endDate?.toString(), timezone, 'end'),
+      fields: AuditTrailRoute.parseFields(query.fields?.toString()),
     };
   }
 
@@ -108,6 +111,17 @@ export default class AuditTrailRoute extends CollectionRoute {
       .map(token => Number.parseInt(token, 10));
 
     return ids.length > 0 ? ids : undefined;
+  }
+
+  private static parseFields(raw?: string): string[] | undefined {
+    if (!raw) return undefined;
+
+    const fields = raw
+      .split(',')
+      .map(token => token.trim())
+      .filter(token => token.length > 0);
+
+    return fields.length > 0 ? fields : undefined;
   }
 
   // `startDate` / `endDate` accept a bare day (`YYYY-MM-DD`) or a wall-clock datetime
