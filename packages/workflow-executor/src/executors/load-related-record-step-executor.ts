@@ -1,6 +1,7 @@
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
   LoadRelatedRecordCandidate,
+  LoadRelatedRecordPendingData,
   LoadRelatedRecordStepExecutionData,
   RelationRef,
 } from '../types/step-execution-data';
@@ -8,6 +9,7 @@ import type {
   CollectionSchema,
   FieldSchema,
   RecordData,
+  RecordId,
   RecordRef,
 } from '../types/validated/collection';
 import type { LoadRelatedRecordStepDefinition } from '../types/validated/step-definition';
@@ -68,6 +70,15 @@ interface RelationCandidate {
   record: RecordRef;
   schema: CollectionSchema;
   field: FieldSchema & { relatedCollectionName: string };
+}
+
+// A resolved record plus the AI justifications behind it (HasMany only — xToOne and
+// BelongsToMany run no AI). Persisted into executionResult in fully-automated mode.
+interface RecordWithReasoning {
+  record: RecordRef;
+  suggestedFields?: string[];
+  fieldsReasoning?: string;
+  reasoning?: string;
 }
 
 // Followable = has a static target (relatedCollectionName) or is a polymorphic relation resolvable
@@ -363,21 +374,20 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   /** Branch B: fully automated. xToOne loads the linked record; HasMany ranks candidates via AI; BelongsToMany takes the first. */
   private async resolveAndLoadAutomatic(target: RelationTarget): Promise<StepExecutionResult> {
-    const record = await this.fetchRecordForRelation(target);
+    const recordWithReasoning = await this.fetchRecordForRelation(target);
 
-    return this.persistAndReturn(record, target, undefined);
+    return this.persistAndReturn(recordWithReasoning, target, undefined);
   }
 
-  private async fetchRecordForRelation(target: RelationTarget): Promise<RecordRef> {
+  private async fetchRecordForRelation(target: RelationTarget): Promise<RecordWithReasoning> {
     if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
-      return this.fetchXToOneRecordRef(target);
+      return {
+        record: await this.fetchXToOneRecordRef(target),
+        reasoning: 'single related record',
+      };
     }
 
-    if (target.relationType === 'HasMany') {
-      return this.selectBestRelatedRecord(target);
-    }
-
-    return this.fetchFirstCandidate(target);
+    return this.selectBestRelatedRecord(target);
   }
 
   private async fetchXToOneRecordRef(target: RelationTarget): Promise<RecordRef> {
@@ -465,7 +475,29 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       stepIndex: this.context.stepIndex,
     };
 
-    return this.persistAndReturn(record, { selectedRecordRef, name, displayName }, execution);
+    // Carry the AI reasoning into executionResult only when the user kept the AI's suggestion
+    // intact — both the relation and the record. A change to either makes the reasoning
+    // (which justified the original record) misleading, so it is dropped.
+    const clearReasoning =
+      userConfirmation &&
+      (userConfirmation.fieldName !== pendingData.suggestedField.name ||
+        JSON.stringify(userConfirmation.selectedRecordId) !==
+          JSON.stringify(pendingData.suggestedRecord?.recordId));
+
+    const recordWithReasoning: RecordWithReasoning = clearReasoning
+      ? { record }
+      : {
+          record,
+          suggestedFields: pendingData.suggestedFields,
+          fieldsReasoning: pendingData.fieldsReasoning,
+          reasoning: pendingData.reasoning,
+        };
+
+    return this.persistAndReturn(
+      recordWithReasoning,
+      { selectedRecordRef, name, displayName },
+      execution,
+    );
   }
 
   private async selectBestFromRelatedData(
@@ -523,14 +555,20 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   }
 
   /** HasMany + fully automated execution: fetch top 50, then AI calls to select the best record. */
-  private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordRef> {
-    const { relatedData, bestIndex } = await this.selectBestFromRelatedData(target, 50);
+  private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordWithReasoning> {
+    const { relatedData, bestIndex, suggestedFields, fieldsReasoning, reasoning } =
+      await this.selectBestFromRelatedData(target, 50);
 
     if (relatedData.length === 0) {
       throw new RelatedRecordNotFoundError(target.selectedRecordRef.collectionName, target.name);
     }
 
-    return this.toRecordRef(relatedData[bestIndex]);
+    return {
+      record: this.toRecordRef(relatedData[bestIndex]),
+      suggestedFields,
+      fieldsReasoning,
+      reasoning,
+    };
   }
 
   private async fetchFirstCandidate(target: RelationTarget): Promise<RecordRef> {
@@ -570,7 +608,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   /** Persists the loaded record ref and returns a success outcome. */
   private async persistAndReturn(
-    record: RecordRef,
+    recordWithReasoning: RecordWithReasoning,
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
     existingExecution: LoadRelatedRecordStepExecutionData | undefined,
   ): Promise<StepExecutionResult> {
@@ -581,7 +619,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
-      executionResult: { relation: { name, displayName }, record },
+      executionResult: { relation: { name, displayName }, ...recordWithReasoning },
       selectedRecordRef,
     });
 
