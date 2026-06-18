@@ -70,6 +70,15 @@ interface RelationCandidate {
   field: FieldSchema & { relatedCollectionName: string };
 }
 
+// A resolved record plus the AI justifications behind it (HasMany only — xToOne and
+// BelongsToMany run no AI). Persisted into executionResult in fully-automated mode.
+interface RecordWithReasoning {
+  record: RecordRef;
+  suggestedFields?: string[];
+  fieldsReasoning?: string;
+  reasoning?: string;
+}
+
 // Followable = has a static target (relatedCollectionName) or is a polymorphic relation resolvable
 // per record (polymorphicTypeField names the discriminator). The concrete target is resolved later.
 function isFollowableRelation(field: FieldSchema): boolean {
@@ -84,10 +93,13 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     );
 
     if (pending) {
-      const conf = pending.userConfirmation;
+      const { userConfirmation } = pending;
 
-      if (conf?.userConfirmed === undefined && conf?.fieldName !== undefined) {
-        return this.refreshCandidatesForField(pending, conf.fieldName);
+      if (
+        userConfirmation?.userConfirmed === undefined &&
+        userConfirmation?.fieldName !== undefined
+      ) {
+        return this.refreshCandidatesForField(pending, userConfirmation.fieldName);
       }
 
       return this.handleConfirmationFlow<LoadRelatedRecordStepExecutionData>(pending, async exec =>
@@ -109,7 +121,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     const schema = await this.getCollectionSchema(execution.selectedRecordRef.collectionName);
     const target = await this.buildTarget(schema, fieldName, execution.selectedRecordRef);
-    const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target);
+    const { availableRecordIds, suggestedRecord, suggestedFields, fieldsReasoning, reasoning } =
+      await this.collectCandidateIds(target);
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...execution,
@@ -119,6 +132,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         suggestedField: { name: target.name, displayName: target.displayName },
         availableRecordIds,
         suggestedRecord,
+        suggestedFields,
+        fieldsReasoning,
+        reasoning,
       },
     });
 
@@ -284,7 +300,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
 
-    const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target);
+    const { availableRecordIds, suggestedRecord, suggestedFields, fieldsReasoning, reasoning } =
+      await this.collectCandidateIds(target);
 
     const availableFields: RelationRef[] = sourceSchema.fields
       .filter(isFollowableRelation)
@@ -298,6 +315,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         suggestedField: { name, displayName },
         availableRecordIds,
         suggestedRecord,
+        suggestedFields,
+        fieldsReasoning,
+        reasoning,
       },
       selectedRecordRef,
     });
@@ -307,7 +327,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   private async collectCandidateIds(target: RelationTarget): Promise<{
     availableRecordIds: LoadRelatedRecordCandidate[];
+    suggestedFields?: string[];
+    fieldsReasoning?: string;
     suggestedRecord?: LoadRelatedRecordCandidate;
+    reasoning?: string;
   }> {
     if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
       const candidate = await this.fetchXToOneCandidate(target);
@@ -317,10 +340,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         : { availableRecordIds: [] };
     }
 
-    const { relatedData, bestIndex, relatedSchema } = await this.selectBestFromRelatedData(
-      target,
-      50,
-    );
+    const { relatedData, bestIndex, relatedSchema, suggestedFields, fieldsReasoning, reasoning } =
+      await this.selectBestFromRelatedData(target, 50);
 
     if (relatedData.length === 0) {
       return { availableRecordIds: [] };
@@ -336,7 +357,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     return {
       availableRecordIds: relatedData.map(toCandidate),
+      suggestedFields,
+      fieldsReasoning,
       suggestedRecord: toCandidate(relatedData[bestIndex]),
+      reasoning,
     };
   }
 
@@ -351,21 +375,20 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   /** Branch B: fully automated. xToOne loads the linked record; HasMany ranks candidates via AI; BelongsToMany takes the first. */
   private async resolveAndLoadAutomatic(target: RelationTarget): Promise<StepExecutionResult> {
-    const record = await this.fetchRecordForRelation(target);
+    const recordWithReasoning = await this.fetchRecordForRelation(target);
 
-    return this.persistAndReturn(record, target, undefined);
+    return this.persistAndReturn(recordWithReasoning, target, undefined);
   }
 
-  private async fetchRecordForRelation(target: RelationTarget): Promise<RecordRef> {
+  private async fetchRecordForRelation(target: RelationTarget): Promise<RecordWithReasoning> {
     if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
-      return this.fetchXToOneRecordRef(target);
+      return {
+        record: await this.fetchXToOneRecordRef(target),
+        reasoning: 'single related record',
+      };
     }
 
-    if (target.relationType === 'HasMany') {
-      return this.selectBestRelatedRecord(target);
-    }
-
-    return this.fetchFirstCandidate(target);
+    return this.selectBestRelatedRecord(target);
   }
 
   private async fetchXToOneRecordRef(target: RelationTarget): Promise<RecordRef> {
@@ -453,7 +476,30 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       stepIndex: this.context.stepIndex,
     };
 
-    return this.persistAndReturn(record, { selectedRecordRef, name, displayName }, execution);
+    // Carry the AI reasoning into executionResult only when the user kept the AI's suggestion
+    // intact — both the relation and the record. A change to either makes the reasoning
+    // (which justified the original record) misleading, so it is dropped.
+    const suggestionChanged =
+      (userConfirmation?.fieldName &&
+        userConfirmation.fieldName !== pendingData.suggestedField.name) ||
+      (userConfirmation?.selectedRecordId &&
+        JSON.stringify(userConfirmation?.selectedRecordId) !==
+          JSON.stringify(pendingData.suggestedRecord?.recordId));
+
+    const recordWithReasoning: RecordWithReasoning = suggestionChanged
+      ? { record }
+      : {
+          record,
+          suggestedFields: pendingData.suggestedFields,
+          fieldsReasoning: pendingData.fieldsReasoning,
+          reasoning: pendingData.reasoning,
+        };
+
+    return this.persistAndReturn(
+      recordWithReasoning,
+      { selectedRecordRef, name, displayName },
+      execution,
+    );
   }
 
   private async selectBestFromRelatedData(
@@ -463,6 +509,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     relatedData: RecordData[];
     bestIndex: number;
     suggestedFields: string[];
+    fieldsReasoning?: string;
+    reasoning?: string;
     relatedSchema: CollectionSchema;
   }> {
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
@@ -496,49 +544,33 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       };
     }
 
-    const suggestedFields = await this.selectRelevantFields(
-      relatedSchema,
-      this.context.stepDefinition.prompt,
-    );
-    const bestIndex = await this.selectBestRecordIndex(
+    const { fieldNames: suggestedFields, reasoning: fieldsReasoning } =
+      await this.selectRelevantFields(relatedSchema, this.context.stepDefinition.prompt);
+
+    const { recordIndex: bestIndex, reasoning } = await this.selectBestRecordIndex(
       relatedData,
       suggestedFields,
       this.context.stepDefinition.prompt,
     );
 
-    return { relatedData, bestIndex, suggestedFields, relatedSchema };
+    return { relatedData, bestIndex, suggestedFields, fieldsReasoning, reasoning, relatedSchema };
   }
 
   /** HasMany + fully automated execution: fetch top 50, then AI calls to select the best record. */
-  private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordRef> {
-    const { relatedData, bestIndex } = await this.selectBestFromRelatedData(target, 50);
+  private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordWithReasoning> {
+    const { relatedData, bestIndex, suggestedFields, fieldsReasoning, reasoning } =
+      await this.selectBestFromRelatedData(target, 50);
 
     if (relatedData.length === 0) {
       throw new RelatedRecordNotFoundError(target.selectedRecordRef.collectionName, target.name);
     }
 
-    return this.toRecordRef(relatedData[bestIndex]);
-  }
-
-  private async fetchFirstCandidate(target: RelationTarget): Promise<RecordRef> {
-    const candidates = await this.fetchCandidates(target, 1);
-
-    return candidates[0];
-  }
-
-  private async fetchCandidates(
-    target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'relatedCollectionName'>,
-    limit: number,
-  ): Promise<RecordRef[]> {
-    const { selectedRecordRef, name } = target;
-    const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
-    const relatedData = await this.fetchRelatedData(target, relatedSchema, limit);
-
-    if (relatedData.length === 0) {
-      throw new RelatedRecordNotFoundError(selectedRecordRef.collectionName, name);
-    }
-
-    return relatedData.map(r => this.toRecordRef(r));
+    return {
+      record: this.toRecordRef(relatedData[bestIndex]),
+      suggestedFields,
+      fieldsReasoning,
+      reasoning,
+    };
   }
 
   private async fetchRelatedData(
@@ -557,7 +589,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
   /** Persists the loaded record ref and returns a success outcome. */
   private async persistAndReturn(
-    record: RecordRef,
+    recordWithReasoning: RecordWithReasoning,
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
     existingExecution: LoadRelatedRecordStepExecutionData | undefined,
   ): Promise<StepExecutionResult> {
@@ -568,7 +600,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
-      executionResult: { relation: { name, displayName }, record },
+      executionResult: { relation: { name, displayName }, ...recordWithReasoning },
       selectedRecordRef,
     });
 
@@ -628,10 +660,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   private async selectRelevantFields(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<string[]> {
+  ): Promise<{ fieldNames: string[]; reasoning: string }> {
     const nonRelationFields = schema.fields.filter(f => !f.isRelationship);
 
-    if (nonRelationFields.length === 0) return [];
+    if (nonRelationFields.length === 0) {
+      return { fieldNames: [], reasoning: 'No field is available' };
+    }
 
     // Use displayName in both the enum and the prompt for consistency — the AI sees human-readable
     // names throughout. Results are mapped back to technical fieldNames before returning.
@@ -641,6 +675,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       name: 'select-fields',
       description: 'Select the most relevant fields to identify the right record.',
       schema: z.object({
+        reasoning: z.string().describe('Why these fields seems relevant to choose the record'),
         fieldNames: z
           .array(z.enum(displayNames))
           .min(1)
@@ -654,6 +689,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     const messages = [
       this.buildContextMessage(),
+      ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(SELECT_FIELDS_SYSTEM_PROMPT),
       new SystemMessage(
         `The related records are from the "${schema.collectionDisplayName}" collection. ` +
@@ -662,8 +698,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
     ];
 
-    const { fieldNames: selectedDisplayNames } = await this.invokeWithTool<{
+    const { fieldNames: selectedDisplayNames, reasoning } = await this.invokeWithTool<{
       fieldNames: string[];
+      reasoning: string;
     }>(messages, tool);
 
     // Zod's .min(1) shapes the prompt but is NOT validated against the AI response.
@@ -676,9 +713,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     // Map display names back to technical field names — values in RecordData are keyed by fieldName.
     // .max() shapes the prompt only (not validated against the response), so cap explicitly.
-    return selectedDisplayNames
+    const fieldNames = selectedDisplayNames
       .slice(0, MAX_RELEVANT_FIELDS)
       .map(dn => nonRelationFields.find(f => f.displayName === dn)?.fieldName ?? dn);
+
+    return { fieldNames, reasoning };
   }
 
   /** AI call 2 for HasMany: selects the best record by index from the candidate list. */
@@ -686,7 +725,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     candidates: RecordData[],
     fieldNames: string[],
     prompt: string | undefined,
-  ): Promise<number> {
+  ): Promise<{ recordIndex: number; reasoning: string }> {
     const filteredCandidates = candidates.map((c, i) => {
       const entries = Object.entries(c.values).filter(
         ([k]) => fieldNames.length === 0 || fieldNames.includes(k),
@@ -725,28 +764,29 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       name: 'select-record-by-content',
       description: 'Select the most relevant related record by its index.',
       schema: z.object({
+        reasoning: z.string().describe('Why this record was chosen'),
         recordIndex: z
           .number()
           .int()
           .min(0)
           .max(maxIndex)
           .describe(`0-based index of the most relevant record (0 to ${maxIndex})`),
-        reasoning: z.string().describe('Why this record was chosen'),
       }),
       func: undefined,
     });
 
     const messages = [
       this.buildContextMessage(),
+      ...(await this.buildPreviousStepsMessages()),
       new SystemMessage(SELECT_RECORD_SYSTEM_PROMPT),
       new SystemMessage(`Candidates:\n${lines.join('\n')}`),
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
     ];
 
-    const { recordIndex } = await this.invokeWithTool<{ recordIndex: number; reasoning: string }>(
-      messages,
-      tool,
-    );
+    const { recordIndex, reasoning } = await this.invokeWithTool<{
+      recordIndex: number;
+      reasoning: string;
+    }>(messages, tool);
 
     // NOTE: The Zod schema's .min(0).max(maxIndex) shapes the tool prompt only — it is NOT
     // validated against the AI response. This guard is the sole runtime enforcement.
@@ -756,7 +796,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       );
     }
 
-    return recordIndex;
+    return { recordIndex, reasoning };
   }
 
   private toRecordRef(data: RecordData): RecordRef {
