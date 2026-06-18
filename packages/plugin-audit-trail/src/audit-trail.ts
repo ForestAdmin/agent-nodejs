@@ -222,11 +222,16 @@ export default function auditTrail(
   dataSourceCustomizer: DataSourceCustomizer,
   _collectionCustomizer: CollectionCustomizer | null,
   options?: AuditTrailOptions,
-): void {
+): Promise<void> | void {
   const { sink, store, redact } = options ?? {};
   const append = sink ?? (store ? record => store.append(record) : defaultSink);
 
   for (const collection of dataSourceCustomizer.collections) {
     instrumentCollection(collection, append, redact?.[collection.name] ?? []);
   }
+
+  // Hooks are installed above; the store bootstrap runs asynchronously so failures (bad
+  // connection string, broken migration) surface at agent start rather than on the first
+  // audited write. The customizer awaits this promise during `agent.start()`.
+  return store?.init?.();
 }

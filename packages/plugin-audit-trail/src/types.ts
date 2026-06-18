@@ -25,6 +25,12 @@ export type AuditHistoryQuery = {
 export interface AuditStore {
   append(record: AuditRecord): void | Promise<void>;
   listByRecord(query: AuditHistoryQuery): AuditRecord[] | Promise<AuditRecord[]>;
+  /**
+   * Optional one-shot bootstrap (e.g. open a connection, run migrations). The audit-trail plugin
+   * awaits it during agent start, so any failure surfaces before the agent serves requests.
+   * Implementations must be idempotent — the plugin may call it more than once.
+   */
+  init?(): Promise<void>;
 }
 
 export type AuditTrailOptions = {

@@ -115,4 +115,42 @@ describe('createSqlAuditStore (sqlite round-trip)', () => {
 
     await close();
   });
+
+  it('runs the migrations on the first init() call and short-circuits on subsequent ones', async () => {
+    (runAuditMigrations as jest.Mock).mockClear();
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.init?.();
+    await store.init?.();
+    await store.init?.();
+
+    // ensureAuditStorage delegates to runAuditMigrations once; subsequent init() calls reuse
+    // the cached connection instead of re-running migrations.
+    expect(runAuditMigrations).toHaveBeenCalledTimes(1);
+
+    await close();
+  });
+
+  it('honors the skip and limit parameters in listByRecord', async () => {
+    const { store, close } = createSqlAuditStore({ connectionString: 'sqlite::memory:' });
+
+    await store.append(record({ timestamp: '2026-01-02T00:00:01.000Z' }));
+    await store.append(record({ timestamp: '2026-01-02T00:00:02.000Z' }));
+    await store.append(record({ timestamp: '2026-01-02T00:00:03.000Z' }));
+    await store.append(record({ timestamp: '2026-01-02T00:00:04.000Z' }));
+
+    const page = await store.listByRecord({
+      collection: 'accounts',
+      recordId: '1',
+      skip: 1,
+      limit: 2,
+    });
+
+    expect(page.map(entry => entry.timestamp)).toEqual([
+      '2026-01-02T00:00:02.000Z',
+      '2026-01-02T00:00:03.000Z',
+    ]);
+
+    await close();
+  });
 });

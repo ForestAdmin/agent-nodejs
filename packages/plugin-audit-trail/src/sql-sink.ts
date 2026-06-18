@@ -103,9 +103,10 @@ export function fromRow(row: Model): AuditRecord {
  * Return a SQL-backed audit store that both writes and reads from `forest.audit_logs`.
  *
  * Construction is synchronous so the store can be passed to `createAgent({ auditTrail: { store } })`
- * at module top level; the connection is opened lazily on the first append or read. Pass the same
- * store to the plugin (`auditTrail(ds, cc, { store })`) so writes and the record-history route
- * agree on storage.
+ * at module top level. The connection is opened — and any pending migrations are applied — when
+ * `store.init()` runs, which the audit-trail plugin triggers during `agent.start()`. The store
+ * also self-initializes on the first append or read, so calls outside the plugin (tests, manual
+ * scripts) still work.
  */
 export function createSqlAuditStore(options: AuditStorageOptions): {
   store: AuditStore;
@@ -116,7 +117,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
   let sequelize: Sequelize | null = null;
   let modelPromise: Promise<ModelStatic<Model>> | null = null;
 
-  const getModel = (): Promise<ModelStatic<Model>> => {
+  const init = (): Promise<ModelStatic<Model>> => {
     if (modelPromise) return modelPromise;
 
     const connection = new Sequelize(connectionString, { logging: false });
@@ -140,15 +141,20 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
 
   return {
     store: {
+      async init() {
+        await init();
+      },
       async append(record) {
-        const model = await getModel();
+        const model = await init();
         await model.create(toRow(record));
       },
-      async listByRecord({ collection, recordId }) {
-        const model = await getModel();
+      async listByRecord({ collection, recordId, limit, skip = 0 }) {
+        const model = await init();
         const rows = await model.findAll({
           where: { collection, recordId },
           order: [['timestamp', 'ASC']],
+          offset: skip,
+          limit,
         });
 
         return rows.map(fromRow);

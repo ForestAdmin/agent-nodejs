@@ -44,10 +44,11 @@ agent.use((dataSourceCustomizer, collectionCustomizer) =>
 );
 ```
 
-That's the whole integration. On the first write or read the store ensures the `forest` schema
-exists and runs any pending migrations to create/upgrade `forest.audit_logs`; every create /
-update / delete performed through Forest then writes one row per record, and the **Historic**
-tab in the UI reads from the same table.
+That's the whole integration. When the agent starts, the plugin opens the connection and runs any
+pending migrations to create/upgrade `forest.audit_logs` — so a bad connection string or a broken
+migration fails fast at startup rather than on the first audited write. Every create / update /
+delete performed through Forest then writes one row per record, and the **Historic** tab in the
+UI reads from the same table.
 
 ### Recommended: gate it behind an environment variable
 
@@ -111,7 +112,8 @@ actually applied to existing databases (a plain "create if not exists" would sil
   the default `SequelizeMeta` so it never shares migration state with another component writing to
   the same database (e.g. the workflow executor keeps its own `SequelizeMeta`, or the customer may
   own one in their default schema).
-- Pending migrations run automatically on the first append or read.
+- Pending migrations run automatically when the agent starts (the audit-trail plugin awaits the
+  store's bootstrap before completing setup).
 - **Multiple instances:** on Postgres the migrations run inside a transaction-scoped advisory lock,
   so several agents booting at once apply them one after another instead of racing on the same DDL —
   the losers block on the lock, then find the migrations already applied and continue. The `forest`
@@ -146,7 +148,7 @@ connection string may point at the customer's own database.
 
 - **Source vs storage are independent.** You can audit a **Mongo** datasource and persist the trail
   into **Postgres** via the SQL store — the SQL columns are decoupled from the audited source.
-- `createSqlAuditStore` is constructed **synchronously** and connects lazily on the first append or
-  read, so it can be built at module top level and handed to `createAgent({ auditTrail: { store } })`.
-  Pair it with `agent.use((ds, cc) => auditTrail(ds, cc, { store }))` so writes and the
-  record-history route share the same table.
+- `createSqlAuditStore` is constructed **synchronously**, so it can be built at module top level and
+  handed to `createAgent({ auditTrail: { store } })`. The actual connection and pending migrations
+  happen when the audit-trail plugin runs at `agent.start()` — so any connection or migration error
+  surfaces during startup, not at the first request.

@@ -127,6 +127,24 @@ describe('auditTrail plugin', () => {
       ]);
     });
 
+    it('returns the store bootstrap promise so failures surface during agent start', async () => {
+      const init = jest.fn().mockRejectedValue(new Error('migration failed'));
+      const store = {
+        init,
+        append: jest.fn(),
+        listByRecord: jest.fn().mockResolvedValue([]),
+      };
+      const accounts = fakeCollection('accounts');
+
+      // The plugin installs hooks synchronously and returns the init promise, so a broken
+      // migration must reject the returned promise (which the customizer awaits at start).
+      const result = auditTrail({ collections: [accounts.collection] } as never, null, { store });
+
+      expect(accounts.handlers.size).toBe(5);
+      await expect(result).rejects.toThrow('migration failed');
+      expect(init).toHaveBeenCalledTimes(1);
+    });
+
     it('falls back to a console sink when no sink is provided', async () => {
       const spy = jest.spyOn(console, 'info').mockImplementation(() => {});
       const accounts = fakeCollection('accounts');
