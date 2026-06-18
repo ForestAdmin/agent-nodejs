@@ -571,27 +571,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     };
   }
 
-  private async fetchFirstCandidate(target: RelationTarget): Promise<RecordRef> {
-    const candidates = await this.fetchCandidates(target, 1);
-
-    return candidates[0];
-  }
-
-  private async fetchCandidates(
-    target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'relatedCollectionName'>,
-    limit: number,
-  ): Promise<RecordRef[]> {
-    const { selectedRecordRef, name } = target;
-    const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
-    const relatedData = await this.fetchRelatedData(target, relatedSchema, limit);
-
-    if (relatedData.length === 0) {
-      throw new RelatedRecordNotFoundError(selectedRecordRef.collectionName, name);
-    }
-
-    return relatedData.map(r => this.toRecordRef(r));
-  }
-
   private async fetchRelatedData(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
     relatedSchema: CollectionSchema,

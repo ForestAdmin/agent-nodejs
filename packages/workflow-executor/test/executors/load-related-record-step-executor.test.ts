@@ -818,11 +818,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  // BelongsToMany falls through to the same to-many candidate path as the default
-  // branch (neither xToOne nor HasMany). Routes through fetchFirstCandidate ->
-  // fetchCandidates -> getRelatedData with limit: 1, then picks the first row.
+  // BelongsToMany routes through the to-many ranking path (selectBestRelatedRecord ->
+  // selectBestFromRelatedData -> getRelatedData with limit: 50). A single candidate short-circuits
+  // the AI ranking (bestIndex 0) but still goes through the limit-50 fetch.
   describe('executionType=FullyAutomated: BelongsToMany — load direct (Branch B)', () => {
-    it('fetches 1 related record via /relationships and returns success', async () => {
+    it('fetches related records via /relationships and returns success', async () => {
       const belongsToManySchema = makeCollectionSchema({
         fields: [
           {
@@ -849,13 +849,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // To-many path: /relationships call with limit: 1, no parent-record projection.
+      // To-many ranking path: /relationships call with limit: 50, no parent-record projection.
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({
           collection: 'customers',
           id: [42],
           relation: 'tags',
-          limit: 1,
+          limit: 50,
           relatedSchema: expect.objectContaining({ collectionName: 'tags' }),
         }),
         expect.objectContaining({ id: 1 }),
@@ -871,7 +871,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    // fetchCandidates throws RelatedRecordNotFoundError when the agent returns an
+    // selectBestRelatedRecord throws RelatedRecordNotFoundError when the agent returns an
     // empty list. Same user-facing message as the other empty-result paths.
     it('returns error when getRelatedData returns an empty array', async () => {
       const belongsToManySchema = makeCollectionSchema({
