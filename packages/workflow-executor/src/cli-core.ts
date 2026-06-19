@@ -55,6 +55,19 @@ function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
   return parsed.data;
 }
 
+const TRUTHY = ['true', '1', 'yes', 'on'];
+const FALSY = ['false', '0', 'no', 'off'];
+
+function parseBooleanEnv(name: string, raw: string | undefined): boolean {
+  if (!raw) return false;
+
+  const value = raw.trim().toLowerCase();
+  if (TRUTHY.includes(value)) return true;
+  if (FALSY.includes(value)) return false;
+
+  throw new ConfigurationError(`${name} must be a boolean (true/false); got "${raw}"`);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { version } = require('../package.json') as { version: string };
 
@@ -193,7 +206,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
   return {
     executorOptions,
     databaseUrl: env.DATABASE_URL,
-    databaseSsl: env.DATABASE_SSL === 'true',
+    databaseSsl: parseBooleanEnv('DATABASE_SSL', env.DATABASE_SSL),
     mode: args.inMemory ? 'in-memory' : 'database',
   };
 }
@@ -244,7 +257,7 @@ export function printVersion(): void {
 }
 
 export function logStartup(logger: Logger, config: CliConfig): void {
-  const { executorOptions: opts, mode } = config;
+  const { executorOptions: opts, mode, databaseSsl } = config;
   let aiLabel: string;
 
   if (opts.forceAiError) {
@@ -257,6 +270,7 @@ export function logStartup(logger: Logger, config: CliConfig): void {
 
   logger('Info', 'Workflow executor starting', {
     mode,
+    databaseSsl: mode === 'database' ? databaseSsl : undefined,
     forestServerUrl: opts.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL,
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,

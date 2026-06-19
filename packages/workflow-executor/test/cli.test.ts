@@ -165,6 +165,23 @@ describe('readEnvConfig', () => {
     );
   });
 
+  it.each(['true', 'TRUE', 'True', '1', 'yes', 'on'])(
+    'parses DATABASE_SSL=%s as enabled',
+    value => {
+      expect(readEnvConfig({ ...baseEnv, DATABASE_SSL: value }, args).databaseSsl).toBe(true);
+    },
+  );
+
+  it.each(['false', '0', 'no', 'off', ''])('parses DATABASE_SSL=%s as disabled', value => {
+    expect(readEnvConfig({ ...baseEnv, DATABASE_SSL: value }, args).databaseSsl).toBe(false);
+  });
+
+  it('throws ConfigurationError on a non-boolean DATABASE_SSL', () => {
+    expect(() => readEnvConfig({ ...baseEnv, DATABASE_SSL: 'enabled' }, args)).toThrow(
+      'DATABASE_SSL must be a boolean (true/false); got "enabled"',
+    );
+  });
+
   it('parses numeric env vars as numbers', () => {
     const config = readEnvConfig(
       {
@@ -424,6 +441,27 @@ describe('logStartup', () => {
         forestServerUrl: DEFAULT_FOREST_SERVER_URL,
         pollingIntervalS: DEFAULT_POLLING_INTERVAL_S,
       }),
+    );
+  });
+
+  it('reports the database TLS state in database mode', () => {
+    const logger = makeLogger();
+
+    logStartup(logger as never, {
+      mode: 'database',
+      databaseSsl: true,
+      executorOptions: {
+        envSecret: 'e',
+        authSecret: 'a',
+        agentUrl: 'http://agent',
+        httpPort: DEFAULT_HTTP_PORT,
+      },
+    });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      'Workflow executor starting',
+      expect.objectContaining({ databaseSsl: true }),
     );
   });
 });
