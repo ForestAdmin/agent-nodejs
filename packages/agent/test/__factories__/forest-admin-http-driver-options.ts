@@ -30,4 +30,5 @@ export default Factory.define<AgentOptionsWithDefaults>(() => ({
   ignoreMissingSchemaElementErrors: false,
   useUnsafeActionEndpoint: false,
   workflowExecutorUrl: null,
+  auditTrail: null,
 }));

@@ -1,8 +1,10 @@
-import type { AgentOptions, AgentOptionsWithDefaults } from '../types';
+import type { AgentOptions, AgentOptionsWithDefaults, AuditTrailRuntime } from '../types';
 
 import createForestAdminClient from '@forestadmin/forestadmin-client';
 import { existsSync } from 'fs';
 import path from 'path';
+
+import { createSqlAuditStore } from '../audit-trail';
 
 const DEFAULT_MINIMUM_CACHE_DURATION = 60;
 // One year cache duration when using events
@@ -39,6 +41,7 @@ export default class OptionsValidator {
     copyOptions.skipSchemaUpdate = copyOptions.skipSchemaUpdate || false;
     copyOptions.instantCacheRefresh = copyOptions.instantCacheRefresh ?? true;
     copyOptions.workflowExecutorUrl = copyOptions.workflowExecutorUrl ?? null;
+    copyOptions.auditTrail = copyOptions.auditTrail ?? null;
     copyOptions.maxBodySize = copyOptions.maxBodySize || '50mb';
     copyOptions.bodyParserOptions = copyOptions.bodyParserOptions || {
       jsonLimit: '50mb',
@@ -84,9 +87,21 @@ export default class OptionsValidator {
         experimental: copyOptions.experimental,
       });
 
+    const auditTrail: AuditTrailRuntime | null = copyOptions.auditTrail
+      ? {
+          ...copyOptions.auditTrail,
+          store: createSqlAuditStore({
+            connectionString: copyOptions.auditTrail.connectionString,
+            schema: copyOptions.auditTrail.schema,
+            tableName: copyOptions.auditTrail.tableName,
+          }).store,
+        }
+      : null;
+
     return {
       loggerLevel: 'Info',
       ...copyOptions,
+      auditTrail,
     } as AgentOptionsWithDefaults;
   }
 

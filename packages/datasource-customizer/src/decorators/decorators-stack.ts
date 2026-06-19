@@ -52,6 +52,8 @@ export default class DecoratorsStack extends DecoratorsStackBase {
 
     // Step 3: Access to all fields AND emulated capabilities
     last = this.chart = new ChartDataSourceDecorator(last);
+    // Below `action` so writes emitted from inside a smart action also traverse it.
+    last = this.internalHook = new DataSourceDecorator(last, HookCollectionDecorator);
     last = this.action = new DataSourceDecorator(last, ActionCollectionDecorator);
     last = this.schema = new DataSourceDecorator(last, SchemaCollectionDecorator);
     last = this.write = new WriteDataSourceDecorator(last);
