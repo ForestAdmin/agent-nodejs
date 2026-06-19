@@ -301,8 +301,6 @@ export async function runCli(
         ...config.executorOptions,
         database: {
           uri: config.databaseUrl as string,
-          // Managed databases (RDS, etc.) commonly require TLS. Mirror the agent's
-          // server setup: encrypt without verifying the server certificate.
           ...(config.databaseSsl && {
             dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
           }),
