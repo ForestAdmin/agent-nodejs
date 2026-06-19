@@ -324,7 +324,19 @@ describe('readEnvConfig', () => {
     expect(config.executorOptions.loggerLevel).toBe('Info');
   });
 
-  it.each(['debug', 'info', 'trace', 'fatal', 'verbose', 'xxx'])(
+  it.each([
+    ['info', 'Info'],
+    ['INFO', 'Info'],
+    ['debug', 'Debug'],
+    ['WARN', 'Warn'],
+    ['error', 'Error'],
+  ] as const)('parses case-insensitive LOG_LEVEL=%s into %s', (input, expected) => {
+    const config = readEnvConfig({ ...baseEnv, LOG_LEVEL: input }, args);
+
+    expect(config.executorOptions.loggerLevel).toBe(expected);
+  });
+
+  it.each(['trace', 'fatal', 'verbose', 'xxx'])(
     'throws ConfigurationError on invalid LOG_LEVEL=%s',
     value => {
       expect(() => readEnvConfig({ ...baseEnv, LOG_LEVEL: value }, args)).toThrow(
