@@ -86,6 +86,8 @@ interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {
   executionType:
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+  // Deterministic build-time config (PRD-471). Validated by the step-definition schema.
+  preRecordedArgs?: { selectedRecordStepIndex?: number; relationName?: string };
 }
 
 export interface ServerWorkflowTaskMcpServer extends ServerWorkflowTaskBase {

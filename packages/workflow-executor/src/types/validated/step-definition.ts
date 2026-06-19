@@ -97,10 +97,10 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
     .catch(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
+      /** "Related to" — the source record, by step index */
       selectedRecordStepIndex: z.number().int().optional(),
-      /** Technical name of the relation to follow */
+      /** "From collection" — the relation to follow (technical name) */
       relationName: z.string().optional(),
-      selectedRecordIndex: z.number().int().optional(),
     })
     .optional(),
 });

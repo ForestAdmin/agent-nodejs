@@ -3389,6 +3389,65 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
+    it('resolves selectedRecordStepIndex via originalStepIndex after a revise (revise-safe)', async () => {
+      // After a revise, the source step is a clone at a shifted own index (4) whose execution is
+      // persisted at that own index, while the editor reference still points at the original index
+      // (1). A strict own-index match would report "no source record"; the fallback must resolve it.
+      const loadedOrder: RecordRef = { collectionName: 'orders', recordId: [99], stepIndex: 4 };
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        fields: [
+          {
+            fieldName: 'customer',
+            displayName: 'Customer',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'customers',
+          },
+        ],
+      });
+      const { model } = makeMockModel();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 4,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: loadedOrder,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const agentPort = makeMockAgentPort([
+        makeRelatedRecordData({ collectionName: 'customers', recordId: [7], values: {} }),
+      ]);
+      const context = makeContext({
+        model,
+        runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
+        previousSteps: [makeLoadRelatedPreviousStep(4, 1)],
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepIndex: 1, relationName: 'customer' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99], relation: 'customer' }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
     it('errors with the pre-recorded-args message when selectedRecordStepIndex matches no record', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
@@ -3415,76 +3474,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
-    });
-
-    it('skips AI record selection when selectedRecordIndex is pre-recorded with HasMany', async () => {
-      const relatedData = [
-        makeRelatedRecordData({
-          collectionName: 'addresses',
-          recordId: [101],
-          values: { city: 'Paris' },
-        }),
-        makeRelatedRecordData({
-          collectionName: 'addresses',
-          recordId: [102],
-          values: { city: 'Lyon' },
-        }),
-      ];
-
-      const { model, bindTools } = makeMockModel();
-      const runStore = makeMockRunStore();
-      const context = makeContext({
-        model,
-        runStore,
-        agentPort: makeMockAgentPort(relatedData),
-        stepDefinition: makeStep({
-          executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { relationName: 'address', selectedRecordIndex: 1 },
-        }),
-      });
-      const executor = new LoadRelatedRecordStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('success');
-      expect(bindTools).not.toHaveBeenCalled();
-      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({
-          executionResult: expect.objectContaining({
-            record: expect.objectContaining({ recordId: [102] }),
-          }),
-        }),
-      );
-    });
-
-    it('returns error when selectedRecordIndex is out of range', async () => {
-      const relatedData = [
-        makeRelatedRecordData({
-          collectionName: 'addresses',
-          recordId: [1],
-          values: { city: 'Paris' },
-        }),
-        makeRelatedRecordData({
-          collectionName: 'addresses',
-          recordId: [2],
-          values: { city: 'Lyon' },
-        }),
-      ];
-      const { model } = makeMockModel();
-      const context = makeContext({
-        model,
-        agentPort: makeMockAgentPort(relatedData),
-        stepDefinition: makeStep({
-          executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { relationName: 'address', selectedRecordIndex: 99 },
-        }),
-      });
-      const executor = new LoadRelatedRecordStepExecutor(context);
-
-      const result = await executor.execute();
-
-      expect(result.stepOutcome.status).toBe('error');
     });
 
     it('returns error when a pre-recorded relationName does not resolve', async () => {
