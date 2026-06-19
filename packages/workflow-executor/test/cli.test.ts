@@ -154,6 +154,7 @@ describe('readEnvConfig', () => {
 
     expect(config.mode).toBe('database');
     expect(config.databaseUrl).toBe('postgres://u:p@localhost:5432/wfe');
+    expect(config.databaseSsl).toBe(false);
     expect(config.executorOptions).toEqual(
       expect.objectContaining({
         envSecret: 'env-secret',
@@ -407,6 +408,7 @@ describe('logStartup', () => {
 
     logStartup(logger as never, {
       mode: 'database',
+      databaseSsl: false,
       executorOptions: {
         envSecret: 'e',
         authSecret: 'a',
@@ -484,6 +486,28 @@ describe('runCli', () => {
     );
     expect(factories.buildInMemory).not.toHaveBeenCalled();
     expect(executor.start).toHaveBeenCalled();
+  });
+
+  it('enables TLS (no cert verification) on the database when DATABASE_SSL=true', async () => {
+    const { factories } = makeFactories();
+    await runCli([], { ...baseEnv, DATABASE_SSL: 'true' }, factories);
+
+    expect(factories.buildDatabase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        database: {
+          uri: 'postgres://u:p@localhost:5432/wfe',
+          dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+        },
+      }),
+    );
+  });
+
+  it('does not configure database TLS when DATABASE_SSL is unset', async () => {
+    const { factories } = makeFactories();
+    await runCli([], baseEnv, factories);
+
+    const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
+    expect(call.database).toEqual({ uri: 'postgres://u:p@localhost:5432/wfe' });
   });
 
   it('injects a JSON logger into executorOptions when --json is set', async () => {

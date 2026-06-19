@@ -71,6 +71,7 @@ export interface CliArgs {
 export interface CliConfig {
   executorOptions: ExecutorOptions;
   databaseUrl?: string;
+  databaseSsl: boolean;
   mode: 'in-memory' | 'database';
 }
 
@@ -192,6 +193,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
   return {
     executorOptions,
     databaseUrl: env.DATABASE_URL,
+    databaseSsl: env.DATABASE_SSL === 'true',
     mode: args.inMemory ? 'in-memory' : 'database',
   };
 }
@@ -215,6 +217,7 @@ Required environment variables:
   DATABASE_URL        Postgres connection string (not needed with --in-memory)
 
 Optional environment variables:
+  DATABASE_SSL          Set to "true" to connect to the database over TLS (managed DBs like RDS)
   HTTP_PORT              Default: ${DEFAULT_HTTP_PORT}
   FOREST_SERVER_URL      Default: ${DEFAULT_FOREST_SERVER_URL}
   POLLING_INTERVAL_S    Default: ${DEFAULT_POLLING_INTERVAL_S}
@@ -296,7 +299,14 @@ export async function runCli(
     } else {
       const databaseOptions: DatabaseExecutorOptions = {
         ...config.executorOptions,
-        database: { uri: config.databaseUrl as string },
+        database: {
+          uri: config.databaseUrl as string,
+          // Managed databases (RDS, etc.) commonly require TLS. Mirror the agent's
+          // server setup: encrypt without verifying the server certificate.
+          ...(config.databaseSsl && {
+            dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+          }),
+        },
       };
       executor = factories.buildDatabase(databaseOptions);
     }

@@ -22,6 +22,7 @@ npm install -g @forestadmin/workflow-executor
 | `FOREST_AUTH_SECRET` | ✓ | — | JWT signing secret (shared with your agent) |
 | `AGENT_URL` | ✓ | — | URL of your running Forest Admin agent |
 | `DATABASE_URL` | ✓* | — | Postgres connection string (*not needed with `--in-memory`) |
+| `DATABASE_SSL` | — | `false` | Set to `true` to connect over TLS (managed databases like RDS often require it). Encrypts without verifying the server certificate. |
 | `HTTP_PORT` | — | `3400` | Port for the executor HTTP server |
 | `FOREST_SERVER_URL` | — | `https://api.forestadmin.com` | Orchestrator URL |
 | `POLLING_INTERVAL_S` | — | `30` | Poll cadence for pending steps |
