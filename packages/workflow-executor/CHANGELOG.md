@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.5.0...@forestadmin/workflow-executor@1.5.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **workflow-executor:** accept LOG_LEVEL case-insensitively ([#1684](https://github.com/ForestAdmin/agent-nodejs/issues/1684)) ([dcb8769](https://github.com/ForestAdmin/agent-nodejs/commit/dcb87696990fb7e14148693a3192e3a8797a61b1))
+
 # @forestadmin/workflow-executor [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.4.1...@forestadmin/workflow-executor@1.5.0) (2026-06-18)
 
 
