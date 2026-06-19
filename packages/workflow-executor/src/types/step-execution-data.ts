@@ -18,12 +18,6 @@ interface MutatingStepExecutionData extends BaseStepExecutionData {
   idempotencyPhase?: 'executing' | 'done';
 }
 
-// Validated POST body stored alongside `pendingData` (AI suggestion) so executors
-// can read user input without overwriting the AI suggestion.
-export interface WithUserConfirmation<T extends Record<string, unknown> = Record<string, unknown>> {
-  userConfirmation?: T;
-}
-
 // -- Condition --
 
 export interface ConditionStepExecutionData extends BaseStepExecutionData {
@@ -62,15 +56,16 @@ export interface ReadRecordStepExecutionData extends BaseStepExecutionData {
 
 // -- Update Record --
 
-export interface UpdateRecordStepExecutionData
-  extends MutatingStepExecutionData,
-    WithUserConfirmation<UpdateRecordConfirmation> {
+export interface UpdateRecordStepExecutionData extends MutatingStepExecutionData {
   type: 'update-record';
   executionParams?: FieldWithValue;
-  // User confirmed → values returned by updateRecord. User rejected → skipped.
-  executionResult?: { updatedValues: Record<string, unknown> } | { skipped: true };
-  pendingData?: FieldWithValue;
+  // `reasoning` is absent when the user changed the AI value to a different one.
+  executionResult?:
+    | { updatedValues: Record<string, unknown>; reasoning?: string }
+    | { skipped: true };
+  pendingData?: FieldWithValue & { reasoning?: string };
   selectedRecordRef: RecordRef;
+  userConfirmation?: UpdateRecordConfirmation;
 }
 
 // -- Trigger Action --
@@ -87,14 +82,13 @@ export interface RelationRef {
   displayName: string;
 }
 
-export interface TriggerRecordActionStepExecutionData
-  extends MutatingStepExecutionData,
-    WithUserConfirmation<TriggerActionConfirmation> {
+export interface TriggerRecordActionStepExecutionData extends MutatingStepExecutionData {
   type: 'trigger-action';
   executionParams?: ActionRef;
   executionResult?: { success: true; actionResult: unknown } | { skipped: true };
   pendingData?: ActionRef;
   selectedRecordRef: RecordRef;
+  userConfirmation?: TriggerActionConfirmation;
 }
 
 // -- Mcp --
@@ -109,15 +103,16 @@ export interface McpToolCall extends McpToolRef {
   input: Record<string, unknown>;
 }
 
-export interface McpStepExecutionData
-  extends MutatingStepExecutionData,
-    WithUserConfirmation<McpConfirmation> {
+export interface McpStepExecutionData extends MutatingStepExecutionData {
   type: 'mcp';
+  // Privacy-sensitive: stays client-side, never sent in the StepOutcome.
+  toolSelectionReasoning?: string;
   executionParams?: McpToolCall;
   executionResult?:
     | { success: true; toolResult: unknown; formattedResponse?: string }
     | { skipped: true };
   pendingData?: McpToolCall;
+  userConfirmation?: McpConfirmation;
 }
 
 // -- Generic AI Task (fallback for untyped steps) --
@@ -141,16 +136,29 @@ export interface LoadRelatedRecordPendingData {
   availableRecordIds: LoadRelatedRecordCandidate[];
   // Absent when the relation has no linked record(s): the list is empty and there's nothing to suggest.
   suggestedRecord?: LoadRelatedRecordCandidate;
+  // Technical names of the fields the AI judged most relevant to identify the record.
+  suggestedFields?: string[];
+  // AI justification for the selected fields (selectRelevantFields).
+  fieldsReasoning?: string;
+  // AI justification for the suggested record (selectBestRecordIndex).
+  reasoning?: string;
 }
 
-export interface LoadRelatedRecordStepExecutionData
-  extends BaseStepExecutionData,
-    WithUserConfirmation<LoadRelatedRecordConfirmation> {
+export interface LoadRelatedRecordStepExecutionData extends BaseStepExecutionData {
   type: 'load-related-record';
   pendingData?: LoadRelatedRecordPendingData;
   selectedRecordRef: RecordRef;
   executionParams?: RelationRef;
-  executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
+  executionResult?:
+    | {
+        relation: RelationRef;
+        record: RecordRef;
+        suggestedFields?: string[];
+        fieldsReasoning?: string;
+        reasoning?: string;
+      }
+    | { skipped: true };
+  userConfirmation?: LoadRelatedRecordConfirmation;
 }
 
 // -- Guidance --

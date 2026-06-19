@@ -6,7 +6,10 @@ import type { ExecutionContext } from '../../src/types/execution-context';
 import type { McpStepExecutionData } from '../../src/types/step-execution-data';
 import type { McpStepDefinition } from '../../src/types/validated/step-definition';
 
+import { DynamicStructuredTool } from '@forestadmin/ai-proxy';
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
+import ServerRemoteTool from '@forestadmin/ai-proxy/src/server-remote-tool';
+import { z } from 'zod';
 
 import { RunStorePortError, StepStateError } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
@@ -1134,6 +1137,212 @@ describe('McpStepExecutor', () => {
         'No MCP tools available for mcpServerId="id-missing"',
         expect.objectContaining({ mcpServerId: 'id-missing', mcpServerName: undefined }),
       );
+    });
+  });
+
+  describe('tool selection reasoning', () => {
+    it('persists the reasoning and strips it from the tool input (Branch B)', async () => {
+      const invokeFn = jest.fn().mockResolvedValue('sent');
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: invokeFn,
+      });
+      const { model } = makeMockModel('send_notification', {
+        message: 'Hello',
+        reasoning: 'send_notification is the only tool that delivers a message',
+      });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(invokeFn).toHaveBeenCalledWith({ message: 'Hello' });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          toolSelectionReasoning: 'send_notification is the only tool that delivers a message',
+          executionParams: {
+            name: 'send_notification',
+            sourceId: 'mcp-server-1',
+            input: { message: 'Hello' },
+          },
+          idempotencyPhase: 'done',
+        }),
+      );
+    });
+
+    it('persists the reasoning alongside pendingData when awaiting confirmation (Branch C)', async () => {
+      const { model } = makeMockModel('send_notification', {
+        message: 'Hello',
+        reasoning: 'chosen because it notifies the user',
+      });
+      const runStore = makeMockRunStore();
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const context = makeContext({ model, runStore });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          toolSelectionReasoning: 'chosen because it notifies the user',
+          pendingData: {
+            name: 'send_notification',
+            sourceId: 'mcp-server-1',
+            input: { message: 'Hello' },
+          },
+        }),
+      );
+    });
+
+    it('preserves the reasoning captured at Branch C when the confirmation is accepted (Branch A)', async () => {
+      const invokeFn = jest.fn().mockResolvedValue('sent');
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: invokeFn,
+      });
+      const execution: McpStepExecutionData = {
+        type: 'mcp',
+        stepIndex: 0,
+        toolSelectionReasoning: 'reasoning recorded before confirmation',
+        pendingData: {
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          input: { message: 'Hello' },
+        },
+        userConfirmation: { userConfirmed: true },
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ runStore });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          toolSelectionReasoning: 'reasoning recorded before confirmation',
+          executionResult: { success: true, toolResult: 'sent' },
+        }),
+      );
+    });
+
+    it('persists undefined reasoning and leaves the input untouched when the AI omits it', async () => {
+      const invokeFn = jest.fn().mockResolvedValue('sent');
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: invokeFn,
+      });
+      const { model } = makeMockModel('send_notification', { message: 'Hello' });
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        runStore,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(invokeFn).toHaveBeenCalledWith({ message: 'Hello' });
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          toolSelectionReasoning: undefined,
+          executionParams: {
+            name: 'send_notification',
+            sourceId: 'mcp-server-1',
+            input: { message: 'Hello' },
+          },
+        }),
+      );
+    });
+
+    it('logs the selected tool together with its reasoning', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model } = makeMockModel('send_notification', {
+        message: 'Hello',
+        reasoning: 'best fit for the request',
+      });
+      const logger = jest.fn();
+      const context = makeContext({ model, logger });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      await executor.execute();
+
+      expect(logger).toHaveBeenCalledWith(
+        'Info',
+        'MCP tool selected',
+        expect.objectContaining({
+          toolName: 'send_notification',
+          reasoning: 'best fit for the request',
+        }),
+      );
+    });
+
+    it('augments a JSON-Schema tool with a required reasoning property', async () => {
+      const tool = new MockRemoteTool({ name: 'send_notification', sourceId: 'mcp-server-1' });
+      const { model, bindTools } = makeMockModel('send_notification', { message: 'Hello' });
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new McpStepExecutor(context, [tool]);
+
+      await executor.execute();
+
+      const boundTools = bindTools.mock.calls[0][0] as Array<{ schema: Record<string, unknown> }>;
+      const { schema } = boundTools[0];
+      expect((schema.properties as Record<string, unknown>).reasoning).toEqual({
+        type: 'string',
+        description: expect.any(String),
+      });
+      expect(schema.required).toContain('reasoning');
+    });
+
+    it('augments a zod-schema tool (Forest connector) with a reasoning field via extend', async () => {
+      const forestTool = new ServerRemoteTool({
+        tool: new DynamicStructuredTool({
+          name: 'zendesk_get_ticket',
+          description: 'Retrieve a Zendesk ticket',
+          schema: z.object({ ticket_id: z.number() }),
+          func: jest.fn().mockResolvedValue('ticket data'),
+        }),
+        sourceId: 'zendesk',
+      });
+      const { model, bindTools } = makeMockModel('zendesk_get_ticket', {
+        ticket_id: 7,
+        reasoning: 'the request asks to read a ticket',
+      });
+      const context = makeContext({
+        model,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+      const executor = new McpStepExecutor(context, [forestTool]);
+
+      await executor.execute();
+
+      const boundTools = bindTools.mock.calls[0][0] as Array<{
+        schema: z.ZodObject<z.ZodRawShape>;
+      }>;
+      const { shape } = boundTools[0].schema;
+      expect(shape.reasoning).toBeInstanceOf(z.ZodString);
+      expect(shape.ticket_id).toBeDefined();
     });
   });
 });
