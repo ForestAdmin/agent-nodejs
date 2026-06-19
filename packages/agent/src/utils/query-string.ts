@@ -134,8 +134,8 @@ export default class QueryStringParser {
     return { query: segmentQuery, connectionName };
   }
 
-  static parseCaller(context: Context): Caller {
-    const timezone = context.request.query.timezone?.toString();
+  static parseCaller(context: Context, options?: { defaultTimezone?: string }): Caller {
+    const timezone = context.request.query.timezone?.toString() || options?.defaultTimezone;
     const { ip } = context.request;
 
     if (!timezone) {

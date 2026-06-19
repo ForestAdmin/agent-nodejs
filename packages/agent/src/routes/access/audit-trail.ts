@@ -20,6 +20,8 @@ import CollectionRoute from '../collection-route';
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 // Date with a wall-clock time, `T` or space separator, seconds optional: `YYYY-MM-DD[T| ]HH:mm[:ss]`.
 const DATE_TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/;
+// ISO 8601 instant: carries its own timezone designator (`Z` or `±HH:mm` / `±HHMM`).
+const ISO_INSTANT = /[Zz]$|[+-]\d{2}:?\d{2}$/;
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
@@ -66,7 +68,7 @@ export default class AuditTrailRoute extends CollectionRoute {
   public async handleStateAt(context: Context): Promise<void> {
     await this.services.authorization.assertCanRead(context, this.collection.name);
 
-    const targetTimestamp = AuditTrailRoute.parseTargetTimestamp(context);
+    const at = AuditTrailRoute.parseAt(context);
     const auditedColumns = AuditTrailRoute.auditedColumns(this.collection.schema);
     const current = await this.fetchCurrentRecord(context, auditedColumns);
 
@@ -74,7 +76,7 @@ export default class AuditTrailRoute extends CollectionRoute {
     const entries = await store.listByRecord({
       collection: this.collection.name,
       recordId: context.params.id,
-      startTimestamp: targetTimestamp,
+      startTimestamp: at,
       order: 'desc',
     });
 
@@ -98,7 +100,7 @@ export default class AuditTrailRoute extends CollectionRoute {
     });
 
     const records = await this.collection.list(
-      QueryStringParser.parseCaller(context),
+      QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' }),
       filter,
       new Projection(...auditedColumns),
     );
@@ -118,11 +120,11 @@ export default class AuditTrailRoute extends CollectionRoute {
     return [...new Set([...SchemaUtils.getPrimaryKeys(schema), ...writable])];
   }
 
-  private static parseTargetTimestamp(context: Context): string {
+  private static parseAt(context: Context): string {
     const query = context.request.query as Record<string, unknown>;
-    const raw = query.timestamp?.toString();
+    const raw = query.at?.toString();
 
-    if (!raw) throw new ValidationError('Missing timestamp');
+    if (!raw) throw new ValidationError('Missing "at" query parameter');
 
     const timezone = query.timezone?.toString() || 'UTC';
 
@@ -205,7 +207,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       throw new ValidationError(
         instant.invalidReason === 'unsupported zone'
           ? `Invalid timezone: "${timezone}"`
-          : `Invalid date: "${raw}" (expected YYYY-MM-DD or YYYY-MM-DDTHH:mm)`,
+          : `Invalid date: "${raw}" (expected YYYY-MM-DD, YYYY-MM-DDTHH:mm, or an ISO 8601 instant)`,
       );
     }
 
@@ -217,6 +219,10 @@ export default class AuditTrailRoute extends CollectionRoute {
     timezone: string,
     boundary: 'start' | 'end',
   ): DateTime {
+    // An embedded offset already pins the instant — the request timezone and start/end boundary
+    // don't apply.
+    if (ISO_INSTANT.test(raw)) return DateTime.fromISO(raw, { setZone: true });
+
     if (DATE_ONLY.test(raw)) {
       const day = DateTime.fromISO(raw, { zone: timezone });
 
