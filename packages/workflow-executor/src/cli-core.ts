@@ -43,8 +43,6 @@ function parsePositiveIntEnv(name: string, raw: string | undefined): number | un
 function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
   if (!raw) return undefined;
 
-  // Accept any case (e.g. "info" from an env shared with other services) and
-  // normalize to the canonical Debug/Info/Warn/Error form before validating.
   const normalized = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
   const parsed = LOGGER_LEVEL_SCHEMA.safeParse(normalized);
 
