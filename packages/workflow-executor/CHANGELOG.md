@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.5.1...@forestadmin/workflow-executor@1.6.0) (2026-06-19)
+
+
+### Features
+
+* **workflow-executor:** optional database TLS via DATABASE_SSL ([#1685](https://github.com/ForestAdmin/agent-nodejs/issues/1685)) ([91870c7](https://github.com/ForestAdmin/agent-nodejs/commit/91870c7a4fbe1399ec6cdf611ba172f851be8f1d))
+
 ## @forestadmin/workflow-executor [1.5.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.5.0...@forestadmin/workflow-executor@1.5.1) (2026-06-19)
 
 
