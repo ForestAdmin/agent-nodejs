@@ -1,6 +1,26 @@
+import type { AuditStore } from './audit-trail/types';
 import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { IncomingMessage, ServerResponse } from 'http';
+
+export type AuditTrailConfig = {
+  /**
+   * Connection string of the database that will hold the audit log. May point to an empty database,
+   * the database already used by the agent, or a database that already contains the `forest`
+   * schema. The schema and table are created on the fly when missing.
+   */
+  connectionString: string;
+  /** Schema that namespaces Forest-owned tables. Defaults to `forest`. */
+  schema?: string;
+  /** Name of the audit table. Defaults to `audit_logs`. */
+  tableName?: string;
+  /**
+   * Field values to mask, keyed by collection name. A redacted field still produces an audit entry
+   * when it changes (so the change is recorded), but its value is replaced with a sentinel instead
+   * of being stored.
+   */
+  redact?: Record<string, string[]>;
+};
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
@@ -52,8 +72,21 @@ export type AgentOptions = {
    * @example 'http://localhost:4001'
    */
   workflowExecutorUrl?: string | null;
+  /**
+   * When set, the agent records every create/update/delete in the configured database and exposes
+   * `/_audit-trail/{collection}/:id` (per-record history) and `/_audit-trail/correlation*` routes.
+   */
+  auditTrail?: AuditTrailConfig | null;
 };
-export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
+
+/** Runtime shape of `auditTrail` once the validator has built the store from the config. */
+export type AuditTrailRuntime = AuditTrailConfig & { store: AuditStore };
+
+export type AgentOptionsWithDefaults = Readonly<
+  Required<Omit<AgentOptions, 'auditTrail'>> & {
+    auditTrail: AuditTrailRuntime | null;
+  }
+>;
 
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 
