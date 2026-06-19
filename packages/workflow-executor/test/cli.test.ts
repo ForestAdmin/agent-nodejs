@@ -154,6 +154,7 @@ describe('readEnvConfig', () => {
 
     expect(config.mode).toBe('database');
     expect(config.databaseUrl).toBe('postgres://u:p@localhost:5432/wfe');
+    expect(config.databaseSsl).toBe(false);
     expect(config.executorOptions).toEqual(
       expect.objectContaining({
         envSecret: 'env-secret',
@@ -161,6 +162,23 @@ describe('readEnvConfig', () => {
         agentUrl: 'http://localhost:3351',
         httpPort: DEFAULT_HTTP_PORT,
       }),
+    );
+  });
+
+  it.each(['true', 'TRUE', 'True', '1', 'yes', 'on'])(
+    'parses DATABASE_SSL=%s as enabled',
+    value => {
+      expect(readEnvConfig({ ...baseEnv, DATABASE_SSL: value }, args).databaseSsl).toBe(true);
+    },
+  );
+
+  it.each(['false', '0', 'no', 'off', ''])('parses DATABASE_SSL=%s as disabled', value => {
+    expect(readEnvConfig({ ...baseEnv, DATABASE_SSL: value }, args).databaseSsl).toBe(false);
+  });
+
+  it('throws ConfigurationError on a non-boolean DATABASE_SSL', () => {
+    expect(() => readEnvConfig({ ...baseEnv, DATABASE_SSL: 'enabled' }, args)).toThrow(
+      'DATABASE_SSL must be a boolean (true/false); got "enabled"',
     );
   });
 
@@ -407,6 +425,7 @@ describe('logStartup', () => {
 
     logStartup(logger as never, {
       mode: 'database',
+      databaseSsl: false,
       executorOptions: {
         envSecret: 'e',
         authSecret: 'a',
@@ -422,6 +441,27 @@ describe('logStartup', () => {
         forestServerUrl: DEFAULT_FOREST_SERVER_URL,
         pollingIntervalS: DEFAULT_POLLING_INTERVAL_S,
       }),
+    );
+  });
+
+  it('reports the database TLS state in database mode', () => {
+    const logger = makeLogger();
+
+    logStartup(logger as never, {
+      mode: 'database',
+      databaseSsl: true,
+      executorOptions: {
+        envSecret: 'e',
+        authSecret: 'a',
+        agentUrl: 'http://agent',
+        httpPort: DEFAULT_HTTP_PORT,
+      },
+    });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      'Workflow executor starting',
+      expect.objectContaining({ databaseSsl: true }),
     );
   });
 });
@@ -484,6 +524,28 @@ describe('runCli', () => {
     );
     expect(factories.buildInMemory).not.toHaveBeenCalled();
     expect(executor.start).toHaveBeenCalled();
+  });
+
+  it('enables TLS (no cert verification) on the database when DATABASE_SSL=true', async () => {
+    const { factories } = makeFactories();
+    await runCli([], { ...baseEnv, DATABASE_SSL: 'true' }, factories);
+
+    expect(factories.buildDatabase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        database: {
+          uri: 'postgres://u:p@localhost:5432/wfe',
+          dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+        },
+      }),
+    );
+  });
+
+  it('does not configure database TLS when DATABASE_SSL is unset', async () => {
+    const { factories } = makeFactories();
+    await runCli([], baseEnv, factories);
+
+    const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
+    expect(call.database).toEqual({ uri: 'postgres://u:p@localhost:5432/wfe' });
   });
 
   it('injects a JSON logger into executorOptions when --json is set', async () => {

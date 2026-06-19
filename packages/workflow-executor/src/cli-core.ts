@@ -55,6 +55,19 @@ function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
   return parsed.data;
 }
 
+const TRUTHY = ['true', '1', 'yes', 'on'];
+const FALSY = ['false', '0', 'no', 'off'];
+
+function parseBooleanEnv(name: string, raw: string | undefined): boolean {
+  if (!raw) return false;
+
+  const value = raw.trim().toLowerCase();
+  if (TRUTHY.includes(value)) return true;
+  if (FALSY.includes(value)) return false;
+
+  throw new ConfigurationError(`${name} must be a boolean (true/false); got "${raw}"`);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { version } = require('../package.json') as { version: string };
 
@@ -71,6 +84,7 @@ export interface CliArgs {
 export interface CliConfig {
   executorOptions: ExecutorOptions;
   databaseUrl?: string;
+  databaseSsl: boolean;
   mode: 'in-memory' | 'database';
 }
 
@@ -192,6 +206,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
   return {
     executorOptions,
     databaseUrl: env.DATABASE_URL,
+    databaseSsl: parseBooleanEnv('DATABASE_SSL', env.DATABASE_SSL),
     mode: args.inMemory ? 'in-memory' : 'database',
   };
 }
@@ -215,6 +230,7 @@ Required environment variables:
   DATABASE_URL        Postgres connection string (not needed with --in-memory)
 
 Optional environment variables:
+  DATABASE_SSL          Set to "true" to connect to the database over TLS (managed DBs like RDS)
   HTTP_PORT              Default: ${DEFAULT_HTTP_PORT}
   FOREST_SERVER_URL      Default: ${DEFAULT_FOREST_SERVER_URL}
   POLLING_INTERVAL_S    Default: ${DEFAULT_POLLING_INTERVAL_S}
@@ -241,7 +257,7 @@ export function printVersion(): void {
 }
 
 export function logStartup(logger: Logger, config: CliConfig): void {
-  const { executorOptions: opts, mode } = config;
+  const { executorOptions: opts, mode, databaseSsl } = config;
   let aiLabel: string;
 
   if (opts.forceAiError) {
@@ -254,6 +270,7 @@ export function logStartup(logger: Logger, config: CliConfig): void {
 
   logger('Info', 'Workflow executor starting', {
     mode,
+    databaseSsl: mode === 'database' ? databaseSsl : undefined,
     forestServerUrl: opts.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL,
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,
@@ -296,7 +313,12 @@ export async function runCli(
     } else {
       const databaseOptions: DatabaseExecutorOptions = {
         ...config.executorOptions,
-        database: { uri: config.databaseUrl as string },
+        database: {
+          uri: config.databaseUrl as string,
+          ...(config.databaseSsl && {
+            dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+          }),
+        },
       };
       executor = factories.buildDatabase(databaseOptions);
     }
