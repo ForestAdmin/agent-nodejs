@@ -509,6 +509,28 @@ describe('QueryStringParser', () => {
       expect(fn).toThrow('Missing timezone');
     });
 
+    test('falls back to the provided defaultTimezone when the timezone is missing', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: {} },
+      });
+
+      expect(QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' })).toEqual(
+        expect.objectContaining({ timezone: 'UTC' }),
+      );
+    });
+
+    test('keeps the request timezone when both query and defaultTimezone are set', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+      });
+
+      expect(QueryStringParser.parseCaller(context, { defaultTimezone: 'UTC' })).toEqual(
+        expect.objectContaining({ timezone: 'America/Los_Angeles' }),
+      );
+    });
+
     test('should throw a ValidationError when the timezone is invalid', () => {
       const context = createMockContext({
         customProperties: { query: { timezone: 'ThisTZ/Donotexist' } },

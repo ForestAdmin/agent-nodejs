@@ -331,7 +331,7 @@ describe('AuditTrailRoute', () => {
     });
 
     await expect(route.handleHistory(context)).rejects.toThrow(
-      'Invalid date: "17-06-2026" (expected YYYY-MM-DD or YYYY-MM-DDTHH:mm)',
+      'Invalid date: "17-06-2026" (expected YYYY-MM-DD, YYYY-MM-DDTHH:mm, or an ISO 8601 instant)',
     );
     expect(store.listByRecord).not.toHaveBeenCalled();
   });
@@ -441,7 +441,7 @@ describe('AuditTrailRoute', () => {
     });
 
     await expect(route.handleHistory(context)).rejects.toThrow(
-      'Invalid date: "2026-06-18T11" (expected YYYY-MM-DD or YYYY-MM-DDTHH:mm)',
+      'Invalid date: "2026-06-18T11" (expected YYYY-MM-DD, YYYY-MM-DDTHH:mm, or an ISO 8601 instant)',
     );
     expect(store.listByRecord).not.toHaveBeenCalled();
   });
@@ -493,7 +493,7 @@ describe('AuditTrailRoute', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'Europe/Paris', timestamp: '2026-06-18T12:00' },
+          query: { timezone: 'Europe/Paris', at: '2026-06-18T12:00' },
           params: { id: '2' },
         },
       });
@@ -508,7 +508,7 @@ describe('AuditTrailRoute', () => {
       });
     });
 
-    test('rejects a missing timestamp', async () => {
+    test('rejects a missing "at" query parameter', async () => {
       const { dataSource, route } = setupBooks();
       jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
       const context = createMockContext({
@@ -516,23 +516,69 @@ describe('AuditTrailRoute', () => {
         customProperties: { query: { timezone: 'Europe/Paris' }, params: { id: '2' } },
       });
 
-      await expect(route.handleStateAt(context)).rejects.toThrow('Missing timestamp');
+      await expect(route.handleStateAt(context)).rejects.toThrow('Missing "at" query parameter');
     });
 
-    test('rejects a malformed timestamp', async () => {
+    test('rejects a malformed "at" value', async () => {
       const { dataSource, route } = setupBooks();
       jest.spyOn(dataSource.getCollection('books'), 'list').mockResolvedValue([]);
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'Europe/Paris', timestamp: '17-06-2026' },
+          query: { timezone: 'Europe/Paris', at: '17-06-2026' },
           params: { id: '2' },
         },
       });
 
       await expect(route.handleStateAt(context)).rejects.toThrow(
-        'Invalid date: "17-06-2026" (expected YYYY-MM-DD or YYYY-MM-DDTHH:mm)',
+        'Invalid date: "17-06-2026" (expected YYYY-MM-DD, YYYY-MM-DDTHH:mm, or an ISO 8601 instant)',
       );
+    });
+
+    test('does not require a timezone query param when the timestamp is an ISO 8601 instant', async () => {
+      const { dataSource, store, route } = setupBooks([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { at: '2026-06-18T14:26:06.545Z' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(store.listByRecord).toHaveBeenCalledWith({
+        collection: 'books',
+        recordId: '2',
+        startTimestamp: '2026-06-18T14:26:06.545Z',
+        order: 'desc',
+      });
+    });
+
+    test('accepts an ISO 8601 instant and ignores the request timezone for it', async () => {
+      const { dataSource, store, route } = setupBooks([]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: 2, status: 'closed', name: 'Acme' }]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: {
+          query: { timezone: 'Europe/Paris', at: '2026-06-18T14:26:06.545Z' },
+          params: { id: '2' },
+        },
+      });
+
+      await route.handleStateAt(context);
+
+      expect(store.listByRecord).toHaveBeenCalledWith({
+        collection: 'books',
+        recordId: '2',
+        startTimestamp: '2026-06-18T14:26:06.545Z',
+        order: 'desc',
+      });
     });
 
     test('asserts the user can read the collection before returning state', async () => {
@@ -543,7 +589,7 @@ describe('AuditTrailRoute', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'Europe/Paris', timestamp: '2026-06-18' },
+          query: { timezone: 'Europe/Paris', at: '2026-06-18' },
           params: { id: '2' },
         },
       });
@@ -561,7 +607,7 @@ describe('AuditTrailRoute', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'Europe/Paris', timestamp: '2026-06-18' },
+          query: { timezone: 'Europe/Paris', at: '2026-06-18' },
           params: { id: '2' },
         },
       });
@@ -583,7 +629,7 @@ describe('AuditTrailRoute', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'UTC', timestamp: '2026-06-18T12:00' },
+          query: { timezone: 'UTC', at: '2026-06-18T12:00' },
           params: { id: '2' },
         },
       });
@@ -615,7 +661,7 @@ describe('AuditTrailRoute', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'UTC', timestamp: '2026-06-18' },
+          query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
         },
       });
@@ -633,7 +679,7 @@ describe('AuditTrailRoute', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'UTC', timestamp: '2026-06-18' },
+          query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
         },
       });
@@ -654,7 +700,7 @@ describe('AuditTrailRoute', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'UTC', timestamp: '2026-06-18' },
+          query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
         },
       });
@@ -677,7 +723,7 @@ describe('AuditTrailRoute', () => {
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         customProperties: {
-          query: { timezone: 'UTC', timestamp: '2026-06-18' },
+          query: { timezone: 'UTC', at: '2026-06-18' },
           params: { id: '2' },
         },
       });
