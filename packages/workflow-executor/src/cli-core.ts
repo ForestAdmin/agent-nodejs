@@ -43,7 +43,8 @@ function parsePositiveIntEnv(name: string, raw: string | undefined): number | un
 function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
   if (!raw) return undefined;
 
-  const parsed = LOGGER_LEVEL_SCHEMA.safeParse(raw);
+  const normalized = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  const parsed = LOGGER_LEVEL_SCHEMA.safeParse(normalized);
 
   if (!parsed.success) {
     throw new ConfigurationError(
