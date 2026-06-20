@@ -3,6 +3,7 @@ import type { AgentOptionsWithDefaults } from '../../types';
 import type KoaRouter from '@koa/router';
 import type { Context } from 'koa';
 
+import { InternalServerError } from '@forestadmin/datasource-toolkit';
 import { request as httpRequest } from 'http';
 import { request as httpsRequest } from 'https';
 
@@ -16,12 +17,14 @@ type ForwardedHeaders = {
 
 export default class WorkflowExecutorProxyRoute extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
-  private readonly executorUrl: URL;
+  private readonly executorUrl: URL | null;
 
   constructor(services: ForestAdminHttpDriverServices, options: AgentOptionsWithDefaults) {
     super(services, options);
     // Remove trailing slash for clean URL joining
-    this.executorUrl = new URL(options.workflowExecutorUrl.replace(/\/+$/, ''));
+    this.executorUrl = options.workflowExecutorUrl
+      ? new URL(options.workflowExecutorUrl.replace(/\/+$/, ''))
+      : null;
   }
 
   setupRoutes(router: KoaRouter): void {
@@ -30,6 +33,12 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
   }
 
   private async handleProxy(context: Context): Promise<void> {
+    if (!this.executorUrl) {
+      throw new InternalServerError(
+        'The workflow executor is not configured on this agent: the `workflowExecutorUrl` option is missing.',
+      );
+    }
+
     const { runId } = context.params;
     const isTrigger = context.method === 'POST';
     const qs = context.querystring ? `?${context.querystring}` : '';

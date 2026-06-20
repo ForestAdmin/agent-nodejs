@@ -68,8 +68,12 @@ describe('Route index', () => {
     expect(NATIVE_QUERY_ROUTES_CTOR).toEqual([DataSourceNativeQueryRoute]);
   });
 
+  const WORKFLOW_EXECUTOR_ROUTE_SIZE = 1;
   const BASE_ROUTE_SIZE =
-    ROOT_ROUTES_CTOR.length + CAPABILITIES_ROUTES_CTOR.length + NATIVE_QUERY_ROUTES_CTOR.length;
+    ROOT_ROUTES_CTOR.length +
+    CAPABILITIES_ROUTES_CTOR.length +
+    NATIVE_QUERY_ROUTES_CTOR.length +
+    WORKFLOW_EXECUTOR_ROUTE_SIZE;
 
   describe('makeRoutes', () => {
     describe('when a data source without relations', () => {
