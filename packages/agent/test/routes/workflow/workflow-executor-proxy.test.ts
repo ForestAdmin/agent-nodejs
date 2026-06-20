@@ -73,6 +73,16 @@ describe('WorkflowExecutorProxyRoute', () => {
 
       expect(route.type).toBe(RouteType.PrivateRoute);
     });
+
+    test('should not throw when workflowExecutorUrl is not configured', () => {
+      expect(
+        () =>
+          new WorkflowExecutorProxyRoute(
+            services,
+            factories.forestAdminHttpDriverOptions.build({ workflowExecutorUrl: null }),
+          ),
+      ).not.toThrow();
+    });
   });
 
   describe('setupRoutes', () => {
@@ -222,6 +232,24 @@ describe('WorkflowExecutorProxyRoute', () => {
       await expect(
         (route as unknown as { handleProxy: (ctx: unknown) => Promise<void> }).handleProxy(context),
       ).rejects.toThrow();
+    });
+
+    test('should throw an explicit error when workflowExecutorUrl is not configured', async () => {
+      const route = new WorkflowExecutorProxyRoute(
+        services,
+        factories.forestAdminHttpDriverOptions.build({ workflowExecutorUrl: null }),
+      );
+
+      const context = createMockContext({
+        customProperties: { params: { runId: 'run-123' } },
+      });
+      Object.defineProperty(context, 'url', {
+        value: '/_internal/workflow-executions/run-123',
+      });
+
+      await expect(
+        (route as unknown as { handleProxy: (ctx: unknown) => Promise<void> }).handleProxy(context),
+      ).rejects.toThrow('The workflow executor is not configured on this agent');
     });
 
     test('should forward query params to the executor', async () => {

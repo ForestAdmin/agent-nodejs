@@ -174,8 +174,8 @@ function getAiRoutes(options: Options, services: Services, aiRouter: AiRouter | 
 }
 
 function getWorkflowExecutorRoutes(options: Options, services: Services): BaseRoute[] {
-  if (!options.workflowExecutorUrl) return [];
-
+  // Always mount the route so that hitting it without `workflowExecutorUrl` configured
+  // returns an explicit error to the client instead of a bare 404.
   return [new WorkflowExecutorProxyRoute(services, options)];
 }
 
