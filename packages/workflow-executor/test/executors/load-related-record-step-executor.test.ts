@@ -3635,7 +3635,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
           agentPort: makeMockAgentPort([
             makeRelatedRecordData({ collectionName: 'customers', recordId: [7], values: {} }),
           ]),
-          workflowPort: makeMockWorkflowPort({ customers: makeCollectionSchema(), orders: ordersSchema }),
+          workflowPort: makeMockWorkflowPort({
+            customers: makeCollectionSchema(),
+            orders: ordersSchema,
+          }),
           previousSteps: [makeLoadRelatedPreviousStep(1)],
           stepDefinition: makeStep({
             executionType: StepExecutionMode.FullyAutomated,
