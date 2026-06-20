@@ -14,7 +14,11 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import LoadRelatedRecordStepExecutor from '../../src/executors/load-related-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
-import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
+import {
+  StepExecutionMode,
+  StepType,
+  WORKFLOW_START_STEP_ID,
+} from '../../src/types/validated/step-definition';
 
 function makeStep(
   overrides: Partial<LoadRelatedRecordStepDefinition> = {},
@@ -257,7 +261,11 @@ function makePendingExecution(
   };
 }
 
-function makeLoadRelatedPreviousStep(stepIndex: number, originalStepIndex?: number): Step {
+function makeLoadRelatedPreviousStep(
+  stepIndex: number,
+  originalStepIndex?: number,
+  stepId = `load-${stepIndex}`,
+): Step {
   return {
     stepDefinition: {
       type: StepType.LoadRelatedRecord,
@@ -266,7 +274,7 @@ function makeLoadRelatedPreviousStep(stepIndex: number, originalStepIndex?: numb
     },
     stepOutcome: {
       type: 'record',
-      stepId: `load-${stepIndex}`,
+      stepId,
       stepIndex,
       status: 'success',
     },
@@ -3322,7 +3330,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    it('pins the source record via selectedRecordStepIndex (among several records)', async () => {
+    it('pins the source record via selectedRecordStepId (among several records)', async () => {
       // Base customers #42 (step 0) + a loaded order #99 (step 1) are both available;
       // pinning step 1 must make the relation follow the ORDER, not the base customer.
       const loadedOrder: RecordRef = { collectionName: 'orders', recordId: [99], stepIndex: 1 };
@@ -3367,7 +3375,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
         previousSteps: [makeLoadRelatedPreviousStep(1)],
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { selectedRecordStepIndex: 1, relationName: 'customer' },
+          preRecordedArgs: { selectedRecordStepId: 'load-1', relationName: 'customer' },
         }),
       });
 
@@ -3389,10 +3397,32 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    it('resolves selectedRecordStepIndex via originalStepIndex after a revise (revise-safe)', async () => {
-      // After a revise, the source step is a clone at a shifted own index (4) whose execution is
-      // persisted at that own index, while the editor reference still points at the original index
-      // (1). A strict own-index match would report "no source record"; the fallback must resolve it.
+    it('resolves the WORKFLOW_START_STEP_ID sentinel to the base (trigger) record', async () => {
+      const agentPort = makeMockAgentPort();
+      const { model, bindTools } = makeMockModel();
+      const context = makeContext({
+        model,
+        agentPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: WORKFLOW_START_STEP_ID, relationName: 'order' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(bindTools).not.toHaveBeenCalled();
+      // Followed the 'order' relation off the base customer record, not a previous step.
+      expect(agentPort.getSingleRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', relation: 'order' }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('resolves selectedRecordStepId after a revise shifts the index (revise-safe)', async () => {
+      // After a revise, the source step is a clone at a shifted index (4) but keeps its stable
+      // step id ('load-1') — what the editor referenced. Resolving by id ignores the index shift.
       const loadedOrder: RecordRef = { collectionName: 'orders', recordId: [99], stepIndex: 4 };
       const ordersSchema = makeCollectionSchema({
         collectionName: 'orders',
@@ -3432,10 +3462,10 @@ describe('LoadRelatedRecordStepExecutor', () => {
           customers: makeCollectionSchema(),
           orders: ordersSchema,
         }),
-        previousSteps: [makeLoadRelatedPreviousStep(4, 1)],
+        previousSteps: [makeLoadRelatedPreviousStep(4, 1, 'load-1')],
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { selectedRecordStepIndex: 1, relationName: 'customer' },
+          preRecordedArgs: { selectedRecordStepId: 'load-1', relationName: 'customer' },
         }),
       });
 
@@ -3448,11 +3478,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    it('errors with the pre-recorded-args message when selectedRecordStepIndex matches no record', async () => {
+    it('errors with the pre-recorded-args message when selectedRecordStepId matches no record', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
-          preRecordedArgs: { selectedRecordStepIndex: 99 },
+          preRecordedArgs: { selectedRecordStepId: 'load-missing' },
         }),
       });
 

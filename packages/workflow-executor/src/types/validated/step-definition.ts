@@ -97,14 +97,22 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
     .catch(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
-      /** "Related to" — the source record, by step index */
-      selectedRecordStepIndex: z.number().int().optional(),
+      /**
+       * "Related to" — the source record, referenced by the stable BPMN step id of the previous
+       * Load Related Record step that loaded it, or WORKFLOW_START_STEP_ID for the trigger record.
+       * Stable across revisions (clones keep the id) and known at build time (unlike the runtime
+       * stepIndex), so the editor can write it deterministically.
+       */
+      selectedRecordStepId: z.string().optional(),
       /** "From collection" — the relation to follow (technical name) */
       relationName: z.string().optional(),
     })
     .optional(),
 });
 export type LoadRelatedRecordStepDefinition = z.infer<typeof LoadRelatedRecordStepDefinitionSchema>;
+
+/** Sentinel "Related to" reference for the record the workflow was triggered on (the base record). */
+export const WORKFLOW_START_STEP_ID = 'workflow-start';
 
 export const McpStepDefinitionSchema = z.object({
   ...sharedFields,
