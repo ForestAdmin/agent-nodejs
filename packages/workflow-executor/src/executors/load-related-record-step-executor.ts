@@ -562,6 +562,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       relation: target.name,
       relatedSchema,
       limit,
+      // 1–n only: the build-time filter (PRD-553) narrows the candidate list. xToOne goes through
+      // fetchXToOneCandidate (no list to filter), so it never reaches here.
+      filters: this.context.stepDefinition.preRecordedArgs?.filters,
     });
   }
 

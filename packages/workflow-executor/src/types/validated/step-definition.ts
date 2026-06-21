@@ -106,6 +106,12 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
       selectedRecordStepId: z.string().optional(),
       /** "From collection" — the relation to follow (technical name) */
       relationName: z.string().optional(),
+      /**
+       * Build-time filter narrowing the candidate records on a 1–n relation (PRD-553). Forest's
+       * plain conditionTree, forwarded verbatim to the agent (which validates it at query time) —
+       * kept loose here since it's trusted build config, not executor-validated input.
+       */
+      filters: z.unknown().optional(),
     })
     .optional(),
 });

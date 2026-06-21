@@ -11,7 +11,7 @@ import type {
 import type SchemaCache from '../schema-cache';
 import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
-import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
+import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
 
 import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
@@ -109,7 +109,7 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async getRelatedData(
-    { collection, id, relation, relatedSchema, limit, fields }: GetRelatedDataQuery,
+    { collection, id, relation, relatedSchema, limit, fields, filters }: GetRelatedDataQuery,
     user: StepUser,
   ): Promise<RecordData[]> {
     return this.callAgent('getRelatedData', async () => {
@@ -120,6 +120,8 @@ export default class AgentClientAgentPort implements AgentPort {
         .list<Record<string, unknown>>({
           ...(limit !== null && { pagination: { size: limit, number: 1 } }),
           ...(fields?.length && { fields }),
+          // Trusted build-time conditionTree (PRD-553); the agent validates it at query time.
+          ...(filters !== undefined && { filters: filters as SelectOptions['filters'] }),
         });
 
       return rows.map(row => {
