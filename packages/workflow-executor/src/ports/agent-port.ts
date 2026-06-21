@@ -38,7 +38,44 @@ export type GetSingleRelatedDataQuery = {
   fields?: string[];
 };
 
-export type ExecuteActionQuery = { collection: string; action: string; id?: Id[] };
+export type ExecuteActionQuery = {
+  collection: string;
+  action: string;
+  id?: Id[];
+  // Pre-filled form values (PRD-509). Set on the form before execution, going through the agent's
+  // normal server-side validation — no bypass. Omitted for formless actions.
+  values?: Record<string, unknown>;
+};
+
+export type GetActionFormQuery = {
+  collection: string;
+  action: string;
+  id: Id[];
+  // Optional values to apply before reading the form back (fires the change hooks so dependent
+  // fields appear/update). Soft-applied: unknown fields are reported in `skippedFields`.
+  values?: Record<string, unknown>;
+};
+
+// One field of an action form, flattened for the executor/AI (PRD-509). Mirrors the MCP
+// get-action-form tool's field shape.
+export type ActionFormField = {
+  name: string;
+  type: string;
+  value?: unknown;
+  isRequired: boolean;
+  // Allowed values for an Enum field — the AI must pick one of these or leave the field empty.
+  enumValues?: string[];
+};
+
+export type ActionForm = {
+  fields: ActionFormField[];
+  // True when every required field has a value (the agent-client form state's completeness check).
+  canExecute: boolean;
+  // Required fields still missing a value (empty when canExecute is true).
+  requiredFields: string[];
+  // Fields from `values` that no longer exist in the form (dropped by dynamic-form change hooks).
+  skippedFields: string[];
+};
 
 export type GetActionFormInfoQuery = { collection: string; action: string; id: Id[] };
 
@@ -63,6 +100,9 @@ export interface AgentPort {
   // Old Ruby agents with hooks.load=false return 404; agent-client falls back to the fields
   // passed via ActionEndpointsByCollection (populated from the orchestrator's schema).
   getActionFormInfo(query: GetActionFormInfoQuery, user: StepUser): Promise<{ hasForm: boolean }>;
+  // Full form structure for AI form-filling (PRD-509): field list (types, required, enum options),
+  // completeness (canExecute / requiredFields), and any values dropped by change hooks.
+  getActionForm(query: GetActionFormQuery, user: StepUser): Promise<ActionForm>;
   // Startup healthcheck. Throws AgentProbeError on network error, timeout, or non-2xx.
   // JWT is not verified here — it's validated naturally when the first step runs.
   probe(): Promise<void>;
