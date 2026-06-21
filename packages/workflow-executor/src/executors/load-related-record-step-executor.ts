@@ -21,6 +21,7 @@ import {
   NoRelationshipFieldsError,
   RelatedRecordNotFoundError,
   RelationNotFoundError,
+  SourceRecordMissingError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
@@ -218,6 +219,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       ) {
         return execution.executionResult.record;
       }
+
+      // The source step exists but loaded nothing → clear "no source record" message (PRD-550),
+      // distinct from a config pointing at a non-existent step.
+      throw new SourceRecordMissingError(sourceStep.stepDefinition.title);
     }
 
     throw new InvalidPreRecordedArgsError(`No source record found for step "${stepId}"`);
