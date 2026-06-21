@@ -4,7 +4,13 @@ import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-clien
 import jsonwebtoken from 'jsonwebtoken';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
-import { AgentPortError, AgentProbeError, RecordNotFoundError } from '../../src/errors';
+import {
+  ActionFormValidationError,
+  ActionRequiresApprovalError,
+  AgentPortError,
+  AgentProbeError,
+  RecordNotFoundError,
+} from '../../src/errors';
 import SchemaCache from '../../src/schema-cache';
 
 jest.mock('@forestadmin/agent-client', () => ({
@@ -20,7 +26,13 @@ const mockedIs404Error = HttpRequester.is404Error as jest.MockedFunction<
 >;
 
 function createMockClient() {
-  const mockAction = { execute: jest.fn(), getFields: jest.fn().mockReturnValue([]) };
+  const mockAction = {
+    execute: jest.fn(),
+    getFields: jest.fn().mockReturnValue([]),
+    setFields: jest.fn().mockResolvedValue(undefined),
+    tryToSetFields: jest.fn().mockResolvedValue([]),
+    getEnumField: jest.fn(),
+  };
   const mockRelation = { list: jest.fn() };
   const mockCollection = {
     list: jest.fn(),
@@ -722,6 +734,136 @@ describe('AgentClientAgentPort', () => {
       await expect(
         port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, user),
       ).rejects.toThrow('Action failed');
+    });
+
+    it('sets pre-filled values (strict) before executing (PRD-509)', async () => {
+      mockAction.execute.mockResolvedValue({ success: 'done' });
+
+      await port.executeAction(
+        { collection: 'users', action: 'refund', id: [1], values: { amount: 50 } },
+        user,
+      );
+
+      expect(mockAction.setFields).toHaveBeenCalledWith({ amount: 50 });
+      expect(mockAction.execute).toHaveBeenCalled();
+    });
+
+    it('maps a setFields failure (unknown field) to ActionFormValidationError', async () => {
+      mockAction.setFields.mockRejectedValue(new Error('Field "x" does not exist in this form'));
+
+      await expect(
+        port.executeAction(
+          { collection: 'users', action: 'refund', id: [1], values: { x: 1 } },
+          user,
+        ),
+      ).rejects.toBeInstanceOf(ActionFormValidationError);
+      expect(mockAction.execute).not.toHaveBeenCalled();
+    });
+
+    it('maps an approval-403 to ActionRequiresApprovalError with the allowed roles (PRD-509)', async () => {
+      mockAction.execute.mockRejectedValue(
+        new Error(
+          JSON.stringify({
+            error: {
+              status: 403,
+              text: JSON.stringify({
+                errors: [
+                  {
+                    name: 'CustomActionRequiresApprovalError',
+                    data: { roleIdsAllowedToApprove: [7, 9] },
+                  },
+                ],
+              }),
+            },
+            body: null,
+          }),
+        ),
+      );
+
+      const error = await port
+        .executeAction({ collection: 'users', action: 'refund', id: [1] }, user)
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ActionRequiresApprovalError);
+      expect((error as ActionRequiresApprovalError).roleIdsAllowedToApprove).toEqual([7, 9]);
+    });
+
+    it('maps a 422 validation rejection to ActionFormValidationError', async () => {
+      mockAction.execute.mockRejectedValue(
+        new Error(JSON.stringify({ error: { status: 422, text: 'invalid' }, body: null })),
+      );
+
+      await expect(
+        port.executeAction({ collection: 'users', action: 'refund', id: [1] }, user),
+      ).rejects.toBeInstanceOf(ActionFormValidationError);
+    });
+
+    it('leaves a plain permission 403 as a generic AgentPortError (step error, not a fallback)', async () => {
+      mockAction.execute.mockRejectedValue(
+        new Error(JSON.stringify({ error: { status: 403, text: 'Forbidden' }, body: null })),
+      );
+
+      await expect(
+        port.executeAction({ collection: 'users', action: 'refund', id: [1] }, user),
+      ).rejects.toBeInstanceOf(AgentPortError);
+    });
+  });
+
+  describe('getActionForm', () => {
+    function makeField(over: { name: string; type?: string; value?: unknown; required?: boolean }) {
+      return {
+        getName: () => over.name,
+        getType: () => over.type ?? 'String',
+        getValue: () => over.value,
+        isRequired: () => over.required ?? false,
+      };
+    }
+
+    it('returns the field list, completeness and skipped fields (PRD-509)', async () => {
+      mockAction.tryToSetFields.mockResolvedValue(['ghost']);
+      mockAction.getFields.mockReturnValue([
+        makeField({ name: 'amount', type: 'Number', value: 50, required: true }),
+        makeField({ name: 'reason', type: 'String', required: true }),
+        makeField({ name: 'tier', type: 'Enum', value: 'gold', required: false }),
+      ]);
+      mockAction.getEnumField.mockReturnValue({ getOptions: () => ['gold', 'silver'] });
+
+      const form = await port.getActionForm(
+        { collection: 'users', action: 'refund', id: [1], values: { amount: 50, ghost: 1 } },
+        user,
+      );
+
+      expect(mockAction.tryToSetFields).toHaveBeenCalledWith({ amount: 50, ghost: 1 });
+      expect(form.fields).toEqual([
+        { name: 'amount', type: 'Number', value: 50, isRequired: true },
+        { name: 'reason', type: 'String', value: undefined, isRequired: true },
+        {
+          name: 'tier',
+          type: 'Enum',
+          value: 'gold',
+          isRequired: false,
+          enumValues: ['gold', 'silver'],
+        },
+      ]);
+      // 'reason' is required and empty → not executable yet; 'ghost' was dropped by the form.
+      expect(form.canExecute).toBe(false);
+      expect(form.requiredFields).toEqual(['reason']);
+      expect(form.skippedFields).toEqual(['ghost']);
+    });
+
+    it('reports canExecute true when all required fields have values', async () => {
+      mockAction.getFields.mockReturnValue([
+        makeField({ name: 'amount', type: 'Number', value: 50, required: true }),
+      ]);
+
+      const form = await port.getActionForm(
+        { collection: 'users', action: 'refund', id: [1] },
+        user,
+      );
+
+      expect(form.canExecute).toBe(true);
+      expect(form.requiredFields).toEqual([]);
+      expect(mockAction.tryToSetFields).not.toHaveBeenCalled();
     });
   });
 
