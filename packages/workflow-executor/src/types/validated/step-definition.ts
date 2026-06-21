@@ -74,10 +74,12 @@ export type UpdateRecordStepDefinition = z.infer<typeof UpdateRecordStepDefiniti
 export const TriggerActionStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.TriggerAction),
+  // PRD-511: a form-bearing action can be Manual (pause, no AI prefill), AI-assisted
+  // (AutomatedWithConfirmation) or Full AI (FullyAutomated). NO `.catch` — coercing a `manual`
+  // value to AutomatedWithConfirmation would silently opt the builder back into AI prefill.
   executionType: z
-    .enum([AutomatedWithConfirmation, FullyAutomated])
-    .default(AutomatedWithConfirmation)
-    .catch(AutomatedWithConfirmation),
+    .enum([Manual, AutomatedWithConfirmation, FullyAutomated])
+    .default(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
       /**
