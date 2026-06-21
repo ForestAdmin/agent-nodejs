@@ -226,8 +226,17 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
     // Drop any value whose field no longer exists after the hooks (state drift) — fail-safe.
     const finalFieldNames = new Set(form.fields.map(f => f.name));
+    const aiFilledValues = ordered.filter(v => finalFieldNames.has(v.field));
 
-    return { aiFilledValues: ordered.filter(v => finalFieldNames.has(v.field)), form };
+    // Debug trace for support: the net field values actually retained (after drop-stale) + whether
+    // the form is now complete enough to submit. Off by default (Debug level). Client-side log only.
+    this.context.logger('Debug', 'AI form-fill: final values', {
+      ...this.logCtx,
+      aiFilledValues,
+      canExecute: form.canExecute,
+    });
+
+    return { aiFilledValues, form };
   }
 
   // One AI fill pass: present the current form fields and ask the AI for values it's confident
@@ -262,18 +271,43 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       func: undefined,
     });
 
+    const contextMessage = this.buildContextMessage();
+    const previousStepsMessages = await this.buildPreviousStepsMessages();
     const messages = [
-      this.buildContextMessage(),
-      ...(await this.buildPreviousStepsMessages()),
+      contextMessage,
+      ...previousStepsMessages,
       new SystemMessage(FILL_FORM_SYSTEM_PROMPT),
       new SystemMessage(`Action form fields:\n${fieldLines}`),
       new HumanMessage(`**Request**: ${step.prompt ?? 'Fill the action form.'}`),
     ];
 
+    // Debug trace for support: the inputs the AI fill works from. Off by default (Debug level); a
+    // client turns it on with LOG_LEVEL=Debug to diagnose an under-/mis-filled form. Logged before
+    // the call so it's available even if the AI invocation fails. Client-side log only.
+    // Only the non-redundant parts: the request (instruction), the fields as structured rows, and
+    // the workflow context (record + previous steps) — the static fill rules aren't logged.
+    this.context.logger('Debug', 'AI form-fill: context', {
+      ...this.logCtx,
+      request: step.prompt ?? null,
+      fields: form.fields.map(field => ({
+        name: field.name,
+        type: field.type,
+        required: field.isRequired,
+        current: field.value,
+        ...(field.enumValues?.length ? { allowed: field.enumValues } : {}),
+      })),
+      workflowContext: [contextMessage, ...previousStepsMessages].map(message => message.content),
+    });
+
     const { values } = await this.invokeWithTool<{ values?: Record<string, unknown> }>(
       messages,
       tool,
     );
+
+    this.context.logger('Debug', 'AI form-fill: values returned by the AI', {
+      ...this.logCtx,
+      values: values ?? {},
+    });
 
     return values ?? {};
   }
