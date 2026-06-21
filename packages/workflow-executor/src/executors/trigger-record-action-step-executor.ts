@@ -12,10 +12,11 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import {
+  ActionFormValidationError,
   ActionNotFoundError,
+  ActionRequiresApprovalError,
   NoActionsError,
   StepStateError,
-  UnsupportedActionFormError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
@@ -145,20 +146,42 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       return this.pauseForConfirmation(target, { fields: form.fields, aiFilledValues: [] });
     }
 
-    // Full AI on a form is implemented in PRD-512 (fill + submit). Until then, unsupported.
-    if (step.executionType === StepExecutionMode.FullyAutomated) {
-      throw new UnsupportedActionFormError(target.displayName);
-    }
-
-    // AI-assisted (PRD-511): AI pre-fills what it can from the workflow context, then pause for
-    // the user to review/edit/submit natively.
+    // AI-assisted + Full AI share the same fill loop; only the exit differs.
     const { aiFilledValues, form: filledForm } = await this.fillFormWithAi(
       selectedRecordRef,
       target.name,
       form,
     );
+    const reviewState = { fields: filledForm.fields, aiFilledValues };
 
-    return this.pauseForConfirmation(target, { fields: filledForm.fields, aiFilledValues });
+    // AI-assisted (PRD-511): pause for the user to review/edit/submit natively.
+    if (step.executionType !== StepExecutionMode.FullyAutomated) {
+      return this.pauseForConfirmation(target, reviewState);
+    }
+
+    // Full AI (PRD-512): submit if the AI filled every required field; otherwise fall back to the
+    // exact AI-assisted review state, carrying what was filled.
+    if (!filledForm.canExecute) {
+      return this.pauseForConfirmation(target, reviewState);
+    }
+
+    const values = Object.fromEntries(aiFilledValues.map(v => [v.field, v.value]));
+
+    try {
+      return await this.executeOnExecutor(target, { values, aiFilledValues });
+    } catch (error) {
+      // Validation rejection or an approval-gated action → not a hard failure: pause as
+      // AI-assisted so a human can finish/submit natively. Plain permission 403, infra errors,
+      // etc. propagate as a real step error (a reviewing human couldn't fix those).
+      if (
+        error instanceof ActionFormValidationError ||
+        error instanceof ActionRequiresApprovalError
+      ) {
+        return this.pauseForConfirmation(target, reviewState);
+      }
+
+      throw error;
+    }
   }
 
   // Pause the step awaiting user confirmation. For form-bearing actions, `form` carries the native
@@ -313,7 +336,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   }
 
   /** Branch B — executor runs the action via the audited agent, then persists the result. */
-  private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
+  private async executeOnExecutor(
+    target: ActionTarget,
+    // Form submission (Full AI, PRD-512): the AI-filled values to submit + the ordered prefill for
+    // the audit trail. Omitted for a formless action (executor just triggers it).
+    form?: { values: Record<string, unknown>; aiFilledValues: AiFilledFormValue[] },
+  ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
     const actionResult = await this.context.agent.executeAction(
@@ -321,6 +349,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         collection: selectedRecordRef.collectionName,
         action: name,
         id: selectedRecordRef.recordId,
+        ...(form && { values: form.values }),
       },
       {
         beforeCall: () =>
@@ -337,7 +366,16 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
-      executionResult: { success: true, actionResult },
+      executionResult: {
+        success: true,
+        actionResult,
+        // Form-bearing Full AI: record what the executor submitted (PRD-512/513).
+        ...(form && {
+          submissionOutcome: 'executed',
+          submittedValues: form.values,
+          ...(form.aiFilledValues.length && { aiFilledValues: form.aiFilledValues }),
+        }),
+      },
       selectedRecordRef,
       idempotencyPhase: 'done',
     });
