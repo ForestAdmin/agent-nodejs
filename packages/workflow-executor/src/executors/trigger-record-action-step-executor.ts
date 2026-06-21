@@ -28,13 +28,15 @@ Important rules:
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
 
-const FILL_FORM_SYSTEM_PROMPT = `You are filling out an action form using the data available in the workflow context.
+const FILL_FORM_SYSTEM_PROMPT = `You are filling out an action form using the user's request and the data available in the workflow context.
 
 Important rules:
-- Only fill a field when the workflow context gives you the value with confidence.
-- If you do not have the necessary context for a field, LEAVE IT OUT — never guess or assume.
+- The request is an explicit instruction. When it states a value for a field (e.g. "set the price to 35"), use that exact value — following an explicit instruction is NOT guessing.
+- Otherwise, fill a field only when the workflow context gives you the value with confidence.
+- A field's "current" value is just its existing default; override it when the request asks you to.
+- If neither the request nor the workflow context gives you a field's value, LEAVE IT OUT — never guess or assume.
 - For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
-- Do not invent identifiers, dates, amounts, or file contents.`;
+- Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.`;
 
 interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
