@@ -43,6 +43,10 @@ function makeMockAgentPort(): AgentPort {
     getRelatedData: jest.fn(),
     executeAction: jest.fn().mockResolvedValue(undefined),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
+    // Default: a formless action (no fields) — matches the pre-PRD-511 behavior of most tests.
+    getActionForm: jest
+      .fn()
+      .mockResolvedValue({ fields: [], canExecute: true, requiredFields: [], skippedFields: [] }),
   } as unknown as AgentPort;
 }
 
@@ -449,6 +453,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           executionResult: {
             success: true,
             actionResult: { success: 'ok', html: '<p>Email queued</p>' },
+            submissionOutcome: 'executed',
           },
           pendingData: {
             displayName: 'Send Welcome Email',
@@ -486,7 +491,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionResult: { success: true, actionResult: null },
+          executionResult: { success: true, actionResult: null, submissionOutcome: 'executed' },
         }),
       );
     });
@@ -637,9 +642,14 @@ describe('TriggerRecordActionStepExecutor', () => {
   });
 
   describe('UnsupportedActionFormError (form detection)', () => {
-    it('throws when the action has a form and executionType is FullyAutomated', async () => {
+    it('throws when the action has a form and executionType is FullyAutomated (PRD-512 not yet)', async () => {
       const agentPort = makeMockAgentPort();
-      (agentPort.getActionFormInfo as jest.Mock).mockResolvedValue({ hasForm: true });
+      (agentPort.getActionForm as jest.Mock).mockResolvedValue({
+        fields: [{ name: 'reason', type: 'String', isRequired: true }],
+        canExecute: false,
+        requiredFields: ['reason'],
+        skippedFields: [],
+      });
       const mockModel = makeMockModel({
         actionName: 'Send Welcome Email',
         reasoning: 'r',
@@ -661,7 +671,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
       // Form detection uses the resolved technical name, not the AI display name —
       // passing "Send Welcome Email" would 404 against the agent.
-      expect(agentPort.getActionFormInfo).toHaveBeenCalledWith(
+      expect(agentPort.getActionForm).toHaveBeenCalledWith(
         { collection: 'customers', action: 'send-welcome-email', id: [42] },
         expect.objectContaining({ id: 1 }),
       );
@@ -1335,6 +1345,128 @@ describe('TriggerRecordActionStepExecutor', () => {
         'run-1',
         expect.objectContaining({
           executionParams: { displayName: 'Send Welcome Email', name: 'archive' },
+        }),
+      );
+    });
+
+    it('Manual mode on a form action pauses WITHOUT any AI pre-fill (PRD-511)', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock).mockResolvedValue({
+        fields: [{ name: 'reason', type: 'String', isRequired: true }],
+        canExecute: false,
+        requiredFields: ['reason'],
+        skippedFields: [],
+      });
+      const mockModel = makeMockModel();
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.Manual,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      // Manual = no AI involvement at all.
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({
+            form: {
+              fields: [{ name: 'reason', type: 'String', isRequired: true }],
+              aiFilledValues: [],
+            },
+          }),
+        }),
+      );
+    });
+
+    it('AI-assisted mode pre-fills the form (ordered) and pauses for review (PRD-511)', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock).mockResolvedValue({
+        fields: [
+          { name: 'amount', type: 'Number', isRequired: true },
+          { name: 'reason', type: 'String', isRequired: false },
+        ],
+        canExecute: true,
+        requiredFields: [],
+        skippedFields: [],
+      });
+      // AI fills amount but leaves `reason` out (no context) — must stay empty.
+      const mockModel = makeMockModel({ values: { amount: 50 } }, 'fill_action_form');
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(mockModel.bindTools).toHaveBeenCalled();
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          pendingData: expect.objectContaining({
+            form: expect.objectContaining({ aiFilledValues: [{ field: 'amount', value: 50 }] }),
+          }),
+        }),
+      );
+    });
+
+    it('persists a pending-approval submission without an actionResult (PRD-511/520)', async () => {
+      const agentPort = makeMockAgentPort();
+      const execution: TriggerRecordActionStepExecutionData = {
+        type: 'trigger-action',
+        stepIndex: 0,
+        pendingData: {
+          displayName: 'Process Refund',
+          name: 'process-refund',
+          form: { fields: [], aiFilledValues: [{ field: 'amount', value: 50 }] },
+        },
+        userConfirmation: {
+          userConfirmed: true,
+          submissionOutcome: 'pending-approval',
+          submittedValues: { amount: 50 },
+        },
+        selectedRecordRef: makeRecordRef(),
+      };
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({ agentPort, runStore });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: {
+            success: true,
+            submissionOutcome: 'pending-approval',
+            submittedValues: { amount: 50 },
+            aiFilledValues: [{ field: 'amount', value: 50 }],
+          },
         }),
       );
     });
