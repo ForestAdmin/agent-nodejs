@@ -21,15 +21,10 @@ import {
   NoRelationshipFieldsError,
   RelatedRecordNotFoundError,
   RelationNotFoundError,
-  SourceRecordMissingError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
-import {
-  StepExecutionMode,
-  StepType,
-  WORKFLOW_START_STEP_ID,
-} from '../types/validated/step-definition';
+import { StepExecutionMode } from '../types/validated/step-definition';
 
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
 You are given relations to follow, each shown as "<source record> → <relation> (→ <target collection>)".
@@ -189,43 +184,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       relationType: field.relationType,
       relatedCollectionName: field.relatedCollectionName,
     };
-  }
-
-  // Revise-safe source resolution. The "Related to" reference is a stable BPMN step id (or the
-  // WORKFLOW_START_STEP_ID sentinel), not a runtime index — so it survives the index shifts a
-  // revision causes (clones keep their step id) and is knowable by the editor at build time.
-  // previousSteps are already restricted to the live path; in a loop the same id can appear more
-  // than once, so we take the most recent occurrence.
-  private async resolveSourceRecordRef(stepId: string): Promise<RecordRef> {
-    if (stepId === WORKFLOW_START_STEP_ID) {
-      return this.context.baseRecordRef;
-    }
-
-    const matches = this.context.previousSteps.filter(
-      step =>
-        step.stepDefinition.type === StepType.LoadRelatedRecord &&
-        step.stepOutcome.stepId === stepId,
-    );
-    const sourceStep = matches[matches.length - 1];
-
-    if (sourceStep) {
-      const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
-      const execution = this.resolveStepExecution(sourceStep, stepExecutions);
-
-      if (
-        execution?.type === 'load-related-record' &&
-        execution.executionResult !== undefined &&
-        'record' in execution.executionResult
-      ) {
-        return execution.executionResult.record;
-      }
-
-      // The source step exists but loaded nothing → clear "no source record" message (PRD-550),
-      // distinct from a config pointing at a non-existent step.
-      throw new SourceRecordMissingError(sourceStep.stepDefinition.title);
-    }
-
-    throw new InvalidPreRecordedArgsError(`No source record found for step "${stepId}"`);
   }
 
   private async buildRelationCandidates(records: RecordRef[]): Promise<RelationCandidate[]> {
