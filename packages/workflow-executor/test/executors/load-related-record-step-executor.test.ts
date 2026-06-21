@@ -635,6 +635,65 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
+    it('also forwards the filter on the AutomatedWithConfirmation path (the user-facing list)', async () => {
+      const hasManySchema = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'address',
+            displayName: 'Address',
+            isRelationship: true,
+            relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
+          },
+        ],
+      });
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ];
+      const agentPort = makeMockAgentPort(relatedData);
+      const addressSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'r' },
+              id: 'c3',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+
+      const filters = { field: 'city', operator: 'equal', value: 'Lyon' };
+      const context = makeContext({
+        model,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          preRecordedArgs: { relationName: 'address', filters },
+        }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(agentPort.getRelatedData).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', relation: 'address', filters }),
+        expect.anything(),
+      );
+    });
+
     it('skips field-selection AI call when related collection has no non-relation fields', async () => {
       const hasManySchema = makeCollectionSchema({
         fields: [
