@@ -3492,6 +3492,24 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
     });
 
+    it('surfaces a distinct "no source record" message when the source step loaded nothing', async () => {
+      // The source step exists in the live path but its run-store execution has no record.
+      const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
+      const context = makeContext({
+        runStore,
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: 'load-1', relationName: 'customer' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain("didn't load any record");
+    });
+
     it('errors with the pre-recorded-args message when the pinned relation matches nothing', async () => {
       const context = makeContext({
         stepDefinition: makeStep({

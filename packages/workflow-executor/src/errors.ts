@@ -378,6 +378,18 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
   }
 }
 
+// The "Related to" source step ran but loaded no record, so this step has nothing to load from
+// (PRD-550 "no source record"). Distinct from a bad config — the user can continue without.
+export class SourceRecordMissingError extends WorkflowExecutorError {
+  constructor(sourceTitle?: string) {
+    const from = sourceTitle ? `"${sourceTitle}"` : 'its source step';
+    super(
+      `Source step ${from} loaded no record`,
+      `This step loads from ${from}, but that step didn't load any record, so nothing can be loaded here.`,
+    );
+  }
+}
+
 // Boundary error — surfaces from Runner.start() and is caught at the CLI/HTTP layer, not by step executors.
 export class AgentProbeError extends Error {
   // Manual `cause` assignment: Error accepts it natively since Node 16.9 but our TS target is ES2020.
