@@ -460,6 +460,7 @@ describe('TriggerRecordActionStepExecutor', () => {
             success: true,
             actionResult: { success: 'ok', html: '<p>Email queued</p>' },
             submissionOutcome: 'executed',
+            submittedBy: 'user',
           },
           pendingData: {
             displayName: 'Send Welcome Email',
@@ -497,7 +498,12 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({
-          executionResult: { success: true, actionResult: null, submissionOutcome: 'executed' },
+          executionResult: {
+            success: true,
+            actionResult: null,
+            submissionOutcome: 'executed',
+            submittedBy: 'user',
+          },
         }),
       );
     });
@@ -1535,6 +1541,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           executionResult: {
             success: true,
             submissionOutcome: 'pending-approval',
+            submittedBy: 'user',
             submittedValues: { amount: 50 },
             aiFilledValues: [{ field: 'amount', value: 50 }],
           },

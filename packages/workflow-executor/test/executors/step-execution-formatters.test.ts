@@ -168,5 +168,81 @@ describe('StepExecutionFormatters', () => {
         expect(StepExecutionFormatters.format(execution)).toBeNull();
       });
     });
+
+    describe('trigger-action (PRD-513)', () => {
+      const recordRef = { collectionName: 'customers', recordId: [42], stepIndex: 0 };
+
+      it('marks a pending-approval submission as NOT executed', () => {
+        const execution: StepExecutionData = {
+          type: 'trigger-action',
+          stepIndex: 1,
+          selectedRecordRef: recordRef,
+          executionParams: { name: 'refund', displayName: 'Process refund' },
+          executionResult: {
+            success: true,
+            submissionOutcome: 'pending-approval',
+            submittedBy: 'user',
+          },
+        };
+
+        const summary = StepExecutionFormatters.format(execution);
+        expect(summary).toContain('AWAITING APPROVAL');
+        expect(summary).toContain('has NOT been executed');
+      });
+
+      it('reports a Full AI execution as submitted by AI with the pre-filled fields', () => {
+        const execution: StepExecutionData = {
+          type: 'trigger-action',
+          stepIndex: 1,
+          selectedRecordRef: recordRef,
+          executionParams: { name: 'refund', displayName: 'Process refund' },
+          executionResult: {
+            success: true,
+            actionResult: { ok: true },
+            submissionOutcome: 'executed',
+            submittedBy: 'ai',
+            submittedValues: { amount: 50 },
+            aiFilledValues: [{ field: 'amount', value: 50 }],
+          },
+        };
+
+        const summary = StepExecutionFormatters.format(execution) ?? '';
+        expect(summary).toContain('submitted by AI');
+        expect(summary).toContain('AI pre-filled: amount');
+      });
+
+      it('reports human edits in AI-assisted mode (diff prefill vs submitted)', () => {
+        const execution: StepExecutionData = {
+          type: 'trigger-action',
+          stepIndex: 1,
+          selectedRecordRef: recordRef,
+          executionParams: { name: 'refund', displayName: 'Process refund' },
+          executionResult: {
+            success: true,
+            actionResult: { ok: true },
+            submissionOutcome: 'executed',
+            submittedBy: 'user',
+            // AI proposed amount 50; the human changed it to 80 before submitting.
+            aiFilledValues: [{ field: 'amount', value: 50 }],
+            submittedValues: { amount: 80 },
+          },
+        };
+
+        const summary = StepExecutionFormatters.format(execution) ?? '';
+        expect(summary).toContain('submitted by the user');
+        expect(summary).toContain('Edited by the user before submitting: amount');
+      });
+
+      it('returns null for a skipped action', () => {
+        const execution: StepExecutionData = {
+          type: 'trigger-action',
+          stepIndex: 1,
+          selectedRecordRef: recordRef,
+          executionResult: { skipped: true },
+        };
+
+        expect(StepExecutionFormatters.format(execution)).toBeNull();
+      });
+    });
   });
 });

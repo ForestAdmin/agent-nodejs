@@ -123,6 +123,9 @@ export interface TriggerRecordActionStepExecutionData
         // Final values the front submitted + the ordered AI prefill — PRD-513 audit (human-edit diff).
         submittedValues?: Record<string, unknown>;
         aiFilledValues?: AiFilledFormValue[];
+        // Who submitted the action (PRD-513 audit): 'ai' = Full AI (executor), 'user' = AI-assisted
+        // (human via the native front). Absent for formless/legacy flows.
+        submittedBy?: 'ai' | 'user';
       }
     | { skipped: true };
   pendingData?: TriggerActionPendingData;
