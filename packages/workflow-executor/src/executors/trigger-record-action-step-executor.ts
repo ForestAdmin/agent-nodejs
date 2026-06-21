@@ -372,6 +372,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         // Form-bearing Full AI: record what the executor submitted (PRD-512/513).
         ...(form && {
           submissionOutcome: 'executed',
+          submittedBy: 'ai',
           submittedValues: form.values,
           ...(form.aiFilledValues.length && { aiFilledValues: form.aiFilledValues }),
         }),
@@ -407,6 +408,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         // No action result exists yet when the submission only created an approval request.
         ...(submissionOutcome === 'executed' && { actionResult: confirmation?.actionResult }),
         submissionOutcome,
+        // AI-assisted = the human submitted natively (PRD-513 audit).
+        submittedBy: 'user',
         ...(confirmation?.submittedValues && { submittedValues: confirmation.submittedValues }),
         ...(aiFilledValues?.length && { aiFilledValues }),
       },

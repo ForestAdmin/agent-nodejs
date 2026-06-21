@@ -3,6 +3,7 @@ import type {
   LoadRelatedRecordStepExecutionData,
   McpStepExecutionData,
   StepExecutionData,
+  TriggerRecordActionStepExecutionData,
 } from '../../types/step-execution-data';
 
 export default class StepExecutionFormatters {
@@ -16,9 +17,51 @@ export default class StepExecutionFormatters {
         return StepExecutionFormatters.formatMcp(execution as McpStepExecutionData);
       case 'guidance':
         return StepExecutionFormatters.formatGuidance(execution as GuidanceStepExecutionData);
+      case 'trigger-action':
+        return StepExecutionFormatters.formatTriggerAction(
+          execution as TriggerRecordActionStepExecutionData,
+        );
       default:
         return null;
     }
+  }
+
+  // Audit/context summary for a Trigger Action (PRD-513). Critically distinguishes an executed
+  // action from one merely submitted for approval — downstream AI steps must NOT treat a
+  // pending-approval action as if it ran.
+  private static formatTriggerAction(
+    execution: TriggerRecordActionStepExecutionData,
+  ): string | null {
+    const { executionResult } = execution;
+    if (!executionResult || 'skipped' in executionResult) return null;
+
+    const action = execution.executionParams?.displayName ?? 'the action';
+    const submitter = executionResult.submittedBy === 'ai' ? 'AI' : 'the user';
+
+    if (executionResult.submissionOutcome === 'pending-approval') {
+      return `  Submitted action "${action}" for approval (by ${submitter}). It is AWAITING APPROVAL and has NOT been executed — no result is available yet.`;
+    }
+
+    const lines = [`  Triggered action "${action}" (submitted by ${submitter}).`];
+    const aiFilled = executionResult.aiFilledValues;
+
+    if (aiFilled?.length) {
+      lines.push(`  AI pre-filled: ${aiFilled.map(v => v.field).join(', ')}.`);
+
+      // Human-edited fields = those whose submitted value differs from the AI prefill (AI-assisted).
+      const submitted = executionResult.submittedValues;
+
+      if (submitted) {
+        const aiMap = Object.fromEntries(aiFilled.map(v => [v.field, v.value]));
+        const edited = Object.keys(submitted).filter(
+          field => JSON.stringify(submitted[field]) !== JSON.stringify(aiMap[field]),
+        );
+
+        if (edited.length) lines.push(`  Edited by the user before submitting: ${edited.join(', ')}.`);
+      }
+    }
+
+    return lines.join('\n');
   }
 
   private static formatMcp(execution: McpStepExecutionData): string | null {
