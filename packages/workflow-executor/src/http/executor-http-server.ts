@@ -26,6 +26,9 @@ export interface ExecutorHttpServerOptions {
   authSecret: string;
   workflowPort: WorkflowPort;
   logger?: Logger;
+  // Independent route groups (e.g. the MCP plane) mounted after auth. The server hosts them but
+  // stays agnostic of their domain — they're assembled and injected by the composition root.
+  extraRouters?: Router[];
 }
 
 export default class ExecutorHttpServer {
@@ -136,6 +139,12 @@ export default class ExecutorHttpServer {
 
     this.app.use(router.routes());
     this.app.use(router.allowedMethods());
+
+    // Independent route groups (e.g. the /mcp/* plane) — mounted after auth, hosted but not owned.
+    for (const extraRouter of options.extraRouters ?? []) {
+      this.app.use(extraRouter.routes());
+      this.app.use(extraRouter.allowedMethods());
+    }
   }
 
   async start(): Promise<void> {

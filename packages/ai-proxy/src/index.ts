@@ -37,3 +37,4 @@ export type { BaseMessage } from '@langchain/core/messages';
 export { HumanMessage, SystemMessage } from '@langchain/core/messages';
 export type { StructuredToolInterface } from '@langchain/core/tools';
 export { DynamicStructuredTool } from '@langchain/core/tools';
+export { toJsonSchema } from '@langchain/core/utils/json_schema';

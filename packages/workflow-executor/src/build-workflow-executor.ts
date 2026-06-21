@@ -22,12 +22,18 @@ import {
   DEFAULT_STEP_TIMEOUT_S,
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
+import McpExecutionService from './mcp/mcp-execution-service';
+import PendingMcpPermissionResolver from './mcp/mcp-permission-resolver';
+import buildMcpRouter from './mcp/mcp-router';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
 import DatabaseStore from './stores/database-store';
 import InMemoryStore from './stores/in-memory-store';
 
 const FORCE_EXIT_DELAY_S = 5;
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
+const { version: EXECUTOR_VERSION } = require('../package.json') as { version: string };
 
 export interface WorkflowExecutor {
   start(): Promise<void>;
@@ -133,6 +139,19 @@ function buildCommonDependencies(options: ExecutorOptions) {
   };
 }
 
+// Composes the independent /mcp/* plane. Lives in the composition root so the runs HTTP server
+// never references MCP code — it only hosts the injected router.
+function buildMcpPlaneRouter(deps: ReturnType<typeof buildCommonDependencies>) {
+  const service = new McpExecutionService({
+    workflowPort: deps.workflowPort,
+    aiModelPort: deps.aiModelPort,
+    permissionResolver: new PendingMcpPermissionResolver(),
+    logger: deps.logger,
+  });
+
+  return buildMcpRouter({ service, executorVersion: EXECUTOR_VERSION });
+}
+
 function createWorkflowExecutor(
   runner: Runner,
   server: ExecutorHttpServer,
@@ -211,6 +230,7 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
+    extraRouters: [buildMcpPlaneRouter(deps)],
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);
@@ -239,6 +259,7 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
+    extraRouters: [buildMcpPlaneRouter(deps)],
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);
