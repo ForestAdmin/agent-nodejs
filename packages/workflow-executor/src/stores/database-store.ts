@@ -11,6 +11,13 @@ import { RunStorePortError, WorkflowExecutorError, extractErrorMessage } from '.
 const TABLE_NAME = 'workflow_step_executions';
 const DEFAULT_SCHEMA = 'forest';
 
+// Must stay constant across releases, or an old and a new deploy could migrate concurrently.
+const MIGRATION_ADVISORY_LOCK_KEY = 6_438_071_259_157;
+
+interface RawConnection {
+  query(sql: string, values?: unknown[]): Promise<unknown>;
+}
+
 export interface DatabaseStoreOptions {
   sequelize: Sequelize;
   schema?: string;
@@ -103,11 +110,13 @@ export default class DatabaseStore implements RunStore {
 
     return this.callPort('init', async () => {
       try {
-        if (schema) {
-          await this.sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
-        }
+        await this.withMigrationLock(async () => {
+          if (schema) {
+            await this.sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+          }
 
-        await umzug.up();
+          await umzug.up();
+        });
       } catch (error) {
         logger?.('Error', 'Database migration failed', {
           error: extractErrorMessage(error),
@@ -115,6 +124,31 @@ export default class DatabaseStore implements RunStore {
         throw error;
       }
     });
+  }
+
+  // Serializes migrations across instances booting concurrently on the shared database: the
+  // DB-global pg_advisory_lock lets one migrate while the others block, then no-op. Postgres-only.
+  private async withMigrationLock(runMigrations: () => Promise<void>): Promise<void> {
+    if (this.sequelize.getDialect() !== 'postgres') {
+      await runMigrations();
+
+      return;
+    }
+
+    // Session-scoped lock: unlock must run on the same connection, so pin one for the window.
+    const { connectionManager } = this.sequelize;
+    const connection = (await connectionManager.getConnection({ type: 'write' })) as RawConnection;
+
+    try {
+      await connection.query('SELECT pg_advisory_lock($1)', [MIGRATION_ADVISORY_LOCK_KEY]);
+      await runMigrations();
+    } finally {
+      try {
+        await connection.query('SELECT pg_advisory_unlock($1)', [MIGRATION_ADVISORY_LOCK_KEY]);
+      } finally {
+        connectionManager.releaseConnection(connection);
+      }
+    }
   }
 
   async getStepExecutions(runId: string): Promise<StepExecutionData[]> {
