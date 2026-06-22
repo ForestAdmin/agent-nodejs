@@ -130,10 +130,9 @@ export default class DatabaseStore implements RunStore {
     });
   }
 
-  // Serializes a section across instances booting concurrently on the shared database. Uses a
-  // transaction-scoped advisory lock (not session-scoped): the lock lives for exactly the
-  // transaction a connection pooler keeps pinned, and auto-releases on commit/rollback/disconnect —
-  // so it is safe behind RDS Proxy / PgBouncer transaction mode, with no lock left dangling.
+  // Serializes a section across concurrently-booting instances. Transaction-scoped
+  // (pg_advisory_xact_lock) so it auto-releases at commit and is safe behind transaction-mode
+  // poolers (RDS Proxy / PgBouncer) — a session lock would leak there.
   private async withMigrationLock(
     run: (transaction: Transaction) => Promise<unknown>,
   ): Promise<void> {

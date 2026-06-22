@@ -148,8 +148,7 @@ describe('DatabaseStore — schema namespacing', () => {
   });
 
   describe('migration advisory lock', () => {
-    // query() records each locked section: 'lock' on pg_advisory_xact_lock, 'schema' on the
-    // schema creation; umzug.up() records 'migrate'. transaction() just runs its callback.
+    // Records the order of locked operations into `calls`: 'lock', 'schema', 'migrate'.
     function setup(dialect: 'postgres' | 'sqlite', migrate?: () => Promise<void>) {
       const calls: string[] = [];
 
@@ -210,8 +209,7 @@ describe('DatabaseStore — schema namespacing', () => {
     });
 
     // up() yields before recording itself — the window an unprotected second runner would
-    // exploit to apply the migration twice. The xact lock is acquired inside transaction() and
-    // released when its callback resolves (modeling COMMIT), so only one umzug.up() runs at a time.
+    // exploit to apply the migration twice. transaction() releases the lock on resolve (COMMIT).
     it('serializes concurrent init() so a non-idempotent migration applies exactly once', async () => {
       const mutex = createMutex();
       let concurrentMigrations = 0;
