@@ -17,6 +17,40 @@ import ActionFieldRadioGroup from '../action-fields/action-field-radio-group';
 import ActionFieldString from '../action-fields/action-field-string';
 import ActionFieldStringList from '../action-fields/action-field-string-list';
 import ActionLayoutRoot from '../action-layout/action-layout-root';
+import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError } from '../errors';
+
+// JSON:API error body the agent returns on a rejected action.
+type ActionErrorBody = {
+  errors?: { name?: string; detail?: string; data?: { roleIdsAllowedToApprove?: number[] } }[];
+  data?: { roleIdsAllowedToApprove?: number[] };
+};
+
+// Translate a transport-level AgentHttpError from an action execution into a semantic action error,
+// so callers route on meaning instead of HTTP status/body. The agent rejects an approval-gated
+// action with 403 CustomActionRequiresApprovalError (carrying roleIdsAllowedToApprove) and a
+// form-validation failure with 400/422. Anything else propagates unchanged.
+function toActionError(error: unknown): unknown {
+  if (!(error instanceof AgentHttpError)) return error;
+
+  const body = (error.body ?? {}) as ActionErrorBody;
+  const detail = body.errors?.[0]?.detail;
+  const isApproval =
+    body.errors?.[0]?.name === 'CustomActionRequiresApprovalError' ||
+    !!error.responseText?.includes('CustomActionRequiresApprovalError');
+
+  if (error.status === 403 && isApproval) {
+    return new ActionRequiresApprovalError(
+      detail ?? 'This action requires an approval before it can run.',
+      body.errors?.[0]?.data?.roleIdsAllowedToApprove ?? body.data?.roleIdsAllowedToApprove,
+    );
+  }
+
+  if (error.status === 400 || error.status === 422) {
+    return new ActionFormValidationError(detail ?? 'The action form values were rejected.');
+  }
+
+  return error;
+}
 
 export type BaseActionContext = {
   recordId?: RecordId;
@@ -69,11 +103,15 @@ export default class Action {
       },
     };
 
-    return this.httpRequester.query<{ success: string }>({
-      method: 'post',
-      path: this.actionPath,
-      body: requestBody,
-    });
+    try {
+      return await this.httpRequester.query<{ success: string }>({
+        method: 'post',
+        path: this.actionPath,
+        body: requestBody,
+      });
+    } catch (error) {
+      throw toActionError(error);
+    }
   }
 
   async setFields(fields: Record<string, unknown>): Promise<void> {

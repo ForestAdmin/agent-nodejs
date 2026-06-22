@@ -8,10 +8,18 @@ import type {
 import ActionFieldJson from './action-fields/action-field-json';
 import ActionFieldStringList from './action-fields/action-field-string-list';
 import RemoteAgentClient from './domains/remote-agent-client';
-import AgentHttpError from './errors';
+import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError } from './errors';
 import HttpRequester from './http-requester';
 
-export { ActionFieldJson, ActionFieldStringList, RemoteAgentClient, HttpRequester, AgentHttpError };
+export {
+  ActionFieldJson,
+  ActionFieldStringList,
+  RemoteAgentClient,
+  HttpRequester,
+  AgentHttpError,
+  ActionRequiresApprovalError,
+  ActionFormValidationError,
+};
 export type {
   ActionEndpointsByCollection,
   CollectionPermissionsOverride,

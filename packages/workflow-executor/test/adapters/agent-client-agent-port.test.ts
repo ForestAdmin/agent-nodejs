@@ -1,6 +1,12 @@
 import type { StepUser } from '../../src/types/execution-context';
 
-import { AgentHttpError, HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
+import {
+  ActionFormValidationError as ClientFormValidationError,
+  ActionRequiresApprovalError as ClientApprovalError,
+  AgentHttpError,
+  HttpRequester,
+  createRemoteAgentClient,
+} from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
@@ -26,8 +32,26 @@ jest.mock('@forestadmin/agent-client', () => {
     }
   }
 
+  // Semantic action errors agent-client throws from execute(); real classes so the adapter's
+  // `instanceof` checks match errors built by these tests.
+  class MockActionRequiresApprovalError extends Error {
+    constructor(message: string, public readonly roleIdsAllowedToApprove?: number[]) {
+      super(message);
+      this.name = 'ActionRequiresApprovalError';
+    }
+  }
+
+  class MockActionFormValidationError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'ActionFormValidationError';
+    }
+  }
+
   return {
     AgentHttpError: MockAgentHttpError,
+    ActionRequiresApprovalError: MockActionRequiresApprovalError,
+    ActionFormValidationError: MockActionFormValidationError,
     createRemoteAgentClient: jest.fn(),
     HttpRequester: { is404Error: jest.fn() },
   };
@@ -775,17 +799,8 @@ describe('AgentClientAgentPort', () => {
       expect(mockAction.execute).not.toHaveBeenCalled();
     });
 
-    it('maps an approval-403 to ActionRequiresApprovalError with the allowed roles', async () => {
-      mockAction.execute.mockRejectedValue(
-        new AgentHttpError(403, {
-          errors: [
-            {
-              name: 'CustomActionRequiresApprovalError',
-              data: { roleIdsAllowedToApprove: [7, 9] },
-            },
-          ],
-        }),
-      );
+    it('re-wraps agent-client ActionRequiresApprovalError, carrying the allowed roles', async () => {
+      mockAction.execute.mockRejectedValue(new ClientApprovalError('Needs approval', [7, 9]));
 
       const error = await port
         .executeAction({ collection: 'users', action: 'refund', id: [1] }, user)
@@ -795,10 +810,8 @@ describe('AgentClientAgentPort', () => {
       expect((error as ActionRequiresApprovalError).roleIdsAllowedToApprove).toEqual([7, 9]);
     });
 
-    it('maps a 422 validation rejection to ActionFormValidationError', async () => {
-      mockAction.execute.mockRejectedValue(
-        new AgentHttpError(422, { errors: [{ detail: 'invalid' }] }, 'invalid'),
-      );
+    it('re-wraps agent-client ActionFormValidationError', async () => {
+      mockAction.execute.mockRejectedValue(new ClientFormValidationError('invalid'));
 
       await expect(
         port.executeAction({ collection: 'users', action: 'refund', id: [1] }, user),

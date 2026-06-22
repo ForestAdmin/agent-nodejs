@@ -16,7 +16,12 @@ import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
 
-import { AgentHttpError, HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
+import {
+  ActionFormValidationError as ClientActionFormValidationError,
+  ActionRequiresApprovalError as ClientActionRequiresApprovalError,
+  HttpRequester,
+  createRemoteAgentClient,
+} from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import {
@@ -29,38 +34,15 @@ import {
   extractErrorMessage,
 } from '../errors';
 
-// JSON:API error body the agent returns on a rejected action.
-type ActionErrorBody = {
-  errors?: { name?: string; data?: { roleIdsAllowedToApprove?: number[] } }[];
-  data?: { roleIdsAllowedToApprove?: number[] };
-};
-
-// The agent rejects an approval-gated action with HTTP 403 CustomActionRequiresApprovalError,
-// carrying roleIdsAllowedToApprove. Pull the roles out of the parsed response body when present.
-function extractRoleIdsAllowedToApprove(body: ActionErrorBody): number[] | undefined {
-  return (
-    body.errors?.[0]?.data?.roleIdsAllowedToApprove ??
-    body.data?.roleIdsAllowedToApprove ??
-    undefined
-  );
-}
-
-// Map an action `execute()` failure to a typed error so the step executor can route it:
-// approval-403 and validation rejections become distinct fallback-worthy errors; everything else
-// (plain permission 403, infra 5xx, network) stays raw → wrapped as AgentPortError = step error.
+// agent-client already interpreted the HTTP failure into a semantic action error; re-wrap it into
+// the executor's domain error (carrying userMessage + driving the step fallback flow). Anything
+// else (plain permission 403, infra 5xx, network) stays raw → wrapped as AgentPortError = step error.
 function mapActionExecutionError(action: string, cause: unknown): unknown {
-  if (!(cause instanceof AgentHttpError)) return cause;
-
-  const body = (cause.body ?? {}) as ActionErrorBody;
-  const isApproval =
-    body.errors?.[0]?.name === 'CustomActionRequiresApprovalError' ||
-    cause.responseText?.includes('CustomActionRequiresApprovalError');
-
-  if (cause.status === 403 && isApproval) {
-    return new ActionRequiresApprovalError(action, extractRoleIdsAllowedToApprove(body));
+  if (cause instanceof ClientActionRequiresApprovalError) {
+    return new ActionRequiresApprovalError(action, cause.roleIdsAllowedToApprove);
   }
 
-  if (cause.status === 400 || cause.status === 422) {
+  if (cause instanceof ClientActionFormValidationError) {
     return new ActionFormValidationError(action, cause);
   }
 
