@@ -120,7 +120,6 @@ export default class AgentClientAgentPort implements AgentPort {
         .list<Record<string, unknown>>({
           ...(limit !== null && { pagination: { size: limit, number: 1 } }),
           ...(fields?.length && { fields }),
-          // Trusted build-time conditionTree (PRD-553); the agent validates it at query time.
           ...(filters !== undefined && { filters: filters as SelectOptions['filters'] }),
         });
 

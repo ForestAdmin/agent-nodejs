@@ -17,8 +17,6 @@ export type GetRelatedDataQuery = {
   // record ID and restore original field names without consulting any cache.
   relatedSchema: CollectionSchema;
   fields?: string[];
-  // Build-time filter (PRD-553) forwarded verbatim to the agent. Port stays agnostic of the
-  // filter shape; the adapter casts it to the agent-client's conditionTree type.
   filters?: unknown;
 } & Limit;
 
