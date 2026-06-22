@@ -17,6 +17,7 @@ export type GetRelatedDataQuery = {
   // record ID and restore original field names without consulting any cache.
   relatedSchema: CollectionSchema;
   fields?: string[];
+  filters?: unknown;
 } & Limit;
 
 // xToOne relations (BelongsTo / HasOne) — the agent does not serve

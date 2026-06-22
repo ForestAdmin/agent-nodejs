@@ -106,6 +106,8 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
       selectedRecordStepId: z.string().optional(),
       /** "From collection" — the relation to follow (technical name) */
       relationName: z.string().optional(),
+      /** 1–n relation filter (conditionTree), forwarded verbatim; loosely typed as it's trusted config the agent validates. */
+      filters: z.unknown().optional(),
     })
     .optional(),
 });
