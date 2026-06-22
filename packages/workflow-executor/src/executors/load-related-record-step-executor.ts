@@ -191,11 +191,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     };
   }
 
-  // Revise-safe source resolution. The "Related to" reference is a stable BPMN step id (or the
-  // WORKFLOW_START_STEP_ID sentinel), not a runtime index — so it survives the index shifts a
-  // revision causes (clones keep their step id) and is knowable by the editor at build time.
-  // previousSteps are already restricted to the live path; in a loop the same id can appear more
-  // than once, so we take the most recent occurrence.
   private async resolveSourceRecordRef(stepId: string): Promise<RecordRef> {
     if (stepId === WORKFLOW_START_STEP_ID) {
       return this.context.baseRecordRef;
@@ -220,7 +215,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
         return execution.executionResult.record;
       }
 
-      // The source step exists but loaded nothing → clear "no source record" message (PRD-550),
+      // The source step exists but loaded nothing → clear "no source record" message,
       // distinct from a config pointing at a non-existent step.
       throw new SourceRecordMissingError(sourceStep.stepDefinition.title);
     }
@@ -505,7 +500,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     // The final record stays AI-suggested + user-confirmed — only the source + relation are
-    // pinned deterministically (PRD-471). Index-based record pinning was removed (not revise-safe).
+    // pinned deterministically. Index-based record pinning was removed (not revise-safe).
     const suggestedFields = await this.selectRelevantFields(
       relatedSchema,
       this.context.stepDefinition.prompt,

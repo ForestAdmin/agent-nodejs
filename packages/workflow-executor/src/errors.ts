@@ -378,8 +378,8 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
   }
 }
 
-// The "Related to" source step ran but loaded no record, so this step has nothing to load from
-// (PRD-550 "no source record"). Distinct from a bad config — the user can continue without.
+// The "Related to" source step ran but loaded no record, so this step has nothing to load from.
+// Distinct from a bad config — the user can continue without.
 export class SourceRecordMissingError extends WorkflowExecutorError {
   constructor(sourceTitle?: string) {
     const from = sourceTitle ? `"${sourceTitle}"` : 'its source step';
