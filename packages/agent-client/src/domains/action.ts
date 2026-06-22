@@ -25,10 +25,8 @@ type ActionErrorBody = {
   data?: { roleIdsAllowedToApprove?: number[] };
 };
 
-// Translate a transport-level AgentHttpError from an action execution into a semantic action error,
-// so callers route on meaning instead of HTTP status/body. The agent rejects an approval-gated
-// action with 403 CustomActionRequiresApprovalError (carrying roleIdsAllowedToApprove) and a
-// form-validation failure with 400/422. Anything else propagates unchanged.
+// Translate the transport AgentHttpError into a semantic action error so callers route on meaning.
+// Approval gate = 403 CustomActionRequiresApprovalError; form validation = 400/422; else unchanged.
 function toActionError(error: unknown): unknown {
   if (!(error instanceof AgentHttpError)) return error;
 

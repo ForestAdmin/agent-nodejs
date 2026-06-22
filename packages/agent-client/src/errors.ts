@@ -1,8 +1,7 @@
 /* eslint-disable max-classes-per-file */
 
-// Typed HTTP error from the agent. Carries the status and the parsed response body so callers route
-// on structured data instead of string-parsing a message. `body` is the parsed JSON:API error
-// ({ errors: [...] }) when available, else the raw text; `responseText` keeps the raw body.
+// Typed transport error: status + parsed body (JSON:API `{ errors: [...] }` when available, else
+// raw text). Callers read fields directly instead of parsing a stringified message.
 export default class AgentHttpError extends Error {
   constructor(readonly status: number, readonly body: unknown, readonly responseText?: string) {
     super(`Agent responded with HTTP ${status}`);
@@ -10,9 +9,8 @@ export default class AgentHttpError extends Error {
   }
 }
 
-// Semantic errors for action execution: agent-client interprets the HTTP failure once (status +
-// JSON:API body) and exposes the meaning, so callers never inspect transport details. `message`
-// carries the agent's own detail when available.
+// Semantic action errors: agent-client interprets the failure once so callers route on meaning, not
+// status/body. `message` carries the agent's detail when available.
 export class ActionRequiresApprovalError extends Error {
   constructor(message: string, readonly roleIdsAllowedToApprove?: number[]) {
     super(message);

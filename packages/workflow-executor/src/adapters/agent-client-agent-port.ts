@@ -34,9 +34,8 @@ import {
   extractErrorMessage,
 } from '../errors';
 
-// agent-client already interpreted the HTTP failure into a semantic action error; re-wrap it into
-// the executor's domain error (carrying userMessage + driving the step fallback flow). Anything
-// else (plain permission 403, infra 5xx, network) stays raw → wrapped as AgentPortError = step error.
+// Re-wrap agent-client's semantic action error into the executor's domain error (carries userMessage
+// + drives the step fallback). Anything else stays raw → AgentPortError = step error.
 function mapActionExecutionError(action: string, cause: unknown): unknown {
   if (cause instanceof ClientActionRequiresApprovalError) {
     return new ActionRequiresApprovalError(action, cause.roleIdsAllowedToApprove);

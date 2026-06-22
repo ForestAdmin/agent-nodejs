@@ -17,8 +17,7 @@ function jsonApiDetail(body: unknown, text?: string): string | null {
   return null;
 }
 
-// Turn an agent RPC error into a human-readable message. HTTP failures arrive as AgentHttpError
-// (status + parsed body); everything else falls back to the raw message.
+// Turn an agent RPC error into a human-readable message (AgentHttpError detail, else raw message).
 export default function parseAgentError(error: unknown): string | null {
   if (error instanceof AgentHttpError) {
     return jsonApiDetail(error.body, error.responseText) ?? error.message;
