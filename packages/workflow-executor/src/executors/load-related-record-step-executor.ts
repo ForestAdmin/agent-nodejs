@@ -562,6 +562,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       relation: target.name,
       relatedSchema,
       limit,
+      filters: this.context.stepDefinition.preRecordedArgs?.filters,
     });
   }
 
