@@ -14,15 +14,12 @@ export type AuditRecord = {
 export type AuditHistoryQuery = {
   collection: string;
   recordId: string;
-  /** Number of (oldest-first) entries to skip. Defaults to 0. */
   skip?: number;
-  /** Maximum number of entries to return. Unbounded when omitted. */
   limit?: number;
-  /** Keep only entries whose `userId` is in this list. No filter when omitted. */
   userIds?: number[];
-  /** Keep only entries whose `timestamp` is >= this UTC ISO instant (inclusive). */
+  /** Inclusive lower bound on `timestamp` as a UTC ISO instant. */
   startTimestamp?: string;
-  /** Keep only entries whose `timestamp` is <= this UTC ISO instant (inclusive). */
+  /** Inclusive upper bound on `timestamp` as a UTC ISO instant. */
   endTimestamp?: string;
   /** Sort direction on `timestamp` (ties broken by insertion order). Defaults to `'asc'`. */
   order?: 'asc' | 'desc';
@@ -43,44 +40,37 @@ export type AuditCorrelationsQuery = {
 export interface AuditStore {
   append(record: AuditRecord): void | Promise<void>;
   listByRecord(query: AuditHistoryQuery): AuditRecord[] | Promise<AuditRecord[]>;
-  /** Total number of entries matching the query filters, ignoring `skip` / `limit`. */
+  /** Total entries matching the query filters, ignoring `skip` / `limit`. */
   countByRecord(query: AuditHistoryQuery): number | Promise<number>;
-  /** Entries recorded under one `correlationKey` for a given record, oldest first. */
+  /** Entries recorded under one `correlationKey` for a record, oldest first. */
   listByCorrelation(query: AuditCorrelationQuery): AuditRecord[] | Promise<AuditRecord[]>;
   /** Flat list of entries recorded under any of `correlationKeys` for a record, oldest first. */
   listByCorrelations(query: AuditCorrelationsQuery): AuditRecord[] | Promise<AuditRecord[]>;
-  /**
-   * Optional one-shot bootstrap (e.g. open a connection, run migrations). The agent awaits it during
-   * start, so a failure surfaces before the agent serves requests. Implementations must be idempotent.
-   */
+  /** One-shot bootstrap awaited by `agent.start()`. Must be idempotent. */
   init?(): Promise<void>;
 }
 
 export type AuditSink = (record: AuditRecord) => void | Promise<void>;
 
 export type AuditTrailInstrumentOptions = {
-  /** Custom callback called for every audited change (e.g. write to console or syslog). */
   sink?: AuditSink;
-  /** Audit store that both writes and reads back the record history. */
   store?: AuditStore;
   /**
-   * Field values to mask, keyed by collection name. A redacted field still produces an
-   * audit entry when it changes (so the change is recorded), but its value is replaced
-   * with a sentinel instead of being stored.
+   * Fields to mask, keyed by collection name. Redacted fields still produce an audit entry when
+   * they change, but their value is replaced with a sentinel instead of being stored.
    */
   redact?: Record<string, string[]>;
 };
 
 export type AuditStorageOptions = {
   /**
-   * Connection string (Postgres or plain SQL) of the database that will hold the audit log.
-   * It may point to an empty database, the database already used by the agent, or a database
-   * that already contains the `forest` schema. The schema and the table are created on the fly
-   * when missing.
+   * Postgres / SQL connection string for the audit database. May point at an empty database, the
+   * database already used by the agent, or one that already contains the `forest` schema — the
+   * schema and table are created on the fly when missing.
    */
   connectionString: string;
-  /** Schema that namespaces Forest-owned tables. Defaults to `forest`. */
+  /** Defaults to `forest`. */
   schema?: string;
-  /** Name of the audit table. Defaults to `audit_logs`. */
+  /** Defaults to `audit_logs`. */
   tableName?: string;
 };

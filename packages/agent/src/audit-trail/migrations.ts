@@ -9,20 +9,16 @@ export type MigrationContext = {
   tableName: string;
 };
 
-// Dedicated table tracking which audit migrations have been applied. Kept separate from the default
-// `SequelizeMeta` (and namespaced in the `forest` schema) so it never shares migration state with
-// another component writing to the same database — e.g. the workflow executor, which keeps its own
-// `SequelizeMeta` in the default schema.
+// Kept separate from the default `SequelizeMeta` so the audit trail's migration state never
+// collides with another component (e.g. the workflow executor) writing to the same database.
 const MIGRATIONS_TABLE = 'audit_migrations';
 
-// Arbitrary but stable key pair identifying the audit-trail migration critical section. It only has
-// to be unique enough not to collide with other advisory locks the application might take.
-const ADVISORY_LOCK: readonly [number, number] = [0x464f, 0x5254]; // "FO", "RT"
+// Arbitrary but stable pair, only needs to be unique across the advisory locks the application
+// takes — the audit-trail migration is the only critical section we hold this lock for.
+const ADVISORY_LOCK: readonly [number, number] = [0x464f, 0x5254];
 
-/**
- * Ordered, append-only list of audit-table migrations. To evolve the schema, add a new entry at the
- * end — never edit, reorder or delete an existing one (already-applied migrations are skipped).
- */
+// Append-only. To evolve the schema, add a new entry at the end — never edit, reorder or delete
+// an existing one (already-applied migrations are skipped).
 const migrations = [
   {
     name: '001-create-audit-logs',
@@ -54,8 +50,6 @@ const migrations = [
     up: async ({ context }: { context: MigrationContext }) => {
       const table = { tableName: context.tableName, schema: context.schema };
 
-      // record_id powers the per-record history lookup, correlation_key groups a request's changes,
-      // user_id filters the log by the user who made the change.
       await context.queryInterface.addIndex(table, ['record_id'], {
         name: `${context.tableName}_record_id`,
       });
@@ -84,7 +78,6 @@ function buildUmzug(sequelize: Sequelize, options: { schema?: string; tableName:
       schema: options.schema,
       tableName: options.tableName,
     },
-    // Dedicated tracking table, namespaced in the `forest` schema (see MIGRATIONS_TABLE).
     storage: new SequelizeStorage({
       sequelize,
       schema: options.schema,
@@ -94,11 +87,8 @@ function buildUmzug(sequelize: Sequelize, options: { schema?: string; tableName:
   });
 }
 
-// Postgres error codes raised when the schema already exists by the time we create it: a concurrent
-// instance won the race. `CREATE SCHEMA` only emits IF NOT EXISTS once Sequelize knows the server is
-// >= 9.2, so a plain create can still collide — tolerate both the explicit duplicate and the
-// underlying unique violation on pg_namespace.
-const SCHEMA_ALREADY_EXISTS_CODES = new Set(['42P06', '23505']); // duplicate_schema, unique_violation
+// 42P06 = duplicate_schema (Postgres ≥ 9.2), 23505 = unique_violation on pg_namespace.
+const SCHEMA_ALREADY_EXISTS_CODES = new Set(['42P06', '23505']);
 
 function isSchemaAlreadyExistsError(error: unknown): boolean {
   const code = (error as { original?: { code?: string } })?.original?.code;
@@ -107,13 +97,10 @@ function isSchemaAlreadyExistsError(error: unknown): boolean {
 }
 
 /**
- * Create the schema (namespace) when it is missing, and commit it. No-op when no schema is requested
- * — dialects without schema support pass `undefined`.
- *
- * This must run (and commit) on its own, before Umzug: Umzug's storage opens its own connection to
- * create the meta table, so it would not see a `CREATE SCHEMA` still pending inside an open
- * transaction. The create is therefore not covered by the advisory lock; instead it is made
- * idempotent (existence check + tolerating the concurrent "already exists" error).
+ * Idempotent CREATE SCHEMA. Must run (and commit) on its own before Umzug, because Umzug's storage
+ * opens its own connection to create the meta table and would not see a CREATE SCHEMA still
+ * pending in a transaction. Not covered by the advisory lock; the existence check + tolerated
+ * "already exists" error makes it safe under concurrent boots instead.
  */
 async function ensureSchema(sequelize: Sequelize, schema: string | undefined): Promise<void> {
   if (!schema) return;
@@ -126,19 +113,15 @@ async function ensureSchema(sequelize: Sequelize, schema: string | undefined): P
   try {
     await queryInterface.createSchema(schema);
   } catch (error) {
-    // Another instance created the schema between the check and now — treat as success.
     if (!isSchemaAlreadyExistsError(error)) throw error;
   }
 }
 
 /**
- * Create the schema then apply every pending audit-table migration.
- *
- * The schema is created and committed first (see {@link ensureSchema}). On Postgres the migrations
- * then run inside a transaction-scoped advisory lock, so several agent instances booting at once
- * apply them one after another instead of racing on the same DDL — the losers block on the lock,
- * then find the migrations already applied and continue. Other dialects have no cross-instance lock;
- * their individual statements are idempotent.
+ * Creates the schema then applies every pending audit-table migration. On Postgres the migrations
+ * run inside a transaction-scoped advisory lock so concurrent agent boots serialize on the DDL —
+ * losers block on the lock, then find the migrations already applied. Other dialects rely on the
+ * idempotency of their individual statements.
  */
 export async function runAuditMigrations(
   sequelize: Sequelize,

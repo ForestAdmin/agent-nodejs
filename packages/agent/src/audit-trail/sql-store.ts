@@ -8,17 +8,10 @@ import { runAuditMigrations } from './migrations';
 export const DEFAULT_SCHEMA = 'forest';
 export const DEFAULT_TABLE = 'audit_logs';
 
-/** Dialects that support real schemas (namespaces). Elsewhere the table lives in the default schema. */
-const SCHEMA_DIALECTS = new Set(['postgres', 'mssql']);
+const DIALECTS_WITH_SCHEMAS = new Set(['postgres', 'mssql']);
 
 const MODEL_NAME = 'ForestAuditLog';
 
-/**
- * Declare the audit-log model on a connection. Does not touch the database.
- *
- * Only the actor's `userId` is stored; the rest of the actor identity is persisted elsewhere and
- * correlated through `correlationKey`.
- */
 export function defineAuditLogModel(
   sequelize: Sequelize,
   options: { schema?: string; tableName: string },
@@ -46,29 +39,17 @@ export function defineAuditLogModel(
   );
 }
 
-/**
- * Ensure the schema and the audit table exist, then return the model.
- *
- * The schema (when the dialect supports it) and the table are both created and evolved through
- * versioned migrations (see {@link runAuditMigrations}) — so later schema changes are applied instead
- * of being silently skipped the way `sync()` would, and concurrent agent instances bootstrap safely.
- *
- * - empty database          → schema (when supported) and table are created;
- * - database without schema  → schema is created next to the existing tables, table is created;
- * - database with the schema → schema creation is a no-op, only pending migrations run.
- */
 export async function ensureAuditStorage(
   sequelize: Sequelize,
   options: { schema?: string; tableName: string },
 ): Promise<ModelStatic<Model>> {
-  const useSchema = SCHEMA_DIALECTS.has(sequelize.getDialect()) ? options.schema : undefined;
+  const schema = DIALECTS_WITH_SCHEMAS.has(sequelize.getDialect()) ? options.schema : undefined;
 
-  await runAuditMigrations(sequelize, { schema: useSchema, tableName: options.tableName });
+  await runAuditMigrations(sequelize, { schema, tableName: options.tableName });
 
-  return defineAuditLogModel(sequelize, { schema: useSchema, tableName: options.tableName });
+  return defineAuditLogModel(sequelize, { schema, tableName: options.tableName });
 }
 
-/** Map an audit record to a database row. */
 export function toRow(record: AuditRecord): Record<string, unknown> {
   return {
     timestamp: record.timestamp,
@@ -82,8 +63,7 @@ export function toRow(record: AuditRecord): Record<string, unknown> {
   };
 }
 
-/** Build the Sequelize `where` clause shared by `listByRecord` and `countByRecord`. */
-function buildWhere({
+function buildHistoryWhereClause({
   collection,
   recordId,
   userIds,
@@ -102,7 +82,6 @@ function buildWhere({
   return where;
 }
 
-/** Map a database row back to an audit record. Inverse of {@link toRow}. */
 export function fromRow(row: Model): AuditRecord {
   const plain = row.get({ plain: true }) as Record<string, unknown>;
   const { timestamp } = plain;
@@ -120,13 +99,10 @@ export function fromRow(row: Model): AuditRecord {
 }
 
 /**
- * Return a SQL-backed audit store that both writes and reads from `forest.audit_logs`.
- *
- * Construction is synchronous so the store can be passed to `createAgent({ auditTrail: { store } })`
- * at module top level. The connection is opened — and any pending migrations are applied — when
- * `store.init()` runs, which the audit-trail plugin triggers during `agent.start()`. The store
- * also self-initializes on the first append or read, so calls outside the plugin (tests, manual
- * scripts) still work.
+ * Returns a SQL-backed audit store. Construction is synchronous so the store can be passed to
+ * `createAgent` at module top level; the connection (and pending migrations) only run when
+ * `store.init()` is awaited during `agent.start()`. The store also self-initializes on the first
+ * append or read so tests and manual scripts work without an explicit init.
  */
 export function createSqlAuditStore(options: AuditStorageOptions): {
   store: AuditStore;
@@ -159,6 +135,12 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
     return modelPromise;
   };
 
+  // Insertion-order tiebreaker on `id` keeps paging deterministic when timestamps collide.
+  const chronologicalOrder = [
+    ['timestamp', 'ASC'],
+    ['id', 'ASC'],
+  ] as const;
+
   return {
     store: {
       async init() {
@@ -173,10 +155,8 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
         const { skip = 0, limit, order = 'asc' } = query;
         const direction = order === 'desc' ? 'DESC' : 'ASC';
 
-        // `id` (insertion order) breaks ties on equal timestamps, keeping the order deterministic
-        // and stable across pages regardless of the chosen direction.
         const rows = await model.findAll({
-          where: buildWhere(query),
+          where: buildHistoryWhereClause(query),
           order: [
             ['timestamp', direction],
             ['id', 'ASC'],
@@ -190,17 +170,14 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
       async countByRecord(query) {
         const model = await init();
 
-        return model.count({ where: buildWhere(query) });
+        return model.count({ where: buildHistoryWhereClause(query) });
       },
       async listByCorrelation({ collection, recordId, correlationKey }) {
         const model = await init();
 
         const rows = await model.findAll({
           where: { collection, recordId, correlationKey },
-          order: [
-            ['timestamp', 'ASC'],
-            ['id', 'ASC'],
-          ],
+          order: chronologicalOrder as never,
         });
 
         return rows.map(fromRow);
@@ -212,10 +189,7 @@ export function createSqlAuditStore(options: AuditStorageOptions): {
 
         const rows = await model.findAll({
           where: { collection, recordId, correlationKey: { [Op.in]: correlationKeys } },
-          order: [
-            ['timestamp', 'ASC'],
-            ['id', 'ASC'],
-          ],
+          order: chronologicalOrder as never,
         });
 
         return rows.map(fromRow);

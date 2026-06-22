@@ -5,19 +5,18 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 export type AuditTrailConfig = {
   /**
-   * Connection string of the database that will hold the audit log. May point to an empty database,
-   * the database already used by the agent, or a database that already contains the `forest`
-   * schema. The schema and table are created on the fly when missing.
+   * Postgres / SQL connection string for the audit database. May point at an empty database, the
+   * database already used by the agent, or one that already contains the `forest` schema — the
+   * schema and table are created on the fly when missing.
    */
   connectionString: string;
-  /** Schema that namespaces Forest-owned tables. Defaults to `forest`. */
+  /** Defaults to `forest`. */
   schema?: string;
-  /** Name of the audit table. Defaults to `audit_logs`. */
+  /** Defaults to `audit_logs`. */
   tableName?: string;
   /**
-   * Field values to mask, keyed by collection name. A redacted field still produces an audit entry
-   * when it changes (so the change is recorded), but its value is replaced with a sentinel instead
-   * of being stored.
+   * Fields to mask, keyed by collection name. Redacted fields still produce an audit entry when
+   * they change, but their value is replaced with a sentinel instead of being stored.
    */
   redact?: Record<string, string[]>;
 };
@@ -73,13 +72,13 @@ export type AgentOptions = {
    */
   workflowExecutorUrl?: string | null;
   /**
-   * When set, the agent records every create/update/delete in the configured database and exposes
-   * `/_audit-trail/{collection}/:id` (per-record history) and `/_audit-trail/correlation*` routes.
+   * Records every create/update/delete and exposes `/_audit-trail/{collection}/:id` and
+   * `/_audit-trail/correlation*` routes. Disabled when `null` or unset.
    */
   auditTrail?: AuditTrailConfig | null;
 };
 
-/** Runtime shape of `auditTrail` once the validator has built the store from the config. */
+// Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.
 export type AuditTrailRuntime = AuditTrailConfig & { store: AuditStore };
 
 export type AgentOptionsWithDefaults = Readonly<

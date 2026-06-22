@@ -7,7 +7,6 @@ import { DateTime } from 'luxon';
 import CollectionRoute from '../collection-route';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-// Date with a wall-clock time, `T` or space separator, seconds optional: `YYYY-MM-DD[T| ]HH:mm[:ss]`.
 const DATE_TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/;
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -32,7 +31,6 @@ export default class AuditTrailRoute extends CollectionRoute {
     const order = AuditTrailRoute.parseSort(context);
     const { userIds, startTimestamp, endTimestamp } = AuditTrailRoute.parseFilters(context);
 
-    // context.params.id is already Forest's packed id, the form the audit store keys on.
     const filters = {
       collection: this.collection.name,
       recordId: context.params.id,
@@ -41,7 +39,7 @@ export default class AuditTrailRoute extends CollectionRoute {
       ...(endTimestamp && { endTimestamp }),
     };
 
-    // `count` reflects the active filters (not the absolute total) and is independent of the page.
+    // `count` reflects the active filters and is independent of the page.
     const [data, count] = await Promise.all([
       store.listByRecord({ ...filters, skip, limit, order }),
       store.countByRecord(filters),
@@ -50,16 +48,15 @@ export default class AuditTrailRoute extends CollectionRoute {
     context.response.body = { data, meta: { count } };
   }
 
-  // JSON:API `sort`: `timestamp` → oldest first, `-timestamp` → newest first. Anything else
-  // (absent or unsupported) defaults to newest first.
+  // JSON:API `sort=timestamp` → oldest first, anything else (or absent) → newest first.
   private static parseSort(context: Context): 'asc' | 'desc' {
     const sort = (context.request.query as Record<string, unknown>).sort?.toString();
 
     return sort === 'timestamp' ? 'asc' : 'desc';
   }
 
-  // JSON:API pagination: 1-based `page[number]` (default 1) and `page[size]` (default 20, capped
-  // at 100). Out-of-bound or non-numeric values fall back to the defaults rather than erroring.
+  // 1-based `page[number]` (default 1) and `page[size]` (default 20, capped at 100). Invalid values
+  // fall back to the defaults rather than erroring.
   private static parsePagination(context: Context): { skip: number; limit: number } {
     const query = context.request.query as Record<string, unknown>;
     const size = AuditTrailRoute.parsePageSize(query['page[size]']?.toString());
@@ -110,9 +107,9 @@ export default class AuditTrailRoute extends CollectionRoute {
     return ids.length > 0 ? ids : undefined;
   }
 
-  // `startDate` / `endDate` accept a bare day (`YYYY-MM-DD`) or a wall-clock datetime
-  // (`YYYY-MM-DD[T| ]HH:mm[:ss]`). The value is read as local time in the request timezone and
-  // returned as a UTC instant so the store can compare it against stored timestamps.
+  // Bare day (`YYYY-MM-DD`) or wall-clock datetime (`YYYY-MM-DD[T| ]HH:mm[:ss]`), interpreted as
+  // local time in the request timezone and returned as a UTC instant so the store can compare it
+  // to stored timestamps.
   private static parseDateBoundary(
     raw: string | undefined,
     timezone: string,
@@ -141,7 +138,6 @@ export default class AuditTrailRoute extends CollectionRoute {
     if (DATE_ONLY.test(raw)) {
       const day = DateTime.fromISO(raw, { zone: timezone });
 
-      // Bare day → start (00:00:00.000) or end (23:59:59.999) of that local day.
       return boundary === 'end' ? day.endOf('day') : day.startOf('day');
     }
 
@@ -154,7 +150,7 @@ export default class AuditTrailRoute extends CollectionRoute {
 
     if (seconds !== undefined) return base.set({ second: Number(seconds), millisecond: 0 });
 
-    // Minutes-only: complete the end boundary to :59.999 so it stays inclusive; start stays at :00.000.
+    // Minutes-only: end snaps to :59.999 to stay inclusive; start stays at :00.000.
     return boundary === 'end' ? base.set({ second: 59, millisecond: 999 }) : base;
   }
 }
