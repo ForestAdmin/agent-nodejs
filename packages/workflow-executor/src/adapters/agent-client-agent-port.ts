@@ -16,7 +16,12 @@ import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
 import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
 
-import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
+import {
+  ActionFormValidationError as ClientActionFormValidationError,
+  ActionRequiresApprovalError as ClientActionRequiresApprovalError,
+  HttpRequester,
+  createRemoteAgentClient,
+} from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import {
@@ -29,50 +34,14 @@ import {
   extractErrorMessage,
 } from '../errors';
 
-// The agent-client throws `new Error(JSON.stringify({ error: { status, text }, body }))` on a non-2xx
-// (superagent's toError sets status + text = raw response body). Parse it back to (status, body).
-function parseAgentHttpError(error: unknown): { status?: number; text?: string } {
-  if (!(error instanceof Error)) return {};
-
-  try {
-    const parsed = JSON.parse(error.message) as { error?: { status?: number; text?: string } };
-
-    return { status: parsed.error?.status, text: parsed.error?.text };
-  } catch {
-    return {};
-  }
-}
-
-// The agent rejects an approval-gated action with HTTP 403 CustomActionRequiresApprovalError,
-// carrying roleIdsAllowedToApprove. Pull the roles out of the response body when present.
-function extractRoleIdsAllowedToApprove(text: string): number[] | undefined {
-  try {
-    const body = JSON.parse(text) as {
-      errors?: { data?: { roleIdsAllowedToApprove?: number[] } }[];
-      data?: { roleIdsAllowedToApprove?: number[] };
-    };
-
-    return (
-      body.errors?.[0]?.data?.roleIdsAllowedToApprove ??
-      body.data?.roleIdsAllowedToApprove ??
-      undefined
-    );
-  } catch {
-    return undefined;
-  }
-}
-
-// Map an action `execute()` failure to a typed error so the step executor can route it:
-// approval-403 and validation rejections become distinct fallback-worthy errors; everything else
-// (plain permission 403, infra 5xx, network) stays raw → wrapped as AgentPortError = step error.
+// Re-wrap agent-client's semantic action error into the executor's domain error (carries userMessage
+// + drives the step fallback). Anything else stays raw → AgentPortError = step error.
 function mapActionExecutionError(action: string, cause: unknown): unknown {
-  const { status, text } = parseAgentHttpError(cause);
-
-  if (status === 403 && text && text.includes('CustomActionRequiresApprovalError')) {
-    return new ActionRequiresApprovalError(action, extractRoleIdsAllowedToApprove(text));
+  if (cause instanceof ClientActionRequiresApprovalError) {
+    return new ActionRequiresApprovalError(action, cause.roleIdsAllowedToApprove);
   }
 
-  if (status === 400 || status === 422) {
+  if (cause instanceof ClientActionFormValidationError) {
     return new ActionFormValidationError(action, cause);
   }
 

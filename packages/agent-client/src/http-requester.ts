@@ -3,6 +3,18 @@ import type { WriteStream } from 'fs';
 import { Deserializer } from 'jsonapi-serializer';
 import superagent from 'superagent';
 
+import AgentHttpError from './errors';
+
+function parseJson(text: string | undefined): unknown {
+  if (text === undefined) return undefined;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
 export default class HttpRequester {
   private readonly deserializer: Deserializer;
 
@@ -60,9 +72,15 @@ export default class HttpRequester {
         return (response.body ?? response.text) as Data;
       }
     } catch (error) {
-      const superagentError = error as { response?: { error?: Record<string, string> } };
-      if (!superagentError.response) throw error;
-      throw new Error(JSON.stringify({ error: superagentError.response.error, body }, null, 4));
+      const res = (error as { response?: { status?: number; body?: unknown; text?: string } })
+        .response;
+      if (!res) throw error; // network/timeout/abort → no HTTP response, propagate raw
+
+      const text = typeof res.text === 'string' ? res.text : undefined;
+      const hasBody =
+        !!res.body && typeof res.body === 'object' && Object.keys(res.body).length > 0;
+
+      throw new AgentHttpError(res.status ?? 0, hasBody ? res.body : parseJson(text), text);
     }
   }
 
@@ -105,13 +123,7 @@ export default class HttpRequester {
   }
 
   static is404Error(error: unknown): boolean {
-    if (!(error instanceof Error)) return false;
-
-    try {
-      return JSON.parse(error.message)?.error?.status === 404;
-    } catch {
-      return false;
-    }
+    return error instanceof AgentHttpError && error.status === 404;
   }
 
   private buildUrl(path: string): string {

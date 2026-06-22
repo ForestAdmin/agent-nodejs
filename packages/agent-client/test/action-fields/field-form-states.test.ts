@@ -1,6 +1,7 @@
 import type HttpRequester from '../../src/http-requester';
 
 import FieldFormStates from '../../src/action-fields/field-form-states';
+import AgentHttpError from '../../src/errors';
 
 jest.mock('../../src/http-requester', () => {
   const actual = jest.requireActual('../../src/http-requester');
@@ -278,9 +279,7 @@ describe('FieldFormStates', () => {
         { load: false, change: [] },
       );
 
-      const error404 = new Error(
-        JSON.stringify({ error: { status: 404, text: 'Not Found' }, body: null }),
-      );
+      const error404 = new AgentHttpError(404, null, 'Not Found');
       httpRequester.query.mockRejectedValue(error404);
 
       await formStates.loadInitialState();
@@ -307,9 +306,7 @@ describe('FieldFormStates', () => {
         fallbackFields,
       );
 
-      const error404 = new Error(
-        JSON.stringify({ error: { status: 404, text: 'Not Found' }, body: null }),
-      );
+      const error404 = new AgentHttpError(404, null, 'Not Found');
       httpRequester.query.mockRejectedValue(error404);
 
       await formStates.loadInitialState();
@@ -331,9 +328,7 @@ describe('FieldFormStates', () => {
         { load: false, change: [] },
       );
 
-      const error500 = new Error(
-        JSON.stringify({ error: { status: 500, text: 'Internal Server Error' }, body: null }),
-      );
+      const error500 = new AgentHttpError(500, null, 'Internal Server Error');
       httpRequester.query.mockRejectedValue(error500);
 
       await expect(formStates.loadInitialState()).rejects.toThrow();

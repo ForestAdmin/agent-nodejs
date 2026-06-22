@@ -1,6 +1,13 @@
+/* eslint-disable max-classes-per-file */
 import type { StepUser } from '../../src/types/execution-context';
 
-import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
+import {
+  AgentHttpError,
+  ActionRequiresApprovalError as ClientApprovalError,
+  ActionFormValidationError as ClientFormValidationError,
+  HttpRequester,
+  createRemoteAgentClient,
+} from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
@@ -13,10 +20,43 @@ import {
 } from '../../src/errors';
 import SchemaCache from '../../src/schema-cache';
 
-jest.mock('@forestadmin/agent-client', () => ({
-  createRemoteAgentClient: jest.fn(),
-  HttpRequester: { is404Error: jest.fn() },
-}));
+jest.mock('@forestadmin/agent-client', () => {
+  // Real class so `instanceof AgentHttpError` in the adapter matches errors built by these tests.
+  class MockAgentHttpError extends Error {
+    constructor(
+      public readonly status: number,
+      public readonly body: unknown,
+      public readonly responseText?: string,
+    ) {
+      super(`Agent responded with HTTP ${status}`);
+      this.name = 'AgentHttpError';
+    }
+  }
+
+  // Semantic action errors agent-client throws from execute(); real classes so the adapter's
+  // `instanceof` checks match errors built by these tests.
+  class MockActionRequiresApprovalError extends Error {
+    constructor(message: string, public readonly roleIdsAllowedToApprove?: number[]) {
+      super(message);
+      this.name = 'ActionRequiresApprovalError';
+    }
+  }
+
+  class MockActionFormValidationError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'ActionFormValidationError';
+    }
+  }
+
+  return {
+    AgentHttpError: MockAgentHttpError,
+    ActionRequiresApprovalError: MockActionRequiresApprovalError,
+    ActionFormValidationError: MockActionFormValidationError,
+    createRemoteAgentClient: jest.fn(),
+    HttpRequester: { is404Error: jest.fn() },
+  };
+});
 
 const mockedCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunction<
   typeof createRemoteAgentClient
@@ -760,25 +800,8 @@ describe('AgentClientAgentPort', () => {
       expect(mockAction.execute).not.toHaveBeenCalled();
     });
 
-    it('maps an approval-403 to ActionRequiresApprovalError with the allowed roles', async () => {
-      mockAction.execute.mockRejectedValue(
-        new Error(
-          JSON.stringify({
-            error: {
-              status: 403,
-              text: JSON.stringify({
-                errors: [
-                  {
-                    name: 'CustomActionRequiresApprovalError',
-                    data: { roleIdsAllowedToApprove: [7, 9] },
-                  },
-                ],
-              }),
-            },
-            body: null,
-          }),
-        ),
-      );
+    it('re-wraps agent-client ActionRequiresApprovalError, carrying the allowed roles', async () => {
+      mockAction.execute.mockRejectedValue(new ClientApprovalError('Needs approval', [7, 9]));
 
       const error = await port
         .executeAction({ collection: 'users', action: 'refund', id: [1] }, user)
@@ -788,10 +811,8 @@ describe('AgentClientAgentPort', () => {
       expect((error as ActionRequiresApprovalError).roleIdsAllowedToApprove).toEqual([7, 9]);
     });
 
-    it('maps a 422 validation rejection to ActionFormValidationError', async () => {
-      mockAction.execute.mockRejectedValue(
-        new Error(JSON.stringify({ error: { status: 422, text: 'invalid' }, body: null })),
-      );
+    it('re-wraps agent-client ActionFormValidationError', async () => {
+      mockAction.execute.mockRejectedValue(new ClientFormValidationError('invalid'));
 
       await expect(
         port.executeAction({ collection: 'users', action: 'refund', id: [1] }, user),
@@ -800,7 +821,7 @@ describe('AgentClientAgentPort', () => {
 
     it('leaves a plain permission 403 as a generic AgentPortError (step error, not a fallback)', async () => {
       mockAction.execute.mockRejectedValue(
-        new Error(JSON.stringify({ error: { status: 403, text: 'Forbidden' }, body: null })),
+        new AgentHttpError(403, { errors: [{ name: 'ForbiddenError' }] }, 'Forbidden'),
       );
 
       await expect(
