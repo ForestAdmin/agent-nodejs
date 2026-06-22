@@ -3603,8 +3603,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  // PRD-552: legacy prompt-only steps and new deterministic steps must coexist — the same executor
-  // takes the AI path for one and the deterministic (no-AI) path for the other within one run.
   describe('backward compatibility (PRD-552): legacy and deterministic coexist', () => {
     it('runs the AI path for a legacy step and the deterministic path for a configured step', async () => {
       // Legacy prompt-only step → AI selects the relation.
