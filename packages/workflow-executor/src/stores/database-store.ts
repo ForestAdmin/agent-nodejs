@@ -51,9 +51,8 @@ export default class DatabaseStore implements RunStore {
         {
           name: '001_create_workflow_step_executions',
           up: async ({ context }: { context: QueryInterface }) => {
-            // Transactional so the table and its indexes apply atomically (no half-migrated state
-            // if an index fails), and idempotent so a re-run is a no-op — a previous run may have
-            // committed but crashed before umzug recorded it in SequelizeMeta.
+            // Atomic (table + indexes) and idempotent so a half-applied or already-applied run
+            // can't crash-loop boot.
             await context.sequelize.transaction(async transaction => {
               if (await context.tableExists(tableId, { transaction })) return;
 
@@ -124,8 +123,7 @@ export default class DatabaseStore implements RunStore {
           return;
         }
 
-        // Schema first, in its own locked transaction so it is committed and visible to umzug
-        // (which runs on other pooled connections), then the migrations in a second locked one.
+        // Schema in its own committed transaction so umzug (on other connections) sees it.
         if (schema) {
           await this.withMigrationLock(transaction =>
             this.sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`, { transaction }),
@@ -142,16 +140,14 @@ export default class DatabaseStore implements RunStore {
     });
   }
 
-  // Serializes a section across concurrently-booting instances. Transaction-scoped
-  // (pg_advisory_xact_lock) so it auto-releases at commit and is safe behind transaction-mode
-  // poolers (RDS Proxy / PgBouncer) — a session lock would leak there.
+  // Serializes booting instances via a transaction-scoped advisory lock: auto-releases at commit
+  // and is pooler-safe (RDS Proxy / PgBouncer), unlike a session lock which would leak there.
   private async withMigrationLock(
     run: (transaction: Transaction) => Promise<unknown>,
   ): Promise<void> {
     await this.sequelize.transaction(async transaction => {
-      // This transaction stays idle (the migration runs on other connections) while holding the
-      // lock; neutralize any client-configured idle-in-transaction timeout so it can't be killed
-      // mid-migration, which would drop the lock and let a sibling instance migrate concurrently.
+      // Stop a client idle-in-transaction timeout from killing this idle txn mid-migration,
+      // which would drop the lock.
       await this.sequelize.query('SET LOCAL idle_in_transaction_session_timeout = 0', {
         transaction,
       });

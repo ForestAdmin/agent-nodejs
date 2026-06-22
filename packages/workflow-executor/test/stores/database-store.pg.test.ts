@@ -121,10 +121,7 @@ describePg('DatabaseStore — Postgres advisory-lock integration', () => {
     }
   });
 
-  // Fix 1: the lock transaction sits idle while the migration runs on other connections. A tight
-  // idle_in_transaction_session_timeout would kill it (dropping the lock mid-migration) — the
-  // SET LOCAL guard must prevent that. Here the session sets a 200ms timeout, the guard disables
-  // it, and the transaction stays idle for 500ms while still holding the lock.
+  // Without the SET LOCAL guard, the 200ms timeout would terminate this idle txn before 500ms.
   it('keeps the advisory lock through an idle window a tight idle-in-transaction timeout would kill', async () => {
     const sleep = (ms: number) =>
       new Promise<void>(resolve => {
@@ -143,7 +140,6 @@ describePg('DatabaseStore — Postgres advisory-lock integration', () => {
 
       await sleep(500);
 
-      // An observer still sees the lock held, and the guarded session is alive enough to commit.
       expect(
         await count(
           admin,
