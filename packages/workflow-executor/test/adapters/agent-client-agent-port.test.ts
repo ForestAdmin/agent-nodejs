@@ -1,6 +1,6 @@
 import type { StepUser } from '../../src/types/execution-context';
 
-import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
+import { AgentHttpError, HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import AgentClientAgentPort from '../../src/adapters/agent-client-agent-port';
@@ -13,10 +13,25 @@ import {
 } from '../../src/errors';
 import SchemaCache from '../../src/schema-cache';
 
-jest.mock('@forestadmin/agent-client', () => ({
-  createRemoteAgentClient: jest.fn(),
-  HttpRequester: { is404Error: jest.fn() },
-}));
+jest.mock('@forestadmin/agent-client', () => {
+  // Real class so `instanceof AgentHttpError` in the adapter matches errors built by these tests.
+  class AgentHttpError extends Error {
+    constructor(
+      public readonly status: number,
+      public readonly body: unknown,
+      public readonly responseText?: string,
+    ) {
+      super(`Agent responded with HTTP ${status}`);
+      this.name = 'AgentHttpError';
+    }
+  }
+
+  return {
+    AgentHttpError,
+    createRemoteAgentClient: jest.fn(),
+    HttpRequester: { is404Error: jest.fn() },
+  };
+});
 
 const mockedCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunction<
   typeof createRemoteAgentClient
@@ -762,22 +777,11 @@ describe('AgentClientAgentPort', () => {
 
     it('maps an approval-403 to ActionRequiresApprovalError with the allowed roles', async () => {
       mockAction.execute.mockRejectedValue(
-        new Error(
-          JSON.stringify({
-            error: {
-              status: 403,
-              text: JSON.stringify({
-                errors: [
-                  {
-                    name: 'CustomActionRequiresApprovalError',
-                    data: { roleIdsAllowedToApprove: [7, 9] },
-                  },
-                ],
-              }),
-            },
-            body: null,
-          }),
-        ),
+        new AgentHttpError(403, {
+          errors: [
+            { name: 'CustomActionRequiresApprovalError', data: { roleIdsAllowedToApprove: [7, 9] } },
+          ],
+        }),
       );
 
       const error = await port
@@ -790,7 +794,7 @@ describe('AgentClientAgentPort', () => {
 
     it('maps a 422 validation rejection to ActionFormValidationError', async () => {
       mockAction.execute.mockRejectedValue(
-        new Error(JSON.stringify({ error: { status: 422, text: 'invalid' }, body: null })),
+        new AgentHttpError(422, { errors: [{ detail: 'invalid' }] }, 'invalid'),
       );
 
       await expect(
@@ -800,7 +804,7 @@ describe('AgentClientAgentPort', () => {
 
     it('leaves a plain permission 403 as a generic AgentPortError (step error, not a fallback)', async () => {
       mockAction.execute.mockRejectedValue(
-        new Error(JSON.stringify({ error: { status: 403, text: 'Forbidden' }, body: null })),
+        new AgentHttpError(403, { errors: [{ name: 'ForbiddenError' }] }, 'Forbidden'),
       );
 
       await expect(

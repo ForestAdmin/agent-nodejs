@@ -1,142 +1,48 @@
+import { AgentHttpError } from '@forestadmin/agent-client';
+
 import parseAgentError from '../../src/utils/error-parser';
 
 describe('parseAgentError', () => {
-  describe('nested error.text structure', () => {
-    it('should parse error with nested error.text containing JSON:API errors', () => {
-      const errorPayload = {
-        error: {
-          status: 400,
-          text: JSON.stringify({
-            errors: [{ name: 'ValidationError', detail: 'Invalid filters provided' }],
-          }),
-        },
-      };
-      const error = new Error(JSON.stringify(errorPayload));
-
-      expect(parseAgentError(error)).toBe('Invalid filters provided');
+  it('extracts the JSON:API detail from the parsed body', () => {
+    const error = new AgentHttpError(400, {
+      errors: [{ name: 'ValidationError', detail: 'Invalid filters provided' }],
     });
 
-    it('should return null when error.text has no errors array', () => {
-      const errorPayload = {
-        error: {
-          status: 400,
-          text: JSON.stringify({ success: false }),
-        },
-      };
-      const error = new Error(JSON.stringify(errorPayload));
-
-      expect(parseAgentError(error)).toBeNull();
-    });
+    expect(parseAgentError(error)).toBe('Invalid filters provided');
   });
 
-  describe('direct text property', () => {
-    it('should parse error with direct text property containing JSON:API errors', () => {
-      const errorPayload = {
-        text: JSON.stringify({
-          errors: [{ name: 'ValidationError', detail: 'Direct text error' }],
-        }),
-      };
-      const error = new Error(JSON.stringify(errorPayload));
+  it('falls back to parsing responseText when the body is not a parsed object', () => {
+    const error = new AgentHttpError(
+      400,
+      undefined,
+      JSON.stringify({ errors: [{ detail: 'From raw text' }] }),
+    );
 
-      expect(parseAgentError(error)).toBe('Direct text error');
-    });
-
-    it('should return null when text has no errors array', () => {
-      const errorPayload = {
-        text: JSON.stringify({ success: false }),
-      };
-      const error = new Error(JSON.stringify(errorPayload));
-
-      expect(parseAgentError(error)).toBeNull();
-    });
+    expect(parseAgentError(error)).toBe('From raw text');
   });
 
-  describe('message property fallback', () => {
-    it('should use message property from parsed JSON when no text field', () => {
-      const errorPayload = {
-        message: 'Error message from JSON payload',
-      };
-      const error = new Error(JSON.stringify(errorPayload));
-
-      expect(parseAgentError(error)).toBe('Error message from JSON payload');
-    });
+  it('returns the generic HTTP message when the body has no JSON:API detail', () => {
+    expect(parseAgentError(new AgentHttpError(400, { success: false }))).toBe(
+      'Agent responded with HTTP 400',
+    );
   });
 
-  describe('plain error message fallback', () => {
-    it('should fall back to error.message when message is not valid JSON', () => {
-      const error = new Error('Plain error message');
-
-      expect(parseAgentError(error)).toBe('Plain error message');
-    });
+  it('returns the generic HTTP message for an empty errors array', () => {
+    expect(parseAgentError(new AgentHttpError(422, { errors: [] }))).toBe(
+      'Agent responded with HTTP 422',
+    );
   });
 
-  describe('error priority', () => {
-    it('should prioritize error.text over direct text', () => {
-      const errorPayload = {
-        error: {
-          text: JSON.stringify({
-            errors: [{ detail: 'From error.text' }],
-          }),
-        },
-        text: JSON.stringify({
-          errors: [{ detail: 'From direct text' }],
-        }),
-      };
-      const error = new Error(JSON.stringify(errorPayload));
-
-      expect(parseAgentError(error)).toBe('From error.text');
-    });
-
-    it('should prioritize text over message', () => {
-      const errorPayload = {
-        text: JSON.stringify({
-          errors: [{ detail: 'From text' }],
-        }),
-        message: 'From message',
-      };
-      const error = new Error(JSON.stringify(errorPayload));
-
-      expect(parseAgentError(error)).toBe('From text');
-    });
+  it('returns the message of a plain Error', () => {
+    expect(parseAgentError(new Error('Plain error message'))).toBe('Plain error message');
   });
 
-  describe('edge cases', () => {
-    it('should return null for object without message property', () => {
-      const error = { unknownProperty: 'some value' };
+  it('returns null for an object without a message', () => {
+    expect(parseAgentError({ unknownProperty: 'some value' })).toBeNull();
+  });
 
-      expect(parseAgentError(error)).toBeNull();
-    });
-
-    it('should return null for null error', () => {
-      expect(parseAgentError(null)).toBeNull();
-    });
-
-    it('should return null for undefined error', () => {
-      expect(parseAgentError(undefined)).toBeNull();
-    });
-
-    it('should handle empty errors array', () => {
-      const errorPayload = {
-        error: {
-          text: JSON.stringify({ errors: [] }),
-        },
-      };
-      const error = new Error(JSON.stringify(errorPayload));
-
-      expect(parseAgentError(error)).toBeNull();
-    });
-
-    it('should handle error without detail property', () => {
-      const errorPayload = {
-        error: {
-          text: JSON.stringify({
-            errors: [{ name: 'ValidationError' }],
-          }),
-        },
-      };
-      const error = new Error(JSON.stringify(errorPayload));
-
-      expect(parseAgentError(error)).toBeNull();
-    });
+  it('returns null for null/undefined', () => {
+    expect(parseAgentError(null)).toBeNull();
+    expect(parseAgentError(undefined)).toBeNull();
   });
 });

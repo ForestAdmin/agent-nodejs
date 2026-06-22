@@ -1,5 +1,6 @@
 import superagent from 'superagent';
 
+import { AgentHttpError } from '../src/errors';
 import HttpRequester from '../src/http-requester';
 
 jest.mock('superagent');
@@ -43,23 +44,20 @@ describe('HttpRequester', () => {
   });
 
   describe('is404Error', () => {
-    it('should return true for a 404 error', () => {
-      const error = new Error(JSON.stringify({ error: { status: 404 }, body: null }));
-      expect(HttpRequester.is404Error(error)).toBe(true);
+    it('should return true for a 404 AgentHttpError', () => {
+      expect(HttpRequester.is404Error(new AgentHttpError(404, null))).toBe(true);
     });
 
-    it('should return false for a 500 error', () => {
-      const error = new Error(JSON.stringify({ error: { status: 500 }, body: null }));
-      expect(HttpRequester.is404Error(error)).toBe(false);
+    it('should return false for a non-404 AgentHttpError', () => {
+      expect(HttpRequester.is404Error(new AgentHttpError(500, null))).toBe(false);
     });
 
     it('should return false for a non-Error', () => {
       expect(HttpRequester.is404Error('not an error')).toBe(false);
     });
 
-    it('should return false for non-JSON error message', () => {
-      const error = new Error('plain text error');
-      expect(HttpRequester.is404Error(error)).toBe(false);
+    it('should return false for a plain Error', () => {
+      expect(HttpRequester.is404Error(new Error('plain text error'))).toBe(false);
     });
   });
 

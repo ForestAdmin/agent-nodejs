@@ -3,6 +3,8 @@ import type { Logger } from '../../src/server';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import { AgentHttpError } from '@forestadmin/agent-client';
+
 import createPendingActivityLog, {
   markActivityLogAsFailed,
   markActivityLogAsSucceeded,
@@ -137,15 +139,11 @@ describe('withActivityLog', () => {
   });
 
   it('should parse agent error and use detail as error message', async () => {
-    const errorPayload = {
-      error: {
-        status: 400,
-        text: JSON.stringify({
-          errors: [{ name: 'ValidationError', detail: 'Invalid field value' }],
-        }),
-      },
-    };
-    const operation = jest.fn().mockRejectedValue(new Error(JSON.stringify(errorPayload)));
+    const operation = jest.fn().mockRejectedValue(
+      new AgentHttpError(400, {
+        errors: [{ name: 'ValidationError', detail: 'Invalid field value' }],
+      }),
+    );
 
     await expect(
       withActivityLog({
@@ -283,16 +281,9 @@ describe('withActivityLog', () => {
     });
 
     it('should pass parsed agent error detail to errorEnhancer', async () => {
-      // parseAgentError expects an Error with a JSON message containing error details
-      const errorPayload = {
-        error: {
-          status: 400,
-          text: JSON.stringify({
-            errors: [{ name: 'ValidationError', detail: 'Invalid field value' }],
-          }),
-        },
-      };
-      const agentError = new Error(JSON.stringify(errorPayload));
+      const agentError = new AgentHttpError(400, {
+        errors: [{ name: 'ValidationError', detail: 'Invalid field value' }],
+      });
       const operation = jest.fn().mockRejectedValue(agentError);
       const errorEnhancer = jest.fn().mockImplementation(msg => Promise.resolve(`Context: ${msg}`));
 
