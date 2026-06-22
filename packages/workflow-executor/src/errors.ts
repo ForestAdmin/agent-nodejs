@@ -126,6 +126,35 @@ export class UnsupportedActionFormError extends WorkflowExecutorError {
   }
 }
 
+// The action submission was rejected by the agent's server-side validation (bad/missing values),
+// NOT an infra failure (PRD-509). Full AI (PRD-512) treats this as a fallback-to-AI-assisted reason
+// so a human can fix the values and resubmit.
+export class ActionFormValidationError extends WorkflowExecutorError {
+  constructor(actionName: string, cause?: unknown) {
+    super(
+      `Action "${actionName}" rejected the submitted form values`,
+      'The submitted form values were rejected. Please review the form and try again.',
+    );
+    this.cause = cause;
+  }
+}
+
+// The action requires an Approval: the agent rejects a programmatic submit upfront with HTTP 403
+// CustomActionRequiresApprovalError (PRD-509). Distinct from a plain permission 403 — Full AI
+// (PRD-512) falls back to AI-assisted so the native front handles the approval flow. The executor
+// MUST NOT self-sign an approval request.
+export class ActionRequiresApprovalError extends WorkflowExecutorError {
+  readonly roleIdsAllowedToApprove?: number[];
+
+  constructor(actionName: string, roleIdsAllowedToApprove?: number[]) {
+    super(
+      `Action "${actionName}" requires an approval and cannot be submitted programmatically`,
+      'This action requires an approval. Please review and submit it manually.',
+    );
+    this.roleIdsAllowedToApprove = roleIdsAllowedToApprove;
+  }
+}
+
 export class RunStorePortError extends UnavailableError {
   constructor(operation: string, cause: unknown) {
     super(
@@ -378,14 +407,15 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
   }
 }
 
-// The "Related to" source step ran but loaded no record, so this step has nothing to load from
-// (PRD-550 "no source record"). Distinct from a bad config — the user can continue without.
+// A "Related to" / "On record" source step ran but loaded no record, so the step that uses it has
+// no source to act on (PRD-550 / PRD-469 "no source record"). Distinct from a bad config — the
+// user can continue without. Wording is step-type-neutral (shared by load-related and trigger-action).
 export class SourceRecordMissingError extends WorkflowExecutorError {
   constructor(sourceTitle?: string) {
     const from = sourceTitle ? `"${sourceTitle}"` : 'its source step';
     super(
       `Source step ${from} loaded no record`,
-      `This step loads from ${from}, but that step didn't load any record, so nothing can be loaded here.`,
+      `This step uses ${from} as its source, but that step didn't load any record.`,
     );
   }
 }

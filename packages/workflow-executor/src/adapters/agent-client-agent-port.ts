@@ -1,7 +1,10 @@
 import type {
+  ActionForm,
+  ActionFormField,
   AgentPort,
   ExecuteActionQuery,
   GetActionFormInfoQuery,
+  GetActionFormQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
   GetSingleRelatedDataQuery,
@@ -17,12 +20,64 @@ import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-clien
 import jsonwebtoken from 'jsonwebtoken';
 
 import {
+  ActionFormValidationError,
+  ActionRequiresApprovalError,
   AgentPortError,
   AgentProbeError,
   RecordNotFoundError,
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
+
+// The agent-client throws `new Error(JSON.stringify({ error: { status, text }, body }))` on a non-2xx
+// (superagent's toError sets status + text = raw response body). Parse it back to (status, body).
+function parseAgentHttpError(error: unknown): { status?: number; text?: string } {
+  if (!(error instanceof Error)) return {};
+
+  try {
+    const parsed = JSON.parse(error.message) as { error?: { status?: number; text?: string } };
+
+    return { status: parsed.error?.status, text: parsed.error?.text };
+  } catch {
+    return {};
+  }
+}
+
+// The agent rejects an approval-gated action with HTTP 403 CustomActionRequiresApprovalError,
+// carrying roleIdsAllowedToApprove. Pull the roles out of the response body when present.
+function extractRoleIdsAllowedToApprove(text: string): number[] | undefined {
+  try {
+    const body = JSON.parse(text) as {
+      errors?: { data?: { roleIdsAllowedToApprove?: number[] } }[];
+      data?: { roleIdsAllowedToApprove?: number[] };
+    };
+
+    return (
+      body.errors?.[0]?.data?.roleIdsAllowedToApprove ??
+      body.data?.roleIdsAllowedToApprove ??
+      undefined
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+// Map an action `execute()` failure to a typed error so the step executor can route it (PRD-509):
+// approval-403 and validation rejections become distinct fallback-worthy errors; everything else
+// (plain permission 403, infra 5xx, network) stays raw → wrapped as AgentPortError = step error.
+function mapActionExecutionError(action: string, cause: unknown): unknown {
+  const { status, text } = parseAgentHttpError(cause);
+
+  if (status === 403 && text && text.includes('CustomActionRequiresApprovalError')) {
+    return new ActionRequiresApprovalError(action, extractRoleIdsAllowedToApprove(text));
+  }
+
+  if (status === 400 || status === 422) {
+    return new ActionFormValidationError(action, cause);
+  }
+
+  return cause;
+}
 
 function toCamelCase(name: string): string {
   return name.replace(/_([a-zA-Z0-9])/g, (_, c: string) => c.toUpperCase());
@@ -191,7 +246,7 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async executeAction(
-    { collection, action, id }: ExecuteActionQuery,
+    { collection, action, id, values }: ExecuteActionQuery,
     user: StepUser,
   ): Promise<unknown> {
     return this.callAgent('executeAction', async () => {
@@ -199,7 +254,21 @@ export default class AgentClientAgentPort implements AgentPort {
       const recordIds = id?.length ? [id] : [];
       const act = await client.collection(collection).action(action, { recordIds });
 
-      return act.execute();
+      if (values) {
+        // setFields is strict (mirrors MCP execute-action): an unknown field is a config/drift
+        // problem, surfaced as a validation error rather than a silent skip.
+        try {
+          await act.setFields(values);
+        } catch (cause) {
+          throw new ActionFormValidationError(action, cause);
+        }
+      }
+
+      try {
+        return await act.execute();
+      } catch (cause) {
+        throw mapActionExecutionError(action, cause);
+      }
     });
   }
 
@@ -212,6 +281,39 @@ export default class AgentClientAgentPort implements AgentPort {
       const act = await client.collection(collection).action(action, { recordIds: [id] });
 
       return { hasForm: act.getFields().length > 0 };
+    });
+  }
+
+  async getActionForm(
+    { collection, action, id, values }: GetActionFormQuery,
+    user: StepUser,
+  ): Promise<ActionForm> {
+    return this.callAgent('getActionForm', async () => {
+      const client = this.createClient(user);
+      const act = await client.collection(collection).action(action, { recordIds: [id] });
+
+      // Soft-apply so dependent fields are revealed by change hooks; unknown fields (dropped by a
+      // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).
+      const skippedFields = values ? await act.tryToSetFields(values) : [];
+
+      const fields = act.getFields().map((field): ActionFormField => {
+        const base = {
+          name: field.getName(),
+          type: field.getType(),
+          value: field.getValue(),
+          isRequired: field.isRequired() ?? false,
+        };
+
+        return field.getType() === 'Enum'
+          ? { ...base, enumValues: act.getEnumField(field.getName()).getOptions() ?? undefined }
+          : base;
+      });
+
+      const requiredFields = fields
+        .filter(field => field.isRequired && (field.value === undefined || field.value === null))
+        .map(field => field.name);
+
+      return { fields, canExecute: requiredFields.length === 0, requiredFields, skippedFields };
     });
   }
 

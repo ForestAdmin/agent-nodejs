@@ -1,3 +1,4 @@
+import type { ActionFormField } from '../ports/agent-port';
 import type { RecordId, RecordRef } from './validated/collection';
 import type {
   LoadRelatedRecordConfirmation,
@@ -80,6 +81,26 @@ export interface ActionRef {
   displayName: string;
 }
 
+// One AI-prefilled form value (PRD-511). Kept as an ORDERED list (not a map) so the front can
+// replay it sequentially — setting a field fires its change hook, which may reveal dependent fields.
+export interface AiFilledFormValue {
+  field: string;
+  value: unknown;
+}
+
+// Pending payload for a form-bearing Trigger Action paused for review (PRD-511). `form` is absent
+// for formless actions and for Manual mode (no AI prefill at all).
+export interface TriggerActionPendingData extends ActionRef {
+  form?: {
+    fields: ActionFormField[];
+    aiFilledValues: AiFilledFormValue[];
+  };
+}
+
+// Submission outcome reported by the native front (PRD-511/520): `executed` = the action ran and a
+// result exists; `pending-approval` = the submit only created an approval request (no result yet).
+export type TriggerActionSubmissionOutcome = 'executed' | 'pending-approval';
+
 // Intentionally separate from ActionRef/FieldRef: expected to gain relation-specific
 // fields (e.g. relationType) in a future iteration.
 export interface RelationRef {
@@ -92,8 +113,22 @@ export interface TriggerRecordActionStepExecutionData
     WithUserConfirmation<TriggerActionConfirmation> {
   type: 'trigger-action';
   executionParams?: ActionRef;
-  executionResult?: { success: true; actionResult: unknown } | { skipped: true };
-  pendingData?: ActionRef;
+  executionResult?:
+    | {
+        success: true;
+        // Absent when submissionOutcome is 'pending-approval' (no result exists yet).
+        actionResult?: unknown;
+        // Defaults to 'executed' semantics when absent (formless / legacy flows). PRD-511/520.
+        submissionOutcome?: TriggerActionSubmissionOutcome;
+        // Final values the front submitted + the ordered AI prefill — PRD-513 audit (human-edit diff).
+        submittedValues?: Record<string, unknown>;
+        aiFilledValues?: AiFilledFormValue[];
+        // Who submitted the action (PRD-513 audit): 'ai' = Full AI (executor), 'user' = AI-assisted
+        // (human via the native front). Absent for formless/legacy flows.
+        submittedBy?: 'ai' | 'user';
+      }
+    | { skipped: true };
+  pendingData?: TriggerActionPendingData;
   selectedRecordRef: RecordRef;
 }
 

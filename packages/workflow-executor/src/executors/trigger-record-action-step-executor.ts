@@ -1,5 +1,10 @@
+import type { ActionForm, ActionFormField } from '../ports/agent-port';
 import type { StepExecutionResult } from '../types/execution-context';
-import type { ActionRef, TriggerRecordActionStepExecutionData } from '../types/step-execution-data';
+import type {
+  ActionRef,
+  AiFilledFormValue,
+  TriggerRecordActionStepExecutionData,
+} from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
 
@@ -7,10 +12,11 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import {
+  ActionFormValidationError,
   ActionNotFoundError,
+  ActionRequiresApprovalError,
   NoActionsError,
   StepStateError,
-  UnsupportedActionFormError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
@@ -22,6 +28,16 @@ Important rules:
 - Be precise: only trigger the action directly relevant to the request.
 - Final answer is definitive, you won't receive any other input from the user.
 - Do not refer to yourself as "I" in the response, use a passive formulation instead.`;
+
+const FILL_FORM_SYSTEM_PROMPT = `You are filling out an action form using the user's request and the data available in the workflow context.
+
+Important rules:
+- The request is an explicit instruction. When it states a value for a field (e.g. "set the price to 35"), use that exact value — following an explicit instruction is NOT guessing.
+- Otherwise, fill a field only when the workflow context gives you the value with confidence.
+- A field's "current" value is just its existing default; override it when the request asks you to.
+- If neither the request nor the workflow context gives you a field's value, LEAVE IT OUT — never guess or assume.
+- For Enum fields, use exactly one of the allowed values, otherwise leave the field out.
+- Do not invent identifiers, dates, amounts, or file contents that are absent from both the request and the context.`;
 
 interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
@@ -56,9 +72,16 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         async exec => {
           const { selectedRecordRef, pendingData, userConfirmation } = exec;
 
-          // The frontend executes the action itself and posts the result back.
-          // A confirmed step without actionResult is a broken frontend contract.
-          if (!pendingData || !userConfirmation || !('actionResult' in userConfirmation)) {
+          // The frontend executes the action natively and posts the result back. A confirmed step
+          // must carry an actionResult — UNLESS the submission only created an approval request
+          // (pending-approval), in which case no result exists yet (PRD-511/520).
+          const isPendingApproval = userConfirmation?.submissionOutcome === 'pending-approval';
+
+          if (
+            !pendingData ||
+            !userConfirmation ||
+            (!('actionResult' in userConfirmation) && !isPendingApproval)
+          ) {
             throw new StepStateError(
               `Frontend confirmed action but did not provide actionResult ` +
                 `(run "${this.context.runId}", step ${this.context.stepIndex})`,
@@ -71,7 +94,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
             name: pendingData.name,
           };
 
-          return this.saveFrontendResult(target, userConfirmation.actionResult, exec);
+          return this.saveFrontendResult(target, exec);
         },
       );
     }
@@ -83,13 +106,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
-    const records = await this.getAvailableRecordRefs();
 
-    const selectedRecordRef = await this.resolveRecordRef(
-      records,
-      step.prompt,
-      preRecordedArgs?.selectedRecordStepIndex,
-    );
+    // "On record" pins the source by stable step id (revise-safe); legacy steps without it fall
+    // back to AI record selection among the available source records (PRD-469).
+    const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
+      ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+      : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const recordedAction = preRecordedArgs?.actionName;
     const actionName = recordedAction ?? (await this.selectAction(schema, step.prompt)).actionName;
@@ -105,33 +127,221 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       name: action.name,
     };
 
-    // Branch B -- fully automated: executor runs the action itself, so it cannot
-    // handle forms (no UI to fill them). Reject form-bearing actions here. When the
-    // frontend is in the loop (Branch C), it handles the form natively so no check.
-    if (step.executionType === StepExecutionMode.FullyAutomated) {
-      const { hasForm } = await this.context.agent.getActionFormInfo({
-        collection: selectedRecordRef.collectionName,
-        action: target.name,
-        id: selectedRecordRef.recordId,
-      });
-      if (hasForm) throw new UnsupportedActionFormError(target.displayName);
+    const form = await this.context.agent.getActionForm({
+      collection: selectedRecordRef.collectionName,
+      action: target.name,
+      id: selectedRecordRef.recordId,
+    });
+    const hasForm = form.fields.length > 0;
 
-      return this.executeOnExecutor(target);
+    // Formless action — unchanged behavior: Full AI runs it directly, otherwise pause for the user.
+    if (!hasForm) {
+      return step.executionType === StepExecutionMode.FullyAutomated
+        ? this.executeOnExecutor(target)
+        : this.pauseForConfirmation(target);
     }
 
-    // Branch C -- Awaiting confirmation (frontend executes the action, including forms)
+    // Manual (PRD-511): pause with the native form, NO AI pre-fill.
+    if (step.executionType === StepExecutionMode.Manual) {
+      return this.pauseForConfirmation(target, { fields: form.fields, aiFilledValues: [] });
+    }
+
+    // AI-assisted + Full AI share the same fill loop; only the exit differs.
+    const { aiFilledValues, form: filledForm } = await this.fillFormWithAi(
+      selectedRecordRef,
+      target.name,
+      form,
+    );
+    const reviewState = { fields: filledForm.fields, aiFilledValues };
+
+    // AI-assisted (PRD-511): pause for the user to review/edit/submit natively.
+    if (step.executionType !== StepExecutionMode.FullyAutomated) {
+      return this.pauseForConfirmation(target, reviewState);
+    }
+
+    // Full AI (PRD-512): submit if the AI filled every required field; otherwise fall back to the
+    // exact AI-assisted review state, carrying what was filled.
+    if (!filledForm.canExecute) {
+      return this.pauseForConfirmation(target, reviewState);
+    }
+
+    const values = Object.fromEntries(aiFilledValues.map(v => [v.field, v.value]));
+
+    try {
+      return await this.executeOnExecutor(target, { values, aiFilledValues });
+    } catch (error) {
+      // Validation rejection or an approval-gated action → not a hard failure: pause as
+      // AI-assisted so a human can finish/submit natively. Plain permission 403, infra errors,
+      // etc. propagate as a real step error (a reviewing human couldn't fix those).
+      if (
+        error instanceof ActionFormValidationError ||
+        error instanceof ActionRequiresApprovalError
+      ) {
+        return this.pauseForConfirmation(target, reviewState);
+      }
+
+      throw error;
+    }
+  }
+
+  // Pause the step awaiting user confirmation. For form-bearing actions, `form` carries the native
+  // form fields + the ordered AI prefill the front replays sequentially (PRD-511).
+  private async pauseForConfirmation(
+    target: ActionTarget,
+    form?: { fields: ActionFormField[]; aiFilledValues: AiFilledFormValue[] },
+  ): Promise<StepExecutionResult> {
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
-      pendingData: { displayName: target.displayName, name: target.name },
+      pendingData: { displayName: target.displayName, name: target.name, ...(form && { form }) },
       selectedRecordRef: target.selectedRecordRef,
     });
 
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
+  // Shared AI form-fill loop (PRD-511, reused by Full AI in PRD-512). Iteratively asks the AI to
+  // fill the fields it has context for (leave-empty-if-unsure), re-applying after each pass so
+  // change hooks reveal dependent fields. Bounded by max iterations + no-progress detection so an
+  // oscillating dynamic form can't loop forever. Returns the values in fill order + the final form.
+  private async fillFormWithAi(
+    recordRef: RecordRef,
+    action: string,
+    initialForm: ActionForm,
+  ): Promise<{ aiFilledValues: AiFilledFormValue[]; form: ActionForm }> {
+    const MAX_ITERATIONS = 3;
+    const accumulator: Record<string, unknown> = {};
+    const ordered: AiFilledFormValue[] = [];
+    let form = initialForm;
+
+    for (let i = 0; i < MAX_ITERATIONS; i += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      const aiValues = await this.askAiToFillForm(form);
+      let progressed = false;
+
+      for (const [field, value] of Object.entries(aiValues)) {
+        const isEmpty = value === undefined || value === null || value === '';
+        const exists = form.fields.some(f => f.name === field);
+        const isNew = accumulator[field] !== value;
+
+        // Keep only non-empty values for fields that still exist and weren't already set.
+        if (!isEmpty && exists && isNew) {
+          accumulator[field] = value;
+          ordered.push({ field, value });
+          progressed = true;
+        }
+      }
+
+      // No-progress guard: the AI added nothing new this pass → it has no more context to offer.
+      if (!progressed) break;
+
+      // Re-apply so change hooks reveal/adjust dependent fields for the next pass.
+      // eslint-disable-next-line no-await-in-loop
+      form = await this.context.agent.getActionForm({
+        collection: recordRef.collectionName,
+        action,
+        id: recordRef.recordId,
+        values: accumulator,
+      });
+
+      if (form.canExecute) break;
+    }
+
+    // Drop any value whose field no longer exists after the hooks (state drift) — fail-safe.
+    const finalFieldNames = new Set(form.fields.map(f => f.name));
+    const aiFilledValues = ordered.filter(v => finalFieldNames.has(v.field));
+
+    // Debug trace for support: the net field values actually retained (after drop-stale) + whether
+    // the form is now complete enough to submit. Off by default (Debug level). Client-side log only.
+    this.context.logger('Debug', 'AI form-fill: final values', {
+      ...this.logCtx,
+      aiFilledValues,
+      canExecute: form.canExecute,
+    });
+
+    return { aiFilledValues, form };
+  }
+
+  // One AI fill pass: present the current form fields and ask the AI for values it's confident
+  // about. The strict leave-empty rule (never guess) lives in the prompt + tool description.
+  private async askAiToFillForm(form: ActionForm): Promise<Record<string, unknown>> {
+    const { stepDefinition: step } = this.context;
+    const fieldLines = form.fields
+      .map(field => {
+        const parts = [`- ${field.name} (${field.type}${field.isRequired ? ', required' : ''})`];
+        if (field.enumValues?.length) parts.push(`allowed: ${field.enumValues.join(', ')}`);
+
+        if (field.value !== undefined && field.value !== null) {
+          parts.push(`current: ${JSON.stringify(field.value)}`);
+        }
+
+        return parts.join(' — ');
+      })
+      .join('\n');
+
+    const tool = new DynamicStructuredTool({
+      name: 'fill_action_form',
+      description:
+        'Provide values for the action form fields you have enough context to fill. ' +
+        'Return a `values` object keyed by field name. Leave a field OUT entirely if you are ' +
+        'not sure — never guess or assume. For Enum fields use exactly one of the allowed values.',
+      schema: z.object({
+        values: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe('Field name → value, only for fields you are confident about.'),
+      }),
+      func: undefined,
+    });
+
+    const contextMessage = this.buildContextMessage();
+    const previousStepsMessages = await this.buildPreviousStepsMessages();
+    const messages = [
+      contextMessage,
+      ...previousStepsMessages,
+      new SystemMessage(FILL_FORM_SYSTEM_PROMPT),
+      new SystemMessage(`Action form fields:\n${fieldLines}`),
+      new HumanMessage(`**Request**: ${step.prompt ?? 'Fill the action form.'}`),
+    ];
+
+    // Debug trace for support: the inputs the AI fill works from. Off by default (Debug level); a
+    // client turns it on with LOG_LEVEL=Debug to diagnose an under-/mis-filled form. Logged before
+    // the call so it's available even if the AI invocation fails. Client-side log only.
+    // Only the non-redundant parts: the request (instruction), the fields as structured rows, and
+    // the workflow context (record + previous steps) — the static fill rules aren't logged.
+    this.context.logger('Debug', 'AI form-fill: context', {
+      ...this.logCtx,
+      request: step.prompt ?? null,
+      fields: form.fields.map(field => ({
+        name: field.name,
+        type: field.type,
+        required: field.isRequired,
+        current: field.value,
+        ...(field.enumValues?.length ? { allowed: field.enumValues } : {}),
+      })),
+      workflowContext: [contextMessage, ...previousStepsMessages].map(message => message.content),
+    });
+
+    const { values } = await this.invokeWithTool<{ values?: Record<string, unknown> }>(
+      messages,
+      tool,
+    );
+
+    this.context.logger('Debug', 'AI form-fill: values returned by the AI', {
+      ...this.logCtx,
+      values: values ?? {},
+    });
+
+    return values ?? {};
+  }
+
   /** Branch B — executor runs the action via the audited agent, then persists the result. */
-  private async executeOnExecutor(target: ActionTarget): Promise<StepExecutionResult> {
+  private async executeOnExecutor(
+    target: ActionTarget,
+    // Form submission (Full AI, PRD-512): the AI-filled values to submit + the ordered prefill for
+    // the audit trail. Omitted for a formless action (executor just triggers it).
+    form?: { values: Record<string, unknown>; aiFilledValues: AiFilledFormValue[] },
+  ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
     const actionResult = await this.context.agent.executeAction(
@@ -139,6 +349,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         collection: selectedRecordRef.collectionName,
         action: name,
         id: selectedRecordRef.recordId,
+        ...(form && { values: form.values }),
       },
       {
         beforeCall: () =>
@@ -155,7 +366,17 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
-      executionResult: { success: true, actionResult },
+      executionResult: {
+        success: true,
+        actionResult,
+        // Form-bearing Full AI: record what the executor submitted (PRD-512/513).
+        ...(form && {
+          submissionOutcome: 'executed',
+          submittedBy: 'ai',
+          submittedValues: form.values,
+          ...(form.aiFilledValues.length && { aiFilledValues: form.aiFilledValues }),
+        }),
+      },
       selectedRecordRef,
       idempotencyPhase: 'done',
     });
@@ -163,20 +384,35 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.buildOutcomeResult({ status: 'success' });
   }
 
-  /** Branch A — the frontend executed the action; executor only persists the result it sent. */
+  /**
+   * Branch A — the frontend executed the action natively; the executor persists what it reported.
+   * Records the submission outcome (executed vs pending-approval), the submitted values, and the
+   * AI prefill (from the stored pending payload) for the audit trail / downstream-AI context.
+   */
   private async saveFrontendResult(
     target: ActionTarget,
-    actionResult: unknown,
     existingExecution: TriggerRecordActionStepExecutionData,
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
+    const confirmation = existingExecution.userConfirmation;
+    const submissionOutcome = confirmation?.submissionOutcome ?? 'executed';
+    const aiFilledValues = existingExecution.pendingData?.form?.aiFilledValues;
 
     await this.context.runStore.saveStepExecution(this.context.runId, {
       ...existingExecution,
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
-      executionResult: { success: true, actionResult },
+      executionResult: {
+        success: true,
+        // No action result exists yet when the submission only created an approval request.
+        ...(submissionOutcome === 'executed' && { actionResult: confirmation?.actionResult }),
+        submissionOutcome,
+        // AI-assisted = the human submitted natively (PRD-513 audit).
+        submittedBy: 'user',
+        ...(confirmation?.submittedValues && { submittedValues: confirmation.submittedValues }),
+        ...(aiFilledValues?.length && { aiFilledValues }),
+      },
       selectedRecordRef,
     });
 
