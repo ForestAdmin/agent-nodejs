@@ -57,7 +57,9 @@ export default class StepExecutionFormatters {
           field => JSON.stringify(submitted[field]) !== JSON.stringify(aiMap[field]),
         );
 
-        if (edited.length) lines.push(`  Edited by the user before submitting: ${edited.join(', ')}.`);
+        if (edited.length) {
+          lines.push(`  Edited by the user before submitting: ${edited.join(', ')}.`);
+        }
       }
     }
 
