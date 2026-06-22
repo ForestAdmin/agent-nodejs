@@ -60,7 +60,8 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
 
     context.response.status = response.status;
 
-    // Forward response headers so the version gate (X-Forest-Executor-Version) survives the proxy.
+    // Forward every executor response header (minus hop-by-hop) so new executor headers never
+    // require an agent change (PRD-567: zero breaking, the agent stays a transparent proxy).
     for (const [name, value] of Object.entries(response.headers)) {
       if (value !== undefined && !SKIPPED_HEADERS.has(name.toLowerCase())) {
         context.response.set(name, value);

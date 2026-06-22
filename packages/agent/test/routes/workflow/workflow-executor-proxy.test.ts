@@ -28,7 +28,8 @@ describe('WorkflowExecutorProxyRoute', () => {
         receivedBody = Buffer.concat(chunks).toString('utf-8');
 
         res.setHeader('Content-Type', 'application/json');
-        res.setHeader('X-Forest-Executor-Version', '1.2.3');
+        // Arbitrary executor response header — the proxy must forward it untouched.
+        res.setHeader('X-Executor-Custom', 'passthrough-value');
         // Hop-by-hop response header — the proxy must drop it rather than forward it.
         res.setHeader('Transfer-Encoding', 'chunked');
 
@@ -200,13 +201,13 @@ describe('WorkflowExecutorProxyRoute', () => {
       expect(receivedHeaders['content-length']).not.toBe('999');
     });
 
-    test('forwards executor response headers (e.g. the version gate) except hop-by-hop', async () => {
+    test('forwards executor response headers except hop-by-hop', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
       const context = buildContext('run-123');
       await callHandleProxy(route, context);
 
-      expect(context.response.get('X-Forest-Executor-Version')).toBe('1.2.3');
+      expect(context.response.get('X-Executor-Custom')).toBe('passthrough-value');
       // Hop-by-hop response header must not be forwarded.
       expect(context.response.get('Transfer-Encoding')).toBe('');
     });
