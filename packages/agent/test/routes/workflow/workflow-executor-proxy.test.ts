@@ -27,6 +27,26 @@ describe('WorkflowExecutorProxyRoute', () => {
       req.on('end', () => {
         receivedBody = Buffer.concat(chunks).toString('utf-8');
 
+        // Never responds → exercises the client-side request timeout.
+        if (req.url?.includes('hang')) return;
+
+        // Empty 204 — JSON.parse('') throws, so the proxy must fall back to a raw passthrough.
+        if (req.url?.includes('no-content')) {
+          res.writeHead(204);
+          res.end();
+
+          return;
+        }
+
+        // Non-JSON body — the proxy must forward it verbatim (future text/plain executor route).
+        if (req.url?.includes('plain-text')) {
+          res.setHeader('Content-Type', 'text/plain');
+          res.writeHead(200);
+          res.end('hello world');
+
+          return;
+        }
+
         res.setHeader('Content-Type', 'application/json');
         // Arbitrary executor response header — the proxy must forward it untouched.
         res.setHeader('X-Executor-Custom', 'passthrough-value');
@@ -174,6 +194,39 @@ describe('WorkflowExecutorProxyRoute', () => {
       expect(context.response.status).toBe(404);
       expect(context.response.body).toEqual({ error: 'Run not found or unavailable' });
     });
+
+    test('forwards a bodyless non-GET cleanly (empty body, no hang)', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+
+      // No rawBody set → body is undefined; the request must still complete.
+      const context = buildContext('run-123/archive', { method: 'POST' });
+      await callHandleProxy(route, context);
+
+      expect(receivedMethod).toBe('POST');
+      expect(receivedUrl).toBe('/runs/run-123/archive');
+      expect(receivedBody).toBe('');
+      expect(context.response.status).toBe(200);
+    });
+
+    test('passes a non-JSON executor body through untouched', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+
+      const context = buildContext('run-123/plain-text');
+      await callHandleProxy(route, context);
+
+      expect(context.response.status).toBe(200);
+      expect(context.response.body).toBe('hello world');
+    });
+
+    test('passes a 204 empty executor response through without throwing', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+
+      const context = buildContext('run-123/no-content', { method: 'DELETE' });
+      await callHandleProxy(route, context);
+
+      expect(context.response.status).toBe(204);
+      expect(context.response.body).toBe('');
+    });
   });
 
   describe('handleProxy — headers', () => {
@@ -233,6 +286,16 @@ describe('WorkflowExecutorProxyRoute', () => {
       const route = buildRoute('http://localhost:1');
 
       await expect(callHandleProxy(route, buildContext('run-789'))).rejects.toThrow();
+    });
+
+    test('rejects when the executor does not respond before the timeout', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+      // Shrink the timeout so the never-responding 'hang' endpoint trips it quickly.
+      (route as unknown as { requestTimeoutMs: number }).requestTimeoutMs = 50;
+
+      await expect(callHandleProxy(route, buildContext('run-123/hang'))).rejects.toThrow(
+        /timed out/,
+      );
     });
   });
 });

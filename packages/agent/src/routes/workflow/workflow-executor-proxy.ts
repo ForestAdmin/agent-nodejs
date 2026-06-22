@@ -13,7 +13,8 @@ import BaseRoute from '../base-route';
 
 const AGENT_PREFIX = '/_internal/workflow-executions';
 const EXECUTOR_PREFIX = '/runs';
-// Hop-by-hop headers + those the HTTP client recomputes — never forwarded.
+// Never forwarded: hop-by-hop headers, Host (Node derives the executor's from the target URL),
+// and length/encoding the HTTP client recomputes.
 const SKIPPED_HEADERS = new Set([
   'connection',
   'keep-alive',
@@ -34,6 +35,8 @@ const REQUEST_TIMEOUT_MS = 120_000;
 export default class WorkflowExecutorProxyRoute extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
   private readonly executorUrl: URL;
+  // Overridable so tests can exercise the timeout branch without waiting the full default.
+  protected readonly requestTimeoutMs: number = REQUEST_TIMEOUT_MS;
 
   constructor(services: ForestAdminHttpDriverServices, options: AgentOptionsWithDefaults) {
     super(services, options);
@@ -50,13 +53,13 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
   private async handleProxy(context: Context): Promise<void> {
     const targetUrl = this.buildTargetUrl(context);
 
-    const response = await this.forwardRequest(
-      context.method,
-      targetUrl,
+    const response = await this.forwardRequest({
+      method: context.method,
+      url: targetUrl,
       // Raw body forwarded verbatim (set by @koa/bodyparser); undefined for GET.
-      context.method === 'GET' ? undefined : context.request.rawBody,
-      this.forwardedHeaders(context),
-    );
+      body: context.method === 'GET' ? undefined : context.request.rawBody,
+      headers: this.forwardedHeaders(context),
+    });
 
     context.response.status = response.status;
 
@@ -91,7 +94,7 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     return `${EXECUTOR_PREFIX}/${wildcard}`;
   }
 
-  // Forwards every client header except hop-by-hop / client-recomputed ones (Q4).
+  // Forwards every client header except the ones in SKIPPED_HEADERS.
   private forwardedHeaders(context: Context): OutgoingHttpHeaders {
     const headers: OutgoingHttpHeaders = {};
 
@@ -104,16 +107,17 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     return headers;
   }
 
-  private forwardRequest(
-    method: string,
-    url: URL,
-    body: string | undefined,
-    headers: OutgoingHttpHeaders,
-  ): Promise<{ status: number; body: unknown; headers: IncomingHttpHeaders }> {
+  private forwardRequest(request: {
+    method: string;
+    url: URL;
+    body: string | undefined;
+    headers: OutgoingHttpHeaders;
+  }): Promise<{ status: number; body: unknown; headers: IncomingHttpHeaders }> {
+    const { method, url, body, headers } = request;
     const requestFn = url.protocol === 'https:' ? httpsRequest : httpRequest;
 
     return new Promise((resolve, reject) => {
-      const req = requestFn(url, { method, headers, timeout: REQUEST_TIMEOUT_MS }, res => {
+      const req = requestFn(url, { method, headers, timeout: this.requestTimeoutMs }, res => {
         const chunks: Uint8Array[] = [];
         res.on('data', chunk => chunks.push(chunk));
         res.on('end', () => {
