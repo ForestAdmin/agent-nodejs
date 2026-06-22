@@ -1,7 +1,7 @@
 import type { ForestAdminHttpDriverServices } from '../../services';
 import type { AgentOptionsWithDefaults } from '../../types';
 import type KoaRouter from '@koa/router';
-import type { OutgoingHttpHeaders } from 'http';
+import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
 import type { Context } from 'koa';
 
 import { NotFoundError } from '@forestadmin/datasource-toolkit';
@@ -59,6 +59,14 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     );
 
     context.response.status = response.status;
+
+    // Forward response headers so the version gate (X-Forest-Executor-Version) survives the proxy.
+    for (const [name, value] of Object.entries(response.headers)) {
+      if (value !== undefined && !SKIPPED_HEADERS.has(name.toLowerCase())) {
+        context.response.set(name, value);
+      }
+    }
+
     context.response.body = response.body;
   }
 
@@ -100,7 +108,7 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     url: URL,
     body: string | undefined,
     headers: OutgoingHttpHeaders,
-  ): Promise<{ status: number; body: unknown }> {
+  ): Promise<{ status: number; body: unknown; headers: IncomingHttpHeaders }> {
     const requestFn = url.protocol === 'https:' ? httpsRequest : httpRequest;
 
     return new Promise((resolve, reject) => {
@@ -117,7 +125,11 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
             parsed = raw;
           }
 
-          resolve({ status: res.statusCode ?? HttpCode.InternalServerError, body: parsed });
+          resolve({
+            status: res.statusCode ?? HttpCode.InternalServerError,
+            body: parsed,
+            headers: res.headers,
+          });
         });
         res.on('error', reject);
       });
