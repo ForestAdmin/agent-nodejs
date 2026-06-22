@@ -1,22 +1,42 @@
 import type { ForestAdminHttpDriverServices } from '../../services';
 import type { AgentOptionsWithDefaults } from '../../types';
 import type KoaRouter from '@koa/router';
+import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
 import type { Context } from 'koa';
 
+import { NotFoundError } from '@forestadmin/datasource-toolkit';
 import { request as httpRequest } from 'http';
 import { request as httpsRequest } from 'https';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
-type ForwardedHeaders = {
-  authorization?: string;
-  cookie?: string;
-};
+const AGENT_PREFIX = '/_internal/workflow-executions';
+const EXECUTOR_PREFIX = '/runs';
+// Never forwarded: hop-by-hop headers, Host (Node derives the executor's from the target URL),
+// and length/encoding the HTTP client recomputes.
+const SKIPPED_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'transfer-encoding',
+  'upgrade',
+  'te',
+  'trailer',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'host',
+  'content-length',
+]);
+// Substrings that could let the wildcard escape EXECUTOR_PREFIX (traversal, encoded dots,
+// backslash, null byte).
+const UNSAFE_PATH_FRAGMENTS = ['..', '%2e', '%2E', '\\', '\0'];
+const REQUEST_TIMEOUT_MS = 120_000;
 
 export default class WorkflowExecutorProxyRoute extends BaseRoute {
   readonly type = RouteType.PrivateRoute;
   private readonly executorUrl: URL;
+  // Overridable so tests can exercise the timeout branch without waiting the full default.
+  protected readonly requestTimeoutMs: number = REQUEST_TIMEOUT_MS;
 
   constructor(services: ForestAdminHttpDriverServices, options: AgentOptionsWithDefaults) {
     super(services, options);
@@ -24,50 +44,80 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     this.executorUrl = new URL(options.workflowExecutorUrl.replace(/\/+$/, ''));
   }
 
+  // Single catch-all: any sub-path/verb under AGENT_PREFIX is forwarded to EXECUTOR_PREFIX, so a
+  // new executor route needs no change here (PRD-567).
   setupRoutes(router: KoaRouter): void {
-    router.get('/_internal/workflow-executions/:runId', this.handleProxy.bind(this));
-    router.post('/_internal/workflow-executions/:runId/trigger', this.handleProxy.bind(this));
+    router.all(`${AGENT_PREFIX}/:path(.*)`, this.handleProxy.bind(this));
   }
 
   private async handleProxy(context: Context): Promise<void> {
-    const { runId } = context.params;
-    const isTrigger = context.method === 'POST';
-    const qs = context.querystring ? `?${context.querystring}` : '';
-    const executorRelativeUrl = isTrigger ? `/runs/${runId}/trigger${qs}` : `/runs/${runId}${qs}`;
-    const targetUrl = new URL(executorRelativeUrl, this.executorUrl);
+    const targetUrl = this.buildTargetUrl(context);
 
-    const forwardedHeaders: ForwardedHeaders = {
-      authorization: context.request.header.authorization,
-      cookie: context.request.header.cookie,
-    };
-
-    const response = await this.forwardRequest(
-      context.method,
-      targetUrl,
-      context.request.body,
-      forwardedHeaders,
-    );
+    const response = await this.forwardRequest({
+      method: context.method,
+      url: targetUrl,
+      // Raw body forwarded verbatim (set by @koa/bodyparser); undefined for GET.
+      body: context.method === 'GET' ? undefined : context.request.rawBody,
+      headers: this.forwardedHeaders(context),
+    });
 
     context.response.status = response.status;
+
+    // Forward every executor response header (minus hop-by-hop) so new executor headers never
+    // require an agent change (PRD-567: zero breaking, the agent stays a transparent proxy).
+    for (const [name, value] of Object.entries(response.headers)) {
+      if (value !== undefined && !SKIPPED_HEADERS.has(name.toLowerCase())) {
+        context.response.set(name, value);
+      }
+    }
+
     context.response.body = response.body;
   }
 
-  private forwardRequest(
-    method: string,
-    url: URL,
-    body?: unknown,
-    forwardedHeaders: ForwardedHeaders = {},
-  ): Promise<{ status: number; body: unknown }> {
-    const requestFn = url.protocol === 'https:' ? httpsRequest : httpRequest;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  private buildTargetUrl(context: Context): URL {
+    const path = this.executorPath(String(context.params.path ?? ''));
+    const qs = context.querystring ? `?${context.querystring}` : '';
 
-    // Forward the caller's auth so the executor's JWT middleware can validate it.
-    // Agent and executor share the same FOREST_AUTH_SECRET so the token is valid on both.
-    if (forwardedHeaders.authorization) headers.Authorization = forwardedHeaders.authorization;
-    if (forwardedHeaders.cookie) headers.Cookie = forwardedHeaders.cookie;
+    return new URL(`${path}${qs}`, this.executorUrl);
+  }
+
+  // Security boundary: the wildcard can only ever map into EXECUTOR_PREFIX. Reject anything that
+  // could escape it so executor routes outside EXECUTOR_PREFIX stay unreachable through the proxy.
+  private executorPath(wildcard: string): string {
+    const unsafe =
+      wildcard === '' ||
+      wildcard.startsWith('/') ||
+      UNSAFE_PATH_FRAGMENTS.some(fragment => wildcard.includes(fragment));
+
+    if (unsafe) throw new NotFoundError('Invalid workflow executor path');
+
+    return `${EXECUTOR_PREFIX}/${wildcard}`;
+  }
+
+  // Forwards every client header except the ones in SKIPPED_HEADERS.
+  private forwardedHeaders(context: Context): OutgoingHttpHeaders {
+    const headers: OutgoingHttpHeaders = {};
+
+    for (const [name, value] of Object.entries(context.request.headers)) {
+      if (value !== undefined && !SKIPPED_HEADERS.has(name.toLowerCase())) {
+        headers[name] = value;
+      }
+    }
+
+    return headers;
+  }
+
+  private forwardRequest(request: {
+    method: string;
+    url: URL;
+    body: string | undefined;
+    headers: OutgoingHttpHeaders;
+  }): Promise<{ status: number; body: unknown; headers: IncomingHttpHeaders }> {
+    const { method, url, body, headers } = request;
+    const requestFn = url.protocol === 'https:' ? httpsRequest : httpRequest;
 
     return new Promise((resolve, reject) => {
-      const req = requestFn(url, { method, headers }, res => {
+      const req = requestFn(url, { method, headers, timeout: this.requestTimeoutMs }, res => {
         const chunks: Uint8Array[] = [];
         res.on('data', chunk => chunks.push(chunk));
         res.on('end', () => {
@@ -80,16 +130,19 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
             parsed = raw;
           }
 
-          resolve({ status: res.statusCode ?? HttpCode.InternalServerError, body: parsed });
+          resolve({
+            status: res.statusCode ?? HttpCode.InternalServerError,
+            body: parsed,
+            headers: res.headers,
+          });
         });
         res.on('error', reject);
       });
 
       req.on('error', reject);
+      req.on('timeout', () => req.destroy(new Error('Workflow executor request timed out')));
 
-      if (body && method !== 'GET') {
-        req.write(JSON.stringify(body));
-      }
+      if (body !== undefined && method !== 'GET') req.write(body);
 
       req.end();
     });
