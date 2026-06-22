@@ -3603,6 +3603,71 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
+  describe('backward compatibility (PRD-552): legacy and deterministic coexist', () => {
+    it('runs the AI path for a legacy step and the deterministic path for a configured step', async () => {
+      // Legacy prompt-only step → AI selects the relation.
+      const legacy = makeMockModel({ relationName: 'Orders', reasoning: 'r' });
+      await new LoadRelatedRecordStepExecutor(
+        makeContext({
+          model: legacy.model,
+          stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+        }),
+      ).execute();
+
+      expect(legacy.bindTools).toHaveBeenCalled();
+
+      // Deterministic step (source + relation pinned) → no relation AI call.
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionDisplayName: 'Orders',
+        fields: [
+          {
+            fieldName: 'customer',
+            displayName: 'Customer',
+            isRelationship: true,
+            relationType: 'BelongsTo',
+            relatedCollectionName: 'customers',
+          },
+        ],
+      });
+      const deterministic = makeMockModel();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: { collectionName: 'orders', recordId: [99], stepIndex: 1 },
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const result = await new LoadRelatedRecordStepExecutor(
+        makeContext({
+          model: deterministic.model,
+          runStore,
+          agentPort: makeMockAgentPort([
+            makeRelatedRecordData({ collectionName: 'customers', recordId: [7], values: {} }),
+          ]),
+          workflowPort: makeMockWorkflowPort({
+            customers: makeCollectionSchema(),
+            orders: ordersSchema,
+          }),
+          previousSteps: [makeLoadRelatedPreviousStep(1)],
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.FullyAutomated,
+            preRecordedArgs: { selectedRecordStepId: 'load-1', relationName: 'customer' },
+          }),
+        }),
+      ).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(deterministic.bindTools).not.toHaveBeenCalled();
+    });
+  });
+
   describe('record pool after revision', () => {
     it('re-executes a revised load step from the base record, not from the dead branch record', async () => {
       // Given: the run loaded an owner before the user revised the "Load store" step. The
