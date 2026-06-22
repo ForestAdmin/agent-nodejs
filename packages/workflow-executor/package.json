@@ -47,6 +47,7 @@
     "@types/koa": "^2.13.5",
     "@types/koa__router": "^12.0.4",
     "@types/sequelize": "^6.12.0",
+    "pg": "^8.8.0",
     "sqlite3": "^6.0.1",
     "supertest": "^7.1.3"
   }
