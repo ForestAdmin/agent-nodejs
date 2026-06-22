@@ -78,7 +78,6 @@ function isFollowableRelation(field: FieldSchema): boolean {
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
   protected async doExecute(): Promise<StepExecutionResult> {
-    // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<LoadRelatedRecordStepExecutionData>(
       this.context.incomingPendingData,
     );
@@ -95,7 +94,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       );
     }
 
-    // Branches B & C -- First call
     return this.handleFirstCall();
   }
 
@@ -129,12 +127,10 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const { stepDefinition: step } = this.context;
     const target = await this.resolveTarget();
 
-    // Branch B -- fully automated execution
     if (step.executionType === StepExecutionMode.FullyAutomated) {
       return this.resolveAndLoadAutomatic(target);
     }
 
-    // Branch C -- pre-fetch candidates, await user confirmation
     const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
 
     return this.saveAndAwaitInput(target, sourceSchema);

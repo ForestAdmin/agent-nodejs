@@ -61,7 +61,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
-    // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<TriggerRecordActionStepExecutionData>(
       this.context.incomingPendingData,
     );
@@ -99,7 +98,6 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       );
     }
 
-    // Branches B & C -- First call
     return this.handleFirstCall();
   }
 
@@ -134,7 +132,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     });
     const hasForm = form.fields.length > 0;
 
-    // Formless action — unchanged behavior: Full AI runs it directly, otherwise pause for the user.
+    // Formless: Full AI executes directly, else pause for the user.
     if (!hasForm) {
       return step.executionType === StepExecutionMode.FullyAutomated
         ? this.executeOnExecutor(target)
@@ -159,8 +157,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       return this.pauseForConfirmation(target, reviewState);
     }
 
-    // Full AI: submit if the AI filled every required field; otherwise fall back to the
-    // exact AI-assisted review state, carrying what was filled.
+    // Full AI: submit if all required fields are filled, else fallback (pause) with what was filled.
     if (!filledForm.canExecute) {
       return this.pauseForConfirmation(target, reviewState);
     }
@@ -251,8 +248,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const finalFieldNames = new Set(form.fields.map(f => f.name));
     const aiFilledValues = ordered.filter(v => finalFieldNames.has(v.field));
 
-    // Debug trace for support: the net field values actually retained (after drop-stale) + whether
-    // the form is now complete enough to submit. Off by default (Debug level). Client-side log only.
+    // Debug: net retained values + whether the form can execute.
     this.context.logger('Debug', 'AI form-fill: final values', {
       ...this.logCtx,
       aiFilledValues,
@@ -304,11 +300,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       new HumanMessage(`**Request**: ${step.prompt ?? 'Fill the action form.'}`),
     ];
 
-    // Debug trace for support: the inputs the AI fill works from. Off by default (Debug level); a
-    // client turns it on with LOG_LEVEL=Debug to diagnose an under-/mis-filled form. Logged before
-    // the call so it's available even if the AI invocation fails. Client-side log only.
-    // Only the non-redundant parts: the request (instruction), the fields as structured rows, and
-    // the workflow context (record + previous steps) — the static fill rules aren't logged.
+    // Debug: AI form inputs (request, fields, context); logged before the call to trace mis-fills.
     this.context.logger('Debug', 'AI form-fill: context', {
       ...this.logCtx,
       request: step.prompt ?? null,
