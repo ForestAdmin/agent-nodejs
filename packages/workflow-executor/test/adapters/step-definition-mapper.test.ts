@@ -160,13 +160,13 @@ describe('toStepDefinition', () => {
       });
     });
 
-    it('preserves executionType=manual on a trigger-action task — no silent coercion (PRD-511)', () => {
+    it('preserves executionType=manual on a trigger-action task — no silent coercion', () => {
       const task = makeTask({
         taskType: ServerTaskTypeEnum.TriggerAction,
         executionType: ServerStepExecutionTypeEnum.Manual,
       });
 
-      // Before PRD-511 the trigger schema's `.catch(AutomatedWithConfirmation)` would have coerced
+      // Previously the trigger schema's `.catch(AutomatedWithConfirmation)` would have coerced
       // `manual` into AI-assisted — opting the builder back into AI prefill against their choice.
       expect(toStepDefinition(task)).toMatchObject({
         type: StepType.TriggerAction,

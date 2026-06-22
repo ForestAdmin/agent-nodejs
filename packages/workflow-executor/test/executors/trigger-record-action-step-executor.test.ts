@@ -49,7 +49,7 @@ function makeMockAgentPort(): AgentPort {
     getRelatedData: jest.fn(),
     executeAction: jest.fn().mockResolvedValue(undefined),
     getActionFormInfo: jest.fn().mockResolvedValue({ hasForm: false }),
-    // Default: a formless action (no fields) — matches the pre-PRD-511 behavior of most tests.
+    // Default: a formless action (no fields) — matches the prior behavior of most tests.
     getActionForm: jest
       .fn()
       .mockResolvedValue({ fields: [], canExecute: true, requiredFields: [], skippedFields: [] }),
@@ -247,7 +247,7 @@ describe('TriggerRecordActionStepExecutor', () => {
     });
   });
 
-  describe('operation activity log (PRD-442 #1)', () => {
+  describe('operation activity log', () => {
     it('logs the action against the acted record and its collection, not the trigger', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ ok: true });
@@ -653,7 +653,7 @@ describe('TriggerRecordActionStepExecutor', () => {
     });
   });
 
-  describe('Full AI on a form (PRD-512)', () => {
+  describe('Full AI on a form', () => {
     // initial form (required field empty) then the re-fetch after the AI fills it (canExecute).
     function mockFillThenComplete(agentPort: AgentPort) {
       (agentPort.getActionForm as jest.Mock)
@@ -1426,7 +1426,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('Manual mode on a form action pauses WITHOUT any AI pre-fill (PRD-511)', async () => {
+    it('Manual mode on a form action pauses WITHOUT any AI pre-fill', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionForm as jest.Mock).mockResolvedValue({
         fields: [{ name: 'reason', type: 'String', isRequired: true }],
@@ -1467,7 +1467,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('AI-assisted mode pre-fills the form (ordered) and pauses for review (PRD-511)', async () => {
+    it('AI-assisted mode pre-fills the form (ordered) and pauses for review', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionForm as jest.Mock).mockResolvedValue({
         fields: [
@@ -1509,7 +1509,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('persists a pending-approval submission without an actionResult (PRD-511/520)', async () => {
+    it('persists a pending-approval submission without an actionResult', async () => {
       const agentPort = makeMockAgentPort();
       const execution: TriggerRecordActionStepExecutionData = {
         type: 'trigger-action',
@@ -1562,7 +1562,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
     });
 
-    it('pins the source record from selectedRecordStepId=workflow-start without AI (PRD-469)', async () => {
+    it('pins the source record from selectedRecordStepId=workflow-start without AI', async () => {
       const mockModel = makeMockModel();
       const agentPort = makeMockAgentPort();
       const context = makeContext({
@@ -1594,7 +1594,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
-    it('errors when the pinned source step (a Load Related Record) loaded no record (PRD-469)', async () => {
+    it('errors when the pinned source step (a Load Related Record) loaded no record', async () => {
       const agentPort = makeMockAgentPort();
       // The source Load Related Record step is on the live path but has no execution record stored
       // (it loaded nothing) → SourceRecordMissingError, no action triggered.

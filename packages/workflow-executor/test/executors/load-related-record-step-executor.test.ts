@@ -576,7 +576,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    it('forwards a build-time filter (PRD-553) to getRelatedData on the 1–n list fetch', async () => {
+    it('forwards a build-time filter to getRelatedData on the 1–n list fetch', async () => {
       const hasManySchema = makeCollectionSchema({
         fields: [
           {
@@ -1033,7 +1033,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('operation activity log (PRD-442 #1)', () => {
+  describe('operation activity log', () => {
     it('logs listRelatedData against the source record and its collection, not the trigger', async () => {
       const runStore = makeMockRunStore();
       const activityLogPort = {
@@ -3251,7 +3251,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
   // by a prior step, "Load the dvd titanic" must still follow store → dvds (the relation that
   // LEADS TO a dvd), not read a relation off the already-loaded dvd. resolveTarget now offers
   // every relation across all available records and lets the AI choose by target collection.
-  describe('follows the relation leading to the requested collection (PRD-214 repro)', () => {
+  describe('follows the relation leading to the requested collection (repro)', () => {
     it('follows store → dvds rather than a relation on the already-loaded dvd', async () => {
       // Available records: base account #1 (store BelongsTo), loaded store #6 (dvds HasMany),
       // loaded dvd #32 (store BelongsTo).
@@ -3721,7 +3721,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('backward compatibility (PRD-552): legacy and deterministic coexist', () => {
+  describe('backward compatibility: legacy and deterministic coexist', () => {
     it('runs the AI path for a legacy step and the deterministic path for a configured step', async () => {
       // Legacy prompt-only step → AI selects the relation.
       const legacy = makeMockModel({ relationName: 'Orders', reasoning: 'r' });

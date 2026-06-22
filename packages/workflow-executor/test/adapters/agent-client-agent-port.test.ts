@@ -736,7 +736,7 @@ describe('AgentClientAgentPort', () => {
       ).rejects.toThrow('Action failed');
     });
 
-    it('sets pre-filled values (strict) before executing (PRD-509)', async () => {
+    it('sets pre-filled values (strict) before executing', async () => {
       mockAction.execute.mockResolvedValue({ success: 'done' });
 
       await port.executeAction(
@@ -760,7 +760,7 @@ describe('AgentClientAgentPort', () => {
       expect(mockAction.execute).not.toHaveBeenCalled();
     });
 
-    it('maps an approval-403 to ActionRequiresApprovalError with the allowed roles (PRD-509)', async () => {
+    it('maps an approval-403 to ActionRequiresApprovalError with the allowed roles', async () => {
       mockAction.execute.mockRejectedValue(
         new Error(
           JSON.stringify({
@@ -819,7 +819,7 @@ describe('AgentClientAgentPort', () => {
       };
     }
 
-    it('returns the field list, completeness and skipped fields (PRD-509)', async () => {
+    it('returns the field list, completeness and skipped fields', async () => {
       mockAction.tryToSetFields.mockResolvedValue(['ghost']);
       mockAction.getFields.mockReturnValue([
         makeField({ name: 'amount', type: 'Number', value: 50, required: true }),

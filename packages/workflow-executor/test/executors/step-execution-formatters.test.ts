@@ -169,7 +169,7 @@ describe('StepExecutionFormatters', () => {
       });
     });
 
-    describe('trigger-action (PRD-513)', () => {
+    describe('trigger-action', () => {
       const recordRef = { collectionName: 'customers', recordId: [42], stepIndex: 0 };
 
       it('marks a pending-approval submission as NOT executed', () => {
