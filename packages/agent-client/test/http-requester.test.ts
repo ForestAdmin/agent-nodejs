@@ -1,6 +1,6 @@
 import superagent from 'superagent';
 
-import { AgentHttpError } from '../src/errors';
+import AgentHttpError from '../src/errors';
 import HttpRequester from '../src/http-requester';
 
 jest.mock('superagent');

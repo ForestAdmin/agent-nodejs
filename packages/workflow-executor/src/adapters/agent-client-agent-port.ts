@@ -39,7 +39,9 @@ type ActionErrorBody = {
 // carrying roleIdsAllowedToApprove. Pull the roles out of the parsed response body when present.
 function extractRoleIdsAllowedToApprove(body: ActionErrorBody): number[] | undefined {
   return (
-    body.errors?.[0]?.data?.roleIdsAllowedToApprove ?? body.data?.roleIdsAllowedToApprove ?? undefined
+    body.errors?.[0]?.data?.roleIdsAllowedToApprove ??
+    body.data?.roleIdsAllowedToApprove ??
+    undefined
   );
 }
 

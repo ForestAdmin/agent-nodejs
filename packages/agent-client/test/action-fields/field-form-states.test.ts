@@ -1,7 +1,7 @@
 import type HttpRequester from '../../src/http-requester';
 
 import FieldFormStates from '../../src/action-fields/field-form-states';
-import { AgentHttpError } from '../../src/errors';
+import AgentHttpError from '../../src/errors';
 
 jest.mock('../../src/http-requester', () => {
   const actual = jest.requireActual('../../src/http-requester');

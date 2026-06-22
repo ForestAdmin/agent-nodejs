@@ -3,10 +3,11 @@ import type { WriteStream } from 'fs';
 import { Deserializer } from 'jsonapi-serializer';
 import superagent from 'superagent';
 
-import { AgentHttpError } from './errors';
+import AgentHttpError from './errors';
 
 function parseJson(text: string | undefined): unknown {
   if (text === undefined) return undefined;
+
   try {
     return JSON.parse(text);
   } catch {

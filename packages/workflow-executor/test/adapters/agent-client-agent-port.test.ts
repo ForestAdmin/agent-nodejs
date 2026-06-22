@@ -15,7 +15,7 @@ import SchemaCache from '../../src/schema-cache';
 
 jest.mock('@forestadmin/agent-client', () => {
   // Real class so `instanceof AgentHttpError` in the adapter matches errors built by these tests.
-  class AgentHttpError extends Error {
+  class MockAgentHttpError extends Error {
     constructor(
       public readonly status: number,
       public readonly body: unknown,
@@ -27,7 +27,7 @@ jest.mock('@forestadmin/agent-client', () => {
   }
 
   return {
-    AgentHttpError,
+    AgentHttpError: MockAgentHttpError,
     createRemoteAgentClient: jest.fn(),
     HttpRequester: { is404Error: jest.fn() },
   };
@@ -779,7 +779,10 @@ describe('AgentClientAgentPort', () => {
       mockAction.execute.mockRejectedValue(
         new AgentHttpError(403, {
           errors: [
-            { name: 'CustomActionRequiresApprovalError', data: { roleIdsAllowedToApprove: [7, 9] } },
+            {
+              name: 'CustomActionRequiresApprovalError',
+              data: { roleIdsAllowedToApprove: [7, 9] },
+            },
           ],
         }),
       );
