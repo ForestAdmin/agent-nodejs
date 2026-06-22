@@ -61,6 +61,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
+    // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<TriggerRecordActionStepExecutionData>(
       this.context.incomingPendingData,
     );
@@ -98,6 +99,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       );
     }
 
+    // Branches B & C -- First call
     return this.handleFirstCall();
   }
 
