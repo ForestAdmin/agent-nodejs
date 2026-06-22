@@ -62,6 +62,22 @@ describePg('DatabaseStore — Postgres advisory-lock integration', () => {
     }
   });
 
+  it('holds no advisory lock once init() returns (transaction-scoped lock auto-released at commit)', async () => {
+    const store = new DatabaseStore({ sequelize: makeSequelize() });
+
+    try {
+      await store.init();
+      expect(
+        await count(
+          admin,
+          `SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND granted`,
+        ),
+      ).toBe(0);
+    } finally {
+      await store.close();
+    }
+  });
+
   it('blocks init() while the advisory lock is held by another session, then proceeds on release', async () => {
     const holder = makeSequelize();
     const holderConnection = (await holder.connectionManager.getConnection({

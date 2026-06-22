@@ -1,7 +1,7 @@
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { QueryInterface, Sequelize } from 'sequelize';
+import type { QueryInterface, Sequelize, Transaction } from 'sequelize';
 
 import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
@@ -13,10 +13,6 @@ const DEFAULT_SCHEMA = 'forest';
 
 // Must stay constant across releases, or an old and a new deploy could migrate concurrently.
 const MIGRATION_ADVISORY_LOCK_KEY = 6_438_071_259_157;
-
-interface RawConnection {
-  query(sql: string, values?: unknown[]): Promise<unknown>;
-}
 
 export interface DatabaseStoreOptions {
   sequelize: Sequelize;
@@ -110,13 +106,21 @@ export default class DatabaseStore implements RunStore {
 
     return this.callPort('init', async () => {
       try {
-        await this.withMigrationLock(async () => {
-          if (schema) {
-            await this.sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
-          }
-
+        if (this.sequelize.getDialect() !== 'postgres') {
           await umzug.up();
-        });
+
+          return;
+        }
+
+        // Schema first, in its own locked transaction so it is committed and visible to umzug
+        // (which runs on other pooled connections), then the migrations in a second locked one.
+        if (schema) {
+          await this.withMigrationLock(transaction =>
+            this.sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`, { transaction }),
+          );
+        }
+
+        await this.withMigrationLock(() => umzug.up());
       } catch (error) {
         logger?.('Error', 'Database migration failed', {
           error: extractErrorMessage(error),
@@ -126,29 +130,20 @@ export default class DatabaseStore implements RunStore {
     });
   }
 
-  // Serializes migrations across instances booting concurrently on the shared database: the
-  // DB-global pg_advisory_lock lets one migrate while the others block, then no-op. Postgres-only.
-  private async withMigrationLock(runMigrations: () => Promise<void>): Promise<void> {
-    if (this.sequelize.getDialect() !== 'postgres') {
-      await runMigrations();
-
-      return;
-    }
-
-    // Session-scoped lock: unlock must run on the same connection, so pin one for the window.
-    const { connectionManager } = this.sequelize;
-    const connection = (await connectionManager.getConnection({ type: 'write' })) as RawConnection;
-
-    try {
-      await connection.query('SELECT pg_advisory_lock($1)', [MIGRATION_ADVISORY_LOCK_KEY]);
-      await runMigrations();
-    } finally {
-      try {
-        await connection.query('SELECT pg_advisory_unlock($1)', [MIGRATION_ADVISORY_LOCK_KEY]);
-      } finally {
-        connectionManager.releaseConnection(connection);
-      }
-    }
+  // Serializes a section across instances booting concurrently on the shared database. Uses a
+  // transaction-scoped advisory lock (not session-scoped): the lock lives for exactly the
+  // transaction a connection pooler keeps pinned, and auto-releases on commit/rollback/disconnect —
+  // so it is safe behind RDS Proxy / PgBouncer transaction mode, with no lock left dangling.
+  private async withMigrationLock(
+    run: (transaction: Transaction) => Promise<unknown>,
+  ): Promise<void> {
+    await this.sequelize.transaction(async transaction => {
+      await this.sequelize.query('SELECT pg_advisory_xact_lock($1)', {
+        bind: [MIGRATION_ADVISORY_LOCK_KEY],
+        transaction,
+      });
+      await run(transaction);
+    });
   }
 
   async getStepExecutions(runId: string): Promise<StepExecutionData[]> {

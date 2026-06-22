@@ -39,16 +39,11 @@ function createMutex() {
 }
 
 function makeSequelize(dialect: 'postgres' | 'sqlite'): Sequelize {
-  const connection = { query: jest.fn().mockResolvedValue(undefined) };
-
   return {
     getDialect: () => dialect,
     getQueryInterface: () => ({} as QueryInterface),
     query: jest.fn().mockResolvedValue([[], {}]),
-    connectionManager: {
-      getConnection: jest.fn().mockResolvedValue(connection),
-      releaseConnection: jest.fn(),
-    },
+    transaction: jest.fn((cb: (t: unknown) => Promise<unknown>) => cb({})),
   } as unknown as Sequelize;
 }
 
@@ -61,7 +56,10 @@ describe('DatabaseStore — schema namespacing', () => {
 
       await new DatabaseStore({ sequelize }).init();
 
-      expect(sequelize.query).toHaveBeenCalledWith('CREATE SCHEMA IF NOT EXISTS "forest"');
+      expect(sequelize.query).toHaveBeenCalledWith(
+        'CREATE SCHEMA IF NOT EXISTS "forest"',
+        expect.objectContaining({ transaction: expect.anything() }),
+      );
     });
 
     it('uses the configured schema over the default', async () => {
@@ -69,7 +67,10 @@ describe('DatabaseStore — schema namespacing', () => {
 
       await new DatabaseStore({ sequelize, schema: 'custom' }).init();
 
-      expect(sequelize.query).toHaveBeenCalledWith('CREATE SCHEMA IF NOT EXISTS "custom"');
+      expect(sequelize.query).toHaveBeenCalledWith(
+        'CREATE SCHEMA IF NOT EXISTS "custom"',
+        expect.objectContaining({ transaction: expect.anything() }),
+      );
       expect(MockedSequelizeStorage).toHaveBeenCalledWith(
         expect.objectContaining({ schema: 'custom' }),
       );
@@ -147,17 +148,10 @@ describe('DatabaseStore — schema namespacing', () => {
   });
 
   describe('migration advisory lock', () => {
+    // query() records each locked section: 'lock' on pg_advisory_xact_lock, 'schema' on the
+    // schema creation; umzug.up() records 'migrate'. transaction() just runs its callback.
     function setup(dialect: 'postgres' | 'sqlite', migrate?: () => Promise<void>) {
       const calls: string[] = [];
-      const connection = {
-        query: jest.fn((sql: string) => {
-          calls.push(sql.includes('unlock') ? 'unlock' : 'lock');
-
-          return Promise.resolve(undefined);
-        }),
-      };
-      const getConnection = jest.fn().mockResolvedValue(connection);
-      const releaseConnection = jest.fn(() => calls.push('release'));
 
       MockedUmzug.mockImplementationOnce(() => ({
         up: jest.fn(
@@ -170,59 +164,54 @@ describe('DatabaseStore — schema namespacing', () => {
         ),
       }));
 
+      const query = jest.fn((sql: string) => {
+        if (sql.includes('pg_advisory_xact_lock')) calls.push('lock');
+        else if (sql.includes('CREATE SCHEMA')) calls.push('schema');
+
+        return Promise.resolve([[], {}]);
+      });
+
       const sequelize = {
         getDialect: () => dialect,
         getQueryInterface: () => ({} as QueryInterface),
-        query: jest.fn().mockResolvedValue([[], {}]),
-        connectionManager: { getConnection, releaseConnection },
+        query,
+        transaction: jest.fn((cb: (t: unknown) => Promise<unknown>) => cb({})),
       } as unknown as Sequelize;
 
-      return { sequelize, calls, connection, getConnection, releaseConnection };
+      return { sequelize, calls, query };
     }
 
-    it('locks, then migrates, then unlocks and releases — in that order — on Postgres', async () => {
-      const { sequelize, calls } = setup('postgres');
+    it('takes a transaction-scoped lock before the schema and before migrating, on Postgres', async () => {
+      const { sequelize, calls, query } = setup('postgres');
 
       await new DatabaseStore({ sequelize }).init();
 
-      expect(calls).toEqual(['lock', 'migrate', 'unlock', 'release']);
-    });
-
-    it('acquires the advisory lock on a dedicated write connection', async () => {
-      const { sequelize, connection, getConnection } = setup('postgres');
-
-      await new DatabaseStore({ sequelize }).init();
-
-      expect(getConnection).toHaveBeenCalledWith({ type: 'write' });
-      expect(connection.query).toHaveBeenCalledWith('SELECT pg_advisory_lock($1)', [
-        6_438_071_259_157,
-      ]);
-      expect(connection.query).toHaveBeenCalledWith('SELECT pg_advisory_unlock($1)', [
-        6_438_071_259_157,
-      ]);
-    });
-
-    it('releases the lock and the connection even when migration fails', async () => {
-      const { sequelize, calls, releaseConnection } = setup('postgres', () =>
-        Promise.reject(new Error('migration boom')),
+      expect(calls).toEqual(['lock', 'schema', 'lock', 'migrate']);
+      expect(sequelize.transaction).toHaveBeenCalledTimes(2);
+      expect(query).toHaveBeenCalledWith(
+        'SELECT pg_advisory_xact_lock($1)',
+        expect.objectContaining({ bind: [6_438_071_259_157], transaction: expect.anything() }),
       );
+    });
+
+    it('propagates the error when a migration fails (the transaction rolls back, releasing the lock)', async () => {
+      const { sequelize } = setup('postgres', () => Promise.reject(new Error('migration boom')));
 
       await expect(new DatabaseStore({ sequelize }).init()).rejects.toThrow('migration boom');
-
-      expect(calls).toEqual(['lock', 'unlock', 'release']);
-      expect(releaseConnection).toHaveBeenCalledTimes(1);
     });
 
-    it('does not acquire a connection or lock on SQLite', async () => {
-      const { sequelize, getConnection } = setup('sqlite');
+    it('does not open a transaction or take a lock on SQLite', async () => {
+      const { sequelize, query } = setup('sqlite');
 
       await new DatabaseStore({ sequelize }).init();
 
-      expect(getConnection).not.toHaveBeenCalled();
+      expect(sequelize.transaction).not.toHaveBeenCalled();
+      expect(query).not.toHaveBeenCalledWith('SELECT pg_advisory_xact_lock($1)', expect.anything());
     });
 
     // up() yields before recording itself — the window an unprotected second runner would
-    // exploit to apply the migration twice.
+    // exploit to apply the migration twice. The xact lock is acquired inside transaction() and
+    // released when its callback resolves (modeling COMMIT), so only one umzug.up() runs at a time.
     it('serializes concurrent init() so a non-idempotent migration applies exactly once', async () => {
       const mutex = createMutex();
       let concurrentMigrations = 0;
@@ -249,18 +238,16 @@ describe('DatabaseStore — schema namespacing', () => {
         ({
           getDialect: () => 'postgres',
           getQueryInterface: () => ({} as QueryInterface),
-          query: jest.fn().mockResolvedValue([[], {}]),
-          connectionManager: {
-            getConnection: jest.fn().mockResolvedValue({
-              query: (sql: string) => {
-                if (sql.includes('pg_advisory_unlock')) mutex.release();
-                else if (sql.includes('pg_advisory_lock')) return mutex.acquire();
-
-                return Promise.resolve(undefined);
-              },
-            }),
-            releaseConnection: jest.fn(),
-          },
+          query: jest.fn((sql: string) =>
+            sql.includes('pg_advisory_xact_lock') ? mutex.acquire() : Promise.resolve([[], {}]),
+          ),
+          transaction: jest.fn(async (cb: (t: unknown) => Promise<unknown>) => {
+            try {
+              return await cb({});
+            } finally {
+              mutex.release();
+            }
+          }),
         } as unknown as Sequelize);
 
       await Promise.all([
