@@ -20,6 +20,9 @@ import serializeStepForWire from './step-serializer';
 import createConsoleLogger from '../adapters/console-logger';
 import { extractErrorMessage } from '../errors';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
+const { version } = require('../../package.json') as { version: string };
+
 export interface ExecutorHttpServerOptions {
   port: number;
   runner: Runner;
@@ -38,6 +41,11 @@ export default class ExecutorHttpServer {
     this.options = options;
     this.logger = options.logger ?? createConsoleLogger();
     this.app = new Koa();
+
+    this.app.use(async (ctx, next) => {
+      ctx.set('X-Executor-Version', version);
+      await next();
+    });
 
     // Error-translation middleware — the single place converting thrown errors (typed HTTP
     // errors, domain errors via toHttpError, JWT 401) into HTTP responses. Handlers just throw.
