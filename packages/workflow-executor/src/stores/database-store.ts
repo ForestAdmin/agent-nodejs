@@ -51,44 +51,56 @@ export default class DatabaseStore implements RunStore {
         {
           name: '001_create_workflow_step_executions',
           up: async ({ context }: { context: QueryInterface }) => {
-            await context.createTable(tableId, {
-              id: {
-                type: DataTypes.INTEGER,
-                primaryKey: true,
-                autoIncrement: true,
-              },
-              runId: {
-                type: DataTypes.STRING(255),
-                allowNull: false,
-                field: 'run_id',
-              },
-              stepIndex: {
-                type: DataTypes.INTEGER,
-                allowNull: false,
-                field: 'step_index',
-              },
-              data: {
-                type: DataTypes.JSON,
-                allowNull: false,
-              },
-              createdAt: {
-                type: DataTypes.DATE,
-                allowNull: false,
-                defaultValue: DataTypes.NOW,
-                field: 'created_at',
-              },
-              updatedAt: {
-                type: DataTypes.DATE,
-                allowNull: false,
-                defaultValue: DataTypes.NOW,
-                field: 'updated_at',
-              },
-            });
+            // Transactional so the table and its indexes apply atomically (no half-migrated state
+            // if an index fails), and idempotent so a re-run is a no-op — a previous run may have
+            // committed but crashed before umzug recorded it in SequelizeMeta.
+            await context.sequelize.transaction(async transaction => {
+              if (await context.tableExists(tableId, { transaction })) return;
 
-            await context.addIndex(tableId, ['run_id'], { name: 'idx_run_id' });
-            await context.addIndex(tableId, ['run_id', 'step_index'], {
-              unique: true,
-              name: 'idx_run_id_step_index',
+              await context.createTable(
+                tableId,
+                {
+                  id: {
+                    type: DataTypes.INTEGER,
+                    primaryKey: true,
+                    autoIncrement: true,
+                  },
+                  runId: {
+                    type: DataTypes.STRING(255),
+                    allowNull: false,
+                    field: 'run_id',
+                  },
+                  stepIndex: {
+                    type: DataTypes.INTEGER,
+                    allowNull: false,
+                    field: 'step_index',
+                  },
+                  data: {
+                    type: DataTypes.JSON,
+                    allowNull: false,
+                  },
+                  createdAt: {
+                    type: DataTypes.DATE,
+                    allowNull: false,
+                    defaultValue: DataTypes.NOW,
+                    field: 'created_at',
+                  },
+                  updatedAt: {
+                    type: DataTypes.DATE,
+                    allowNull: false,
+                    defaultValue: DataTypes.NOW,
+                    field: 'updated_at',
+                  },
+                },
+                { transaction },
+              );
+
+              await context.addIndex(tableId, ['run_id'], { name: 'idx_run_id', transaction });
+              await context.addIndex(tableId, ['run_id', 'step_index'], {
+                unique: true,
+                name: 'idx_run_id_step_index',
+                transaction,
+              });
             });
           },
           down: async ({ context }: { context: QueryInterface }) => {
@@ -137,6 +149,12 @@ export default class DatabaseStore implements RunStore {
     run: (transaction: Transaction) => Promise<unknown>,
   ): Promise<void> {
     await this.sequelize.transaction(async transaction => {
+      // This transaction stays idle (the migration runs on other connections) while holding the
+      // lock; neutralize any client-configured idle-in-transaction timeout so it can't be killed
+      // mid-migration, which would drop the lock and let a sibling instance migrate concurrently.
+      await this.sequelize.query('SET LOCAL idle_in_transaction_session_timeout = 0', {
+        transaction,
+      });
       await this.sequelize.query('SELECT pg_advisory_xact_lock($1)', {
         bind: [MIGRATION_ADVISORY_LOCK_KEY],
         transaction,

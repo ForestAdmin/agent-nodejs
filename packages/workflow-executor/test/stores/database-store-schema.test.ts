@@ -86,25 +86,48 @@ describe('DatabaseStore — schema namespacing', () => {
       );
     });
 
+    function makeMigrationContext(tableExistsResult: boolean) {
+      return {
+        createTable: jest.fn().mockResolvedValue(undefined),
+        addIndex: jest.fn().mockResolvedValue(undefined),
+        tableExists: jest.fn().mockResolvedValue(tableExistsResult),
+        sequelize: { transaction: (cb: (t: unknown) => Promise<unknown>) => cb({}) },
+      };
+    }
+
     it('creates the table and indexes inside the "forest" schema', async () => {
       const sequelize = makeSequelize('postgres');
 
       await new DatabaseStore({ sequelize }).init();
 
       const { migrations } = MockedUmzug.mock.calls[0][0];
-      const createTable = jest.fn().mockResolvedValue(undefined);
-      const addIndex = jest.fn().mockResolvedValue(undefined);
-      await migrations[0].up({ context: { createTable, addIndex } });
+      const context = makeMigrationContext(false);
+      await migrations[0].up({ context });
 
-      expect(createTable).toHaveBeenCalledWith(
+      expect(context.createTable).toHaveBeenCalledWith(
         { tableName: 'workflow_step_executions', schema: 'forest' },
         expect.any(Object),
+        expect.objectContaining({ transaction: expect.anything() }),
       );
-      expect(addIndex).toHaveBeenCalledWith(
+      expect(context.addIndex).toHaveBeenCalledWith(
         { tableName: 'workflow_step_executions', schema: 'forest' },
         ['run_id'],
-        { name: 'idx_run_id' },
+        expect.objectContaining({ name: 'idx_run_id', transaction: expect.anything() }),
       );
+    });
+
+    it('skips creation when the table already exists (idempotent re-run)', async () => {
+      const sequelize = makeSequelize('postgres');
+
+      await new DatabaseStore({ sequelize }).init();
+
+      const { migrations } = MockedUmzug.mock.calls[0][0];
+      const context = makeMigrationContext(true);
+      await migrations[0].up({ context });
+
+      expect(context.tableExists).toHaveBeenCalled();
+      expect(context.createTable).not.toHaveBeenCalled();
+      expect(context.addIndex).not.toHaveBeenCalled();
     });
 
     it('drops the table from the "forest" schema on rollback', async () => {
@@ -164,7 +187,8 @@ describe('DatabaseStore — schema namespacing', () => {
       }));
 
       const query = jest.fn((sql: string) => {
-        if (sql.includes('pg_advisory_xact_lock')) calls.push('lock');
+        if (sql.includes('idle_in_transaction_session_timeout')) calls.push('guard');
+        else if (sql.includes('pg_advisory_xact_lock')) calls.push('lock');
         else if (sql.includes('CREATE SCHEMA')) calls.push('schema');
 
         return Promise.resolve([[], {}]);
@@ -180,13 +204,17 @@ describe('DatabaseStore — schema namespacing', () => {
       return { sequelize, calls, query };
     }
 
-    it('takes a transaction-scoped lock before the schema and before migrating, on Postgres', async () => {
+    it('guards the timeout then takes the lock, before the schema and before migrating', async () => {
       const { sequelize, calls, query } = setup('postgres');
 
       await new DatabaseStore({ sequelize }).init();
 
-      expect(calls).toEqual(['lock', 'schema', 'lock', 'migrate']);
+      expect(calls).toEqual(['guard', 'lock', 'schema', 'guard', 'lock', 'migrate']);
       expect(sequelize.transaction).toHaveBeenCalledTimes(2);
+      expect(query).toHaveBeenCalledWith(
+        'SET LOCAL idle_in_transaction_session_timeout = 0',
+        expect.objectContaining({ transaction: expect.anything() }),
+      );
       expect(query).toHaveBeenCalledWith(
         'SELECT pg_advisory_xact_lock($1)',
         expect.objectContaining({ bind: [6_438_071_259_157], transaction: expect.anything() }),

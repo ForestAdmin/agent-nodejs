@@ -120,4 +120,42 @@ describePg('DatabaseStore — Postgres advisory-lock integration', () => {
       await holder.close();
     }
   });
+
+  // Fix 1: the lock transaction sits idle while the migration runs on other connections. A tight
+  // idle_in_transaction_session_timeout would kill it (dropping the lock mid-migration) — the
+  // SET LOCAL guard must prevent that. Here the session sets a 200ms timeout, the guard disables
+  // it, and the transaction stays idle for 500ms while still holding the lock.
+  it('keeps the advisory lock through an idle window a tight idle-in-transaction timeout would kill', async () => {
+    const sleep = (ms: number) =>
+      new Promise<void>(resolve => {
+        setTimeout(resolve, ms);
+      });
+    const guardDb = makeSequelize();
+    const conn = (await guardDb.connectionManager.getConnection({
+      type: 'write',
+    })) as RawConnection;
+
+    try {
+      await conn.query('SET idle_in_transaction_session_timeout = 200');
+      await conn.query('BEGIN');
+      await conn.query('SET LOCAL idle_in_transaction_session_timeout = 0');
+      await conn.query('SELECT pg_advisory_xact_lock($1)', [LOCK_KEY]);
+
+      await sleep(500);
+
+      // An observer still sees the lock held, and the guarded session is alive enough to commit.
+      expect(
+        await count(
+          admin,
+          `SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND granted`,
+        ),
+      ).toBe(1);
+      const alive = (await conn.query('SELECT 1 AS ok')) as { rows: Array<{ ok: number }> };
+      expect(alive.rows[0].ok).toBe(1);
+      await conn.query('COMMIT');
+    } finally {
+      guardDb.connectionManager.releaseConnection(conn);
+      await guardDb.close();
+    }
+  });
 });
