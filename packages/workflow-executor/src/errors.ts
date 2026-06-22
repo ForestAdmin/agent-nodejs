@@ -127,7 +127,7 @@ export class UnsupportedActionFormError extends WorkflowExecutorError {
 }
 
 // The action submission was rejected by the agent's server-side validation (bad/missing values),
-// NOT an infra failure (PRD-509). Full AI (PRD-512) treats this as a fallback-to-AI-assisted reason
+// NOT an infra failure. Full AI treats this as a fallback-to-AI-assisted reason
 // so a human can fix the values and resubmit.
 export class ActionFormValidationError extends WorkflowExecutorError {
   constructor(actionName: string, cause?: unknown) {
@@ -140,8 +140,8 @@ export class ActionFormValidationError extends WorkflowExecutorError {
 }
 
 // The action requires an Approval: the agent rejects a programmatic submit upfront with HTTP 403
-// CustomActionRequiresApprovalError (PRD-509). Distinct from a plain permission 403 — Full AI
-// (PRD-512) falls back to AI-assisted so the native front handles the approval flow. The executor
+// CustomActionRequiresApprovalError. Distinct from a plain permission 403 — Full AI
+// falls back to AI-assisted so the native front handles the approval flow. The executor
 // MUST NOT self-sign an approval request.
 export class ActionRequiresApprovalError extends WorkflowExecutorError {
   readonly roleIdsAllowedToApprove?: number[];
@@ -408,7 +408,7 @@ export class InvalidPreRecordedArgsError extends WorkflowExecutorError {
 }
 
 // A "Related to" / "On record" source step ran but loaded no record, so the step that uses it has
-// no source to act on (PRD-550 / PRD-469 "no source record"). Distinct from a bad config — the
+// no source to act on ("no source record"). Distinct from a bad config — the
 // user can continue without. Wording is step-type-neutral (shared by load-related and trigger-action).
 export class SourceRecordMissingError extends WorkflowExecutorError {
   constructor(sourceTitle?: string) {

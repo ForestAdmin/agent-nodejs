@@ -40,7 +40,7 @@ export type ExecuteActionQuery = {
   collection: string;
   action: string;
   id?: Id[];
-  // Pre-filled form values (PRD-509). Set on the form before execution, going through the agent's
+  // Pre-filled form values. Set on the form before execution, going through the agent's
   // normal server-side validation — no bypass. Omitted for formless actions.
   values?: Record<string, unknown>;
 };
@@ -54,7 +54,7 @@ export type GetActionFormQuery = {
   values?: Record<string, unknown>;
 };
 
-// One field of an action form, flattened for the executor/AI (PRD-509). Mirrors the MCP
+// One field of an action form, flattened for the executor/AI. Mirrors the MCP
 // get-action-form tool's field shape.
 export type ActionFormField = {
   name: string;
@@ -98,7 +98,7 @@ export interface AgentPort {
   // Old Ruby agents with hooks.load=false return 404; agent-client falls back to the fields
   // passed via ActionEndpointsByCollection (populated from the orchestrator's schema).
   getActionFormInfo(query: GetActionFormInfoQuery, user: StepUser): Promise<{ hasForm: boolean }>;
-  // Full form structure for AI form-filling (PRD-509): field list (types, required, enum options),
+  // Full form structure for AI form-filling: field list (types, required, enum options),
   // completeness (canExecute / requiredFields), and any values dropped by change hooks.
   getActionForm(query: GetActionFormQuery, user: StepUser): Promise<ActionForm>;
   // Startup healthcheck. Throws AgentProbeError on network error, timeout, or non-2xx.

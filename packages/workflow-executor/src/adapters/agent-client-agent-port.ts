@@ -62,7 +62,7 @@ function extractRoleIdsAllowedToApprove(text: string): number[] | undefined {
   }
 }
 
-// Map an action `execute()` failure to a typed error so the step executor can route it (PRD-509):
+// Map an action `execute()` failure to a typed error so the step executor can route it:
 // approval-403 and validation rejections become distinct fallback-worthy errors; everything else
 // (plain permission 403, infra 5xx, network) stays raw → wrapped as AgentPortError = step error.
 function mapActionExecutionError(action: string, cause: unknown): unknown {

@@ -76,7 +76,7 @@ interface ServerWorkflowTaskUpdateData extends ServerWorkflowTaskBase {
 
 interface ServerWorkflowTaskTriggerAction extends ServerWorkflowTaskBase {
   taskType: ServerTaskTypeEnum.TriggerAction;
-  // Manual is valid for a form-bearing action (PRD-511): pause for the user with no AI prefill.
+  // Manual is valid for a form-bearing action: pause for the user with no AI prefill.
   executionType:
     | ServerStepExecutionTypeEnum.Manual
     | ServerStepExecutionTypeEnum.FullyAutomated
@@ -88,7 +88,7 @@ interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {
   executionType:
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
-  // Deterministic build-time config (PRD-471). Validated by the step-definition schema.
+  // Deterministic build-time config. Validated by the step-definition schema.
   preRecordedArgs?: { selectedRecordStepId?: string; relationName?: string };
 }
 

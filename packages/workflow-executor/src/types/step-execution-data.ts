@@ -81,14 +81,14 @@ export interface ActionRef {
   displayName: string;
 }
 
-// One AI-prefilled form value (PRD-511). Kept as an ORDERED list (not a map) so the front can
+// One AI-prefilled form value. Kept as an ORDERED list (not a map) so the front can
 // replay it sequentially — setting a field fires its change hook, which may reveal dependent fields.
 export interface AiFilledFormValue {
   field: string;
   value: unknown;
 }
 
-// Pending payload for a form-bearing Trigger Action paused for review (PRD-511). `form` is absent
+// Pending payload for a form-bearing Trigger Action paused for review. `form` is absent
 // for formless actions and for Manual mode (no AI prefill at all).
 export interface TriggerActionPendingData extends ActionRef {
   form?: {
@@ -97,7 +97,7 @@ export interface TriggerActionPendingData extends ActionRef {
   };
 }
 
-// Submission outcome reported by the native front (PRD-511/520): `executed` = the action ran and a
+// Submission outcome reported by the native front: `executed` = the action ran and a
 // result exists; `pending-approval` = the submit only created an approval request (no result yet).
 export type TriggerActionSubmissionOutcome = 'executed' | 'pending-approval';
 
@@ -118,12 +118,12 @@ export interface TriggerRecordActionStepExecutionData
         success: true;
         // Absent when submissionOutcome is 'pending-approval' (no result exists yet).
         actionResult?: unknown;
-        // Defaults to 'executed' semantics when absent (formless / legacy flows). PRD-511/520.
+        // Defaults to 'executed' semantics when absent (formless / legacy flows).
         submissionOutcome?: TriggerActionSubmissionOutcome;
-        // Final values the front submitted + the ordered AI prefill — PRD-513 audit (human-edit diff).
+        // Final values the front submitted + the ordered AI prefill — audit (human-edit diff).
         submittedValues?: Record<string, unknown>;
         aiFilledValues?: AiFilledFormValue[];
-        // Who submitted the action (PRD-513 audit): 'ai' = Full AI (executor), 'user' = AI-assisted
+        // Who submitted the action (audit): 'ai' = Full AI (executor), 'user' = AI-assisted
         // (human via the native front). Absent for formless/legacy flows.
         submittedBy?: 'ai' | 'user';
       }

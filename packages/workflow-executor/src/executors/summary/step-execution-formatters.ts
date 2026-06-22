@@ -26,7 +26,7 @@ export default class StepExecutionFormatters {
     }
   }
 
-  // Audit/context summary for a Trigger Action (PRD-513). Critically distinguishes an executed
+  // Audit/context summary for a Trigger Action. Critically distinguishes an executed
   // action from one merely submitted for approval — downstream AI steps must NOT treat a
   // pending-approval action as if it ran.
   private static formatTriggerAction(

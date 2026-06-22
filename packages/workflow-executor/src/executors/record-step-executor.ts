@@ -82,7 +82,7 @@ export default abstract class RecordStepExecutor<
         return execution.executionResult.record;
       }
 
-      // The source step exists but loaded nothing → clear "no source record" message (PRD-550),
+      // The source step exists but loaded nothing → clear "no source record" message,
       // distinct from a config pointing at a non-existent step.
       throw new SourceRecordMissingError(sourceStep.stepDefinition.title);
     }

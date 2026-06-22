@@ -74,7 +74,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
           // The frontend executes the action natively and posts the result back. A confirmed step
           // must carry an actionResult — UNLESS the submission only created an approval request
-          // (pending-approval), in which case no result exists yet (PRD-511/520).
+          // (pending-approval), in which case no result exists yet.
           const isPendingApproval = userConfirmation?.submissionOutcome === 'pending-approval';
 
           if (
@@ -108,7 +108,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const { preRecordedArgs } = step;
 
     // "On record" pins the source by stable step id (revise-safe); legacy steps without it fall
-    // back to AI record selection among the available source records (PRD-469).
+    // back to AI record selection among the available source records.
     const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
       ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
       : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
@@ -141,7 +141,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         : this.pauseForConfirmation(target);
     }
 
-    // Manual (PRD-511): pause with the native form, NO AI pre-fill.
+    // Manual: pause with the native form, NO AI pre-fill.
     if (step.executionType === StepExecutionMode.Manual) {
       return this.pauseForConfirmation(target, { fields: form.fields, aiFilledValues: [] });
     }
@@ -154,12 +154,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     );
     const reviewState = { fields: filledForm.fields, aiFilledValues };
 
-    // AI-assisted (PRD-511): pause for the user to review/edit/submit natively.
+    // AI-assisted: pause for the user to review/edit/submit natively.
     if (step.executionType !== StepExecutionMode.FullyAutomated) {
       return this.pauseForConfirmation(target, reviewState);
     }
 
-    // Full AI (PRD-512): submit if the AI filled every required field; otherwise fall back to the
+    // Full AI: submit if the AI filled every required field; otherwise fall back to the
     // exact AI-assisted review state, carrying what was filled.
     if (!filledForm.canExecute) {
       return this.pauseForConfirmation(target, reviewState);
@@ -185,7 +185,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   }
 
   // Pause the step awaiting user confirmation. For form-bearing actions, `form` carries the native
-  // form fields + the ordered AI prefill the front replays sequentially (PRD-511).
+  // form fields + the ordered AI prefill the front replays sequentially.
   private async pauseForConfirmation(
     target: ActionTarget,
     form?: { fields: ActionFormField[]; aiFilledValues: AiFilledFormValue[] },
@@ -200,7 +200,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     return this.buildOutcomeResult({ status: 'awaiting-input' });
   }
 
-  // Shared AI form-fill loop (PRD-511, reused by Full AI in PRD-512). Iteratively asks the AI to
+  // Shared AI form-fill loop (reused by Full AI). Iteratively asks the AI to
   // fill the fields it has context for (leave-empty-if-unsure), re-applying after each pass so
   // change hooks reveal dependent fields. Bounded by max iterations + no-progress detection so an
   // oscillating dynamic form can't loop forever. Returns the values in fill order + the final form.
@@ -338,7 +338,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   /** Branch B — executor runs the action via the audited agent, then persists the result. */
   private async executeOnExecutor(
     target: ActionTarget,
-    // Form submission (Full AI, PRD-512): the AI-filled values to submit + the ordered prefill for
+    // Form submission (Full AI): the AI-filled values to submit + the ordered prefill for
     // the audit trail. Omitted for a formless action (executor just triggers it).
     form?: { values: Record<string, unknown>; aiFilledValues: AiFilledFormValue[] },
   ): Promise<StepExecutionResult> {
@@ -369,7 +369,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       executionResult: {
         success: true,
         actionResult,
-        // Form-bearing Full AI: record what the executor submitted (PRD-512/513).
+        // Form-bearing Full AI: record what the executor submitted.
         ...(form && {
           submissionOutcome: 'executed',
           submittedBy: 'ai',
@@ -408,7 +408,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         // No action result exists yet when the submission only created an approval request.
         ...(submissionOutcome === 'executed' && { actionResult: confirmation?.actionResult }),
         submissionOutcome,
-        // AI-assisted = the human submitted natively (PRD-513 audit).
+        // AI-assisted = the human submitted natively (audit).
         submittedBy: 'user',
         ...(confirmation?.submittedValues && { submittedValues: confirmation.submittedValues }),
         ...(aiFilledValues?.length && { aiFilledValues }),

@@ -120,7 +120,7 @@ export default class AgentWithLog {
   }
 
   // Unaudited passthrough: reading the form structure (and applying values to reveal dependent
-  // fields via change hooks) is read-only — the actual execution is what gets logged (PRD-509/511).
+  // fields via change hooks) is read-only — the actual execution is what gets logged.
   getActionForm(query: GetActionFormQuery): Promise<ActionForm> {
     return this.agentPort.getActionForm(query, this.user);
   }

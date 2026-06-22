@@ -157,7 +157,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new NoRelationshipFieldsError(sourceRecords[0]?.collectionName ?? 'unknown');
     }
 
-    // Pre-recorded relations are pinned by their stable technical name (PRD-426), matched exactly.
+    // Pre-recorded relations are pinned by their stable technical name, matched exactly.
     const pinned = preRecordedArgs?.relationName;
     const eligible = pinned ? candidates.filter(c => c.field.fieldName === pinned) : candidates;
 
@@ -463,7 +463,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     // The final record stays AI-suggested + user-confirmed — only the source + relation are
-    // pinned deterministically (PRD-471). Index-based record pinning was removed (not revise-safe).
+    // pinned deterministically. Index-based record pinning was removed (not revise-safe).
     const suggestedFields = await this.selectRelevantFields(
       relatedSchema,
       this.context.stepDefinition.prompt,

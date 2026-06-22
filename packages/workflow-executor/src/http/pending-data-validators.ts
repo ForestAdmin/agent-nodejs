@@ -20,7 +20,7 @@ const triggerActionPatchSchema = z
     // presence check lives in the step-executor so a descriptive StepStateError can
     // name the runId/stepIndex — not achievable from inside a zod schema.
     actionResult: z.unknown().optional(),
-    // PRD-511/520: the front executes the action natively, so it self-reports the final form
+    // The front executes the action natively, so it self-reports the final form
     // values it submitted (lets the executor diff against the AI prefill for the audit trail).
     submittedValues: z.record(z.string(), z.unknown()).optional(),
     // Whether the native submit actually executed the action, or only created an approval request
