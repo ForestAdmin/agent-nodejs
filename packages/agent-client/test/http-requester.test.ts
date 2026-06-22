@@ -240,6 +240,28 @@ describe('HttpRequester', () => {
       );
     });
 
+    it('should parse the JSON body from the response text when body is empty', async () => {
+      const error = { response: { status: 422, text: '{"errors":[{"detail":"bad"}]}' } };
+      mockRequest.then = jest.fn((_onFulfilled: any, onRejected: any) =>
+        Promise.resolve(onRejected(error)),
+      );
+
+      await expect(requester.query({ method: 'get', path: '/forest/users' })).rejects.toMatchObject(
+        { status: 422, body: { errors: [{ detail: 'bad' }] }, responseText: error.response.text },
+      );
+    });
+
+    it('should fall back to the raw text when it is not valid JSON', async () => {
+      const error = { response: { status: 500, text: 'Internal Server Error' } };
+      mockRequest.then = jest.fn((_onFulfilled: any, onRejected: any) =>
+        Promise.resolve(onRejected(error)),
+      );
+
+      await expect(requester.query({ method: 'get', path: '/forest/users' })).rejects.toMatchObject(
+        { status: 500, body: 'Internal Server Error' },
+      );
+    });
+
     it('should deserialize JSON API response', async () => {
       const responseBody = {
         data: {
