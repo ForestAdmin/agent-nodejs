@@ -1831,6 +1831,18 @@ describe('StepExecutorFactory.create — factory', () => {
       expect.objectContaining({ cause: undefined }),
     );
   });
+
+  it('calls getModel with step.user.id for AI usage attribution', async () => {
+    const cfg = makeContextConfig();
+    const step = makePendingStep({ stepType: StepType.ReadRecord }); // user.id = 1
+
+    await StepExecutorFactory.create(step, cfg, makeRunLogger(), jest.fn());
+
+    expect(cfg.aiModelPort.getModel).toHaveBeenCalledWith({
+      aiConfigName: step.stepDefinition.aiConfigName,
+      userId: step.user.id,
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
