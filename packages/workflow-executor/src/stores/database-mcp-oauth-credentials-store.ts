@@ -172,7 +172,7 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
         clientId: credential.clientId ?? null,
         clientSecretEnc: credential.clientSecretEnc ?? null,
         clientSecretExpiresAt: credential.clientSecretExpiresAt ?? null,
-        tokenEndpoint: credential.tokenEndpoint ?? null,
+        tokenEndpoint: credential.tokenEndpoint,
         tokenEndpointAuthMethod: credential.tokenEndpointAuthMethod ?? null,
         scopes: credential.scopes ?? null,
         now,
