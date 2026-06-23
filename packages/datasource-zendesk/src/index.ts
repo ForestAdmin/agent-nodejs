@@ -3,6 +3,7 @@ export type { ZendeskDataSourceOptions } from './factory';
 export { default as ZendeskDataSource, COLLECTION_NAMES } from './datasource';
 export { createZendeskClient, ZendeskHttpClient, MAX_PER_PAGE, MAX_TOTAL_RESULTS } from './client';
 export type { ZendeskClient, RawCustomFieldDefinition } from './client';
+export type { ZendeskClientProvider } from './client-options';
 export { closeTicketPlugin } from './plugins/close-ticket';
 export type { CloseTicketOptions } from './plugins/close-ticket';
 export { createTicketWithNotificationPlugin } from './plugins/create-ticket-with-notification';

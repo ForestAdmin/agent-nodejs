@@ -178,12 +178,29 @@ describe('createTicketWithNotificationPlugin', () => {
     ).rejects.toThrow('only be used on collections');
   });
 
-  it('throws when no client is given', async () => {
+  it('throws when neither a client nor credentials are given', async () => {
     const { collection } = captureCollectionCustomizer();
 
-    await expect(createTicketWithNotificationPlugin(NOOP_DATASOURCE, collection)).rejects.toThrow(
-      'requires a `client`',
-    );
+    await expect(
+      createTicketWithNotificationPlugin(
+        NOOP_DATASOURCE,
+        collection,
+        {} as Parameters<typeof createTicketWithNotificationPlugin>[2],
+      ),
+    ).rejects.toThrow('missing required configuration: subdomain, email, apiToken');
+  });
+
+  it('builds a client from raw credentials when no client instance is provided', async () => {
+    const { collection, actions } = captureCollectionCustomizer();
+
+    await createTicketWithNotificationPlugin(NOOP_DATASOURCE, collection, {
+      subdomain: 'acme',
+      email: 'agent@acme.com',
+      apiToken: 'secret',
+    });
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0].name).toBe('Create ticket and notify');
   });
 
   it('registers a single action with the configured name', async () => {

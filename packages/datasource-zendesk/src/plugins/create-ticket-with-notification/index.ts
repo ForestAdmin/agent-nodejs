@@ -1,5 +1,5 @@
 import type { EmailTemplate, FormBuilderOptions } from './form-builder';
-import type { ZendeskClient } from '../../client';
+import type { ZendeskClientProvider } from '../../client-options';
 import type { TicketPriority, TicketType } from '../../enums';
 import type { ZendeskRecord } from '../../types';
 import type {
@@ -8,13 +8,14 @@ import type {
   DataSourceCustomizer,
   Plugin,
 } from '@forestadmin/datasource-customizer';
+import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { FORM_FIELDS, buildForm } from './form-builder';
+import { resolveZendeskClient } from '../../client-options';
 
 export type { EmailTemplate };
 
 export type CreateTicketWithNotificationOptions = {
-  client: ZendeskClient;
   actionName?: string;
   emailTemplates?: EmailTemplate[];
   requesterEmailDefault?: FormBuilderOptions['requesterEmailDefault'];
@@ -25,7 +26,7 @@ export type CreateTicketWithNotificationOptions = {
   senderEmail?: string;
   ticketIdField?: string;
   showInternalNote?: boolean;
-};
+} & ZendeskClientProvider;
 
 function stringValue(value: unknown): string | undefined {
   if (typeof value === 'string' && value.length > 0) return value;
@@ -61,15 +62,17 @@ export const createTicketWithNotificationPlugin: Plugin<
   _dataSource: DataSourceCustomizer,
   collection: CollectionCustomizer,
   options?: CreateTicketWithNotificationOptions,
+  logger?: Logger,
 ) => {
   if (!collection) {
     throw new Error('createTicketWithNotificationPlugin can only be used on collections.');
   }
 
-  if (!options?.client) {
-    throw new Error('createTicketWithNotificationPlugin requires a `client` option.');
+  if (!options) {
+    throw new Error('createTicketWithNotificationPlugin requires options.');
   }
 
+  const client = resolveZendeskClient(options, logger);
   const actionName = options.actionName ?? 'Create ticket and notify';
 
   collection.addAction(actionName, {
@@ -107,7 +110,7 @@ export const createTicketWithNotificationPlugin: Plugin<
       let created: ZendeskRecord;
 
       try {
-        created = await options.client.createTicket(payload);
+        created = await client.createTicket(payload);
       } catch (error) {
         return resultBuilder.error(
           `Failed to create Zendesk ticket: ${

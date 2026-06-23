@@ -1,22 +1,23 @@
 import type { CloseTicketOutcome, CloseTicketStatus } from './messages';
 import type { ZendeskClient } from '../../client';
+import type { ZendeskClientProvider } from '../../client-options';
 import type {
   CollectionCustomizer,
   DataSourceCustomizer,
   Plugin,
 } from '@forestadmin/datasource-customizer';
-import type { ActionScope } from '@forestadmin/datasource-toolkit';
+import type { ActionScope, Logger } from '@forestadmin/datasource-toolkit';
 
 import { isAlreadyClosedError } from './errors';
 import { buildErrorMessage, buildSuccessMessage } from './messages';
+import { resolveZendeskClient } from '../../client-options';
 import { CLOSEABLE_STATUSES } from '../../enums';
 
 export type CloseTicketOptions = {
-  client: ZendeskClient;
   ticketIdField: string;
   statuses?: ReadonlyArray<CloseTicketStatus>;
   scopes?: ReadonlyArray<Extract<ActionScope, 'Single' | 'Bulk'>>;
-};
+} & ZendeskClientProvider;
 
 const DEFAULT_SCOPES: ReadonlyArray<Extract<ActionScope, 'Single' | 'Bulk'>> = ['Single', 'Bulk'];
 
@@ -61,15 +62,17 @@ export const closeTicketPlugin: Plugin<CloseTicketOptions> = async (
   _dataSource: DataSourceCustomizer,
   collection: CollectionCustomizer,
   options?: CloseTicketOptions,
+  logger?: Logger,
 ) => {
   if (!collection) {
     throw new Error('closeTicketPlugin can only be used on collections.');
   }
 
-  if (!options?.client || !options.ticketIdField) {
-    throw new Error('closeTicketPlugin requires `client` and `ticketIdField` options.');
+  if (!options?.ticketIdField) {
+    throw new Error('closeTicketPlugin requires a `ticketIdField` option.');
   }
 
+  const client = resolveZendeskClient(options, logger);
   const statuses = options.statuses ?? CLOSEABLE_STATUSES;
   const scopes = options.scopes ?? DEFAULT_SCOPES;
 
@@ -93,7 +96,7 @@ export const closeTicketPlugin: Plugin<CloseTicketOptions> = async (
             return resultBuilder.error('No ticket id available on the selected record(s).');
           }
 
-          const outcome = await closeTickets(options.client, ids, status);
+          const outcome = await closeTickets(client, ids, status);
 
           if (outcome.succeeded.length === 0 && outcome.alreadyClosed.length === 0) {
             return resultBuilder.error(buildErrorMessage(outcome, status));

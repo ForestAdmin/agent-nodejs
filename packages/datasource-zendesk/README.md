@@ -100,6 +100,24 @@ Ticket custom fields are exposed as `custom_<id>`; user/organization ones use th
 
 ## Plugins
 
+Both plugins accept the same client contract as the datasource: pass an
+already-built `client`, **or** raw credentials (`subdomain`, `email`, `apiToken`)
+and the plugin builds one for you. Reusing a single client across the datasource
+and the plugins is recommended, but no longer required.
+
+```ts
+// with a shared client
+collection.use(closeTicketPlugin, { client, ticketIdField: 'id' });
+
+// or with raw credentials (client is optional)
+collection.use(closeTicketPlugin, {
+  subdomain: process.env.ZENDESK_SUBDOMAIN!,
+  email: process.env.ZENDESK_EMAIL!,
+  apiToken: process.env.ZENDESK_API_TOKEN!,
+  ticketIdField: 'id',
+});
+```
+
 ### `closeTicketPlugin`
 
 Adds Single + Bulk actions to mark Zendesk tickets as `solved` or `closed`. Tickets that Zendesk reports as already closed are folded into the success message rather than counted as failures.

@@ -109,12 +109,35 @@ describe('closeTicketPlugin', () => {
     ).rejects.toThrow('only be used on collections');
   });
 
-  it('throws when options are missing', async () => {
+  it('throws when ticketIdField is missing', async () => {
     const { collection } = captureCollectionCustomizer();
 
     await expect(closeTicketPlugin(NOOP_DATASOURCE, collection)).rejects.toThrow(
-      'requires `client` and `ticketIdField`',
+      'requires a `ticketIdField`',
     );
+  });
+
+  it('throws when neither a client nor credentials are given', async () => {
+    const { collection } = captureCollectionCustomizer();
+
+    await expect(
+      closeTicketPlugin(NOOP_DATASOURCE, collection, {
+        ticketIdField: 'id',
+      } as Parameters<typeof closeTicketPlugin>[2]),
+    ).rejects.toThrow('missing required configuration: subdomain, email, apiToken');
+  });
+
+  it('builds a client from raw credentials when no client instance is provided', async () => {
+    const { collection, actions } = captureCollectionCustomizer();
+
+    await closeTicketPlugin(NOOP_DATASOURCE, collection, {
+      ticketIdField: 'id',
+      subdomain: 'acme',
+      email: 'agent@acme.com',
+      apiToken: 'secret',
+    });
+
+    expect(actions.length).toBeGreaterThan(0);
   });
 
   it('registers Single and Bulk actions for each requested status (default 2 statuses x 2 scopes = 4 actions)', async () => {
