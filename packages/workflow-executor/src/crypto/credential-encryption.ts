@@ -12,6 +12,14 @@ const IV_BYTES = 12; // GCM standard nonce length
 const AUTH_TAG_BYTES = 16;
 const ALGORITHM = 'aes-256-gcm';
 
+// Boot-time check (no derivation, no throw): is the at-rest key configured? Lets startup emit a
+// warning that OAuth-protected MCP servers are unavailable until it is set. There is deliberately no
+// default key — a hardcoded one would be public in this open-source package and defeat the at-rest
+// encryption (a DB dump would be decryptable with the shipped key).
+export function isExecutorEncryptionKeyConfigured(): boolean {
+  return Boolean(process.env[ENV_KEY]);
+}
+
 export interface EncryptedValue {
   // Packed layout: iv | authTag | ciphertext — stored as a single BLOB column.
   ciphertext: Buffer;

@@ -13,7 +13,9 @@ import createConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
-import CredentialEncryption from './crypto/credential-encryption';
+import CredentialEncryption, {
+  isExecutorEncryptionKeyConfigured,
+} from './crypto/credential-encryption';
 import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,
   DEFAULT_FOREST_SERVER_URL,
@@ -71,6 +73,15 @@ function positiveOrDefault(value: number | undefined, fallback: number): number 
 function buildCommonDependencies(options: ExecutorOptions) {
   const forestServerUrl = options.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL;
   const logger = options.logger ?? createConsoleLogger(options.loggerLevel ?? DEFAULT_LOGGER_LEVEL);
+
+  // Lazy key by design (OAuth-less executors boot without it), but surface a security-relevant
+  // heads-up so a missing key isn't discovered only when a deposit 503s.
+  if (!isExecutorEncryptionKeyConfigured()) {
+    logger(
+      'Warn',
+      'FOREST_EXECUTOR_ENCRYPTION_KEY is not set — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is configured.',
+    );
+  }
 
   const workflowPort = new ForestServerWorkflowPort({
     envSecret: options.envSecret,
