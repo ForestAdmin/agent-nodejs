@@ -49,6 +49,18 @@ describe('refreshAccessToken', () => {
     expect(body.get('refresh_token')).toBe('rt-1');
   });
 
+  it('throws OAuthRefreshError (not a TypeError) when the token endpoint body is literal null', async () => {
+    fetchSpy.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve(null),
+    } as unknown as Response);
+
+    await expect(
+      refreshAccessToken({ tokenEndpoint: 'https://idp/token', refreshToken: 'rt-1' }),
+    ).rejects.toBeInstanceOf(OAuthRefreshError);
+  });
+
   it('sends client credentials via Basic auth for client_secret_basic (the default with a secret)', async () => {
     fetchSpy.mockResolvedValue(
       mockResponse({ ok: true, status: 200, payload: { access_token: 'at' } }),
