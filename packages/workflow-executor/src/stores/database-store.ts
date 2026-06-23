@@ -124,7 +124,10 @@ export default class DatabaseStore implements RunStore {
         }
 
         // The migration lock holds one pool connection while umzug opens a second.
-        const poolMax = this.sequelize.options.pool?.max ?? 1;
+        const { pool } = this.sequelize.connectionManager as unknown as {
+          pool?: { maxSize?: number };
+        };
+        const poolMax = pool?.maxSize ?? 1;
 
         if (poolMax < 2) {
           throw new Error(
