@@ -123,6 +123,15 @@ export default class DatabaseStore implements RunStore {
           return;
         }
 
+        // The migration lock holds one pool connection while umzug opens a second.
+        const poolMax = this.sequelize.options.pool?.max ?? 1;
+
+        if (poolMax < 2) {
+          throw new Error(
+            'workflow-executor requires pool.max >= 2 on Postgres: the migration lock holds one connection while migrations run on another',
+          );
+        }
+
         // Schema in its own committed transaction so umzug (on other connections) sees it.
         if (schema) {
           await this.withMigrationLock(transaction =>
