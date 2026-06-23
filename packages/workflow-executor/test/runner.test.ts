@@ -95,6 +95,7 @@ function createRunnerConfig(
     schemaCache: SchemaCache;
     stopTimeoutS: number;
     maxChainDepth: number;
+    skipMigrations: boolean;
   }> = {},
 ) {
   return {
@@ -242,6 +243,26 @@ describe('start', () => {
     await runner.start();
 
     expect(config.runStore.init).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not call runStore.init() on start when skipMigrations is set', async () => {
+    const config = createRunnerConfig({ skipMigrations: true });
+    runner = new Runner(config);
+
+    await runner.start();
+
+    expect(config.runStore.init).not.toHaveBeenCalled();
+  });
+
+  it('migrate() initialises then closes the run store and does not probe the agent', async () => {
+    const config = createRunnerConfig();
+    runner = new Runner(config);
+
+    await runner.migrate();
+
+    expect(config.runStore.init).toHaveBeenCalledTimes(1);
+    expect(config.runStore.close).toHaveBeenCalledTimes(1);
+    expect(config.agentPort.probe).not.toHaveBeenCalled();
   });
 
   it('should throw ConfigurationError when envSecret is invalid', async () => {

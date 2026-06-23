@@ -42,6 +42,7 @@ function makeFakeExecutor(): WorkflowExecutor {
   return {
     start: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn().mockResolvedValue(undefined),
+    migrate: jest.fn().mockResolvedValue(undefined),
     state: 'running',
   } as unknown as WorkflowExecutor;
 }
@@ -66,7 +67,17 @@ describe('parseArgs', () => {
       inMemory: false,
       pretty: false,
       json: false,
+      migrate: false,
+      skipMigrations: false,
     });
+  });
+
+  it('parses the migrate command', () => {
+    expect(parseArgs(['migrate']).migrate).toBe(true);
+  });
+
+  it('parses --skip-migrations', () => {
+    expect(parseArgs(['--skip-migrations']).skipMigrations).toBe(true);
   });
 
   it('parses --help and -h', () => {
@@ -97,7 +108,15 @@ describe('parseArgs', () => {
 });
 
 describe('pickLogger', () => {
-  const baseArgs = { help: false, version: false, inMemory: false, pretty: false, json: false };
+  const baseArgs = {
+    help: false,
+    version: false,
+    inMemory: false,
+    pretty: false,
+    json: false,
+    migrate: false,
+    skipMigrations: false,
+  };
   let infoSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -147,7 +166,15 @@ describe('pickLogger', () => {
 });
 
 describe('readEnvConfig', () => {
-  const args = { help: false, version: false, inMemory: false, pretty: false, json: false };
+  const args = {
+    help: false,
+    version: false,
+    inMemory: false,
+    pretty: false,
+    json: false,
+    migrate: false,
+    skipMigrations: false,
+  };
 
   it('returns a full config when all required vars are present', () => {
     const config = readEnvConfig(baseEnv, args);
@@ -510,6 +537,27 @@ describe('runCli', () => {
     );
     expect(factories.buildDatabase).not.toHaveBeenCalled();
     expect(executor.start).toHaveBeenCalled();
+  });
+
+  it('runs migrations and exits without starting on the migrate command', async () => {
+    const { factories, executor } = makeFactories();
+
+    await runCli(['migrate'], baseEnv, factories);
+
+    expect(executor.migrate).toHaveBeenCalled();
+    expect(executor.start).not.toHaveBeenCalled();
+  });
+
+  it('threads skipMigrations into the build options and still starts', async () => {
+    const { factories, executor } = makeFactories();
+
+    await runCli(['--skip-migrations'], baseEnv, factories);
+
+    expect(factories.buildDatabase).toHaveBeenCalledWith(
+      expect.objectContaining({ skipMigrations: true }),
+    );
+    expect(executor.start).toHaveBeenCalled();
+    expect(executor.migrate).not.toHaveBeenCalled();
   });
 
   it('does not log any secret during startup', async () => {

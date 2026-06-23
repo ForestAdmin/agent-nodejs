@@ -87,6 +87,24 @@ are force-killed and the process exits with code `1`.
 | `0` | Graceful shutdown |
 | `1` | Startup error (missing env, invalid config) or forced shutdown |
 
+### Migrations
+
+By default the executor applies its database migrations on boot, then runs. That's
+fine for a single instance (demos, staging). It does **not** coordinate concurrent
+boots — if you run several instances that all migrate at once, they race.
+
+For multi-instance deployments, decouple migrations from boot:
+
+```bash
+# 1. Once, in your release/CI pipeline (applies migrations, then exits):
+forest-workflow-executor migrate
+
+# 2. Then start any number of instances that skip migrating:
+forest-workflow-executor --skip-migrations
+```
+
+`--skip-migrations` assumes the schema is already migrated; queries fail otherwise.
+
 ### In-memory mode (dev only)
 
 ```bash

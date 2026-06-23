@@ -32,6 +32,8 @@ const FORCE_EXIT_DELAY_S = 5;
 export interface WorkflowExecutor {
   start(): Promise<void>;
   stop(): Promise<void>;
+  // Apply migrations then exit (the `migrate` CLI command). Does not start the runner or server.
+  migrate(): Promise<void>;
   readonly state: RunnerState;
 }
 
@@ -54,6 +56,8 @@ export interface ExecutorOptions {
   schemaCacheTtlS?: number;
   // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
   forceAiError?: boolean;
+  // Boot without running migrations (applied out-of-band via the `migrate` command).
+  skipMigrations?: boolean;
 }
 
 export type DatabaseExecutorOptions = ExecutorOptions &
@@ -130,6 +134,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     stepTimeoutS: positiveOrDefault(options.stepTimeoutS, DEFAULT_STEP_TIMEOUT_S),
     aiInvokeTimeoutS: positiveOrDefault(options.aiInvokeTimeoutS, DEFAULT_AI_INVOKE_TIMEOUT_S),
     maxChainDepth: options.maxChainDepth,
+    skipMigrations: options.skipMigrations,
   };
 }
 
@@ -177,6 +182,10 @@ function createWorkflowExecutor(
   return {
     get state() {
       return runner.state;
+    },
+
+    migrate() {
+      return runner.migrate();
     },
 
     async start() {

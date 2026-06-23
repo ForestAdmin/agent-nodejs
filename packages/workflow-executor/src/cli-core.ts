@@ -65,6 +65,10 @@ export interface CliArgs {
   inMemory: boolean;
   pretty: boolean;
   json: boolean;
+  // `migrate` subcommand: apply migrations then exit (for CI/release pipelines).
+  migrate: boolean;
+  // Boot without migrating (migrations applied out-of-band via `migrate`).
+  skipMigrations: boolean;
 }
 
 export interface CliConfig {
@@ -85,10 +89,18 @@ export function parseArgs(argv: string[]): CliArgs {
     inMemory: false,
     pretty: false,
     json: false,
+    migrate: false,
+    skipMigrations: false,
   };
 
   for (const arg of argv) {
     switch (arg) {
+      case 'migrate':
+        result.migrate = true;
+        break;
+      case '--skip-migrations':
+        result.skipMigrations = true;
+        break;
       case '--help':
       case '-h':
         result.help = true;
@@ -184,6 +196,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
     schemaCacheTtlS: parsePositiveIntEnv('SCHEMA_CACHE_TTL_S', env.SCHEMA_CACHE_TTL_S),
     loggerLevel: parseLoggerLevelEnv(env.LOG_LEVEL) ?? DEFAULT_LOGGER_LEVEL,
+    skipMigrations: args.skipMigrations,
     ...(aiConfigurations && { aiConfigurations }),
     ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
   };
@@ -196,11 +209,16 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
 }
 
 export function printHelp(): void {
-  console.log(`Usage: ${BINARY_NAME} [options]
+  console.log(`Usage: ${BINARY_NAME} [command] [options]
 
 Run the Forest Admin workflow executor.
 
+Commands:
+  (default)         Apply migrations, then run the executor (HTTP server + polling)
+  migrate           Apply migrations, then exit (run once in CI/release; pair with --skip-migrations)
+
 Options:
+  --skip-migrations Boot without migrating (migrations applied out-of-band via \`migrate\`)
   --in-memory       Use an in-memory run store (no DB needed, not for prod)
   --pretty          Force colorized human-readable logs (default when stdout is a TTY)
   --json            Force structured JSON logs (default when stdout is not a TTY)
@@ -298,6 +316,13 @@ export async function runCli(
         database: { uri: config.databaseUrl as string },
       };
       executor = factories.buildDatabase(databaseOptions);
+    }
+
+    if (args.migrate) {
+      await executor.migrate();
+      logger('Info', 'Migrations applied');
+
+      return executor;
     }
 
     await executor.start();

@@ -50,6 +50,9 @@ export interface RunnerConfig {
   // Max number of ADDITIONAL steps auto-chained via /update-step response before yielding to the
   // next poll cycle (counted after the initial step). 0 disables chaining entirely. Default 50.
   maxChainDepth?: number;
+  // Skip running migrations on start (applied out-of-band, e.g. via the `migrate` command). The
+  // store must already be migrated or queries will fail.
+  skipMigrations?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
@@ -89,12 +92,20 @@ export default class Runner {
     // Probe the agent first so we fail fast without opening DB connections when unreachable.
     await this.config.agentPort.probe();
     this.logger('Info', 'Agent probe passed', {});
-    await this.config.runStore.init(this.logger);
+
+    if (!this.config.skipMigrations) await this.config.runStore.init(this.logger);
 
     this._state = 'running';
 
     this.pushMetadataToOrchestrator();
     this.schedulePoll();
+  }
+
+  // One-shot migration entry point for the `migrate` CLI command: applies migrations and closes the
+  // connection so the process can exit. No agent probe, no polling, no HTTP server.
+  async migrate(): Promise<void> {
+    await this.config.runStore.init(this.logger);
+    await this.config.runStore.close(this.logger);
   }
 
   async stop(): Promise<void> {
