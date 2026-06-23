@@ -11,12 +11,10 @@ const KEY_BYTES = 32; // AES-256
 const IV_BYTES = 12; // GCM standard nonce length
 const AUTH_TAG_BYTES = 16;
 const ALGORITHM = 'aes-256-gcm';
-const CURRENT_ENC_KEY_VERSION = 1;
 
 export interface EncryptedValue {
   // Packed layout: iv | authTag | ciphertext — stored as a single BLOB column.
   ciphertext: Buffer;
-  encKeyVersion: number;
 }
 
 // Concatenate byte arrays without going through Buffer.concat — keeps everything in the concrete
@@ -39,12 +37,6 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
 // without it — and fails closed: a missing key throws rather than persisting or returning an
 // unprotected value.
 export default class CredentialEncryption {
-  private readonly encKeyVersion: number;
-
-  constructor(encKeyVersion: number = CURRENT_ENC_KEY_VERSION) {
-    this.encKeyVersion = encKeyVersion;
-  }
-
   encrypt(plaintext: string): EncryptedValue {
     const iv = randomFillSync(new Uint8Array(IV_BYTES));
     const cipher = createCipheriv(ALGORITHM, this.deriveKey(), iv);
@@ -56,7 +48,6 @@ export default class CredentialEncryption {
 
     return {
       ciphertext: Buffer.from(concatBytes([iv, authTag, encrypted])),
-      encKeyVersion: this.encKeyVersion,
     };
   }
 

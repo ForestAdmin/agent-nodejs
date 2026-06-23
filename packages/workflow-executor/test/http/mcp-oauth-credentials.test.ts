@@ -8,7 +8,6 @@ function createEncryption(): CredentialEncryption {
   return {
     encrypt: jest.fn((plaintext: string) => ({
       ciphertext: Buffer.from(`enc(${plaintext})`),
-      encKeyVersion: 1,
     })),
     decrypt: jest.fn(),
   } as unknown as CredentialEncryption;
@@ -38,7 +37,6 @@ describe('buildMcpOAuthCredentialInput', () => {
     expect(input.tokenEndpoint).toBe('https://auth.example.com/token');
     expect(input.tokenEndpointAuthMethod).toBe('client_secret_post');
     expect(input.scopes).toBe('read write');
-    expect(input.encKeyVersion).toBe(1);
   });
 
   it('encrypts the client secret and parses the expiry when both are provided', () => {

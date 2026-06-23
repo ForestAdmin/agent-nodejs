@@ -10,11 +10,18 @@ import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
 
 import { extractErrorMessage } from '../errors';
+import {
+  resolveSchema,
+  runMigrations,
+  tableId as toTableId,
+  tableReference as toTableReference,
+} from './schema-migrations';
 
 const TABLE_NAME = 'ai_mcp_oauth_credentials';
 
 export interface DatabaseMcpOAuthCredentialsStoreOptions {
   sequelize: Sequelize;
+  schema?: string;
 }
 
 interface CredentialRow {
@@ -28,104 +35,125 @@ interface CredentialRow {
   token_endpoint: string;
   token_endpoint_auth_method: string | null;
   scopes: string | null;
-  enc_key_version: number;
 }
 
 export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredentialsStore {
   private readonly sequelize: Sequelize;
 
+  private readonly configuredSchema?: string;
+
   constructor(options: DatabaseMcpOAuthCredentialsStoreOptions) {
     this.sequelize = options.sequelize;
+    this.configuredSchema = options.schema;
+  }
+
+  private get schema(): string | undefined {
+    return resolveSchema(this.sequelize, this.configuredSchema);
+  }
+
+  private get tableReference(): string {
+    return toTableReference(this.schema, TABLE_NAME);
   }
 
   async init(logger?: Logger): Promise<void> {
+    const { schema } = this;
+    const tableId = toTableId(schema, TABLE_NAME);
+
     const umzug = new Umzug({
       migrations: [
         {
           name: '002_create_mcp_oauth_credentials',
           up: async ({ context }: { context: QueryInterface }) => {
-            await context.createTable(TABLE_NAME, {
-              id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-              userId: { type: DataTypes.INTEGER, allowNull: false, field: 'user_id' },
-              mcpServerId: {
-                type: DataTypes.STRING(255),
-                allowNull: false,
-                field: 'mcp_server_id',
-              },
-              refreshTokenEnc: {
-                type: DataTypes.BLOB,
-                allowNull: false,
-                field: 'refresh_token_enc',
-              },
-              clientId: { type: DataTypes.STRING(255), allowNull: true, field: 'client_id' },
-              clientSecretEnc: {
-                type: DataTypes.BLOB,
-                allowNull: true,
-                field: 'client_secret_enc',
-              },
-              clientSecretExpiresAt: {
-                type: DataTypes.DATE,
-                allowNull: true,
-                field: 'client_secret_expires_at',
-              },
-              tokenEndpoint: {
-                type: DataTypes.STRING(2048),
-                allowNull: false,
-                field: 'token_endpoint',
-              },
-              tokenEndpointAuthMethod: {
-                type: DataTypes.STRING(64),
-                allowNull: true,
-                field: 'token_endpoint_auth_method',
-              },
-              scopes: { type: DataTypes.STRING(2048), allowNull: true, field: 'scopes' },
-              encKeyVersion: {
-                type: DataTypes.INTEGER,
-                allowNull: false,
-                field: 'enc_key_version',
-              },
-              createdAt: {
-                type: DataTypes.DATE,
-                allowNull: false,
-                defaultValue: DataTypes.NOW,
-                field: 'created_at',
-              },
-              updatedAt: {
-                type: DataTypes.DATE,
-                allowNull: false,
-                defaultValue: DataTypes.NOW,
-                field: 'updated_at',
-              },
-            });
+            // Atomic (table + index) and idempotent so a half-applied or already-applied run can't
+            // crash-loop boot.
+            await context.sequelize.transaction(async transaction => {
+              if (await context.tableExists(tableId, { transaction })) return;
 
-            await context.addIndex(TABLE_NAME, ['user_id', 'mcp_server_id'], {
-              unique: true,
-              name: 'idx_user_id_mcp_server_id',
+              await context.createTable(
+                tableId,
+                {
+                  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+                  userId: { type: DataTypes.INTEGER, allowNull: false, field: 'user_id' },
+                  mcpServerId: {
+                    type: DataTypes.STRING(255),
+                    allowNull: false,
+                    field: 'mcp_server_id',
+                  },
+                  refreshTokenEnc: {
+                    type: DataTypes.BLOB,
+                    allowNull: false,
+                    field: 'refresh_token_enc',
+                  },
+                  clientId: { type: DataTypes.STRING(255), allowNull: true, field: 'client_id' },
+                  clientSecretEnc: {
+                    type: DataTypes.BLOB,
+                    allowNull: true,
+                    field: 'client_secret_enc',
+                  },
+                  clientSecretExpiresAt: {
+                    type: DataTypes.DATE,
+                    allowNull: true,
+                    field: 'client_secret_expires_at',
+                  },
+                  tokenEndpoint: {
+                    type: DataTypes.STRING(2048),
+                    allowNull: false,
+                    field: 'token_endpoint',
+                  },
+                  tokenEndpointAuthMethod: {
+                    type: DataTypes.STRING(64),
+                    allowNull: true,
+                    field: 'token_endpoint_auth_method',
+                  },
+                  scopes: { type: DataTypes.STRING(2048), allowNull: true, field: 'scopes' },
+                  createdAt: {
+                    type: DataTypes.DATE,
+                    allowNull: false,
+                    defaultValue: DataTypes.NOW,
+                    field: 'created_at',
+                  },
+                  updatedAt: {
+                    type: DataTypes.DATE,
+                    allowNull: false,
+                    defaultValue: DataTypes.NOW,
+                    field: 'updated_at',
+                  },
+                },
+                { transaction },
+              );
+
+              await context.addIndex(tableId, ['user_id', 'mcp_server_id'], {
+                unique: true,
+                name: 'idx_user_id_mcp_server_id',
+                transaction,
+              });
             });
           },
           down: async ({ context }: { context: QueryInterface }) => {
-            await context.dropTable(TABLE_NAME);
+            await context.dropTable(tableId);
           },
         },
       ],
       context: this.sequelize.getQueryInterface(),
-      storage: new SequelizeStorage({ sequelize: this.sequelize }),
+      storage: new SequelizeStorage({
+        sequelize: this.sequelize,
+        ...(schema ? { schema } : {}),
+      }),
       logger: undefined,
     });
 
-    try {
-      await umzug.up();
-    } catch (error) {
-      logger?.('Error', 'MCP OAuth credentials migration failed', {
-        error: extractErrorMessage(error),
-      });
-      throw error;
-    }
+    await runMigrations({
+      sequelize: this.sequelize,
+      umzug,
+      schema,
+      logger,
+      failMessage: 'MCP OAuth credentials migration failed',
+    });
   }
 
   async get(userId: number, mcpServerId: string): Promise<StoredMcpOAuthCredential | null> {
     const [rows] = await this.sequelize.query(
-      `SELECT * FROM ${TABLE_NAME} WHERE user_id = :userId AND mcp_server_id = :mcpServerId`,
+      `SELECT * FROM ${this.tableReference} WHERE user_id = :userId AND mcp_server_id = :mcpServerId`,
       { replacements: { userId, mcpServerId } },
     );
 
@@ -147,23 +175,22 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
         tokenEndpoint: credential.tokenEndpoint ?? null,
         tokenEndpointAuthMethod: credential.tokenEndpointAuthMethod ?? null,
         scopes: credential.scopes ?? null,
-        encKeyVersion: credential.encKeyVersion,
         now,
       };
 
       // Delete + insert in transaction: dialect-agnostic upsert (avoids ON CONFLICT / ON DUPLICATE).
       await this.sequelize.query(
-        `DELETE FROM ${TABLE_NAME} WHERE user_id = :userId AND mcp_server_id = :mcpServerId`,
+        `DELETE FROM ${this.tableReference} WHERE user_id = :userId AND mcp_server_id = :mcpServerId`,
         { replacements, transaction },
       );
       await this.sequelize.query(
-        `INSERT INTO ${TABLE_NAME} ` +
+        `INSERT INTO ${this.tableReference} ` +
           '(user_id, mcp_server_id, refresh_token_enc, client_id, client_secret_enc, ' +
           'client_secret_expires_at, token_endpoint, token_endpoint_auth_method, scopes, ' +
-          'enc_key_version, created_at, updated_at) VALUES ' +
+          'created_at, updated_at) VALUES ' +
           '(:userId, :mcpServerId, :refreshTokenEnc, :clientId, :clientSecretEnc, ' +
           ':clientSecretExpiresAt, :tokenEndpoint, :tokenEndpointAuthMethod, :scopes, ' +
-          ':encKeyVersion, :now, :now)',
+          ':now, :now)',
         { replacements, transaction },
       );
     });
@@ -171,7 +198,7 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
 
   async delete(userId: number, mcpServerId: string): Promise<void> {
     await this.sequelize.query(
-      `DELETE FROM ${TABLE_NAME} WHERE user_id = :userId AND mcp_server_id = :mcpServerId`,
+      `DELETE FROM ${this.tableReference} WHERE user_id = :userId AND mcp_server_id = :mcpServerId`,
       { replacements: { userId, mcpServerId } },
     );
   }
@@ -199,7 +226,6 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
       tokenEndpoint: row.token_endpoint,
       tokenEndpointAuthMethod: row.token_endpoint_auth_method ?? null,
       scopes: row.scopes ?? null,
-      encKeyVersion: Number(row.enc_key_version),
     };
   }
 }

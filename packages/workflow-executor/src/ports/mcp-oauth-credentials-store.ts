@@ -10,7 +10,6 @@ export interface McpOAuthCredentialInput {
   tokenEndpoint: string;
   tokenEndpointAuthMethod?: string | null;
   scopes?: string | null;
-  encKeyVersion: number;
 }
 
 export interface StoredMcpOAuthCredential extends McpOAuthCredentialInput {

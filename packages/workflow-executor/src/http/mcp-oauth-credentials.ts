@@ -49,6 +49,5 @@ export function buildMcpOAuthCredentialInput({
     tokenEndpoint: body.tokenEndpoint,
     tokenEndpointAuthMethod: body.tokenEndpointAuthMethod ?? null,
     scopes: body.scopes ?? null,
-    encKeyVersion: refreshToken.encKeyVersion,
   };
 }

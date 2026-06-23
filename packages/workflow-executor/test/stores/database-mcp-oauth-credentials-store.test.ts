@@ -7,7 +7,6 @@
  *    (encryption itself is exercised in credential-encryption.test.ts — the store does not encrypt).
  *  - client_id, client_secret_enc, client_secret_expires_at, scopes are nullable
  *    (null for public / PKCE clients).
- *  - enc_key_version is stored per row.
  *  - Deleted on disconnect / permanent refresh failure.
  *  - Migration `002_create_mcp_oauth_credentials` is added alongside `001_create_workflow_step_executions`.
  *
@@ -38,7 +37,6 @@ interface CredentialInput {
   tokenEndpoint: string;
   tokenEndpointAuthMethod?: string | null;
   scopes?: string | null;
-  encKeyVersion: number;
 }
 
 function makeCredential(overrides: Partial<CredentialInput> = {}): CredentialInput {
@@ -52,7 +50,6 @@ function makeCredential(overrides: Partial<CredentialInput> = {}): CredentialInp
     tokenEndpoint: 'https://auth.example.com/token',
     tokenEndpointAuthMethod: 'client_secret_post',
     scopes: 'read write',
-    encKeyVersion: 1,
     ...overrides,
   };
 }
@@ -99,7 +96,6 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
           tokenEndpoint: 'https://auth.example.com/token',
           tokenEndpointAuthMethod: 'client_secret_post',
           scopes: 'read write',
-          encKeyVersion: 1,
         }),
       );
     });
@@ -118,13 +114,12 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
 
   describe('upsert', () => {
     it('updates the existing row in place for the same (userId, mcpServerId)', async () => {
-      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old'), encKeyVersion: 1 }));
-      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('new'), encKeyVersion: 2 }));
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('new') }));
 
       const row = unwrap(await store.get(42, 'mcp-server-1'));
 
       expect(row.refreshTokenEnc.toString()).toBe('new');
-      expect(row.encKeyVersion).toBe(2);
     });
 
     it('keeps exactly one row after re-upserting the same key (UNIQUE constraint)', async () => {
@@ -244,8 +239,8 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
       await expect(
         sequelize.query(
           'INSERT INTO ai_mcp_oauth_credentials ' +
-            '(user_id, mcp_server_id, refresh_token_enc, enc_key_version, created_at, updated_at) ' +
-            "VALUES (7, 'mcp-server-1', :blob, 1, :now, :now)",
+            '(user_id, mcp_server_id, refresh_token_enc, created_at, updated_at) ' +
+            "VALUES (7, 'mcp-server-1', :blob, :now, :now)",
           { replacements: { blob: Buffer.from('no-endpoint'), now: new Date() } },
         ),
       ).rejects.toThrow();
@@ -258,9 +253,9 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
       await expect(
         sequelize.query(
           'INSERT INTO ai_mcp_oauth_credentials ' +
-            '(user_id, mcp_server_id, refresh_token_enc, token_endpoint, enc_key_version, ' +
+            '(user_id, mcp_server_id, refresh_token_enc, token_endpoint, ' +
             'created_at, updated_at) ' +
-            "VALUES (42, 'mcp-server-1', :blob, :tokenEndpoint, 1, :now, :now)",
+            "VALUES (42, 'mcp-server-1', :blob, :tokenEndpoint, :now, :now)",
           {
             replacements: {
               blob: Buffer.from('dup'),

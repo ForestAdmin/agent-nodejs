@@ -6,11 +6,10 @@
  *    `FOREST_EXECUTOR_ENCRYPTION_KEY` env var — separate from `FOREST_AUTH_SECRET`.
  *  - The key is read LAZILY (never required at construction / boot).
  *  - AES-GCM is used (authenticated encryption — tampering must be detected on decrypt).
- *  - Each encrypted value carries an `encKeyVersion` (persisted per-row by the store).
  *  - Fail closed: a missing key (or a failed decrypt) must throw, never return plaintext/garbage.
  *
- * Version-aware key selection (rotation) is not yet supported, so `decrypt` takes only the
- * packed ciphertext; `encrypt` still surfaces `encKeyVersion` for the store to persist.
+ * Key rotation is a hard swap (re-consent per (user, server)), not version-aware multi-key decrypt,
+ * so there is no enc-key-version concept; `decrypt` takes only the packed ciphertext.
  */
 import CredentialEncryption from '../../src/crypto/credential-encryption';
 import { ExecutorEncryptionKeyMissingError } from '../../src/errors';
@@ -67,15 +66,6 @@ describe('CredentialEncryption', () => {
       const { ciphertext } = enc.encrypt('secret');
 
       expect(Buffer.isBuffer(ciphertext)).toBe(true);
-    });
-
-    it('tags each value with a positive integer encKeyVersion', () => {
-      const enc = new CredentialEncryption();
-
-      const { encKeyVersion } = enc.encrypt('secret');
-
-      expect(Number.isInteger(encKeyVersion)).toBe(true);
-      expect(encKeyVersion).toBeGreaterThanOrEqual(1);
     });
 
     it('does not leak the plaintext into the ciphertext bytes', () => {
@@ -176,12 +166,6 @@ describe('CredentialEncryption', () => {
       const reader = new CredentialEncryption();
 
       expect(reader.decrypt(ciphertext)).toBe('cross-instance-secret');
-    });
-
-    it('carries an explicit encKeyVersion through to the encrypted value', () => {
-      const enc = new CredentialEncryption(2);
-
-      expect(enc.encrypt('secret').encKeyVersion).toBe(2);
     });
   });
 

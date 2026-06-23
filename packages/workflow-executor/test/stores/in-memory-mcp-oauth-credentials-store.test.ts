@@ -22,7 +22,6 @@ function makeCredential(overrides: Partial<McpOAuthCredentialInput> = {}): McpOA
     tokenEndpoint: 'https://auth.example.com/token',
     tokenEndpointAuthMethod: 'client_secret_post',
     scopes: 'read write',
-    encKeyVersion: 1,
     ...overrides,
   };
 }
@@ -56,7 +55,6 @@ describe('InMemoryMcpOAuthCredentialsStore', () => {
           userId: 42,
           mcpServerId: 'mcp-server-1',
           tokenEndpoint: 'https://auth.example.com/token',
-          encKeyVersion: 1,
         }),
       );
     });
@@ -73,13 +71,12 @@ describe('InMemoryMcpOAuthCredentialsStore', () => {
 
   describe('upsert', () => {
     it('overwrites the existing entry in place for the same key', async () => {
-      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old'), encKeyVersion: 1 }));
-      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('new'), encKeyVersion: 2 }));
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('new') }));
 
       const row = unwrap(await store.get(42, 'mcp-server-1'));
 
       expect(row.refreshTokenEnc.toString()).toBe('new');
-      expect(row.encKeyVersion).toBe(2);
     });
 
     it('assigns a positive integer id', async () => {

@@ -63,10 +63,9 @@ function createMockStore() {
 
 function createMockEncryption() {
   return {
-    // Deterministic stub: the route under test only needs an opaque blob + version back.
+    // Deterministic stub: the route under test only needs an opaque blob back.
     encrypt: jest.fn((plaintext: string) => ({
       ciphertext: Buffer.from(`enc(${plaintext})`),
-      encKeyVersion: 1,
     })),
     decrypt: jest.fn(),
   };
@@ -193,7 +192,6 @@ describe('POST /mcp-oauth-credentials', () => {
       const persisted = store.upsert.mock.calls[0][0];
       expect(Buffer.isBuffer(persisted.refreshTokenEnc)).toBe(true);
       expect(persisted.refreshTokenEnc.toString()).toBe('enc(refresh-token-xyz)');
-      expect(persisted.encKeyVersion).toBe(1);
       // The plaintext must not have been handed to the store under any field.
       expect(JSON.stringify(persisted)).not.toContain('refresh-token-xyz');
     });
