@@ -6,6 +6,7 @@ import type {
 } from '../../src/ports/mcp-oauth-credentials-store';
 
 import {
+  ExecutorEncryptionKeyMissingError,
   OAuthInvalidGrantError,
   OAuthReauthRequiredError,
   OAuthRefreshError,
@@ -29,7 +30,6 @@ function makeCredential(
     tokenEndpoint: 'https://idp/token',
     tokenEndpointAuthMethod: 'client_secret_basic',
     scopes: 'a b',
-    encKeyVersion: 1,
     ...overrides,
   };
 }
@@ -47,7 +47,6 @@ function setup(options?: {
   const decrypt = jest.fn((buf: Buffer) => `decrypted:${buf.toString()}`);
   const encrypt = jest.fn((plain: string) => ({
     ciphertext: Buffer.from(`enc:${plain}`),
-    encKeyVersion: 2,
   }));
   const encryption = { decrypt, encrypt } as unknown as CredentialEncryption;
 
@@ -198,7 +197,6 @@ describe('OAuthTokenService.getAccessToken', () => {
           userId: USER_ID,
           mcpServerId: SERVER_ID,
           refreshTokenEnc: Buffer.from('enc:rt-2'),
-          encKeyVersion: 2,
         }),
       );
     });
@@ -266,7 +264,7 @@ describe('OAuthTokenService.getAccessToken', () => {
         store: { get, upsert } as unknown as McpOAuthCredentialsStore,
         encryption: {
           decrypt: (buf: Buffer) => buf.toString(),
-          encrypt: () => ({ ciphertext: Buffer.from('enc:rt-3'), encKeyVersion: 2 }),
+          encrypt: () => ({ ciphertext: Buffer.from('enc:rt-3') }),
         } as unknown as CredentialEncryption,
         refreshAccessToken: refresh,
       });
@@ -324,6 +322,51 @@ describe('OAuthTokenService.getAccessToken', () => {
       await expect(a).resolves.toBe('at-shared');
       await expect(b).resolves.toBe('at-shared');
       expect(refresh).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('decrypt failure classification', () => {
+    it('surfaces a decrypt failure with the key present as needs-oauth-reauth (recoverable)', async () => {
+      const service = new OAuthTokenService({
+        store: {
+          get: jest.fn().mockResolvedValue(makeCredential()),
+          upsert: jest.fn(),
+        } as unknown as McpOAuthCredentialsStore,
+        encryption: {
+          // A since-rotated/hard-swapped key fails GCM auth-tag verification with a generic error.
+          decrypt: () => {
+            throw new Error('Unsupported state or unable to authenticate data');
+          },
+          encrypt: jest.fn(),
+        } as unknown as CredentialEncryption,
+        refreshAccessToken: jest.fn(),
+      });
+
+      await expect(service.getAccessToken(USER_ID, SERVER_ID)).rejects.toBeInstanceOf(
+        OAuthReauthRequiredError,
+      );
+    });
+
+    it('rethrows a missing-key error as terminal, never reaching the grant', async () => {
+      const refreshAccessToken = jest.fn();
+      const service = new OAuthTokenService({
+        store: {
+          get: jest.fn().mockResolvedValue(makeCredential()),
+          upsert: jest.fn(),
+        } as unknown as McpOAuthCredentialsStore,
+        encryption: {
+          decrypt: () => {
+            throw new ExecutorEncryptionKeyMissingError();
+          },
+          encrypt: jest.fn(),
+        } as unknown as CredentialEncryption,
+        refreshAccessToken,
+      });
+
+      await expect(service.getAccessToken(USER_ID, SERVER_ID)).rejects.toBeInstanceOf(
+        ExecutorEncryptionKeyMissingError,
+      );
+      expect(refreshAccessToken).not.toHaveBeenCalled();
     });
   });
 });

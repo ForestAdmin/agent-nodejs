@@ -7,7 +7,11 @@ import type {
 } from '../ports/mcp-oauth-credentials-store';
 
 import { DEFAULT_OAUTH_EXPIRY_SKEW_S } from '../defaults';
-import { OAuthInvalidGrantError, OAuthReauthRequiredError } from '../errors';
+import {
+  ExecutorEncryptionKeyMissingError,
+  OAuthInvalidGrantError,
+  OAuthReauthRequiredError,
+} from '../errors';
 import KeyedMutex from './keyed-mutex';
 import defaultRefreshAccessToken from './refresh-grant';
 
@@ -145,17 +149,28 @@ export default class OAuthTokenService {
     }
   }
 
+  // Decrypt happens here. A decrypt failure with the key PRESENT (auth-tag mismatch — the row was
+  // encrypted under a since-rotated/hard-swapped key, or is corrupt) is recoverable: re-consent
+  // re-deposits under the current key, so surface it as needs-oauth-reauth. A missing key
+  // (ExecutorEncryptionKeyMissingError) is an operator misconfig, not re-consent-resolvable, so it
+  // propagates as a terminal error (a re-deposit would just 503 at the deposit endpoint).
   private toGrantParams(credential: StoredMcpOAuthCredential): RefreshGrantParams {
-    return {
-      tokenEndpoint: credential.tokenEndpoint,
-      refreshToken: this.encryption.decrypt(credential.refreshTokenEnc),
-      clientId: credential.clientId,
-      clientSecret: credential.clientSecretEnc
-        ? this.encryption.decrypt(credential.clientSecretEnc)
-        : null,
-      tokenEndpointAuthMethod: credential.tokenEndpointAuthMethod,
-      scopes: credential.scopes,
-    };
+    try {
+      return {
+        tokenEndpoint: credential.tokenEndpoint,
+        refreshToken: this.encryption.decrypt(credential.refreshTokenEnc),
+        clientId: credential.clientId,
+        clientSecret: credential.clientSecretEnc
+          ? this.encryption.decrypt(credential.clientSecretEnc)
+          : null,
+        tokenEndpointAuthMethod: credential.tokenEndpointAuthMethod,
+        scopes: credential.scopes,
+      };
+    } catch (error) {
+      if (error instanceof ExecutorEncryptionKeyMissingError) throw error;
+
+      throw new OAuthReauthRequiredError(credential.mcpServerId);
+    }
   }
 
   private async persistRotatedRefreshToken(
@@ -175,7 +190,6 @@ export default class OAuthTokenService {
         tokenEndpoint: credential.tokenEndpoint,
         tokenEndpointAuthMethod: credential.tokenEndpointAuthMethod,
         scopes: credential.scopes,
-        encKeyVersion: encrypted.encKeyVersion,
       });
     } catch (error) {
       // A failed write-back is not fatal: the access token just obtained is valid. The next refresh
