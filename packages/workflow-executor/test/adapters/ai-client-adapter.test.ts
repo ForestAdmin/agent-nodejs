@@ -20,7 +20,7 @@ describe('AiClientAdapter', () => {
       { name: 'my-config', provider: 'openai' as const, model: 'gpt-4o', apiKey: 'sk-test' },
     ]);
 
-    adapter.getModel('my-config');
+    adapter.getModel({ aiConfigName: 'my-config' });
 
     expect(mockGetModel).toHaveBeenCalledWith('my-config');
   });
