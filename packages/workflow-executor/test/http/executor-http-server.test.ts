@@ -207,6 +207,34 @@ describe('ExecutorHttpServer', () => {
     });
   });
 
+  describe('X-Executor-Version header', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
+    const { version } = require('../../package.json') as { version: string };
+
+    it('is present on the public /health response', async () => {
+      const response = await request(createServer().callback).get('/health');
+
+      expect(response.headers['x-executor-version']).toBe(version);
+    });
+
+    it('is present on an authenticated route response', async () => {
+      const token = signToken({ id: 1 });
+
+      const response = await request(createServer().callback)
+        .get('/runs/run-1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.headers['x-executor-version']).toBe(version);
+    });
+
+    it('is present on an error response (401, no token)', async () => {
+      const response = await request(createServer().callback).get('/runs/run-1');
+
+      expect(response.status).toBe(401);
+      expect(response.headers['x-executor-version']).toBe(version);
+    });
+  });
+
   describe('run access authorization', () => {
     it('returns 401 on GET /runs/:runId when the token has invalid claims, before the access check', async () => {
       const workflowPort = createMockWorkflowPort();
