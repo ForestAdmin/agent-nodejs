@@ -40,6 +40,12 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   async execute(): Promise<StepExecutionResult> {
     const { baseRecordRef } = this.context;
 
+    this.context.logger('Debug', 'Step context', {
+      ...this.logCtx,
+      collection: baseRecordRef.collectionName,
+      stepInput: this.context.stepDefinition,
+    });
+
     this.context.logger('Info', 'Step execution started', {
       ...this.logCtx,
       collection: baseRecordRef.collectionName,
