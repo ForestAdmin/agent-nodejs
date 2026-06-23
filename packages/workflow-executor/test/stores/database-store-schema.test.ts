@@ -38,12 +38,13 @@ function createMutex() {
   };
 }
 
-function makeSequelize(dialect: 'postgres' | 'sqlite'): Sequelize {
+function makeSequelize(dialect: 'postgres' | 'sqlite', poolMax = 5): Sequelize {
   return {
     getDialect: () => dialect,
     getQueryInterface: () => ({} as QueryInterface),
     query: jest.fn().mockResolvedValue([[], {}]),
     transaction: jest.fn((cb: (t: unknown) => Promise<unknown>) => cb({})),
+    connectionManager: { pool: { maxSize: poolMax } },
   } as unknown as Sequelize;
 }
 
@@ -199,6 +200,7 @@ describe('DatabaseStore — schema namespacing', () => {
         getQueryInterface: () => ({} as QueryInterface),
         query,
         transaction: jest.fn((cb: (t: unknown) => Promise<unknown>) => cb({})),
+        connectionManager: { pool: { maxSize: 5 } },
       } as unknown as Sequelize;
 
       return { sequelize, calls, query };
@@ -225,6 +227,13 @@ describe('DatabaseStore — schema namespacing', () => {
       const { sequelize } = setup('postgres', () => Promise.reject(new Error('migration boom')));
 
       await expect(new DatabaseStore({ sequelize }).init()).rejects.toThrow('migration boom');
+    });
+
+    it('throws early on Postgres when pool.max < 2 (would self-deadlock)', async () => {
+      const { sequelize } = setup('postgres');
+      (sequelize as unknown as { connectionManager: { pool: { maxSize: number } } }).connectionManager.pool.maxSize = 1;
+
+      await expect(new DatabaseStore({ sequelize }).init()).rejects.toThrow('pool.max >= 2');
     });
 
     it('does not open a transaction or take a lock on SQLite', async () => {
@@ -274,6 +283,7 @@ describe('DatabaseStore — schema namespacing', () => {
               mutex.release();
             }
           }),
+          connectionManager: { pool: { maxSize: 5 } },
         } as unknown as Sequelize);
 
       await Promise.all([
