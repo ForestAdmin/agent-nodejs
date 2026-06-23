@@ -13,6 +13,7 @@ import createConsoleLogger from '../../src/adapters/console-logger';
 import CredentialEncryption from '../../src/crypto/credential-encryption';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 import OAuthTokenService from '../../src/oauth/token-service';
+import RemoteToolFetcher from '../../src/remote-tool-fetcher';
 import Runner from '../../src/runner';
 import SchemaCache from '../../src/schema-cache';
 import InMemoryMcpOAuthCredentialsStore from '../../src/stores/in-memory-mcp-oauth-credentials-store';
@@ -221,6 +222,13 @@ function createIntegrationSetup(overrides?: {
     mcpOAuthTokenService,
   });
 
+  const remoteToolFetcher = new RemoteToolFetcher(
+    workflowPort,
+    aiClient,
+    createConsoleLogger(),
+    mcpOAuthTokenService,
+  );
+
   const server = new ExecutorHttpServer({
     port: 0,
     runner,
@@ -228,6 +236,7 @@ function createIntegrationSetup(overrides?: {
     workflowPort,
     mcpOAuthCredentialsStore,
     credentialEncryption,
+    remoteToolFetcher,
   });
 
   return { runner, server, workflowPort, agentPort, runStore, aiClient, model };
