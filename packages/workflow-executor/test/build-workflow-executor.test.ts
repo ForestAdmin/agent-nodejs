@@ -1,9 +1,13 @@
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
+import CredentialEncryption from '../src/crypto/credential-encryption';
 import { DEFAULT_SCHEMA_CACHE_TTL_S } from '../src/defaults';
+import ExecutorHttpServer from '../src/http/executor-http-server';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
+import DatabaseMcpOAuthCredentialsStore from '../src/stores/database-mcp-oauth-credentials-store';
 import DatabaseStore from '../src/stores/database-store';
+import InMemoryMcpOAuthCredentialsStore from '../src/stores/in-memory-mcp-oauth-credentials-store';
 import InMemoryStore from '../src/stores/in-memory-store';
 
 jest.mock('../src/runner');
@@ -53,6 +57,17 @@ describe('buildInMemoryExecutor', () => {
     expect(InMemoryStore).toHaveBeenCalledTimes(1);
     expect(MockedRunner).toHaveBeenCalledWith(
       expect.objectContaining({ runStore: expect.any(InMemoryStore) }),
+    );
+  });
+
+  it('wires the in-memory OAuth credentials store and encryption into the HTTP server', () => {
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(ExecutorHttpServer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mcpOAuthCredentialsStore: expect.any(InMemoryMcpOAuthCredentialsStore),
+        credentialEncryption: expect.any(CredentialEncryption),
+      }),
     );
   });
 
@@ -254,6 +269,17 @@ describe('buildDatabaseExecutor', () => {
     expect(DatabaseStore).toHaveBeenCalledTimes(1);
     expect(MockedRunner).toHaveBeenCalledWith(
       expect.objectContaining({ runStore: expect.any(DatabaseStore) }),
+    );
+  });
+
+  it('wires the database OAuth credentials store and encryption into the HTTP server', () => {
+    buildDatabaseExecutor(DB_OPTIONS);
+
+    expect(ExecutorHttpServer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mcpOAuthCredentialsStore: expect.any(DatabaseMcpOAuthCredentialsStore),
+        credentialEncryption: expect.any(CredentialEncryption),
+      }),
     );
   });
 

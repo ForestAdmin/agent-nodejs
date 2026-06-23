@@ -1,10 +1,12 @@
 import type { Logger } from '../../src/ports/logger-port';
+import type { McpOAuthCredentialsStore } from '../../src/ports/mcp-oauth-credentials-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
 import type Runner from '../../src/runner';
 
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
+import CredentialEncryption from '../../src/crypto/credential-encryption';
 import {
   MalformedRunError,
   RunAlreadyInFlightError,
@@ -14,6 +16,7 @@ import {
   WorkflowPortError,
 } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
+import InMemoryMcpOAuthCredentialsStore from '../../src/stores/in-memory-mcp-oauth-credentials-store';
 
 const AUTH_SECRET = 'test-auth-secret';
 
@@ -50,6 +53,8 @@ function createServer(
     runner?: Runner;
     workflowPort?: WorkflowPort;
     logger?: jest.MockedFunction<Logger>;
+    mcpOAuthCredentialsStore?: McpOAuthCredentialsStore;
+    credentialEncryption?: CredentialEncryption;
   } = {},
 ) {
   return new ExecutorHttpServer({
@@ -58,10 +63,37 @@ function createServer(
     authSecret: AUTH_SECRET,
     workflowPort: overrides.workflowPort ?? createMockWorkflowPort(),
     logger: overrides.logger,
+    mcpOAuthCredentialsStore:
+      overrides.mcpOAuthCredentialsStore ?? new InMemoryMcpOAuthCredentialsStore(),
+    credentialEncryption: overrides.credentialEncryption ?? new CredentialEncryption(),
   });
 }
 
 describe('ExecutorHttpServer', () => {
+  describe('start()', () => {
+    it('initializes the MCP OAuth credentials store with the logger', async () => {
+      const init = jest.fn().mockResolvedValue(undefined);
+      const logger: jest.MockedFunction<Logger> = jest.fn();
+      const server = new ExecutorHttpServer({
+        port: 0,
+        runner: createMockRunner(),
+        authSecret: AUTH_SECRET,
+        workflowPort: createMockWorkflowPort(),
+        logger,
+        mcpOAuthCredentialsStore: { init } as unknown as McpOAuthCredentialsStore,
+        credentialEncryption: {} as unknown as CredentialEncryption,
+      });
+
+      await server.start();
+
+      try {
+        expect(init).toHaveBeenCalledWith(logger);
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
   describe('JWT authentication', () => {
     it('should return 401 when no token is provided', async () => {
       const server = createServer();

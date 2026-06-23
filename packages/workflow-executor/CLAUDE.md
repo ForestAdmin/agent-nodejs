@@ -13,16 +13,19 @@ Workflows currently run entirely in the **frontend** (`forestadmin/frontend`). T
 This works for interactive use cases but blocks **automation**: scheduled workflows, API-triggered runs, and headless execution all require a human with a browser open. The goal of this migration is to move workflow execution to the **backend** (client-side agent infrastructure) so workflows can run without a frontend and without human intervention.
 
 ### What stays on the front
+
 - Workflow designer (BPMN editor)
 - Run monitoring / progress display
 - Manual decisions when the AI can't decide (`manual-decision` status)
 
 ### What moves to the backend (this package)
+
 - Step execution (condition decisions, AI tasks, record operations)
 - AI calls (gateway option selection, tool selection, tool execution)
 - Record selection and data access (via AgentPort)
 
 ### Constraint: must be ISO with front
+
 The executor must produce the same behavior as the frontend implementation (`forestadmin/frontend`, `app/features/workflow/`). Same tool schemas, same AI interactions, same fallback logic.
 
 ## System Architecture
@@ -55,10 +58,13 @@ src/
 ├── ports/                  # IO boundary interfaces (@draft)
 │   ├── agent-port.ts       # Interface to the Forest Admin agent (datasource)
 │   ├── workflow-port.ts    # Interface to the orchestrator
-│   └── run-store.ts        # Interface for persisting run state (scoped to a run)
+│   ├── run-store.ts        # Interface for persisting run state (scoped to a run)
+│   └── mcp-oauth-credentials-store.ts  # McpOAuthCredentialsStore port (Database + InMemory impls)
 ├── stores/                 # RunStore implementations
 │   ├── in-memory-store.ts  # InMemoryStore — Map-based, for tests
 │   ├── database-store.ts   # DatabaseStore — Sequelize + umzug migrations (table + migration registry namespaced in the `forest` schema on Postgres)
+│   ├── database-mcp-oauth-credentials-store.ts  # DatabaseMcpOAuthCredentialsStore — ai_mcp_oauth_credentials (002 migration)
+│   ├── in-memory-mcp-oauth-credentials-store.ts # InMemoryMcpOAuthCredentialsStore — Map-based (dev / --in-memory)
 │   └── build-run-store.ts  # Factory functions: buildDatabaseRunStore, buildInMemoryRunStore
 ├── adapters/               # Port implementations
 │   ├── agent-client-agent-port.ts      # AgentPort via @forestadmin/agent-client
@@ -72,7 +78,10 @@ src/
 │   ├── load-related-record-step-executor.ts  # AI-powered relation loading step (with confirmation flow)
 │   └── guidance-step-executor.ts  # Manual guidance step (saves user input, no AI)
 ├── http/                   # HTTP server (optional, for frontend data access)
-│   └── executor-http-server.ts  # Koa server: GET /runs/:runId, POST /runs/:runId/trigger
+│   ├── executor-http-server.ts  # Koa server: GET /runs/:runId, POST /runs/:runId/trigger, POST+DELETE /mcp-oauth-credentials
+│   └── mcp-oauth-credentials.ts  # Deposit-body zod schema (.strict()) + buildMcpOAuthCredentialInput mapper
+├── crypto/                 # At-rest encryption
+│   └── credential-encryption.ts  # CredentialEncryption — HKDF (FOREST_EXECUTOR_ENCRYPTION_KEY) + AES-GCM, lazy key, fail-closed
 └── index.ts                # Barrel exports
 ```
 
