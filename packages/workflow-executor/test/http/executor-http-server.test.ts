@@ -1,6 +1,7 @@
 import type { Logger } from '../../src/ports/logger-port';
 import type { McpOAuthCredentialsStore } from '../../src/ports/mcp-oauth-credentials-store';
 import type { WorkflowPort } from '../../src/ports/workflow-port';
+import type RemoteToolFetcher from '../../src/remote-tool-fetcher';
 import type Runner from '../../src/runner';
 
 import jsonwebtoken from 'jsonwebtoken';
@@ -48,6 +49,12 @@ function createMockWorkflowPort(overrides: Partial<WorkflowPort> = {}): Workflow
   } as unknown as WorkflowPort;
 }
 
+function createMockFetcher(): RemoteToolFetcher {
+  return {
+    fetch: jest.fn().mockResolvedValue({ tools: [], mcpServerName: undefined }),
+  } as unknown as RemoteToolFetcher;
+}
+
 function createServer(
   overrides: {
     runner?: Runner;
@@ -55,6 +62,7 @@ function createServer(
     logger?: jest.MockedFunction<Logger>;
     mcpOAuthCredentialsStore?: McpOAuthCredentialsStore;
     credentialEncryption?: CredentialEncryption;
+    remoteToolFetcher?: RemoteToolFetcher;
   } = {},
 ) {
   return new ExecutorHttpServer({
@@ -66,6 +74,7 @@ function createServer(
     mcpOAuthCredentialsStore:
       overrides.mcpOAuthCredentialsStore ?? new InMemoryMcpOAuthCredentialsStore(),
     credentialEncryption: overrides.credentialEncryption ?? new CredentialEncryption(),
+    remoteToolFetcher: overrides.remoteToolFetcher ?? createMockFetcher(),
   });
 }
 
@@ -82,6 +91,7 @@ describe('ExecutorHttpServer', () => {
         logger,
         mcpOAuthCredentialsStore: { init } as unknown as McpOAuthCredentialsStore,
         credentialEncryption: {} as unknown as CredentialEncryption,
+        remoteToolFetcher: createMockFetcher(),
       });
 
       await server.start();

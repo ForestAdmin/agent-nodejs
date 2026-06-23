@@ -26,6 +26,7 @@ import {
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
 import OAuthTokenService from './oauth/token-service';
+import RemoteToolFetcher from './remote-tool-fetcher';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
 import DatabaseMcpOAuthCredentialsStore from './stores/database-mcp-oauth-credentials-store';
@@ -234,6 +235,13 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     logger: deps.logger,
   });
 
+  const remoteToolFetcher = new RemoteToolFetcher(
+    deps.workflowPort,
+    deps.aiModelPort,
+    deps.logger,
+    mcpOAuthTokenService,
+  );
+
   const runner = new Runner({
     ...deps,
     runStore: new InMemoryStore(),
@@ -248,6 +256,7 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     logger: deps.logger,
     mcpOAuthCredentialsStore,
     credentialEncryption,
+    remoteToolFetcher,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);
@@ -278,6 +287,13 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     logger: deps.logger,
   });
 
+  const remoteToolFetcher = new RemoteToolFetcher(
+    deps.workflowPort,
+    deps.aiModelPort,
+    deps.logger,
+    mcpOAuthTokenService,
+  );
+
   const runner = new Runner({
     ...deps,
     runStore: new DatabaseStore({ sequelize, schema: mergedOptions.schema }),
@@ -292,6 +308,7 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     logger: deps.logger,
     mcpOAuthCredentialsStore,
     credentialEncryption,
+    remoteToolFetcher,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);
