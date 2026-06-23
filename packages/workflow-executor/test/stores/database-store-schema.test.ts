@@ -231,7 +231,9 @@ describe('DatabaseStore — schema namespacing', () => {
 
     it('throws early on Postgres when pool.max < 2 (would self-deadlock)', async () => {
       const { sequelize } = setup('postgres');
-      (sequelize as unknown as { connectionManager: { pool: { maxSize: number } } }).connectionManager.pool.maxSize = 1;
+      (
+        sequelize as unknown as { connectionManager: { pool: { maxSize: number } } }
+      ).connectionManager.pool.maxSize = 1;
 
       await expect(new DatabaseStore({ sequelize }).init()).rejects.toThrow('pool.max >= 2');
     });
