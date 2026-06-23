@@ -81,6 +81,7 @@ interface ServerWorkflowTaskTriggerAction extends ServerWorkflowTaskBase {
     | ServerStepExecutionTypeEnum.Manual
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+  preRecordedArgs?: { selectedRecordStepId?: string; actionName?: string };
 }
 
 interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {
