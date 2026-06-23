@@ -1,3 +1,11 @@
+## @forestadmin/workflow-executor [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.6.0...@forestadmin/workflow-executor@1.6.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **workflow-executor:** expose executor version on every HTTP response ([#1699](https://github.com/ForestAdmin/agent-nodejs/issues/1699)) ([c06420e](https://github.com/ForestAdmin/agent-nodejs/commit/c06420effb277682d6c23fd20ea7a150d7638613))
+* **workflow-executor:** serialize cold-start migrations behind a pg advisory lock ([#1698](https://github.com/ForestAdmin/agent-nodejs/issues/1698)) ([b655fde](https://github.com/ForestAdmin/agent-nodejs/commit/b655fdeaae7e4e8f798e39529569168fca784436))
+
 # @forestadmin/workflow-executor [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.5.1...@forestadmin/workflow-executor@1.6.0) (2026-06-19)
 
 
