@@ -15,9 +15,11 @@ import SchemaGeneratorSegments from './generator-segments';
 
 export default class SchemaGeneratorCollection {
   private readonly schemaGeneratorActions: SchemaGeneratorActions;
+  private readonly useUnsafeActionEndpoint: boolean;
 
   constructor(options: AgentOptionsWithDefaults) {
     this.schemaGeneratorActions = new SchemaGeneratorActions(options);
+    this.useUnsafeActionEndpoint = options.useUnsafeActionEndpoint;
   }
 
   /** Build forest-server schema for a collection */
@@ -40,11 +42,33 @@ export default class SchemaGeneratorCollection {
   }
 
   private buildActions(collection: Collection): Promise<ForestServerAction[]> {
+    const names = Object.keys(collection.schema.actions).sort();
+
+    if (this.useUnsafeActionEndpoint) {
+      SchemaGeneratorCollection.assertNoActionSlugCollision(collection.name, names);
+    }
+
     return Promise.all(
-      Object.keys(collection.schema.actions)
-        .sort()
-        .map(name => this.schemaGeneratorActions.buildSchema(collection, name)),
+      names.map(name => this.schemaGeneratorActions.buildSchema(collection, name)),
     );
+  }
+
+  private static assertNoActionSlugCollision(collectionName: string, names: string[]): void {
+    const nameBySlug = new Map<string, string>();
+
+    names.forEach(name => {
+      const slug = SchemaGeneratorActions.getActionSlug(name);
+      const existing = nameBySlug.get(slug);
+
+      if (existing) {
+        throw new Error(
+          `Actions "${existing}" and "${name}" on collection "${collectionName}" resolve to the ` +
+            `same endpoint slug "${slug}". Rename one of them or disable useUnsafeActionEndpoint.`,
+        );
+      }
+
+      nameBySlug.set(slug, name);
+    });
   }
 
   private static buildFields(collection: Collection): ForestServerField[] {
