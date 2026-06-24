@@ -19,40 +19,7 @@ createAgent({
 
 ---
 
-## Quick Setup
-
-### In-memory (no database)
-
-For testing — state is lost on restart, not for production:
-
-```bash
-FOREST_ENV_SECRET="your-env-secret" \
-FOREST_AUTH_SECRET="your-auth-secret" \
-AGENT_URL="https://your-agent-url" \
-npx @forestadmin/workflow-executor --in-memory
-```
-
-### With a database
-
-For production — requires a Postgres database:
-
-```bash
-FOREST_ENV_SECRET="your-env-secret" \
-FOREST_AUTH_SECRET="your-auth-secret" \
-AGENT_URL="https://your-agent-url" \
-DATABASE_URL="postgres://user:pass@localhost:5432/mydb" \
-npx @forestadmin/workflow-executor
-```
-
-**Where to find your credentials:**
-
-Both values are already in your agent's environment variables. `FOREST_ENV_SECRET` can also be found in [app.forestadmin.com](https://app.forestadmin.com) → **Settings** → **Environments** → click your environment. `FOREST_AUTH_SECRET` is defined on your side only and is not available in the Forest Admin UI.
-
-`AGENT_URL` is the URL where your Forest Admin agent is running (e.g. `http://localhost:3351`).
-
----
-
-## Docker
+## Docker (recommended)
 
 ### Quick start
 
@@ -77,9 +44,35 @@ docker run -d \
 
 > **Note:** When the executor runs in Docker and your agent runs on the host machine, use `host.docker.internal` instead of `localhost` in `AGENT_URL` and `DATABASE_URL`.
 
-### In-memory mode (no database)
+---
 
-For local testing — state is lost on restart, not suitable for production:
+## Without Docker
+
+### With a database
+
+Requires Node.js ≥ 22.12.0 and a Postgres database:
+
+```bash
+FOREST_ENV_SECRET="your-env-secret" \
+FOREST_AUTH_SECRET="your-auth-secret" \
+AGENT_URL="https://your-agent-url" \
+DATABASE_URL="postgres://user:pass@localhost:5432/mydb" \
+npx @forestadmin/workflow-executor
+```
+
+**Where to find your credentials:**
+
+Both values are already in your agent's environment variables. `FOREST_ENV_SECRET` can also be found in [app.forestadmin.com](https://app.forestadmin.com) → **Settings** → **Environments** → click your environment. `FOREST_AUTH_SECRET` is defined on your side only and is not available in the Forest Admin UI.
+
+`AGENT_URL` is the URL where your Forest Admin agent is running (e.g. `http://localhost:3351`).
+
+---
+
+## Testing only
+
+The following modes skip the database requirement but are **not suitable for production** — state is lost on restart.
+
+### Docker
 
 ```bash
 docker run --rm \
@@ -89,4 +82,13 @@ docker run --rm \
   -p 3400:3400 \
   ghcr.io/forestadmin/workflow-executor:latest \
   node packages/workflow-executor/dist/cli.js --in-memory --json
+```
+
+### Without Docker
+
+```bash
+FOREST_ENV_SECRET="your-env-secret" \
+FOREST_AUTH_SECRET="your-auth-secret" \
+AGENT_URL="https://your-agent-url" \
+npx @forestadmin/workflow-executor --in-memory
 ```
