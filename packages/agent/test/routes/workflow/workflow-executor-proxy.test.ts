@@ -1,3 +1,4 @@
+import { NotFoundError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import http from 'http';
 
@@ -102,7 +103,8 @@ describe('WorkflowExecutorProxyRoute', () => {
   const callHandleProxy = (route: WorkflowExecutorProxyRoute, context: unknown) =>
     (route as unknown as { handleProxy: (ctx: unknown) => Promise<void> }).handleProxy(context);
 
-  // Build a mock context for the catch-all route: `path` is the wildcard segment.
+  // Build a mock context for the catch-all route: `path` is the wildcard segment, forwarded
+  // verbatim to the executor root (so callers address runs as `runs/<id>`).
   const buildContext = (
     path: string,
     extra: Parameters<typeof createMockContext>[0] = {},
@@ -119,11 +121,12 @@ describe('WorkflowExecutorProxyRoute', () => {
   });
 
   describe('setupRoutes', () => {
-    test('registers a single catch-all route for every verb', () => {
+    test('registers a single catch-all mount for every verb', () => {
       buildRoute('http://localhost:4001').setupRoutes(router);
 
+      expect(router.all).toHaveBeenCalledTimes(1);
       expect(router.all).toHaveBeenCalledWith(
-        '/_internal/workflow-executions/:path(.*)',
+        '/_internal/executor/:path(.*)',
         expect.any(Function),
       );
       expect(router.get).not.toHaveBeenCalled();
@@ -133,10 +136,33 @@ describe('WorkflowExecutorProxyRoute', () => {
   });
 
   describe('handleProxy — generic forwarding', () => {
-    test('forwards a GET under /runs and returns the executor response', async () => {
+    test('forwards the sub-path verbatim to the executor root (no namespace prefix added)', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      const context = buildContext('run-123');
+      const context = buildContext('mcp-oauth-credentials', { method: 'POST' });
+      await callHandleProxy(route, context);
+
+      expect(receivedMethod).toBe('POST');
+      expect(receivedUrl).toBe('/mcp-oauth-credentials');
+      // The agent must NOT inject a /runs (or any) namespace prefix.
+      expect(receivedUrl).not.toBe('/runs/mcp-oauth-credentials');
+      expect(context.response.status).toBe(200);
+    });
+
+    test('forwards a dotted path segment (a single dot is not treated as traversal)', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+
+      const context = buildContext('mcp.tools/v1');
+      await callHandleProxy(route, context);
+
+      expect(receivedUrl).toBe('/mcp.tools/v1');
+      expect(context.response.status).toBe(200);
+    });
+
+    test('forwards a run GET (caller includes runs/) and returns the executor response', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+
+      const context = buildContext('runs/run-123');
       await callHandleProxy(route, context);
 
       expect(receivedMethod).toBe('GET');
@@ -149,7 +175,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
       const rawBody = '{"pendingData":{"answer":"yes"}}';
-      const context = buildContext('run-456/trigger', { method: 'POST' });
+      const context = buildContext('runs/run-456/trigger', { method: 'POST' });
       (context.request as unknown as { rawBody: string }).rawBody = rawBody;
 
       await callHandleProxy(route, context);
@@ -166,29 +192,29 @@ describe('WorkflowExecutorProxyRoute', () => {
     test('forwards any verb and any future sub-path without a dedicated route', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      const context = buildContext('run-123/cancel', { method: 'DELETE' });
+      const context = buildContext('mcp-tools/list/refresh', { method: 'DELETE' });
       await callHandleProxy(route, context);
 
       expect(receivedMethod).toBe('DELETE');
-      expect(receivedUrl).toBe('/runs/run-123/cancel');
+      expect(receivedUrl).toBe('/mcp-tools/list/refresh');
       expect(context.response.status).toBe(200);
     });
 
     test('forwards query params to the executor', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      const context = buildContext('run-123');
-      Object.defineProperty(context, 'querystring', { value: 'foo=bar&page=2' });
+      const context = buildContext('mcp-tools/list');
+      Object.defineProperty(context, 'querystring', { value: 'server=github&page=2' });
 
       await callHandleProxy(route, context);
 
-      expect(receivedUrl).toBe('/runs/run-123?foo=bar&page=2');
+      expect(receivedUrl).toBe('/mcp-tools/list?server=github&page=2');
     });
 
     test('forwards the executor error status and body verbatim', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      const context = buildContext('not-found');
+      const context = buildContext('runs/not-found');
       await callHandleProxy(route, context);
 
       expect(context.response.status).toBe(404);
@@ -199,11 +225,11 @@ describe('WorkflowExecutorProxyRoute', () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
       // No rawBody set → body is undefined; the request must still complete.
-      const context = buildContext('run-123/archive', { method: 'POST' });
+      const context = buildContext('mcp-oauth-credentials', { method: 'DELETE' });
       await callHandleProxy(route, context);
 
-      expect(receivedMethod).toBe('POST');
-      expect(receivedUrl).toBe('/runs/run-123/archive');
+      expect(receivedMethod).toBe('DELETE');
+      expect(receivedUrl).toBe('/mcp-oauth-credentials');
       expect(receivedBody).toBe('');
       expect(context.response.status).toBe(200);
     });
@@ -211,7 +237,7 @@ describe('WorkflowExecutorProxyRoute', () => {
     test('passes a non-JSON executor body through untouched', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      const context = buildContext('run-123/plain-text');
+      const context = buildContext('plain-text');
       await callHandleProxy(route, context);
 
       expect(context.response.status).toBe(200);
@@ -221,7 +247,7 @@ describe('WorkflowExecutorProxyRoute', () => {
     test('passes a 204 empty executor response through without throwing', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      const context = buildContext('run-123/no-content', { method: 'DELETE' });
+      const context = buildContext('no-content', { method: 'DELETE' });
       await callHandleProxy(route, context);
 
       expect(context.response.status).toBe(204);
@@ -233,7 +259,7 @@ describe('WorkflowExecutorProxyRoute', () => {
     test('forwards all client headers except hop-by-hop / host / content-length', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      const context = buildContext('run-123', {
+      const context = buildContext('runs/run-123', {
         headers: {
           authorization: 'Bearer jwt-token-value',
           cookie: 'forest_session_token=cookie-token',
@@ -257,7 +283,7 @@ describe('WorkflowExecutorProxyRoute', () => {
     test('forwards executor response headers except hop-by-hop', async () => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      const context = buildContext('run-123');
+      const context = buildContext('runs/run-123');
       await callHandleProxy(route, context);
 
       expect(context.response.get('X-Executor-Custom')).toBe('passthrough-value');
@@ -266,17 +292,25 @@ describe('WorkflowExecutorProxyRoute', () => {
     });
   });
 
-  describe('handleProxy — path traversal protection (security boundary)', () => {
+  // SSRF guard: the wildcard is forwarded verbatim, so it must never resolve off the executor
+  // origin. A leading control char passes the string checks but the URL parser strips it,
+  // collapsing e.g. `\t//evil.com` into `//evil.com` → another host; the final-origin check
+  // rejects these.
+  describe('handleProxy — SSRF guard (cannot escape the executor origin)', () => {
     it.each([
       '..',
       '../mcp-oauth-credentials',
       'run-123/../../mcp-oauth-credentials',
       '%2e%2e/mcp-oauth-credentials',
-      '/runs/run-123',
-    ])('rejects %p and never forwards to the executor', async evilPath => {
+      '/absolute-escape',
+      '\t//evil.com',
+      '\n//evil.com',
+      '\r//evil.com',
+    ])('rejects %j with NotFoundError and never forwards to the executor', async evilPath => {
       const route = buildRoute(`http://localhost:${executorPort}`);
 
-      await expect(callHandleProxy(route, buildContext(evilPath))).rejects.toThrow();
+      // NotFoundError → 404, so an SSRF attempt never surfaces as a 500.
+      await expect(callHandleProxy(route, buildContext(evilPath))).rejects.toThrow(NotFoundError);
       expect(receivedUrl).toBeUndefined();
     });
   });
@@ -285,7 +319,7 @@ describe('WorkflowExecutorProxyRoute', () => {
     test('rejects when the executor cannot be reached', async () => {
       const route = buildRoute('http://localhost:1');
 
-      await expect(callHandleProxy(route, buildContext('run-789'))).rejects.toThrow();
+      await expect(callHandleProxy(route, buildContext('runs/run-789'))).rejects.toThrow();
     });
 
     test('rejects when the executor does not respond before the timeout', async () => {
@@ -293,9 +327,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       // Shrink the timeout so the never-responding 'hang' endpoint trips it quickly.
       (route as unknown as { requestTimeoutMs: number }).requestTimeoutMs = 50;
 
-      await expect(callHandleProxy(route, buildContext('run-123/hang'))).rejects.toThrow(
-        /timed out/,
-      );
+      await expect(callHandleProxy(route, buildContext('hang'))).rejects.toThrow(/timed out/);
     });
   });
 });
