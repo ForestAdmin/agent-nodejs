@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.80.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.79.5...@forestadmin/agent@1.80.0) (2026-06-24)
+
+
+### Features
+
+* **agent:** detect action slug collisions when unsafe endpoint is on ([#1704](https://github.com/ForestAdmin/agent-nodejs/issues/1704)) ([11e277a](https://github.com/ForestAdmin/agent-nodejs/commit/11e277a304755e70adb61b4d75ab28ad805e358f))
+
 ## @forestadmin/agent [1.79.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.79.4...@forestadmin/agent@1.79.5) (2026-06-16)
 
 
