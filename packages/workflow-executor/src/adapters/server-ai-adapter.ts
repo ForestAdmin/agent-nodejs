@@ -1,4 +1,4 @@
-import type { AiModelPort } from '../ports/ai-model-port';
+import type { AiModelPort, GetModelOptions } from '../ports/ai-model-port';
 import type { AiConfiguration, BaseChatModel, RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
 import { AiClient } from '@forestadmin/ai-proxy';
@@ -11,17 +11,23 @@ export interface ServerAiAdapterOptions {
 }
 
 export default class ServerAiAdapter implements AiModelPort {
+  private readonly options: ServerAiAdapterOptions;
   private readonly aiClient: AiClient;
 
   constructor(options: ServerAiAdapterOptions) {
+    this.options = options;
     this.aiClient = new AiClient({
       aiConfigurations: [ServerAiAdapter.buildProxyConfiguration(options)],
     });
   }
 
-  getModel(): BaseChatModel {
+  getModel({ userId }: GetModelOptions = {}): BaseChatModel {
     try {
-      return this.aiClient.getModel();
+      const client = new AiClient({
+        aiConfigurations: [ServerAiAdapter.buildProxyConfiguration(this.options, userId)],
+      });
+
+      return client.getModel();
     } catch (cause) {
       if (cause instanceof WorkflowExecutorError) throw cause;
       throw new AiModelPortError('getModel', cause);
@@ -39,10 +45,10 @@ export default class ServerAiAdapter implements AiModelPort {
   // Every call is routed to the Forest server's AI proxy, which picks the real provider/model.
   // The model name is therefore a placeholder, and fetch is rewritten to hit the proxy with the
   // env secret instead of an OpenAI Authorization header.
-  private static buildProxyConfiguration({
-    forestServerUrl,
-    envSecret,
-  }: ServerAiAdapterOptions): AiConfiguration {
+  private static buildProxyConfiguration(
+    { forestServerUrl, envSecret }: ServerAiAdapterOptions,
+    userId?: number,
+  ): AiConfiguration {
     const aiProxyUrl = `${forestServerUrl}/liana/v1/ai-proxy`;
 
     return {
@@ -56,6 +62,8 @@ export default class ServerAiAdapter implements AiModelPort {
           const headers = new Headers(init?.headers);
           headers.delete('authorization');
           headers.set('forest-secret-key', envSecret);
+          // Attributes AI usage to the triggering user (proxy route has no user context).
+          if (userId !== undefined) headers.set('user-id', String(userId));
 
           return fetch(aiProxyUrl, { ...init, headers });
         },

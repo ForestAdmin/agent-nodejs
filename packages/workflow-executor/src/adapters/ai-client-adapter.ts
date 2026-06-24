@@ -1,4 +1,4 @@
-import type { AiModelPort } from '../ports/ai-model-port';
+import type { AiModelPort, GetModelOptions } from '../ports/ai-model-port';
 import type { AiConfiguration, BaseChatModel, RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
 import { AiClient } from '@forestadmin/ai-proxy';
@@ -13,7 +13,7 @@ export default class AiClientAdapter implements AiModelPort {
     this.aiClient = new AiClient({ aiConfigurations: withRetries as AiConfiguration[] });
   }
 
-  getModel(aiConfigName?: string): BaseChatModel {
+  getModel({ aiConfigName }: GetModelOptions = {}): BaseChatModel {
     try {
       return this.aiClient.getModel(aiConfigName);
     } catch (cause) {

@@ -152,7 +152,10 @@ export default class StepExecutorFactory {
       stepDefinition: step.stepDefinition,
       previousSteps: step.previousSteps,
       user: step.user,
-      model: cfg.aiModelPort.getModel(step.stepDefinition.aiConfigName),
+      model: cfg.aiModelPort.getModel({
+        aiConfigName: step.stepDefinition.aiConfigName,
+        userId: step.user.id,
+      }),
       agent: new AgentWithLog({
         agentPort: cfg.agentPort,
         schemaResolver,
