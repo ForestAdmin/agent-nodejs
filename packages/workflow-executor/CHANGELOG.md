@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.6.1...@forestadmin/workflow-executor@1.7.0) (2026-06-24)
+
+
+### Features
+
+* **workflow-executor:** attribute AI usage to the triggering user [PRD-619] ([#1701](https://github.com/ForestAdmin/agent-nodejs/issues/1701)) ([5e647ae](https://github.com/ForestAdmin/agent-nodejs/commit/5e647ae0f00bc15f7779c4194fb298ade48aadef))
+
 ## @forestadmin/workflow-executor [1.6.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.6.0...@forestadmin/workflow-executor@1.6.1) (2026-06-23)
 
 
