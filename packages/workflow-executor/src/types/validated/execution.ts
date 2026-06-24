@@ -31,8 +31,6 @@ export const StepSchema = z
   .strict();
 export type Step = z.infer<typeof StepSchema>;
 
-// Domain enum for what triggered the run. Decoupled from the server contract
-// (`ServerWorkflowTriggerType`) — `run-to-available-step-mapper.ts` is the single translation point.
 export enum TriggerType {
   Manual = 'manual',
   Webhook = 'webhook',

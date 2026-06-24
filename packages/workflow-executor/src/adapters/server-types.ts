@@ -179,7 +179,6 @@ export interface ServerStepHistory {
 /** Mirror of the server's `WorkflowRunState` enum (workflow-run-model.ts). */
 export type ServerWorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
 
-/** Mirror of the server's workflow run `triggerType` enum. Optional: older orchestrators omit it. */
 export enum ServerWorkflowTriggerType {
   manual = 'manual',
   webhook = 'webhook',

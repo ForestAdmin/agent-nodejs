@@ -27,7 +27,7 @@ import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-act
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
-import { TriggerType } from '../src/types/execution-context';
+import { TriggerType } from '../src/types/validated/execution';
 import { StepExecutionMode, StepType } from '../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------

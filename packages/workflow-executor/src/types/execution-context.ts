@@ -11,7 +11,6 @@ import type { BaseChatModel } from '@forestadmin/ai-proxy';
 
 // Re-export the runtime result types alongside the context they flow with.
 export type { AvailableStepExecution, Step, StepUser };
-export { TriggerType } from './validated/execution';
 
 export interface StepExecutionResult {
   stepOutcome: StepOutcome;

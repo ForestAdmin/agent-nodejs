@@ -13,7 +13,7 @@ import ExecutorHttpServer from '../../src/http/executor-http-server';
 import Runner from '../../src/runner';
 import SchemaCache from '../../src/schema-cache';
 import InMemoryStore from '../../src/stores/in-memory-store';
-import { TriggerType } from '../../src/types/execution-context';
+import { TriggerType } from '../../src/types/validated/execution';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
