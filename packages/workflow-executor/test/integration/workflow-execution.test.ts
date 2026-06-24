@@ -13,6 +13,7 @@ import ExecutorHttpServer from '../../src/http/executor-http-server';
 import Runner from '../../src/runner';
 import SchemaCache from '../../src/schema-cache';
 import InMemoryStore from '../../src/stores/in-memory-store';
+import { TriggerType } from '../../src/types/execution-context';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
@@ -227,7 +228,7 @@ function buildPendingStep(
     stepId: 'step-1',
     stepIndex: 0,
     collectionId: 'col-1',
-    triggerType: 'manual',
+    triggerType: TriggerType.Manual,
     baseRecordRef: BASE_RECORD_REF,
     previousSteps: [],
     user: STEP_USER,
@@ -249,7 +250,7 @@ describe('workflow execution (integration)', () => {
           stepId: 'step-1',
           stepIndex: 0,
           collectionId: 'col-1',
-          triggerType: 'manual',
+          triggerType: TriggerType.Manual,
           baseRecordRef: { collectionName: 'customers', recordId: [42], stepIndex: 0 },
           stepDefinition: { type: StepType.ReadRecord, prompt: 'Read the customer email' },
           previousSteps: [],

@@ -31,8 +31,13 @@ export const StepSchema = z
   .strict();
 export type Step = z.infer<typeof StepSchema>;
 
-export const TriggerTypeSchema = z.enum(['manual', 'webhook']);
-export type TriggerType = z.infer<typeof TriggerTypeSchema>;
+// Domain enum for what triggered the run. Decoupled from the server contract
+// (`ServerWorkflowTriggerType`) — `run-to-available-step-mapper.ts` is the single translation point.
+export enum TriggerType {
+  Manual = 'manual',
+  Webhook = 'webhook',
+}
+export const TriggerTypeSchema = z.nativeEnum(TriggerType);
 
 export const AvailableStepExecutionSchema = z
   .object({
