@@ -7,11 +7,11 @@
 //   OTEL_RESOURCE_ATTRIBUTES       e.g. deployment.environment=production,version=1.7.0
 if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT && process.env.OTEL_SDK_DISABLED !== 'true') {
   try {
-    /* eslint-disable @typescript-eslint/no-require-imports, import/no-extraneous-dependencies */
+    /* eslint-disable global-require, @typescript-eslint/no-var-requires, import/no-extraneous-dependencies */
     const { NodeSDK } = require('@opentelemetry/sdk-node');
     const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
     const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
-    /* eslint-enable @typescript-eslint/no-require-imports, import/no-extraneous-dependencies */
+    /* eslint-enable global-require, @typescript-eslint/no-var-requires, import/no-extraneous-dependencies */
 
     const sdk = new NodeSDK({
       serviceName: process.env.OTEL_SERVICE_NAME || 'forestadmin-workflow-executor',
