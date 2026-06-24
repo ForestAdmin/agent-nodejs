@@ -36,7 +36,8 @@ COPY packages/datasource-toolkit/package.json ./pkg/datasource-toolkit.json
 COPY packages/agent-toolkit/package.json      ./pkg/agent-toolkit.json
 
 # Merge all external runtime deps into a single package.json.
-RUN node -e "const fs=require('fs');const deps={};for(const f of fs.readdirSync('pkg')){const {dependencies={}}=JSON.parse(fs.readFileSync('pkg/'+f,'utf8'));for(const [n,v] of Object.entries(dependencies)){if(!n.startsWith('@forestadmin/'))deps[n]=v;}}fs.writeFileSync('package.json',JSON.stringify({dependencies:deps},null,2));"
+# OTel packages are added explicitly for APM — not package deps (CLI users don't need them).
+RUN node -e "const fs=require('fs');const deps={};for(const f of fs.readdirSync('pkg')){const {dependencies={}}=JSON.parse(fs.readFileSync('pkg/'+f,'utf8'));for(const [n,v] of Object.entries(dependencies)){if(!n.startsWith('@forestadmin/'))deps[n]=v;}}deps['@opentelemetry/sdk-node']='0.219.0';deps['@opentelemetry/auto-instrumentations-node']='0.77.0';deps['@opentelemetry/exporter-trace-otlp-http']='0.219.0';fs.writeFileSync('package.json',JSON.stringify({dependencies:deps},null,2));"
 
 RUN yarn install --no-lockfile --ignore-scripts --production
 
@@ -63,8 +64,9 @@ COPY --from=builder /app/packages/agent-toolkit/dist        ./node_modules/@fore
 COPY --from=builder /app/packages/agent-toolkit/package.json ./node_modules/@forestadmin/agent-toolkit/package.json
 
 # Executor entry point.
-COPY --from=builder /app/packages/workflow-executor/dist   ./packages/workflow-executor/dist
+COPY --from=builder /app/packages/workflow-executor/dist        ./packages/workflow-executor/dist
 COPY --from=builder /app/packages/workflow-executor/package.json ./packages/workflow-executor/package.json
+COPY packages/workflow-executor/docker-entrypoint.sh ./docker-entrypoint.sh
 
 USER node
 
@@ -72,4 +74,4 @@ USER node
 # Override with HTTP_PORT env var.
 EXPOSE 3400
 
-CMD ["node", "packages/workflow-executor/dist/cli.js", "--json"]
+ENTRYPOINT ["/bin/sh", "docker-entrypoint.sh"]
