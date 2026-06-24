@@ -13,8 +13,8 @@ import type {
 
 import { z } from 'zod';
 
-import { ServerWorkflowTriggerType } from './server-types';
 import { deserializeRecordId } from './record-id-serializer';
+import { ServerWorkflowTriggerType } from './server-types';
 import toStepDefinition from './step-definition-mapper';
 import {
   DomainValidationError,
