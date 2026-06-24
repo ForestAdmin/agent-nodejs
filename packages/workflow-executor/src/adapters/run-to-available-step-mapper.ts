@@ -13,6 +13,7 @@ import type {
 
 import { z } from 'zod';
 
+import { ServerWorkflowTriggerType } from './server-types';
 import { deserializeRecordId } from './record-id-serializer';
 import toStepDefinition from './step-definition-mapper';
 import {
@@ -157,6 +158,7 @@ export default function toAvailableStepExecution(
     stepId: pending.stepName,
     stepIndex: pending.stepIndex,
     collectionId: run.collectionId,
+    triggerType: run.triggerType ?? ServerWorkflowTriggerType.manual,
     baseRecordRef: {
       collectionName: run.collectionName,
       recordId: deserializeRecordId(run.selectedRecordId),

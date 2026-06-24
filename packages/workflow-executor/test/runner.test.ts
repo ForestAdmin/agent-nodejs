@@ -161,6 +161,7 @@ function makePendingStep(
     stepId: 'step-1',
     stepIndex: 0,
     collectionId: 'col-1',
+    triggerType: 'manual',
     baseRecordRef: { collectionName: 'customers', recordId: ['1'], stepIndex: 0 },
     stepDefinition: makeStepDefinition(stepType),
     previousSteps: [],

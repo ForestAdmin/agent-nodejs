@@ -13,6 +13,7 @@ import {
   ServerStepExecutionTypeEnum,
   ServerStepTypeEnum,
   ServerTaskTypeEnum,
+  ServerWorkflowTriggerType,
 } from '../../src/adapters/server-types';
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
 import { StepType } from '../../src/types/validated/step-definition';
@@ -108,6 +109,7 @@ describe('toAvailableStepExecution', () => {
       stepId: 'step-a',
       stepIndex: 0,
       collectionId: '11',
+      triggerType: 'manual',
       baseRecordRef: {
         collectionName: 'customers',
         recordId: ['123'],
@@ -122,6 +124,23 @@ describe('toAvailableStepExecution', () => {
       previousSteps: [],
       user: expect.objectContaining({ id: 7, email: 'alban@forestadmin.com' }),
     });
+  });
+
+  it('should forward the run triggerType', () => {
+    const run = makeRun({ triggerType: ServerWorkflowTriggerType.webhook });
+
+    const result = toAvailableStepExecution(run);
+
+    expect(result?.triggerType).toBe('webhook');
+  });
+
+  it('should default triggerType to manual when the orchestrator omits it', () => {
+    const run = makeRun();
+    delete run.triggerType;
+
+    const result = toAvailableStepExecution(run);
+
+    expect(result?.triggerType).toBe('manual');
   });
 
   it('should stringify the numeric run id', () => {
