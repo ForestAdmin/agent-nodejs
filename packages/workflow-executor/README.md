@@ -49,3 +49,44 @@ npx @forestadmin/workflow-executor
 Both values are already in your agent's environment variables. `FOREST_ENV_SECRET` can also be found in [app.forestadmin.com](https://app.forestadmin.com) → **Settings** → **Environments** → click your environment. `FOREST_AUTH_SECRET` is defined on your side only and is not available in the Forest Admin UI.
 
 `AGENT_URL` is the URL where your Forest Admin agent is running (e.g. `http://localhost:3351`).
+
+---
+
+## Docker
+
+### Quick start
+
+```bash
+cp .env.example .env   # fill in your secrets
+docker compose up
+```
+
+The `docker-compose.yml` at the root of this package starts a single executor instance. See `.env.example` for the full list of environment variables and their descriptions.
+
+### Run directly
+
+```bash
+docker run -d \
+  -e FOREST_ENV_SECRET="your-env-secret" \
+  -e FOREST_AUTH_SECRET="your-auth-secret" \
+  -e AGENT_URL="http://host.docker.internal:3351" \
+  -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/mydb" \
+  -p 3400:3400 \
+  ghcr.io/forestadmin/workflow-executor:latest
+```
+
+> **Note:** When the executor runs in Docker and your agent runs on the host machine, use `host.docker.internal` instead of `localhost` in `AGENT_URL` and `DATABASE_URL`.
+
+### In-memory mode (no database)
+
+For local testing — state is lost on restart, not suitable for production:
+
+```bash
+docker run --rm \
+  -e FOREST_ENV_SECRET="your-env-secret" \
+  -e FOREST_AUTH_SECRET="your-auth-secret" \
+  -e AGENT_URL="http://host.docker.internal:3351" \
+  -p 3400:3400 \
+  ghcr.io/forestadmin/workflow-executor:latest \
+  node packages/workflow-executor/dist/cli.js --in-memory --json
+```

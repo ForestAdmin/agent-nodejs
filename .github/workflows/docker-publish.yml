@@ -1,0 +1,124 @@
+name: Publish workflow-executor Docker image
+
+on:
+  push:
+    tags:
+      - '@forestadmin/workflow-executor@*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to publish (e.g. 1.7.0)'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  extract-version:
+    name: Extract version
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.version.outputs.full }}
+      minor: ${{ steps.version.outputs.minor }}
+      major: ${{ steps.version.outputs.major }}
+    steps:
+      - name: Parse version from tag or input
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            TAG="${{ github.ref_name }}"
+            VERSION="${TAG#@forestadmin/workflow-executor@}"
+          fi
+          echo "full=$VERSION" >> $GITHUB_OUTPUT
+          echo "minor=${VERSION%.*}" >> $GITHUB_OUTPUT
+          echo "major=${VERSION%%.*}" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build (${{ matrix.arch }})
+    needs: extract-version
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/workflow-executor/Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=ghcr.io/forestadmin/workflow-executor,push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Publish multi-arch manifest
+    needs: [extract-version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifest
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.full }} \
+            -t ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.minor }} \
+            -t ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.major }} \
+            -t ghcr.io/forestadmin/workflow-executor:latest \
+            $(printf 'ghcr.io/forestadmin/workflow-executor@sha256:%s ' *)
+
+      - name: Inspect manifest
+        run: docker buildx imagetools inspect ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.full }}
