@@ -6,9 +6,14 @@ import type { RecordStepStatus } from '../types/validated/step-outcome';
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
-import { InvalidAIResponseError, InvalidPreRecordedArgsError, NoRecordsError } from '../errors';
+import {
+  InvalidAIResponseError,
+  InvalidPreRecordedArgsError,
+  NoRecordsError,
+  SourceRecordMissingError,
+} from '../errors';
 import BaseStepExecutor from './base-step-executor';
-import { StepType } from '../types/validated/step-definition';
+import { StepType, WORKFLOW_START_STEP_ID } from '../types/validated/step-definition';
 
 export default abstract class RecordStepExecutor<
   TStep extends StepDefinition = StepDefinition,
@@ -45,6 +50,44 @@ export default abstract class RecordStepExecutor<
     }
 
     return this.selectRecordRef(records, prompt);
+  }
+
+  // Revise-safe source resolution shared by deterministic steps (load-related "Related to",
+  // trigger-action "On record"). The reference is a stable BPMN step id (or the
+  // WORKFLOW_START_STEP_ID sentinel), not a runtime index — so it survives the index shifts a
+  // revision causes (clones keep their step id) and is knowable by the editor at build time.
+  // previousSteps are already restricted to the live path; in a loop the same id can appear more
+  // than once, so we take the most recent occurrence.
+  protected async resolveSourceRecordRef(stepId: string): Promise<RecordRef> {
+    if (stepId === WORKFLOW_START_STEP_ID) {
+      return this.context.baseRecordRef;
+    }
+
+    const matches = this.context.previousSteps.filter(
+      step =>
+        step.stepDefinition.type === StepType.LoadRelatedRecord &&
+        step.stepOutcome.stepId === stepId,
+    );
+    const sourceStep = matches[matches.length - 1];
+
+    if (sourceStep) {
+      const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
+      const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+
+      if (
+        execution?.type === 'load-related-record' &&
+        execution.executionResult !== undefined &&
+        'record' in execution.executionResult
+      ) {
+        return execution.executionResult.record;
+      }
+
+      // The source step exists but loaded nothing → clear "no source record" message (PRD-550),
+      // distinct from a config pointing at a non-existent step.
+      throw new SourceRecordMissingError(sourceStep.stepDefinition.title);
+    }
+
+    throw new InvalidPreRecordedArgsError(`No source record found for step "${stepId}"`);
   }
 
   // Candidate sources for the AI: the base record plus the record each live prior

@@ -1351,6 +1351,61 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
     });
+
+    it('pins the source record from selectedRecordStepId=workflow-start without AI (PRD-469)', async () => {
+      const mockModel = makeMockModel();
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Neither record nor action selection invoked the AI.
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      // Action runs on the workflow-start (base) record, recordId [42].
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          action: 'send-welcome-email',
+          id: [42],
+        }),
+        context.user,
+      );
+    });
+
+    it('errors when the pinned source step (a Load Related Record) loaded no record (PRD-469)', async () => {
+      const agentPort = makeMockAgentPort();
+      // The source Load Related Record step is on the live path but has no execution record stored
+      // (it loaded nothing) → SourceRecordMissingError, no action triggered.
+      const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
+      const context = makeContext({
+        agentPort,
+        runStore,
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: 'load-2', actionName: 'send-welcome-email' },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain("didn't load any record");
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+    });
   });
 
   describe('idempotency', () => {

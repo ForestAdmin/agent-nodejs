@@ -80,7 +80,12 @@ export const TriggerActionStepDefinitionSchema = z.object({
     .catch(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
-      selectedRecordStepIndex: z.number().int().optional(),
+      /**
+       * "On record" — the source record the action is triggered on, referenced by the stable BPMN
+       * step id of the previous Load Related Record step that loaded it, or WORKFLOW_START_STEP_ID
+       * for the trigger record. Stable across revisions, unlike the runtime stepIndex (PRD-469).
+       */
+      selectedRecordStepId: z.string().optional(),
       /** Technical name of the action to trigger */
       actionName: z.string().optional(),
     })
