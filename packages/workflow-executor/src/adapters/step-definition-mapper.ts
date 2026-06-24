@@ -42,6 +42,7 @@ function mapTask(task: ServerWorkflowTask): StepDefinition {
       return LoadRelatedRecordStepDefinitionSchema.parse({
         ...base,
         type: StepType.LoadRelatedRecord,
+        preRecordedArgs: task.preRecordedArgs,
       });
     default:
       throw new InvalidStepDefinitionError(

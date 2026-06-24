@@ -21,10 +21,15 @@ import {
   NoRelationshipFieldsError,
   RelatedRecordNotFoundError,
   RelationNotFoundError,
+  SourceRecordMissingError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
-import { StepExecutionMode } from '../types/validated/step-definition';
+import {
+  StepExecutionMode,
+  StepType,
+  WORKFLOW_START_STEP_ID,
+} from '../types/validated/step-definition';
 
 const SELECT_RELATION_SYSTEM_PROMPT = `You are an AI agent loading a related record based on a user request.
 You are given relations to follow, each shown as "<source record> → <relation> (→ <target collection>)".
@@ -145,12 +150,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   // store→dvds rather than latching onto a previously-loaded dvd whose collection just matches.
   private async resolveTarget(): Promise<RelationTarget> {
     const { preRecordedArgs } = this.context.stepDefinition;
-    const records = await this.getAvailableRecordRefs();
 
     const sourceRecords =
-      preRecordedArgs?.selectedRecordStepIndex !== undefined
-        ? [this.requireRecordAtStepIndex(records, preRecordedArgs.selectedRecordStepIndex)]
-        : records;
+      preRecordedArgs?.selectedRecordStepId !== undefined
+        ? [await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)]
+        : await this.getAvailableRecordRefs();
 
     const candidates = await this.buildRelationCandidates(sourceRecords);
 
@@ -187,14 +191,36 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     };
   }
 
-  private requireRecordAtStepIndex(records: RecordRef[], stepIndex: number): RecordRef {
-    const match = records.find(r => r.stepIndex === stepIndex);
-
-    if (!match) {
-      throw new InvalidPreRecordedArgsError(`No record found at step index ${stepIndex}`);
+  private async resolveSourceRecordRef(stepId: string): Promise<RecordRef> {
+    if (stepId === WORKFLOW_START_STEP_ID) {
+      return this.context.baseRecordRef;
     }
 
-    return match;
+    const matches = this.context.previousSteps.filter(
+      step =>
+        step.stepDefinition.type === StepType.LoadRelatedRecord &&
+        step.stepOutcome.stepId === stepId,
+    );
+    const sourceStep = matches[matches.length - 1];
+
+    if (sourceStep) {
+      const stepExecutions = await this.context.runStore.getStepExecutions(this.context.runId);
+      const execution = this.resolveStepExecution(sourceStep, stepExecutions);
+
+      if (
+        execution?.type === 'load-related-record' &&
+        execution.executionResult !== undefined &&
+        'record' in execution.executionResult
+      ) {
+        return execution.executionResult.record;
+      }
+
+      // The source step exists but loaded nothing → clear "no source record" message,
+      // distinct from a config pointing at a non-existent step.
+      throw new SourceRecordMissingError(sourceStep.stepDefinition.title);
+    }
+
+    throw new InvalidPreRecordedArgsError(`No source record found for step "${stepId}"`);
   }
 
   private async buildRelationCandidates(records: RecordRef[]): Promise<RelationCandidate[]> {
@@ -473,29 +499,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       return { relatedData, bestIndex: 0, suggestedFields: [], relatedSchema };
     }
 
-    const { preRecordedArgs } = this.context.stepDefinition;
-
-    if (preRecordedArgs?.selectedRecordIndex !== undefined) {
-      if (
-        !Number.isInteger(preRecordedArgs.selectedRecordIndex) ||
-        preRecordedArgs.selectedRecordIndex < 0 ||
-        preRecordedArgs.selectedRecordIndex >= relatedData.length
-      ) {
-        throw new InvalidPreRecordedArgsError(
-          `Record index ${preRecordedArgs.selectedRecordIndex} is out of range (0-${
-            relatedData.length - 1
-          })`,
-        );
-      }
-
-      return {
-        relatedData,
-        bestIndex: preRecordedArgs.selectedRecordIndex,
-        suggestedFields: [],
-        relatedSchema,
-      };
-    }
-
+    // The final record stays AI-suggested + user-confirmed — only the source + relation are
+    // pinned deterministically. Index-based record pinning was removed (not revise-safe).
     const suggestedFields = await this.selectRelevantFields(
       relatedSchema,
       this.context.stepDefinition.prompt,

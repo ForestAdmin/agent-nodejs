@@ -86,6 +86,7 @@ interface ServerWorkflowTaskLoadRelatedRecord extends ServerWorkflowTaskBase {
   executionType:
     | ServerStepExecutionTypeEnum.FullyAutomated
     | ServerStepExecutionTypeEnum.AutomatedWithConfirmation;
+  preRecordedArgs?: { selectedRecordStepId?: string; relationName?: string };
 }
 
 export interface ServerWorkflowTaskMcpServer extends ServerWorkflowTaskBase {
