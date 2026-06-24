@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.81.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.80.0...@forestadmin/agent@1.81.0) (2026-06-24)
+
+
+### Features
+
+* **agent:** forward any executor route generically [PRD-567] ([#1707](https://github.com/ForestAdmin/agent-nodejs/issues/1707)) ([a5fd1e2](https://github.com/ForestAdmin/agent-nodejs/commit/a5fd1e29d696b88b58aa0b2bbfcc9063a27be7cd))
+
 # @forestadmin/agent [1.80.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.79.5...@forestadmin/agent@1.80.0) (2026-06-24)
 
 
