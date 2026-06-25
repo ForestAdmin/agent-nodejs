@@ -5,8 +5,16 @@ on:
     tags:
       - '@forestadmin/workflow-executor@*'
   pull_request:
+    # Validate on any change to the executor or to a dependency package's
+    # manifest — a dep bump in one of the 5 source packages can drift the
+    # image's dedicated lockfile (see packages/workflow-executor/docker/).
     paths:
       - 'packages/workflow-executor/**'
+      - 'packages/agent-client/package.json'
+      - 'packages/ai-proxy/package.json'
+      - 'packages/forestadmin-client/package.json'
+      - 'packages/datasource-toolkit/package.json'
+      - 'packages/agent-toolkit/package.json'
       - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
     inputs:
