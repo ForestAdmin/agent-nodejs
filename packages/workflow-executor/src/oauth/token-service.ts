@@ -78,6 +78,12 @@ export default class OAuthTokenService {
     });
   }
 
+  // Drop the cached access token for a (user, server). Called on credential delete so a disconnect
+  // takes effect immediately, instead of the executor serving the cached token until it expires.
+  evict(userId: number, mcpServerId: string): void {
+    this.cache.delete(`${userId}:${mcpServerId}`);
+  }
+
   private readCache(key: string): string | undefined {
     const entry = this.cache.get(key);
     if (!entry || entry.expiresAtMs === undefined) return undefined;

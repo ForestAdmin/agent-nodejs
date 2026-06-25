@@ -1,4 +1,5 @@
 import type CredentialEncryption from '../crypto/credential-encryption';
+import type OAuthTokenService from '../oauth/token-service';
 import type { Logger } from '../ports/logger-port';
 import type { McpOAuthCredentialsStore } from '../ports/mcp-oauth-credentials-store';
 import type { WorkflowPort } from '../ports/workflow-port';
@@ -44,6 +45,9 @@ export interface ExecutorHttpServerOptions {
   mcpOAuthCredentialsStore: McpOAuthCredentialsStore;
   credentialEncryption: CredentialEncryption;
   remoteToolFetcher: RemoteToolFetcher;
+  // The runtime always provides this (build-workflow-executor); optional so tests that don't
+  // exercise credential deletion don't all have to construct one.
+  oauthTokenService?: OAuthTokenService;
 }
 
 export default class ExecutorHttpServer {
@@ -297,6 +301,9 @@ export default class ExecutorHttpServer {
     const userId = (ctx.state.user as BearerClaims).id;
 
     await store.delete(userId, ctx.params.mcpServerId);
+    // Evict any in-process cached access token so the disconnect is immediate, not deferred until
+    // the cached token expires (the row is gone, but the runtime would otherwise still serve it).
+    this.options.oauthTokenService?.evict(userId, ctx.params.mcpServerId);
     ctx.status = 204;
   }
 

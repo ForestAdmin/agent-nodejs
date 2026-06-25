@@ -257,6 +257,7 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     mcpOAuthCredentialsStore,
     credentialEncryption,
     remoteToolFetcher,
+    oauthTokenService: mcpOAuthTokenService,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);
@@ -309,6 +310,7 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     mcpOAuthCredentialsStore,
     credentialEncryption,
     remoteToolFetcher,
+    oauthTokenService: mcpOAuthTokenService,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);

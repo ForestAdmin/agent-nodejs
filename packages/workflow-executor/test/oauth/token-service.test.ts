@@ -142,6 +142,19 @@ describe('OAuthTokenService.getAccessToken', () => {
       expect(refresh).toHaveBeenCalledTimes(1);
     });
 
+    it('evict drops the cached token so the next acquire refreshes again', async () => {
+      const { service, refresh } = setup();
+
+      await service.getAccessToken(USER_ID, SERVER_ID);
+      await service.getAccessToken(USER_ID, SERVER_ID);
+      expect(refresh).toHaveBeenCalledTimes(1); // second call served from cache
+
+      service.evict(USER_ID, SERVER_ID);
+      await service.getAccessToken(USER_ID, SERVER_ID);
+
+      expect(refresh).toHaveBeenCalledTimes(2); // cache dropped → refreshed again
+    });
+
     it('refreshes again once the token is within the skew window of expiry', async () => {
       const { service, refresh, advance } = setup({ expirySkewS: 60 });
 

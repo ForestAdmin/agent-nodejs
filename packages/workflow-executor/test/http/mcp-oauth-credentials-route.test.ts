@@ -75,6 +75,10 @@ function createMockFetcher() {
   return { fetch: jest.fn().mockResolvedValue({ tools: [], mcpServerName: undefined }) };
 }
 
+function createMockTokenService() {
+  return { evict: jest.fn() };
+}
+
 function createServer(overrides: Record<string, unknown> = {}) {
   return new ExecutorHttpServer({
     port: 0,
@@ -404,6 +408,18 @@ describe('DELETE /mcp-oauth-credentials/:mcpServerId', () => {
     expect(response.status).toBe(204);
     expect(response.body).toEqual({});
     expect(store.delete).toHaveBeenCalledWith(7, 'mcp-server-1');
+  });
+
+  it('evicts the in-process cached access token so the disconnect takes effect immediately', async () => {
+    const oauthTokenService = createMockTokenService();
+    const server = createServer({ oauthTokenService });
+    const token = signToken({ id: 7 });
+
+    await request(server.callback)
+      .delete('/mcp-oauth-credentials/mcp-server-1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(oauthTokenService.evict).toHaveBeenCalledWith(7, 'mcp-server-1');
   });
 
   it("does not delete another user's credential", async () => {
