@@ -1,3 +1,18 @@
+# @forestadmin/workflow-executor [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.7.0...@forestadmin/workflow-executor@1.8.0) (2026-06-25)
+
+
+### Features
+
+* **workflow:** deterministic + Full AI workflow steps ([#1696](https://github.com/ForestAdmin/agent-nodejs/issues/1696)) ([08383a0](https://github.com/ForestAdmin/agent-nodejs/commit/08383a09b1f8c9e71ee5538d13a8701bde35bae7))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.7.0
+
 # @forestadmin/workflow-executor [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.6.1...@forestadmin/workflow-executor@1.7.0) (2026-06-24)
 
 
