@@ -36,10 +36,9 @@ export function createRemoteAgentClient(params: {
   token?: string;
   url: string;
   /**
-   * Connection to the Forest Admin server, shared by server-side features. When provided, an action
-   * that requires approval creates an approval request (returning `{ approvalRequested: true }`)
-   * instead of throwing; omit it to keep the plain behaviour (the 403 is rethrown). `serverUrl` is
-   * the Forest server, distinct from the agent `url` above.
+   * Connection to the Forest Admin server. Provide it to enable server-side features that call the
+   * Forest server (e.g. creating approval requests); omit it for a client that only talks to the
+   * agent (e.g. tests). `serverUrl` is the Forest server, distinct from the agent `url` above.
    */
   forestServer?: { serverUrl: string; serverToken: string; renderingId: number | string };
 }) {
