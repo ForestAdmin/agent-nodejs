@@ -33,15 +33,45 @@ const OTEL_DEPENDENCIES = {
 };
 
 function generate(packagesDir, outFile) {
-  const deps = {};
-
+  // Collect every declared range per external dependency, tracking which packages
+  // ask for it — a flat install can hold only one version, so we must resolve
+  // disagreements deliberately rather than let iteration order decide.
+  const declared = {};
   for (const pkg of WORKSPACE_PACKAGES) {
     const manifestPath = path.join(packagesDir, pkg, 'package.json');
     const { dependencies = {} } = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-    for (const [name, version] of Object.entries(dependencies)) {
-      if (!name.startsWith('@forestadmin/')) deps[name] = version;
+    for (const [name, range] of Object.entries(dependencies)) {
+      if (name.startsWith('@forestadmin/')) continue;
+      declared[name] = declared[name] || {};
+      (declared[name][range] = declared[name][range] || []).push(pkg);
     }
+  }
+
+  const deps = {};
+  for (const [name, byRange] of Object.entries(declared)) {
+    const ranges = Object.keys(byRange);
+    if (ranges.length === 1) {
+      [deps[name]] = ranges;
+      continue;
+    }
+
+    // Conflicting ranges. The image IS the executor, so its own pin is
+    // authoritative (its tested version); any other conflict must be aligned by
+    // a human rather than silently collapsed.
+    const executorRange = ranges.find(r => byRange[r].includes('workflow-executor'));
+    if (!executorRange) {
+      const detail = ranges.map(r => `${r} (${byRange[r].join(', ')})`).join('; ');
+      throw new Error(
+        `Conflicting ranges for "${name}" not arbitrated by workflow-executor: ${detail}. ` +
+          'Align the version in the source packages.',
+      );
+    }
+    console.warn(
+      `[build-deps] "${name}": conflicting ranges (${ranges.join(', ')}); ` +
+        `using the executor's pin "${executorRange}".`,
+    );
+    deps[name] = executorRange;
   }
 
   Object.assign(deps, OTEL_DEPENDENCIES);
