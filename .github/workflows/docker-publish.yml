@@ -50,7 +50,7 @@ jobs:
           tags: workflow-executor:pr
           cache-from: type=gha,scope=amd64
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: workflow-executor:pr
           severity: CRITICAL
@@ -146,7 +146,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
 
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/forestadmin/workflow-executor@${{ steps.build.outputs.digest }}
           severity: CRITICAL
