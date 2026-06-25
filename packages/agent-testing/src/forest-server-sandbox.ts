@@ -2,7 +2,7 @@ import type {
   CollectionPermissionsOverride,
   PermissionsOverride,
   SmartActionPermissionsOverride,
-} from '@forestadmin/agent-client';
+} from './permission-overrides';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 import type {
   EnvironmentCollectionPermissionsV4,
