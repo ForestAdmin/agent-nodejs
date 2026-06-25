@@ -37,6 +37,7 @@ function createClient(options: BuildClientOptions) {
     token,
     url,
     actionEndpoints,
+    forestServer: { url, bearerToken: token },
   });
 
   return {

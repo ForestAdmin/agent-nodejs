@@ -64,6 +64,17 @@ If you call executeAction with missing required fields, it will return an error 
 
           const result = await action.execute();
 
+          if (result.approvalRequested) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'Approval requested: this action requires approval by another user before it runs. A request has been created and is pending review.',
+                },
+              ],
+            };
+          }
+
           return { content: [{ type: 'text', text: JSON.stringify(result) }] };
         },
       });

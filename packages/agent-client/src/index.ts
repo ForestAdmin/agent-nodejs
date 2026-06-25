@@ -7,6 +7,7 @@ import type {
 
 import ActionFieldJson from './action-fields/action-field-json';
 import ActionFieldStringList from './action-fields/action-field-string-list';
+import ApprovalRequestCreator from './approval-request-creator';
 import RemoteAgentClient from './domains/remote-agent-client';
 import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError } from './errors';
 import HttpRequester from './http-requester';
@@ -14,6 +15,7 @@ import HttpRequester from './http-requester';
 export {
   ActionFieldJson,
   ActionFieldStringList,
+  ApprovalRequestCreator,
   RemoteAgentClient,
   HttpRequester,
   AgentHttpError,
@@ -26,12 +28,14 @@ export type {
   PermissionsOverride,
   SmartActionPermissionsOverride,
 };
+export type { ApprovalRequestPayload } from './approval-request-creator';
 
 export function createRemoteAgentClient(params: {
   overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
   actionEndpoints?: ActionEndpointsByCollection;
   token?: string;
   url: string;
+  forestServer?: { url: string; bearerToken: string };
 }) {
   const httpRequester = new HttpRequester(params.token, { url: params.url });
 
@@ -39,6 +43,12 @@ export function createRemoteAgentClient(params: {
     actionEndpoints: params.actionEndpoints,
     httpRequester,
     overridePermissions: params.overridePermissions,
+    approvalRequestCreator: params.forestServer
+      ? new ApprovalRequestCreator({
+          forestServerUrl: params.forestServer.url,
+          bearerToken: params.forestServer.bearerToken,
+        })
+      : undefined,
   });
 }
 

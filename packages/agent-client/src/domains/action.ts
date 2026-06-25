@@ -1,5 +1,6 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
+import type ApprovalRequestCreator from '../approval-request-creator';
 import type HttpRequester from '../http-requester';
 import type { RecordId } from '../types';
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
@@ -62,32 +63,38 @@ export type ActionEndpointsByCollection = {
 };
 export default class Action {
   private readonly collectionName: string;
+  private readonly actionName: string;
 
   private readonly httpRequester: HttpRequester;
   protected readonly fieldsFormStates: FieldFormStates;
   private readonly ids: (string | number)[];
   private readonly actionId: string | undefined;
   private actionPath: string;
+  private readonly approvalRequestCreator?: ApprovalRequestCreator;
 
   constructor(
     collectionName: string,
+    actionName: string,
     httpRequester: HttpRequester,
     actionPath: string,
     fieldsFormStates: FieldFormStates,
     ids?: (string | number)[],
     actionId?: string,
+    approvalRequestCreator?: ApprovalRequestCreator,
   ) {
     this.collectionName = collectionName;
+    this.actionName = actionName;
     this.httpRequester = httpRequester;
     this.ids = ids ?? undefined;
     this.actionPath = actionPath;
     this.fieldsFormStates = fieldsFormStates;
     this.actionId = actionId;
+    this.approvalRequestCreator = approvalRequestCreator;
   }
 
   async execute(
     signedApprovalRequest?: Record<string, unknown>,
-  ): Promise<{ success: string; html?: string }> {
+  ): Promise<{ success?: string; html?: string; approvalRequested?: boolean }> {
     const requestBody = {
       data: {
         attributes: {
@@ -108,7 +115,21 @@ export default class Action {
         body: requestBody,
       });
     } catch (error) {
-      throw toActionError(error);
+      const mapped = toActionError(error);
+
+      if (mapped instanceof ActionRequiresApprovalError && this.approvalRequestCreator) {
+        await this.approvalRequestCreator.create({
+          collectionName: this.collectionName,
+          actionName: this.actionName,
+          recordIds: this.ids,
+          values: this.fieldsFormStates.getFieldValues(),
+          roleIdsAllowedToApprove: mapped.roleIdsAllowedToApprove,
+        });
+
+        return { approvalRequested: true };
+      }
+
+      throw mapped;
     }
   }
 

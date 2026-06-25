@@ -308,6 +308,31 @@ describe('declareExecuteActionTool', () => {
       });
     });
 
+    it('should return an "approval requested" message when the action requires approval', async () => {
+      const mockExecute = jest.fn().mockResolvedValue({ approvalRequested: true });
+      const mockSetFields = jest.fn().mockResolvedValue(undefined);
+      const mockAction = jest.fn().mockResolvedValue({
+        execute: mockExecute,
+        setFields: mockSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'refund', recordIds: [1] },
+        mockExtra,
+      );
+
+      expect(result).toEqual({
+        content: [{ type: 'text', text: expect.stringContaining('Approval requested') }],
+      });
+      // It is not an error → the activity log is not marked failed.
+      expect((result as { isError?: boolean }).isError).toBeUndefined();
+    });
+
     describe('activity logging', () => {
       beforeEach(() => {
         const mockExecute = jest.fn().mockResolvedValue({ success: 'Action executed' });

@@ -30,10 +30,14 @@ describe('Action', () => {
       getLayout: jest.fn().mockReturnValue([]),
     } as any;
 
-    action = new Action('users', httpRequester, '/forest/actions/send-email', fieldsFormStates, [
-      '1',
-      '2',
-    ]);
+    action = new Action(
+      'users',
+      'send-email',
+      httpRequester,
+      '/forest/actions/send-email',
+      fieldsFormStates,
+      ['1', '2'],
+    );
   });
 
   describe('execute', () => {
@@ -63,6 +67,7 @@ describe('Action', () => {
     it('should include smart_action_id when actionId is provided', async () => {
       const actionWithId = new Action(
         'users',
+        'send-email',
         httpRequester,
         '/forest/actions/send-email',
         fieldsFormStates,
@@ -135,6 +140,42 @@ describe('Action', () => {
         message: 'Needs approval',
         roleIdsAllowedToApprove: [7, 9],
       });
+    });
+
+    it('creates an approval request and returns approvalRequested when a creator is wired', async () => {
+      const approvalRequestCreator = { create: jest.fn().mockResolvedValue(undefined) } as any;
+      const approvalAction = new Action(
+        'users',
+        'send-email',
+        httpRequester,
+        '/forest/actions/send-email',
+        fieldsFormStates,
+        ['1', '2'],
+        undefined,
+        approvalRequestCreator,
+      );
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(403, {
+          errors: [
+            {
+              name: 'CustomActionRequiresApprovalError',
+              detail: 'Needs approval',
+              data: { roleIdsAllowedToApprove: [7, 9] },
+            },
+          ],
+        }),
+      );
+
+      const result = await approvalAction.execute();
+
+      expect(approvalRequestCreator.create).toHaveBeenCalledWith({
+        collectionName: 'users',
+        actionName: 'send-email',
+        recordIds: ['1', '2'],
+        values: { email: 'test@example.com' },
+        roleIdsAllowedToApprove: [7, 9],
+      });
+      expect(result).toEqual({ approvalRequested: true });
     });
 
     it('should translate a 422 rejection into ActionFormValidationError', async () => {
