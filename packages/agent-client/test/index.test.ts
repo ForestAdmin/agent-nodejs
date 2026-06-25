@@ -61,7 +61,7 @@ describe('createRemoteAgentClient', () => {
     });
   });
 
-  it('should wire approval-request creation when forestServer is provided', () => {
+  it('should build a client when forestServer is provided', () => {
     const client = createRemoteAgentClient({
       url: 'https://api.example.com',
       token: 'test-token',
