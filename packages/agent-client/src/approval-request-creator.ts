@@ -32,7 +32,8 @@ export default function makeCreateApprovalRequest(options: {
             action_name: payload.actionName,
             collection_name: payload.collectionName,
             record_ids: payload.recordIds,
-            inputs: payload.values,
+            // The Forest server stores inputs as a list of { name, value } (not a values map).
+            inputs: Object.entries(payload.values).map(([name, value]) => ({ name, value })),
           },
         },
       },

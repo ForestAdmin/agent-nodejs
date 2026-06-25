@@ -39,7 +39,7 @@ describe('makeCreateApprovalRequest', () => {
             action_name: 'refund',
             collection_name: 'users',
             record_ids: ['1', '2'],
-            inputs: { reason: 'fraud' },
+            inputs: [{ name: 'reason', value: 'fraud' }],
           },
         },
       },
