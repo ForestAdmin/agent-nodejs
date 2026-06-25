@@ -1,6 +1,6 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
-import type ApprovalRequestCreator from '../approval-request-creator';
+import type { CreateApprovalRequest } from '../approval-request-creator';
 import type HttpRequester from '../http-requester';
 import type { RecordId } from '../types';
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
@@ -70,7 +70,7 @@ export default class Action {
   private readonly ids: (string | number)[];
   private readonly actionId: string | undefined;
   private actionPath: string;
-  private readonly approvalRequestCreator?: ApprovalRequestCreator;
+  private readonly createApprovalRequest?: CreateApprovalRequest;
 
   constructor(
     collectionName: string,
@@ -80,7 +80,7 @@ export default class Action {
     fieldsFormStates: FieldFormStates,
     ids?: (string | number)[],
     actionId?: string,
-    approvalRequestCreator?: ApprovalRequestCreator,
+    createApprovalRequest?: CreateApprovalRequest,
   ) {
     this.collectionName = collectionName;
     this.actionName = actionName;
@@ -89,7 +89,7 @@ export default class Action {
     this.actionPath = actionPath;
     this.fieldsFormStates = fieldsFormStates;
     this.actionId = actionId;
-    this.approvalRequestCreator = approvalRequestCreator;
+    this.createApprovalRequest = createApprovalRequest;
   }
 
   async execute(
@@ -117,11 +117,11 @@ export default class Action {
     } catch (error) {
       const mapped = toActionError(error);
 
-      if (mapped instanceof ActionRequiresApprovalError && this.approvalRequestCreator) {
-        await this.approvalRequestCreator.create({
+      if (mapped instanceof ActionRequiresApprovalError && this.createApprovalRequest) {
+        await this.createApprovalRequest({
           collectionName: this.collectionName,
           actionName: this.actionName,
-          recordIds: this.ids,
+          recordIds: this.ids ?? [],
           values: this.fieldsFormStates.getFieldValues(),
         });
 

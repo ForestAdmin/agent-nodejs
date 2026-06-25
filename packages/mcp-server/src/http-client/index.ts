@@ -28,7 +28,7 @@ export function createForestServerClient(
     headers: { 'Forest-Application-Source': 'MCP' },
   });
 
-  return new ForestServerClientImpl(schemaService, activityLogsService);
+  return new ForestServerClientImpl(schemaService, activityLogsService, options.forestServerUrl);
 }
 
 export { ForestServerClientImpl };

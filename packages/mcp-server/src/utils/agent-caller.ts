@@ -10,6 +10,7 @@ import { fetchForestSchema, getActionEndpoints } from './schema-fetcher';
 interface BuildClientOptions {
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   actionEndpoints?: ActionEndpoints;
+  forestServerUrl?: string;
 }
 
 export type AuthData = {
@@ -22,7 +23,7 @@ export type AuthData = {
 };
 
 function createClient(options: BuildClientOptions) {
-  const { request, actionEndpoints = {} } = options;
+  const { request, actionEndpoints = {}, forestServerUrl } = options;
   const token = request.authInfo?.token;
   const url = request.authInfo?.extra?.environmentApiEndpoint;
   const { forestServerToken, renderingId } = (request.authInfo?.extra ?? {}) as AuthData;
@@ -36,12 +37,8 @@ function createClient(options: BuildClientOptions) {
   }
 
   const forestServer =
-    forestServerToken && renderingId != null
-      ? {
-          url: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',
-          forestServerToken,
-          renderingId,
-        }
+    forestServerUrl && forestServerToken && renderingId != null
+      ? { url: forestServerUrl, forestServerToken, renderingId }
       : undefined;
 
   const rpcClient = createRemoteAgentClient({
@@ -74,5 +71,9 @@ export async function buildClientWithActions(
   const schema = await fetchForestSchema(forestServerClient);
   const actionEndpoints = getActionEndpoints(schema);
 
-  return createClient({ request, actionEndpoints });
+  return createClient({
+    request,
+    actionEndpoints,
+    forestServerUrl: forestServerClient.forestServerUrl,
+  });
 }

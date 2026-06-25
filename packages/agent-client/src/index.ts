@@ -7,7 +7,7 @@ import type {
 
 import ActionFieldJson from './action-fields/action-field-json';
 import ActionFieldStringList from './action-fields/action-field-string-list';
-import ApprovalRequestCreator from './approval-request-creator';
+import makeCreateApprovalRequest from './approval-request-creator';
 import RemoteAgentClient from './domains/remote-agent-client';
 import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError } from './errors';
 import HttpRequester from './http-requester';
@@ -15,7 +15,7 @@ import HttpRequester from './http-requester';
 export {
   ActionFieldJson,
   ActionFieldStringList,
-  ApprovalRequestCreator,
+  makeCreateApprovalRequest,
   RemoteAgentClient,
   HttpRequester,
   AgentHttpError,
@@ -28,7 +28,7 @@ export type {
   PermissionsOverride,
   SmartActionPermissionsOverride,
 };
-export type { ApprovalRequestPayload } from './approval-request-creator';
+export type { ApprovalRequestPayload, CreateApprovalRequest } from './approval-request-creator';
 
 export function createRemoteAgentClient(params: {
   overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
@@ -43,8 +43,8 @@ export function createRemoteAgentClient(params: {
     actionEndpoints: params.actionEndpoints,
     httpRequester,
     overridePermissions: params.overridePermissions,
-    approvalRequestCreator: params.forestServer
-      ? new ApprovalRequestCreator({
+    createApprovalRequest: params.forestServer
+      ? makeCreateApprovalRequest({
           forestServerUrl: params.forestServer.url,
           forestServerToken: params.forestServer.forestServerToken,
           renderingId: params.forestServer.renderingId,

@@ -1,5 +1,5 @@
 import type { ActionEndpointsByCollection } from './action';
-import type ApprovalRequestCreator from '../approval-request-creator';
+import type { CreateApprovalRequest } from '../approval-request-creator';
 import type HttpRequester from '../http-requester';
 import type { RawTreeWithSources } from '@forestadmin/forestadmin-client';
 
@@ -39,7 +39,7 @@ export default class RemoteAgentClient<
   TypingsSchema extends Record<string, unknown> = Record<string, unknown>,
 > extends Chart {
   protected actionEndpoints?: ActionEndpointsByCollection;
-  protected approvalRequestCreator?: ApprovalRequestCreator;
+  protected createApprovalRequest?: CreateApprovalRequest;
 
   private overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
 
@@ -47,14 +47,14 @@ export default class RemoteAgentClient<
     actionEndpoints?: ActionEndpointsByCollection;
     httpRequester: HttpRequester;
     overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
-    approvalRequestCreator?: ApprovalRequestCreator;
+    createApprovalRequest?: CreateApprovalRequest;
   }) {
     super();
     if (!params) return;
     this.httpRequester = params.httpRequester;
     this.actionEndpoints = params.actionEndpoints;
     this.overridePermissions = params.overridePermissions;
-    this.approvalRequestCreator = params.approvalRequestCreator;
+    this.createApprovalRequest = params.createApprovalRequest;
   }
 
   async overrideCollectionPermission(
@@ -93,7 +93,7 @@ export default class RemoteAgentClient<
       name,
       this.httpRequester,
       this.actionEndpoints,
-      this.approvalRequestCreator,
+      this.createApprovalRequest,
     );
   }
 }

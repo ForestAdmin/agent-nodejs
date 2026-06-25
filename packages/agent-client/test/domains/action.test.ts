@@ -143,7 +143,7 @@ describe('Action', () => {
     });
 
     it('creates an approval request and returns approvalRequested when a creator is wired', async () => {
-      const approvalRequestCreator = { create: jest.fn().mockResolvedValue(undefined) } as any;
+      const createApprovalRequest = jest.fn().mockResolvedValue(undefined);
       const approvalAction = new Action(
         'users',
         'send-email',
@@ -152,7 +152,7 @@ describe('Action', () => {
         fieldsFormStates,
         ['1', '2'],
         undefined,
-        approvalRequestCreator,
+        createApprovalRequest,
       );
       httpRequester.query.mockRejectedValue(
         new AgentHttpError(403, {
@@ -168,7 +168,7 @@ describe('Action', () => {
 
       const result = await approvalAction.execute();
 
-      expect(approvalRequestCreator.create).toHaveBeenCalledWith({
+      expect(createApprovalRequest).toHaveBeenCalledWith({
         collectionName: 'users',
         actionName: 'send-email',
         recordIds: ['1', '2'],

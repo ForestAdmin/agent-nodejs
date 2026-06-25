@@ -7,25 +7,23 @@ export type ApprovalRequestPayload = {
   values: Record<string, unknown>;
 };
 
+export type CreateApprovalRequest = (payload: ApprovalRequestPayload) => Promise<void>;
+
 // forestadmin-server private-api: POST /api/action-approvals (status null = creation).
 const APPROVAL_REQUEST_PATH = '/api/action-approvals';
 
-export default class ApprovalRequestCreator {
-  constructor(
-    private readonly options: {
-      forestServerUrl: string;
-      forestServerToken: string;
-      renderingId: number | string;
-    },
-  ) {}
-
-  async create(payload: ApprovalRequestPayload): Promise<void> {
+export default function makeCreateApprovalRequest(options: {
+  forestServerUrl: string;
+  forestServerToken: string;
+  renderingId: number | string;
+}): CreateApprovalRequest {
+  return async payload => {
     await ServerUtils.queryWithBearerToken({
-      forestServerUrl: this.options.forestServerUrl,
-      bearerToken: this.options.forestServerToken,
+      forestServerUrl: options.forestServerUrl,
+      bearerToken: options.forestServerToken,
       method: 'post',
       path: APPROVAL_REQUEST_PATH,
-      headers: { 'forest-rendering-id': String(this.options.renderingId) },
+      headers: { 'forest-rendering-id': String(options.renderingId) },
       body: {
         data: {
           type: 'action-approvals',
@@ -39,5 +37,5 @@ export default class ApprovalRequestCreator {
         },
       },
     });
-  }
+  };
 }
