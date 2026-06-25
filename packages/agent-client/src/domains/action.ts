@@ -56,6 +56,10 @@ export type BaseActionContext = {
   recordIds?: RecordId[];
 };
 
+// Exactly one branch is set: a normal execution result, or an approval request was created instead
+// of executing (only possible when the client is wired with a createApprovalRequest).
+export type ActionExecuteResult = { success: string; html?: string } | { approvalRequested: true };
+
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
     [actionName: string]: Pick<ForestSchemaAction, 'id' | 'name' | 'endpoint' | 'hooks' | 'fields'>;
@@ -92,9 +96,7 @@ export default class Action {
     this.createApprovalRequest = createApprovalRequest;
   }
 
-  async execute(
-    signedApprovalRequest?: Record<string, unknown>,
-  ): Promise<{ success?: string; html?: string; approvalRequested?: boolean }> {
+  async execute(signedApprovalRequest?: Record<string, unknown>): Promise<ActionExecuteResult> {
     const requestBody = {
       data: {
         attributes: {

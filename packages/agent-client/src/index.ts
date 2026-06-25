@@ -35,7 +35,13 @@ export function createRemoteAgentClient(params: {
   actionEndpoints?: ActionEndpointsByCollection;
   token?: string;
   url: string;
-  forestServer?: { url: string; forestServerToken: string; renderingId: number | string };
+  /**
+   * Connection to the Forest Admin server, shared by server-side features. When provided, an action
+   * that requires approval creates an approval request (returning `{ approvalRequested: true }`)
+   * instead of throwing; omit it to keep the plain behaviour (the 403 is rethrown). `serverUrl` is
+   * the Forest server, distinct from the agent `url` above.
+   */
+  forestServer?: { serverUrl: string; serverToken: string; renderingId: number | string };
 }) {
   const httpRequester = new HttpRequester(params.token, { url: params.url });
 
@@ -45,8 +51,8 @@ export function createRemoteAgentClient(params: {
     overridePermissions: params.overridePermissions,
     createApprovalRequest: params.forestServer
       ? makeCreateApprovalRequest({
-          forestServerUrl: params.forestServer.url,
-          forestServerToken: params.forestServer.forestServerToken,
+          forestServerUrl: params.forestServer.serverUrl,
+          forestServerToken: params.forestServer.serverToken,
           renderingId: params.forestServer.renderingId,
         })
       : undefined,

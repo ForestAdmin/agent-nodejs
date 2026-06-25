@@ -38,7 +38,7 @@ function createClient(options: BuildClientOptions) {
 
   const forestServer =
     forestServerUrl && forestServerToken && renderingId != null
-      ? { url: forestServerUrl, forestServerToken, renderingId }
+      ? { serverUrl: forestServerUrl, serverToken: forestServerToken, renderingId }
       : undefined;
 
   const rpcClient = createRemoteAgentClient({
