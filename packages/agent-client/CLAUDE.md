@@ -10,9 +10,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Entry point is `createRemoteAgentClient(...)` in `src/index.ts`, which wires an `HttpRequester` into a `RemoteAgentClient`. The object model is a chain of thin wrappers, each holding the shared `HttpRequester`:
 
-- `RemoteAgentClient` (`domains/remote-agent-client.ts`) — root. Extends `Chart` (so dashboard charts hang off the client). Exposes `.collection(name)` and the permission-override helpers. Generic over a `TypingsSchema` so collection names are type-checked against a generated schema.
-- `Collection` (`domains/collection.ts`) extends `CollectionChart` extends `Chart` — the workhorse: `list`/`getOne`/`count`/`create`/`update`/`delete`/`search`/`exportCsv`/`capabilities`, plus factories for `.segment()`, `.relation()`, and `.action()`.
-- `Chart` (`domains/chart.ts`) — base class giving every level the `valueChart`/`distributionChart`/… methods that POST to `/forest/_charts/:name`.
+- `RemoteAgentClient` (`domains/remote-agent-client.ts`) — root. `extends Chart` (so client-level dashboard charts hang off it). Exposes `.collection(name)` and the permission-override helpers. Generic over a `TypingsSchema` so collection names are type-checked against a generated schema.
+- `Collection` (`domains/collection.ts`) `extends CollectionChart` — the workhorse: `list`/`getOne`/`count`/`create`/`update`/`delete`/`search`/`exportCsv`/`capabilities`, plus factories for `.segment()`, `.relation()`, and `.action()`.
+- **Two independent chart base classes, NOT a chain.** `Chart` (`domains/chart.ts`) and `CollectionChart` (`domains/collection-chart.ts`) each separately `implements ChartInterface`; `CollectionChart` does **not** extend `Chart`. They differ in behavior, so don't merge them: `Chart.loadChart` POSTs to `/forest/_charts/:name`, while `CollectionChart.loadChart` POSTs to `/forest/_charts/:collection/:name` with a `{ record_id }` body (its chart methods take a `{ recordId }` context). Only `Chart.loadChart` has the "HttpRequester is not initialized" guard.
 
 **Two things flow through everything:**
 
@@ -39,4 +39,4 @@ yarn workspace @forestadmin/agent-client test -- -t "serializes filters"
 - **Backend duality (Node `@forestadmin/agent` vs Ruby `forest_liana`) is a first-class concern.** Operators are PascalCase internally but `QuerySerializer` must emit snake_case (`greater_than`) because the Ruby agent requires it. `fields[...]` projections are joined with commas (not repeated params) because Rack collapses repeated params to the last value. `FieldFormStates.loadInitialState` deliberately swallows a 404 on `/hooks/load` only for Ruby (which omits the route when `hooks.load` is false) and falls back to the schema's static fields. Preserve these behaviors and their explaining comments when editing.
 - **Relation field projection** uses the `relation@@@field` separator convention in `fields[]` (see `QuerySerializer.formatFields`); malformed separators are silently skipped.
 - `RecordId` can be a composite (array) id; always route ids through `serializeRecordId` (`record-id.ts`) before putting them in a path/body.
-- Chart methods on a freshly `new RemoteAgentClient()` (no params) throw "HttpRequester is not initialized" — only the `createRemoteAgentClient` factory wires it up.
+- Root-client chart methods on a freshly `new RemoteAgentClient()` (no params) throw "HttpRequester is not initialized" — that guard lives only in `Chart.loadChart`, and only the `createRemoteAgentClient` factory wires the requester up.

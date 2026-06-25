@@ -37,7 +37,7 @@ yarn workspace @forestadmin/datasource-replica test -- -t "test name"
 ## Gotchas
 
 - **Handler/flag pairing is validated at construction**: `pullDeltaHandler` requires at least one `pullDelta*` flag and vice-versa, else `CustomerSource` throws.
-- **Metadata keys are persisted strings**: startup state is stored under the (misspelled, intentional) key `statup_state`; `delta_state` / startup state are JSON-stringified in the `*_metadata` table — don't rename without a migration story.
-- **Handler errors are swallowed**: failed dump/delta iterations log a `Warn` and stop the loop rather than throwing — a broken handler silently leaves the cache stale.
+- **Metadata keys are persisted strings**: startup state is stored under the misspelled key `statup_state`; `delta_state` / startup state are JSON-stringified in the `*_metadata` table — don't rename without a migration story (the typo is load-bearing once persisted).
+- **Pull handler errors are swallowed**: failed *pull* dump/delta iterations log a `Warn` and stop the loop rather than throwing (`runPullDump`/`runPullDelta`), so a broken handler silently leaves the cache stale. The **push** path (`runPushDelta` → `target.applyDelta`) has no try/catch, so a push-delta error rejects/propagates instead.
 - **`cacheNamespace` prefixes all internal tables** (`<ns>_metadata`, `<ns>_pending_operations`), letting multiple replicas share one DB; the publication decorator relies on these exact names to keep them hidden.
-- **Schema discovery has a cost**: omitting `schema` triggers a full analysis pass on startup before the datasource is usable.
+- **Schema discovery is a one-time cost on a persistent DB**: omitting `schema` runs a full analysis pass before the datasource is usable, but the result is persisted to `*_metadata` (`id: 'schema'`) and reused by `getSchema` on later startups. It only re-runs every startup because the default `cacheInto` is in-memory sqlite (`sqlite::memory:`), lost between runs — point `cacheInto` at a persistent DB to pay it once.

@@ -31,5 +31,6 @@ yarn workspace @forestadmin/datasource-dummy test -- -t "name of the test"
 ## Gotchas
 
 - State is in-memory and per-instance: writes mutate the seed arrays and are lost on restart. Treat it as a demo/fixture, not a persistence layer.
-- Seed data is intentionally inconsistent (e.g. `books` reference `authorId` 1–4 while `persons` may not cover them all) — don't "fix" it without checking the test fixtures that rely on it.
+- The `books` → `libraries` many-to-many relation field is named `librairies` (French misspelling) in `index.ts`, not `libraries`. Query/wire the books side with `librairies`. The reverse `libraries` → `books` relation is spelled correctly.
+- `books` schema has odd column `defaultValue`s (`authorId: 34`, `title: 'Le rouge et le noir'`) with no matching `persons` record for id 34. This is a deliberate fixture quirk — don't "fix" it without checking the tests that rely on it.
 - `create` derives new ids by `max(id) + 1` over the in-memory array; ids are not globally unique across reloads.

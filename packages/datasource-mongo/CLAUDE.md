@@ -24,8 +24,9 @@ The split entry points matter: `createMongoDataSource` is the normal path (intro
 yarn workspace @forestadmin/datasource-mongo build
 yarn workspace @forestadmin/datasource-mongo test
 yarn workspace @forestadmin/datasource-mongo lint
-# single test file or test name:
-yarn workspace @forestadmin/datasource-mongo test -- introspection/introspector.test.ts
+# single test file or name (positional arg is a regex matched against the full path):
+yarn workspace @forestadmin/datasource-mongo test -- introspector
+yarn workspace @forestadmin/datasource-mongo test -- test/introspection/introspector.unit
 yarn workspace @forestadmin/datasource-mongo test -- -t "detects references"
 ```
 

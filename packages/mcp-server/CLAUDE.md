@@ -13,8 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Key flows that only make sense across files:
 
 - **Per-request MCP server.** `handleMcpRequest` builds a *fresh* `McpServer` + `StreamableHTTPServerTransport` per request (`sessionIdGenerator: undefined`, stateless) and closes the transport on response end. Tool registration in `createMcpServer()` therefore re-runs on every call.
-- **OAuth = pass-through to Forest Admin.** `ForestOAuthProvider` (`src/forest-oauth-provider.ts`) does not store tokens. `/oauth/authorize` redirects to the Forest app; `exchange*` calls relay to the Forest server's `/oauth/token`, then re-sign a JWT with `authSecret` whose `extra` carries `forestServerToken` + `environmentApiEndpoint`. `verifyAccessToken` just verifies that JWT.
-- **Tools call the live agent, not this server.** Each tool in `src/tools/*` is a `declareXxxTool(mcpServer, forestServerClient, logger, collectionNames)` factory. At call time `buildClient(extra)` (`src/utils/agent-caller.ts`) reads `extra.authInfo` (token + `environmentApiEndpoint` from the JWT) and builds a `createRemoteAgentClient` from `@forestadmin/agent-client` — i.e. the tool RPCs into the user's actual running agent. `forestServerClient` (`src/http-client`, wrapping `@forestadmin/forestadmin-client`'s `SchemaService`/`ActivityLogsService`) is used only for schema fetch and activity logging, not data.
+- **OAuth = pass-through to Forest Admin.** `ForestOAuthProvider` (`src/forest-oauth-provider.ts`) does not store tokens. `/oauth/authorize` redirects to the Forest app; `exchange*` calls relay to the Forest server's `/oauth/token`, then `generateAccessToken` re-signs a JWT with `authSecret` carrying the Forest token under the `serverToken` claim. `verifyAccessToken` verifies that JWT and builds `AuthInfo.extra` with `forestServerToken: decoded.serverToken` plus `environmentApiEndpoint` — the latter is **not** in the JWT, it's read from the provider's own `this.environmentApiEndpoint` field (set during env discovery).
+- **Tools call the live agent, not this server.** Each tool in `src/tools/*` is a `declareXxxTool(mcpServer, forestServerClient, logger, collectionNames)` factory. At call time `buildClient(extra)` (`src/utils/agent-caller.ts`) reads `extra.authInfo` (`forestServerToken` + `environmentApiEndpoint` from `AuthInfo.extra`) and builds a `createRemoteAgentClient` from `@forestadmin/agent-client` — i.e. the tool RPCs into the user's actual running agent. `forestServerClient` (`src/http-client`, wrapping `@forestadmin/forestadmin-client`'s `SchemaService`/`ActivityLogsService`) is used only for schema fetch and activity logging, not data.
 - **Two cross-cutting wrappers, always used together.** `registerToolWithLogging` (`src/utils/tool-with-logging.ts`) registers the tool and converts thrown errors into `{ isError: true }` results (per MCP spec) instead of protocol errors. Inside the handler, `withActivityLog` (`src/utils/with-activity-log.ts`) brackets the operation with a pending→succeeded/failed Forest activity log and runs `parseAgentError` + optional `errorEnhancer` (e.g. `list` appends sortable field names on "Invalid sort").
 - **`collectionNames` → `z.enum`.** `fetchCollectionNames()` populates the schema's collection list; tools turn it into a `z.enum` for `collectionName` so the LLM gets autocomplete/validation. If schema fetch fails the server logs a warning and runs "degraded" with `z.string()`.
 
@@ -24,8 +24,8 @@ Key flows that only make sense across files:
 yarn workspace @forestadmin/mcp-server build
 yarn workspace @forestadmin/mcp-server test
 yarn workspace @forestadmin/mcp-server lint
-# single test
-yarn workspace @forestadmin/mcp-server test -- src/tools/list.test.ts
+# single test — tests are NOT colocated; they live under test/ mirroring src/ (jest testMatch: <rootDir>/test/**/*.test.ts)
+yarn workspace @forestadmin/mcp-server test -- test/tools/list.test.ts
 yarn workspace @forestadmin/mcp-server test -- -t "Invalid sort"
 # run standalone (loads .env): needs FOREST_ENV_SECRET + FOREST_AUTH_SECRET
 yarn workspace @forestadmin/mcp-server start:dev

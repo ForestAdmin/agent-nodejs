@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-`@forestadmin/ai-proxy` is the AI/LLM integration layer of the monorepo. It implements the AI-provider contract owned by `@forestadmin/agent-toolkit` (`AiProviderDefinition` / `AiRouter` from `interfaces/ai.ts`) and is consumed by `@forestadmin/agent` (which mounts it on its `ai-proxy` route), plus `forestadmin-client` and `workflow-executor`. It is a thin pass-through proxy in front of LangChain: it speaks the OpenAI Chat Completions wire format to the frontend, dispatches to OpenAI or Anthropic, and exposes "remote tools" (MCP servers + first-party Forest integrations) for tool-calling.
+`@forestadmin/ai-proxy` is the AI/LLM integration layer of the monorepo. It implements the AI-provider contract owned by `@forestadmin/agent-toolkit` (`AiProviderDefinition` / `AiRouter` from `interfaces/ai.ts`) and is consumed by `@forestadmin/agent` (which mounts it on its `ai-proxy` route), plus `forestadmin-client` and `workflow-executor`. It is a thin pass-through proxy in front of LangChain: it speaks the OpenAI Chat Completions wire format to the frontend, dispatches to OpenAI or Anthropic, and exposes "remote tools" (MCP servers + first-party Forest integrations) for tool-calling. There are two distinct entry surfaces: the **`Router` proxy** (HTTP/wire-format path) and the **`AiClient`** class (in-process path used by `workflow-executor` via `AiClientAdapter`) — see Architecture.
 
 ## Architecture
 
@@ -20,6 +20,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `createBaseChatModel` (`create-base-chat-model.ts`) is a separate, lighter export returning a raw LangChain `BaseChatModel` for callers that want direct model access without the proxy/tool machinery.
 
+**`AiClient`** (`ai-client.ts`, re-exported from `index.ts`) is the third public surface and the one `workflow-executor` actually uses (through `AiClientAdapter`) — it does **not** go through `Router.route`. Unlike the Router's per-request "create tool providers → use → `dispose()` in `finally`" pattern, `AiClient` is **stateful**: `getModel(aiName?)` builds models via `createBaseChatModel` and caches one per config `name` (`modelCache`); `loadRemoteTools(configs)` creates tool providers and **retains** them on the instance (disposing any previous set first), and `closeConnections()` must be called explicitly to release them. So tool-provider lifecycle is caller-managed here, not scoped to a single request.
+
 ## Commands
 
 ```bash
@@ -33,7 +35,7 @@ yarn workspace @forestadmin/ai-proxy test -- -t "falls back to first configurati
 
 ## Gotchas
 
-- **Never `throw new Error(...)`.** All thrown errors must extend an AI error class from `src/errors.ts`, which extend the `BusinessError` hierarchy (`BadRequestError`, `UnprocessableError`, …) from `@forestadmin/agent-toolkit`. The agent and the Forest server both map these to HTTP status codes via their error middleware; a bare `Error` becomes a generic 500.
+- **Throw errors the middleware can map to an HTTP status.** Prefer the AI error classes in `src/errors.ts`; they extend the status-typed `BusinessError` subclasses (`BadRequestError`, `UnprocessableError`, …) imported here from `@forestadmin/datasource-toolkit` (which re-exports them; the hierarchy itself lives in `agent-toolkit/src/errors.ts`). The agent and Forest server map these to status codes via their error middleware; a bare `Error` becomes a generic 500. This is a convention, not absolute — the code does throw a raw `UnprocessableError` (provider-dispatcher.ts) and even a literal `new Error` deep in `integrations/kolar/utils.ts` (re-wrapped as `AIToolUnprocessableError` at `RemoteTools.invokeTool`). For new code on a request path, return one of the typed errors.
 - **Passthrough, not a retrying client:** dispatcher models are built with `maxRetries: 0` deliberately. Provider errors are surfaced, not retried.
 - **`supported-models.ts` is a maintained allow/deny list, not a capability probe.** `Router` rejects configs whose model fails `isModelSupportingTools` at construction. When a model fails the `llm.integration` test, add its prefix/pattern/exact-id to the unsupported lists (e.g. Anthropic models that require streaming time out on non-streaming and are denylisted).
 - **Tool names are sanitized** (`RemoteTool.sanitizedName`: non-`[A-Za-z0-9_-]` → `_`) to satisfy OpenAI function-name rules; always match/invoke tools by `sanitizedName`, not the raw tool name. Duplicate sanitized names across sources require a `source-id` to disambiguate.

@@ -33,9 +33,11 @@ Key dependency-injection seam: everything a command needs arrives via the `MakeC
 yarn workspace @forestadmin/forest-cloud build    # tsc + copy src/templates to dist
 yarn workspace @forestadmin/forest-cloud lint
 yarn workspace @forestadmin/forest-cloud test
-yarn workspace @forestadmin/forest-cloud test -- src/services/publish   # single file
-yarn workspace @forestadmin/forest-cloud test -- -t "publish"          # by test name
+yarn workspace @forestadmin/forest-cloud test -- services/publish   # single file (regex vs test/ path)
+yarn workspace @forestadmin/forest-cloud test -- -t "publish"       # by test name
 ```
+
+Tests live under `test/` (Jest `testMatch` is `<rootDir>/test/**/*.test.ts`, suffixes `.test.ts` / `.unit.test.ts` / `.integration.test.ts`). The trailing positional is a regex matched against the full test-file path, so use `services/publish` (or `publish`) — a `src/...` pattern never matches and yields "No tests found".
 
 ## Gotchas
 

@@ -22,8 +22,8 @@ yarn workspace @forestadmin/datasource-sql build   # tsc
 yarn workspace @forestadmin/datasource-sql lint     # eslint src test
 yarn workspace @forestadmin/datasource-sql test     # jest
 
-# single test
-yarn workspace @forestadmin/datasource-sql test -- test/introspection/introspector.test.ts
+# single test (files follow .unit.test.ts / .integration.test.ts)
+yarn workspace @forestadmin/datasource-sql test -- test/introspection/introspector.unit.test.ts
 yarn workspace @forestadmin/datasource-sql test -- -t "name of test"
 ```
 
@@ -31,7 +31,7 @@ Many tests run against real databases. `docker-compose.yml` provides every suppo
 
 ## Gotchas
 
-- **Introspection format is versioned.** `Introspector.FORMAT_VERSION` (currently 3) gates backward-compat: v1 was a bare `Table[]`, v2 added `source`, v3 added `views`. `migrateOrIntrospect` upgrades old shapes in place; a stored introspection with a *higher* version throws `IntrospectionFormatError`. Bump `FORMAT_VERSION` and add migration logic when the schema shape changes.
+- **Introspection format is versioned.** `Introspector.FORMAT_VERSION` (currently 3) gates backward-compat: an *un-versioned* legacy shape is a bare `Table[]` (detected via `Array.isArray`); versioned v1 is `{ tables, version: 1 }`, v2 added `source`, v3 added `views`. `migrateOrIntrospect` upgrades old shapes to the latest format; a stored introspection with a *higher* version (or a different `source`) throws `IntrospectionFormatError`. Bump `FORMAT_VERSION` and extend `migrateIntrospectionInLatestFormat` when the schema shape changes.
 - **Composite foreign keys and cross-schema relations are silently dropped** (logged as warnings) — Sequelize doesn't support composite keys. Don't assume every DB FK becomes a relation.
 - **Sequelize is inconsistent about table identifiers** (string vs `{tableName, schema}`, and Postgres schema-filtering bugs). The introspector normalizes identifiers and re-filters by schema manually; preserve those workarounds when touching `getTableNames`/`getTableReferences`.
 - Soft-delete columns (`deletedAt`/`deleted_at`) are treated as Sequelize `paranoid` timestamps; `options.displaySoftDeleted` (true or a list of table names) opts specific tables back into showing soft-deleted rows.
