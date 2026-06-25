@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.6.3...@forestadmin/agent-client@1.7.0) (2026-06-25)
+
+
+### Features
+
+* **workflow:** deterministic + Full AI workflow steps ([#1696](https://github.com/ForestAdmin/agent-nodejs/issues/1696)) ([08383a0](https://github.com/ForestAdmin/agent-nodejs/commit/08383a09b1f8c9e71ee5538d13a8701bde35bae7))
+
 ## @forestadmin/agent-client [1.6.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.6.2...@forestadmin/agent-client@1.6.3) (2026-06-11)
 
 
