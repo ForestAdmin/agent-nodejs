@@ -48,10 +48,32 @@ function generate(packagesDir, outFile) {
 
   const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
 
-  fs.writeFileSync(
-    outFile,
-    `${JSON.stringify({ name: 'workflow-executor-docker-deps', private: true, dependencies: sorted }, null, 2)}\n`,
-  );
+  const manifest = { name: 'workflow-executor-docker-deps', private: true };
+
+  // Carry the monorepo's pinned package manager so a manual lockfile refresh
+  // (yarn install on this generated manifest) uses the same Yarn via Corepack,
+  // not a contributor's global Yarn 4 which would emit an incompatible lockfile.
+  // Resolved from the repo root relative to this script; absent in the Docker
+  // build (root package.json isn't copied there) — harmless, the image uses its
+  // own bundled Yarn 1.x.
+  const packageManager = rootPackageManager();
+  if (packageManager) manifest.packageManager = packageManager;
+
+  manifest.dependencies = sorted;
+
+  fs.writeFileSync(outFile, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+function rootPackageManager() {
+  try {
+    const root = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '..', '..', '..', 'package.json'), 'utf8'),
+    );
+
+    return root.packageManager;
+  } catch {
+    return undefined;
+  }
 }
 
 if (require.main === module) {

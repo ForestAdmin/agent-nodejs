@@ -23,8 +23,13 @@ Run this whenever a runtime dependency of one of the 6 workspace packages
 changes **or when the `OTEL_DEPENDENCIES` versions in `build-deps-manifest.js`
 are bumped** (the build will fail with `--frozen-lockfile` until you do):
 
+The generated manifest carries the repo's pinned `packageManager`
+(`yarn@1.22.19`), so with Corepack enabled (`corepack enable`) the refresh uses
+the same Yarn as the Docker build — a global Yarn 4 would otherwise emit an
+incompatible lockfile format.
+
 ```bash
-# from the monorepo root
+# from the monorepo root (Corepack enabled)
 TMP=$(mktemp -d)
 node packages/workflow-executor/docker/build-deps-manifest.js packages "$TMP/package.json"
 ( cd "$TMP" && yarn install --ignore-scripts )
