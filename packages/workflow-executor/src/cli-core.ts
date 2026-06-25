@@ -58,8 +58,8 @@ function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
 const TRUTHY = ['true', '1', 'yes', 'on'];
 const FALSY = ['false', '0', 'no', 'off'];
 
-function parseBooleanEnv(name: string, raw: string | undefined): boolean {
-  if (!raw) return false;
+function parseBooleanEnv(name: string, raw: string | undefined, defaultValue = false): boolean {
+  if (!raw) return defaultValue;
 
   const value = raw.trim().toLowerCase();
   if (TRUTHY.includes(value)) return true;
@@ -206,7 +206,9 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
   return {
     executorOptions,
     databaseUrl: env.DATABASE_URL,
-    databaseSsl: parseBooleanEnv('DATABASE_SSL', env.DATABASE_SSL),
+    // Defaults to true: managed Postgres (RDS, Supabase, Railway…) requires TLS.
+    // Set DATABASE_SSL=false for a local/dev database without TLS.
+    databaseSsl: parseBooleanEnv('DATABASE_SSL', env.DATABASE_SSL, true),
     mode: args.inMemory ? 'in-memory' : 'database',
   };
 }
@@ -230,7 +232,7 @@ Required environment variables:
   DATABASE_URL        Postgres connection string (not needed with --in-memory)
 
 Optional environment variables:
-  DATABASE_SSL          Set to "true" to connect to the database over TLS (managed DBs like RDS)
+  DATABASE_SSL          Connect to the database over TLS (default: true; set "false" for a local DB without TLS)
   HTTP_PORT              Default: ${DEFAULT_HTTP_PORT}
   FOREST_SERVER_URL      Default: ${DEFAULT_FOREST_SERVER_URL}
   POLLING_INTERVAL_S    Default: ${DEFAULT_POLLING_INTERVAL_S}

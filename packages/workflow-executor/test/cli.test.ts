@@ -154,7 +154,8 @@ describe('readEnvConfig', () => {
 
     expect(config.mode).toBe('database');
     expect(config.databaseUrl).toBe('postgres://u:p@localhost:5432/wfe');
-    expect(config.databaseSsl).toBe(false);
+    // DATABASE_SSL defaults to true (managed Postgres requires TLS).
+    expect(config.databaseSsl).toBe(true);
     expect(config.executorOptions).toEqual(
       expect.objectContaining({
         envSecret: 'env-secret',
@@ -172,8 +173,12 @@ describe('readEnvConfig', () => {
     },
   );
 
-  it.each(['false', '0', 'no', 'off', ''])('parses DATABASE_SSL=%s as disabled', value => {
+  it.each(['false', '0', 'no', 'off'])('parses DATABASE_SSL=%s as disabled', value => {
     expect(readEnvConfig({ ...baseEnv, DATABASE_SSL: value }, args).databaseSsl).toBe(false);
+  });
+
+  it.each([undefined, ''])('defaults DATABASE_SSL to true when %p', value => {
+    expect(readEnvConfig({ ...baseEnv, DATABASE_SSL: value }, args).databaseSsl).toBe(true);
   });
 
   it('throws ConfigurationError on a non-boolean DATABASE_SSL', () => {
@@ -519,7 +524,11 @@ describe('runCli', () => {
         envSecret: 'env-secret',
         authSecret: 'auth-secret',
         agentUrl: 'http://localhost:3351',
-        database: { uri: 'postgres://u:p@localhost:5432/wfe' },
+        // DATABASE_SSL defaults to true, so TLS is configured.
+        database: {
+          uri: 'postgres://u:p@localhost:5432/wfe',
+          dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+        },
       }),
     );
     expect(factories.buildInMemory).not.toHaveBeenCalled();
@@ -540,9 +549,20 @@ describe('runCli', () => {
     );
   });
 
-  it('does not configure database TLS when DATABASE_SSL is unset', async () => {
+  it('configures database TLS by default when DATABASE_SSL is unset', async () => {
     const { factories } = makeFactories();
     await runCli([], baseEnv, factories);
+
+    const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
+    expect(call.database).toEqual({
+      uri: 'postgres://u:p@localhost:5432/wfe',
+      dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+    });
+  });
+
+  it('does not configure database TLS when DATABASE_SSL=false', async () => {
+    const { factories } = makeFactories();
+    await runCli([], { ...baseEnv, DATABASE_SSL: 'false' }, factories);
 
     const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
     expect(call.database).toEqual({ uri: 'postgres://u:p@localhost:5432/wfe' });

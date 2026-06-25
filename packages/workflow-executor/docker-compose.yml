@@ -22,7 +22,7 @@ services:
       FOREST_SERVER_URL: ${FOREST_SERVER_URL:-https://api.forestadmin.com}
       POLLING_INTERVAL_S: ${POLLING_INTERVAL_S:-30}
       LOG_LEVEL: ${LOG_LEVEL:-Info}
-      DATABASE_SSL: ${DATABASE_SSL:-false}
+      DATABASE_SSL: ${DATABASE_SSL:-true}
     healthcheck:
       test: ["CMD", "node", "-e", "
         const http = require('http');
