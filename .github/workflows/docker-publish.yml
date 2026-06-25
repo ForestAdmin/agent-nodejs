@@ -27,7 +27,9 @@ permissions:
   packages: write
 
 concurrency:
-  group: docker-publish-${{ github.ref }}
+  # Include the dispatch version so two manual runs for different versions from the
+  # same branch don't cancel each other mid-release.
+  group: docker-publish-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -61,34 +63,7 @@ jobs:
       # breakage, a missing module (e.g. an un-copied @forestadmin package or OTel
       # dep), or a startup crash — none of which a build-only step would surface.
       - name: Smoke test (entrypoint + module graph + boot)
-        run: |
-          set -euo pipefail
-
-          # --version / --help exercise the entrypoint and eagerly load the full
-          # module graph (cli.js imports build-workflow-executor → every
-          # @forestadmin + external dep). A missing module fails here.
-          docker run --rm workflow-executor:pr --version
-          docker run --rm workflow-executor:pr --help | grep -q "Usage:"
-
-          # Boot the executor far enough to prove all runtime modules load and the
-          # OTel SDK initialises. The agent probe fails (no agent) — expected — so
-          # we assert on log markers, not exit code.
-          out="$(docker run --rm \
-            -e FOREST_ENV_SECRET="$(openssl rand -hex 32)" \
-            -e FOREST_AUTH_SECRET=smoke-test \
-            -e AGENT_URL=http://127.0.0.1:1 \
-            -e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
-            workflow-executor:pr --in-memory --json 2>&1 || true)"
-          echo "$out"
-
-          grep -q "Workflow executor starting" <<<"$out" \
-            || { echo "::error::executor did not reach startup — boot/module failure"; exit 1; }
-          if grep -qiE "Cannot find module|MODULE_NOT_FOUND" <<<"$out"; then
-            echo "::error::module resolution failure in the image"; exit 1
-          fi
-          if grep -q "OpenTelemetry packages not available" <<<"$out"; then
-            echo "::error::OTel packages missing from the image"; exit 1
-          fi
+        run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:pr
 
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
@@ -174,7 +149,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push by digest
+      # Build and LOAD locally first (no push) so we can smoke-test and scan the
+      # exact image before it reaches the registry. Nothing is published until
+      # both gates pass — otherwise a vulnerable/broken image would be pullable
+      # by digest even when the gate "fails".
+      - name: Build (load for gating)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/workflow-executor/Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: workflow-executor:${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+      - name: Smoke test (entrypoint + module graph + boot)
+        run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:${{ matrix.arch }}
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: workflow-executor:${{ matrix.arch }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      # Gates passed — publish by digest (cache hit, no rebuild).
+      - name: Push by digest
         id: build
         uses: docker/build-push-action@v6
         with:
@@ -184,15 +186,6 @@ jobs:
           outputs: type=image,name=ghcr.io/forestadmin/workflow-executor,push-by-digest=true,name-canonical=true,push=true
           sbom: true
           cache-from: type=gha,scope=${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
-
-      - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ghcr.io/forestadmin/workflow-executor@${{ steps.build.outputs.digest }}
-          severity: CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
 
       - name: Export digest
         run: |
