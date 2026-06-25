@@ -20,7 +20,8 @@ keeps the image small (~410 MB) while staying reproducible.
 Only `deps/yarn.lock` is committed — the manifest is generated on demand (the
 Docker build regenerates it too), so there is no stale `package.json` to drift.
 Run this whenever a runtime dependency of one of the 6 workspace packages
-changes (the build will fail until you do):
+changes **or when the `OTEL_DEPENDENCIES` versions in `build-deps-manifest.js`
+are bumped** (the build will fail with `--frozen-lockfile` until you do):
 
 ```bash
 # from the monorepo root

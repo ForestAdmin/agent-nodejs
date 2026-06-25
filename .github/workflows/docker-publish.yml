@@ -15,6 +15,10 @@ on:
       - 'packages/forestadmin-client/package.json'
       - 'packages/datasource-toolkit/package.json'
       - 'packages/agent-toolkit/package.json'
+      # The builder runs `yarn install --frozen-lockfile` from the repo root, so a
+      # lockfile-only change can alter the build (build.yml installs without
+      # --frozen-lockfile and wouldn't catch an inconsistency).
+      - 'yarn.lock'
       - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
     inputs:
