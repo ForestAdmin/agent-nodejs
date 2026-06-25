@@ -172,7 +172,7 @@ describe('Action', () => {
         collectionName: 'users',
         actionName: 'send-email',
         recordIds: ['1', '2'],
-        values: { email: 'test@example.com' },
+        inputs: [{ name: 'email', type: 'String', value: 'test@example.com' }],
       });
       expect(result).toEqual({ approvalRequested: true });
     });

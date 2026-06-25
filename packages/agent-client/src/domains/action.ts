@@ -118,11 +118,18 @@ export default class Action {
       const mapped = toActionError(error);
 
       if (mapped instanceof ActionRequiresApprovalError && this.createApprovalRequest) {
+        const values = this.fieldsFormStates.getFieldValues();
+        const inputs = Object.entries(values).map(([name, value]) => {
+          const type = this.fieldsFormStates.getField(name)?.getType();
+
+          return { name, type: typeof type === 'string' ? type : JSON.stringify(type), value };
+        });
+
         await this.createApprovalRequest({
           collectionName: this.collectionName,
           actionName: this.actionName,
           recordIds: this.ids ?? [],
-          values: this.fieldsFormStates.getFieldValues(),
+          inputs,
         });
 
         return { approvalRequested: true };

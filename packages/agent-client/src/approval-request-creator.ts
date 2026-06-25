@@ -1,10 +1,12 @@
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
+export type ApprovalRequestInput = { name: string; type: string; value: unknown };
+
 export type ApprovalRequestPayload = {
   collectionName: string;
   actionName: string;
   recordIds: (string | number)[];
-  values: Record<string, unknown>;
+  inputs: ApprovalRequestInput[];
 };
 
 export type CreateApprovalRequest = (payload: ApprovalRequestPayload) => Promise<void>;
@@ -32,8 +34,7 @@ export default function makeCreateApprovalRequest(options: {
             action_name: payload.actionName,
             collection_name: payload.collectionName,
             record_ids: payload.recordIds,
-            // The Forest server stores inputs as a list of { name, value } (not a values map).
-            inputs: Object.entries(payload.values).map(([name, value]) => ({ name, value })),
+            inputs: payload.inputs,
           },
         },
       },
