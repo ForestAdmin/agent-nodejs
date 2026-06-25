@@ -61,6 +61,20 @@ describe('createRemoteAgentClient', () => {
     });
   });
 
+  it('should wire approval-request creation when forestServer is provided', () => {
+    const client = createRemoteAgentClient({
+      url: 'https://api.example.com',
+      token: 'test-token',
+      forestServer: {
+        serverUrl: 'https://api.forestadmin.com',
+        serverToken: 'server-token',
+        renderingId: 42,
+      },
+    });
+
+    expect(client).toBeInstanceOf(RemoteAgentClient);
+  });
+
   it('should provide a working client that can access collections', () => {
     const client = createRemoteAgentClient({
       url: 'https://api.example.com',

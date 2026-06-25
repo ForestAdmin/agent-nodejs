@@ -264,4 +264,28 @@ describe('buildClientWithActions', () => {
       'Authentication token is missing',
     );
   });
+
+  it('should build the client when the forest server connection is complete', async () => {
+    mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
+    mockGetActionEndpoints.mockReturnValue({});
+    mockForestServerClient = createMockForestServerClient({
+      forestServerUrl: 'https://api.forestadmin.com',
+    });
+
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          renderingId: 456,
+          environmentApiEndpoint: 'http://localhost:3310',
+          forestServerToken: 'server-token',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    const result = await buildClientWithActions(request, mockForestServerClient);
+
+    expect(result.rpcClient).toBeDefined();
+    expect(typeof result.rpcClient.collection).toBe('function');
+  });
 });
