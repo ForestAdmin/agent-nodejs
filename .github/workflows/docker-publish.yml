@@ -25,6 +25,8 @@ on:
 permissions:
   contents: read
   packages: write
+  # Upload Trivy results to the Security tab (report-only; scans never block).
+  security-events: write
 
 concurrency:
   # Include the dispatch version so two manual runs for different versions from the
@@ -65,13 +67,26 @@ jobs:
       - name: Smoke test (entrypoint + module graph + boot)
         run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:pr
 
+      # Report-only: the image bundles the same deps as the npm package (already
+      # published) plus base-image OS packages, so blocking the publish on a vuln
+      # would desync GHCR from npm without removing the vuln. Findings are surfaced
+      # in the Security tab; dependency remediation is handled at the source
+      # (Dependabot/Renovate on the package).
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: workflow-executor:pr
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
+          format: sarif
+          output: trivy-results.sarif
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: workflow-executor-image
 
   extract-version:
     name: Extract version
@@ -167,15 +182,26 @@ jobs:
       - name: Smoke test (entrypoint + module graph + boot)
         run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:${{ matrix.arch }}
 
+      # Report-only (see the validate job for the rationale): never blocks the
+      # publish, results go to the Security tab.
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: workflow-executor:${{ matrix.arch }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
+          format: sarif
+          output: trivy-results.sarif
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: workflow-executor-image-${{ matrix.arch }}
 
-      # Gates passed — publish by digest (cache hit, no rebuild).
+      # Smoke test gated the publish; the scan is report-only. Publish by digest
+      # (cache hit, no rebuild).
       - name: Push by digest
         id: build
         uses: docker/build-push-action@v6
