@@ -11,7 +11,6 @@ export type ApprovalRequestPayload = {
 
 export type CreateApprovalRequest = (payload: ApprovalRequestPayload) => Promise<void>;
 
-// forestadmin-server private-api: POST /api/action-approvals (status null = creation).
 const APPROVAL_REQUEST_PATH = '/api/action-approvals';
 
 export default function makeCreateApprovalRequest(options: {
