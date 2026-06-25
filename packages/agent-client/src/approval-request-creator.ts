@@ -1,6 +1,6 @@
 import { ServerUtils } from '@forestadmin/forestadmin-client';
 
-export type ApprovalRequestInput = { name: string; type: string; value: unknown };
+export type ApprovalRequestInput = { name: string; type: string | string[]; value: unknown };
 
 export type ApprovalRequestPayload = {
   collectionName: string;

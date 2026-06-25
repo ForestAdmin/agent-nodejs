@@ -118,12 +118,13 @@ export default class Action {
       const mapped = toActionError(error);
 
       if (mapped instanceof ActionRequiresApprovalError && this.createApprovalRequest) {
-        const values = this.fieldsFormStates.getFieldValues();
-        const inputs = Object.entries(values).map(([name, value]) => {
-          const type = this.fieldsFormStates.getField(name)?.getType();
-
-          return { name, type: typeof type === 'string' ? type : JSON.stringify(type), value };
-        });
+        // Pass the field type as-is: scalar ('String', 'Number'…) or list (['String'], ['Number']),
+        // matching the Forest server's ActionInput shape. Do not stringify list types.
+        const inputs = this.fieldsFormStates.getFields().map(field => ({
+          name: field.getName(),
+          type: field.getType(),
+          value: field.getValue(),
+        }));
 
         await this.createApprovalRequest({
           collectionName: this.collectionName,

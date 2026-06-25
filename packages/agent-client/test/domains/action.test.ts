@@ -143,6 +143,13 @@ describe('Action', () => {
     });
 
     it('creates an approval request and returns approvalRequested when a creator is wired', async () => {
+      fieldsFormStates.getFields.mockReturnValue([
+        {
+          getName: () => 'email',
+          getType: () => 'String',
+          getValue: () => 'test@example.com',
+        },
+      ] as any);
       const createApprovalRequest = jest.fn().mockResolvedValue(undefined);
       const approvalAction = new Action(
         'users',
