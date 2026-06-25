@@ -25,6 +25,8 @@ import {
   DEFAULT_STEP_TIMEOUT_S,
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
+import OAuthTokenService from './oauth/token-service';
+import RemoteToolFetcher from './remote-tool-fetcher';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
 import DatabaseMcpOAuthCredentialsStore from './stores/database-mcp-oauth-credentials-store';
@@ -214,9 +216,28 @@ function createWorkflowExecutor(
 export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecutor {
   const deps = buildCommonDependencies(options);
 
+  const mcpOAuthCredentialsStore = new InMemoryMcpOAuthCredentialsStore();
+  const credentialEncryption = new CredentialEncryption();
+  // Shares the store + encryption with the deposit endpoint so runtime reads and writes (rotation)
+  // go through the same instance the HTTP server exposes. In-memory is dev-only: credentials live
+  // only for the process lifetime, but oauth2 steps work end-to-end just like the database executor.
+  const mcpOAuthTokenService = new OAuthTokenService({
+    store: mcpOAuthCredentialsStore,
+    encryption: credentialEncryption,
+    logger: deps.logger,
+  });
+
+  const remoteToolFetcher = new RemoteToolFetcher(
+    deps.workflowPort,
+    deps.aiModelPort,
+    deps.logger,
+    mcpOAuthTokenService,
+  );
+
   const runner = new Runner({
     ...deps,
     runStore: new InMemoryStore(),
+    mcpOAuthTokenService,
   });
 
   const server = new ExecutorHttpServer({
@@ -225,8 +246,9 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
-    mcpOAuthCredentialsStore: new InMemoryMcpOAuthCredentialsStore(),
-    credentialEncryption: new CredentialEncryption(),
+    mcpOAuthCredentialsStore,
+    credentialEncryption,
+    remoteToolFetcher,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);
@@ -244,9 +266,27 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
   if (mergedOptions.logging === undefined) mergedOptions.logging = false;
   const sequelize = uri ? new Sequelize(uri, mergedOptions) : new Sequelize(mergedOptions);
 
+  const mcpOAuthCredentialsStore = new DatabaseMcpOAuthCredentialsStore({ sequelize });
+  const credentialEncryption = new CredentialEncryption();
+  // Shares the store + encryption with the deposit endpoint so runtime reads and writes (rotation)
+  // go through the same instance the HTTP server migrates on start.
+  const mcpOAuthTokenService = new OAuthTokenService({
+    store: mcpOAuthCredentialsStore,
+    encryption: credentialEncryption,
+    logger: deps.logger,
+  });
+
+  const remoteToolFetcher = new RemoteToolFetcher(
+    deps.workflowPort,
+    deps.aiModelPort,
+    deps.logger,
+    mcpOAuthTokenService,
+  );
+
   const runner = new Runner({
     ...deps,
     runStore: new DatabaseStore({ sequelize, schema: mergedOptions.schema }),
+    mcpOAuthTokenService,
   });
 
   const server = new ExecutorHttpServer({
@@ -255,8 +295,9 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
-    mcpOAuthCredentialsStore: new DatabaseMcpOAuthCredentialsStore({ sequelize }),
-    credentialEncryption: new CredentialEncryption(),
+    mcpOAuthCredentialsStore,
+    credentialEncryption,
+    remoteToolFetcher,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger);

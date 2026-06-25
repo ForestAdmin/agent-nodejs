@@ -242,6 +242,46 @@ describe('loadRemoteTools', () => {
   });
 });
 
+describe('loadRemoteToolsWithFailures', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('aggregates tools and classified failures from providers that expose them', async () => {
+    const mcpTool = { name: 'mcp-tool' };
+    const failure = {
+      server: 'slack',
+      mcpServerId: 'srv-a',
+      kind: 'auth' as const,
+      error: new Error('401'),
+    };
+    mockedCreateToolProviders.mockReturnValue([
+      mockProvider({
+        loadToolsWithFailures: jest
+          .fn()
+          .mockResolvedValue({ tools: [mcpTool], failures: [failure] }),
+      }),
+    ]);
+
+    const result = await new AiClient({}).loadRemoteToolsWithFailures({} as never);
+
+    expect(result.tools).toEqual([mcpTool]);
+    expect(result.failures).toEqual([failure]);
+  });
+
+  it('falls back to loadTools with no failures for providers that do not classify', async () => {
+    const integrationTool = { name: 'zendesk-tool' };
+    mockedCreateToolProviders.mockReturnValue([
+      mockProvider({ loadTools: jest.fn().mockResolvedValue([integrationTool]) }),
+    ]);
+
+    const result = await new AiClient({}).loadRemoteToolsWithFailures({} as never);
+
+    expect(result.tools).toEqual([integrationTool]);
+    expect(result.failures).toEqual([]);
+  });
+});
+
 describe('closeConnections', () => {
   beforeEach(() => {
     jest.clearAllMocks();

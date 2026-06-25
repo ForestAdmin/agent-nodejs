@@ -1,4 +1,5 @@
 import type { StepContextConfig } from './executors/step-executor-factory';
+import type OAuthTokenService from './oauth/token-service';
 import type { ActivityLogPortFactory } from './ports/activity-log-port';
 import type { AgentPort } from './ports/agent-port';
 import type { AiModelPort } from './ports/ai-model-port';
@@ -50,6 +51,9 @@ export interface RunnerConfig {
   // Max number of ADDITIONAL steps auto-chained via /update-step response before yielding to the
   // next poll cycle (counted after the initial step). 0 disables chaining entirely. Default 50.
   maxChainDepth?: number;
+  // Per-user OAuth access-token service for oauth2 MCP steps. Wired by both the in-memory and
+  // database executors, sharing the credential store the HTTP deposit endpoint writes to.
+  mcpOAuthTokenService: OAuthTokenService;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
@@ -70,6 +74,7 @@ export default class Runner {
       config.workflowPort,
       config.aiModelPort,
       this.logger,
+      config.mcpOAuthTokenService,
     );
   }
 
@@ -313,7 +318,7 @@ export default class Runner {
           currentStep,
           this.contextConfig,
           this.config.activityLogPortFactory.forRun(currentToken),
-          mcpServerId => this.remoteToolFetcher.fetch(mcpServerId),
+          (mcpServerId, userId) => this.remoteToolFetcher.fetch(mcpServerId, userId),
           currentIncomingData,
         );
         result = await executor.execute();
