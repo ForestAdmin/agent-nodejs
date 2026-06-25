@@ -17,19 +17,18 @@ keeps the image small (~410 MB) while staying reproducible.
 
 ## Updating the lockfile
 
+Only `deps/yarn.lock` is committed — the manifest is generated on demand (the
+Docker build regenerates it too), so there is no stale `package.json` to drift.
 Run this whenever a runtime dependency of one of the 6 workspace packages
 changes (the build will fail until you do):
 
 ```bash
 # from the monorepo root
-node packages/workflow-executor/docker/build-deps-manifest.js \
-  packages packages/workflow-executor/docker/deps/package.json
-
 TMP=$(mktemp -d)
-cp packages/workflow-executor/docker/deps/package.json "$TMP/"
+node packages/workflow-executor/docker/build-deps-manifest.js packages "$TMP/package.json"
 ( cd "$TMP" && yarn install --ignore-scripts )
 cp "$TMP/yarn.lock" packages/workflow-executor/docker/deps/yarn.lock
 rm -rf "$TMP"
 ```
 
-Then commit the updated `deps/package.json` and `deps/yarn.lock`.
+Then commit the updated `deps/yarn.lock`.

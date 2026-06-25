@@ -20,16 +20,4 @@ services:
       - "host.docker.internal:host-gateway"
     ports:
       - "${HTTP_PORT:-3400}:${HTTP_PORT:-3400}"
-    healthcheck:
-      test: ["CMD", "node", "-e", "
-        const http = require('http');
-        const port = process.env.HTTP_PORT || 3400;
-        http.get('http://localhost:' + port + '/health', (r) => {
-          process.exit(r.statusCode === 200 ? 0 : 1);
-        }).on('error', () => process.exit(1));
-      "]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      # Generous: the executor runs DB migrations (advisory-locked) on boot.
-      start_period: 30s
+    # Healthcheck is inherited from the image's HEALTHCHECK (see Dockerfile).
