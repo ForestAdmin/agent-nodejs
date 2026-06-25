@@ -9,6 +9,10 @@ services:
   workflow-executor:
     image: ghcr.io/forestadmin/workflow-executor:latest
     restart: unless-stopped
+    # Lets AGENT_URL / DATABASE_URL reach host services via host.docker.internal
+    # on Linux too (resolves natively on Docker Desktop, no-op there).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${HTTP_PORT:-3400}:${HTTP_PORT:-3400}"
     environment:
