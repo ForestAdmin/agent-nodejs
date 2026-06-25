@@ -18,12 +18,14 @@ export type AuthData = {
   environmentId?: number;
   projectId?: number;
   environmentApiEndpoint: string;
+  forestServerToken?: string;
 };
 
 function createClient(options: BuildClientOptions) {
   const { request, actionEndpoints = {} } = options;
   const token = request.authInfo?.token;
   const url = request.authInfo?.extra?.environmentApiEndpoint;
+  const { forestServerToken, renderingId } = (request.authInfo?.extra ?? {}) as AuthData;
 
   if (!token) {
     throw new Error('Authentication token is missing');
@@ -33,11 +35,20 @@ function createClient(options: BuildClientOptions) {
     throw new Error('Environment API endpoint is missing or invalid');
   }
 
+  const forestServer =
+    forestServerToken && renderingId != null
+      ? {
+          url: process.env.FOREST_SERVER_URL || 'https://api.forestadmin.com',
+          forestServerToken,
+          renderingId,
+        }
+      : undefined;
+
   const rpcClient = createRemoteAgentClient({
     token,
     url,
     actionEndpoints,
-    forestServer: { url, bearerToken: token },
+    forestServer,
   });
 
   return {

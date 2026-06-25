@@ -123,7 +123,6 @@ export default class Action {
           actionName: this.actionName,
           recordIds: this.ids,
           values: this.fieldsFormStates.getFieldValues(),
-          roleIdsAllowedToApprove: mapped.roleIdsAllowedToApprove,
         });
 
         return { approvalRequested: true };

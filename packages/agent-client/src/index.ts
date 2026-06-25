@@ -35,7 +35,7 @@ export function createRemoteAgentClient(params: {
   actionEndpoints?: ActionEndpointsByCollection;
   token?: string;
   url: string;
-  forestServer?: { url: string; bearerToken: string };
+  forestServer?: { url: string; forestServerToken: string; renderingId: number | string };
 }) {
   const httpRequester = new HttpRequester(params.token, { url: params.url });
 
@@ -46,7 +46,8 @@ export function createRemoteAgentClient(params: {
     approvalRequestCreator: params.forestServer
       ? new ApprovalRequestCreator({
           forestServerUrl: params.forestServer.url,
-          bearerToken: params.forestServer.bearerToken,
+          forestServerToken: params.forestServer.forestServerToken,
+          renderingId: params.forestServer.renderingId,
         })
       : undefined,
   });
