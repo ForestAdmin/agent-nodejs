@@ -1,18 +1,20 @@
 import type { Logger } from '../ports/logger-port';
 import type { RunStore } from '../ports/run-store';
 import type { StepExecutionData } from '../types/step-execution-data';
-import type { QueryInterface, Sequelize, Transaction } from 'sequelize';
+import type { QueryInterface, Sequelize } from 'sequelize';
 
 import { DataTypes } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
 
 import { RunStorePortError, WorkflowExecutorError, extractErrorMessage } from '../errors';
+import {
+  resolveSchema,
+  runMigrations,
+  tableId as toTableId,
+  tableReference as toTableReference,
+} from './schema-migrations';
 
 const TABLE_NAME = 'workflow_step_executions';
-const DEFAULT_SCHEMA = 'forest';
-
-// Must stay constant across releases, or an old and a new deploy could migrate concurrently.
-const MIGRATION_ADVISORY_LOCK_KEY = 6_438_071_259_157;
 
 export interface DatabaseStoreOptions {
   sequelize: Sequelize;
@@ -30,17 +32,15 @@ export default class DatabaseStore implements RunStore {
   }
 
   private get schema(): string | undefined {
-    if (this.sequelize.getDialect() === 'sqlite') return undefined;
-
-    return this.configuredSchema || DEFAULT_SCHEMA;
+    return resolveSchema(this.sequelize, this.configuredSchema);
   }
 
   private get tableId(): string | { tableName: string; schema: string } {
-    return this.schema ? { tableName: TABLE_NAME, schema: this.schema } : TABLE_NAME;
+    return toTableId(this.schema, TABLE_NAME);
   }
 
   private get tableReference(): string {
-    return this.schema ? `"${this.schema}"."${TABLE_NAME}"` : `"${TABLE_NAME}"`;
+    return toTableReference(this.schema, TABLE_NAME);
   }
 
   async init(logger?: Logger): Promise<void> {
@@ -115,60 +115,15 @@ export default class DatabaseStore implements RunStore {
       logger: undefined,
     });
 
-    return this.callPort('init', async () => {
-      try {
-        if (this.sequelize.getDialect() !== 'postgres') {
-          await umzug.up();
-
-          return;
-        }
-
-        // The migration lock holds one pool connection while umzug opens a second.
-        const { pool } = this.sequelize.connectionManager as unknown as {
-          pool?: { maxSize?: number };
-        };
-        const poolMax = pool?.maxSize ?? 1;
-
-        if (poolMax < 2) {
-          throw new Error(
-            'workflow-executor requires pool.max >= 2 on Postgres: the migration lock holds one connection while migrations run on another',
-          );
-        }
-
-        // Schema in its own committed transaction so umzug (on other connections) sees it.
-        if (schema) {
-          await this.withMigrationLock(transaction =>
-            this.sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`, { transaction }),
-          );
-        }
-
-        await this.withMigrationLock(() => umzug.up());
-      } catch (error) {
-        logger?.('Error', 'Database migration failed', {
-          error: extractErrorMessage(error),
-        });
-        throw error;
-      }
-    });
-  }
-
-  // Serializes booting instances via a transaction-scoped advisory lock: auto-releases at commit
-  // and is pooler-safe (RDS Proxy / PgBouncer), unlike a session lock which would leak there.
-  private async withMigrationLock(
-    run: (transaction: Transaction) => Promise<unknown>,
-  ): Promise<void> {
-    await this.sequelize.transaction(async transaction => {
-      // Stop a client idle-in-transaction timeout from killing this idle txn mid-migration,
-      // which would drop the lock.
-      await this.sequelize.query('SET LOCAL idle_in_transaction_session_timeout = 0', {
-        transaction,
-      });
-      await this.sequelize.query('SELECT pg_advisory_xact_lock($1)', {
-        bind: [MIGRATION_ADVISORY_LOCK_KEY],
-        transaction,
-      });
-      await run(transaction);
-    });
+    return this.callPort('init', () =>
+      runMigrations({
+        sequelize: this.sequelize,
+        umzug,
+        schema,
+        logger,
+        failMessage: 'Database migration failed',
+      }),
+    );
   }
 
   async getStepExecutions(runId: string): Promise<StepExecutionData[]> {
