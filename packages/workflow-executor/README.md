@@ -8,14 +8,18 @@ client data ever leaves your infrastructure.
 
 ## Prerequisites
 
-Make sure you are on the latest version of your Forest Admin agent (Node.js/JS or Ruby), then add `workflowExecutorUrl` to your agent config:
+Make sure you are on the latest version of your Forest Admin agent (Node.js/JS or Ruby), then point your agent at the executor with `workflowExecutorUrl`:
 
 ```js
 createAgent({
   // ...
-  workflowExecutorUrl: 'http://localhost:3400',
+  workflowExecutorUrl: process.env.WORKFLOW_EXECUTOR_URL, // e.g. http://localhost:3400
 })
 ```
+
+This is **required** for the executor to work: when `workflowExecutorUrl` is set, the agent mounts the route that forwards workflow requests to the executor (and relays the JWT for auth). If it is left unset, the agent returns `404` on those routes and the executor never receives any work.
+
+Drive it from an environment variable (`WORKFLOW_EXECUTOR_URL` above) so each deployment can target its own executor. The URL is where the agent reaches the executor — its HTTP server (default port `3400`). When the agent and executor run on separate hosts behind a private network (e.g. an internal load balancer), use the executor's internal address, and make sure the agent can reach the executor's HTTP port.
 
 ---
 
