@@ -25,8 +25,6 @@ on:
 permissions:
   contents: read
   packages: write
-  # Upload Trivy results to the Security tab (report-only; scans never block).
-  security-events: write
 
 concurrency:
   # Include the dispatch version so two manual runs for different versions from the
@@ -67,26 +65,30 @@ jobs:
       - name: Smoke test (entrypoint + module graph + boot)
         run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:pr
 
-      # Report-only: the image bundles the same deps as the npm package (already
-      # published) plus base-image OS packages, so blocking the publish on a vuln
-      # would desync GHCR from npm without removing the vuln. Findings are surfaced
-      # in the Security tab; dependency remediation is handled at the source
-      # (Dependabot/Renovate on the package).
-      - name: Scan image for vulnerabilities
+      # Gate by ORIGIN, not severity. OS packages and Docker-only @opentelemetry
+      # deps can only be fixed here, so they BLOCK; the executor's npm deps are
+      # already shipped via the package, so blocking the image would just desync
+      # GHCR from npm — those are report-only (fixed at the source).
+      - name: Scan OS packages (blocking)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: workflow-executor:pr
+          vuln-type: os
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan libraries (report; OTel blocks)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: workflow-executor:pr
+          vuln-type: library
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
-          format: sarif
-          output: trivy-results.sarif
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-results.sarif
-          category: workflow-executor-image
+          format: json
+          output: trivy-libs.json
+      - name: Gate OTel, report npm deps
+        run: node packages/workflow-executor/docker/scan-gate.js trivy-libs.json
 
   extract-version:
     name: Extract version
@@ -182,26 +184,30 @@ jobs:
       - name: Smoke test (entrypoint + module graph + boot)
         run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:${{ matrix.arch }}
 
-      # Report-only (see the validate job for the rationale): never blocks the
-      # publish, results go to the Security tab.
-      - name: Scan image for vulnerabilities
+      # Gate by origin (see the validate job): OS + Docker-only OTel block; the
+      # executor's npm deps are report-only.
+      - name: Scan OS packages (blocking)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: workflow-executor:${{ matrix.arch }}
+          vuln-type: os
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan libraries (report; OTel blocks)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: workflow-executor:${{ matrix.arch }}
+          vuln-type: library
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
-          format: sarif
-          output: trivy-results.sarif
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-results.sarif
-          category: workflow-executor-image-${{ matrix.arch }}
+          format: json
+          output: trivy-libs.json
+      - name: Gate OTel, report npm deps
+        run: node packages/workflow-executor/docker/scan-gate.js trivy-libs.json
 
-      # Smoke test gated the publish; the scan is report-only. Publish by digest
-      # (cache hit, no rebuild).
+      # All gates passed (smoke + OS/OTel scan). Publish by digest (cache hit).
       - name: Push by digest
         id: build
         uses: docker/build-push-action@v6
