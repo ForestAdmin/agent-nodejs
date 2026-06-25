@@ -160,6 +160,20 @@ describe('toStepDefinition', () => {
       });
     });
 
+    it('preserves executionType=manual on a trigger-action task — no silent coercion', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.TriggerAction,
+        executionType: ServerStepExecutionTypeEnum.Manual,
+      });
+
+      // Previously the trigger schema's `.catch(AutomatedWithConfirmation)` would have coerced
+      // `manual` into AI-assisted — opting the builder back into AI prefill against their choice.
+      expect(toStepDefinition(task)).toMatchObject({
+        type: StepType.TriggerAction,
+        executionType: StepExecutionMode.Manual,
+      });
+    });
+
     // Casts through `as` because the orchestrator types forbid this combination — the runtime
     // normalization is a defensive safety net for wire data the server should not emit.
     it('should silently fall back to default when executionType is unsupported for the step type', () => {

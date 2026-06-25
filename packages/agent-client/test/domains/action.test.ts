@@ -2,6 +2,7 @@ import type FieldFormStates from '../../src/action-fields/field-form-states';
 import type HttpRequester from '../../src/http-requester';
 
 import Action from '../../src/domains/action';
+import AgentHttpError from '../../src/errors';
 
 jest.mock('../../src/http-requester');
 jest.mock('../../src/action-fields/field-form-states');
@@ -114,6 +115,44 @@ describe('Action', () => {
           },
         },
       });
+    });
+
+    it('should translate a 403 approval rejection into ActionRequiresApprovalError', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(403, {
+          errors: [
+            {
+              name: 'CustomActionRequiresApprovalError',
+              detail: 'Needs approval',
+              data: { roleIdsAllowedToApprove: [7, 9] },
+            },
+          ],
+        }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionRequiresApprovalError',
+        message: 'Needs approval',
+        roleIdsAllowedToApprove: [7, 9],
+      });
+    });
+
+    it('should translate a 422 rejection into ActionFormValidationError', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(422, { errors: [{ detail: 'Invalid value' }] }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'Invalid value',
+      });
+    });
+
+    it('should propagate other HTTP errors unchanged', async () => {
+      const error = new AgentHttpError(500, null);
+      httpRequester.query.mockRejectedValue(error);
+
+      await expect(action.execute()).rejects.toBe(error);
     });
   });
 

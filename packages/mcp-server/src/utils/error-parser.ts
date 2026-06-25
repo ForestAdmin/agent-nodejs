@@ -1,64 +1,31 @@
-/**
- * Parse JSON:API error text to extract the detail message.
- */
-function parseJsonApiErrorText(text: string): string | null {
-  try {
-    const parsed = JSON.parse(text) as {
-      errors?: Array<{ detail?: string; name?: string }>;
-    };
+import { AgentHttpError } from '@forestadmin/agent-client';
 
-    if (parsed.errors?.[0]?.detail) {
-      return parsed.errors[0].detail;
+// Extract the JSON:API detail message from a parsed body or its raw text.
+function jsonApiDetail(body: unknown, text?: string): string | null {
+  const fromBody = (body as { errors?: Array<{ detail?: string }> })?.errors?.[0]?.detail;
+  if (fromBody) return fromBody;
+
+  if (typeof text === 'string') {
+    try {
+      const parsed = JSON.parse(text) as { errors?: Array<{ detail?: string }> };
+      if (parsed.errors?.[0]?.detail) return parsed.errors[0].detail;
+    } catch {
+      // not JSON:API → fall through
     }
-  } catch {
-    // Ignore parsing failures
   }
 
   return null;
 }
 
-/**
- * Parse error from the agent RPC client.
- * The error structure can vary:
- * - Error with message containing JSON: { error: { text: '{"errors":[{"detail":"..."}]}' } }
- * - Error with message containing JSON: { text: '{"errors":[{"detail":"..."}]}' }
- * - Error with message containing JSON: { message: '...' }
- * - Error with plain string message
- */
+// Turn an agent RPC error into a human-readable message (AgentHttpError detail, else raw message).
 export default function parseAgentError(error: unknown): string | null {
-  try {
-    const err = JSON.parse((error as Error).message) as {
-      error?: { text?: string };
-      text?: string;
-      message?: string;
-    };
-
-    // Try nested error.text first (e.g., { error: { text: '...' } })
-    if (err.error?.text) {
-      const detail = parseJsonApiErrorText(err.error.text);
-
-      if (detail) return detail;
-    }
-
-    // Try direct text property (e.g., { text: '...' })
-    if (err.text) {
-      const detail = parseJsonApiErrorText(err.text);
-
-      if (detail) return detail;
-    }
-
-    // Fallback to message property
-    if (err.message) {
-      return err.message;
-    }
-
-    return null;
-  } catch {
-    // If parsing fails, try to get message directly
-    if (error && typeof error === 'object' && 'message' in error) {
-      return (error as { message: string }).message || null;
-    }
-
-    return null;
+  if (error instanceof AgentHttpError) {
+    return jsonApiDetail(error.body, error.responseText) ?? error.message;
   }
+
+  if (error && typeof error === 'object' && 'message' in error) {
+    return (error as { message: string }).message || null;
+  }
+
+  return null;
 }

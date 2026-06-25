@@ -145,12 +145,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   // store→dvds rather than latching onto a previously-loaded dvd whose collection just matches.
   private async resolveTarget(): Promise<RelationTarget> {
     const { preRecordedArgs } = this.context.stepDefinition;
-    const records = await this.getAvailableRecordRefs();
 
     const sourceRecords =
-      preRecordedArgs?.selectedRecordStepIndex !== undefined
-        ? [this.requireRecordAtStepIndex(records, preRecordedArgs.selectedRecordStepIndex)]
-        : records;
+      preRecordedArgs?.selectedRecordStepId !== undefined
+        ? [await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)]
+        : await this.getAvailableRecordRefs();
 
     const candidates = await this.buildRelationCandidates(sourceRecords);
 
@@ -158,7 +157,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       throw new NoRelationshipFieldsError(sourceRecords[0]?.collectionName ?? 'unknown');
     }
 
-    // Pre-recorded relations are pinned by their stable technical name (PRD-426), matched exactly.
+    // Pre-recorded relations are pinned by their stable technical name, matched exactly.
     const pinned = preRecordedArgs?.relationName;
     const eligible = pinned ? candidates.filter(c => c.field.fieldName === pinned) : candidates;
 
@@ -185,16 +184,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       relationType: field.relationType,
       relatedCollectionName: field.relatedCollectionName,
     };
-  }
-
-  private requireRecordAtStepIndex(records: RecordRef[], stepIndex: number): RecordRef {
-    const match = records.find(r => r.stepIndex === stepIndex);
-
-    if (!match) {
-      throw new InvalidPreRecordedArgsError(`No record found at step index ${stepIndex}`);
-    }
-
-    return match;
   }
 
   private async buildRelationCandidates(records: RecordRef[]): Promise<RelationCandidate[]> {
@@ -473,29 +462,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       return { relatedData, bestIndex: 0, suggestedFields: [], relatedSchema };
     }
 
-    const { preRecordedArgs } = this.context.stepDefinition;
-
-    if (preRecordedArgs?.selectedRecordIndex !== undefined) {
-      if (
-        !Number.isInteger(preRecordedArgs.selectedRecordIndex) ||
-        preRecordedArgs.selectedRecordIndex < 0 ||
-        preRecordedArgs.selectedRecordIndex >= relatedData.length
-      ) {
-        throw new InvalidPreRecordedArgsError(
-          `Record index ${preRecordedArgs.selectedRecordIndex} is out of range (0-${
-            relatedData.length - 1
-          })`,
-        );
-      }
-
-      return {
-        relatedData,
-        bestIndex: preRecordedArgs.selectedRecordIndex,
-        suggestedFields: [],
-        relatedSchema,
-      };
-    }
-
+    // The final record stays AI-suggested + user-confirmed — only the source + relation are
+    // pinned deterministically. Index-based record pinning was removed (not revise-safe).
     const suggestedFields = await this.selectRelevantFields(
       relatedSchema,
       this.context.stepDefinition.prompt,
@@ -552,6 +520,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       relation: target.name,
       relatedSchema,
       limit,
+      filters: this.context.stepDefinition.preRecordedArgs?.filters,
     });
   }
 

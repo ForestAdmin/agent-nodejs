@@ -1,7 +1,10 @@
 import type {
+  ActionForm,
+  ActionFormField,
   AgentPort,
   ExecuteActionQuery,
   GetActionFormInfoQuery,
+  GetActionFormQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
   GetSingleRelatedDataQuery,
@@ -11,18 +14,39 @@ import type {
 import type SchemaCache from '../schema-cache';
 import type { StepUser } from '../types/execution-context';
 import type { RecordData } from '../types/validated/collection';
-import type { ActionEndpointsByCollection } from '@forestadmin/agent-client';
+import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/agent-client';
 
-import { HttpRequester, createRemoteAgentClient } from '@forestadmin/agent-client';
+import {
+  ActionFormValidationError as ClientActionFormValidationError,
+  ActionRequiresApprovalError as ClientActionRequiresApprovalError,
+  HttpRequester,
+  createRemoteAgentClient,
+} from '@forestadmin/agent-client';
 import jsonwebtoken from 'jsonwebtoken';
 
 import {
+  ActionFormValidationError,
+  ActionRequiresApprovalError,
   AgentPortError,
   AgentProbeError,
   RecordNotFoundError,
   WorkflowExecutorError,
   extractErrorMessage,
 } from '../errors';
+
+// Re-wrap agent-client's semantic action error into the executor's domain error (carries userMessage
+// + drives the step fallback). Anything else stays raw → AgentPortError = step error.
+function mapActionExecutionError(action: string, cause: unknown): unknown {
+  if (cause instanceof ClientActionRequiresApprovalError) {
+    return new ActionRequiresApprovalError(action, cause.roleIdsAllowedToApprove);
+  }
+
+  if (cause instanceof ClientActionFormValidationError) {
+    return new ActionFormValidationError(action, cause);
+  }
+
+  return cause;
+}
 
 function toCamelCase(name: string): string {
   return name.replace(/_([a-zA-Z0-9])/g, (_, c: string) => c.toUpperCase());
@@ -109,7 +133,7 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async getRelatedData(
-    { collection, id, relation, relatedSchema, limit, fields }: GetRelatedDataQuery,
+    { collection, id, relation, relatedSchema, limit, fields, filters }: GetRelatedDataQuery,
     user: StepUser,
   ): Promise<RecordData[]> {
     return this.callAgent('getRelatedData', async () => {
@@ -120,6 +144,7 @@ export default class AgentClientAgentPort implements AgentPort {
         .list<Record<string, unknown>>({
           ...(limit !== null && { pagination: { size: limit, number: 1 } }),
           ...(fields?.length && { fields }),
+          ...(filters !== undefined && { filters: filters as SelectOptions['filters'] }),
         });
 
       return rows.map(row => {
@@ -190,7 +215,7 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async executeAction(
-    { collection, action, id }: ExecuteActionQuery,
+    { collection, action, id, values }: ExecuteActionQuery,
     user: StepUser,
   ): Promise<unknown> {
     return this.callAgent('executeAction', async () => {
@@ -198,7 +223,21 @@ export default class AgentClientAgentPort implements AgentPort {
       const recordIds = id?.length ? [id] : [];
       const act = await client.collection(collection).action(action, { recordIds });
 
-      return act.execute();
+      if (values) {
+        // setFields is strict (mirrors MCP execute-action): an unknown field is a config/drift
+        // problem, surfaced as a validation error rather than a silent skip.
+        try {
+          await act.setFields(values);
+        } catch (cause) {
+          throw new ActionFormValidationError(action, cause);
+        }
+      }
+
+      try {
+        return await act.execute();
+      } catch (cause) {
+        throw mapActionExecutionError(action, cause);
+      }
     });
   }
 
@@ -211,6 +250,39 @@ export default class AgentClientAgentPort implements AgentPort {
       const act = await client.collection(collection).action(action, { recordIds: [id] });
 
       return { hasForm: act.getFields().length > 0 };
+    });
+  }
+
+  async getActionForm(
+    { collection, action, id, values }: GetActionFormQuery,
+    user: StepUser,
+  ): Promise<ActionForm> {
+    return this.callAgent('getActionForm', async () => {
+      const client = this.createClient(user);
+      const act = await client.collection(collection).action(action, { recordIds: [id] });
+
+      // Soft-apply so dependent fields are revealed by change hooks; unknown fields (dropped by a
+      // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).
+      const skippedFields = values ? await act.tryToSetFields(values) : [];
+
+      const fields = act.getFields().map((field): ActionFormField => {
+        const base = {
+          name: field.getName(),
+          type: field.getType(),
+          value: field.getValue(),
+          isRequired: field.isRequired() ?? false,
+        };
+
+        return field.getType() === 'Enum'
+          ? { ...base, enumValues: act.getEnumField(field.getName()).getOptions() ?? undefined }
+          : base;
+      });
+
+      const requiredFields = fields
+        .filter(field => field.isRequired && (field.value === undefined || field.value === null))
+        .map(field => field.name);
+
+      return { fields, canExecute: requiredFields.length === 0, requiredFields, skippedFields };
     });
   }
 

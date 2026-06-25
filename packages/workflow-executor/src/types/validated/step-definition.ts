@@ -74,13 +74,20 @@ export type UpdateRecordStepDefinition = z.infer<typeof UpdateRecordStepDefiniti
 export const TriggerActionStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.TriggerAction),
+  // A form-bearing action can be Manual (pause, no AI prefill), AI-assisted
+  // (AutomatedWithConfirmation) or Full AI (FullyAutomated). NO `.catch` — coercing a `manual`
+  // value to AutomatedWithConfirmation would silently opt the builder back into AI prefill.
   executionType: z
-    .enum([AutomatedWithConfirmation, FullyAutomated])
-    .default(AutomatedWithConfirmation)
-    .catch(AutomatedWithConfirmation),
+    .enum([Manual, AutomatedWithConfirmation, FullyAutomated])
+    .default(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
-      selectedRecordStepIndex: z.number().int().optional(),
+      /**
+       * "On record" — the source record the action is triggered on, referenced by the stable BPMN
+       * step id of the previous Load Related Record step that loaded it, or WORKFLOW_START_STEP_ID
+       * for the trigger record. Stable across revisions, unlike the runtime stepIndex.
+       */
+      selectedRecordStepId: z.string().optional(),
       /** Technical name of the action to trigger */
       actionName: z.string().optional(),
     })
@@ -97,14 +104,24 @@ export const LoadRelatedRecordStepDefinitionSchema = z.object({
     .catch(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
-      selectedRecordStepIndex: z.number().int().optional(),
-      /** Technical name of the relation to follow */
+      /**
+       * "Related to" — the source record, referenced by the stable BPMN step id of the previous
+       * Load Related Record step that loaded it, or WORKFLOW_START_STEP_ID for the trigger record.
+       * Stable across revisions (clones keep the id) and known at build time (unlike the runtime
+       * stepIndex), so the editor can write it deterministically.
+       */
+      selectedRecordStepId: z.string().optional(),
+      /** "From collection" — the relation to follow (technical name) */
       relationName: z.string().optional(),
-      selectedRecordIndex: z.number().int().optional(),
+      /** 1–n relation filter (conditionTree), forwarded verbatim; loosely typed as it's trusted config the agent validates. */
+      filters: z.unknown().optional(),
     })
     .optional(),
 });
 export type LoadRelatedRecordStepDefinition = z.infer<typeof LoadRelatedRecordStepDefinitionSchema>;
+
+/** Sentinel "Related to" reference for the record the workflow was triggered on (the base record). */
+export const WORKFLOW_START_STEP_ID = 'workflow-start';
 
 export const McpStepDefinitionSchema = z.object({
   ...sharedFields,

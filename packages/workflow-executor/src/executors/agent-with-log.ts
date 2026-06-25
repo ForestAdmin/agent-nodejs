@@ -1,8 +1,10 @@
 import type ActivityLog from './activity-log';
 import type {
+  ActionForm,
   AgentPort,
   ExecuteActionQuery,
   GetActionFormInfoQuery,
+  GetActionFormQuery,
   GetRecordQuery,
   GetRelatedDataQuery,
   GetSingleRelatedDataQuery,
@@ -115,6 +117,12 @@ export default class AgentWithLog {
   // not a data access, so unlike the methods above it records NO activity-log entry.
   getActionFormInfo(query: GetActionFormInfoQuery): Promise<{ hasForm: boolean }> {
     return this.agentPort.getActionFormInfo(query, this.user);
+  }
+
+  // Unaudited passthrough: reading the form structure (and applying values to reveal dependent
+  // fields via change hooks) is read-only — the actual execution is what gets logged.
+  getActionForm(query: GetActionFormQuery): Promise<ActionForm> {
+    return this.agentPort.getActionForm(query, this.user);
   }
 
   // Unaudited passthrough: resolves a polymorphic relation's target type (metadata probe). The
