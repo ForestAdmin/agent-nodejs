@@ -56,8 +56,6 @@ export type BaseActionContext = {
   recordIds?: RecordId[];
 };
 
-// Exactly one branch is set: a normal execution result, or an approval request was created instead
-// of executing (only possible when the client is wired with a createApprovalRequest).
 export type ActionExecuteResult = { success: string; html?: string } | { approvalRequested: true };
 
 export type ActionEndpointsByCollection = {
