@@ -38,6 +38,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Check @forestadmin dependency closure
+        run: node packages/workflow-executor/docker/check-deps-closure.js
+
       - uses: docker/setup-buildx-action@v3
       - name: Build (no push)
         uses: docker/build-push-action@v6
@@ -49,6 +56,40 @@ jobs:
           load: true
           tags: workflow-executor:pr
           cache-from: type=gha,scope=amd64
+
+      # The build only proves the image compiles. Run it to catch entrypoint
+      # breakage, a missing module (e.g. an un-copied @forestadmin package or OTel
+      # dep), or a startup crash — none of which a build-only step would surface.
+      - name: Smoke test (entrypoint + module graph + boot)
+        run: |
+          set -euo pipefail
+
+          # --version / --help exercise the entrypoint and eagerly load the full
+          # module graph (cli.js imports build-workflow-executor → every
+          # @forestadmin + external dep). A missing module fails here.
+          docker run --rm workflow-executor:pr --version
+          docker run --rm workflow-executor:pr --help | grep -q "Usage:"
+
+          # Boot the executor far enough to prove all runtime modules load and the
+          # OTel SDK initialises. The agent probe fails (no agent) — expected — so
+          # we assert on log markers, not exit code.
+          out="$(docker run --rm \
+            -e FOREST_ENV_SECRET="$(openssl rand -hex 32)" \
+            -e FOREST_AUTH_SECRET=smoke-test \
+            -e AGENT_URL=http://127.0.0.1:1 \
+            -e OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
+            workflow-executor:pr --in-memory --json 2>&1 || true)"
+          echo "$out"
+
+          grep -q "Workflow executor starting" <<<"$out" \
+            || { echo "::error::executor did not reach startup — boot/module failure"; exit 1; }
+          if grep -qiE "Cannot find module|MODULE_NOT_FOUND" <<<"$out"; then
+            echo "::error::module resolution failure in the image"; exit 1
+          fi
+          if grep -q "OpenTelemetry packages not available" <<<"$out"; then
+            echo "::error::OTel packages missing from the image"; exit 1
+          fi
+
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:

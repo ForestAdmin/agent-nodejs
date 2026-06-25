@@ -32,32 +32,37 @@ const OTEL_DEPENDENCIES = {
   '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
 };
 
-const [, , packagesDir, outFile] = process.argv;
+function generate(packagesDir, outFile) {
+  const deps = {};
 
-if (!packagesDir || !outFile) {
-  console.error('Usage: node build-deps-manifest.js <packagesDir> <outFile>');
-  process.exit(1);
-}
+  for (const pkg of WORKSPACE_PACKAGES) {
+    const manifestPath = path.join(packagesDir, pkg, 'package.json');
+    const { dependencies = {} } = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-const deps = {};
-
-for (const pkg of WORKSPACE_PACKAGES) {
-  const manifestPath = path.join(packagesDir, pkg, 'package.json');
-  const { dependencies = {} } = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-
-  for (const [name, version] of Object.entries(dependencies)) {
-    if (!name.startsWith('@forestadmin/')) deps[name] = version;
+    for (const [name, version] of Object.entries(dependencies)) {
+      if (!name.startsWith('@forestadmin/')) deps[name] = version;
+    }
   }
+
+  Object.assign(deps, OTEL_DEPENDENCIES);
+
+  const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
+
+  fs.writeFileSync(
+    outFile,
+    `${JSON.stringify({ name: 'workflow-executor-docker-deps', private: true, dependencies: sorted }, null, 2)}\n`,
+  );
 }
 
-Object.assign(deps, OTEL_DEPENDENCIES);
+if (require.main === module) {
+  const [, , packagesDir, outFile] = process.argv;
 
-const sorted = Object.fromEntries(Object.keys(deps).sort().map(key => [key, deps[key]]));
+  if (!packagesDir || !outFile) {
+    console.error('Usage: node build-deps-manifest.js <packagesDir> <outFile>');
+    process.exit(1);
+  }
 
-const manifest = {
-  name: 'workflow-executor-docker-deps',
-  private: true,
-  dependencies: sorted,
-};
+  generate(packagesDir, outFile);
+}
 
-fs.writeFileSync(outFile, `${JSON.stringify(manifest, null, 2)}\n`);
+module.exports = { WORKSPACE_PACKAGES, OTEL_DEPENDENCIES, generate };
