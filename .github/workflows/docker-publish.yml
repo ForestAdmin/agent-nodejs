@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - '@forestadmin/workflow-executor@*'
+  pull_request:
+    paths:
+      - 'packages/workflow-executor/**'
+      - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
     inputs:
       version:
@@ -14,9 +18,40 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # On PRs: build the image (no push) to catch Dockerfile breakage before release.
+  validate:
+    name: Validate Dockerfile build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/workflow-executor/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: workflow-executor:pr
+          cache-from: type=gha,scope=amd64
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: workflow-executor:pr
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
   extract-version:
     name: Extract version
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       full: ${{ steps.version.outputs.full }}
@@ -38,6 +73,7 @@ jobs:
 
   build:
     name: Build (${{ matrix.arch }})
+    if: github.event_name != 'pull_request'
     needs: extract-version
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -70,8 +106,17 @@ jobs:
           file: packages/workflow-executor/Dockerfile
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=ghcr.io/forestadmin/workflow-executor,push-by-digest=true,name-canonical=true,push=true
+          sbom: true
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/forestadmin/workflow-executor@${{ steps.build.outputs.digest }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
 
       - name: Export digest
         run: |
@@ -90,6 +135,7 @@ jobs:
 
   merge:
     name: Publish multi-arch manifest
+    if: github.event_name != 'pull_request'
     needs: [extract-version, build]
     runs-on: ubuntu-latest
     steps:
