@@ -24,6 +24,8 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
+    "start": "node dist/cli.js",
+    "start:dev": "node --env-file=.env dist/cli.js",
     "clean": "rm -rf coverage dist",
     "lint": "eslint src test",
     "test": "jest"

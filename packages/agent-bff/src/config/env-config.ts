@@ -33,15 +33,14 @@ const MAX_PORT = 65535;
 const HTTP_URL_SCHEMA = z.url({ protocol: /^https?$/ });
 
 function normalize(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-
-  return trimmed === '' ? undefined : trimmed;
+  return value === undefined || value.trim() === '' ? undefined : value;
 }
 
 function parsePort(raw: string | undefined): number {
-  if (raw === undefined) return DEFAULT_BFF_PORT;
+  const trimmed = raw?.trim();
+  if (trimmed === undefined || trimmed === '') return DEFAULT_BFF_PORT;
 
-  const port = DECIMAL_INTEGER.test(raw) ? Number(raw) : NaN;
+  const port = DECIMAL_INTEGER.test(trimmed) ? Number(trimmed) : NaN;
 
   if (Number.isNaN(port) || port > MAX_PORT) {
     throw new ConfigurationError(
@@ -53,7 +52,7 @@ function parsePort(raw: string | undefined): number {
 }
 
 function isHttpUrl(value: string): boolean {
-  return HTTP_URL_SCHEMA.safeParse(value).success;
+  return !/\s/.test(value) && HTTP_URL_SCHEMA.safeParse(value).success;
 }
 
 export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
@@ -79,7 +78,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     forestServerUrl: normalized.FOREST_SERVER_URL,
     forestAppUrl: normalized.FOREST_APP_URL,
     agentUrl: normalized.AGENT_URL,
-    httpPort: parsePort(normalize(env.HTTP_PORT)),
+    httpPort: parsePort(env.HTTP_PORT),
     presence,
     hasAllRequired: REQUIRED_KEYS.every(key => presence[key]),
   };

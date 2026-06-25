@@ -54,6 +54,12 @@ describe('parseConfig', () => {
           expect(() => parseConfig({ ...VALID_ENV, [key]: scheme })).toThrow(ConfigurationError);
         });
       }
+
+      for (const spaced of [' https://a.com', 'https://a.com ', 'https://a.com/a b'] as const) {
+        it(`should throw when ${key} contains whitespace ("${spaced}")`, () => {
+          expect(() => parseConfig({ ...VALID_ENV, [key]: spaced })).toThrow(ConfigurationError);
+        });
+      }
     }
 
     for (const value of ['abc', '-1', '99999', '0x10', '1e3', '3.5'] as const) {
@@ -86,8 +92,21 @@ describe('parseConfig', () => {
       expect(parseConfig({ ...VALID_ENV, HTTP_PORT: '8080' }).httpPort).toBe(8080);
     });
 
+    it('should trim surrounding whitespace before parsing', () => {
+      expect(parseConfig({ ...VALID_ENV, HTTP_PORT: '  8080  ' }).httpPort).toBe(8080);
+    });
+
     it('should accept 0 (OS-assigned ephemeral port)', () => {
       expect(parseConfig({ ...VALID_ENV, HTTP_PORT: '0' }).httpPort).toBe(0);
+    });
+  });
+
+  describe('when a secret has surrounding whitespace', () => {
+    it('should keep the secret value verbatim, not trimmed', () => {
+      const config = parseConfig({ ...VALID_ENV, FOREST_AUTH_SECRET: '  abc  ' });
+
+      expect(config.presence.FOREST_AUTH_SECRET).toBe(true);
+      expect(config.forestAuthSecret).toBe('  abc  ');
     });
   });
 });

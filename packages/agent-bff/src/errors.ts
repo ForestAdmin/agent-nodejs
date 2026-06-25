@@ -5,15 +5,14 @@ export class ConfigurationError extends Error {
   }
 }
 
+function messageOf(value: unknown): string | undefined {
+  return value instanceof Error && value.message ? value.message : undefined;
+}
+
 export function extractErrorMessage(err: unknown): string {
   if (!(err instanceof Error)) return String(err);
-  if (err.message) return err.message;
 
-  const { parent } = err as { parent?: unknown };
-  if (parent instanceof Error && parent.message) return parent.message;
+  const { parent, cause } = err as { parent?: unknown; cause?: unknown };
 
-  const { cause } = err as { cause?: unknown };
-  if (cause instanceof Error && cause.message) return cause.message;
-
-  return err.name || 'Unknown error';
+  return err.message || messageOf(parent) || messageOf(cause) || err.name || 'Unknown error';
 }

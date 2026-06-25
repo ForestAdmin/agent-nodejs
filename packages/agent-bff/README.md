@@ -9,9 +9,21 @@ slices.
 
 ## Usage
 
+Packaged / production — run the bin:
+
 ```bash
 forest-bff
 ```
+
+Local development — copy the env template, fill it in, and start with it loaded:
+
+```bash
+cp .env.example .env   # then fill in the secrets
+yarn build
+yarn start:dev         # node --env-file=.env dist/cli.js
+```
+
+`yarn start` runs the built server without loading a `.env` (env comes from the shell).
 
 ## Configuration
 
@@ -35,12 +47,11 @@ forest-bff
 
 ```jsonc
 // 200 — all required config present
-{ "status": "ok", "version": "<package version>", "config": { "FOREST_AUTH_SECRET": true, "...": true } }
+{ "status": "ok", "version": "<package version>" }
 // 503 — one or more required keys missing
-{ "status": "degraded", "version": "<package version>", "config": { "FOREST_SERVER_URL": false, "...": true } }
+{ "status": "degraded", "version": "<package version>" }
 ```
 
-`config` reports presence booleans only, never secret values. `HTTP_PORT` is not listed: it has a
-default, so it is never a missing-required-key case.
-
-Every response carries the `X-Forest-Bff-Version` header, read from `package.json`.
+The body never discloses which config keys are present or missing — that would leak the internal
+config surface to an unauthenticated probe. Missing keys are logged once at startup (`Warn`) for
+operators. Every response carries the `X-Forest-Bff-Version` header, read from `package.json`.
