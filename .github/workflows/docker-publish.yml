@@ -65,6 +65,7 @@ jobs:
       full: ${{ steps.version.outputs.full }}
       minor: ${{ steps.version.outputs.minor }}
       major: ${{ steps.version.outputs.major }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - name: Parse version from tag or input
         id: version
@@ -78,6 +79,11 @@ jobs:
           echo "full=$VERSION" >> $GITHUB_OUTPUT
           echo "minor=${VERSION%.*}" >> $GITHUB_OUTPUT
           echo "major=${VERSION%%.*}" >> $GITHUB_OUTPUT
+          # A SemVer prerelease (e.g. 1.8.0-beta.1) must not move the mutable tags.
+          case "$VERSION" in
+            *-*) echo "prerelease=true" >> $GITHUB_OUTPUT ;;
+            *)   echo "prerelease=false" >> $GITHUB_OUTPUT ;;
+          esac
 
   build:
     name: Build (${{ matrix.arch }})
@@ -95,6 +101,10 @@ jobs:
             runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On manual dispatch, check out the requested version tag so the built
+          # image matches the version it is published under (not the default branch).
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('@forestadmin/workflow-executor@{0}', github.event.inputs.version) || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -166,13 +176,22 @@ jobs:
 
       - name: Create and push multi-arch manifest
         working-directory: /tmp/digests
+        env:
+          IMAGE: ghcr.io/forestadmin/workflow-executor
+          FULL: ${{ needs.extract-version.outputs.full }}
+          MINOR: ${{ needs.extract-version.outputs.minor }}
+          MAJOR: ${{ needs.extract-version.outputs.major }}
+          PRERELEASE: ${{ needs.extract-version.outputs.prerelease }}
         run: |
-          docker buildx imagetools create \
-            -t ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.full }} \
-            -t ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.minor }} \
-            -t ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.major }} \
-            -t ghcr.io/forestadmin/workflow-executor:latest \
-            $(printf 'ghcr.io/forestadmin/workflow-executor@sha256:%s ' *)
+          # Always publish the immutable full-version tag. The mutable tags
+          # (minor, major, latest) only move for stable releases, so a prerelease
+          # like 1.8.0-beta.1 never overwrites the stable :latest / :1 images.
+          TAGS="-t $IMAGE:$FULL"
+          if [ "$PRERELEASE" != "true" ]; then
+            TAGS="$TAGS -t $IMAGE:$MINOR -t $IMAGE:$MAJOR -t $IMAGE:latest"
+          fi
+          docker buildx imagetools create $TAGS \
+            $(printf "$IMAGE@sha256:%s " *)
 
       - name: Inspect manifest
         run: docker buildx imagetools inspect ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.full }}
