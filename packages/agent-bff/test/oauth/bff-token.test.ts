@@ -87,5 +87,22 @@ describe('bff-token', () => {
 
       expect(JSON.stringify(decode(token))).not.toContain('SHOULD-NOT-LEAK');
     });
+
+    it('should cap the expiry at the 15-minute ceiling even if the caller asks for more', () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00Z'));
+
+      const token = issueBffAccessToken({
+        sid: 'sid-5',
+        user: USER,
+        renderingId: 17,
+        authSecret: AUTH_SECRET,
+        expiresInSeconds: 3600,
+      });
+
+      const payload = decode(token);
+      expect((payload.exp as number) - (payload.iat as number)).toBe(15 * 60);
+
+      jest.useRealTimers();
+    });
   });
 });
