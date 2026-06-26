@@ -17,21 +17,42 @@ import version from './version';
 const BODY_LIMIT = '16kb';
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
 
-async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise<Middleware[]> {
+interface ResolvedOAuthConfig {
+  forestServerUrl: string;
+  forestEnvSecret: string;
+  forestAppUrl: string;
+  forestAuthSecret: string;
+  tokenEncryptionKey: string;
+}
+
+function resolveOAuthConfig(config: BFFConfig): ResolvedOAuthConfig | undefined {
   const { forestServerUrl, forestEnvSecret, forestAppUrl, forestAuthSecret, tokenEncryptionKey } =
     config;
 
   if (
-    !forestServerUrl ||
-    !forestEnvSecret ||
-    !forestAppUrl ||
-    !forestAuthSecret ||
-    !tokenEncryptionKey
+    forestServerUrl &&
+    forestEnvSecret &&
+    forestAppUrl &&
+    forestAuthSecret &&
+    tokenEncryptionKey
   ) {
+    return { forestServerUrl, forestEnvSecret, forestAppUrl, forestAuthSecret, tokenEncryptionKey };
+  }
+
+  return undefined;
+}
+
+async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise<Middleware[]> {
+  const oauthConfig = resolveOAuthConfig(config);
+
+  if (!oauthConfig) {
     logger('Warn', 'OAuth routes disabled: required configuration is missing');
 
     return [];
   }
+
+  const { forestServerUrl, forestEnvSecret, forestAppUrl, forestAuthSecret, tokenEncryptionKey } =
+    oauthConfig;
 
   const serverClient = new ForestServerClient({ forestServerUrl, envSecret: forestEnvSecret });
 
