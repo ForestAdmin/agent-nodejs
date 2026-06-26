@@ -88,15 +88,17 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     REQUIRED_KEYS.map(key => [key, normalized[key] !== undefined]),
   ) as PresenceMap;
 
+  const tokenEncryptionKey = parseEncryptionKey(env.BFF_TOKEN_ENCRYPTION_KEY);
+
   return {
     forestAuthSecret: normalized.FOREST_AUTH_SECRET,
     forestEnvSecret: normalized.FOREST_ENV_SECRET,
     forestServerUrl: normalized.FOREST_SERVER_URL,
     forestAppUrl: normalized.FOREST_APP_URL,
     agentUrl: normalized.AGENT_URL,
-    tokenEncryptionKey: parseEncryptionKey(env.BFF_TOKEN_ENCRYPTION_KEY),
+    tokenEncryptionKey,
     httpPort: parsePort(env.HTTP_PORT),
     presence,
-    hasAllRequired: REQUIRED_KEYS.every(key => presence[key]),
+    hasAllRequired: REQUIRED_KEYS.every(key => presence[key]) && tokenEncryptionKey !== undefined,
   };
 }
