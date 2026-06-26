@@ -105,7 +105,76 @@ describe('ForestServerClient', () => {
     });
   });
 
+  describe('when fetching the environment id', () => {
+    it('should parse the numeric id from the Forest server response', async () => {
+      mockFetchOnce({ ok: true, json: async () => ({ data: { id: '42' } }) });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.fetchEnvironmentId()).resolves.toBe(42);
+    });
+
+    it('should throw when the response is not ok', async () => {
+      mockFetchOnce({ ok: false, status: 503 });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.fetchEnvironmentId()).rejects.toThrow(/Failed to fetch environment/);
+    });
+
+    it('should throw when the id is not an integer', async () => {
+      mockFetchOnce({ ok: true, json: async () => ({ data: { id: 'not-a-number' } }) });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.fetchEnvironmentId()).rejects.toThrow(/parse environment id/);
+    });
+  });
+
+  describe('when decoding renderingId from an exchange token', () => {
+    it('should throw when the authorization_code access token has no renderingId', async () => {
+      const accessWithoutRendering = jsonwebtoken.sign(
+        { exp: Math.floor(Date.now() / 1000) + 3600 },
+        'irrelevant',
+      );
+      mockFetchOnce({
+        ok: true,
+        json: async () => ({ access_token: accessWithoutRendering, refresh_token: 'R1' }),
+      });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(
+        client.exchangeCode({ code: 'c', codeVerifier: 'v', redirectUri: 'r', clientId: 'x' }),
+      ).rejects.toThrow(/Failed to decode renderingId/);
+    });
+
+    it('should default renderingId to 0 on refresh when the token has none', async () => {
+      const accessWithoutRendering = jsonwebtoken.sign(
+        { exp: Math.floor(Date.now() / 1000) + 3600 },
+        'irrelevant',
+      );
+      mockFetchOnce({
+        ok: true,
+        json: async () => ({ access_token: accessWithoutRendering, refresh_token: 'R2' }),
+      });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.refreshServerToken('R1')).resolves.toMatchObject({ renderingId: 0 });
+    });
+  });
+
   describe('when looking up a registered client', () => {
+    it('should return the client json on the ok path', async () => {
+      const registered = { client_id: 'client-1', redirect_uris: ['http://localhost/cb'] };
+      mockFetchOnce({ ok: true, json: async () => registered });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.getRegisteredClient('client-1')).resolves.toEqual(registered);
+    });
+
     it('should return undefined on 404 (unknown client)', async () => {
       mockFetchOnce({ ok: false, status: 404 });
 

@@ -8,6 +8,7 @@ const VALID_ENV = {
   FOREST_SERVER_URL: 'https://api.forestadmin.com',
   FOREST_APP_URL: 'https://app.forestadmin.com',
   AGENT_URL: 'https://agent.example.com',
+  BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
 } satisfies NodeJS.ProcessEnv;
 
 describe('parseConfig', () => {
@@ -117,11 +118,12 @@ describe('parseConfig', () => {
       expect(REQUIRED_KEYS).not.toContain('BFF_TOKEN_ENCRYPTION_KEY');
     });
 
-    it('should leave the key undefined and still boot when absent', () => {
-      const config = parseConfig({ ...VALID_ENV });
+    it('should leave the key undefined and mark hasAllRequired false when absent', () => {
+      const { BFF_TOKEN_ENCRYPTION_KEY, ...envWithoutKey } = VALID_ENV;
+      const config = parseConfig(envWithoutKey);
 
       expect(config.tokenEncryptionKey).toBeUndefined();
-      expect(config.hasAllRequired).toBe(true);
+      expect(config.hasAllRequired).toBe(false);
     });
 
     it('should expose the key when a valid base64 32-byte value is provided', () => {

@@ -1,5 +1,6 @@
 import type ForestServerClient from '../../src/oauth/forest-server-client';
 import type { ServerTokens } from '../../src/oauth/forest-server-client';
+import type { SessionStore, StoredSession } from '../../src/oauth/session-store';
 
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -103,6 +104,40 @@ describe('ensureFreshServerAccess', () => {
       expect(refreshServerToken).toHaveBeenCalledTimes(1);
       expect(a).toBe(rotated.saasAccessToken);
       expect(b).toBe(rotated.saasAccessToken);
+    });
+  });
+
+  describe('when the session does not exist', () => {
+    it('should throw a session_expired error without refreshing', async () => {
+      const store = buildStore();
+      const refreshServerToken = jest.fn();
+      const client = { refreshServerToken } as unknown as ForestServerClient;
+
+      await expect(
+        ensureFreshServerAccess({ sid: 'unknown-sid', store, serverClient: client }),
+      ).rejects.toMatchObject({ type: 'session_expired' });
+      expect(refreshServerToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the session exists but its SaaS refresh token is gone', () => {
+    it('should throw a session_expired error', async () => {
+      const expiredAccess = accessToken(-10);
+      const store: SessionStore = {
+        get: () => ({ saasAccessToken: expiredAccess } as StoredSession),
+        getSaasRefreshToken: () => undefined,
+        create: jest.fn(),
+        updateSaasTokens: jest.fn(),
+        claimAuthorizationCode: jest.fn(),
+        pendingClaimCount: jest.fn(),
+      };
+      const refreshServerToken = jest.fn();
+      const client = { refreshServerToken } as unknown as ForestServerClient;
+
+      await expect(
+        ensureFreshServerAccess({ sid: 'sid-1', store, serverClient: client }),
+      ).rejects.toMatchObject({ type: 'session_expired' });
+      expect(refreshServerToken).not.toHaveBeenCalled();
     });
   });
 

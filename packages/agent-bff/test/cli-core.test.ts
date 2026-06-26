@@ -46,6 +46,52 @@ describe('runCli', () => {
     });
   });
 
+  describe('when the full OAuth configuration is present', () => {
+    const FULL_ENV = {
+      ...VALID_ENV,
+      BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
+    } satisfies NodeJS.ProcessEnv;
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should wire OAuth routes (no disabled warning) and boot', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'ok',
+        json: async () => ({ data: { id: '42' } }),
+      }) as unknown as typeof fetch;
+
+      const logs: string[] = [];
+
+      const logger: Logger = (_level, message) => {
+        logs.push(message);
+      };
+
+      const server = await runCli({ ...FULL_ENV }, logger);
+
+      try {
+        expect(server).toBeDefined();
+        expect(logs).not.toContain('OAuth routes disabled: required configuration is missing');
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should propagate a fetchEnvironmentId failure out of runCli', async () => {
+      global.fetch = jest
+        .fn()
+        .mockRejectedValue(new Error('forest server unreachable')) as unknown as typeof fetch;
+
+      await expect(runCli({ ...FULL_ENV }, noopLogger)).rejects.toThrow(
+        'forest server unreachable',
+      );
+    });
+  });
+
   describe('when a config value is malformed', () => {
     it('should throw ConfigurationError naming the key without echoing the secret', async () => {
       const err = await runCli(
