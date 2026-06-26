@@ -34,6 +34,7 @@ export interface SessionStore {
   getSaasRefreshToken(sid: string): string | undefined;
   updateSaasTokens(sid: string, tokens: UpdateSaasTokensInput): void;
   claimAuthorizationCode(code: string): boolean;
+  releaseAuthorizationCode(code: string): void;
   pendingClaimCount(): number;
 }
 
@@ -163,6 +164,10 @@ export default function createInMemorySessionStore({
       usedCodes.set(code, now() + authCodeTtlSeconds * 1000);
 
       return true;
+    },
+
+    releaseAuthorizationCode(code) {
+      usedCodes.delete(code);
     },
 
     pendingClaimCount() {
