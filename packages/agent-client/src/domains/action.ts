@@ -21,9 +21,32 @@ import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError 
 
 // JSON:API error body the agent returns on a rejected action.
 type ActionErrorBody = {
-  errors?: { name?: string; detail?: string; data?: { roleIdsAllowedToApprove?: number[] } }[];
+  errors?: {
+    name?: string;
+    detail?: string;
+    message?: string;
+    title?: string;
+    data?: { roleIdsAllowedToApprove?: number[] };
+  }[];
+  error?: string;
+  message?: string;
   data?: { roleIdsAllowedToApprove?: number[] };
 };
+
+function extractDetail(error: AgentHttpError): string | undefined {
+  const body = (error.body ?? {}) as ActionErrorBody;
+  const first = body.errors?.[0];
+  const message =
+    first?.detail ||
+    first?.message ||
+    first?.title ||
+    body.error ||
+    body.message ||
+    (typeof error.body === 'string' ? error.body : undefined) ||
+    error.responseText;
+
+  return message?.trim() || undefined;
+}
 
 // Translate the transport AgentHttpError into a semantic action error so callers route on meaning.
 // Approval gate = 403 CustomActionRequiresApprovalError; form validation = 400/422; else unchanged.
@@ -31,7 +54,7 @@ function toActionError(error: unknown): unknown {
   if (!(error instanceof AgentHttpError)) return error;
 
   const body = (error.body ?? {}) as ActionErrorBody;
-  const detail = body.errors?.[0]?.detail;
+  const detail = extractDetail(error);
   const isApproval =
     body.errors?.[0]?.name === 'CustomActionRequiresApprovalError' ||
     !!error.responseText?.includes('CustomActionRequiresApprovalError');

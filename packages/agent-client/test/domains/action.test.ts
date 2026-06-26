@@ -148,6 +148,37 @@ describe('Action', () => {
       });
     });
 
+    it('preserves the server message from errors[0].message when detail is absent', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(400, { errors: [{ message: 'S3 access denied' }] }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'S3 access denied',
+      });
+    });
+
+    it('preserves the server message from the raw responseText when the body has none', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(422, {}, 'Query with filter did not match any records'),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'Query with filter did not match any records',
+      });
+    });
+
+    it('falls back to a generic message only when the server sends nothing', async () => {
+      httpRequester.query.mockRejectedValue(new AgentHttpError(400, {}));
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'The action form values were rejected.',
+      });
+    });
+
     it('should propagate other HTTP errors unchanged', async () => {
       const error = new AgentHttpError(500, null);
       httpRequester.query.mockRejectedValue(error);
