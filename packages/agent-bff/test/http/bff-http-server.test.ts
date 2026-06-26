@@ -175,4 +175,32 @@ describe('BFFHttpServer', () => {
       }
     });
   });
+
+  describe('when stop is called without a running server', () => {
+    it('should resolve immediately', async () => {
+      const server = createServer({ ...VALID_ENV });
+
+      await expect(server.stop()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('when the underlying server fails to close', () => {
+    it('should reject with the close error', async () => {
+      const server = createServer({ ...VALID_ENV });
+      await server.start();
+
+      const closeError = new Error('close failed');
+      const internal = (server as unknown as { server: Server }).server;
+      jest.spyOn(internal, 'close').mockImplementation(((cb: (err?: Error) => void) => {
+        cb(closeError);
+
+        return internal;
+      }) as Server['close']);
+
+      await expect(server.stop()).rejects.toBe(closeError);
+
+      jest.restoreAllMocks();
+      await closeServer(internal);
+    });
+  });
 });
