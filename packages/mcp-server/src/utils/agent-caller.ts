@@ -10,6 +10,7 @@ import { fetchForestSchema, getActionEndpoints } from './schema-fetcher';
 interface BuildClientOptions {
   request: RequestHandlerExtra<ServerRequest, ServerNotification>;
   actionEndpoints?: ActionEndpoints;
+  forestServerUrl?: string;
 }
 
 export type AuthData = {
@@ -18,12 +19,14 @@ export type AuthData = {
   environmentId?: number;
   projectId?: number;
   environmentApiEndpoint: string;
+  forestServerToken?: string;
 };
 
 function createClient(options: BuildClientOptions) {
-  const { request, actionEndpoints = {} } = options;
+  const { request, actionEndpoints = {}, forestServerUrl } = options;
   const token = request.authInfo?.token;
   const url = request.authInfo?.extra?.environmentApiEndpoint;
+  const { forestServerToken, renderingId } = (request.authInfo?.extra ?? {}) as AuthData;
 
   if (!token) {
     throw new Error('Authentication token is missing');
@@ -33,10 +36,16 @@ function createClient(options: BuildClientOptions) {
     throw new Error('Environment API endpoint is missing or invalid');
   }
 
+  const forestServer =
+    forestServerUrl && forestServerToken && renderingId != null
+      ? { serverUrl: forestServerUrl, serverToken: forestServerToken, renderingId }
+      : undefined;
+
   const rpcClient = createRemoteAgentClient({
     token,
     url,
     actionEndpoints,
+    forestServer,
   });
 
   return {
@@ -62,5 +71,9 @@ export async function buildClientWithActions(
   const schema = await fetchForestSchema(forestServerClient);
   const actionEndpoints = getActionEndpoints(schema);
 
-  return createClient({ request, actionEndpoints });
+  return createClient({
+    request,
+    actionEndpoints,
+    forestServerUrl: forestServerClient.forestServerUrl,
+  });
 }

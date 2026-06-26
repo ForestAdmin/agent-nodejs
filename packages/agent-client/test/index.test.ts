@@ -1,7 +1,16 @@
+import makeCreateApprovalRequest from '../src/approval-request-creator';
 import RemoteAgentClient from '../src/domains/remote-agent-client';
 import { type ActionEndpointsByCollection, createRemoteAgentClient } from '../src/index';
 
+jest.mock('../src/approval-request-creator');
+
+const mockMakeCreateApprovalRequest = makeCreateApprovalRequest as jest.MockedFunction<
+  typeof makeCreateApprovalRequest
+>;
+
 describe('createRemoteAgentClient', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('should create a RemoteAgentClient instance', () => {
     const client = createRemoteAgentClient({
       url: 'https://api.example.com',
@@ -59,6 +68,30 @@ describe('createRemoteAgentClient', () => {
         actions: {},
       },
     });
+  });
+
+  it('wires createApprovalRequest from the forestServer fields when provided', () => {
+    createRemoteAgentClient({
+      url: 'https://api.example.com',
+      token: 'test-token',
+      forestServer: {
+        serverUrl: 'https://api.forestadmin.com',
+        serverToken: 'server-token',
+        renderingId: 42,
+      },
+    });
+
+    expect(mockMakeCreateApprovalRequest).toHaveBeenCalledWith({
+      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerToken: 'server-token',
+      renderingId: 42,
+    });
+  });
+
+  it('does not wire createApprovalRequest when forestServer is omitted', () => {
+    createRemoteAgentClient({ url: 'https://api.example.com', token: 'test-token' });
+
+    expect(mockMakeCreateApprovalRequest).not.toHaveBeenCalled();
   });
 
   it('should provide a working client that can access collections', () => {

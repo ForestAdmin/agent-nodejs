@@ -2,11 +2,22 @@ import type { ForestServerClient } from '../../src/http-client';
 import type { RequestHandlerExtra } from '@modelcontextprotocol/sdk/shared/protocol';
 import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sdk/types';
 
+import { createRemoteAgentClient } from '@forestadmin/agent-client';
+
 import buildClient, { buildClientWithActions } from '../../src/utils/agent-caller';
 import { fetchForestSchema, getActionEndpoints } from '../../src/utils/schema-fetcher';
 import createMockForestServerClient from '../helpers/forest-server-client';
 
 jest.mock('../../src/utils/schema-fetcher');
+jest.mock('@forestadmin/agent-client', () => {
+  const actual = jest.requireActual('@forestadmin/agent-client');
+
+  return { ...actual, createRemoteAgentClient: jest.fn(actual.createRemoteAgentClient) };
+});
+
+const mockCreateRemoteAgentClient = createRemoteAgentClient as jest.MockedFunction<
+  typeof createRemoteAgentClient
+>;
 
 describe('buildClient', () => {
   it('should create a remote agent client with the token from authInfo', () => {
@@ -262,6 +273,61 @@ describe('buildClientWithActions', () => {
 
     await expect(buildClientWithActions(request, mockForestServerClient)).rejects.toThrow(
       'Authentication token is missing',
+    );
+  });
+
+  it('passes the forestServer connection when url, token and renderingId are all present', async () => {
+    mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
+    mockGetActionEndpoints.mockReturnValue({});
+    mockForestServerClient = createMockForestServerClient({
+      forestServerUrl: 'https://api.forestadmin.com',
+    });
+
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          renderingId: 456,
+          environmentApiEndpoint: 'http://localhost:3310',
+          forestServerToken: 'server-token',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    await buildClientWithActions(request, mockForestServerClient);
+
+    expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        forestServer: {
+          serverUrl: 'https://api.forestadmin.com',
+          serverToken: 'server-token',
+          renderingId: 456,
+        },
+      }),
+    );
+  });
+
+  it('omits the forestServer connection when forestServerToken is missing', async () => {
+    mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
+    mockGetActionEndpoints.mockReturnValue({});
+    mockForestServerClient = createMockForestServerClient({
+      forestServerUrl: 'https://api.forestadmin.com',
+    });
+
+    const request = {
+      authInfo: {
+        token: 'test-token',
+        extra: {
+          renderingId: 456,
+          environmentApiEndpoint: 'http://localhost:3310',
+        },
+      },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    await buildClientWithActions(request, mockForestServerClient);
+
+    expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({ forestServer: undefined }),
     );
   });
 });

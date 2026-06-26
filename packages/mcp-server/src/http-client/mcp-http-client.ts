@@ -16,6 +16,7 @@ export default class ForestServerClientImpl implements ForestServerClient {
   constructor(
     private readonly schemaService: SchemaServiceInterface,
     private readonly activityLogsService: ActivityLogsServiceInterface,
+    public readonly forestServerUrl: string,
   ) {}
 
   async fetchSchema(): Promise<ForestSchemaCollection[]> {
