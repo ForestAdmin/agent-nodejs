@@ -266,37 +266,42 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
   };
 }
 
+function matchRoute(
+  ctx: Context,
+): ((ctx: Context, options: OAuthRoutesOptions) => Promise<void>) | undefined {
+  if (ctx.method === 'GET' && ctx.path === '/oauth/authorize') return handleAuthorize;
+  if (ctx.method === 'POST' && ctx.path === '/oauth/token') return handleToken;
+
+  return undefined;
+}
+
+function writeError(ctx: Context, error: unknown, options: OAuthRoutesOptions): void {
+  if (error instanceof OAuthRequestError) {
+    ctx.status = error.status;
+    ctx.body = toErrorBody(error);
+
+    return;
+  }
+
+  options.logger('Error', 'OAuth route failure', { path: ctx.path });
+  ctx.status = 500;
+  ctx.body = { error: { type: 'server_error', status: 500, message: 'OAuth processing failed' } };
+}
+
 export default function createOAuthRoutes(options: OAuthRoutesOptions): Middleware {
   return async function oauthRoutes(ctx, next) {
-    try {
-      if (ctx.method === 'GET' && ctx.path === '/oauth/authorize') {
-        await handleAuthorize(ctx, options);
+    const handler = matchRoute(ctx);
 
-        return;
-      }
-
-      if (ctx.method === 'POST' && ctx.path === '/oauth/token') {
-        await handleToken(ctx, options);
-
-        return;
-      }
-    } catch (error) {
-      if (error instanceof OAuthRequestError) {
-        ctx.status = error.status;
-        ctx.body = toErrorBody(error);
-
-        return;
-      }
-
-      options.logger('Error', 'OAuth route failure', { path: ctx.path });
-      ctx.status = 500;
-      ctx.body = {
-        error: { type: 'server_error', status: 500, message: 'OAuth processing failed' },
-      };
+    if (!handler) {
+      await next();
 
       return;
     }
 
-    await next();
+    try {
+      await handler(ctx, options);
+    } catch (error) {
+      writeError(ctx, error, options);
+    }
   };
 }
