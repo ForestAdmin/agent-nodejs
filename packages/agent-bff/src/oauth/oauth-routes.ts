@@ -243,9 +243,20 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
     throw invalidGrant('Authorization code has already been used');
   }
 
-  const serverTokens = await exchangeForServerTokens(request, options);
-  const expiresInSeconds = computeExpiresIn(serverTokens);
-  const user = await resolveIdentity(serverTokens, options);
+  let serverTokens: ServerTokens;
+  let expiresInSeconds: number;
+  let user: UserInfo;
+
+  try {
+    serverTokens = await exchangeForServerTokens(request, options);
+    expiresInSeconds = computeExpiresIn(serverTokens);
+    user = await resolveIdentity(serverTokens, options);
+  } catch (error) {
+    // why: a post-claim failure (transient exchange/identity/expiry error) is
+    // not a replay; release the local claim so the client can retry the code.
+    options.sessionStore.releaseAuthorizationCode(request.code);
+    throw error;
+  }
 
   const { sid, refreshToken } = options.sessionStore.create({
     saasAccessToken: serverTokens.saasAccessToken,

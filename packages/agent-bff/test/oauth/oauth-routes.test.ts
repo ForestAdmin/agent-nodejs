@@ -334,6 +334,27 @@ describe('oauth-routes POST /oauth/token', () => {
     });
   });
 
+  describe('when a transient identity failure happens after the exchange', () => {
+    it('should release the code so the same request can be retried successfully', async () => {
+      let attempts = 0;
+      const getUserInfo = jest.fn(async () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error('network blip');
+
+        return USER;
+      });
+      const { app } = buildApp(stubServerClient({ getUserInfo }));
+
+      const first = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+      const second = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(first.status).toBe(502);
+      expect(first.body.error.type).toBe('identity_resolution_failed');
+      expect(second.status).toBe(200);
+      expect(second.body.token_type).toBe('Bearer');
+    });
+  });
+
   describe('when the resolved identity is not allowed for the rendering', () => {
     it('should map a ForbiddenError to 403 forest_identity_not_allowed', async () => {
       const { app } = buildApp(
