@@ -276,9 +276,9 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
   };
 }
 
-function matchRoute(
-  ctx: Context,
-): ((ctx: Context, options: OAuthRoutesOptions) => Promise<void>) | undefined {
+type RouteHandler = (ctx: Context, options: OAuthRoutesOptions) => Promise<void>;
+
+function matchRoute(ctx: Context): RouteHandler | undefined {
   if (ctx.method === 'GET' && ctx.path === '/oauth/authorize') return handleAuthorize;
   if (ctx.method === 'POST' && ctx.path === '/oauth/token') return handleToken;
 
