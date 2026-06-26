@@ -3,13 +3,16 @@ import type { SessionStore } from './session-store';
 
 import jsonwebtoken from 'jsonwebtoken';
 
-import { sessionExpired } from './oauth-error';
+import { OAuthExchangeError } from './forest-server-client';
+import { serverError, sessionExpired } from './oauth-error';
 
 export interface EnsureFreshServerAccessParams {
   sid: string;
   store: SessionStore;
   serverClient: ForestServerClient;
 }
+
+const CLIENT_ERROR_CODES = new Set(['invalid_grant', 'invalid_request', 'invalid_client']);
 
 const inFlightRefreshesBySid = new Map<string, Promise<string>>();
 
@@ -34,8 +37,12 @@ async function refreshAndPersist(
 
   try {
     rotated = await serverClient.refreshServerToken(currentRefresh);
-  } catch {
-    throw sessionExpired('Failed to refresh the Forest server session');
+  } catch (error) {
+    if (error instanceof OAuthExchangeError && CLIENT_ERROR_CODES.has(error.error)) {
+      throw sessionExpired('The Forest server rejected the refresh token');
+    }
+
+    throw serverError('Failed to reach the Forest server to refresh the session');
   }
 
   if (!store.get(sid)) {

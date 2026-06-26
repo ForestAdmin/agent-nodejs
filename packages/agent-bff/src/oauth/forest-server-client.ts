@@ -138,11 +138,11 @@ export default class ForestServerClient {
       );
     }
 
-    const tokens = (await response.json()) as { access_token: string; refresh_token: string };
+    const tokens = (await response.json()) as { access_token: string; refresh_token?: string };
 
     return ForestServerClient.toServerTokens(
       tokens.access_token,
-      tokens.refresh_token,
+      tokens.refresh_token ?? payload.refresh_token ?? '',
       requireRenderingId,
     );
   }
