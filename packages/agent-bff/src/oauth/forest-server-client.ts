@@ -157,16 +157,17 @@ export default class ForestServerClient {
       exp?: number;
     } | null;
 
-    const renderingId = Number(decoded?.meta?.renderingId);
+    const decodedRenderingId = Number(decoded?.meta?.renderingId);
+    const hasRenderingId = Number.isInteger(decodedRenderingId);
 
-    if (requireRenderingId && !Number.isInteger(renderingId)) {
+    if (requireRenderingId && !hasRenderingId) {
       throw new Error('Failed to decode renderingId from the Forest server access token');
     }
 
     return {
       saasAccessToken,
       saasRefreshToken,
-      renderingId: Number.isInteger(renderingId) ? renderingId : 0,
+      renderingId: hasRenderingId ? decodedRenderingId : 0,
       expiresAt: decoded?.exp ?? 0,
     };
   }
