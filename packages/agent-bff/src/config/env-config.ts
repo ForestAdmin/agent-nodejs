@@ -58,11 +58,14 @@ function isHttpUrl(value: string): boolean {
   return !/\s/.test(value) && HTTP_URL_SCHEMA.safeParse(value).success;
 }
 
+function isValidEncryptionKey(value: string): boolean {
+  return BASE64_PATTERN.test(value) && Buffer.from(value, 'base64').length === ENCRYPTION_KEY_BYTES;
+}
+
 function parseEncryptionKey(raw: string | undefined): string | undefined {
   const value = normalize(raw);
-  if (value === undefined) return undefined;
 
-  if (!BASE64_PATTERN.test(value) || Buffer.from(value, 'base64').length !== ENCRYPTION_KEY_BYTES) {
+  if (value !== undefined && !isValidEncryptionKey(value)) {
     throw new ConfigurationError(
       `Invalid configuration: BFF_TOKEN_ENCRYPTION_KEY must be base64-encoded and exactly ${ENCRYPTION_KEY_BYTES} bytes (AES-256).`,
     );
