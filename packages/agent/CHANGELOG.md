@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.81.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.81.2...@forestadmin/agent@1.81.3) (2026-06-26)
+
+
+### Bug Fixes
+
+* **agent:** forward workflow executor responses as raw bytes ([#1716](https://github.com/ForestAdmin/agent-nodejs/issues/1716)) ([311010d](https://github.com/ForestAdmin/agent-nodejs/commit/311010dbde9f22958f413e5e8ed00b6d08d1e973))
+
 ## @forestadmin/agent [1.81.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.81.1...@forestadmin/agent@1.81.2) (2026-06-26)
 
 
