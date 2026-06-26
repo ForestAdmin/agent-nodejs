@@ -18,7 +18,11 @@ import ActionFieldRadioGroup from '../action-fields/action-field-radio-group';
 import ActionFieldString from '../action-fields/action-field-string';
 import ActionFieldStringList from '../action-fields/action-field-string-list';
 import ActionLayoutRoot from '../action-layout/action-layout-root';
-import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError } from '../errors';
+import AgentHttpError, {
+  ActionFormValidationError,
+  ActionRequiresApprovalError,
+  ApprovalRequestCreationError,
+} from '../errors';
 
 // JSON:API error body the agent returns on a rejected action.
 type ActionErrorBody = {
@@ -124,12 +128,16 @@ export default class Action {
           value: field.getValue(),
         }));
 
-        await this.createApprovalRequest({
-          collectionName: this.collectionName,
-          actionName: this.actionName,
-          recordIds: this.ids ?? [],
-          inputs,
-        });
+        try {
+          await this.createApprovalRequest({
+            collectionName: this.collectionName,
+            actionName: this.actionName,
+            recordIds: this.ids ?? [],
+            inputs,
+          });
+        } catch (cause) {
+          throw new ApprovalRequestCreationError(cause);
+        }
 
         return { approvalRequested: true };
       }

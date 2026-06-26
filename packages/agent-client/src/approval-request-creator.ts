@@ -29,6 +29,7 @@ export default function makeCreateApprovalRequest(options: {
         data: {
           type: 'action-approvals',
           attributes: {
+            // Required null on create: the Forest server assigns the pending status itself.
             status: null,
             action_name: payload.actionName,
             collection_name: payload.collectionName,

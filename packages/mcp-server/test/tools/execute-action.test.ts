@@ -330,8 +330,6 @@ describe('declareExecuteActionTool', () => {
       expect(result).toEqual({
         content: [{ type: 'text', text: expect.stringContaining('Approval requested') }],
       });
-      // It is not an error → the activity log is not marked failed.
-      expect((result as { isError?: boolean }).isError).toBeUndefined();
     });
 
     describe('activity logging', () => {

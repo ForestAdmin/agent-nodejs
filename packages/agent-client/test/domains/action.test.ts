@@ -184,6 +184,31 @@ describe('Action', () => {
       expect(result).toEqual({ approvalRequested: true });
     });
 
+    it('throws ApprovalRequestCreationError when filing the approval request fails', async () => {
+      fieldsFormStates.getFields.mockReturnValue([] as any);
+      const createApprovalRequest = jest.fn().mockRejectedValue(new Error('forest server down'));
+      const approvalAction = new Action(
+        'users',
+        'send-email',
+        httpRequester,
+        '/forest/actions/send-email',
+        fieldsFormStates,
+        ['1'],
+        undefined,
+        createApprovalRequest,
+      );
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(403, {
+          errors: [{ name: 'CustomActionRequiresApprovalError', detail: 'Needs approval' }],
+        }),
+      );
+
+      await expect(approvalAction.execute()).rejects.toMatchObject({
+        name: 'ApprovalRequestCreationError',
+        cause: expect.objectContaining({ message: 'forest server down' }),
+      });
+    });
+
     it('should translate a 422 rejection into ActionFormValidationError', async () => {
       httpRequester.query.mockRejectedValue(
         new AgentHttpError(422, { errors: [{ detail: 'Invalid value' }] }),

@@ -9,7 +9,11 @@ import ActionFieldJson from './action-fields/action-field-json';
 import ActionFieldStringList from './action-fields/action-field-string-list';
 import makeCreateApprovalRequest from './approval-request-creator';
 import RemoteAgentClient from './domains/remote-agent-client';
-import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError } from './errors';
+import AgentHttpError, {
+  ActionFormValidationError,
+  ActionRequiresApprovalError,
+  ApprovalRequestCreationError,
+} from './errors';
 import HttpRequester from './http-requester';
 
 export {
@@ -21,6 +25,7 @@ export {
   AgentHttpError,
   ActionRequiresApprovalError,
   ActionFormValidationError,
+  ApprovalRequestCreationError,
 };
 export type {
   ActionEndpointsByCollection,
