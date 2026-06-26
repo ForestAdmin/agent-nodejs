@@ -1,6 +1,15 @@
+import type { UserInfo } from '@forestadmin/forestadmin-client';
+
 import jsonwebtoken from 'jsonwebtoken';
 
 import ForestServerClient, { OAuthExchangeError } from '../../src/oauth/forest-server-client';
+
+const getUserInfoSpy = jest.fn();
+
+jest.mock('@forestadmin/forestadmin-client', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ authService: { getUserInfo: getUserInfoSpy } })),
+}));
 
 const SERVER_URL = 'https://api.forestadmin.com';
 const ENV_SECRET = 'env-secret';
@@ -204,6 +213,19 @@ describe('ForestServerClient', () => {
 
       expect(fetchMock.mock.calls[0][0]).toContain('%2F');
       expect(fetchMock.mock.calls[0][0]).not.toContain('/oauth/register/../');
+    });
+  });
+
+  describe('when resolving user info', () => {
+    it('should delegate to the forestadmin-client authService with the rendering id and token', async () => {
+      const userInfo = { id: 7, renderingId: 17 } as unknown as UserInfo;
+      getUserInfoSpy.mockResolvedValueOnce(userInfo);
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+      const result = await client.getUserInfo(17, 'saas-token');
+
+      expect(getUserInfoSpy).toHaveBeenCalledWith(17, 'saas-token');
+      expect(result).toBe(userInfo);
     });
   });
 });

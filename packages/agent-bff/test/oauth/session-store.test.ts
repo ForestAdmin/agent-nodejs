@@ -145,6 +145,25 @@ describe('session-store', () => {
     });
   });
 
+  describe('when creating a session after older sessions have expired', () => {
+    it('should purge the expired session during create', () => {
+      let clock = 1_000_000;
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => clock,
+        sessionTtlSeconds: 60,
+      });
+
+      const { sid: firstSid } = store.create(SESSION_INPUT);
+
+      clock += 61 * 1000;
+      const { sid: secondSid } = store.create(SESSION_INPUT);
+
+      expect(store.get(firstSid)).toBeUndefined();
+      expect(store.get(secondSid)).toBeDefined();
+    });
+  });
+
   describe('when updating the stored SaaS tokens after a refresh', () => {
     it('should persist the rotated tokens and re-encrypt the new refresh', () => {
       const store = buildStore();
