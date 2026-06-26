@@ -14,6 +14,7 @@ const VALID_ENV = {
   FOREST_SERVER_URL: 'https://api.forestadmin.com',
   FOREST_APP_URL: 'https://app.forestadmin.com',
   AGENT_URL: 'https://agent.example.com',
+  BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
 } satisfies NodeJS.ProcessEnv;
 
 const noopLogger = () => undefined;
@@ -131,6 +132,29 @@ describe('BFFHttpServer', () => {
         'Missing required configuration; /health will report degraded',
         { missing: ['AGENT_URL'] },
       );
+    });
+  });
+
+  describe('when constructed with extra middlewares', () => {
+    it('should mount them so they handle non-health routes', async () => {
+      const config = parseConfig({ ...VALID_ENV });
+      const server = new BFFHttpServer({
+        port: 0,
+        version: VERSION,
+        config,
+        logger: noopLogger,
+        middlewares: [
+          async ctx => {
+            ctx.status = 418;
+            ctx.body = { handled: true };
+          },
+        ],
+      });
+
+      const response = await request(server.callback).get('/custom');
+
+      expect(response.status).toBe(418);
+      expect(response.body).toEqual({ handled: true });
     });
   });
 

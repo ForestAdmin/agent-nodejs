@@ -378,4 +378,125 @@ describe('oauth-routes POST /oauth/token', () => {
       expect(response.body.error.type).toBe('unsupported_grant_type');
     });
   });
+
+  describe('when the code_verifier is malformed', () => {
+    it('should reject with invalid_request before exchanging', async () => {
+      const exchangeCode = jest.fn(async () => serverTokens());
+      const { app } = buildApp(stubServerClient({ exchangeCode }));
+
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ ...TOKEN_BODY, code_verifier: 'short' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.type).toBe('invalid_request');
+      expect(exchangeCode).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when the request body is missing (no parsed body)', () => {
+    it('should reject with invalid_request', async () => {
+      const sessionStore = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => Date.now(),
+        sessionTtlSeconds: 3600,
+      });
+      const app = new Koa();
+      app.use(
+        createOAuthRoutes({
+          serverClient: stubServerClient(),
+          sessionStore,
+          forestAppUrl: APP_URL,
+          authSecret: AUTH_SECRET,
+          environmentId: 99,
+          logger: () => undefined,
+        }),
+      );
+
+      const response = await request(app.callback()).post('/oauth/token');
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.type).toBe('invalid_request');
+    });
+  });
+
+  describe('when identity resolution throws a generic error', () => {
+    it('should map it to 502 identity_resolution_failed', async () => {
+      const { app } = buildApp(
+        stubServerClient({
+          getUserInfo: async () => {
+            throw new Error('network blip');
+          },
+        }),
+      );
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(502);
+      expect(response.body.error.type).toBe('identity_resolution_failed');
+    });
+  });
+
+  describe('when the SaaS exchange throws a non-OAuthExchangeError', () => {
+    it('should surface a 500 server_error and not leak the cause', async () => {
+      const { app } = buildApp(
+        stubServerClient({
+          exchangeCode: async () => {
+            throw new Error('super-secret-internal-detail');
+          },
+        }),
+      );
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(500);
+      expect(response.body.error.type).toBe('server_error');
+      expect(JSON.stringify(response.body)).not.toContain('super-secret-internal-detail');
+    });
+  });
+});
+
+describe('oauth-routes middleware', () => {
+  describe('when the response_type is not code', () => {
+    it('should reject with invalid_request', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, response_type: 'token' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.type).toBe('invalid_request');
+    });
+  });
+
+  describe('when a route handler throws a non-OAuth error', () => {
+    it('should write a 500 server_error', async () => {
+      const { app } = buildApp(
+        stubServerClient({
+          getRegisteredClient: async () => {
+            throw new Error('plain boom');
+          },
+        }),
+      );
+
+      const response = await request(app.callback()).get('/oauth/authorize').query(AUTHORIZE_QUERY);
+
+      expect(response.status).toBe(500);
+      expect(response.body.error.type).toBe('server_error');
+    });
+  });
+
+  describe('when the route is not an OAuth route', () => {
+    it('should pass through to the next middleware', async () => {
+      const { app } = buildApp(stubServerClient());
+      app.use(async ctx => {
+        ctx.status = 204;
+      });
+
+      const response = await request(app.callback()).get('/something-else');
+
+      expect(response.status).toBe(204);
+    });
+  });
 });

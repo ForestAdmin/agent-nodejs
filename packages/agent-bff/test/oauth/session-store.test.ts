@@ -70,35 +70,44 @@ describe('session-store', () => {
       expect(store.claimAuthorizationCode('code-b')).toBe(true);
     });
 
-    it('should reject a new claim once the pending-claim cap is reached (DoS guard)', () => {
-      const store = createInMemorySessionStore({
-        cipher: createTokenCipher(KEY),
-        now: () => 1_000_000,
-        sessionTtlSeconds: 3600,
-        maxPendingCodes: 2,
-      });
-
-      expect(store.claimAuthorizationCode('c1')).toBe(true);
-      expect(store.claimAuthorizationCode('c2')).toBe(true);
-      expect(store.claimAuthorizationCode('c3')).toBe(false);
-    });
-
-    it('should accept a new claim again after expired claims free up capacity', () => {
+    it('should evict the oldest claim once the pending-claim cap is reached (DoS guard)', () => {
       let clock = 1_000_000;
       const store = createInMemorySessionStore({
         cipher: createTokenCipher(KEY),
         now: () => clock,
         sessionTtlSeconds: 3600,
         authCodeTtlSeconds: 60,
-        maxPendingCodes: 1,
+        maxPendingCodes: 2,
       });
 
       expect(store.claimAuthorizationCode('c1')).toBe(true);
-      expect(store.claimAuthorizationCode('c2')).toBe(false);
-
-      clock += 61 * 1000;
-
+      clock += 1;
       expect(store.claimAuthorizationCode('c2')).toBe(true);
+      clock += 1;
+      expect(store.claimAuthorizationCode('c3')).toBe(true);
+
+      expect(store.claimAuthorizationCode('c1')).toBe(true);
+      expect(store.claimAuthorizationCode('c3')).toBe(false);
+    });
+
+    it('should accept a new claim at cap by evicting the oldest, keeping the most recent protected', () => {
+      let clock = 1_000_000;
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => clock,
+        sessionTtlSeconds: 3600,
+        authCodeTtlSeconds: 60,
+        maxPendingCodes: 2,
+      });
+
+      expect(store.claimAuthorizationCode('c1')).toBe(true);
+      clock += 1;
+      expect(store.claimAuthorizationCode('c2')).toBe(true);
+      clock += 1;
+      expect(store.claimAuthorizationCode('c3')).toBe(true);
+
+      expect(store.claimAuthorizationCode('c2')).toBe(false);
+      expect(store.claimAuthorizationCode('c3')).toBe(false);
     });
 
     it('should drop a claimed code after its TTL so the store does not grow unbounded', () => {
