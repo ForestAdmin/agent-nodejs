@@ -100,7 +100,9 @@ function mapIdentityError(error: unknown): OAuthRequestError {
 
 async function handleAuthorize(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
   for (const param of AUTHORIZE_REQUIRED_PARAMS) {
-    if (getQueryParam(ctx, param) === undefined) {
+    const value = getQueryParam(ctx, param);
+
+    if (value === undefined || value === '') {
       throw invalidRequest(`Missing required parameter: ${param}`);
     }
   }
@@ -151,7 +153,14 @@ function computeExpiresIn(serverTokens: ServerTokens): number {
   return Math.min(BFF_ACCESS_TOKEN_MAX_EXPIRES_IN, saasRemaining);
 }
 
-async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
+interface TokenRequest {
+  code: string;
+  clientId: string;
+  codeVerifier: string;
+  redirectUri: string;
+}
+
+async function parseTokenRequest(ctx: Context, options: OAuthRoutesOptions): Promise<TokenRequest> {
   const { body } = ctx.request as { body?: unknown };
 
   if (typeof body !== 'object' || body === null) {
@@ -164,34 +173,32 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
     throw unsupportedGrantType('Only authorization_code is supported');
   }
 
-  const code = requireBodyString(params, 'code');
-  const clientId = requireBodyString(params, 'client_id');
-  const codeVerifier = requireBodyString(params, 'code_verifier');
-  const redirectUri = requireBodyString(params, 'redirect_uri');
+  const request: TokenRequest = {
+    code: requireBodyString(params, 'code'),
+    clientId: requireBodyString(params, 'client_id'),
+    codeVerifier: requireBodyString(params, 'code_verifier'),
+    redirectUri: requireBodyString(params, 'redirect_uri'),
+  };
 
-  assertValidCodeVerifier(codeVerifier);
+  assertValidCodeVerifier(request.codeVerifier);
 
-  const client = await options.serverClient.getRegisteredClient(clientId);
+  const client = await options.serverClient.getRegisteredClient(request.clientId);
 
   if (!client) {
     throw invalidClient('Unknown client_id');
   }
 
-  assertRegisteredRedirectUri(client.redirect_uris, redirectUri, invalidGrant);
+  assertRegisteredRedirectUri(client.redirect_uris, request.redirectUri, invalidGrant);
 
-  if (!options.sessionStore.claimAuthorizationCode(code)) {
-    throw invalidGrant('Authorization code has already been used');
-  }
+  return request;
+}
 
-  let serverTokens: ServerTokens;
-
+async function exchangeForServerTokens(
+  request: TokenRequest,
+  options: OAuthRoutesOptions,
+): Promise<ServerTokens> {
   try {
-    serverTokens = await options.serverClient.exchangeCode({
-      code,
-      codeVerifier,
-      redirectUri,
-      clientId,
-    });
+    return await options.serverClient.exchangeCode(request);
   } catch (error) {
     if (error instanceof OAuthExchangeError) {
       options.logger('Warn', 'Forest server code exchange rejected', { saasError: error.error });
@@ -200,13 +207,14 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
 
     throw error;
   }
+}
 
-  const expiresInSeconds = computeExpiresIn(serverTokens);
-
-  let user: UserInfo;
-
+async function resolveIdentity(
+  serverTokens: ServerTokens,
+  options: OAuthRoutesOptions,
+): Promise<UserInfo> {
   try {
-    user = await options.serverClient.getUserInfo(
+    return await options.serverClient.getUserInfo(
       serverTokens.renderingId,
       serverTokens.saasAccessToken,
     );
@@ -216,6 +224,18 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
     });
     throw mapIdentityError(error);
   }
+}
+
+async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
+  const request = await parseTokenRequest(ctx, options);
+
+  if (!options.sessionStore.claimAuthorizationCode(request.code)) {
+    throw invalidGrant('Authorization code has already been used');
+  }
+
+  const serverTokens = await exchangeForServerTokens(request, options);
+  const expiresInSeconds = computeExpiresIn(serverTokens);
+  const user = await resolveIdentity(serverTokens, options);
 
   const { sid, refreshToken } = options.sessionStore.create({
     saasAccessToken: serverTokens.saasAccessToken,
