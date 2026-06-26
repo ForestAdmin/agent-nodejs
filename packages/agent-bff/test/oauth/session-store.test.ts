@@ -90,6 +90,18 @@ describe('session-store', () => {
       expect(store.claimAuthorizationCode('c3')).toBe(false);
     });
 
+    it('should reject every claim when maxPendingCodes is 0 (strict zero cap)', () => {
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => 1_000_000,
+        sessionTtlSeconds: 3600,
+        maxPendingCodes: 0,
+      });
+
+      expect(store.claimAuthorizationCode('c1')).toBe(false);
+      expect(store.pendingClaimCount()).toBe(0);
+    });
+
     it('should accept a new claim at cap by evicting the oldest, keeping the most recent protected', () => {
       let clock = 1_000_000;
       const store = createInMemorySessionStore({

@@ -48,6 +48,6 @@ export function issueBffAccessToken({
 
   return jsonwebtoken.sign(payload, authSecret, {
     algorithm: 'HS256',
-    expiresIn: expiresInSeconds,
+    expiresIn: Math.min(expiresInSeconds, BFF_ACCESS_TOKEN_MAX_EXPIRES_IN),
   });
 }

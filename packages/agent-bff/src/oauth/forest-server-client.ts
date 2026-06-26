@@ -119,7 +119,7 @@ export default class ForestServerClient {
 
   private async postToken(
     payload: Record<string, string>,
-    requireRenderingId: boolean,
+    isInitialExchange: boolean,
   ): Promise<ServerTokens> {
     const response = await fetchWithTimeout(this.url('/oauth/token'), {
       method: 'POST',
@@ -139,11 +139,19 @@ export default class ForestServerClient {
     }
 
     const tokens = (await response.json()) as { access_token: string; refresh_token?: string };
+    const saasRefreshToken = tokens.refresh_token ?? payload.refresh_token;
+
+    if (saasRefreshToken === undefined) {
+      throw new OAuthExchangeError(
+        'invalid_grant',
+        'The Forest server did not return a refresh token',
+      );
+    }
 
     return ForestServerClient.toServerTokens(
       tokens.access_token,
-      tokens.refresh_token ?? payload.refresh_token ?? '',
-      requireRenderingId,
+      saasRefreshToken,
+      isInitialExchange,
     );
   }
 

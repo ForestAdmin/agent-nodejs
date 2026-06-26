@@ -70,6 +70,16 @@ describe('ForestServerClient', () => {
         client.exchangeCode({ code: 'c', codeVerifier: 'v', redirectUri: 'r', clientId: 'x' }),
       ).rejects.toMatchObject({ error: 'invalid_grant' });
     });
+
+    it('should throw when the exchange response omits the refresh token', async () => {
+      mockFetchOnce({ ok: true, json: async () => ({ access_token: saasAccessToken(17) }) });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(
+        client.exchangeCode({ code: 'c', codeVerifier: 'v', redirectUri: 'r', clientId: 'x' }),
+      ).rejects.toMatchObject({ error: 'invalid_grant' });
+    });
   });
 
   describe('when refreshing the SaaS token', () => {

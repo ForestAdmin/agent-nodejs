@@ -154,7 +154,11 @@ export default function createInMemorySessionStore({
     claimAuthorizationCode(code) {
       purgeExpiredCodes();
       if (usedCodes.has(code)) return false;
-      if (usedCodes.size >= maxPendingCodes) evictOldestCode();
+
+      if (usedCodes.size >= maxPendingCodes) {
+        evictOldestCode();
+        if (usedCodes.size >= maxPendingCodes) return false;
+      }
 
       usedCodes.set(code, now() + authCodeTtlSeconds * 1000);
 
