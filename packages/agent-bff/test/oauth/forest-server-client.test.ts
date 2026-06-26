@@ -86,5 +86,55 @@ describe('ForestServerClient', () => {
 
       await expect(client.refreshServerToken('R1')).rejects.toBeInstanceOf(OAuthExchangeError);
     });
+
+    it('should not require renderingId in the refresh-grant access token', async () => {
+      const accessWithoutRendering = jsonwebtoken.sign(
+        { exp: Math.floor(Date.now() / 1000) + 3600 },
+        'irrelevant',
+      );
+      mockFetchOnce({
+        ok: true,
+        json: async () => ({ access_token: accessWithoutRendering, refresh_token: 'R2' }),
+      });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.refreshServerToken('R1')).resolves.toMatchObject({
+        saasRefreshToken: 'R2',
+      });
+    });
+  });
+
+  describe('when looking up a registered client', () => {
+    it('should return undefined on 404 (unknown client)', async () => {
+      mockFetchOnce({ ok: false, status: 404 });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.getRegisteredClient('nope')).resolves.toBeUndefined();
+    });
+
+    it('should throw on a non-404 error (outage), not masquerade as unknown client', async () => {
+      mockFetchOnce({ ok: false, status: 503 });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.getRegisteredClient('client-1')).rejects.toThrow();
+    });
+
+    it('should percent-encode the clientId in the request path', async () => {
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({}),
+      });
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+      await client.getRegisteredClient('../../liana/environment');
+
+      expect(fetchMock.mock.calls[0][0]).toContain('%2F');
+      expect(fetchMock.mock.calls[0][0]).not.toContain('/oauth/register/../');
+    });
   });
 });
