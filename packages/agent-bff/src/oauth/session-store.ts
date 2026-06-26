@@ -42,9 +42,11 @@ export interface SessionStoreOptions {
   now: () => number;
   sessionTtlSeconds: number;
   authCodeTtlSeconds?: number;
+  maxPendingCodes?: number;
 }
 
 const DEFAULT_AUTH_CODE_TTL_SECONDS = 5 * 60;
+const DEFAULT_MAX_PENDING_CODES = 10_000;
 
 export function createSid(): string {
   return crypto.randomBytes(32).toString('base64url');
@@ -63,6 +65,7 @@ export default function createInMemorySessionStore({
   now,
   sessionTtlSeconds,
   authCodeTtlSeconds = DEFAULT_AUTH_CODE_TTL_SECONDS,
+  maxPendingCodes = DEFAULT_MAX_PENDING_CODES,
 }: SessionStoreOptions): SessionStore {
   const sessions = new Map<string, StoredSession>();
   const usedCodes = new Map<string, number>();
@@ -126,6 +129,7 @@ export default function createInMemorySessionStore({
     claimAuthorizationCode(code) {
       purgeExpiredCodes();
       if (usedCodes.has(code)) return false;
+      if (usedCodes.size >= maxPendingCodes) return false;
 
       usedCodes.set(code, now() + authCodeTtlSeconds * 1000);
 
