@@ -70,7 +70,7 @@ describe('session-store', () => {
       expect(store.claimAuthorizationCode('code-b')).toBe(true);
     });
 
-    it('should evict the oldest claim once the pending-claim cap is reached (DoS guard)', () => {
+    it('should reject new claims at the cap without evicting live entries (replay guard)', () => {
       let clock = 1_000_000;
       const store = createInMemorySessionStore({
         cipher: createTokenCipher(KEY),
@@ -84,10 +84,10 @@ describe('session-store', () => {
       clock += 1;
       expect(store.claimAuthorizationCode('c2')).toBe(true);
       clock += 1;
-      expect(store.claimAuthorizationCode('c3')).toBe(true);
-
-      expect(store.claimAuthorizationCode('c1')).toBe(true);
       expect(store.claimAuthorizationCode('c3')).toBe(false);
+
+      expect(store.claimAuthorizationCode('c1')).toBe(false);
+      expect(store.claimAuthorizationCode('c2')).toBe(false);
     });
 
     it('should reject every claim when maxPendingCodes is 0 (strict zero cap)', () => {
@@ -102,7 +102,7 @@ describe('session-store', () => {
       expect(store.pendingClaimCount()).toBe(0);
     });
 
-    it('should accept a new claim at cap by evicting the oldest, keeping the most recent protected', () => {
+    it('should free a slot once a capped claim expires, accepting a new code', () => {
       let clock = 1_000_000;
       const store = createInMemorySessionStore({
         cipher: createTokenCipher(KEY),
@@ -113,13 +113,11 @@ describe('session-store', () => {
       });
 
       expect(store.claimAuthorizationCode('c1')).toBe(true);
-      clock += 1;
       expect(store.claimAuthorizationCode('c2')).toBe(true);
-      clock += 1;
-      expect(store.claimAuthorizationCode('c3')).toBe(true);
-
-      expect(store.claimAuthorizationCode('c2')).toBe(false);
       expect(store.claimAuthorizationCode('c3')).toBe(false);
+
+      clock += 60 * 1000;
+      expect(store.claimAuthorizationCode('c3')).toBe(true);
     });
 
     it('should drop a claimed code after its TTL so the store does not grow unbounded', () => {

@@ -87,20 +87,6 @@ export default function createInMemorySessionStore({
     }
   }
 
-  function evictOldestCode(): void {
-    let oldestCode: string | undefined;
-    let oldestExpiry = Infinity;
-
-    for (const [code, expiresAt] of usedCodes) {
-      if (expiresAt < oldestExpiry) {
-        oldestExpiry = expiresAt;
-        oldestCode = code;
-      }
-    }
-
-    if (oldestCode !== undefined) usedCodes.delete(oldestCode);
-  }
-
   function liveSession(sid: string): StoredSession | undefined {
     const session = sessions.get(sid);
     if (!session) return undefined;
@@ -156,10 +142,10 @@ export default function createInMemorySessionStore({
       purgeExpiredCodes();
       if (usedCodes.has(code)) return false;
 
-      if (usedCodes.size >= maxPendingCodes) {
-        evictOldestCode();
-        if (usedCodes.size >= maxPendingCodes) return false;
-      }
+      // why: never evict a live entry to make room — an evicted code whose
+      // exchange is still in flight would pass this guard again, breaking
+      // single-use replay protection. Reject under saturation instead.
+      if (usedCodes.size >= maxPendingCodes) return false;
 
       usedCodes.set(code, now() + authCodeTtlSeconds * 1000);
 
