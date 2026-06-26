@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.8.0...@forestadmin/workflow-executor@1.9.0) (2026-06-26)
+
+
+### Features
+
+* **workflow-executor:** add production Docker image and GHCR CI publish ([#1706](https://github.com/ForestAdmin/agent-nodejs/issues/1706)) ([a9c26ab](https://github.com/ForestAdmin/agent-nodejs/commit/a9c26ab533b2c366281136061d072cb880152bc8))
+
 # @forestadmin/workflow-executor [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.7.0...@forestadmin/workflow-executor@1.8.0) (2026-06-25)
 
 
