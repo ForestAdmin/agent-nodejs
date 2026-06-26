@@ -49,9 +49,7 @@ describe('WorkflowExecutorProxyRoute', () => {
           return;
         }
 
-        // Gzip-compressed JSON — mirrors the Beanstalk nginx that sits in front of the executor and
-        // compresses large responses. The proxy must forward the bytes untouched so the body stays
-        // consistent with its Content-Encoding header (else the browser gets ERR_CONTENT_DECODING_FAILED).
+        // Gzip-compressed JSON — mirrors the nginx in front of the executor.
         if (req.url?.includes('gzip-run')) {
           const json = JSON.stringify({ steps: [{ stepId: 'gz', status: 'success' }] });
           res.setHeader('Content-Type', 'application/json');
@@ -117,8 +115,7 @@ describe('WorkflowExecutorProxyRoute', () => {
   const callHandleProxy = (route: WorkflowExecutorProxyRoute, context: unknown) =>
     (route as unknown as { handleProxy: (ctx: unknown) => Promise<void> }).handleProxy(context);
 
-  // The proxy forwards the executor body as raw bytes (Buffer), never a parsed object — decode
-  // for assertions.
+  // The proxy forwards the body as raw bytes (Buffer), never a parsed object.
   const bodyText = (context: { response: { body: unknown } }): string =>
     (context.response.body as Buffer).toString('utf-8');
   const bodyJson = (context: { response: { body: unknown } }): unknown =>
@@ -272,11 +269,8 @@ describe('WorkflowExecutorProxyRoute', () => {
       await callHandleProxy(route, context);
 
       expect(context.response.status).toBe(200);
-      // The Content-Encoding header is forwarded…
       expect(context.response.get('Content-Encoding')).toBe('gzip');
-      // …and the body is the untouched gzip bytes, so the browser can decode it (regression test
-      // for net::ERR_CONTENT_DECODING_FAILED: the old code decoded the bytes as UTF-8, corrupting
-      // the gzip stream while still advertising Content-Encoding: gzip).
+      // Body is the untouched gzip bytes; the old UTF-8 decode corrupted them.
       const body = context.response.body as Buffer;
       expect(Buffer.isBuffer(body)).toBe(true);
       expect(JSON.parse(zlib.gunzipSync(Uint8Array.from(body)).toString('utf-8'))).toEqual({
