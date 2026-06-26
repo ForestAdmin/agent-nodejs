@@ -31,12 +31,19 @@ export const StepSchema = z
   .strict();
 export type Step = z.infer<typeof StepSchema>;
 
+export enum TriggerType {
+  Manual = 'manual',
+  Webhook = 'webhook',
+}
+export const TriggerTypeSchema = z.nativeEnum(TriggerType);
+
 export const AvailableStepExecutionSchema = z
   .object({
     runId: z.string().min(1),
     stepId: z.string().min(1),
     stepIndex: z.number().int().nonnegative(),
     collectionId: z.string().min(1),
+    triggerType: TriggerTypeSchema,
     baseRecordRef: RecordRefSchema,
     stepDefinition: StepDefinitionSchema,
     previousSteps: z.array(StepSchema),
