@@ -173,6 +173,17 @@ describe('oauth-routes GET /oauth/authorize', () => {
       expect(response.status).toBe(400);
       expect(response.body.error.type).toBe('invalid_request');
     });
+
+    it('should reject an empty code_challenge (presence check rejects empty, not just missing)', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, code_challenge: '' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.type).toBe('invalid_request');
+    });
   });
 
   describe('when the registered client has no redirect_uris', () => {
