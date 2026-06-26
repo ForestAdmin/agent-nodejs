@@ -33,9 +33,6 @@ type ActionErrorBody = {
   data?: { roleIdsAllowedToApprove?: number[] };
 };
 
-// Recover the server's message wherever it lives: agents/serializers vary (detail / message / title,
-// nested or top-level, or only the raw text when the body isn't JSON-parsed). Never let a generic
-// fallback hide a real message — only callers with no message at all get one.
 function extractDetail(error: AgentHttpError): string | undefined {
   const body = (error.body ?? {}) as ActionErrorBody;
   const first = body.errors?.[0];
