@@ -283,3 +283,19 @@ jobs:
 
       - name: Inspect manifest
         run: docker buildx imagetools inspect ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.full }}
+
+      # Notify forestadmin-server to deploy this image to the production executor
+      # env. Only for the latest stable version — prereleases and rebuilds of older
+      # versions never auto-deploy to prod. Requires a PAT with repo scope on
+      # forestadmin-server stored as FORESTADMIN_SERVER_DISPATCH_TOKEN.
+      - name: Trigger production deploy (forestadmin-server)
+        if: needs.extract-version.outputs.is_latest == 'true'
+        env:
+          DISPATCH_TOKEN: ${{ secrets.FORESTADMIN_SERVER_DISPATCH_TOKEN }}
+          VERSION: ${{ needs.extract-version.outputs.full }}
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${DISPATCH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/ForestAdmin/forestadmin-server/dispatches \
+            -d "$(printf '{"event_type":"workflow-executor-published","client_payload":{"version":"%s"}}' "$VERSION")"
