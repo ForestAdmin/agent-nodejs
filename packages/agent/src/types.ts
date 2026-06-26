@@ -52,6 +52,38 @@ export type AgentOptions = {
    * @example 'http://localhost:4001'
    */
   workflowExecutorUrl?: string | null;
+  /**
+   * When set, the agent exposes a route at `/_audit-trail/{collection}/{id}` that returns the
+   * change history of a record read from this store. Pair it with the audit-trail plugin, which
+   * writes to the same store.
+   */
+  auditTrail?: { store: AuditTrailRecordReader } | null;
+};
+
+type AuditTrailQuery = {
+  collection: string;
+  recordId: string;
+  skip?: number;
+  limit?: number;
+  userIds?: number[];
+  startTimestamp?: string;
+  endTimestamp?: string;
+  order?: 'asc' | 'desc';
+};
+
+export type AuditTrailRecordReader = {
+  listByRecord(query: AuditTrailQuery): Promise<unknown[]> | unknown[];
+  countByRecord(query: AuditTrailQuery): Promise<number> | number;
+  listByCorrelation(query: {
+    collection: string;
+    recordId: string;
+    correlationKey: string;
+  }): Promise<unknown[]> | unknown[];
+  listByCorrelations(query: {
+    collection: string;
+    recordId: string;
+    correlationKeys: string[];
+  }): Promise<unknown[]> | unknown[];
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
