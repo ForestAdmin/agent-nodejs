@@ -115,7 +115,7 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     url: URL;
     body: string | undefined;
     headers: OutgoingHttpHeaders;
-  }): Promise<{ status: number; body: unknown; headers: IncomingHttpHeaders }> {
+  }): Promise<{ status: number; body: Buffer; headers: IncomingHttpHeaders }> {
     const { method, url, body, headers } = request;
     const requestFn = url.protocol === 'https:' ? httpsRequest : httpRequest;
 
@@ -124,18 +124,15 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
         const chunks: Uint8Array[] = [];
         res.on('data', chunk => chunks.push(chunk));
         res.on('end', () => {
-          const raw = Buffer.concat(chunks).toString('utf-8');
-          let parsed: unknown;
-
-          try {
-            parsed = JSON.parse(raw);
-          } catch {
-            parsed = raw;
-          }
-
+          // Forward the executor body as raw bytes. Decoding it as UTF-8 (and JSON-parsing)
+          // corrupted any compressed payload while still forwarding the executor's
+          // `Content-Encoding: gzip` header, so the browser failed with
+          // net::ERR_CONTENT_DECODING_FAILED. Koa sends the Buffer verbatim and recomputes
+          // Content-Length; Content-Type/Content-Encoding are forwarded untouched, keeping a
+          // compressed body and its encoding header consistent.
           resolve({
             status: res.statusCode ?? HttpCode.InternalServerError,
-            body: parsed,
+            body: Buffer.concat(chunks),
             headers: res.headers,
           });
         });

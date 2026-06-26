@@ -1,6 +1,7 @@
 import { NotFoundError } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 import http from 'http';
+import zlib from 'zlib';
 
 import WorkflowExecutorProxyRoute from '../../../src/routes/workflow/workflow-executor-proxy';
 import { RouteType } from '../../../src/types';
@@ -44,6 +45,19 @@ describe('WorkflowExecutorProxyRoute', () => {
           res.setHeader('Content-Type', 'text/plain');
           res.writeHead(200);
           res.end('hello world');
+
+          return;
+        }
+
+        // Gzip-compressed JSON — mirrors the Beanstalk nginx that sits in front of the executor and
+        // compresses large responses. The proxy must forward the bytes untouched so the body stays
+        // consistent with its Content-Encoding header (else the browser gets ERR_CONTENT_DECODING_FAILED).
+        if (req.url?.includes('gzip-run')) {
+          const json = JSON.stringify({ steps: [{ stepId: 'gz', status: 'success' }] });
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Content-Encoding', 'gzip');
+          res.writeHead(200);
+          res.end(zlib.gzipSync(json));
 
           return;
         }
@@ -102,6 +116,13 @@ describe('WorkflowExecutorProxyRoute', () => {
 
   const callHandleProxy = (route: WorkflowExecutorProxyRoute, context: unknown) =>
     (route as unknown as { handleProxy: (ctx: unknown) => Promise<void> }).handleProxy(context);
+
+  // The proxy forwards the executor body as raw bytes (Buffer), never a parsed object — decode
+  // for assertions.
+  const bodyText = (context: { response: { body: unknown } }): string =>
+    (context.response.body as Buffer).toString('utf-8');
+  const bodyJson = (context: { response: { body: unknown } }): unknown =>
+    JSON.parse(bodyText(context));
 
   // Build a mock context for the catch-all route: `path` is the wildcard segment, forwarded
   // verbatim to the executor root (so callers address runs as `runs/<id>`).
@@ -168,7 +189,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       expect(receivedMethod).toBe('GET');
       expect(receivedUrl).toBe('/runs/run-123');
       expect(context.response.status).toBe(200);
-      expect(context.response.body).toEqual({ steps: [{ stepId: 's1', status: 'success' }] });
+      expect(bodyJson(context)).toEqual({ steps: [{ stepId: 's1', status: 'success' }] });
     });
 
     test('forwards a POST trigger with the raw body untouched (no reshaping)', async () => {
@@ -183,7 +204,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       expect(receivedMethod).toBe('POST');
       expect(receivedUrl).toBe('/runs/run-456/trigger');
       expect(receivedBody).toBe(rawBody);
-      expect(context.response.body).toEqual({
+      expect(bodyJson(context)).toEqual({
         triggered: true,
         received: { pendingData: { answer: 'yes' } },
       });
@@ -218,7 +239,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       await callHandleProxy(route, context);
 
       expect(context.response.status).toBe(404);
-      expect(context.response.body).toEqual({ error: 'Run not found or unavailable' });
+      expect(bodyJson(context)).toEqual({ error: 'Run not found or unavailable' });
     });
 
     test('forwards a bodyless non-GET cleanly (empty body, no hang)', async () => {
@@ -241,7 +262,26 @@ describe('WorkflowExecutorProxyRoute', () => {
       await callHandleProxy(route, context);
 
       expect(context.response.status).toBe(200);
-      expect(context.response.body).toBe('hello world');
+      expect(bodyText(context)).toBe('hello world');
+    });
+
+    test('forwards a gzip-compressed executor body without corrupting it', async () => {
+      const route = buildRoute(`http://localhost:${executorPort}`);
+
+      const context = buildContext('runs/gzip-run');
+      await callHandleProxy(route, context);
+
+      expect(context.response.status).toBe(200);
+      // The Content-Encoding header is forwarded…
+      expect(context.response.get('Content-Encoding')).toBe('gzip');
+      // …and the body is the untouched gzip bytes, so the browser can decode it (regression test
+      // for net::ERR_CONTENT_DECODING_FAILED: the old code decoded the bytes as UTF-8, corrupting
+      // the gzip stream while still advertising Content-Encoding: gzip).
+      const body = context.response.body as Buffer;
+      expect(Buffer.isBuffer(body)).toBe(true);
+      expect(JSON.parse(zlib.gunzipSync(Uint8Array.from(body)).toString('utf-8'))).toEqual({
+        steps: [{ stepId: 'gz', status: 'success' }],
+      });
     });
 
     test('passes a 204 empty executor response through without throwing', async () => {
@@ -251,7 +291,7 @@ describe('WorkflowExecutorProxyRoute', () => {
       await callHandleProxy(route, context);
 
       expect(context.response.status).toBe(204);
-      expect(context.response.body).toBe('');
+      expect(bodyText(context)).toBe('');
     });
   });
 
