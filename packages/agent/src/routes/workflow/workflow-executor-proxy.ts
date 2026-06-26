@@ -115,7 +115,7 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
     url: URL;
     body: string | undefined;
     headers: OutgoingHttpHeaders;
-  }): Promise<{ status: number; body: unknown; headers: IncomingHttpHeaders }> {
+  }): Promise<{ status: number; body: Buffer; headers: IncomingHttpHeaders }> {
     const { method, url, body, headers } = request;
     const requestFn = url.protocol === 'https:' ? httpsRequest : httpRequest;
 
@@ -124,18 +124,11 @@ export default class WorkflowExecutorProxyRoute extends BaseRoute {
         const chunks: Uint8Array[] = [];
         res.on('data', chunk => chunks.push(chunk));
         res.on('end', () => {
-          const raw = Buffer.concat(chunks).toString('utf-8');
-          let parsed: unknown;
-
-          try {
-            parsed = JSON.parse(raw);
-          } catch {
-            parsed = raw;
-          }
-
+          // Raw bytes: decoding as UTF-8 corrupted gzipped bodies while still forwarding
+          // Content-Encoding: gzip, breaking the browser with ERR_CONTENT_DECODING_FAILED.
           resolve({
             status: res.statusCode ?? HttpCode.InternalServerError,
-            body: parsed,
+            body: Buffer.concat(chunks),
             headers: res.headers,
           });
         });
