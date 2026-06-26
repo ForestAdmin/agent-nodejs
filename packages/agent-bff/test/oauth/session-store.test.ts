@@ -70,6 +70,37 @@ describe('session-store', () => {
       expect(store.claimAuthorizationCode('code-b')).toBe(true);
     });
 
+    it('should reject a new claim once the pending-claim cap is reached (DoS guard)', () => {
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => 1_000_000,
+        sessionTtlSeconds: 3600,
+        maxPendingCodes: 2,
+      });
+
+      expect(store.claimAuthorizationCode('c1')).toBe(true);
+      expect(store.claimAuthorizationCode('c2')).toBe(true);
+      expect(store.claimAuthorizationCode('c3')).toBe(false);
+    });
+
+    it('should accept a new claim again after expired claims free up capacity', () => {
+      let clock = 1_000_000;
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => clock,
+        sessionTtlSeconds: 3600,
+        authCodeTtlSeconds: 60,
+        maxPendingCodes: 1,
+      });
+
+      expect(store.claimAuthorizationCode('c1')).toBe(true);
+      expect(store.claimAuthorizationCode('c2')).toBe(false);
+
+      clock += 61 * 1000;
+
+      expect(store.claimAuthorizationCode('c2')).toBe(true);
+    });
+
     it('should drop a claimed code after its TTL so the store does not grow unbounded', () => {
       let clock = 1_000_000;
       const store = createInMemorySessionStore({
