@@ -1,9 +1,4 @@
 import type { ActionEndpointsByCollection } from './domains/action';
-import type {
-  CollectionPermissionsOverride,
-  PermissionsOverride,
-  SmartActionPermissionsOverride,
-} from './domains/remote-agent-client';
 
 import ActionFieldJson from './action-fields/action-field-json';
 import ActionFieldStringList from './action-fields/action-field-string-list';
@@ -20,15 +15,9 @@ export {
   ActionRequiresApprovalError,
   ActionFormValidationError,
 };
-export type {
-  ActionEndpointsByCollection,
-  CollectionPermissionsOverride,
-  PermissionsOverride,
-  SmartActionPermissionsOverride,
-};
+export type { ActionEndpointsByCollection };
 
 export function createRemoteAgentClient(params: {
-  overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
   actionEndpoints?: ActionEndpointsByCollection;
   token?: string;
   url: string;
@@ -38,7 +27,6 @@ export function createRemoteAgentClient(params: {
   return new RemoteAgentClient({
     actionEndpoints: params.actionEndpoints,
     httpRequester,
-    overridePermissions: params.overridePermissions,
   });
 }
 
