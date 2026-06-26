@@ -23,6 +23,7 @@ export interface BFFConfig {
   forestServerUrl?: string;
   forestAppUrl?: string;
   agentUrl?: string;
+  tokenEncryptionKey?: string;
   httpPort: number;
   presence: PresenceMap;
   hasAllRequired: boolean;
@@ -30,6 +31,8 @@ export interface BFFConfig {
 
 const DECIMAL_INTEGER = /^\d+$/;
 const MAX_PORT = 65535;
+const ENCRYPTION_KEY_BYTES = 32;
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 const HTTP_URL_SCHEMA = z.url({ protocol: /^https?$/ });
 
 function normalize(value: string | undefined): string | undefined {
@@ -55,6 +58,19 @@ function isHttpUrl(value: string): boolean {
   return !/\s/.test(value) && HTTP_URL_SCHEMA.safeParse(value).success;
 }
 
+function parseEncryptionKey(raw: string | undefined): string | undefined {
+  const value = normalize(raw);
+  if (value === undefined) return undefined;
+
+  if (!BASE64_PATTERN.test(value) || Buffer.from(value, 'base64').length !== ENCRYPTION_KEY_BYTES) {
+    throw new ConfigurationError(
+      `Invalid configuration: BFF_TOKEN_ENCRYPTION_KEY must be base64-encoded and exactly ${ENCRYPTION_KEY_BYTES} bytes (AES-256).`,
+    );
+  }
+
+  return value;
+}
+
 export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
   const normalized = Object.fromEntries(
     REQUIRED_KEYS.map(key => [key, normalize(env[key])]),
@@ -78,6 +94,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     forestServerUrl: normalized.FOREST_SERVER_URL,
     forestAppUrl: normalized.FOREST_APP_URL,
     agentUrl: normalized.AGENT_URL,
+    tokenEncryptionKey: parseEncryptionKey(env.BFF_TOKEN_ENCRYPTION_KEY),
     httpPort: parsePort(env.HTTP_PORT),
     presence,
     hasAllRequired: REQUIRED_KEYS.every(key => presence[key]),
