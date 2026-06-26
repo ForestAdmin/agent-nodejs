@@ -49,7 +49,11 @@ const SAFE_EXCHANGE_ERRORS = new Set([
 function getQueryParam(ctx: Context, key: string): string | undefined {
   const value = ctx.query[key];
 
-  return Array.isArray(value) ? value[0] : value;
+  if (Array.isArray(value)) {
+    throw invalidRequest(`Parameter must appear at most once: ${key}`);
+  }
+
+  return value;
 }
 
 function requireBodyString(body: Record<string, unknown>, key: string): string {
@@ -83,9 +87,15 @@ function assertRegisteredRedirectUri(
 }
 
 function toSafeExchangeError(saasError: string): OAuthRequestError {
-  const type = SAFE_EXCHANGE_ERRORS.has(saasError) ? saasError : 'invalid_grant';
+  if (SAFE_EXCHANGE_ERRORS.has(saasError)) {
+    return new OAuthRequestError(400, saasError, 'Authorization code exchange failed');
+  }
 
-  return new OAuthRequestError(400, type, 'Authorization code exchange failed');
+  return new OAuthRequestError(
+    502,
+    'server_error',
+    'Forest server rejected the authorization code',
+  );
 }
 
 function mapIdentityError(error: unknown): OAuthRequestError {

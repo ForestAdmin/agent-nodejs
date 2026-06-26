@@ -78,6 +78,28 @@ export default function createInMemorySessionStore({
     }
   }
 
+  function purgeExpiredSessions(): void {
+    const current = now();
+
+    for (const [sid, session] of sessions) {
+      if (current >= session.expiresAt) sessions.delete(sid);
+    }
+  }
+
+  function evictOldestCode(): void {
+    let oldestCode: string | undefined;
+    let oldestExpiry = Infinity;
+
+    for (const [code, expiresAt] of usedCodes) {
+      if (expiresAt < oldestExpiry) {
+        oldestExpiry = expiresAt;
+        oldestCode = code;
+      }
+    }
+
+    if (oldestCode !== undefined) usedCodes.delete(oldestCode);
+  }
+
   function liveSession(sid: string): StoredSession | undefined {
     const session = sessions.get(sid);
     if (!session) return undefined;
@@ -93,6 +115,7 @@ export default function createInMemorySessionStore({
 
   return {
     create(input) {
+      purgeExpiredSessions();
       const sid = createSid();
       const refreshToken = createOpaqueToken();
 
@@ -129,7 +152,7 @@ export default function createInMemorySessionStore({
     claimAuthorizationCode(code) {
       purgeExpiredCodes();
       if (usedCodes.has(code)) return false;
-      if (usedCodes.size >= maxPendingCodes) return false;
+      if (usedCodes.size >= maxPendingCodes) evictOldestCode();
 
       usedCodes.set(code, now() + authCodeTtlSeconds * 1000);
 

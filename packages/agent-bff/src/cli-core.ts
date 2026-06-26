@@ -55,16 +55,7 @@ async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise
     oauthConfig;
 
   const serverClient = new ForestServerClient({ forestServerUrl, envSecret: forestEnvSecret });
-
-  let environmentId: number;
-
-  try {
-    environmentId = await serverClient.fetchEnvironmentId();
-  } catch {
-    logger('Warn', 'OAuth routes disabled: failed to reach the Forest server at startup');
-
-    return [];
-  }
+  const environmentId = await serverClient.fetchEnvironmentId();
 
   const sessionStore = createInMemorySessionStore({
     cipher: createTokenCipher(tokenEncryptionKey),

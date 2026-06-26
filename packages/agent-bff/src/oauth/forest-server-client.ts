@@ -34,6 +34,11 @@ export interface ForestServerClientOptions {
 }
 
 const DEFAULT_HEADERS = { 'Content-Type': 'application/json' } as const;
+const REQUEST_TIMEOUT_MS = 60_000;
+
+function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+}
 
 export default class ForestServerClient {
   private readonly forestServerUrl: string;
@@ -51,7 +56,7 @@ export default class ForestServerClient {
   }
 
   async fetchEnvironmentId(): Promise<number> {
-    const response = await fetch(this.url('/liana/environment'), {
+    const response = await fetchWithTimeout(this.url('/liana/environment'), {
       method: 'GET',
       headers: { ...DEFAULT_HEADERS, 'forest-secret-key': this.envSecret },
     });
@@ -71,10 +76,13 @@ export default class ForestServerClient {
   }
 
   async getRegisteredClient(clientId: string): Promise<RegisteredClient | undefined> {
-    const response = await fetch(this.url(`/oauth/register/${encodeURIComponent(clientId)}`), {
-      method: 'GET',
-      headers: DEFAULT_HEADERS,
-    });
+    const response = await fetchWithTimeout(
+      this.url(`/oauth/register/${encodeURIComponent(clientId)}`),
+      {
+        method: 'GET',
+        headers: DEFAULT_HEADERS,
+      },
+    );
 
     if (response.status === 404) return undefined;
 
@@ -113,7 +121,7 @@ export default class ForestServerClient {
     payload: Record<string, string>,
     requireRenderingId: boolean,
   ): Promise<ServerTokens> {
-    const response = await fetch(this.url('/oauth/token'), {
+    const response = await fetchWithTimeout(this.url('/oauth/token'), {
       method: 'POST',
       headers: { ...DEFAULT_HEADERS, 'forest-secret-key': this.envSecret },
       body: JSON.stringify(payload),

@@ -30,17 +30,24 @@ async function refreshAndPersist(
     throw sessionExpired('Session not found or expired');
   }
 
-  try {
-    const rotated = await serverClient.refreshServerToken(currentRefresh);
-    store.updateSaasTokens(sid, {
-      saasAccessToken: rotated.saasAccessToken,
-      saasRefreshToken: rotated.saasRefreshToken,
-    });
+  let rotated: Awaited<ReturnType<ForestServerClient['refreshServerToken']>>;
 
-    return rotated.saasAccessToken;
+  try {
+    rotated = await serverClient.refreshServerToken(currentRefresh);
   } catch {
     throw sessionExpired('Failed to refresh the Forest server session');
   }
+
+  if (!store.get(sid)) {
+    throw sessionExpired('Session expired during token refresh');
+  }
+
+  store.updateSaasTokens(sid, {
+    saasAccessToken: rotated.saasAccessToken,
+    saasRefreshToken: rotated.saasRefreshToken,
+  });
+
+  return rotated.saasAccessToken;
 }
 
 export default async function ensureFreshServerAccess({
