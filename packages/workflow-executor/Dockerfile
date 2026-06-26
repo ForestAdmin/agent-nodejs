@@ -15,11 +15,17 @@ FROM node:22-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a596
 FROM base AS builder
 WORKDIR /app
 
+# Install from manifests + lockfile only (before the source COPY) so editing
+# source doesn't bust the install layer — keeps the install cached on
+# source-only changes (CI cache-warm + local rebuilds). --parents preserves the
+# packages/*/ layout that yarn workspaces needs.
 # --frozen-lockfile guarantees the resolved tree matches yarn.lock exactly.
 # --ignore-scripts skips husky, native (node-gyp) builds, and binary downloads
 # irrelevant here (sqlite3 is dev-only and never loaded at runtime).
-COPY . .
+COPY --parents package.json yarn.lock packages/*/package.json packages/workflow-executor/example/package.json ./
 RUN yarn install --frozen-lockfile --ignore-scripts
+
+COPY . .
 
 # Build the executor and only its 5 workspace dependencies, in topological order.
 RUN node_modules/.bin/lerna run build \
