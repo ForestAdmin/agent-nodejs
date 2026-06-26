@@ -186,6 +186,20 @@ describe('oauth-routes GET /oauth/authorize', () => {
     });
   });
 
+  describe('when a query param is repeated (array value)', () => {
+    it('should reject with invalid_request and not redirect', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, client_id: [CLIENT_ID, 'other'] });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.headers.location).toBeUndefined();
+    });
+  });
+
   describe('when the registered client has no redirect_uris', () => {
     it('should fail closed with invalid_request instead of accepting any redirect_uri', async () => {
       const { app } = buildApp(
@@ -362,6 +376,25 @@ describe('oauth-routes POST /oauth/token', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error.type).toBe('invalid_grant');
+      expect(JSON.stringify(response.body)).not.toContain('super-secret-saas-detail');
+    });
+  });
+
+  describe('when the SaaS exchange fails with an unsafe error code', () => {
+    it('should map it to 502 server_error without exposing the upstream code', async () => {
+      const { app } = buildApp(
+        stubServerClient({
+          exchangeCode: async () => {
+            throw new OAuthExchangeError('some_unknown_upstream_error', 'super-secret-saas-detail');
+          },
+        }),
+      );
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(502);
+      expect(response.body.error.type).toBe('server_error');
+      expect(JSON.stringify(response.body)).not.toContain('some_unknown_upstream_error');
       expect(JSON.stringify(response.body)).not.toContain('super-secret-saas-detail');
     });
   });

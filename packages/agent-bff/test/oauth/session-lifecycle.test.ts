@@ -142,6 +142,33 @@ describe('ensureFreshServerAccess', () => {
     });
   });
 
+  describe('when the session disappears during the refresh', () => {
+    it('should throw session_expired instead of persisting into a gone session', async () => {
+      const expiredAccess = accessToken(-10);
+      const get = jest
+        .fn()
+        .mockReturnValueOnce({ saasAccessToken: expiredAccess } as StoredSession)
+        .mockReturnValue(undefined);
+      const updateSaasTokens = jest.fn();
+      const store: SessionStore = {
+        get,
+        getSaasRefreshToken: () => 'R1',
+        create: jest.fn(),
+        updateSaasTokens,
+        claimAuthorizationCode: jest.fn(),
+        pendingClaimCount: jest.fn(),
+      };
+      const client = {
+        refreshServerToken: jest.fn(async () => rotatedTokens()),
+      } as unknown as ForestServerClient;
+
+      await expect(
+        ensureFreshServerAccess({ sid: 'sid-1', store, serverClient: client }),
+      ).rejects.toMatchObject({ type: 'session_expired' });
+      expect(updateSaasTokens).not.toHaveBeenCalled();
+    });
+  });
+
   describe('when the underlying SaaS refresh fails transiently', () => {
     it('should throw a server_error (not session_expired) so the client can retry', async () => {
       const store = buildStore();
