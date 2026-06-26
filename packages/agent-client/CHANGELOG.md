@@ -1,3 +1,10 @@
+## @forestadmin/agent-client [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.7.0...@forestadmin/agent-client@1.7.1) (2026-06-26)
+
+
+### Bug Fixes
+
+* **agent-client:** preserve the server's action error message ([#1712](https://github.com/ForestAdmin/agent-nodejs/issues/1712)) ([f05d5ac](https://github.com/ForestAdmin/agent-nodejs/commit/f05d5ac24108ef8ddce45e563924a1ba1193f049))
+
 # @forestadmin/agent-client [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.6.3...@forestadmin/agent-client@1.7.0) (2026-06-25)
 
 
