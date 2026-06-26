@@ -1,0 +1,23 @@
+# Minimal single-instance setup for the workflow executor.
+#
+# 1. Copy .env.example to .env and fill in your secrets.
+# 2. docker compose up
+#
+# Point your Forest Admin agent at: workflowExecutorUrl: "http://localhost:3400"
+
+services:
+  workflow-executor:
+    image: ghcr.io/forestadmin/workflow-executor:latest
+    restart: unless-stopped
+    # Forward the whole .env into the container (see .env.example for the full
+    # list of knobs). Unset optional vars fall back to the image's built-in
+    # defaults — no whitelist to keep in sync.
+    env_file:
+      - .env
+    # Lets AGENT_URL / DATABASE_URL reach host services via host.docker.internal
+    # on Linux too (resolves natively on Docker Desktop, no-op there).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${HTTP_PORT:-3400}:${HTTP_PORT:-3400}"
+    # Healthcheck is inherited from the image's HEALTHCHECK (see Dockerfile).

@@ -1,0 +1,285 @@
+name: Publish workflow-executor Docker image
+
+on:
+  push:
+    tags:
+      - '@forestadmin/workflow-executor@*'
+  pull_request:
+    # Validate on any change to the executor or to a dependency package's
+    # manifest — a dep bump in one of the 5 source packages can drift the
+    # image's dedicated lockfile (see packages/workflow-executor/docker/).
+    paths:
+      - 'packages/workflow-executor/**'
+      - 'packages/agent-client/package.json'
+      - 'packages/ai-proxy/package.json'
+      - 'packages/forestadmin-client/package.json'
+      - 'packages/datasource-toolkit/package.json'
+      - 'packages/agent-toolkit/package.json'
+      # The builder runs `yarn install --frozen-lockfile` from the repo root, so a
+      # lockfile-only change can alter the build (build.yml installs without
+      # --frozen-lockfile and wouldn't catch an inconsistency).
+      - 'yarn.lock'
+      - '.github/workflows/docker-publish.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to publish (e.g. 1.7.0)'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  # Include the dispatch version so two manual runs for different versions from the
+  # same branch don't cancel each other mid-release.
+  group: docker-publish-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}
+  cancel-in-progress: true
+
+jobs:
+  # On PRs: build the image (no push) to catch Dockerfile breakage before release.
+  validate:
+    name: Validate Dockerfile build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Check @forestadmin dependency closure
+        run: node packages/workflow-executor/docker/check-deps-closure.js
+
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/workflow-executor/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: workflow-executor:pr
+          cache-from: type=gha,scope=amd64
+
+      # The build only proves the image compiles. Run it to catch entrypoint
+      # breakage, a missing module (e.g. an un-copied @forestadmin package or OTel
+      # dep), or a startup crash — none of which a build-only step would surface.
+      - name: Smoke test (entrypoint + module graph + boot)
+        run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:pr
+
+      # Gate by ORIGIN, not severity. OS packages and Docker-only @opentelemetry
+      # deps can only be fixed here, so they BLOCK; the executor's npm deps are
+      # already shipped via the package, so blocking the image would just desync
+      # GHCR from npm — those are report-only (fixed at the source).
+      - name: Scan OS packages (blocking)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: workflow-executor:pr
+          vuln-type: os
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan libraries (report; OTel blocks)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: workflow-executor:pr
+          vuln-type: library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+          format: json
+          output: trivy-libs.json
+      - name: Gate OTel, report npm deps
+        run: node packages/workflow-executor/docker/scan-gate.js trivy-libs.json
+
+  extract-version:
+    name: Extract version
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.version.outputs.full }}
+      minor: ${{ steps.version.outputs.minor }}
+      major: ${{ steps.version.outputs.major }}
+      is_latest: ${{ steps.version.outputs.is_latest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need all tags to determine whether this is the latest stable version.
+          fetch-depth: 0
+      - name: Parse version from tag or input
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            TAG="${{ github.ref_name }}"
+            VERSION="${TAG#@forestadmin/workflow-executor@}"
+          fi
+          echo "full=$VERSION" >> $GITHUB_OUTPUT
+          echo "minor=${VERSION%.*}" >> $GITHUB_OUTPUT
+          echo "major=${VERSION%%.*}" >> $GITHUB_OUTPUT
+
+          # Move the mutable tags (:latest, :major, :minor) only when this is the
+          # highest STABLE version of this package — never for a prerelease, and
+          # never when rebuilding an older version via workflow_dispatch (which
+          # would regress :latest onto a stale image). We compare against the git
+          # tags of this package specifically (the repo-wide GitHub "latest
+          # release" belongs to whichever monorepo package shipped last).
+          PREFIX="@forestadmin/workflow-executor@"
+          LATEST_STABLE=$(git tag --list "${PREFIX}*" \
+            | sed "s|^${PREFIX}||" \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V | tail -n1)
+          case "$VERSION" in
+            *-*) IS_LATEST=false ;;                                  # prerelease
+            "$LATEST_STABLE") IS_LATEST=true ;;
+            *) IS_LATEST=false ;;
+          esac
+          echo "is_latest=$IS_LATEST" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build (${{ matrix.arch }})
+    if: github.event_name != 'pull_request'
+    needs: extract-version
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # On manual dispatch, check out the requested version tag so the built
+          # image matches the version it is published under (not the default branch).
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('@forestadmin/workflow-executor@{0}', github.event.inputs.version) || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build and LOAD locally first (no push) so we can smoke-test and scan the
+      # exact image before it reaches the registry. Nothing is published until
+      # both gates pass — otherwise a vulnerable/broken image would be pullable
+      # by digest even when the gate "fails".
+      - name: Build (load for gating)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/workflow-executor/Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: workflow-executor:${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+      - name: Smoke test (entrypoint + module graph + boot)
+        run: sh packages/workflow-executor/docker/smoke-test.sh workflow-executor:${{ matrix.arch }}
+
+      # Gate by origin (see the validate job): OS + Docker-only OTel block; the
+      # executor's npm deps are report-only.
+      - name: Scan OS packages (blocking)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: workflow-executor:${{ matrix.arch }}
+          vuln-type: os
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Scan libraries (report; OTel blocks)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: workflow-executor:${{ matrix.arch }}
+          vuln-type: library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+          format: json
+          output: trivy-libs.json
+      - name: Gate OTel, report npm deps
+        run: node packages/workflow-executor/docker/scan-gate.js trivy-libs.json
+
+      # All gates passed (smoke + OS/OTel scan). Publish by digest (cache hit).
+      - name: Push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/workflow-executor/Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=ghcr.io/forestadmin/workflow-executor,push-by-digest=true,name-canonical=true,push=true
+          sbom: true
+          cache-from: type=gha,scope=${{ matrix.arch }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Publish multi-arch manifest
+    if: github.event_name != 'pull_request'
+    needs: [extract-version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: /tmp/digests
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifest
+        working-directory: /tmp/digests
+        env:
+          IMAGE: ghcr.io/forestadmin/workflow-executor
+          FULL: ${{ needs.extract-version.outputs.full }}
+          MINOR: ${{ needs.extract-version.outputs.minor }}
+          MAJOR: ${{ needs.extract-version.outputs.major }}
+          IS_LATEST: ${{ needs.extract-version.outputs.is_latest }}
+        run: |
+          # Always publish the immutable full-version tag. The mutable tags
+          # (minor, major, latest) only move when this is the latest stable
+          # version, so neither a prerelease nor a rebuild of an older version
+          # ever overwrites the current stable :latest / :1 images.
+          TAGS="-t $IMAGE:$FULL"
+          if [ "$IS_LATEST" = "true" ]; then
+            TAGS="$TAGS -t $IMAGE:$MINOR -t $IMAGE:$MAJOR -t $IMAGE:latest"
+          fi
+          docker buildx imagetools create $TAGS \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      - name: Inspect manifest
+        run: docker buildx imagetools inspect ghcr.io/forestadmin/workflow-executor:${{ needs.extract-version.outputs.full }}
