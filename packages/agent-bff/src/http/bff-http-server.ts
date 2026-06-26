@@ -1,6 +1,7 @@
 import type { BFFConfig } from '../config/env-config';
 import type { Logger } from '../ports/logger-port';
 import type { Server } from 'http';
+import type { Middleware } from 'koa';
 
 import http from 'http';
 import Koa from 'koa';
@@ -12,6 +13,7 @@ export interface BFFHttpServerOptions {
   version: string;
   config: BFFConfig;
   logger?: Logger;
+  middlewares?: Middleware[];
 }
 
 export default class BFFHttpServer {
@@ -41,6 +43,10 @@ export default class BFFHttpServer {
 
       await next();
     });
+
+    for (const middleware of this.options.middlewares ?? []) {
+      this.app.use(middleware);
+    }
   }
 
   async start(): Promise<void> {

@@ -27,6 +27,25 @@ describe('runCli', () => {
     });
   });
 
+  describe('when BFF_TOKEN_ENCRYPTION_KEY is absent', () => {
+    it('should disable OAuth and still boot (key gates OAuth, not boot)', async () => {
+      const logs: string[] = [];
+
+      const logger: Logger = (_level, message) => {
+        logs.push(message);
+      };
+
+      const server = await runCli({ ...VALID_ENV }, logger);
+
+      try {
+        expect(server).toBeDefined();
+        expect(logs).toContain('OAuth routes disabled: required configuration is missing');
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
   describe('when a config value is malformed', () => {
     it('should throw ConfigurationError naming the key without echoing the secret', async () => {
       const err = await runCli(
