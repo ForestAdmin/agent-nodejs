@@ -4,6 +4,7 @@ import type { SessionStore, StoredSession } from '../../src/oauth/session-store'
 
 import jsonwebtoken from 'jsonwebtoken';
 
+import { OAuthExchangeError } from '../../src/oauth/forest-server-client';
 import ensureFreshServerAccess from '../../src/oauth/session-lifecycle';
 import createInMemorySessionStore from '../../src/oauth/session-store';
 import createTokenCipher from '../../src/oauth/token-cipher';
@@ -141,8 +142,8 @@ describe('ensureFreshServerAccess', () => {
     });
   });
 
-  describe('when the underlying SaaS refresh fails', () => {
-    it('should throw a session_expired error', async () => {
+  describe('when the underlying SaaS refresh fails transiently', () => {
+    it('should throw a server_error (not session_expired) so the client can retry', async () => {
       const store = buildStore();
       const { sid } = store.create({
         saasAccessToken: accessToken(-10),
@@ -153,6 +154,27 @@ describe('ensureFreshServerAccess', () => {
       const client = {
         refreshServerToken: jest.fn(async () => {
           throw new Error('saas down');
+        }),
+      } as unknown as ForestServerClient;
+
+      await expect(
+        ensureFreshServerAccess({ sid, store, serverClient: client }),
+      ).rejects.toMatchObject({ type: 'server_error' });
+    });
+  });
+
+  describe('when the Forest server rejects the refresh token', () => {
+    it('should throw session_expired so the client re-authenticates', async () => {
+      const store = buildStore();
+      const { sid } = store.create({
+        saasAccessToken: accessToken(-10),
+        saasRefreshToken: 'R1',
+        renderingId: 17,
+        userId: 42,
+      });
+      const client = {
+        refreshServerToken: jest.fn(async () => {
+          throw new OAuthExchangeError('invalid_grant', 'refresh token revoked');
         }),
       } as unknown as ForestServerClient;
 

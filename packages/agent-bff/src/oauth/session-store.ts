@@ -132,7 +132,9 @@ export default function createInMemorySessionStore({
     },
 
     get(sid) {
-      return liveSession(sid);
+      const session = liveSession(sid);
+
+      return session ? { ...session } : undefined;
     },
 
     getSaasRefreshToken(sid) {
