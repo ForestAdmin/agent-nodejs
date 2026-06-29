@@ -11,11 +11,12 @@ export class OAuthRequestError extends Error {
 }
 
 export interface OAuthErrorBody {
-  error: { type: string; status: number; message: string };
+  error: string;
+  error_description: string;
 }
 
 export function toErrorBody(error: OAuthRequestError): OAuthErrorBody {
-  return { error: { type: error.type, status: error.status, message: error.message } };
+  return { error: error.type, error_description: error.message };
 }
 
 export function invalidRequest(message: string): OAuthRequestError {

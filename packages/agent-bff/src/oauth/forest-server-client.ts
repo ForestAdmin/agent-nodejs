@@ -65,10 +65,16 @@ export default class ForestServerClient {
       throw new Error(`Failed to fetch environment: ${response.status} ${response.statusText}`);
     }
 
-    const body = (await response.json()) as { data?: { id?: string } };
-    const environmentId = Number(body.data?.id);
+    const body = (await response.json()) as { data?: { id?: string | number } };
+    const id = body.data?.id;
 
-    if (!Number.isInteger(environmentId)) {
+    if (typeof id !== 'number' && (typeof id !== 'string' || !/^\d+$/.test(id))) {
+      throw new Error('Failed to parse environment id from the Forest server response');
+    }
+
+    const environmentId = Number(id);
+
+    if (!Number.isInteger(environmentId) || environmentId <= 0) {
       throw new Error('Failed to parse environment id from the Forest server response');
     }
 

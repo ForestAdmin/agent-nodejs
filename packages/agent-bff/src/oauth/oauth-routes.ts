@@ -26,16 +26,8 @@ export interface OAuthRoutesOptions {
   logger: Logger;
 }
 
-const AUTHORIZE_REQUIRED_PARAMS = [
-  'client_id',
-  'redirect_uri',
-  'response_type',
-  'code_challenge',
-  'code_challenge_method',
-  'state',
-] as const;
-
 const CODE_VERIFIER_PATTERN = /^[A-Za-z0-9\-._~]{43,128}$/;
+const S256_CODE_CHALLENGE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 const SAFE_EXCHANGE_ERRORS = new Set([
   'invalid_request',
@@ -101,60 +93,96 @@ function toSafeExchangeError(saasError: string): OAuthRequestError {
 function mapIdentityError(error: unknown): OAuthRequestError {
   const name = error instanceof Error ? error.name : '';
 
-  if (name === 'ForbiddenError' || name === 'NotFoundError') {
+  if (name === 'ForbiddenError') {
     return forestIdentityNotAllowed('Caller is not an active user for this rendering');
   }
 
   return new OAuthRequestError(502, 'identity_resolution_failed', 'Failed to resolve identity');
 }
 
+function redirectAuthorizeError(
+  ctx: Context,
+  redirectUri: string,
+  state: string | undefined,
+  error: OAuthRequestError,
+): void {
+  const target = new URL(redirectUri);
+  target.searchParams.set('error', error.type);
+  target.searchParams.set('error_description', error.message);
+  if (state !== undefined && state !== '') target.searchParams.set('state', state);
+
+  ctx.redirect(target.toString());
+}
+
 async function handleAuthorize(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
-  for (const param of AUTHORIZE_REQUIRED_PARAMS) {
-    const value = getQueryParam(ctx, param);
+  // Validate client_id and redirect_uri first: until redirect_uri is confirmed
+  // against the registered client, errors must not redirect (RFC 6749 §10.15).
+  const clientId = getQueryParam(ctx, 'client_id');
 
-    if (value === undefined || value === '') {
-      throw invalidRequest(`Missing required parameter: ${param}`);
-    }
+  if (clientId === undefined || clientId === '') {
+    throw invalidRequest('Missing required parameter: client_id');
   }
 
-  const clientId = getQueryParam(ctx, 'client_id') as string;
-  const redirectUri = getQueryParam(ctx, 'redirect_uri') as string;
-  const responseType = getQueryParam(ctx, 'response_type') as string;
-  const codeChallenge = getQueryParam(ctx, 'code_challenge') as string;
-  const state = getQueryParam(ctx, 'state') as string;
+  const redirectUri = getQueryParam(ctx, 'redirect_uri');
 
-  if (responseType !== 'code') {
-    throw invalidRequest('response_type must be "code"');
-  }
-
-  const codeChallengeMethod = getQueryParam(ctx, 'code_challenge_method');
-
-  if (codeChallengeMethod !== 'S256') {
-    throw invalidRequest('code_challenge_method must be S256');
-  }
-
-  if (!CODE_VERIFIER_PATTERN.test(codeChallenge)) {
-    throw invalidRequest('code_challenge is malformed');
+  if (redirectUri === undefined || redirectUri === '') {
+    throw invalidRequest('Missing required parameter: redirect_uri');
   }
 
   const client = await options.serverClient.getRegisteredClient(clientId);
 
   if (!client) {
-    throw invalidClient('Unknown client_id');
+    throw invalidRequest('Unknown client_id');
   }
 
   assertRegisteredRedirectUri(client.redirect_uris, redirectUri, invalidRequest);
 
-  const authorizeUrl = new URL('/oauth/authorize', options.forestAppUrl);
-  authorizeUrl.searchParams.set('client_id', clientId);
-  authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-  authorizeUrl.searchParams.set('response_type', 'code');
-  authorizeUrl.searchParams.set('code_challenge', codeChallenge);
-  authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-  authorizeUrl.searchParams.set('state', state);
-  authorizeUrl.searchParams.set('environmentId', String(options.environmentId));
+  // redirect_uri is now trusted: remaining validation errors redirect back to
+  // the client with error + state (RFC 6749 §4.1.2.1).
+  let state: string | undefined;
 
-  ctx.redirect(authorizeUrl.toString());
+  try {
+    state = getQueryParam(ctx, 'state');
+    const responseType = getQueryParam(ctx, 'response_type');
+
+    if (responseType !== 'code') {
+      throw invalidRequest('response_type must be "code"');
+    }
+
+    if (getQueryParam(ctx, 'code_challenge_method') !== 'S256') {
+      throw invalidRequest('code_challenge_method must be S256');
+    }
+
+    const codeChallenge = getQueryParam(ctx, 'code_challenge');
+
+    if (codeChallenge === undefined || !S256_CODE_CHALLENGE_PATTERN.test(codeChallenge)) {
+      throw invalidRequest('code_challenge is missing or malformed');
+    }
+
+    if (state === undefined || state === '') {
+      throw invalidRequest('Missing required parameter: state');
+    }
+
+    const appBase = new URL(options.forestAppUrl);
+    const authorizeUrl = new URL(`${appBase.pathname.replace(/\/$/, '')}/oauth/authorize`, appBase);
+    authorizeUrl.searchParams.set('client_id', clientId);
+    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+    authorizeUrl.searchParams.set('response_type', 'code');
+    authorizeUrl.searchParams.set('code_challenge', codeChallenge);
+    authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+    authorizeUrl.searchParams.set('state', state);
+    authorizeUrl.searchParams.set('environmentId', String(options.environmentId));
+
+    ctx.redirect(authorizeUrl.toString());
+  } catch (error) {
+    if (error instanceof OAuthRequestError) {
+      redirectAuthorizeError(ctx, redirectUri, state, error);
+
+      return;
+    }
+
+    throw error;
+  }
 }
 
 function computeExpiresIn(serverTokens: ServerTokens): number {
@@ -223,6 +251,10 @@ async function exchangeForServerTokens(
   }
 }
 
+function isRetriableExchangeError(error: unknown): boolean {
+  return !(error instanceof OAuthRequestError) || error.status >= 500;
+}
+
 async function resolveIdentity(
   serverTokens: ServerTokens,
   options: OAuthRoutesOptions,
@@ -252,7 +284,10 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
   try {
     serverTokens = await exchangeForServerTokens(request, options);
   } catch (error) {
-    options.sessionStore.releaseAuthorizationCode(request.code);
+    if (isRetriableExchangeError(error)) {
+      options.sessionStore.releaseAuthorizationCode(request.code);
+    }
+
     throw error;
   }
 
@@ -307,9 +342,12 @@ function writeError(ctx: Context, error: unknown, options: OAuthRoutesOptions): 
     return;
   }
 
-  options.logger('Error', 'OAuth route failure', { path: ctx.path });
+  options.logger('Error', 'OAuth route failure', {
+    path: ctx.path,
+    cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+  });
   ctx.status = 500;
-  ctx.body = { error: { type: 'server_error', status: 500, message: 'OAuth processing failed' } };
+  ctx.body = { error: 'server_error', error_description: 'OAuth processing failed' };
 }
 
 export default function createOAuthRoutes(options: OAuthRoutesOptions): Middleware {

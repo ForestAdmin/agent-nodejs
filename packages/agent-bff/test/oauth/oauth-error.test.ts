@@ -10,11 +10,12 @@ import {
 
 describe('oauth-error', () => {
   describe('when serializing an error to the response body', () => {
-    it('should produce the nested { error: { type, status, message } } shape', () => {
+    it('should produce the RFC 6749 flat { error, error_description } shape', () => {
       const error = invalidRequest('Missing param');
 
       expect(toErrorBody(error)).toEqual({
-        error: { type: 'invalid_request', status: 400, message: 'Missing param' },
+        error: 'invalid_request',
+        error_description: 'Missing param',
       });
     });
   });

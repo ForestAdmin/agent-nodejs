@@ -3,7 +3,7 @@ import type { ServerTokens } from '../../src/oauth/forest-server-client';
 import type { LoggerLevel } from '../../src/ports/logger-port';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 
-import { ForbiddenError } from '@forestadmin/forestadmin-client';
+import { ForbiddenError, NotFoundError } from '@forestadmin/forestadmin-client';
 import { bodyParser } from '@koa/bodyparser';
 import jsonwebtoken from 'jsonwebtoken';
 import Koa from 'koa';
@@ -65,7 +65,7 @@ interface LogLine {
   context?: Record<string, unknown>;
 }
 
-function buildApp(serverClient: ForestServerClient) {
+function buildApp(serverClient: ForestServerClient, forestAppUrl: string = APP_URL) {
   const logs: LogLine[] = [];
 
   const logger = (level: LoggerLevel, message: string, context?: Record<string, unknown>) => {
@@ -84,7 +84,7 @@ function buildApp(serverClient: ForestServerClient) {
     createOAuthRoutes({
       serverClient,
       sessionStore,
-      forestAppUrl: APP_URL,
+      forestAppUrl,
       authSecret: AUTH_SECRET,
       environmentId: 99,
       logger,
@@ -126,77 +126,106 @@ describe('oauth-routes GET /oauth/authorize', () => {
       expect(location.searchParams.get('environmentId')).toBe('99');
       expect(location.searchParams.get('state')).toBe('state-xyz');
     });
+
+    it('should preserve a path prefix already present in the Forest app url', async () => {
+      const { app } = buildApp(stubServerClient(), 'https://app.forestadmin.com/prefix');
+
+      const response = await request(app.callback()).get('/oauth/authorize').query(AUTHORIZE_QUERY);
+
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.pathname).toBe('/prefix/oauth/authorize');
+    });
   });
 
-  describe('when a required param is missing', () => {
-    it('should reject with nested invalid_request and not redirect', async () => {
+  describe('when a required param is missing after redirect_uri is validated', () => {
+    it('should redirect the error back to redirect_uri with error and state', async () => {
       const { app } = buildApp(stubServerClient());
       const incomplete = { ...AUTHORIZE_QUERY };
       delete (incomplete as Partial<typeof AUTHORIZE_QUERY>).code_challenge;
 
       const response = await request(app.callback()).get('/oauth/authorize').query(incomplete);
 
-      expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(REDIRECT_URI);
+      expect(location.searchParams.get('error')).toBe('invalid_request');
+      expect(location.searchParams.get('state')).toBe('state-xyz');
     });
   });
 
   describe('when the client_id is not registered', () => {
-    it('should reject with invalid_client', async () => {
+    it('should reject with invalid_request and not redirect (redirect_uri unverified)', async () => {
       const { app } = buildApp(stubServerClient({ getRegisteredClient: async () => undefined }));
 
       const response = await request(app.callback()).get('/oauth/authorize').query(AUTHORIZE_QUERY);
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_client');
+      expect(response.body.error).toBe('invalid_request');
+      expect(response.headers.location).toBeUndefined();
     });
   });
 
   describe('when code_challenge is malformed', () => {
-    it('should reject before redirecting so the failure surfaces early', async () => {
+    it('should redirect the error back to redirect_uri', async () => {
       const { app } = buildApp(stubServerClient());
 
       const response = await request(app.callback())
         .get('/oauth/authorize')
         .query({ ...AUTHORIZE_QUERY, code_challenge: 'too-short' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(REDIRECT_URI);
+      expect(location.searchParams.get('error')).toBe('invalid_request');
+    });
+
+    it('should reject a non-base64url S256 challenge even when its length is valid', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, code_challenge: '.'.repeat(43) });
+
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(REDIRECT_URI);
+      expect(location.searchParams.get('error')).toBe('invalid_request');
     });
   });
 
   describe('when code_challenge_method is not S256', () => {
-    it('should reject the PKCE downgrade with invalid_request', async () => {
+    it('should redirect the PKCE downgrade error back to redirect_uri', async () => {
       const { app } = buildApp(stubServerClient());
 
       const response = await request(app.callback())
         .get('/oauth/authorize')
         .query({ ...AUTHORIZE_QUERY, code_challenge_method: 'plain' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.status).toBe(302);
+      expect(new URL(response.headers.location).searchParams.get('error')).toBe('invalid_request');
     });
 
-    it('should reject a missing code_challenge_method (S256 is mandatory, not defaulted)', async () => {
+    it('should redirect a missing code_challenge_method (S256 is mandatory, not defaulted)', async () => {
       const { app } = buildApp(stubServerClient());
       const query = { ...AUTHORIZE_QUERY };
       delete (query as Partial<typeof AUTHORIZE_QUERY>).code_challenge_method;
 
       const response = await request(app.callback()).get('/oauth/authorize').query(query);
 
-      expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.status).toBe(302);
+      expect(new URL(response.headers.location).searchParams.get('error')).toBe('invalid_request');
     });
 
-    it('should reject an empty code_challenge (presence check rejects empty, not just missing)', async () => {
+    it('should redirect an empty code_challenge (presence check rejects empty, not just missing)', async () => {
       const { app } = buildApp(stubServerClient());
 
       const response = await request(app.callback())
         .get('/oauth/authorize')
         .query({ ...AUTHORIZE_QUERY, code_challenge: '' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.status).toBe(302);
+      expect(new URL(response.headers.location).searchParams.get('error')).toBe('invalid_request');
     });
   });
 
@@ -209,8 +238,22 @@ describe('oauth-routes GET /oauth/authorize', () => {
         .query({ ...AUTHORIZE_QUERY, client_id: [CLIENT_ID, 'other'] });
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.body.error).toBe('invalid_request');
       expect(response.headers.location).toBeUndefined();
+    });
+
+    it('should redirect a repeated state error after redirect_uri is trusted', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, state: ['state-1', 'state-2'] });
+
+      expect(response.status).toBe(302);
+      const location = new URL(response.headers.location);
+      expect(location.origin + location.pathname).toBe(REDIRECT_URI);
+      expect(location.searchParams.get('error')).toBe('invalid_request');
+      expect(location.searchParams.get('state')).toBeNull();
     });
   });
 
@@ -223,7 +266,7 @@ describe('oauth-routes GET /oauth/authorize', () => {
       const response = await request(app.callback()).get('/oauth/authorize').query(AUTHORIZE_QUERY);
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.body.error).toBe('invalid_request');
     });
   });
 
@@ -241,7 +284,7 @@ describe('oauth-routes GET /oauth/authorize', () => {
       const response = await request(app.callback()).get('/oauth/authorize').query(AUTHORIZE_QUERY);
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.body.error).toBe('invalid_request');
       expect(response.headers.location).toBeUndefined();
     });
   });
@@ -296,13 +339,13 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_grant');
+      expect(response.body.error).toBe('invalid_grant');
       expect(exchangeCode).not.toHaveBeenCalled();
     });
   });
 
   describe('when local validation fails', () => {
-    it('should reject a missing field with nested invalid_request and call no SaaS', async () => {
+    it('should reject a missing field with invalid_request and call no SaaS', async () => {
       const exchangeCode = jest.fn(async () => serverTokens());
       const { app } = buildApp(stubServerClient({ exchangeCode }));
       const incomplete = { ...TOKEN_BODY };
@@ -311,11 +354,8 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(incomplete);
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toEqual({
-        type: 'invalid_request',
-        status: 400,
-        message: expect.any(String),
-      });
+      expect(response.body.error).toBe('invalid_request');
+      expect(response.body.error_description).toEqual(expect.any(String));
       expect(exchangeCode).not.toHaveBeenCalled();
     });
 
@@ -328,7 +368,7 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_client');
+      expect(response.body.error).toBe('invalid_client');
       expect(exchangeCode).not.toHaveBeenCalled();
     });
   });
@@ -343,7 +383,7 @@ describe('oauth-routes POST /oauth/token', () => {
 
       expect(first.status).toBe(200);
       expect(second.status).toBe(400);
-      expect(second.body.error.type).toBe('invalid_grant');
+      expect(second.body.error).toBe('invalid_grant');
       expect(exchangeCode).toHaveBeenCalledTimes(1);
     });
   });
@@ -368,6 +408,24 @@ describe('oauth-routes POST /oauth/token', () => {
     });
   });
 
+  describe('when the exchange is rejected with a non-retriable error', () => {
+    it('should keep the code claimed so the rejected code cannot be replayed', async () => {
+      const exchangeCode = jest.fn(async () => {
+        throw new OAuthExchangeError('invalid_grant', 'spent upstream');
+      });
+      const { app } = buildApp(stubServerClient({ exchangeCode }));
+
+      const first = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+      const second = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(first.status).toBe(400);
+      expect(first.body.error).toBe('invalid_grant');
+      expect(second.status).toBe(400);
+      expect(second.body.error).toBe('invalid_grant');
+      expect(exchangeCode).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('when a failure happens after a successful exchange', () => {
     it('should keep the code claimed since it is already spent upstream', async () => {
       let attempts = 0;
@@ -383,9 +441,9 @@ describe('oauth-routes POST /oauth/token', () => {
       const second = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(first.status).toBe(502);
-      expect(first.body.error.type).toBe('identity_resolution_failed');
+      expect(first.body.error).toBe('identity_resolution_failed');
       expect(second.status).toBe(400);
-      expect(second.body.error.type).toBe('invalid_grant');
+      expect(second.body.error).toBe('invalid_grant');
     });
   });
 
@@ -414,7 +472,22 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(response.status).toBe(403);
-      expect(response.body.error.type).toBe('forest_identity_not_allowed');
+      expect(response.body.error).toBe('forest_identity_not_allowed');
+    });
+
+    it('should map a NotFoundError to a non-permanent 502 rather than a 403', async () => {
+      const { app } = buildApp(
+        stubServerClient({
+          getUserInfo: async () => {
+            throw new NotFoundError('missing rendering');
+          },
+        }),
+      );
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(502);
+      expect(response.body.error).toBe('identity_resolution_failed');
     });
   });
 
@@ -425,7 +498,7 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_grant');
+      expect(response.body.error).toBe('invalid_grant');
     });
   });
 
@@ -442,7 +515,7 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_grant');
+      expect(response.body.error).toBe('invalid_grant');
       expect(JSON.stringify(response.body)).not.toContain('super-secret-saas-detail');
     });
   });
@@ -460,7 +533,7 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(response.status).toBe(502);
-      expect(response.body.error.type).toBe('server_error');
+      expect(response.body.error).toBe('server_error');
       expect(JSON.stringify(response.body)).not.toContain('some_unknown_upstream_error');
       expect(JSON.stringify(response.body)).not.toContain('super-secret-saas-detail');
     });
@@ -475,7 +548,7 @@ describe('oauth-routes POST /oauth/token', () => {
         .send({ grant_type: 'refresh_token', refresh_token: 'x' });
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('unsupported_grant_type');
+      expect(response.body.error).toBe('unsupported_grant_type');
     });
   });
 
@@ -489,7 +562,7 @@ describe('oauth-routes POST /oauth/token', () => {
         .send({ ...TOKEN_BODY, code_verifier: 'short' });
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.body.error).toBe('invalid_request');
       expect(exchangeCode).not.toHaveBeenCalled();
     });
   });
@@ -516,7 +589,7 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token');
 
       expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.body.error).toBe('invalid_request');
     });
   });
 
@@ -533,7 +606,7 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(response.status).toBe(502);
-      expect(response.body.error.type).toBe('identity_resolution_failed');
+      expect(response.body.error).toBe('identity_resolution_failed');
     });
   });
 
@@ -550,23 +623,41 @@ describe('oauth-routes POST /oauth/token', () => {
       const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
 
       expect(response.status).toBe(500);
-      expect(response.body.error.type).toBe('server_error');
+      expect(response.body.error).toBe('server_error');
       expect(JSON.stringify(response.body)).not.toContain('super-secret-internal-detail');
+    });
+
+    it('should log the failure cause for the operator without leaking it to the client', async () => {
+      const { app, logs } = buildApp(
+        stubServerClient({
+          exchangeCode: async () => {
+            throw new Error('upstream decode boom');
+          },
+        }),
+      );
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      const failure = logs.find(
+        log => log.level === 'Error' && log.message === 'OAuth route failure',
+      );
+      expect(failure?.context?.cause).toBe('Error: upstream decode boom');
+      expect(JSON.stringify(response.body)).not.toContain('upstream decode boom');
     });
   });
 });
 
 describe('oauth-routes middleware', () => {
   describe('when the response_type is not code', () => {
-    it('should reject with invalid_request', async () => {
+    it('should redirect invalid_request back to the validated redirect_uri', async () => {
       const { app } = buildApp(stubServerClient());
 
       const response = await request(app.callback())
         .get('/oauth/authorize')
         .query({ ...AUTHORIZE_QUERY, response_type: 'token' });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error.type).toBe('invalid_request');
+      expect(response.status).toBe(302);
+      expect(new URL(response.headers.location).searchParams.get('error')).toBe('invalid_request');
     });
   });
 
@@ -583,7 +674,7 @@ describe('oauth-routes middleware', () => {
       const response = await request(app.callback()).get('/oauth/authorize').query(AUTHORIZE_QUERY);
 
       expect(response.status).toBe(500);
-      expect(response.body.error.type).toBe('server_error');
+      expect(response.body.error).toBe('server_error');
     });
   });
 

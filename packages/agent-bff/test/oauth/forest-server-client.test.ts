@@ -141,6 +141,14 @@ describe('ForestServerClient', () => {
       await expect(client.fetchEnvironmentId()).rejects.toThrow(/Failed to fetch environment/);
     });
 
+    it('should parse a numeric (non-string) id from the Forest server response', async () => {
+      mockFetchOnce({ ok: true, json: async () => ({ data: { id: 3 } }) });
+
+      const client = new ForestServerClient({ forestServerUrl: SERVER_URL, envSecret: ENV_SECRET });
+
+      await expect(client.fetchEnvironmentId()).resolves.toBe(3);
+    });
+
     it('should throw when the id is not an integer', async () => {
       mockFetchOnce({ ok: true, json: async () => ({ data: { id: 'not-a-number' } }) });
 
@@ -148,6 +156,20 @@ describe('ForestServerClient', () => {
 
       await expect(client.fetchEnvironmentId()).rejects.toThrow(/parse environment id/);
     });
+
+    it.each([{ id: '' }, { id: null }, { id: '0' }, { id: 0 }, {}])(
+      'should throw rather than coerce a malformed id (%j) to 0',
+      async data => {
+        mockFetchOnce({ ok: true, json: async () => ({ data }) });
+
+        const client = new ForestServerClient({
+          forestServerUrl: SERVER_URL,
+          envSecret: ENV_SECRET,
+        });
+
+        await expect(client.fetchEnvironmentId()).rejects.toThrow(/parse environment id/);
+      },
+    );
   });
 
   describe('when decoding renderingId from an exchange token', () => {
