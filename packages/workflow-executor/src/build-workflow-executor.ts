@@ -195,7 +195,15 @@ function createWorkflowExecutor(
 
     async start() {
       await runner.start();
-      await server.start();
+
+      // server.start() runs the OAuth-store migration; if it fails, don't leave the runner polling
+      // in the background — stop it so start() is all-or-nothing.
+      try {
+        await server.start();
+      } catch (err) {
+        await runner.stop().catch(() => {});
+        throw err;
+      }
 
       process.on('SIGTERM', onSignal);
       process.on('SIGINT', onSignal);
@@ -255,7 +263,10 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
-    mcpOAuthCredentialsStore: new DatabaseMcpOAuthCredentialsStore({ sequelize }),
+    mcpOAuthCredentialsStore: new DatabaseMcpOAuthCredentialsStore({
+      sequelize,
+      schema: mergedOptions.schema,
+    }),
     credentialEncryption: new CredentialEncryption(),
   });
 
