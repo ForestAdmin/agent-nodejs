@@ -2,16 +2,14 @@ import net from 'net';
 
 import { InvalidTokenEndpointError } from '../errors';
 
-// Constrains the OAuth token endpoint without breaking intended private-provider support:
-//   - scheme must be http(s); in production it must be https (http stays allowed off-prod, since the
-//     local OAuth sim runs on http);
-//   - link-local (incl. cloud metadata, e.g. 169.254.169.254) is never a valid endpoint — blocked
-//     on every environment;
-//   - loopback / the executor host itself is blocked in production (allowed off-prod for the sim);
-//   - RFC1918 private ranges stay allowed — a private OAuth provider refreshes from inside the
-//     customer network by design (see PRD-367).
-// IP-literal hosts cover the direct SSRF the deposit flow enables; hostnames are not DNS-resolved
-// here, as a resolve-then-fetch check is racy (the resolution at fetch time can differ).
+// The token endpoint comes from the deposit body, and the executor POSTs the refresh grant (with
+// client credentials) to it — so an unconstrained value is an SSRF vector. The guard rejects hosts
+// that are never a legitimate endpoint but are prime SSRF targets (loopback, link-local /
+// cloud-metadata) and requires TLS, while deliberately allowing private (RFC1918) hosts: a private
+// OAuth provider reached over the internal network is a supported deployment, so blocking it would
+// break a real use case. http and loopback are relaxed off-production for local development.
+// Only IP literals are inspected — resolving a hostname here would be racy (it can resolve to a
+// different address at fetch time), not safer.
 
 function isProduction(): boolean {
   return process.env.NODE_ENV === 'production';
