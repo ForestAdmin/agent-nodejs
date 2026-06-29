@@ -65,7 +65,7 @@ function buildRequest(params: RefreshGrantParams): {
 export default async function refreshAccessToken(
   params: RefreshGrantParams,
 ): Promise<RefreshGrantResult> {
-  // Defence in depth: deposit validation rejects SSRF-prone endpoints, but a row predating that
+  // Defense in depth: deposit validation rejects SSRF-prone endpoints, but a row predating that
   // validation could still carry one — re-check before the outbound POST. Throws (terminal) rather
   // than reaching the network.
   assertSafeTokenEndpoint(params.tokenEndpoint);
