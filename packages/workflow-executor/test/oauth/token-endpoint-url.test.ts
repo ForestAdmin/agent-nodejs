@@ -47,6 +47,12 @@ describe('assertSafeTokenEndpoint', () => {
         InvalidTokenEndpointError,
       );
     });
+
+    it('rejects an IPv4-mapped IPv6 metadata address (e.g. ::ffff:169.254.169.254)', () => {
+      expect(() => assertSafeTokenEndpoint('http://[::ffff:169.254.169.254]/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+    });
   });
 
   describe('in production', () => {
@@ -68,6 +74,12 @@ describe('assertSafeTokenEndpoint', () => {
         InvalidTokenEndpointError,
       );
       expect(() => assertSafeTokenEndpoint('https://[::1]/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+    });
+
+    it('rejects an IPv4-mapped IPv6 loopback (e.g. ::ffff:127.0.0.1)', () => {
+      expect(() => assertSafeTokenEndpoint('https://[::ffff:127.0.0.1]/token')).toThrow(
         InvalidTokenEndpointError,
       );
     });

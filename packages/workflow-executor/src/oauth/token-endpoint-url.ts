@@ -21,16 +21,39 @@ function unbracket(hostname: string): string {
   return hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
 }
 
+function classifyIpv4(host: string): { loopback: boolean; linkLocal: boolean } {
+  const [a, b] = host.split('.').map(Number);
+
+  return { loopback: a === 127, linkLocal: a === 169 && b === 254 }; // 127.0.0.0/8, 169.254.0.0/16
+}
+
+// Returns the embedded IPv4 of an IPv4-mapped IPv6 address (otherwise null). The WHATWG URL parser
+// normalizes `::ffff:127.0.0.1` to the hex form `::ffff:7f00:1`, which would otherwise dodge the
+// IPv4 loopback/link-local checks and still reach the executor's loopback / metadata interface.
+function embeddedIpv4(host: string): string | null {
+  const tail = host.toLowerCase().match(/^::ffff:(.+)$/)?.[1];
+  if (!tail) return null;
+
+  if (net.isIPv4(tail)) return tail;
+
+  const hex = tail.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (!hex) return null;
+
+  const hi = parseInt(hex[1], 16); // high 16 bits → first two octets
+  const lo = parseInt(hex[2], 16); // low 16 bits → last two octets
+
+  return `${Math.floor(hi / 256)}.${hi % 256}.${Math.floor(lo / 256)}.${lo % 256}`;
+}
+
 function classify(host: string): { loopback: boolean; linkLocal: boolean } {
   const kind = net.isIP(host);
 
-  if (kind === 4) {
-    const [a, b] = host.split('.').map(Number);
-
-    return { loopback: a === 127, linkLocal: a === 169 && b === 254 };
-  }
+  if (kind === 4) return classifyIpv4(host);
 
   if (kind === 6) {
+    const mapped = embeddedIpv4(host);
+    if (mapped) return classifyIpv4(mapped);
+
     const normalized = host.toLowerCase().split('%')[0]; // drop any zone id
     const firstHextet = normalized.split(':')[0];
 
