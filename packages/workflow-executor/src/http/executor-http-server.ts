@@ -1,4 +1,6 @@
+import type CredentialEncryption from '../crypto/credential-encryption';
 import type { Logger } from '../ports/logger-port';
+import type { McpOAuthCredentialsStore } from '../ports/mcp-oauth-credentials-store';
 import type { WorkflowPort } from '../ports/workflow-port';
 import type Runner from '../runner';
 import type { Server } from 'http';
@@ -11,14 +13,19 @@ import koaJwt from 'koa-jwt';
 
 import { type BearerClaims, BearerClaimsSchema } from './bearer-claims';
 import {
+  BadRequestHttpError,
   ForbiddenHttpError,
   ServiceUnavailableHttpError,
   UnauthorizedHttpError,
   toHttpError,
 } from './http-errors';
+import {
+  buildMcpOAuthCredentialInput,
+  depositCredentialsBodySchema,
+} from './mcp-oauth-credentials';
 import serializeStepForWire from './step-serializer';
 import createConsoleLogger from '../adapters/console-logger';
-import { extractErrorMessage } from '../errors';
+import { ExecutorEncryptionKeyMissingError, extractErrorMessage } from '../errors';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { version } = require('../../package.json') as { version: string };
@@ -29,17 +36,21 @@ export interface ExecutorHttpServerOptions {
   authSecret: string;
   workflowPort: WorkflowPort;
   logger?: Logger;
+  mcpOAuthCredentialsStore: McpOAuthCredentialsStore;
+  credentialEncryption: CredentialEncryption;
 }
 
 export default class ExecutorHttpServer {
   private readonly app: Koa;
   private readonly options: ExecutorHttpServerOptions;
   private readonly logger: Logger;
+  private readonly mcpOAuthCredentialsStore: McpOAuthCredentialsStore;
   private server: Server | null = null;
 
   constructor(options: ExecutorHttpServerOptions) {
     this.options = options;
     this.logger = options.logger ?? createConsoleLogger();
+    this.mcpOAuthCredentialsStore = options.mcpOAuthCredentialsStore;
     this.app = new Koa();
 
     this.app.use(async (ctx, next) => {
@@ -142,11 +153,22 @@ export default class ExecutorHttpServer {
     );
     router.post('/runs/:runId/trigger', this.handleTrigger.bind(this));
 
+    const { mcpOAuthCredentialsStore: credentialsStore, credentialEncryption } = this.options;
+
+    router.post('/mcp-oauth-credentials', ctx =>
+      this.handleDepositCredentials(ctx, credentialsStore, credentialEncryption),
+    );
+    router.delete('/mcp-oauth-credentials/:mcpServerId', ctx =>
+      this.handleDeleteCredentials(ctx, credentialsStore),
+    );
+
     this.app.use(router.routes());
     this.app.use(router.allowedMethods());
   }
 
   async start(): Promise<void> {
+    await this.mcpOAuthCredentialsStore.init(this.logger);
+
     return new Promise((resolve, reject) => {
       this.server = http.createServer(this.app.callback());
       this.server.once('error', reject);
@@ -217,5 +239,50 @@ export default class ExecutorHttpServer {
 
     ctx.status = 200;
     ctx.body = { triggered: true };
+  }
+
+  private async handleDepositCredentials(
+    ctx: Koa.Context,
+    store: McpOAuthCredentialsStore,
+    encryption: CredentialEncryption,
+  ): Promise<void> {
+    const userId = (ctx.state.user as BearerClaims).id;
+    const parsed = depositCredentialsBodySchema.safeParse(ctx.request.body ?? {});
+
+    if (!parsed.success) {
+      const details = parsed.error.issues
+        .map(issue => `${issue.path.join('.') || 'body'}: ${issue.message}`)
+        .join('; ');
+
+      throw new BadRequestHttpError(`Invalid request body — ${details}`);
+    }
+
+    try {
+      await store.upsert(buildMcpOAuthCredentialInput({ body: parsed.data, userId, encryption }));
+    } catch (err) {
+      // The frontend must tell this missing-key config error apart from a generic failure (to route
+      // the user to an admin rather than retry), so it returns a typed { code } the middleware won't.
+      if (err instanceof ExecutorEncryptionKeyMissingError) {
+        ctx.status = 503;
+        ctx.body = { code: err.code };
+
+        return;
+      }
+
+      throw err;
+    }
+
+    ctx.status = 200;
+    ctx.body = { stored: true };
+  }
+
+  private async handleDeleteCredentials(
+    ctx: Koa.Context,
+    store: McpOAuthCredentialsStore,
+  ): Promise<void> {
+    const userId = (ctx.state.user as BearerClaims).id;
+
+    await store.delete(userId, ctx.params.mcpServerId);
+    ctx.status = 204;
   }
 }

@@ -13,6 +13,9 @@ import createConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
+import CredentialEncryption, {
+  isExecutorEncryptionKeyConfigured,
+} from './crypto/credential-encryption';
 import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,
   DEFAULT_FOREST_SERVER_URL,
@@ -24,7 +27,9 @@ import {
 import ExecutorHttpServer from './http/executor-http-server';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
+import DatabaseMcpOAuthCredentialsStore from './stores/database-mcp-oauth-credentials-store';
 import DatabaseStore from './stores/database-store';
+import InMemoryMcpOAuthCredentialsStore from './stores/in-memory-mcp-oauth-credentials-store';
 import InMemoryStore from './stores/in-memory-store';
 
 const FORCE_EXIT_DELAY_S = 5;
@@ -73,6 +78,15 @@ function positiveOrDefault(value: number | undefined, fallback: number): number 
 function buildCommonDependencies(options: ExecutorOptions) {
   const forestServerUrl = options.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL;
   const logger = options.logger ?? createConsoleLogger(options.loggerLevel ?? DEFAULT_LOGGER_LEVEL);
+
+  // Lazy key by design (OAuth-less executors boot without it), but surface a security-relevant
+  // heads-up so a missing key isn't discovered only when a deposit 503s.
+  if (!isExecutorEncryptionKeyConfigured()) {
+    logger(
+      'Warn',
+      'FOREST_EXECUTOR_ENCRYPTION_KEY is not set — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is configured.',
+    );
+  }
 
   const workflowPort = new ForestServerWorkflowPort({
     envSecret: options.envSecret,
@@ -224,6 +238,8 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
+    mcpOAuthCredentialsStore: new InMemoryMcpOAuthCredentialsStore(),
+    credentialEncryption: new CredentialEncryption(),
   });
 
   return createWorkflowExecutor(runner, server, deps.logger, options.manageProcessSignals ?? true);
@@ -252,6 +268,8 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
+    mcpOAuthCredentialsStore: new DatabaseMcpOAuthCredentialsStore({ sequelize }),
+    credentialEncryption: new CredentialEncryption(),
   });
 
   return createWorkflowExecutor(runner, server, deps.logger, options.manageProcessSignals ?? true);
