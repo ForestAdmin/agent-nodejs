@@ -180,6 +180,7 @@ describe('Action', () => {
         actionName: 'send-email',
         recordIds: ['1', '2'],
         inputs: [{ name: 'email', type: 'String', value: 'test@example.com' }],
+        roleIdsAllowedToApprove: [7, 9],
       });
       expect(result).toEqual({ approvalRequested: true });
     });

@@ -23,6 +23,7 @@ describe('makeCreateApprovalRequest', () => {
       actionName: 'refund',
       recordIds: ['1', '2'],
       inputs: [{ name: 'reason', type: 'String', value: 'fraud' }],
+      roleIdsAllowedToApprove: [7, 9],
     });
 
     expect(queryWithBearerToken).toHaveBeenCalledWith({
@@ -40,6 +41,7 @@ describe('makeCreateApprovalRequest', () => {
             collection_name: 'users',
             record_ids: ['1', '2'],
             inputs: [{ name: 'reason', type: 'String', value: 'fraud' }],
+            role_ids_allowed_to_approve: [7, 9],
           },
         },
       },

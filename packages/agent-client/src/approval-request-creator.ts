@@ -7,6 +7,7 @@ export type ApprovalRequestPayload = {
   actionName: string;
   recordIds: (string | number)[];
   inputs: ApprovalRequestInput[];
+  roleIdsAllowedToApprove?: number[];
 };
 
 export type CreateApprovalRequest = (
@@ -56,6 +57,7 @@ export default function makeCreateApprovalRequest(options: {
             collection_name: payload.collectionName,
             record_ids: payload.recordIds,
             inputs: payload.inputs,
+            role_ids_allowed_to_approve: payload.roleIdsAllowedToApprove,
           },
         },
       },

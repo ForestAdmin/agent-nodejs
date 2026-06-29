@@ -161,6 +161,7 @@ export default class Action {
             actionName: this.actionName,
             recordIds: this.ids ?? [],
             inputs,
+            roleIdsAllowedToApprove: mapped.roleIdsAllowedToApprove,
           });
         } catch (cause) {
           throw new ApprovalRequestCreationError(cause);
