@@ -20,8 +20,7 @@ type ApprovalCreateResponse = {
   id?: string | number;
 };
 
-// Server response shape isn't pinned yet: try the likely id locations, never throw (a missing id
-// just means no deep-link).
+// Server response shape isn't pinned; try the likely id locations, never throw.
 function extractApprovalId(body: ApprovalCreateResponse | undefined): { id: string } | undefined {
   const candidate =
     body?.data?.id ??

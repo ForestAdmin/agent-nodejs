@@ -72,8 +72,6 @@ export const ActionSchemaSchema = z.object({
   name: z.string().min(1),
   displayName: z.string().min(1),
   endpoint: z.string().min(1),
-  // Action scope. Optional for resilience to orchestrator drift; a 'global' action runs on no
-  // record, so the executor must not attach one (e.g. to an approval request).
   type: z.enum(['single', 'bulk', 'global']).optional(),
   /** Static form fields. Used as fallback when the agent's /hooks/load route 404s (old Ruby agents). */
   fields: ActionFieldsSchema,

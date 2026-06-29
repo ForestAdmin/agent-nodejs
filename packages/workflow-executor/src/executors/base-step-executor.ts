@@ -148,8 +148,6 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     }
   }
 
-  // Outcome-shape extensions specific to a step family (e.g. condition's selectedOption,
-  // record's approvalRequest) live on the concrete override, not here.
   protected abstract buildOutcomeResult(outcome: {
     status: StepStatus;
     error?: string;

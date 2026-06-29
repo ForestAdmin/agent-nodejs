@@ -155,8 +155,7 @@ export class ActionRequiresApprovalError extends WorkflowExecutorError {
   }
 }
 
-// The action is approval-gated but filing the approval request failed — neither executed nor
-// approved, so it's a real step failure (distinct from ActionRequiresApprovalError, the upfront gate).
+// Approval-gated action whose approval request couldn't be filed — neither executed nor approved.
 export class ApprovalRequestCreationError extends WorkflowExecutorError {
   constructor(actionName: string, cause?: unknown) {
     super(

@@ -42,15 +42,11 @@ Important rules:
 
 interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
-  // A global action runs on no record — the executor must not attach one (record_ids stays empty,
-  // so an approval request it triggers isn't wrongly linked to a record).
   isGlobal?: boolean;
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
-  // Trigger Action is the only record step that can report an approval request. Carry it on a
-  // dedicated override so the shared record builder stays free of the approval concept; the parent
-  // spreads the outcome through, so the id lands on the (record) StepOutcome.
+  // approvalRequest lives here, off the shared record builder; super spreads it onto the outcome.
   protected override buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
@@ -367,8 +363,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       {
         collection: selectedRecordRef.collectionName,
         action: name,
-        // A global action runs on no record: omit the id so it isn't attached (notably to the
-        // approval request it may trigger). Single/bulk actions keep their record.
+        // Global actions run on no record — omit the id so the approval isn't linked to one.
         ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
         ...(form && { values: form.values }),
       },
