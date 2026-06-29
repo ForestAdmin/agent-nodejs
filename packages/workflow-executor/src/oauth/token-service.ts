@@ -198,8 +198,9 @@ export default class OAuthTokenService {
         scopes: credential.scopes,
       });
     } catch (error) {
-      // A failed write-back is not fatal: the access token just obtained is valid. The next refresh
-      // would hit invalid_grant and recover via the re-read path.
+      // A failed write-back is not fatal: the access token just obtained is valid for this call.
+      // The rotated refresh token is lost, so a later refresh forces re-authentication — the safe
+      // fallback, and better than failing the current operation over a transient write error.
       this.logger?.('Error', 'Failed to persist rotated MCP OAuth refresh token', {
         mcpServerId: credential.mcpServerId,
         error: error instanceof Error ? error.message : String(error),
