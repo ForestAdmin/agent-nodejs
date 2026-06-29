@@ -88,8 +88,11 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     try {
       return await this.runStep();
     } catch (error) {
-      // An unrefreshable OAuth credential pauses the step for re-authentication rather than failing it.
+      // An unrefreshable OAuth credential pauses the step for re-authentication rather than failing
+      // it. Clear the write-ahead marker so the resumed step is not rejected as interrupted.
       if (error instanceof OAuthReauthRequiredError) {
+        await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
+
         return this.buildOutcomeResult({
           status: 'awaiting-input',
           awaitingInputReason: error.awaitingInputReason,
@@ -155,6 +158,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
             stepIndex: this.context.stepIndex,
             idempotencyPhase: 'executing',
           }),
+        isNonFailure: error => error instanceof OAuthReauthRequiredError,
       },
     );
 

@@ -159,6 +159,15 @@ export default class DatabaseStore implements RunStore {
     });
   }
 
+  async deleteStepExecution(runId: string, stepIndex: number): Promise<void> {
+    return this.callPort('deleteStepExecution', async () => {
+      await this.sequelize.query(
+        `DELETE FROM ${this.tableReference} WHERE run_id = :runId AND step_index = :stepIndex`,
+        { replacements: { runId, stepIndex } },
+      );
+    });
+  }
+
   async close(logger?: Logger): Promise<void> {
     return this.callPort('close', async () => {
       try {

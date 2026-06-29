@@ -41,6 +41,12 @@ export default class InMemoryStore implements RunStore {
     });
   }
 
+  async deleteStepExecution(runId: string, stepIndex: number): Promise<void> {
+    return this.callPort('deleteStepExecution', async () => {
+      this.data.get(runId)?.delete(stepIndex);
+    });
+  }
+
   private async callPort<T>(operation: string, fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();

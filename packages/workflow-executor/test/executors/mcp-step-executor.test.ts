@@ -14,6 +14,7 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
+import InMemoryStore from '../../src/stores/in-memory-store';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
@@ -58,6 +59,7 @@ function makeMockRunStore(overrides: Partial<RunStore> = {}): RunStore {
     close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    deleteStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -1245,5 +1247,110 @@ describe('McpStepExecutor — OAuth2 tool-call re-authentication', () => {
     const result = await new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth).execute();
 
     expect(result.stepOutcome.status).toBe('error');
+  });
+});
+
+// PRD-692 hardening — three correctness findings on the executor OAuth runtime that are NOT yet
+// fixed (this is the TDD step). Each test below is RED against the current code and must go green
+// once the fix lands.
+//   #1 (HIGH): a re-auth pause leaves idempotencyPhase 'executing', so the resumed step throws
+//              StepStateError ("interrupted") instead of running.
+//   #2 (MED) : the OAuthReauthRequiredError thrown inside activityLog.track marks the activity as
+//              failed, so the audit trail shows a spurious failure for a normal re-auth pause.
+describe('McpStepExecutor — PRD-692 re-auth pause hardening', () => {
+  const authError = () => new Error('Request failed with status 401');
+
+  // A FullyAutomated step whose tool call 401s and whose refresh cannot recover → re-auth pause.
+  function pauseFor(runStore: ReturnType<typeof makeMockRunStore> | InMemoryStore) {
+    const tool = new MockRemoteTool({
+      name: 'send_notification',
+      sourceId: 'mcp-server-1',
+      invoke: jest.fn().mockRejectedValue(authError()),
+    });
+    const reloadWithFreshAuth = jest.fn().mockRejectedValue(new OAuthReauthRequiredError('srv'));
+    const context = makeContext({
+      runStore: runStore as RunStore,
+      stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+    });
+
+    return new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth);
+  }
+
+  describe('finding #1 — idempotency phase cleared on the re-auth pause path', () => {
+    it('does not leave the step execution marked executing after pausing for re-auth', async () => {
+      // GIVEN a real store so the persisted write-ahead marker is observable.
+      const store = new InMemoryStore();
+
+      // WHEN the step pauses for re-authentication.
+      const result = await pauseFor(store).execute();
+
+      // THEN it pauses, and the 'executing' marker written by beforeCall must not survive — else
+      // a resume would read a stale marker.
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const persisted = await store.getStepExecutions('run-1');
+      const mcpExecution = persisted.find(execution => execution.stepIndex === 0) as
+        | McpStepExecutionData
+        | undefined;
+      expect(mcpExecution?.idempotencyPhase).not.toBe('executing');
+    });
+
+    it('resumes to success after a re-auth pause instead of failing as interrupted', async () => {
+      // GIVEN a step that paused for re-auth, persisting its state in a shared store.
+      const store = new InMemoryStore();
+      const pause = await pauseFor(store).execute();
+      expect(pause.stepOutcome.status).toBe('awaiting-input');
+
+      // WHEN the user reconnects and the step is re-dispatched against the same store, with the
+      // tool now succeeding.
+      const reconnectedTool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: jest.fn().mockResolvedValue('ok-after-reconnect'),
+      });
+      const resumeContext = makeContext({
+        runStore: store,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const resumed = await new McpStepExecutor(resumeContext, [reconnectedTool], 'srv').execute();
+
+      // THEN checkIdempotency must not throw StepStateError on the stale 'executing' marker; the
+      // step runs to success.
+      expect(resumed.stepOutcome.status).toBe('success');
+    });
+  });
+
+  describe('finding #2 — re-auth pause is not a logged failure', () => {
+    it('opens an activity-log entry but does not mark it failed when the step pauses for re-auth', async () => {
+      // GIVEN an activity-log port we can inspect.
+      const activityLogPort = {
+        createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
+        markSucceeded: jest.fn().mockResolvedValue(undefined),
+        markFailed: jest.fn().mockResolvedValue(undefined),
+      };
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: jest.fn().mockRejectedValue(authError()),
+      });
+      const reloadWithFreshAuth = jest.fn().mockRejectedValue(new OAuthReauthRequiredError('srv'));
+      const context = makeContext({
+        activityLogPort,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      // WHEN the step pauses for re-authentication.
+      const result = await new McpStepExecutor(
+        context,
+        [tool],
+        'srv',
+        reloadWithFreshAuth,
+      ).execute();
+
+      // THEN the activity entry is opened but a normal re-auth pause is not recorded as a failure.
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
+      expect(activityLogPort.markFailed).not.toHaveBeenCalled();
+    });
   });
 });

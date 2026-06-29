@@ -127,5 +127,23 @@ describe('ActivityLog', () => {
       expect(port.markFailed).toHaveBeenCalledWith({ id: 'log-1', index: '0' });
       expect(port.markSucceeded).not.toHaveBeenCalled();
     });
+
+    it('closes the entry as succeeded (not failed) when the error is classified as a non-failure', async () => {
+      const port = makeActivityLogPort();
+      const activityLog = new ActivityLog(port, makeUser());
+      const interruption = new NoRecordsError();
+
+      await expect(
+        activityLog.track(TARGET, {
+          operation: async () => {
+            throw interruption;
+          },
+          isNonFailure: error => error === interruption,
+        }),
+      ).rejects.toBe(interruption);
+
+      expect(port.markSucceeded).toHaveBeenCalledWith({ id: 'log-1', index: '0' });
+      expect(port.markFailed).not.toHaveBeenCalled();
+    });
   });
 });

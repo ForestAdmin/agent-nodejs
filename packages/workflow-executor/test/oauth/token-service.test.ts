@@ -1,6 +1,7 @@
 import type CredentialEncryption from '../../src/crypto/credential-encryption';
 import type { RefreshGrantParams, RefreshGrantResult } from '../../src/oauth/refresh-grant';
 import type {
+  McpOAuthCredentialInput,
   McpOAuthCredentialsStore,
   StoredMcpOAuthCredential,
 } from '../../src/ports/mcp-oauth-credentials-store';
@@ -279,7 +280,7 @@ describe('OAuthTokenService.getAccessToken', () => {
         refreshTokenEnc: Buffer.from('enc-rt-rotated'),
         scopes: 'a b c',
       });
-      const get = jest.fn().mockResolvedValueOnce(original).mockResolvedValueOnce(latest);
+      const get = jest.fn().mockResolvedValueOnce(original).mockResolvedValue(latest);
       const upsert = jest.fn().mockResolvedValue(undefined);
       const refresh = jest
         .fn()
@@ -394,5 +395,47 @@ describe('OAuthTokenService.getAccessToken', () => {
       );
       expect(refreshAccessToken).not.toHaveBeenCalled();
     });
+  });
+});
+
+// PRD-692 finding #3 (TDD, RED until fix): refreshAndCache reads the credential, runs the grant,
+// then writes the rotated refresh token back via store.upsert. If the user disconnects (row DELETE)
+// while the grant is in flight, the unconditional upsert re-creates the just-deleted row with a
+// fresh, valid refresh token — so a disconnected user stays silently connected. The write-back must
+// re-check existence (update-only-if-present); an in-process mutex alone does not close this window.
+describe('OAuthTokenService — concurrent disconnect during refresh write-back (PRD-692)', () => {
+  it('does not resurrect a credential deleted between the snapshot read and the rotated-token write-back', async () => {
+    // GIVEN a stored credential, and a refresh that both rotates the refresh token and observes a
+    // concurrent disconnect (the row is DELETED) before the write-back runs.
+    let current: StoredMcpOAuthCredential | null = makeCredential();
+    const store = {
+      get: jest.fn(async () => current),
+      upsert: jest.fn(async (credential: McpOAuthCredentialInput) => {
+        current = { id: 99, ...credential };
+      }),
+      delete: jest.fn(async () => {
+        current = null;
+      }),
+    } as unknown as McpOAuthCredentialsStore;
+
+    const refresh = jest.fn(async () => {
+      // The disconnect lands after refreshAndCache's snapshot read, before persistRotatedRefreshToken.
+      await store.delete(USER_ID, SERVER_ID);
+
+      return { accessToken: 'at-1', expiresInS: 3600, refreshToken: 'rotated-rt' };
+    });
+
+    const encryption = {
+      decrypt: (buf: Buffer) => buf.toString(),
+      encrypt: (plain: string) => ({ ciphertext: Buffer.from(`enc:${plain}`) }),
+    } as unknown as CredentialEncryption;
+
+    const service = new OAuthTokenService({ store, encryption, refreshAccessToken: refresh });
+
+    // WHEN a token is acquired, triggering the refresh and the rotated-token write-back.
+    await service.getAccessToken(USER_ID, SERVER_ID);
+
+    // THEN the deleted credential must stay deleted — the write-back must not recreate it.
+    expect(await store.get(USER_ID, SERVER_ID)).toBeNull();
   });
 });

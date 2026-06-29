@@ -9,6 +9,9 @@ export type TrackOptions<T> = {
   // Runs between createPending and the operation — the executor's write-ahead marker. Optional:
   // read operations have no marker to persist.
   beforeCall?: () => Promise<void>;
+  // Errors that represent a controlled interruption (e.g. pausing for re-authentication) rather
+  // than a failed action: the entry is closed as succeeded, not failed, and the error still throws.
+  isNonFailure?: (error: unknown) => boolean;
 };
 
 // Runs an operation while recording an activity-log entry around it (pending → success/failed).
@@ -25,7 +28,10 @@ export default class ActivityLog {
     this.user = user;
   }
 
-  async track<T>(target: AuditTarget, { operation, beforeCall }: TrackOptions<T>): Promise<T> {
+  async track<T>(
+    target: AuditTarget,
+    { operation, beforeCall, isNonFailure }: TrackOptions<T>,
+  ): Promise<T> {
     const handle = await this.activityLogPort.createPending({
       renderingId: this.user.renderingId,
       ...target,
@@ -40,7 +46,8 @@ export default class ActivityLog {
     } catch (err) {
       // The step error is logged/surfaced by base-step-executor when rethrown, so the audit
       // transition only needs the handle.
-      void this.activityLogPort.markFailed(handle);
+      if (isNonFailure?.(err)) void this.activityLogPort.markSucceeded(handle);
+      else void this.activityLogPort.markFailed(handle);
       throw err;
     }
   }
