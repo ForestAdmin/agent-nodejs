@@ -122,6 +122,24 @@ describe('Agent.addWorkflowExecutor', () => {
       expect(mockExecutorStart).toHaveBeenCalledTimes(1);
     });
 
+    test('forwards executor logs through the agent logger with a prefix', async () => {
+      const logger = jest.fn();
+      mockBuildDatabaseExecutor.mockImplementation((opts: any) => {
+        opts.logger('Warn', 'something happened');
+
+        return { start: mockExecutorStart, stop: mockExecutorStop, state: 'idle' };
+      });
+      const agent = new Agent(buildOptions({ logger }));
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+      });
+
+      await agent.start();
+
+      expect(logger).toHaveBeenCalledWith('Warn', '[workflow-executor] something happened');
+    });
+
     test('falls back to the DATABASE_URL environment variable when no database is provided', async () => {
       process.env.DATABASE_URL = 'postgres://env-host/env-db';
       const agent = new Agent(buildOptions());
