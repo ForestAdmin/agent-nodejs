@@ -102,11 +102,12 @@ const TOKEN_BODY = {
   redirect_uri: REDIRECT_URI,
 };
 
+const CODE_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 const AUTHORIZE_QUERY = {
   client_id: CLIENT_ID,
   redirect_uri: REDIRECT_URI,
   response_type: 'code',
-  code_challenge: 'challenge-abc',
+  code_challenge: CODE_CHALLENGE,
   code_challenge_method: 'S256',
   state: 'state-xyz',
 };
@@ -121,7 +122,7 @@ describe('oauth-routes GET /oauth/authorize', () => {
       expect(response.status).toBe(302);
       const location = new URL(response.headers.location);
       expect(location.origin + location.pathname).toBe(`${APP_URL}/oauth/authorize`);
-      expect(location.searchParams.get('code_challenge')).toBe('challenge-abc');
+      expect(location.searchParams.get('code_challenge')).toBe(CODE_CHALLENGE);
       expect(location.searchParams.get('environmentId')).toBe('99');
       expect(location.searchParams.get('state')).toBe('state-xyz');
     });
@@ -148,6 +149,19 @@ describe('oauth-routes GET /oauth/authorize', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error.type).toBe('invalid_client');
+    });
+  });
+
+  describe('when code_challenge is malformed', () => {
+    it('should reject before redirecting so the failure surfaces early', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback())
+        .get('/oauth/authorize')
+        .query({ ...AUTHORIZE_QUERY, code_challenge: 'too-short' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.type).toBe('invalid_request');
     });
   });
 
@@ -334,8 +348,28 @@ describe('oauth-routes POST /oauth/token', () => {
     });
   });
 
-  describe('when a transient identity failure happens after the exchange', () => {
+  describe('when the exchange itself fails transiently', () => {
     it('should release the code so the same request can be retried successfully', async () => {
+      let attempts = 0;
+      const exchangeCode = jest.fn(async () => {
+        attempts += 1;
+        if (attempts === 1) throw new OAuthExchangeError('temporarily_unavailable', 'blip');
+
+        return serverTokens();
+      });
+      const { app } = buildApp(stubServerClient({ exchangeCode }));
+
+      const first = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+      const second = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(first.status).toBe(502);
+      expect(second.status).toBe(200);
+      expect(second.body.token_type).toBe('Bearer');
+    });
+  });
+
+  describe('when a failure happens after a successful exchange', () => {
+    it('should keep the code claimed since it is already spent upstream', async () => {
       let attempts = 0;
       const getUserInfo = jest.fn(async () => {
         attempts += 1;
@@ -350,8 +384,20 @@ describe('oauth-routes POST /oauth/token', () => {
 
       expect(first.status).toBe(502);
       expect(first.body.error.type).toBe('identity_resolution_failed');
-      expect(second.status).toBe(200);
-      expect(second.body.token_type).toBe('Bearer');
+      expect(second.status).toBe(400);
+      expect(second.body.error.type).toBe('invalid_grant');
+    });
+  });
+
+  describe('when issuing the token response', () => {
+    it('should mark it non-cacheable per OAuth requirements', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+
+      expect(response.status).toBe(200);
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(response.headers.pragma).toBe('no-cache');
     });
   });
 

@@ -133,6 +133,10 @@ async function handleAuthorize(ctx: Context, options: OAuthRoutesOptions): Promi
     throw invalidRequest('code_challenge_method must be S256');
   }
 
+  if (!CODE_VERIFIER_PATTERN.test(codeChallenge)) {
+    throw invalidRequest('code_challenge is malformed');
+  }
+
   const client = await options.serverClient.getRegisteredClient(clientId);
 
   if (!client) {
@@ -244,19 +248,16 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
   }
 
   let serverTokens: ServerTokens;
-  let expiresInSeconds: number;
-  let user: UserInfo;
 
   try {
     serverTokens = await exchangeForServerTokens(request, options);
-    expiresInSeconds = computeExpiresIn(serverTokens);
-    user = await resolveIdentity(serverTokens, options);
   } catch (error) {
-    // why: a post-claim failure (transient exchange/identity/expiry error) is
-    // not a replay; release the local claim so the client can retry the code.
     options.sessionStore.releaseAuthorizationCode(request.code);
     throw error;
   }
+
+  const expiresInSeconds = computeExpiresIn(serverTokens);
+  const user = await resolveIdentity(serverTokens, options);
 
   const { sid, refreshToken } = options.sessionStore.create({
     saasAccessToken: serverTokens.saasAccessToken,
@@ -278,6 +279,8 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
     userId: user.id,
   });
 
+  ctx.set('Cache-Control', 'no-store');
+  ctx.set('Pragma', 'no-cache');
   ctx.status = 200;
   ctx.body = {
     access_token: accessToken,

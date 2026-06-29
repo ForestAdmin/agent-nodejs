@@ -142,9 +142,6 @@ export default function createInMemorySessionStore({
       purgeExpiredCodes();
       if (usedCodes.has(code)) return false;
 
-      // why: never evict a live entry to make room — an evicted code whose
-      // exchange is still in flight would pass this guard again, breaking
-      // single-use replay protection. Reject under saturation instead.
       if (usedCodes.size >= maxPendingCodes) return false;
 
       usedCodes.set(code, now() + authCodeTtlSeconds * 1000);
