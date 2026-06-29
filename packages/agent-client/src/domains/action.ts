@@ -1,5 +1,6 @@
 import type ActionField from '../action-fields/action-field';
 import type FieldFormStates from '../action-fields/field-form-states';
+import type { CreateApprovalRequest } from '../approval-request-creator';
 import type HttpRequester from '../http-requester';
 import type { RecordId } from '../types';
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
@@ -17,7 +18,11 @@ import ActionFieldRadioGroup from '../action-fields/action-field-radio-group';
 import ActionFieldString from '../action-fields/action-field-string';
 import ActionFieldStringList from '../action-fields/action-field-string-list';
 import ActionLayoutRoot from '../action-layout/action-layout-root';
-import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError } from '../errors';
+import AgentHttpError, {
+  ActionFormValidationError,
+  ActionRequiresApprovalError,
+  ApprovalRequestCreationError,
+} from '../errors';
 
 // JSON:API error body the agent returns on a rejected action.
 type ActionErrorBody = {
@@ -78,6 +83,8 @@ export type BaseActionContext = {
   recordIds?: RecordId[];
 };
 
+export type ActionExecuteResult = { success: string; html?: string } | { approvalRequested: true };
+
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
     [actionName: string]: Pick<ForestSchemaAction, 'id' | 'name' | 'endpoint' | 'hooks' | 'fields'>;
@@ -85,32 +92,36 @@ export type ActionEndpointsByCollection = {
 };
 export default class Action {
   private readonly collectionName: string;
+  private readonly actionName: string;
 
   private readonly httpRequester: HttpRequester;
   protected readonly fieldsFormStates: FieldFormStates;
   private readonly ids: (string | number)[];
   private readonly actionId: string | undefined;
   private actionPath: string;
+  private readonly createApprovalRequest?: CreateApprovalRequest;
 
   constructor(
     collectionName: string,
+    actionName: string,
     httpRequester: HttpRequester,
     actionPath: string,
     fieldsFormStates: FieldFormStates,
     ids?: (string | number)[],
     actionId?: string,
+    createApprovalRequest?: CreateApprovalRequest,
   ) {
     this.collectionName = collectionName;
+    this.actionName = actionName;
     this.httpRequester = httpRequester;
     this.ids = ids ?? undefined;
     this.actionPath = actionPath;
     this.fieldsFormStates = fieldsFormStates;
     this.actionId = actionId;
+    this.createApprovalRequest = createApprovalRequest;
   }
 
-  async execute(
-    signedApprovalRequest?: Record<string, unknown>,
-  ): Promise<{ success: string; html?: string }> {
+  async execute(signedApprovalRequest?: Record<string, unknown>): Promise<ActionExecuteResult> {
     const requestBody = {
       data: {
         attributes: {
@@ -131,7 +142,30 @@ export default class Action {
         body: requestBody,
       });
     } catch (error) {
-      throw toActionError(error);
+      const mapped = toActionError(error);
+
+      if (mapped instanceof ActionRequiresApprovalError && this.createApprovalRequest) {
+        const inputs = this.fieldsFormStates.getFields().map(field => ({
+          name: field.getName(),
+          type: field.getType(),
+          value: field.getValue(),
+        }));
+
+        try {
+          await this.createApprovalRequest({
+            collectionName: this.collectionName,
+            actionName: this.actionName,
+            recordIds: this.ids ?? [],
+            inputs,
+          });
+        } catch (cause) {
+          throw new ApprovalRequestCreationError(cause);
+        }
+
+        return { approvalRequested: true };
+      }
+
+      throw mapped;
     }
   }
 

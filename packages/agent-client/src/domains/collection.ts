@@ -1,5 +1,6 @@
 import type { ExportOptions, LiveQueryOptions, RecordId, SelectOptions } from '../types';
 import type { ActionEndpointsByCollection, BaseActionContext } from './action';
+import type { CreateApprovalRequest } from '../approval-request-creator';
 import type HttpRequester from '../http-requester';
 import type { ForestSchemaAction } from '@forestadmin/forestadmin-client';
 import type { WriteStream } from 'fs';
@@ -15,16 +16,19 @@ import serializeRecordId from '../record-id';
 export default class Collection extends CollectionChart {
   protected readonly name: string;
   protected readonly actionEndpoints?: ActionEndpointsByCollection;
+  protected readonly createApprovalRequest?: CreateApprovalRequest;
 
   constructor(
     name: string,
     httpRequester: HttpRequester,
     actionEndpoints: ActionEndpointsByCollection,
+    createApprovalRequest?: CreateApprovalRequest,
   ) {
     super(name, httpRequester);
 
     this.name = name;
     this.actionEndpoints = actionEndpoints;
+    this.createApprovalRequest = createApprovalRequest;
   }
 
   async action(actionName: string, actionContext?: BaseActionContext): Promise<Action> {
@@ -45,11 +49,13 @@ export default class Collection extends CollectionChart {
 
     const action = new Action(
       this.name,
+      actionName,
       this.httpRequester,
       actionInfo.endpoint,
       fieldsFormStates,
       ids,
       actionInfo.id,
+      this.createApprovalRequest,
     );
 
     await fieldsFormStates.loadInitialState();

@@ -21,7 +21,11 @@ describe('ForestServerClientImpl', () => {
       createMcpActivityLog: jest.fn(),
       updateActivityLogStatus: jest.fn(),
     };
-    client = new ForestServerClientImpl(mockSchemaService, mockActivityLogsService);
+    client = new ForestServerClientImpl(
+      mockSchemaService,
+      mockActivityLogsService,
+      'https://api.forestadmin.com',
+    );
   });
 
   describe('fetchSchema', () => {

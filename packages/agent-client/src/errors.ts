@@ -24,3 +24,12 @@ export class ActionFormValidationError extends Error {
     this.name = 'ActionFormValidationError';
   }
 }
+
+// The action is approval-gated, but filing the approval request failed — distinct from the action
+// itself failing, so the caller can tell the two apart.
+export class ApprovalRequestCreationError extends Error {
+  constructor(readonly cause: unknown) {
+    super('The action requires an approval, but the approval request could not be created.');
+    this.name = 'ApprovalRequestCreationError';
+  }
+}

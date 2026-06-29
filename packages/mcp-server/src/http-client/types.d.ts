@@ -31,6 +31,11 @@ export type {
  */
 export interface ForestServerClient {
   /**
+   * Base URL of the Forest Admin server this client talks to.
+   */
+  readonly forestServerUrl: string;
+
+  /**
    * Fetches the Forest Admin schema from the server.
    */
   fetchSchema(): Promise<ForestSchemaCollection[]>;

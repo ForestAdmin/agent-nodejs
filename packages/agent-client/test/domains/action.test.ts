@@ -30,10 +30,14 @@ describe('Action', () => {
       getLayout: jest.fn().mockReturnValue([]),
     } as any;
 
-    action = new Action('users', httpRequester, '/forest/actions/send-email', fieldsFormStates, [
-      '1',
-      '2',
-    ]);
+    action = new Action(
+      'users',
+      'send-email',
+      httpRequester,
+      '/forest/actions/send-email',
+      fieldsFormStates,
+      ['1', '2'],
+    );
   });
 
   describe('execute', () => {
@@ -63,6 +67,7 @@ describe('Action', () => {
     it('should include smart_action_id when actionId is provided', async () => {
       const actionWithId = new Action(
         'users',
+        'send-email',
         httpRequester,
         '/forest/actions/send-email',
         fieldsFormStates,
@@ -134,6 +139,73 @@ describe('Action', () => {
         name: 'ActionRequiresApprovalError',
         message: 'Needs approval',
         roleIdsAllowedToApprove: [7, 9],
+      });
+    });
+
+    it('creates an approval request and returns approvalRequested when a creator is wired', async () => {
+      fieldsFormStates.getFields.mockReturnValue([
+        {
+          getName: () => 'email',
+          getType: () => 'String',
+          getValue: () => 'test@example.com',
+        },
+      ] as any);
+      const createApprovalRequest = jest.fn().mockResolvedValue(undefined);
+      const approvalAction = new Action(
+        'users',
+        'send-email',
+        httpRequester,
+        '/forest/actions/send-email',
+        fieldsFormStates,
+        ['1', '2'],
+        undefined,
+        createApprovalRequest,
+      );
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(403, {
+          errors: [
+            {
+              name: 'CustomActionRequiresApprovalError',
+              detail: 'Needs approval',
+              data: { roleIdsAllowedToApprove: [7, 9] },
+            },
+          ],
+        }),
+      );
+
+      const result = await approvalAction.execute();
+
+      expect(createApprovalRequest).toHaveBeenCalledWith({
+        collectionName: 'users',
+        actionName: 'send-email',
+        recordIds: ['1', '2'],
+        inputs: [{ name: 'email', type: 'String', value: 'test@example.com' }],
+      });
+      expect(result).toEqual({ approvalRequested: true });
+    });
+
+    it('throws ApprovalRequestCreationError when filing the approval request fails', async () => {
+      fieldsFormStates.getFields.mockReturnValue([] as any);
+      const createApprovalRequest = jest.fn().mockRejectedValue(new Error('forest server down'));
+      const approvalAction = new Action(
+        'users',
+        'send-email',
+        httpRequester,
+        '/forest/actions/send-email',
+        fieldsFormStates,
+        ['1'],
+        undefined,
+        createApprovalRequest,
+      );
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(403, {
+          errors: [{ name: 'CustomActionRequiresApprovalError', detail: 'Needs approval' }],
+        }),
+      );
+
+      await expect(approvalAction.execute()).rejects.toMatchObject({
+        name: 'ApprovalRequestCreationError',
+        cause: expect.objectContaining({ message: 'forest server down' }),
       });
     });
 

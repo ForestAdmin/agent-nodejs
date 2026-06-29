@@ -7,18 +7,25 @@ import type {
 
 import ActionFieldJson from './action-fields/action-field-json';
 import ActionFieldStringList from './action-fields/action-field-string-list';
+import makeCreateApprovalRequest from './approval-request-creator';
 import RemoteAgentClient from './domains/remote-agent-client';
-import AgentHttpError, { ActionFormValidationError, ActionRequiresApprovalError } from './errors';
+import AgentHttpError, {
+  ActionFormValidationError,
+  ActionRequiresApprovalError,
+  ApprovalRequestCreationError,
+} from './errors';
 import HttpRequester from './http-requester';
 
 export {
   ActionFieldJson,
   ActionFieldStringList,
+  makeCreateApprovalRequest,
   RemoteAgentClient,
   HttpRequester,
   AgentHttpError,
   ActionRequiresApprovalError,
   ActionFormValidationError,
+  ApprovalRequestCreationError,
 };
 export type {
   ActionEndpointsByCollection,
@@ -26,12 +33,19 @@ export type {
   PermissionsOverride,
   SmartActionPermissionsOverride,
 };
+export type { ApprovalRequestPayload, CreateApprovalRequest } from './approval-request-creator';
 
 export function createRemoteAgentClient(params: {
   overridePermissions?: (permissions: PermissionsOverride) => Promise<void>;
   actionEndpoints?: ActionEndpointsByCollection;
   token?: string;
   url: string;
+  /**
+   * Connection to the Forest Admin server. Provide it to enable server-side features that call the
+   * Forest server (e.g. creating approval requests); omit it for a client that only talks to the
+   * agent (e.g. tests). `serverUrl` is the Forest server, distinct from the agent `url` above.
+   */
+  forestServer?: { serverUrl: string; serverToken: string; renderingId: number | string };
 }) {
   const httpRequester = new HttpRequester(params.token, { url: params.url });
 
@@ -39,6 +53,13 @@ export function createRemoteAgentClient(params: {
     actionEndpoints: params.actionEndpoints,
     httpRequester,
     overridePermissions: params.overridePermissions,
+    createApprovalRequest: params.forestServer
+      ? makeCreateApprovalRequest({
+          forestServerUrl: params.forestServer.serverUrl,
+          forestServerToken: params.forestServer.serverToken,
+          renderingId: params.forestServer.renderingId,
+        })
+      : undefined,
   });
 }
 
