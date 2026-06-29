@@ -9,9 +9,8 @@ export type BaseStepStatus = z.infer<typeof BaseStepStatusSchema>;
 export const RecordStepStatusSchema = z.enum(['success', 'error', 'awaiting-input']);
 export type RecordStepStatus = z.infer<typeof RecordStepStatusSchema>;
 
-// Typed reason for an awaiting-input pause the user must resolve out of band. The field name is
-// `awaitingInputReason` (the orchestrator renamed it from `reason`); the Forest server validates it
-// and the front reads it to prompt the matching action.
+// Typed reason for an awaiting-input pause the user must resolve out of band: the Forest server
+// validates it and the front reads it to prompt the matching action.
 export const AwaitingInputReasonSchema = z.enum(['needs-oauth-reauth']);
 export type AwaitingInputReason = z.infer<typeof AwaitingInputReasonSchema>;
 

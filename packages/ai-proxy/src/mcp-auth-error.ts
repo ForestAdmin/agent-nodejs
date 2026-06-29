@@ -42,10 +42,11 @@ function errorChain(error: unknown): unknown[] {
 export function isMcpAuthError(error: unknown): boolean {
   return errorChain(error).some(link => {
     const status = statusOf(link);
+    // An explicit status is authoritative — a 403 is not a refreshable auth error even if its
+    // message says "unauthorized". Fall back to the message only when no status is present.
+    if (status !== undefined) return AUTH_STATUSES.has(status);
 
-    return (
-      (status !== undefined && AUTH_STATUSES.has(status)) || AUTH_PATTERN.test(messageOf(link))
-    );
+    return AUTH_PATTERN.test(messageOf(link));
   });
 }
 

@@ -231,6 +231,19 @@ describe('OAuthTokenService.getAccessToken', () => {
 
       await expect(service.getAccessToken(USER_ID, SERVER_ID)).resolves.toBe('at-1');
     });
+
+    it('still returns the token when encrypting the rotated refresh token throws', async () => {
+      const refresh = jest
+        .fn()
+        .mockResolvedValue({ accessToken: 'at-1', expiresInS: 3600, refreshToken: 'rt-2' });
+      const { service, encrypt, upsert } = setup({ refresh });
+      (encrypt as jest.Mock).mockImplementation(() => {
+        throw new Error('key unavailable');
+      });
+
+      await expect(service.getAccessToken(USER_ID, SERVER_ID)).resolves.toBe('at-1');
+      expect(upsert).not.toHaveBeenCalled();
+    });
   });
 
   describe('invalid_grant — concurrent rotation recovery', () => {

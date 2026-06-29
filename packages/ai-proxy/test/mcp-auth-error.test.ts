@@ -30,6 +30,12 @@ describe('isMcpAuthError', () => {
     expect(isMcpAuthError(new Error('500 Internal Server Error'))).toBe(false);
     expect(isMcpAuthError(undefined)).toBe(false);
   });
+
+  it('lets an explicit status win over an "unauthorized" message (a 403 stays non-auth)', () => {
+    expect(isMcpAuthError(Object.assign(new Error('Unauthorized scope'), { status: 403 }))).toBe(
+      false,
+    );
+  });
 });
 
 describe('classifyMcpLoadError', () => {

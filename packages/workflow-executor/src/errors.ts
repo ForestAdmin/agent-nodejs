@@ -472,7 +472,7 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
 
 // Boundary error — surfaces from Runner.start() and is caught at the CLI/HTTP layer, not by step executors.
 export class AgentProbeError extends Error {
-  // Manual `cause` assignment: Error accepts it natively since Node 16.9 but our TS target is ES2020.
+  // Manual `cause` assignment: our ES2020 TS target doesn't type the native Error `cause` option.
   readonly cause?: unknown;
 
   constructor(message: string, options?: { cause?: unknown }) {

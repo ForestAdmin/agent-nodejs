@@ -101,7 +101,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   }
 
   private async runStep(): Promise<StepExecutionResult> {
-    // Branch A -- Re-entry after pending execution found in RunStore
     const pending = await this.patchAndReloadPendingData<McpStepExecutionData>(
       this.context.incomingPendingData,
     );
@@ -112,7 +111,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       );
     }
 
-    // Branches B & C -- First call
     const tools = this.requireTools();
     const { toolName, args } = await this.selectTool(tools);
     const selectedTool = tools.find(t => t.base.name === toolName);
@@ -120,11 +118,9 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
 
     if (this.context.stepDefinition.executionType === StepExecutionMode.FullyAutomated) {
-      // Branch B -- direct execution
       return this.executeToolAndPersist(target);
     }
 
-    // Branch C -- Awaiting confirmation
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'mcp',
       stepIndex: this.context.stepIndex,

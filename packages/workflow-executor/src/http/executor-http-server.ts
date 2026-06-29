@@ -336,6 +336,15 @@ export default class ExecutorHttpServer {
         return;
       }
 
+      // Key-missing is an operator misconfig, not re-consent-resolvable: return the same typed 503
+      // the deposit endpoint uses so the details page shows the admin message, not a generic error.
+      if (err instanceof ExecutorEncryptionKeyMissingError) {
+        ctx.status = 503;
+        ctx.body = { code: err.code };
+
+        return;
+      }
+
       throw err;
     }
   }

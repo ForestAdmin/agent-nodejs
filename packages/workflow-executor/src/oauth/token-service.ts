@@ -183,9 +183,9 @@ export default class OAuthTokenService {
     credential: StoredMcpOAuthCredential,
     refreshToken: string,
   ): Promise<void> {
-    const encrypted = this.encryption.encrypt(refreshToken);
-
     try {
+      const encrypted = this.encryption.encrypt(refreshToken);
+
       await this.store.upsert({
         userId: credential.userId,
         mcpServerId: credential.mcpServerId,

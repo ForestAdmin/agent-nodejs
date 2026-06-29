@@ -78,8 +78,8 @@ export default async function refreshAccessToken(
 
   try {
     const parsed: unknown = await response.json();
-    // A non-object body (e.g. literal null) would make the property reads below throw a TypeError;
-    // keep the {} default so the status checks still surface a typed OAuthRefreshError.
+    // Ignore a non-object body (e.g. literal null), keeping the {} default so the status checks
+    // below still surface a typed OAuthRefreshError.
     if (parsed && typeof parsed === 'object') payload = parsed as TokenEndpointResponse;
   } catch {
     // Non-JSON body — handled by the status checks below.

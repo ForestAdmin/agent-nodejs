@@ -514,4 +514,19 @@ describe('GET /list-mcp-tools', () => {
       mcpServerId: 'mcp-server-1',
     });
   });
+
+  it('returns the typed 503 executor_encryption_key_missing when the key is absent', async () => {
+    const fetcher = {
+      fetch: jest.fn().mockRejectedValue(new ExecutorEncryptionKeyMissingError()),
+    };
+    const server = createServer({ remoteToolFetcher: fetcher });
+    const token = signToken({ id: 7 });
+
+    const response = await request(server.callback)
+      .get('/list-mcp-tools?mcpServerId=mcp-server-1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ code: 'executor_encryption_key_missing' });
+  });
 });
