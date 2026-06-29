@@ -184,6 +184,30 @@ describe('Action', () => {
       expect(result).toEqual({ approvalRequested: true });
     });
 
+    it('includes the approval request id when the creator returns one', async () => {
+      fieldsFormStates.getFields.mockReturnValue([] as any);
+      const createApprovalRequest = jest.fn().mockResolvedValue({ id: 'req_42' });
+      const approvalAction = new Action(
+        'users',
+        'send-email',
+        httpRequester,
+        '/forest/actions/send-email',
+        fieldsFormStates,
+        ['1'],
+        undefined,
+        createApprovalRequest,
+      );
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(403, {
+          errors: [{ name: 'CustomActionRequiresApprovalError', detail: 'Needs approval' }],
+        }),
+      );
+
+      const result = await approvalAction.execute();
+
+      expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_42' } });
+    });
+
     it('throws ApprovalRequestCreationError when filing the approval request fails', async () => {
       fieldsFormStates.getFields.mockReturnValue([] as any);
       const createApprovalRequest = jest.fn().mockRejectedValue(new Error('forest server down'));

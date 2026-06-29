@@ -126,6 +126,7 @@ export interface TriggerRecordActionStepExecutionData
         // Who submitted the action (audit): 'ai' = Full AI (executor), 'user' = AI-assisted
         // (human via the native front). Absent for formless/legacy flows.
         submittedBy?: 'ai' | 'user';
+        approvalRequest?: { id: string };
       }
     | { skipped: true };
   pendingData?: TriggerActionPendingData;

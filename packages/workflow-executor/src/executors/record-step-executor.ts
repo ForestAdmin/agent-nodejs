@@ -21,6 +21,7 @@ export default abstract class RecordStepExecutor<
   protected buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
+    approvalRequest?: { id: string };
   }): StepExecutionResult {
     return {
       stepOutcome: {

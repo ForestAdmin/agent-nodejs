@@ -39,6 +39,7 @@ export const RecordStepOutcomeSchema = z
     ...baseOutcomeFields,
     type: z.literal('record'),
     status: RecordStepStatusSchema,
+    approvalRequest: z.object({ id: z.string() }).optional(),
   })
   .strict();
 export type RecordStepOutcome = z.infer<typeof RecordStepOutcomeSchema>;

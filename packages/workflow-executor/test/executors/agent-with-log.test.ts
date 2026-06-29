@@ -245,6 +245,22 @@ describe('AgentWithLog', () => {
         expect.objectContaining({ action: 'action', type: 'write', recordId: [42] }),
       );
     });
+
+    it('forwards the forestServerToken to the port (enables approval-request creation)', async () => {
+      const { deps, agentPort } = makeDeps({ forestServerToken: 'server-token' });
+      const agent = new AgentWithLog(deps);
+
+      await agent.executeAction(
+        { collection: 'customers', action: 'send-email', id: [42] },
+        { beforeCall: async () => undefined },
+      );
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        { collection: 'customers', action: 'send-email', id: [42] },
+        expect.objectContaining({ id: 1 }),
+        'server-token',
+      );
+    });
   });
 
   describe('getActionFormInfo (unaudited passthrough)', () => {

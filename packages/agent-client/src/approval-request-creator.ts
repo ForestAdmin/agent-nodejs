@@ -9,9 +9,30 @@ export type ApprovalRequestPayload = {
   inputs: ApprovalRequestInput[];
 };
 
-export type CreateApprovalRequest = (payload: ApprovalRequestPayload) => Promise<void>;
+export type CreateApprovalRequest = (
+  payload: ApprovalRequestPayload,
+) => Promise<{ id: string } | undefined>;
 
 const APPROVAL_REQUEST_PATH = '/api/action-approvals';
+
+type ApprovalCreateResponse = {
+  data?: { id?: string | number; attributes?: { reference?: string; requestId?: string } };
+  id?: string | number;
+};
+
+// Server response shape isn't pinned yet: try the likely id locations, never throw (a missing id
+// just means no deep-link).
+function extractApprovalId(body: ApprovalCreateResponse | undefined): { id: string } | undefined {
+  const candidate =
+    body?.data?.id ??
+    body?.data?.attributes?.reference ??
+    body?.data?.attributes?.requestId ??
+    body?.id;
+
+  if (candidate === undefined || candidate === null || candidate === '') return undefined;
+
+  return { id: String(candidate) };
+}
 
 export default function makeCreateApprovalRequest(options: {
   forestServerUrl: string;
@@ -19,7 +40,7 @@ export default function makeCreateApprovalRequest(options: {
   renderingId: number | string;
 }): CreateApprovalRequest {
   return async payload => {
-    await ServerUtils.queryWithBearerToken({
+    const body = await ServerUtils.queryWithBearerToken<ApprovalCreateResponse>({
       forestServerUrl: options.forestServerUrl,
       bearerToken: options.forestServerToken,
       method: 'post',
@@ -39,5 +60,7 @@ export default function makeCreateApprovalRequest(options: {
         },
       },
     });
+
+    return extractApprovalId(body);
   };
 }

@@ -315,6 +315,7 @@ export default class Runner {
           this.config.activityLogPortFactory.forRun(currentToken),
           mcpServerId => this.remoteToolFetcher.fetch(mcpServerId),
           currentIncomingData,
+          currentToken,
         );
         result = await executor.execute();
       } catch (error) {

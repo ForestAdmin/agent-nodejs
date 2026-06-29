@@ -50,7 +50,16 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     );
 
     if (existing?.idempotencyPhase === 'done') {
-      return this.buildOutcomeResult({ status: 'success' });
+      const result = existing.executionResult;
+      const approvalRequest =
+        result && !('skipped' in result) && result.submissionOutcome === 'pending-approval'
+          ? result.approvalRequest
+          : undefined;
+
+      return this.buildOutcomeResult({
+        status: 'success',
+        ...(approvalRequest && { approvalRequest }),
+      });
     }
 
     if (existing?.idempotencyPhase === 'executing') {
@@ -338,7 +347,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    const actionResult = await this.context.agent.executeAction(
+    const outcome = await this.context.agent.executeAction(
       {
         collection: selectedRecordRef.collectionName,
         action: name,
@@ -356,20 +365,42 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       },
     );
 
+    const submission = form && {
+      submittedBy: 'ai' as const,
+      submittedValues: form.values,
+      ...(form.aiFilledValues.length && { aiFilledValues: form.aiFilledValues }),
+    };
+
+    if ('approvalRequested' in outcome) {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        type: 'trigger-action',
+        stepIndex: this.context.stepIndex,
+        executionParams: { displayName, name },
+        executionResult: {
+          success: true,
+          submissionOutcome: 'pending-approval',
+          ...(submission || { submittedBy: 'ai' as const }),
+          ...(outcome.approvalRequest && { approvalRequest: outcome.approvalRequest }),
+        },
+        selectedRecordRef,
+        idempotencyPhase: 'done',
+      });
+
+      return this.buildOutcomeResult({
+        status: 'success',
+        ...(outcome.approvalRequest && { approvalRequest: outcome.approvalRequest }),
+      });
+    }
+
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
       executionResult: {
         success: true,
-        actionResult,
+        actionResult: outcome.result,
         // Form-bearing Full AI: record what the executor submitted.
-        ...(form && {
-          submissionOutcome: 'executed',
-          submittedBy: 'ai',
-          submittedValues: form.values,
-          ...(form.aiFilledValues.length && { aiFilledValues: form.aiFilledValues }),
-        }),
+        ...(submission && { submissionOutcome: 'executed', ...submission }),
       },
       selectedRecordRef,
       idempotencyPhase: 'done',

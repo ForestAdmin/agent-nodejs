@@ -3,6 +3,7 @@ import type {
   ActionForm,
   AgentPort,
   ExecuteActionQuery,
+  ExecuteActionResult,
   GetActionFormInfoQuery,
   GetActionFormQuery,
   GetRecordQuery,
@@ -22,6 +23,7 @@ export interface AgentWithLogDeps {
   schemaResolver: SchemaResolver;
   user: StepUser;
   activityLog: ActivityLog;
+  forestServerToken?: string;
 }
 
 // Wraps AgentPort and runs each data-access call through the ActivityLog so it records an
@@ -37,11 +39,14 @@ export default class AgentWithLog {
 
   private readonly activityLog: ActivityLog;
 
+  private readonly forestServerToken?: string;
+
   constructor(deps: AgentWithLogDeps) {
     this.agentPort = deps.agentPort;
     this.schemaResolver = deps.schemaResolver;
     this.user = deps.user;
     this.activityLog = deps.activityLog;
+    this.forestServerToken = deps.forestServerToken;
   }
 
   async getRecord(query: GetRecordQuery): Promise<RecordData> {
@@ -95,7 +100,7 @@ export default class AgentWithLog {
     );
   }
 
-  async executeAction(query: ExecuteActionQuery, opts: WriteOptions): Promise<unknown> {
+  async executeAction(query: ExecuteActionQuery, opts: WriteOptions): Promise<ExecuteActionResult> {
     const { collectionId } = await this.resolveSchema(query.collection);
 
     return this.activityLog.track(
@@ -107,7 +112,7 @@ export default class AgentWithLog {
         label: `triggered the action "${query.action}"`,
       },
       {
-        operation: () => this.agentPort.executeAction(query, this.user),
+        operation: () => this.agentPort.executeAction(query, this.user, this.forestServerToken),
         beforeCall: opts.beforeCall,
       },
     );

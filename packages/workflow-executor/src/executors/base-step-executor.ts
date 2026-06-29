@@ -151,6 +151,7 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   protected abstract buildOutcomeResult(outcome: {
     status: StepStatus;
     error?: string;
+    approvalRequest?: { id: string };
   }): StepExecutionResult;
 
   protected async findPendingExecution<TExec extends ConfirmableStepExecutionData>(

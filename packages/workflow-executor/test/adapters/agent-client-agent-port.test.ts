@@ -4,6 +4,7 @@ import type { StepUser } from '../../src/types/execution-context';
 import {
   AgentHttpError,
   ActionRequiresApprovalError as ClientApprovalError,
+  ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   ActionFormValidationError as ClientFormValidationError,
   HttpRequester,
   createRemoteAgentClient,
@@ -16,6 +17,7 @@ import {
   ActionRequiresApprovalError,
   AgentPortError,
   AgentProbeError,
+  ApprovalRequestCreationError,
   RecordNotFoundError,
 } from '../../src/errors';
 import SchemaCache from '../../src/schema-cache';
@@ -49,10 +51,18 @@ jest.mock('@forestadmin/agent-client', () => {
     }
   }
 
+  class MockApprovalRequestCreationError extends Error {
+    constructor(public readonly cause?: unknown) {
+      super('The approval request could not be created.');
+      this.name = 'ApprovalRequestCreationError';
+    }
+  }
+
   return {
     AgentHttpError: MockAgentHttpError,
     ActionRequiresApprovalError: MockActionRequiresApprovalError,
     ActionFormValidationError: MockActionFormValidationError,
+    ApprovalRequestCreationError: MockApprovalRequestCreationError,
     createRemoteAgentClient: jest.fn(),
     HttpRequester: { is404Error: jest.fn() },
   };
@@ -743,7 +753,7 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('executeAction', () => {
-    it('should forward the RecordId array to agent-client and call execute', async () => {
+    it('should forward the RecordId array to agent-client and normalize the executed result', async () => {
       mockAction.execute.mockResolvedValue({ success: 'done' });
 
       const result = await port.executeAction(
@@ -756,7 +766,77 @@ describe('AgentClientAgentPort', () => {
       );
 
       expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: [[1]] });
-      expect(result).toEqual({ success: 'done' });
+      // The opaque executed result is wrapped under `result` (port contract).
+      expect(result).toEqual({ result: { success: 'done' } });
+    });
+
+    it('normalizes an approval-gated submit into approvalRequested + the approval id', async () => {
+      mockAction.execute.mockResolvedValue({
+        approvalRequested: true,
+        approvalRequest: { id: 'req_42' },
+      });
+
+      const result = await port.executeAction(
+        { collection: 'users', action: 'sendEmail', id: [1] },
+        user,
+      );
+
+      expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_42' } });
+    });
+
+    it('wires the forestServer connection into agent-client when a server token is supplied', async () => {
+      const portWithServer = new AgentClientAgentPort({
+        agentUrl: 'http://localhost:3310',
+        authSecret: 'test-secret',
+        schemaCache: (port as unknown as { schemaCache: SchemaCache }).schemaCache,
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+      mockAction.execute.mockResolvedValue({ success: 'done' });
+
+      await portWithServer.executeAction(
+        { collection: 'users', action: 'sendEmail', id: [1] },
+        user,
+        'server-token',
+      );
+
+      expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          forestServer: {
+            serverUrl: 'https://api.forestadmin.com',
+            serverToken: 'server-token',
+            renderingId: 1,
+          },
+        }),
+      );
+    });
+
+    it('omits the forestServer connection when no server token is supplied', async () => {
+      const portWithServer = new AgentClientAgentPort({
+        agentUrl: 'http://localhost:3310',
+        authSecret: 'test-secret',
+        schemaCache: (port as unknown as { schemaCache: SchemaCache }).schemaCache,
+        forestServerUrl: 'https://api.forestadmin.com',
+      });
+      mockAction.execute.mockResolvedValue({ success: 'done' });
+
+      await portWithServer.executeAction(
+        { collection: 'users', action: 'sendEmail', id: [1] },
+        user,
+      );
+
+      expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
+        expect.not.objectContaining({ forestServer: expect.anything() }),
+      );
+    });
+
+    it('maps an approval-request creation failure to ApprovalRequestCreationError', async () => {
+      mockAction.execute.mockRejectedValue(
+        new ClientApprovalRequestCreationError(new Error('forest server down')),
+      );
+
+      await expect(
+        port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, user),
+      ).rejects.toBeInstanceOf(ApprovalRequestCreationError);
     });
 
     it('should call execute with empty recordIds when ids is not provided', async () => {

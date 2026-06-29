@@ -155,6 +155,18 @@ export class ActionRequiresApprovalError extends WorkflowExecutorError {
   }
 }
 
+// The action is approval-gated but filing the approval request failed — neither executed nor
+// approved, so it's a real step failure (distinct from ActionRequiresApprovalError, the upfront gate).
+export class ApprovalRequestCreationError extends WorkflowExecutorError {
+  constructor(actionName: string, cause?: unknown) {
+    super(
+      `Action "${actionName}" requires an approval, but the approval request could not be created`,
+      'This action requires an approval, but the approval request could not be created. Please retry.',
+    );
+    this.cause = cause;
+  }
+}
+
 export class RunStorePortError extends UnavailableError {
   constructor(operation: string, cause: unknown) {
     super(
