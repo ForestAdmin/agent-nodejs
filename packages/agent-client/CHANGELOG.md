@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.7.1...@forestadmin/agent-client@1.8.0) (2026-06-29)
+
+
+### Features
+
+* **mcp-server:** create approval request on action trigger when required by role ([#1708](https://github.com/ForestAdmin/agent-nodejs/issues/1708)) ([6e02ace](https://github.com/ForestAdmin/agent-nodejs/commit/6e02acec76383b83d17dab146052896bde4fbc31))
+
 ## @forestadmin/agent-client [1.7.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.7.0...@forestadmin/agent-client@1.7.1) (2026-06-26)
 
 
