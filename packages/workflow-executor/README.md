@@ -48,6 +48,32 @@ docker run -d \
 
 > **Note:** When the executor runs in Docker and your agent runs on the host machine, use `host.docker.internal` instead of `localhost` in `AGENT_URL` and `DATABASE_URL`.
 
+### Observability (OpenTelemetry)
+
+The Docker image ships with [OpenTelemetry](https://opentelemetry.io/) APM built in, and works with any OTLP-compatible backend (Datadog, Grafana Tempo, Jaeger, Honeycomb, etc.). It is **off by default** and turns on automatically as soon as you point it at an OTLP receiver — no code changes or extra installs required. Tracing is set up before the app starts (auto-instrumentation for HTTP, Postgres, etc.) and buffered spans are flushed on graceful shutdown.
+
+Configure it entirely through the standard OTel environment variables:
+
+| Variable | Description |
+| --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP receiver URL (e.g. `http://collector:4318`). **Tracing stays disabled until this is set.** |
+| `OTEL_SERVICE_NAME` | Service name reported in traces. Default: `forestadmin-workflow-executor`. |
+| `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes, e.g. `deployment.environment=production,version=1.7.0`. |
+| `OTEL_SDK_DISABLED` | Set to `true` to force-disable tracing even when an endpoint is configured. |
+
+```bash
+docker run -d \
+  -e FOREST_ENV_SECRET="your-env-secret" \
+  -e FOREST_AUTH_SECRET="your-auth-secret" \
+  -e AGENT_URL="http://host.docker.internal:3351" \
+  -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/mydb" \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT="http://collector:4318" \
+  -p 3400:3400 \
+  ghcr.io/forestadmin/workflow-executor:latest
+```
+
+> **Note:** OpenTelemetry is bundled only in the Docker image. It is not shipped with the npm package (`npx @forestadmin/workflow-executor`).
+
 ---
 
 ## Without Docker
