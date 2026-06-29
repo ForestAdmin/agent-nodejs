@@ -1,0 +1,83 @@
+import type { Logger } from '../src/ports/logger-port';
+
+import runCli, { reportFatalError } from '../src/cli-core';
+import { ConfigurationError } from '../src/errors';
+
+const VALID_ENV = {
+  FOREST_AUTH_SECRET: 'auth-secret',
+  FOREST_ENV_SECRET: 'env-secret',
+  FOREST_SERVER_URL: 'https://api.forestadmin.com',
+  FOREST_APP_URL: 'https://app.forestadmin.com',
+  AGENT_URL: 'https://agent.example.com',
+  HTTP_PORT: '0',
+} satisfies NodeJS.ProcessEnv;
+
+const noopLogger: Logger = () => undefined;
+
+describe('runCli', () => {
+  describe('when a required var is absent but not malformed', () => {
+    it('should still boot the server (model C, not fail-fast)', async () => {
+      const server = await runCli({ ...VALID_ENV, FOREST_SERVER_URL: undefined }, noopLogger);
+
+      try {
+        expect(server).toBeDefined();
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
+  describe('when a config value is malformed', () => {
+    it('should throw ConfigurationError naming the key without echoing the secret', async () => {
+      const err = await runCli(
+        { ...VALID_ENV, AGENT_URL: 'super-secret-bad-value' },
+        noopLogger,
+      ).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(ConfigurationError);
+      expect((err as Error).message).toBe(
+        'Invalid configuration: AGENT_URL must be a valid http(s) URL.',
+      );
+      expect((err as Error).message).not.toContain('super-secret-bad-value');
+    });
+  });
+});
+
+describe('reportFatalError', () => {
+  let stderrSpy: jest.SpyInstance;
+  const originalExitCode = process.exitCode;
+
+  beforeEach(() => {
+    stderrSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+  });
+
+  afterEach(() => {
+    stderrSpy.mockRestore();
+    process.exitCode = originalExitCode;
+  });
+
+  describe('when the error carries a message', () => {
+    it('should set exit code 1 and write a sanitized stderr message', () => {
+      reportFatalError(
+        new ConfigurationError('Invalid configuration: AGENT_URL must be a valid http(s) URL.'),
+      );
+
+      expect(process.exitCode).toBe(1);
+      expect(stderrSpy).toHaveBeenCalledTimes(1);
+      const written = String(stderrSpy.mock.calls[0][0]);
+      expect(written).toContain('Error: Invalid configuration: AGENT_URL');
+      expect(written).not.toContain('super-secret-bad-value');
+    });
+  });
+
+  describe('when the error message is empty (wrapped infra error)', () => {
+    it('should fall back to the error name', () => {
+      const wrapped = new Error('');
+      wrapped.name = 'SequelizeConnectionRefusedError';
+      reportFatalError(wrapped);
+
+      const written = String(stderrSpy.mock.calls[0][0]);
+      expect(written).toBe('Error: SequelizeConnectionRefusedError\n');
+    });
+  });
+});

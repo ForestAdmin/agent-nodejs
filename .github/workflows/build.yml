@@ -62,6 +62,7 @@ jobs:
       matrix:
         package:
           - agent
+          - agent-bff
           - agent-client
           - agent-testing
           - agent-toolkit
