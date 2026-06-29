@@ -389,6 +389,18 @@ export class OAuthInvalidGrantError extends WorkflowExecutorError {
   }
 }
 
+// The token endpoint is where the executor POSTs the refresh grant (with client credentials), so an
+// unconstrained value is an SSRF vector. A rejected one fails closed (terminal) before any network
+// call, rather than letting an authenticated caller aim the executor at an internal address.
+export class InvalidTokenEndpointError extends WorkflowExecutorError {
+  constructor(reason: string) {
+    super(
+      `Invalid OAuth token endpoint: ${reason}`,
+      'This tool is misconfigured (invalid token endpoint). Contact your administrator.',
+    );
+  }
+}
+
 // Boundary error — the deposit endpoint maps it to a typed HTTP response so the frontend can tell
 // an operator to provision the key, not a generic or re-consent failure.
 export class ExecutorEncryptionKeyMissingError extends Error {

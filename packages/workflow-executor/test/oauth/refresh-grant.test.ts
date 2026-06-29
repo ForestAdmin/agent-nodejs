@@ -1,4 +1,8 @@
-import { OAuthInvalidGrantError, OAuthRefreshError } from '../../src/errors';
+import {
+  InvalidTokenEndpointError,
+  OAuthInvalidGrantError,
+  OAuthRefreshError,
+} from '../../src/errors';
 import refreshAccessToken from '../../src/oauth/refresh-grant';
 
 function mockResponse(options: {
@@ -33,6 +37,14 @@ describe('refreshAccessToken', () => {
 
     return { url, headers: init.headers as Record<string, string>, body };
   }
+
+  it('rejects a link-local token endpoint without making a request (SSRF guard)', async () => {
+    await expect(
+      refreshAccessToken({ tokenEndpoint: 'http://169.254.169.254/token', refreshToken: 'rt-1' }),
+    ).rejects.toBeInstanceOf(InvalidTokenEndpointError);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 
   it('posts a refresh_token grant with the refresh token to the token endpoint', async () => {
     fetchSpy.mockResolvedValue(

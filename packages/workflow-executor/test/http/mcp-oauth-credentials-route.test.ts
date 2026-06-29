@@ -327,6 +327,20 @@ describe('POST /mcp-oauth-credentials', () => {
       expect(store.upsert).not.toHaveBeenCalled();
     });
 
+    it('returns 400 when tokenEndpoint points at a link-local / metadata address (SSRF guard)', async () => {
+      const store = createMockStore();
+      const server = createServer({ mcpOAuthCredentialsStore: store });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/mcp-oauth-credentials')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...validBody, tokenEndpoint: 'http://169.254.169.254/latest/meta-data' });
+
+      expect(response.status).toBe(400);
+      expect(store.upsert).not.toHaveBeenCalled();
+    });
+
     it('returns 400 when a field has the wrong type', async () => {
       const store = createMockStore();
       const server = createServer({ mcpOAuthCredentialsStore: store });
