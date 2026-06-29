@@ -345,6 +345,20 @@ describe('POST /mcp-oauth-credentials', () => {
       expect(response.status).toBe(400);
       expect(store.upsert).not.toHaveBeenCalled();
     });
+
+    it('returns 400 when clientSecret is an empty string (not silently treated as a public client)', async () => {
+      const store = createMockStore();
+      const server = createServer({ mcpOAuthCredentialsStore: store });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/mcp-oauth-credentials')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...validBody, clientSecret: '' });
+
+      expect(response.status).toBe(400);
+      expect(store.upsert).not.toHaveBeenCalled();
+    });
   });
 
   describe('store failure', () => {

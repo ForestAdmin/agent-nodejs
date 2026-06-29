@@ -466,6 +466,23 @@ describe('WorkflowExecutor lifecycle', () => {
     expect(MockedRunner.prototype.stop).toHaveBeenCalled();
   });
 
+  it('start() stops the runner when server.start fails (all-or-nothing boot)', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const { default: MockedHttpServer } = require('../src/http/executor-http-server');
+    const originalStart = MockedHttpServer.prototype.start;
+    MockedHttpServer.prototype.start = jest.fn().mockRejectedValue(new Error('migration failed'));
+
+    try {
+      const exec = buildInMemoryExecutor(BASE_OPTIONS);
+
+      await expect(exec.start()).rejects.toThrow('migration failed');
+      // the migration source is in server.start(); the runner must not be left polling
+      expect(MockedRunner.prototype.stop).toHaveBeenCalled();
+    } finally {
+      MockedHttpServer.prototype.start = originalStart;
+    }
+  });
+
   it('state getter returns runner state', () => {
     expect(executor.state).toBe('running');
   });

@@ -11,7 +11,7 @@ export const depositCredentialsBodySchema = z
     mcpServerId: z.string().min(1).max(255),
     refreshToken: z.string().min(1),
     clientId: z.string().max(255).optional(),
-    clientSecret: z.string().optional(),
+    clientSecret: z.string().min(1).optional(),
     clientSecretExpiresAt: z
       .string()
       .refine(value => !Number.isNaN(Date.parse(value)), { message: 'must be a parseable date' })
