@@ -249,6 +249,36 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    it('does NOT attach a record when the action is global', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
+      const context = makeContext({
+        agentPort,
+        // The selected action is global → it runs on no record.
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            actions: [
+              {
+                name: 'send-welcome-email',
+                displayName: 'Send Welcome Email',
+                endpoint: '/forest/actions/send-welcome-email',
+                type: 'global',
+              },
+            ],
+          }),
+        }),
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // The query carries no `id` for a global action.
+      const query = (agentPort.executeAction as jest.Mock).mock.calls[0][0];
+      expect(query).toEqual({ collection: 'customers', action: 'send-welcome-email' });
+      expect('id' in query).toBe(false);
+    });
+
     it('files an approval request (non-blocking success) when the action is approval-gated', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({

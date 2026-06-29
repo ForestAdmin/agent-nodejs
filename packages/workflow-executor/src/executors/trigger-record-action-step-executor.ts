@@ -42,6 +42,9 @@ Important rules:
 
 interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
+  // A global action runs on no record — the executor must not attach one (record_ids stays empty,
+  // so an approval request it triggers isn't wrongly linked to a record).
+  isGlobal?: boolean;
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
@@ -146,6 +149,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       selectedRecordRef,
       displayName: action.displayName,
       name: action.name,
+      isGlobal: action.type === 'global',
     };
 
     const form = await this.context.agent.getActionForm({
@@ -363,7 +367,9 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       {
         collection: selectedRecordRef.collectionName,
         action: name,
-        id: selectedRecordRef.recordId,
+        // A global action runs on no record: omit the id so it isn't attached (notably to the
+        // approval request it may trigger). Single/bulk actions keep their record.
+        ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
         ...(form && { values: form.values }),
       },
       {
