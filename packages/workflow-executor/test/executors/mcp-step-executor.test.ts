@@ -1250,14 +1250,9 @@ describe('McpStepExecutor — OAuth2 tool-call re-authentication', () => {
   });
 });
 
-// PRD-692 hardening — three correctness findings on the executor OAuth runtime that are NOT yet
-// fixed (this is the TDD step). Each test below is RED against the current code and must go green
-// once the fix lands.
-//   #1 (HIGH): a re-auth pause leaves idempotencyPhase 'executing', so the resumed step throws
-//              StepStateError ("interrupted") instead of running.
-//   #2 (MED) : the OAuthReauthRequiredError thrown inside activityLog.track marks the activity as
-//              failed, so the audit trail shows a spurious failure for a normal re-auth pause.
-describe('McpStepExecutor — PRD-692 re-auth pause hardening', () => {
+// On a re-auth pause the executor must clear the 'executing' write-ahead marker (so the resumed
+// step is not rejected as interrupted) and record the pause as a non-failure in the activity log.
+describe('McpStepExecutor — re-auth pause hardening', () => {
   const authError = () => new Error('Request failed with status 401');
 
   // A FullyAutomated step whose tool call 401s and whose refresh cannot recover → re-auth pause.
@@ -1276,7 +1271,7 @@ describe('McpStepExecutor — PRD-692 re-auth pause hardening', () => {
     return new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth);
   }
 
-  describe('finding #1 — idempotency phase cleared on the re-auth pause path', () => {
+  describe('idempotency phase cleared on the re-auth pause path', () => {
     it('does not leave the step execution marked executing after pausing for re-auth', async () => {
       // GIVEN a real store so the persisted write-ahead marker is observable.
       const store = new InMemoryStore();
@@ -1320,7 +1315,7 @@ describe('McpStepExecutor — PRD-692 re-auth pause hardening', () => {
     });
   });
 
-  describe('finding #2 — re-auth pause is not a logged failure', () => {
+  describe('re-auth pause is not a logged failure', () => {
     it('opens an activity-log entry but does not mark it failed when the step pauses for re-auth', async () => {
       // GIVEN an activity-log port we can inspect.
       const activityLogPort = {
@@ -1347,10 +1342,11 @@ describe('McpStepExecutor — PRD-692 re-auth pause hardening', () => {
         reloadWithFreshAuth,
       ).execute();
 
-      // THEN the activity entry is opened but a normal re-auth pause is not recorded as a failure.
+      // THEN the activity entry is opened and closed as succeeded, never failed.
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
       expect(activityLogPort.markFailed).not.toHaveBeenCalled();
+      expect(activityLogPort.markSucceeded).toHaveBeenCalledTimes(1);
     });
   });
 });
