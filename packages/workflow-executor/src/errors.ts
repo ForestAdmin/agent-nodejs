@@ -350,6 +350,17 @@ export class ConfigurationError extends Error {
   }
 }
 
+// Boundary error — the deposit endpoint maps it to a typed HTTP response so the frontend can tell
+// an operator to provision the key, not a generic or re-consent failure.
+export class ExecutorEncryptionKeyMissingError extends Error {
+  readonly code = 'executor_encryption_key_missing';
+
+  constructor() {
+    super('FOREST_EXECUTOR_ENCRYPTION_KEY is not set');
+    this.name = 'ExecutorEncryptionKeyMissingError';
+  }
+}
+
 // Run lifecycle/access errors raised by the Runner. Each extends a domain category, so toHttpError
 // maps them by category (404/409/403) — no per-error HTTP binding.
 export class RunNotFoundError extends NotFoundError {

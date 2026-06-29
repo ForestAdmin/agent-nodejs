@@ -9,9 +9,11 @@ import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 import { z } from 'zod';
 
+import CredentialEncryption from '../../src/crypto/credential-encryption';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 import Runner from '../../src/runner';
 import SchemaCache from '../../src/schema-cache';
+import InMemoryMcpOAuthCredentialsStore from '../../src/stores/in-memory-mcp-oauth-credentials-store';
 import InMemoryStore from '../../src/stores/in-memory-store';
 import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
 
@@ -217,6 +219,8 @@ function createIntegrationSetup(overrides?: {
     runner,
     authSecret: AUTH_SECRET,
     workflowPort,
+    mcpOAuthCredentialsStore: new InMemoryMcpOAuthCredentialsStore(),
+    credentialEncryption: new CredentialEncryption(),
   });
 
   return { runner, server, workflowPort, agentPort, runStore, aiClient, model };
