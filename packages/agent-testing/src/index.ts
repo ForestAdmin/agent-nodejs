@@ -1,6 +1,6 @@
+import type { PermissionsOverride } from './permission-overrides';
 import type { TestableAgentOptions } from './types';
 import type { Agent } from '@forestadmin/agent';
-import type { PermissionsOverride } from '@forestadmin/agent-client';
 import type { TSchema } from '@forestadmin/datasource-customizer';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 

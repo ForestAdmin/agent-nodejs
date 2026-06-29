@@ -7,7 +7,6 @@ jest.mock('../../src/http-requester');
 describe('RemoteAgentClient', () => {
   let httpRequester: jest.Mocked<HttpRequester>;
   let client: RemoteAgentClient;
-  let overridePermissionsMock: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -15,7 +14,6 @@ describe('RemoteAgentClient', () => {
       query: jest.fn(),
       stream: jest.fn(),
     } as any;
-    overridePermissionsMock = jest.fn().mockResolvedValue(undefined);
     client = new RemoteAgentClient({
       httpRequester,
       actionEndpoints: {
@@ -29,7 +27,6 @@ describe('RemoteAgentClient', () => {
           },
         },
       },
-      overridePermissions: overridePermissionsMock,
     });
   });
 
@@ -53,84 +50,6 @@ describe('RemoteAgentClient', () => {
     it('should pass action endpoints to collection', () => {
       const collection = client.collection('users');
       expect(collection).toBeDefined();
-    });
-  });
-
-  describe('overrideCollectionPermission', () => {
-    it('should call overridePermissions with collection permissions', async () => {
-      await client.overrideCollectionPermission('users', {
-        browseEnabled: true,
-        editEnabled: false,
-      });
-
-      expect(overridePermissionsMock).toHaveBeenCalledWith({
-        users: {
-          collection: {
-            browseEnabled: true,
-            editEnabled: false,
-          },
-          actions: {},
-        },
-      });
-    });
-
-    it('should not throw if overridePermissions is not provided', async () => {
-      const clientWithoutOverride = new RemoteAgentClient({
-        httpRequester,
-      });
-
-      await expect(
-        clientWithoutOverride.overrideCollectionPermission('users', { browseEnabled: true }),
-      ).resolves.toBeUndefined();
-    });
-  });
-
-  describe('overrideActionPermission', () => {
-    it('should call overridePermissions with action permissions', async () => {
-      await client.overrideActionPermission('users', 'sendEmail', {
-        triggerEnabled: true,
-        approvalRequired: true,
-      });
-
-      expect(overridePermissionsMock).toHaveBeenCalledWith({
-        users: {
-          collection: {},
-          actions: {
-            sendEmail: {
-              triggerEnabled: true,
-              approvalRequired: true,
-            },
-          },
-        },
-      });
-    });
-
-    it('should not throw if overridePermissions is not provided', async () => {
-      const clientWithoutOverride = new RemoteAgentClient({
-        httpRequester,
-      });
-
-      await expect(
-        clientWithoutOverride.overrideActionPermission('users', 'sendEmail', {
-          triggerEnabled: true,
-        }),
-      ).resolves.toBeUndefined();
-    });
-  });
-
-  describe('clearPermissionOverride', () => {
-    it('should call overridePermissions with empty object', async () => {
-      await client.clearPermissionOverride();
-
-      expect(overridePermissionsMock).toHaveBeenCalledWith({});
-    });
-
-    it('should not throw if overridePermissions is not provided', async () => {
-      const clientWithoutOverride = new RemoteAgentClient({
-        httpRequester,
-      });
-
-      await expect(clientWithoutOverride.clearPermissionOverride()).resolves.toBeUndefined();
     });
   });
 });

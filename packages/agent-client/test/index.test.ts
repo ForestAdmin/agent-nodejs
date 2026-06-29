@@ -42,25 +42,6 @@ describe('createRemoteAgentClient', () => {
     expect(collection).toBeDefined();
   });
 
-  it('should pass overridePermissions function to the client', async () => {
-    const overridePermissions = jest.fn().mockResolvedValue(undefined);
-
-    const client = createRemoteAgentClient({
-      url: 'https://api.example.com',
-      token: 'test-token',
-      overridePermissions,
-    });
-
-    await client.overrideCollectionPermission('users' as any, { browseEnabled: true });
-
-    expect(overridePermissions).toHaveBeenCalledWith({
-      users: {
-        collection: { browseEnabled: true },
-        actions: {},
-      },
-    });
-  });
-
   it('should provide a working client that can access collections', () => {
     const client = createRemoteAgentClient({
       url: 'https://api.example.com',
