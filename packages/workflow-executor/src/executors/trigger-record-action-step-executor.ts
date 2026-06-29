@@ -7,6 +7,7 @@ import type {
 } from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
+import type { RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -44,6 +45,17 @@ interface ActionTarget extends ActionRef {
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
+  // Trigger Action is the only record step that can report an approval request. Carry it on a
+  // dedicated override so the shared record builder stays free of the approval concept; the parent
+  // spreads the outcome through, so the id lands on the (record) StepOutcome.
+  protected override buildOutcomeResult(outcome: {
+    status: RecordStepStatus;
+    error?: string;
+    approvalRequest?: { id: string };
+  }): StepExecutionResult {
+    return super.buildOutcomeResult(outcome);
+  }
+
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
     const existing = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
       'trigger-action',
