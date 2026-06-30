@@ -57,6 +57,20 @@ refreshes landing on different nodes would each try to rotate, one committing an
 with `session_expired`. Horizontal scaling requires both a shared session store **and** a shared
 (or node-pinned) refresh-coordination mechanism.
 
+### Manual QA
+
+`scripts/qa-refresh-e2e.sh` drives the whole refresh flow against a running BFF + Forest server and
+asserts each step (login → token → refresh/rotation → replay/reuse → unknown/missing error paths).
+Everything is automated except the browser login (PKCE + Forest credentials), which the script hands
+off interactively: it prints the authorize URL, you log in, then paste the `code` back.
+
+```bash
+BFF_URL=http://localhost:3450 \
+FOREST_URL=http://localhost:3001 \
+REDIRECT_URI=http://localhost:4200/callback \
+./scripts/qa-refresh-e2e.sh
+```
+
 ## `/health`
 
 ```jsonc
