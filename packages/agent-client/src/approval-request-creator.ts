@@ -15,22 +15,14 @@ export type CreateApprovalRequest = (
 
 const APPROVAL_REQUEST_PATH = '/api/action-approvals';
 
-// The Forest server returns the created approval as JSON:API; the id is the resource id.
-type ApprovalCreateResponse = { data?: { id?: string | number } };
-
-function extractApprovalId(body: ApprovalCreateResponse | undefined): { id: string } | undefined {
-  const id = body?.data?.id;
-
-  return id ? { id: String(id) } : undefined;
-}
-
 export default function makeCreateApprovalRequest(options: {
   forestServerUrl: string;
   forestServerToken: string;
   renderingId: number | string;
 }): CreateApprovalRequest {
   return async payload => {
-    const body = await ServerUtils.queryWithBearerToken<ApprovalCreateResponse>({
+    // JSON:API create response — the created approval's id is the resource id (data.id).
+    const body = await ServerUtils.queryWithBearerToken<{ data?: { id?: string | number } }>({
       forestServerUrl: options.forestServerUrl,
       bearerToken: options.forestServerToken,
       method: 'post',
@@ -51,6 +43,6 @@ export default function makeCreateApprovalRequest(options: {
       },
     });
 
-    return extractApprovalId(body);
+    return body?.data?.id ? { id: String(body.data.id) } : undefined;
   };
 }
