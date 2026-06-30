@@ -46,8 +46,13 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 ## Sessions & token rotation
 
 OAuth sessions, opaque refresh tokens, and rotated-out-token reuse detection are held in an
-**in-memory, single-process** store. Refresh-token rotation and reuse detection (a replayed
-rotated-out token invalidates the whole session) are only correct within one process. Two layers
+**in-memory, single-process** store. Reuse detection has a one-step grace window: re-presenting the
+**most recently** rotated-out token (a benign retry of a refresh whose response was lost) replays
+the last issued pair instead of killing the session — the stored refresh token is returned with a
+freshly minted access JWT. Re-presenting any **older** rotated-out token still invalidates the whole
+session, so a stolen earlier token stays detectable. The grace window is bounded by the rotation
+chain, not a timer: once the client advances one more rotation, the previous token is no longer the
+latest and falls back to reuse. These guarantees are only correct within one process. Two layers
 are process-local: the session/rotation maps in the store, and the in-flight refresh dedup maps
 (`inFlightRefreshByPresentedHash` in `oauth-routes`, `inFlightRefreshesBySid` in
 `session-lifecycle`) that collapse concurrent refreshes of the same token into a single rotation.
