@@ -350,7 +350,7 @@ async function handleAuthorizationCodeGrant(
 function expiresInFromAccessToken(saasAccessToken: string): number {
   const decoded = jsonwebtoken.decode(saasAccessToken) as { exp?: number } | null;
 
-  if (decoded?.exp === undefined) {
+  if (typeof decoded?.exp !== 'number' || !Number.isFinite(decoded.exp)) {
     return BFF_ACCESS_TOKEN_MAX_EXPIRES_IN;
   }
 

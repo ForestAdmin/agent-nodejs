@@ -887,6 +887,27 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       expect(response.body.expires_in).toBe(15 * 60);
       expect(response.body.refresh_token).not.toBe(refreshToken);
     });
+
+    it('should cap expires_in when the access token exp claim is non-numeric', async () => {
+      const b64 = (obj: unknown) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+      const malformedJwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({
+        meta: { renderingId: 17 },
+        exp: 'soon',
+      })}.sig`;
+      const nonNumericExp = async (): Promise<ServerTokens> => ({
+        saasAccessToken: malformedJwt,
+        saasRefreshToken: 'ROTATED-SAAS-REFRESH',
+        renderingId: 17,
+        expiresAt: 0,
+      });
+      const { app } = buildApp(stubServerClient({ refreshServerToken: nonNumericExp }));
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(response.body.expires_in).toBe(15 * 60);
+    });
   });
 
   describe('when the session is destroyed mid-refresh, before the rotation commits', () => {
