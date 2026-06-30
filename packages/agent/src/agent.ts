@@ -369,12 +369,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     }
   }
 
-  private async buildRouterAndSendSchema(): Promise<{
-    router: Router;
-    mcpHttpCallback?: HttpCallback;
-  }> {
-    const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
-
+  private async buildNoCodeDataSource(): Promise<DataSource> {
     // It allows to rebuild the full customization stack with no code customizations
     this.nocodeCustomizer = new DataSourceCustomizer<S>({
       ignoreMissingSchemaElementErrors: this.options.ignoreMissingSchemaElementErrors || false,
@@ -383,7 +378,22 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.nocodeCustomizer.use(this.customizationService.addCustomizations);
 
-    const dataSource = await this.nocodeCustomizer.getDataSource(logger);
+    return this.nocodeCustomizer.getDataSource(this.options.logger);
+  }
+
+  private buildSchemaMeta(): ForestSchema['meta'] {
+    const aiMeta = this.aiProvider?.providers ?? [];
+
+    return SchemaGenerator.buildMetadata(this.customizationService.buildFeatures(), aiMeta).meta;
+  }
+
+  private async buildRouterAndSendSchema(): Promise<{
+    router: Router;
+    mcpHttpCallback?: HttpCallback;
+  }> {
+    const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
+
+    const dataSource = await this.buildNoCodeDataSource();
     const [routers] = await Promise.all([
       this.getRouter(dataSource),
       this.sendSchema(dataSource),
@@ -413,13 +423,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     // Either load the schema from the file system or build it
     let schema: Pick<ForestSchema, 'collections'>;
-
-    // Get the AI configurations for schema metadata
-    const aiMeta = this.aiProvider?.providers ?? [];
-    const { meta } = SchemaGenerator.buildMetadata(
-      this.customizationService.buildFeatures(),
-      aiMeta,
-    );
+    const meta = this.buildSchemaMeta();
 
     // When using experimental no-code features even in production we need to build a new schema
     if (!experimental?.webhookCustomActions && isProduction) {
@@ -437,5 +441,30 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     // Send schema to forest servers
     await this.options.forestAdminClient.postSchema({ ...schema, meta });
+  }
+
+  /**
+   * Generate the schema (and typings, when `typingsPath` is set) and write them
+   * to disk without starting the agent or sending the schema to Forest Admin servers.
+   *
+   * Useful in a CI/CD pipeline to produce `.forestadmin-schema.json` at build time,
+   * so it can be shipped with the deployed code instead of committed.
+   */
+  async generateSchemaOnly(): Promise<void> {
+    const { logger, schemaPath, typingsPath, typingsMaxDepth } = this.options;
+
+    const dataSource = await this.buildNoCodeDataSource();
+    const schema = await this.schemaGenerator.buildSchema(dataSource);
+    const meta = this.buildSchemaMeta();
+
+    await writeFile(schemaPath, stringify({ ...schema, meta }, { maxLength: 100 }), {
+      encoding: 'utf-8',
+    });
+
+    if (typingsPath) {
+      await this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth, logger);
+    }
+
+    logger('Info', `Schema written to ${schemaPath}`);
   }
 }

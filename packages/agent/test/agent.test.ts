@@ -285,6 +285,40 @@ describe('Agent', () => {
         expect(mockLogger).toHaveBeenCalledWith('Info', 'Agent is restarting...');
       });
     });
+
+    describe('generateSchemaOnly', () => {
+      test('should build and write the schema to disk', async () => {
+        const agent = new Agent(options);
+
+        await agent.generateSchemaOnly();
+
+        expect(DataSourceCustomizer.prototype.getDataSource).toHaveBeenCalledTimes(1);
+        const { collections } = JSON.parse(await readFile(options.schemaPath, 'utf8'));
+        expect(collections).toEqual([]);
+      });
+
+      test('should write the typings when typingsPath is set', async () => {
+        const agent = new Agent(options);
+
+        await agent.generateSchemaOnly();
+
+        expect(DataSourceCustomizer.prototype.updateTypesOnFileSystem).toHaveBeenCalledWith(
+          options.typingsPath,
+          options.typingsMaxDepth,
+          options.logger,
+        );
+      });
+
+      test('should neither send the schema to Forest nor build the routes', async () => {
+        const agent = new Agent(options);
+
+        await agent.generateSchemaOnly();
+
+        expect(mockPostSchema).not.toHaveBeenCalled();
+        expect(options.forestAdminClient.subscribeToServerEvents).not.toHaveBeenCalled();
+        expect(mockMakeRoutes).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('Production', () => {
