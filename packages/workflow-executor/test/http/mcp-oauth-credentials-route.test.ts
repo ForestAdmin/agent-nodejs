@@ -55,6 +55,7 @@ function createMockStore() {
   return {
     init: jest.fn().mockResolvedValue(undefined),
     upsert: jest.fn().mockResolvedValue(undefined),
+    updateIfPresent: jest.fn().mockResolvedValue(undefined),
     get: jest.fn().mockResolvedValue(null),
     delete: jest.fn().mockResolvedValue(undefined),
     close: jest.fn().mockResolvedValue(undefined),

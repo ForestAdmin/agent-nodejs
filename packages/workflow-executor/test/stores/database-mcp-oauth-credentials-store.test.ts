@@ -169,6 +169,23 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
     });
   });
 
+  describe('updateIfPresent', () => {
+    it('updates an existing row in place', async () => {
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
+
+      await store.updateIfPresent(makeCredential({ refreshTokenEnc: Buffer.from('rotated') }));
+
+      const row = unwrap(await store.get(42, 'mcp-server-1'));
+      expect(row.refreshTokenEnc.toString()).toBe('rotated');
+    });
+
+    it('does not insert a row when none exists for the key', async () => {
+      await store.updateIfPresent(makeCredential());
+
+      expect(await store.get(42, 'mcp-server-1')).toBeNull();
+    });
+  });
+
   describe('isolation', () => {
     it('keeps credentials for the same server but different users separate', async () => {
       await store.upsert(makeCredential({ userId: 1, refreshTokenEnc: Buffer.from('user-1') }));

@@ -196,6 +196,33 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
     });
   }
 
+  async updateIfPresent(credential: McpOAuthCredentialInput): Promise<void> {
+    // Single UPDATE … WHERE — atomic against a concurrent DELETE: it updates the row if it still
+    // exists and affects zero rows otherwise, so it never re-creates a disconnected credential.
+    await this.sequelize.query(
+      `UPDATE ${this.tableReference} SET ` +
+        'refresh_token_enc = :refreshTokenEnc, client_id = :clientId, ' +
+        'client_secret_enc = :clientSecretEnc, client_secret_expires_at = :clientSecretExpiresAt, ' +
+        'token_endpoint = :tokenEndpoint, token_endpoint_auth_method = :tokenEndpointAuthMethod, ' +
+        'scopes = :scopes, updated_at = :now ' +
+        'WHERE user_id = :userId AND mcp_server_id = :mcpServerId',
+      {
+        replacements: {
+          userId: credential.userId,
+          mcpServerId: credential.mcpServerId,
+          refreshTokenEnc: credential.refreshTokenEnc,
+          clientId: credential.clientId ?? null,
+          clientSecretEnc: credential.clientSecretEnc ?? null,
+          clientSecretExpiresAt: credential.clientSecretExpiresAt ?? null,
+          tokenEndpoint: credential.tokenEndpoint,
+          tokenEndpointAuthMethod: credential.tokenEndpointAuthMethod ?? null,
+          scopes: credential.scopes ?? null,
+          now: new Date(),
+        },
+      },
+    );
+  }
+
   async delete(userId: number, mcpServerId: string): Promise<void> {
     await this.sequelize.query(
       `DELETE FROM ${this.tableReference} WHERE user_id = :userId AND mcp_server_id = :mcpServerId`,

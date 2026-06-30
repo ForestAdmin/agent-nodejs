@@ -186,12 +186,9 @@ export default class OAuthTokenService {
     try {
       const encrypted = this.encryption.encrypt(refreshToken);
 
-      // A disconnect (DELETE) may have landed after the grant read; re-check before writing so the
-      // rotated token does not resurrect a row the user just removed.
-      const current = await this.store.get(credential.userId, credential.mcpServerId);
-      if (!current) return;
-
-      await this.store.upsert({
+      // Update-only: if a disconnect (DELETE) landed after the grant read, the write-back must not
+      // re-create the row. updateIfPresent is atomic, so it closes the read→write race entirely.
+      await this.store.updateIfPresent({
         userId: credential.userId,
         mcpServerId: credential.mcpServerId,
         refreshTokenEnc: encrypted.ciphertext,

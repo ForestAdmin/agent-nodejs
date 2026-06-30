@@ -86,6 +86,24 @@ describe('InMemoryMcpOAuthCredentialsStore', () => {
     });
   });
 
+  describe('updateIfPresent', () => {
+    it('updates an existing row in place', async () => {
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
+
+      await store.updateIfPresent(makeCredential({ refreshTokenEnc: Buffer.from('rotated') }));
+
+      expect(unwrap(await store.get(42, 'mcp-server-1')).refreshTokenEnc.toString()).toBe(
+        'rotated',
+      );
+    });
+
+    it('does not insert when the row is absent', async () => {
+      await store.updateIfPresent(makeCredential());
+
+      expect(await store.get(42, 'mcp-server-1')).toBeNull();
+    });
+  });
+
   describe('isolation', () => {
     it('keeps entries for different users and servers separate', async () => {
       await store.upsert(makeCredential({ userId: 1, refreshTokenEnc: Buffer.from('user-1') }));

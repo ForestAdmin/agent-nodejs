@@ -32,6 +32,14 @@ export default class InMemoryMcpOAuthCredentialsStore implements McpOAuthCredent
     this.nextId += 1;
   }
 
+  async updateIfPresent(credential: McpOAuthCredentialInput): Promise<void> {
+    const key = InMemoryMcpOAuthCredentialsStore.key(credential.userId, credential.mcpServerId);
+    const existing = this.data.get(key);
+    if (!existing) return;
+
+    this.data.set(key, { ...credential, id: existing.id });
+  }
+
   async delete(userId: number, mcpServerId: string): Promise<void> {
     this.data.delete(InMemoryMcpOAuthCredentialsStore.key(userId, mcpServerId));
   }
