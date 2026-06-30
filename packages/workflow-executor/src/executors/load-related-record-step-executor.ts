@@ -177,8 +177,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       );
     }
 
-    // Manual mode never invokes the AI relation chooser: with several eligible relations (legacy
-    // steps that pinned no relationName) it defaults to the first; the user can switch it at runtime.
+    // Manual never invokes the AI chooser → eligible[0], i.e. the workflow-start record's first
+    // relation (getAvailableRecordRefs lists the base record first). The user switches the relation
+    // at runtime; a non-base source needs deterministic "Related to" pinning (selectedRecordStepId).
     const chosen =
       eligible.length > 1 && useAi ? await this.selectRelationToFollow(eligible) : eligible[0];
 
