@@ -287,14 +287,16 @@ describe('Agent', () => {
     });
 
     describe('generateSchemaOnly', () => {
-      test('should build and write the schema to disk', async () => {
-        const agent = new Agent(options);
+      test('should build and write the schema to disk and log where', async () => {
+        const logger = jest.fn();
+        const agent = new Agent({ ...options, logger });
 
         await agent.generateSchemaOnly();
 
-        expect(DataSourceCustomizer.prototype.getDataSource).toHaveBeenCalledTimes(1);
+        expect(DataSourceCustomizer.prototype.getDataSource).toHaveBeenCalledOnceWith(logger);
         const { collections } = JSON.parse(await readFile(options.schemaPath, 'utf8'));
         expect(collections).toEqual([]);
+        expect(logger).toHaveBeenCalledWith('Info', `Schema written to ${options.schemaPath}`);
       });
 
       test('should write the typings when typingsPath is set', async () => {
@@ -302,11 +304,19 @@ describe('Agent', () => {
 
         await agent.generateSchemaOnly();
 
-        expect(DataSourceCustomizer.prototype.updateTypesOnFileSystem).toHaveBeenCalledWith(
+        expect(DataSourceCustomizer.prototype.updateTypesOnFileSystem).toHaveBeenCalledOnceWith(
           options.typingsPath,
           options.typingsMaxDepth,
           options.logger,
         );
+      });
+
+      test('should not write the typings when typingsPath is not set', async () => {
+        const agent = new Agent({ ...options, typingsPath: null });
+
+        await agent.generateSchemaOnly();
+
+        expect(DataSourceCustomizer.prototype.updateTypesOnFileSystem).not.toHaveBeenCalled();
       });
 
       test('should neither send the schema to Forest nor build the routes', async () => {

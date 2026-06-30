@@ -449,6 +449,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *
    * Useful in a CI/CD pipeline to produce `.forestadmin-schema.json` at build time,
    * so it can be shipped with the deployed code instead of committed.
+   *
+   * Note: when experimental no-code customizations are enabled, this still fetches
+   * their configuration from the Forest API so the generated schema includes them,
+   * which requires connectivity to Forest.
    */
   async generateSchemaOnly(): Promise<void> {
     const { logger, schemaPath, typingsPath, typingsMaxDepth } = this.options;
