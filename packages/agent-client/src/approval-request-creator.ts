@@ -15,22 +15,13 @@ export type CreateApprovalRequest = (
 
 const APPROVAL_REQUEST_PATH = '/api/action-approvals';
 
-type ApprovalCreateResponse = {
-  data?: { id?: string | number; attributes?: { reference?: string; requestId?: string } };
-  id?: string | number;
-};
+// The Forest server returns the created approval as JSON:API; the id is the resource id.
+type ApprovalCreateResponse = { data?: { id?: string | number } };
 
-// Server response shape isn't pinned; try the likely id locations, never throw.
 function extractApprovalId(body: ApprovalCreateResponse | undefined): { id: string } | undefined {
-  const candidate =
-    body?.data?.id ??
-    body?.data?.attributes?.reference ??
-    body?.data?.attributes?.requestId ??
-    body?.id;
+  const id = body?.data?.id;
 
-  if (candidate === undefined || candidate === null || candidate === '') return undefined;
-
-  return { id: String(candidate) };
+  return id ? { id: String(id) } : undefined;
 }
 
 export default function makeCreateApprovalRequest(options: {
