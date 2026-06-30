@@ -151,7 +151,9 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const form = await this.context.agent.getActionForm({
       collection: selectedRecordRef.collectionName,
       action: target.name,
-      id: selectedRecordRef.recordId,
+      // Global actions run on no record — building the form against one yields the wrong
+      // record-scoped defaults/dynamic fields (must match executeAction, which omits the id too).
+      ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
     });
     const hasForm = form.fields.length > 0;
 
@@ -172,6 +174,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       selectedRecordRef,
       target.name,
       form,
+      target.isGlobal,
     );
     const reviewState = { fields: filledForm.fields, aiFilledValues };
 
@@ -228,6 +231,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     recordRef: RecordRef,
     action: string,
     initialForm: ActionForm,
+    isGlobal?: boolean,
   ): Promise<{ aiFilledValues: AiFilledFormValue[]; form: ActionForm }> {
     const MAX_ITERATIONS = 3;
     const accumulator: Record<string, unknown> = {};
@@ -260,7 +264,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       form = await this.context.agent.getActionForm({
         collection: recordRef.collectionName,
         action,
-        id: recordRef.recordId,
+        ...(isGlobal ? {} : { id: recordRef.recordId }),
         values: accumulator,
       });
 

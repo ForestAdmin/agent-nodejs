@@ -285,7 +285,8 @@ export default class AgentClientAgentPort implements AgentPort {
   ): Promise<ActionForm> {
     return this.callAgent('getActionForm', async () => {
       const client = this.createClient(user);
-      const act = await client.collection(collection).action(action, { recordIds: [id] });
+      const recordIds = id?.length ? [id] : [];
+      const act = await client.collection(collection).action(action, { recordIds });
 
       // Soft-apply so dependent fields are revealed by change hooks; unknown fields (dropped by a
       // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).

@@ -278,6 +278,54 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect('id' in query).toBe(false);
     });
 
+    it('builds the form without a record id for a global action', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields: [{ name: 'amount', type: 'Number', isRequired: true }],
+          canExecute: false,
+          requiredFields: ['amount'],
+          skippedFields: [],
+        })
+        .mockResolvedValueOnce({
+          fields: [{ name: 'amount', type: 'Number', isRequired: true, value: 50 }],
+          canExecute: true,
+          requiredFields: [],
+          skippedFields: [],
+        });
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
+      const context = makeContext({
+        model: makeMockModel({ values: { amount: 50 } }, 'fill_action_form').model,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            actions: [
+              {
+                name: 'send-welcome-email',
+                displayName: 'Send Welcome Email',
+                endpoint: '/forest/actions/send-welcome-email',
+                type: 'global',
+              },
+            ],
+          }),
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      // Both the detection call and the AI-fill re-fetch must build the form against no record.
+      const { calls } = (agentPort.getActionForm as jest.Mock).mock;
+      expect(calls.length).toBeGreaterThanOrEqual(2);
+      calls.forEach(([formQuery]) => expect('id' in formQuery).toBe(false));
+    });
+
     it('files an approval request (non-blocking success) when the action is approval-gated', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({

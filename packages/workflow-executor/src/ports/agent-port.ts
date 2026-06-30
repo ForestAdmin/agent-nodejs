@@ -48,7 +48,8 @@ export type ExecuteActionQuery = {
 export type GetActionFormQuery = {
   collection: string;
   action: string;
-  id: Id[];
+  // Omitted for global actions (no record context), like ExecuteActionQuery.
+  id?: Id[];
   // Optional values to apply before reading the form back (fires the change hooks so dependent
   // fields appear/update). Soft-applied: unknown fields are reported in `skippedFields`.
   values?: Record<string, unknown>;
