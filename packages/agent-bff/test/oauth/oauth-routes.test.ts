@@ -81,7 +81,11 @@ interface LogLine {
   context?: Record<string, unknown>;
 }
 
-function buildApp(serverClient: ForestServerClient, forestAppUrl: string = APP_URL) {
+function buildApp(
+  serverClient: ForestServerClient,
+  forestAppUrl: string = APP_URL,
+  onTokenRequest?: () => void,
+) {
   const logs: LogLine[] = [];
 
   const logger = (level: LoggerLevel, message: string, context?: Record<string, unknown>) => {
@@ -96,6 +100,15 @@ function buildApp(serverClient: ForestServerClient, forestAppUrl: string = APP_U
 
   const app = new Koa();
   app.use(bodyParser());
+
+  if (onTokenRequest) {
+    app.use(async (ctx, next) => {
+      if (ctx.method === 'POST' && ctx.path === '/oauth/token') onTokenRequest();
+
+      await next();
+    });
+  }
+
   app.use(
     createOAuthRoutes({
       serverClient,
@@ -823,7 +836,6 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       let attempts = 0;
       const getUserInfo = jest.fn(async () => {
         attempts += 1;
-        // 1st call is the login; fail only the first refresh (2nd call).
         if (attempts === 2) throw new Error('identity blip');
 
         return USER;
@@ -863,7 +875,6 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       let sessionStore: ReturnType<typeof buildApp>['sessionStore'];
       let sid = '';
       const getUserInfo = jest.fn(async () => {
-        // Simulate the session vanishing between prepareRotation and commit.
         sessionStore.destroy(sid);
 
         return USER;
@@ -886,13 +897,6 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
 
   describe('when two concurrent refreshes of the same token run', () => {
     it('should commit exactly one rotation, keep the session alive, and not trip reuse detection', async () => {
-      // The winning request parks inside the SaaS refresh until released. While
-      // it is parked, its in-flight entry is live, so the second concurrent
-      // request must attach to the same promise rather than re-rotating.
-      let firstEntered: () => void = () => undefined;
-      const entered = new Promise<void>(resolve => {
-        firstEntered = resolve;
-      });
       let release: () => void = () => undefined;
       const gate = new Promise<void>(resolve => {
         release = resolve;
@@ -900,21 +904,27 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       let calls = 0;
       const refreshServerToken = jest.fn(async () => {
         calls += 1;
-        firstEntered();
         await gate;
 
         return decodableServerTokens();
       });
-      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      let secondArrived: () => void = () => undefined;
+      const bothArrived = new Promise<void>(resolve => {
+        secondArrived = resolve;
+      });
+      let tokenRequests = 0;
+
+      const onTokenRequest = () => {
+        tokenRequests += 1;
+        if (tokenRequests === 3) secondArrived();
+      };
+
+      const { app } = buildApp(stubServerClient({ refreshServerToken }), APP_URL, onTokenRequest);
+
       const refreshToken = await login(app);
 
       const both = Promise.all([refresh(app, refreshToken), refresh(app, refreshToken)]);
-      await entered;
-      // Let the second request reach the in-flight check and attach before the
-      // first one completes and clears the entry.
-      await new Promise(resolve => {
-        setImmediate(resolve);
-      });
+      await bothArrived;
       release();
       const [a, b] = await both;
 

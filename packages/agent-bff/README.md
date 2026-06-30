@@ -43,6 +43,15 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 - A required var that is absent (or empty / whitespace-only) does not crash the server. It boots and
   reports the gap through `/health` (503 `degraded`).
 
+## Sessions & token rotation
+
+OAuth sessions, opaque refresh tokens, and rotated-out-token reuse detection are held in an
+**in-memory, single-process** store. Refresh-token rotation and reuse detection (a replayed
+rotated-out token invalidates the whole session) are only correct within one process: the session
+maps and the in-flight refresh dedup are module-local and are not shared across instances. Running
+the BFF behind a load balancer without sticky sessions would break both reuse detection and the
+single-rotation guarantee. A shared/distributed session store is required before horizontal scaling.
+
 ## `/health`
 
 ```jsonc

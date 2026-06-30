@@ -374,9 +374,6 @@ async function reissueThenCommitRotation(
   newRefreshToken: string,
   options: OAuthRoutesOptions,
 ): Promise<RefreshGrantResult> {
-  // Refresh the SaaS access token and resolve identity BEFORE committing the
-  // rotation. If any of this fails, the presented refresh token stays valid so
-  // a transient blip does not brick the session.
   const saasAccessToken = await ensureFreshServerAccess({
     sid,
     store: options.sessionStore,
