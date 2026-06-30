@@ -24,7 +24,7 @@ export interface CreatedSession {
 }
 
 export type PrepareRotationResult =
-  | { outcome: 'ready'; sid: string; newRefreshToken: string }
+  | { outcome: 'ready'; sid: string; renderingId: number; newRefreshToken: string }
   | { outcome: 'reuse'; sid: string }
   | { outcome: 'unknown' };
 
@@ -174,9 +174,15 @@ export default function createInMemorySessionStore({
       const sid = activeRefreshHashToSid.get(hash);
       if (sid === undefined) return { outcome: 'unknown' };
 
-      if (!liveSession(sid)) return { outcome: 'unknown' };
+      const session = liveSession(sid);
+      if (!session) return { outcome: 'unknown' };
 
-      return { outcome: 'ready', sid, newRefreshToken: createOpaqueToken() };
+      return {
+        outcome: 'ready',
+        sid,
+        renderingId: session.renderingId,
+        newRefreshToken: createOpaqueToken(),
+      };
     },
 
     commitRotation(presentedToken, newRefreshToken) {

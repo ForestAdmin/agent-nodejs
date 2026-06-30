@@ -858,6 +858,32 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
+  describe('when the session is destroyed mid-refresh, before the rotation commits', () => {
+    it('should not commit the rotation and reject with 401 session_expired', async () => {
+      let sessionStore: ReturnType<typeof buildApp>['sessionStore'];
+      let sid = '';
+      const getUserInfo = jest.fn(async () => {
+        // Simulate the session vanishing between prepareRotation and commit.
+        sessionStore.destroy(sid);
+
+        return USER;
+      });
+      const built = buildApp(
+        stubServerClient({ getUserInfo, refreshServerToken: async () => decodableServerTokens() }),
+      );
+      sessionStore = built.sessionStore;
+      const loginResponse = await request(built.app.callback())
+        .post('/oauth/token')
+        .send(TOKEN_BODY);
+      sid = (jsonwebtoken.decode(loginResponse.body.access_token) as { sid: string }).sid;
+
+      const response = await refresh(built.app, loginResponse.body.refresh_token as string);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe('session_expired');
+    });
+  });
+
   describe('when two concurrent refreshes of the same token run', () => {
     it('should commit exactly one rotation, keep the session alive, and not trip reuse detection', async () => {
       // The winning request parks inside the SaaS refresh until released. While

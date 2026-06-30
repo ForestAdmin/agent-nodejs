@@ -370,15 +370,10 @@ interface RefreshGrantResult {
 async function reissueThenCommitRotation(
   presentedToken: string,
   sid: string,
+  renderingId: number,
   newRefreshToken: string,
   options: OAuthRoutesOptions,
 ): Promise<RefreshGrantResult> {
-  const session = options.sessionStore.get(sid);
-
-  if (!session) {
-    throw sessionExpired('Session expired during refresh');
-  }
-
   // Refresh the SaaS access token and resolve identity BEFORE committing the
   // rotation. If any of this fails, the presented refresh token stays valid so
   // a transient blip does not brick the session.
@@ -389,7 +384,7 @@ async function reissueThenCommitRotation(
   });
 
   const expiresInSeconds = expiresInFromAccessToken(saasAccessToken);
-  const user = await resolveIdentity(session.renderingId, saasAccessToken, options);
+  const user = await resolveIdentity(renderingId, saasAccessToken, options);
 
   if (!options.sessionStore.commitRotation(presentedToken, newRefreshToken)) {
     throw sessionExpired('Session expired during refresh');
@@ -398,7 +393,7 @@ async function reissueThenCommitRotation(
   const accessToken = issueBffAccessToken({
     sid,
     user,
-    renderingId: session.renderingId,
+    renderingId,
     authSecret: options.authSecret,
     expiresInSeconds,
   });
@@ -431,6 +426,7 @@ async function handleRefreshGrant(ctx: Context, options: OAuthRoutesOptions): Pr
     pending = reissueThenCommitRotation(
       presentedToken,
       rotation.sid,
+      rotation.renderingId,
       rotation.newRefreshToken,
       options,
     ).finally(() => {

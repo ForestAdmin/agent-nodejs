@@ -257,6 +257,23 @@ describe('session-store', () => {
 
       expect(store.commitRotation(refreshToken, prepared.newRefreshToken)).toBe(false);
     });
+
+    it('should return false when the session expires between prepare and commit', () => {
+      let clock = 1_000_000;
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => clock,
+        sessionTtlSeconds: 60,
+      });
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      const prepared = store.prepareRotation(refreshToken);
+      if (prepared.outcome !== 'ready') throw new Error('unreachable');
+
+      clock += 61 * 1000;
+
+      expect(store.commitRotation(refreshToken, prepared.newRefreshToken)).toBe(false);
+    });
   });
 
   describe('when an unknown refresh token is presented', () => {
