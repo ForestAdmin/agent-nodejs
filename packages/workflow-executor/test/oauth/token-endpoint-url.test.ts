@@ -53,6 +53,15 @@ describe('assertSafeTokenEndpoint', () => {
         InvalidTokenEndpointError,
       );
     });
+
+    it('rejects the unspecified address, which routes to loopback (0.0.0.0 / ::)', () => {
+      expect(() => assertSafeTokenEndpoint('https://0.0.0.0/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+      expect(() => assertSafeTokenEndpoint('https://[::]/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+    });
   });
 
   describe('in production', () => {

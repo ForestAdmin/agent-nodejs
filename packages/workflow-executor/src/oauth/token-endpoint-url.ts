@@ -19,10 +19,16 @@ function unbracket(hostname: string): string {
   return hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
 }
 
-function classifyIpv4(host: string): { loopback: boolean; linkLocal: boolean } {
+type HostClass = { loopback: boolean; linkLocal: boolean; unspecified: boolean };
+
+function classifyIpv4(host: string): HostClass {
   const [a, b] = host.split('.').map(Number);
 
-  return { loopback: a === 127, linkLocal: a === 169 && b === 254 }; // 127.0.0.0/8, 169.254.0.0/16
+  return {
+    loopback: a === 127, // 127.0.0.0/8
+    linkLocal: a === 169 && b === 254, // 169.254.0.0/16
+    unspecified: a === 0, // 0.0.0.0/8 — "this host"; connects to loopback on Linux
+  };
 }
 
 // Returns the embedded IPv4 of an IPv4-mapped IPv6 address (otherwise null). The WHATWG URL parser
@@ -43,7 +49,7 @@ function embeddedIpv4(host: string): string | null {
   return `${Math.floor(hi / 256)}.${hi % 256}.${Math.floor(lo / 256)}.${lo % 256}`;
 }
 
-function classify(host: string): { loopback: boolean; linkLocal: boolean } {
+function classify(host: string): HostClass {
   const kind = net.isIP(host);
 
   if (kind === 4) return classifyIpv4(host);
@@ -58,12 +64,13 @@ function classify(host: string): { loopback: boolean; linkLocal: boolean } {
     return {
       loopback: normalized === '::1' || normalized === '0:0:0:0:0:0:0:1',
       linkLocal: /^fe[89ab]/.test(firstHextet), // fe80::/10
+      unspecified: normalized === '::' || normalized === '0:0:0:0:0:0:0:0',
     };
   }
 
   // Not an IP literal — only the obvious local alias is treated as loopback; other hostnames are
   // left to the scheme rule (not resolved).
-  return { loopback: host.toLowerCase() === 'localhost', linkLocal: false };
+  return { loopback: host.toLowerCase() === 'localhost', linkLocal: false, unspecified: false };
 }
 
 export default function assertSafeTokenEndpoint(raw: string): void {
@@ -79,7 +86,11 @@ export default function assertSafeTokenEndpoint(raw: string): void {
     throw new InvalidTokenEndpointError('it must use http or https');
   }
 
-  const { loopback, linkLocal } = classify(unbracket(url.hostname));
+  const { loopback, linkLocal, unspecified } = classify(unbracket(url.hostname));
+
+  if (unspecified) {
+    throw new InvalidTokenEndpointError('it points at the unspecified address (0.0.0.0 / ::)');
+  }
 
   if (linkLocal) {
     throw new InvalidTokenEndpointError('it points at a link-local / metadata address');
