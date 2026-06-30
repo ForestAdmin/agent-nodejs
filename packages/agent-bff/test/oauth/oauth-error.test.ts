@@ -5,6 +5,7 @@ import {
   invalidGrant,
   invalidRequest,
   sessionExpired,
+  sessionInvalidated,
   toErrorBody,
 } from '../../src/oauth/oauth-error';
 
@@ -32,6 +33,7 @@ describe('oauth-error', () => {
         403,
       ],
       ['sessionExpired', sessionExpired('x'), 'session_expired', 401],
+      ['sessionInvalidated', sessionInvalidated('x'), 'session_invalidated', 401],
     ])('should set %s to type %s and status %d', (_label, error, type, status) => {
       expect(error).toBeInstanceOf(OAuthRequestError);
       expect(error.type).toBe(type);

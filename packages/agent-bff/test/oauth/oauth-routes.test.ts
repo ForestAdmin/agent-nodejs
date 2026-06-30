@@ -43,10 +43,25 @@ function serverTokens(expFromNow = 3600): ServerTokens {
   };
 }
 
+function decodableServerTokens(expFromNow = 3600): ServerTokens {
+  const exp = Math.floor(Date.now() / 1000) + expFromNow;
+  const saasAccessToken = jsonwebtoken.sign({ meta: { renderingId: 17 }, exp }, 'saas-secret', {
+    algorithm: 'HS256',
+  });
+
+  return {
+    saasAccessToken,
+    saasRefreshToken: 'ROTATED-SAAS-REFRESH',
+    renderingId: 17,
+    expiresAt: exp,
+  };
+}
+
 interface StubOverrides {
   getRegisteredClient?: ForestServerClient['getRegisteredClient'];
   exchangeCode?: ForestServerClient['exchangeCode'];
   getUserInfo?: ForestServerClient['getUserInfo'];
+  refreshServerToken?: ForestServerClient['refreshServerToken'];
 }
 
 function stubServerClient(overrides: StubOverrides = {}): ForestServerClient {
@@ -56,6 +71,7 @@ function stubServerClient(overrides: StubOverrides = {}): ForestServerClient {
       (async () => ({ client_id: CLIENT_ID, redirect_uris: [REDIRECT_URI] })),
     exchangeCode: overrides.exchangeCode ?? (async () => serverTokens()),
     getUserInfo: overrides.getUserInfo ?? (async () => USER),
+    refreshServerToken: overrides.refreshServerToken ?? (async () => serverTokens()),
   } as unknown as ForestServerClient;
 }
 
@@ -540,12 +556,12 @@ describe('oauth-routes POST /oauth/token', () => {
   });
 
   describe('when an unsupported grant_type is used', () => {
-    it('should reject refresh_token here (it is T5, not T4)', async () => {
+    it('should reject a grant_type that is neither authorization_code nor refresh_token', async () => {
       const { app } = buildApp(stubServerClient());
 
       const response = await request(app.callback())
         .post('/oauth/token')
-        .send({ grant_type: 'refresh_token', refresh_token: 'x' });
+        .send({ grant_type: 'client_credentials', client_id: CLIENT_ID });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('unsupported_grant_type');
@@ -643,6 +659,245 @@ describe('oauth-routes POST /oauth/token', () => {
       );
       expect(failure?.context?.cause).toBe('Error: upstream decode boom');
       expect(JSON.stringify(response.body)).not.toContain('upstream decode boom');
+    });
+  });
+});
+
+describe('oauth-routes POST /oauth/token refresh_token grant', () => {
+  async function login(app: Koa): Promise<string> {
+    const response = await request(app.callback()).post('/oauth/token').send(TOKEN_BODY);
+    expect(response.status).toBe(200);
+
+    return response.body.refresh_token as string;
+  }
+
+  function refresh(app: Koa, refreshToken: string) {
+    return request(app.callback())
+      .post('/oauth/token')
+      .send({ grant_type: 'refresh_token', refresh_token: refreshToken });
+  }
+
+  describe('when a valid refresh token is presented', () => {
+    it('should return a new token pair whose refresh token differs from the old one', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+      );
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(response.body.token_type).toBe('Bearer');
+      expect(response.body.expires_in).toBeGreaterThan(0);
+      expect(typeof response.body.access_token).toBe('string');
+      expect(response.body.refresh_token).not.toBe(refreshToken);
+    });
+
+    it('should keep accepting the rotated token for a further refresh', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+      );
+      const refreshToken = await login(app);
+
+      const first = await refresh(app, refreshToken);
+      const newToken = first.body.refresh_token as string;
+      const useNew = await refresh(app, newToken);
+
+      expect(first.status).toBe(200);
+      expect(useNew.status).toBe(200);
+      expect(useNew.body.refresh_token).not.toBe(newToken);
+    });
+
+    it('should not leak any SaaS access or refresh token in the response body or the new JWT', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+      );
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      const decoded = jsonwebtoken.verify(response.body.access_token, AUTH_SECRET) as Record<
+        string,
+        unknown
+      >;
+      expect(decoded.type).toBe('bff_access');
+      const serialized = JSON.stringify(response.body) + JSON.stringify(decoded);
+      expect(serialized).not.toContain(SENTINEL_REFRESH);
+      expect(serialized).not.toContain('ROTATED-SAAS-REFRESH');
+      expect(serialized).not.toContain(SENTINEL_ACCESS);
+    });
+
+    it('should mark the response non-cacheable', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+      );
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(response.headers.pragma).toBe('no-cache');
+    });
+  });
+
+  describe('when a rotated-out refresh token is replayed', () => {
+    it('should invalidate the whole session and reject with 401 session_invalidated', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+      );
+      const refreshToken = await login(app);
+
+      const first = await refresh(app, refreshToken);
+      const newToken = first.body.refresh_token as string;
+
+      const replay = await refresh(app, refreshToken);
+      const afterReplay = await refresh(app, newToken);
+
+      expect(replay.status).toBe(401);
+      expect(replay.body.error).toBe('session_invalidated');
+      expect(afterReplay.status).toBe(400);
+      expect(afterReplay.body.error).toBe('invalid_grant');
+    });
+  });
+
+  describe('when an unknown refresh token is presented', () => {
+    it('should reject with 400 invalid_grant', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await refresh(app, 'never-issued');
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_grant');
+    });
+
+    it('should reject a missing refresh_token with invalid_request', async () => {
+      const { app } = buildApp(stubServerClient());
+
+      const response = await request(app.callback())
+        .post('/oauth/token')
+        .send({ grant_type: 'refresh_token' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_request');
+    });
+  });
+
+  describe('when the underlying SaaS refresh is rejected by the Forest server', () => {
+    it('should reject with 401 session_expired', async () => {
+      const refreshServerToken = jest.fn(async () => {
+        throw new OAuthExchangeError('invalid_grant', 'saas refused');
+      });
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe('session_expired');
+    });
+  });
+
+  describe('when the underlying SaaS refresh fails transiently', () => {
+    it('should not rotate the presented token, so a retry after the blip succeeds', async () => {
+      let attempts = 0;
+      const refreshServerToken = jest.fn(async () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error('network blip');
+
+        return decodableServerTokens();
+      });
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      const refreshToken = await login(app);
+
+      const failed = await refresh(app, refreshToken);
+      const retried = await refresh(app, refreshToken);
+
+      expect(failed.status).toBe(502);
+      expect(retried.status).toBe(200);
+      expect(retried.body.refresh_token).not.toBe(refreshToken);
+    });
+  });
+
+  describe('when identity resolution fails transiently during a refresh', () => {
+    it('should not rotate the presented token, so a retry after the blip succeeds', async () => {
+      let attempts = 0;
+      const getUserInfo = jest.fn(async () => {
+        attempts += 1;
+        // 1st call is the login; fail only the first refresh (2nd call).
+        if (attempts === 2) throw new Error('identity blip');
+
+        return USER;
+      });
+      const { app } = buildApp(
+        stubServerClient({
+          getUserInfo,
+          refreshServerToken: async () => decodableServerTokens(),
+        }),
+      );
+      const refreshToken = await login(app);
+
+      const failed = await refresh(app, refreshToken);
+      const retried = await refresh(app, refreshToken);
+
+      expect(failed.status).toBe(502);
+      expect(retried.status).toBe(200);
+    });
+  });
+
+  describe('when the rotated SaaS access token is already expired', () => {
+    it('should reject with 401 session_expired without rotating', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens(-10) }),
+      );
+      const refreshToken = await login(app);
+
+      const failed = await refresh(app, refreshToken);
+
+      expect(failed.status).toBe(401);
+      expect(failed.body.error).toBe('session_expired');
+    });
+  });
+
+  describe('when two concurrent refreshes of the same token run', () => {
+    it('should commit exactly one rotation, keep the session alive, and not trip reuse detection', async () => {
+      // The winning request parks inside the SaaS refresh until released. While
+      // it is parked, its in-flight entry is live, so the second concurrent
+      // request must attach to the same promise rather than re-rotating.
+      let firstEntered: () => void = () => undefined;
+      const entered = new Promise<void>(resolve => {
+        firstEntered = resolve;
+      });
+      let release: () => void = () => undefined;
+      const gate = new Promise<void>(resolve => {
+        release = resolve;
+      });
+      let calls = 0;
+      const refreshServerToken = jest.fn(async () => {
+        calls += 1;
+        firstEntered();
+        await gate;
+
+        return decodableServerTokens();
+      });
+      const { app } = buildApp(stubServerClient({ refreshServerToken }));
+      const refreshToken = await login(app);
+
+      const both = Promise.all([refresh(app, refreshToken), refresh(app, refreshToken)]);
+      await entered;
+      // Let the second request reach the in-flight check and attach before the
+      // first one completes and clears the entry.
+      await new Promise(resolve => {
+        setImmediate(resolve);
+      });
+      release();
+      const [a, b] = await both;
+
+      expect([a.status, b.status].sort()).toEqual([200, 200]);
+      expect(a.body.refresh_token).toBe(b.body.refresh_token);
+      expect(calls).toBe(1);
+
+      const followUp = await refresh(app, a.body.refresh_token as string);
+      expect(followUp.status).toBe(200);
     });
   });
 });

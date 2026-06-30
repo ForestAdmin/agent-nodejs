@@ -5,6 +5,9 @@ import type { Logger } from '../ports/logger-port';
 import type { UserInfo } from '@forestadmin/forestadmin-client';
 import type { Context, Middleware } from 'koa';
 
+import crypto from 'crypto';
+import jsonwebtoken from 'jsonwebtoken';
+
 import { BFF_ACCESS_TOKEN_MAX_EXPIRES_IN, issueBffAccessToken } from './bff-token';
 import { OAuthExchangeError } from './forest-server-client';
 import {
@@ -13,9 +16,16 @@ import {
   invalidClient,
   invalidGrant,
   invalidRequest,
+  sessionExpired,
+  sessionInvalidated,
   toErrorBody,
   unsupportedGrantType,
 } from './oauth-error';
+import ensureFreshServerAccess from './session-lifecycle';
+
+function hashPresentedToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('base64url');
+}
 
 export interface OAuthRoutesOptions {
   serverClient: ForestServerClient;
@@ -202,18 +212,18 @@ interface TokenRequest {
   redirectUri: string;
 }
 
-async function parseTokenRequest(ctx: Context, options: OAuthRoutesOptions): Promise<TokenRequest> {
+function parseBody(ctx: Context): Record<string, unknown> {
   const { body } = ctx.request as { body?: unknown };
 
   if (typeof body !== 'object' || body === null) {
     throw invalidRequest('Missing request body');
   }
 
-  const params = body as Record<string, unknown>;
+  return body as Record<string, unknown>;
+}
 
-  if (params.grant_type !== 'authorization_code') {
-    throw unsupportedGrantType('Only authorization_code is supported');
-  }
+async function parseTokenRequest(ctx: Context, options: OAuthRoutesOptions): Promise<TokenRequest> {
+  const params = parseBody(ctx);
 
   const request: TokenRequest = {
     code: requireBodyString(params, 'code'),
@@ -256,23 +266,39 @@ function isRetriableExchangeError(error: unknown): boolean {
 }
 
 async function resolveIdentity(
-  serverTokens: ServerTokens,
+  renderingId: number,
+  saasAccessToken: string,
   options: OAuthRoutesOptions,
 ): Promise<UserInfo> {
   try {
-    return await options.serverClient.getUserInfo(
-      serverTokens.renderingId,
-      serverTokens.saasAccessToken,
-    );
+    return await options.serverClient.getUserInfo(renderingId, saasAccessToken);
   } catch (error) {
-    options.logger('Warn', 'Failed to resolve user info after exchange', {
-      renderingId: serverTokens.renderingId,
-    });
+    options.logger('Warn', 'Failed to resolve user info after exchange', { renderingId });
     throw mapIdentityError(error);
   }
 }
 
-async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
+function writeTokenResponse(
+  ctx: Context,
+  accessToken: string,
+  expiresInSeconds: number,
+  refreshToken: string,
+): void {
+  ctx.set('Cache-Control', 'no-store');
+  ctx.set('Pragma', 'no-cache');
+  ctx.status = 200;
+  ctx.body = {
+    access_token: accessToken,
+    token_type: 'Bearer',
+    expires_in: expiresInSeconds,
+    refresh_token: refreshToken,
+  };
+}
+
+async function handleAuthorizationCodeGrant(
+  ctx: Context,
+  options: OAuthRoutesOptions,
+): Promise<void> {
   const request = await parseTokenRequest(ctx, options);
 
   if (!options.sessionStore.claimAuthorizationCode(request.code)) {
@@ -292,7 +318,11 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
   }
 
   const expiresInSeconds = computeExpiresIn(serverTokens);
-  const user = await resolveIdentity(serverTokens, options);
+  const user = await resolveIdentity(
+    serverTokens.renderingId,
+    serverTokens.saasAccessToken,
+    options,
+  );
 
   const { sid, refreshToken } = options.sessionStore.create({
     saasAccessToken: serverTokens.saasAccessToken,
@@ -314,15 +344,123 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
     userId: user.id,
   });
 
-  ctx.set('Cache-Control', 'no-store');
-  ctx.set('Pragma', 'no-cache');
-  ctx.status = 200;
-  ctx.body = {
-    access_token: accessToken,
-    token_type: 'Bearer',
-    expires_in: expiresInSeconds,
-    refresh_token: refreshToken,
-  };
+  writeTokenResponse(ctx, accessToken, expiresInSeconds, refreshToken);
+}
+
+function expiresInFromAccessToken(saasAccessToken: string): number {
+  const decoded = jsonwebtoken.decode(saasAccessToken) as { exp?: number } | null;
+  const saasRemaining = (decoded?.exp ?? 0) - Math.floor(Date.now() / 1000);
+
+  if (saasRemaining <= 0) {
+    throw sessionExpired('The Forest server access token is already expired');
+  }
+
+  return Math.min(BFF_ACCESS_TOKEN_MAX_EXPIRES_IN, saasRemaining);
+}
+
+const inFlightRefreshByPresentedHash = new Map<string, Promise<RefreshGrantResult>>();
+
+interface RefreshGrantResult {
+  sid: string;
+  accessToken: string;
+  expiresInSeconds: number;
+  newRefreshToken: string;
+}
+
+async function reissueThenCommitRotation(
+  presentedToken: string,
+  sid: string,
+  newRefreshToken: string,
+  options: OAuthRoutesOptions,
+): Promise<RefreshGrantResult> {
+  const session = options.sessionStore.get(sid);
+
+  if (!session) {
+    throw sessionExpired('Session expired during refresh');
+  }
+
+  // Refresh the SaaS access token and resolve identity BEFORE committing the
+  // rotation. If any of this fails, the presented refresh token stays valid so
+  // a transient blip does not brick the session.
+  const saasAccessToken = await ensureFreshServerAccess({
+    sid,
+    store: options.sessionStore,
+    serverClient: options.serverClient,
+  });
+
+  const expiresInSeconds = expiresInFromAccessToken(saasAccessToken);
+  const user = await resolveIdentity(session.renderingId, saasAccessToken, options);
+
+  if (!options.sessionStore.commitRotation(presentedToken, newRefreshToken)) {
+    throw sessionExpired('Session expired during refresh');
+  }
+
+  const accessToken = issueBffAccessToken({
+    sid,
+    user,
+    renderingId: session.renderingId,
+    authSecret: options.authSecret,
+    expiresInSeconds,
+  });
+
+  return { sid, accessToken, expiresInSeconds, newRefreshToken };
+}
+
+async function handleRefreshGrant(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
+  const params = parseBody(ctx);
+  const presentedToken = requireBodyString(params, 'refresh_token');
+  const presentedHash = hashPresentedToken(presentedToken);
+
+  let pending = inFlightRefreshByPresentedHash.get(presentedHash);
+
+  if (!pending) {
+    const rotation = options.sessionStore.prepareRotation(presentedToken);
+
+    if (rotation.outcome === 'reuse') {
+      options.sessionStore.destroy(rotation.sid);
+      options.logger('Warn', 'Rotated-out refresh token replayed; session invalidated', {
+        sid: rotation.sid,
+      });
+      throw sessionInvalidated('Refresh token was already used; the session is invalidated');
+    }
+
+    if (rotation.outcome === 'unknown') {
+      throw invalidGrant('Unknown or malformed refresh token');
+    }
+
+    pending = reissueThenCommitRotation(
+      presentedToken,
+      rotation.sid,
+      rotation.newRefreshToken,
+      options,
+    ).finally(() => {
+      inFlightRefreshByPresentedHash.delete(presentedHash);
+    });
+    inFlightRefreshByPresentedHash.set(presentedHash, pending);
+  }
+
+  const result = await pending;
+
+  options.logger('Info', 'Refreshed BFF session token', { sid: result.sid });
+  writeTokenResponse(ctx, result.accessToken, result.expiresInSeconds, result.newRefreshToken);
+}
+
+async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
+  const params = parseBody(ctx);
+
+  if (params.grant_type === 'refresh_token') {
+    await handleRefreshGrant(ctx, options);
+
+    return;
+  }
+
+  if (params.grant_type === 'authorization_code') {
+    await handleAuthorizationCodeGrant(ctx, options);
+
+    return;
+  }
+
+  throw unsupportedGrantType('Only authorization_code and refresh_token are supported');
 }
 
 type RouteHandler = (ctx: Context, options: OAuthRoutesOptions) => Promise<void>;
