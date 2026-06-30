@@ -1,9 +1,8 @@
 name: Publish workflow-executor Docker image
 
 on:
-  push:
-    tags:
-      - '@forestadmin/workflow-executor@*'
+  # Releases publish via workflow_dispatch from build.yml's `release` job, not a
+  # tag-push trigger — the release commit's `[skip ci]` would suppress it.
   pull_request:
     # Validate on any change to the executor or to a dependency package's
     # manifest — a dep bump in one of the 5 source packages can drift the
@@ -108,15 +107,10 @@ jobs:
         with:
           # Need all tags to determine whether this is the latest stable version.
           fetch-depth: 0
-      - name: Parse version from tag or input
+      - name: Parse version from input
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            TAG="${{ github.ref_name }}"
-            VERSION="${TAG#@forestadmin/workflow-executor@}"
-          fi
+          VERSION="${{ github.event.inputs.version }}"
           echo "full=$VERSION" >> $GITHUB_OUTPUT
           echo "minor=${VERSION%.*}" >> $GITHUB_OUTPUT
           echo "major=${VERSION%%.*}" >> $GITHUB_OUTPUT
@@ -156,9 +150,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # On manual dispatch, check out the requested version tag so the built
-          # image matches the version it is published under (not the default branch).
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('@forestadmin/workflow-executor@{0}', github.event.inputs.version) || github.ref }}
+          # Build from the requested version's tag, not the default branch.
+          ref: ${{ format('@forestadmin/workflow-executor@{0}', github.event.inputs.version) }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
