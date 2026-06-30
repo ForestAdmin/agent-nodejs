@@ -196,20 +196,20 @@ export default class DatabaseMcpOAuthCredentialsStore implements McpOAuthCredent
     });
   }
 
-  async updateIfPresent(credential: McpOAuthCredentialInput): Promise<void> {
-    // Single UPDATE … WHERE — atomic against a concurrent DELETE: it updates the row if it still
-    // exists and affects zero rows otherwise, so it never re-creates a disconnected credential.
+  async updateIfPresent(id: number, credential: McpOAuthCredentialInput): Promise<void> {
+    // Single UPDATE … WHERE id — atomic against a concurrent DELETE and keyed on the exact row the
+    // caller read: it affects zero rows when that row was deleted (or deleted and re-created with a
+    // new id), so it never resurrects a disconnected credential nor clobbers a re-authorized one.
     await this.sequelize.query(
       `UPDATE ${this.tableReference} SET ` +
         'refresh_token_enc = :refreshTokenEnc, client_id = :clientId, ' +
         'client_secret_enc = :clientSecretEnc, client_secret_expires_at = :clientSecretExpiresAt, ' +
         'token_endpoint = :tokenEndpoint, token_endpoint_auth_method = :tokenEndpointAuthMethod, ' +
         'scopes = :scopes, updated_at = :now ' +
-        'WHERE user_id = :userId AND mcp_server_id = :mcpServerId',
+        'WHERE id = :id',
       {
         replacements: {
-          userId: credential.userId,
-          mcpServerId: credential.mcpServerId,
+          id,
           refreshTokenEnc: credential.refreshTokenEnc,
           clientId: credential.clientId ?? null,
           clientSecretEnc: credential.clientSecretEnc ?? null,

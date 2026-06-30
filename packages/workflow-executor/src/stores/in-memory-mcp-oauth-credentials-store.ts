@@ -32,12 +32,13 @@ export default class InMemoryMcpOAuthCredentialsStore implements McpOAuthCredent
     this.nextId += 1;
   }
 
-  async updateIfPresent(credential: McpOAuthCredentialInput): Promise<void> {
+  async updateIfPresent(id: number, credential: McpOAuthCredentialInput): Promise<void> {
     const key = InMemoryMcpOAuthCredentialsStore.key(credential.userId, credential.mcpServerId);
     const existing = this.data.get(key);
-    if (!existing) return;
+    // Only update the exact row the caller read; a re-created row has a new id, so skip it.
+    if (!existing || existing.id !== id) return;
 
-    this.data.set(key, { ...credential, id: existing.id });
+    this.data.set(key, { ...credential, id });
   }
 
   async delete(userId: number, mcpServerId: string): Promise<void> {

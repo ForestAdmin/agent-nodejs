@@ -186,9 +186,10 @@ export default class OAuthTokenService {
     try {
       const encrypted = this.encryption.encrypt(refreshToken);
 
-      // Update-only: if a disconnect (DELETE) landed after the grant read, the write-back must not
-      // re-create the row. updateIfPresent is atomic, so it closes the read→write race entirely.
-      await this.store.updateIfPresent({
+      // Update-only, keyed on the id we read: if a disconnect (DELETE) — or a disconnect plus a
+      // re-authorize that inserts a new row — landed after the grant read, the write-back must not
+      // resurrect or clobber it. updateIfPresent is atomic and id-scoped, closing the race entirely.
+      await this.store.updateIfPresent(credential.id, {
         userId: credential.userId,
         mcpServerId: credential.mcpServerId,
         refreshTokenEnc: encrypted.ciphertext,

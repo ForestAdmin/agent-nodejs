@@ -91,7 +91,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       // An unrefreshable OAuth credential pauses the step for re-authentication rather than failing
       // it. Clear the write-ahead marker so the resumed step is not rejected as interrupted.
       if (error instanceof OAuthReauthRequiredError) {
-        await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
+        await this.clearReauthPauseState();
 
         return this.buildOutcomeResult({
           status: 'awaiting-input',
@@ -100,6 +100,33 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       }
 
       throw error;
+    }
+  }
+
+  // Drop the 'executing' write-ahead marker left by beforeCall so the resumed step is not rejected
+  // as interrupted. A confirmation-flow record carries the user-approved pendingData — preserve it
+  // (clear only the phase) so resume replays that exact call instead of re-selecting a tool; a
+  // record with no pendingData would mis-route the resumed step into the confirmation flow, so
+  // delete it. Best-effort: a store error here must not turn the pause into a hard failure.
+  private async clearReauthPauseState(): Promise<void> {
+    try {
+      const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');
+      if (!existing) return;
+
+      if (existing.pendingData) {
+        await this.context.runStore.saveStepExecution(this.context.runId, {
+          ...existing,
+          idempotencyPhase: undefined,
+        });
+      } else {
+        await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
+      }
+    } catch (cause) {
+      this.context.logger('Error', 'Failed to clear re-auth pause state; resume may need a retry', {
+        runId: this.context.runId,
+        stepIndex: this.context.stepIndex,
+        cause: cause instanceof Error ? cause.message : String(cause),
+      });
     }
   }
 

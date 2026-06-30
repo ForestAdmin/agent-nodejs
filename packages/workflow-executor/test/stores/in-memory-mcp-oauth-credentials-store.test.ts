@@ -87,10 +87,11 @@ describe('InMemoryMcpOAuthCredentialsStore', () => {
   });
 
   describe('updateIfPresent', () => {
-    it('updates an existing row in place', async () => {
+    it('updates the row matching the given id in place', async () => {
       await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
+      const { id } = unwrap(await store.get(42, 'mcp-server-1'));
 
-      await store.updateIfPresent(makeCredential({ refreshTokenEnc: Buffer.from('rotated') }));
+      await store.updateIfPresent(id, makeCredential({ refreshTokenEnc: Buffer.from('rotated') }));
 
       expect(unwrap(await store.get(42, 'mcp-server-1')).refreshTokenEnc.toString()).toBe(
         'rotated',
@@ -98,9 +99,22 @@ describe('InMemoryMcpOAuthCredentialsStore', () => {
     });
 
     it('does not insert when the row is absent', async () => {
-      await store.updateIfPresent(makeCredential());
+      await store.updateIfPresent(1, makeCredential());
 
       expect(await store.get(42, 'mcp-server-1')).toBeNull();
+    });
+
+    it('does not touch a row that was re-created with a different id', async () => {
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
+      const staleId = unwrap(await store.get(42, 'mcp-server-1')).id;
+      await store.delete(42, 'mcp-server-1');
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('reauthorized') }));
+
+      await store.updateIfPresent(staleId, makeCredential({ refreshTokenEnc: Buffer.from('rot') }));
+
+      expect(unwrap(await store.get(42, 'mcp-server-1')).refreshTokenEnc.toString()).toBe(
+        'reauthorized',
+      );
     });
   });
 

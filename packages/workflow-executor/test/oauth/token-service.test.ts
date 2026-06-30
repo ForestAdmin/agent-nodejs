@@ -209,6 +209,7 @@ describe('OAuthTokenService.getAccessToken', () => {
 
       expect(encrypt).toHaveBeenCalledWith('rt-2');
       expect(updateIfPresent).toHaveBeenCalledWith(
+        1,
         expect.objectContaining({
           userId: USER_ID,
           mcpServerId: SERVER_ID,
@@ -300,7 +301,7 @@ describe('OAuthTokenService.getAccessToken', () => {
 
       await service.getAccessToken(USER_ID, SERVER_ID);
 
-      expect(updateIfPresent).toHaveBeenCalledWith(expect.objectContaining({ scopes: 'a b c' }));
+      expect(updateIfPresent).toHaveBeenCalledWith(1, expect.objectContaining({ scopes: 'a b c' }));
     });
 
     it('raises OAuthReauthRequiredError when the re-read shows the same (unrotated) token', async () => {
@@ -410,8 +411,8 @@ describe('OAuthTokenService — concurrent disconnect during refresh write-back'
     let current: StoredMcpOAuthCredential | null = makeCredential();
     const store = {
       get: jest.fn(async () => current),
-      updateIfPresent: jest.fn(async (credential: McpOAuthCredentialInput) => {
-        if (current) current = { ...credential, id: current.id };
+      updateIfPresent: jest.fn(async (id: number, credential: McpOAuthCredentialInput) => {
+        if (current && current.id === id) current = { ...credential, id };
       }),
       delete: jest.fn(async () => {
         current = null;

@@ -1313,6 +1313,61 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
       // step runs to success.
       expect(resumed.stepOutcome.status).toBe('success');
     });
+
+    it('preserves the approved pendingData on a confirmation-flow re-auth pause so resume replays it', async () => {
+      // GIVEN a confirmation-flow step with a user-approved tool call already persisted.
+      const store = new InMemoryStore();
+      await store.saveStepExecution('run-1', {
+        type: 'mcp',
+        stepIndex: 0,
+        pendingData: {
+          name: 'send_notification',
+          sourceId: 'mcp-server-1',
+          input: { message: 'Hello' },
+        },
+        userConfirmation: { userConfirmed: true },
+      } as McpStepExecutionData);
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: jest.fn().mockRejectedValue(authError()),
+      });
+      const reloadWithFreshAuth = jest.fn().mockRejectedValue(new OAuthReauthRequiredError('srv'));
+      const context = makeContext({ runStore: store });
+
+      // WHEN the approved call 401s and cannot re-auth.
+      const result = await new McpStepExecutor(
+        context,
+        [tool],
+        'srv',
+        reloadWithFreshAuth,
+      ).execute();
+
+      // THEN the marker is cleared but the approved call is kept, so a resume replays it rather than
+      // re-selecting a tool.
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const persisted = (await store.getStepExecutions('run-1')).find(e => e.stepIndex === 0) as
+        | McpStepExecutionData
+        | undefined;
+      expect(persisted?.idempotencyPhase).not.toBe('executing');
+      expect(persisted?.pendingData).toEqual({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        input: { message: 'Hello' },
+      });
+    });
+
+    it('still pauses when clearing the re-auth state fails (best-effort cleanup)', async () => {
+      // GIVEN a store whose cleanup delete rejects.
+      const store = new InMemoryStore();
+      jest.spyOn(store, 'deleteStepExecution').mockRejectedValue(new Error('store down'));
+
+      // WHEN a FullyAutomated step pauses for re-auth (no pendingData → cleanup goes via delete).
+      const result = await pauseFor(store).execute();
+
+      // THEN the cleanup failure is swallowed and the step still pauses.
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+    });
   });
 
   describe('re-auth pause surfaces the tool-call failure in the audit log', () => {
