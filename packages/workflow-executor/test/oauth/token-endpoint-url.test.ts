@@ -102,6 +102,15 @@ describe('assertSafeTokenEndpoint', () => {
       ).not.toThrow();
     });
 
+    it('rejects trailing-dot IP literals (URL parsing normalizes the dot before classification)', () => {
+      expect(() => assertSafeTokenEndpoint('https://127.0.0.1./token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+      expect(() => assertSafeTokenEndpoint('https://169.254.169.254./token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+    });
+
     it('rejects an IPv4-mapped IPv6 loopback (e.g. ::ffff:127.0.0.1)', () => {
       expect(() => assertSafeTokenEndpoint('https://[::ffff:127.0.0.1]/token')).toThrow(
         InvalidTokenEndpointError,
