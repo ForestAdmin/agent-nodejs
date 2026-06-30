@@ -19,6 +19,32 @@ describe('InMemoryStore', () => {
     store = new InMemoryStore();
   });
 
+  it('clears the step execution for a given (runId, stepIndex)', async () => {
+    await store.saveStepExecution('run-1', makeStepExecution({ stepIndex: 0 }));
+
+    await store.deleteStepExecution('run-1', 0);
+
+    expect(await store.getStepExecutions('run-1')).toEqual([]);
+  });
+
+  it('leaves other steps in the same run untouched when clearing one step', async () => {
+    const kept = makeStepExecution({ stepIndex: 1, type: 'read-record' } as never);
+    await store.saveStepExecution('run-1', makeStepExecution({ stepIndex: 0 }));
+    await store.saveStepExecution('run-1', kept);
+
+    await store.deleteStepExecution('run-1', 0);
+
+    expect(await store.getStepExecutions('run-1')).toEqual([kept]);
+  });
+
+  it('is a no-op when no execution exists for that (runId, stepIndex)', async () => {
+    await store.saveStepExecution('run-1', makeStepExecution({ stepIndex: 0 }));
+
+    await store.deleteStepExecution('run-1', 99);
+
+    expect((await store.getStepExecutions('run-1')).map(s => s.stepIndex)).toEqual([0]);
+  });
+
   it('returns empty array for unknown runId', async () => {
     const result = await store.getStepExecutions('unknown');
     expect(result).toEqual([]);

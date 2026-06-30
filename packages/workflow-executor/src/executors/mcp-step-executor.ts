@@ -88,8 +88,11 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     try {
       return await this.runStep();
     } catch (error) {
-      // An unrefreshable OAuth credential pauses the step for re-authentication rather than failing it.
+      // An unrefreshable OAuth credential pauses the step for re-authentication rather than failing
+      // it. Clear the write-ahead marker so the resumed step is not rejected as interrupted.
       if (error instanceof OAuthReauthRequiredError) {
+        await this.clearReauthPauseState();
+
         return this.buildOutcomeResult({
           status: 'awaiting-input',
           awaitingInputReason: error.awaitingInputReason,
@@ -97,6 +100,22 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       }
 
       throw error;
+    }
+  }
+
+  // Keep a confirmation-flow record's approved pendingData (clear only the marker) so resume replays
+  // it; delete a pendingData-less record, which would otherwise mis-route resume into confirmation.
+  private async clearReauthPauseState(): Promise<void> {
+    const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');
+    if (!existing) return;
+
+    if (existing.pendingData) {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existing,
+        idempotencyPhase: undefined,
+      });
+    } else {
+      await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
     }
   }
 

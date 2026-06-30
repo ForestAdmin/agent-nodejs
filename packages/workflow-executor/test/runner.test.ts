@@ -80,6 +80,7 @@ function createMockRunStore(overrides: Partial<RunStore> = {}): jest.Mocked<RunS
     close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    deleteStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as jest.Mocked<RunStore>;
 }
@@ -106,6 +107,7 @@ function createRunnerConfig(
       close: jest.fn().mockResolvedValue(undefined),
       getStepExecutions: jest.fn().mockResolvedValue([]),
       saveStepExecution: jest.fn().mockResolvedValue(undefined),
+      deleteStepExecution: jest.fn().mockResolvedValue(undefined),
     } as unknown as RunStore,
     pollingIntervalS: POLLING_INTERVAL_S,
     aiModelPort: createMockAiClient() as unknown as AiModelPort,

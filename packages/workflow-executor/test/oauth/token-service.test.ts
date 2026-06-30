@@ -1,6 +1,7 @@
 import type CredentialEncryption from '../../src/crypto/credential-encryption';
 import type { RefreshGrantParams, RefreshGrantResult } from '../../src/oauth/refresh-grant';
 import type {
+  McpOAuthCredentialInput,
   McpOAuthCredentialsStore,
   StoredMcpOAuthCredential,
 } from '../../src/ports/mcp-oauth-credentials-store';
@@ -42,7 +43,8 @@ function setup(options?: {
   const credential = options?.credential === undefined ? makeCredential() : options.credential;
   const get = jest.fn().mockResolvedValue(credential);
   const upsert = jest.fn().mockResolvedValue(undefined);
-  const store = { get, upsert } as unknown as McpOAuthCredentialsStore;
+  const updateIfPresent = jest.fn().mockResolvedValue(undefined);
+  const store = { get, upsert, updateIfPresent } as unknown as McpOAuthCredentialsStore;
 
   const decrypt = jest.fn((buf: Buffer) => `decrypted:${buf.toString()}`);
   const encrypt = jest.fn((plain: string) => ({
@@ -68,6 +70,7 @@ function setup(options?: {
     service,
     get,
     upsert,
+    updateIfPresent,
     decrypt,
     encrypt,
     refresh,
@@ -200,12 +203,13 @@ describe('OAuthTokenService.getAccessToken', () => {
       const refresh = jest
         .fn()
         .mockResolvedValue({ accessToken: 'at-1', expiresInS: 3600, refreshToken: 'rt-2' });
-      const { service, upsert, encrypt } = setup({ refresh });
+      const { service, updateIfPresent, encrypt } = setup({ refresh });
 
       await service.getAccessToken(USER_ID, SERVER_ID);
 
       expect(encrypt).toHaveBeenCalledWith('rt-2');
-      expect(upsert).toHaveBeenCalledWith(
+      expect(updateIfPresent).toHaveBeenCalledWith(
+        1,
         expect.objectContaining({
           userId: USER_ID,
           mcpServerId: SERVER_ID,
@@ -215,19 +219,19 @@ describe('OAuthTokenService.getAccessToken', () => {
     });
 
     it('does not write back when the grant returns no new refresh token', async () => {
-      const { service, upsert } = setup();
+      const { service, updateIfPresent } = setup();
 
       await service.getAccessToken(USER_ID, SERVER_ID);
 
-      expect(upsert).not.toHaveBeenCalled();
+      expect(updateIfPresent).not.toHaveBeenCalled();
     });
 
     it('still returns the token when the rotation write-back fails', async () => {
       const refresh = jest
         .fn()
         .mockResolvedValue({ accessToken: 'at-1', expiresInS: 3600, refreshToken: 'rt-2' });
-      const { service, upsert } = setup({ refresh });
-      (upsert as jest.Mock).mockRejectedValue(new Error('db down'));
+      const { service, updateIfPresent } = setup({ refresh });
+      (updateIfPresent as jest.Mock).mockRejectedValue(new Error('db down'));
 
       await expect(service.getAccessToken(USER_ID, SERVER_ID)).resolves.toBe('at-1');
     });
@@ -236,13 +240,13 @@ describe('OAuthTokenService.getAccessToken', () => {
       const refresh = jest
         .fn()
         .mockResolvedValue({ accessToken: 'at-1', expiresInS: 3600, refreshToken: 'rt-2' });
-      const { service, encrypt, upsert } = setup({ refresh });
+      const { service, encrypt, updateIfPresent } = setup({ refresh });
       (encrypt as jest.Mock).mockImplementation(() => {
         throw new Error('key unavailable');
       });
 
       await expect(service.getAccessToken(USER_ID, SERVER_ID)).resolves.toBe('at-1');
-      expect(upsert).not.toHaveBeenCalled();
+      expect(updateIfPresent).not.toHaveBeenCalled();
     });
   });
 
@@ -280,14 +284,14 @@ describe('OAuthTokenService.getAccessToken', () => {
         scopes: 'a b c',
       });
       const get = jest.fn().mockResolvedValueOnce(original).mockResolvedValueOnce(latest);
-      const upsert = jest.fn().mockResolvedValue(undefined);
+      const updateIfPresent = jest.fn().mockResolvedValue(undefined);
       const refresh = jest
         .fn()
         .mockRejectedValueOnce(new OAuthInvalidGrantError())
         .mockResolvedValueOnce({ accessToken: 'at', expiresInS: 3600, refreshToken: 'rt-3' });
 
       const service = new OAuthTokenService({
-        store: { get, upsert } as unknown as McpOAuthCredentialsStore,
+        store: { get, upsert: jest.fn(), updateIfPresent } as unknown as McpOAuthCredentialsStore,
         encryption: {
           decrypt: (buf: Buffer) => buf.toString(),
           encrypt: () => ({ ciphertext: Buffer.from('enc:rt-3') }),
@@ -297,7 +301,7 @@ describe('OAuthTokenService.getAccessToken', () => {
 
       await service.getAccessToken(USER_ID, SERVER_ID);
 
-      expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ scopes: 'a b c' }));
+      expect(updateIfPresent).toHaveBeenCalledWith(1, expect.objectContaining({ scopes: 'a b c' }));
     });
 
     it('raises OAuthReauthRequiredError when the re-read shows the same (unrotated) token', async () => {
@@ -394,5 +398,44 @@ describe('OAuthTokenService.getAccessToken', () => {
       );
       expect(refreshAccessToken).not.toHaveBeenCalled();
     });
+  });
+});
+
+// A disconnect (DELETE) landing between the grant read and the write-back must not re-create the
+// row: the atomic update-only path leaves a deleted credential deleted, not silently resurrected.
+describe('OAuthTokenService — concurrent disconnect during refresh write-back', () => {
+  it('does not resurrect a credential deleted between the snapshot read and the rotated-token write-back', async () => {
+    // GIVEN a stored credential and a refresh that rotates the token while a concurrent disconnect
+    // (the row is DELETED) lands before the write-back; updateIfPresent updates only an existing row.
+    let current: StoredMcpOAuthCredential | null = makeCredential();
+    const store = {
+      get: jest.fn(async () => current),
+      updateIfPresent: jest.fn(async (id: number, credential: McpOAuthCredentialInput) => {
+        if (current && current.id === id) current = { ...credential, id };
+      }),
+      delete: jest.fn(async () => {
+        current = null;
+      }),
+    } as unknown as McpOAuthCredentialsStore;
+
+    const refresh = jest.fn(async () => {
+      // The disconnect lands after refreshAndCache's snapshot read, before persistRotatedRefreshToken.
+      await store.delete(USER_ID, SERVER_ID);
+
+      return { accessToken: 'at-1', expiresInS: 3600, refreshToken: 'rotated-rt' };
+    });
+
+    const encryption = {
+      decrypt: (buf: Buffer) => buf.toString(),
+      encrypt: (plain: string) => ({ ciphertext: Buffer.from(`enc:${plain}`) }),
+    } as unknown as CredentialEncryption;
+
+    const service = new OAuthTokenService({ store, encryption, refreshAccessToken: refresh });
+
+    // WHEN a token is acquired, triggering the refresh and the rotated-token write-back.
+    await service.getAccessToken(USER_ID, SERVER_ID);
+
+    // THEN the deleted credential must stay deleted — the write-back must not recreate it.
+    expect(await store.get(USER_ID, SERVER_ID)).toBeNull();
   });
 });
