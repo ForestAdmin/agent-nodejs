@@ -23,6 +23,12 @@ export interface CreatedSession {
   refreshToken: string;
 }
 
+export type PrepareRotationResult =
+  | { outcome: 'ready'; sid: string; renderingId: number; newRefreshToken: string }
+  | { outcome: 'replay'; sid: string; renderingId: number; lastIssuedRefreshToken: string }
+  | { outcome: 'reuse'; sid: string }
+  | { outcome: 'unknown' };
+
 export interface UpdateSaasTokensInput {
   saasAccessToken: string;
   saasRefreshToken: string;
@@ -33,6 +39,9 @@ export interface SessionStore {
   get(sid: string): StoredSession | undefined;
   getSaasRefreshToken(sid: string): string | undefined;
   updateSaasTokens(sid: string, tokens: UpdateSaasTokensInput): void;
+  prepareRotation(presentedToken: string): PrepareRotationResult;
+  commitRotation(presentedToken: string, newRefreshToken: string): boolean;
+  destroy(sid: string): void;
   claimAuthorizationCode(code: string): boolean;
   releaseAuthorizationCode(code: string): void;
   pendingClaimCount(): number;
@@ -70,6 +79,29 @@ export default function createInMemorySessionStore({
 }: SessionStoreOptions): SessionStore {
   const sessions = new Map<string, StoredSession>();
   const usedCodes = new Map<string, number>();
+  const activeRefreshHashToSid = new Map<string, string>();
+  const rotatedRefreshHashToSid = new Map<string, string>();
+  const lastRotationBySid = new Map<
+    string,
+    { rotatedHash: string; issuedRefreshBlob: EncryptedBlob }
+  >();
+
+  function forgetRefreshHashes(sid: string): void {
+    for (const [hash, owner] of activeRefreshHashToSid) {
+      if (owner === sid) activeRefreshHashToSid.delete(hash);
+    }
+
+    for (const [hash, owner] of rotatedRefreshHashToSid) {
+      if (owner === sid) rotatedRefreshHashToSid.delete(hash);
+    }
+
+    lastRotationBySid.delete(sid);
+  }
+
+  function dropSession(sid: string): void {
+    sessions.delete(sid);
+    forgetRefreshHashes(sid);
+  }
 
   function purgeExpiredCodes(): void {
     const current = now();
@@ -83,7 +115,7 @@ export default function createInMemorySessionStore({
     const current = now();
 
     for (const [sid, session] of sessions) {
-      if (current >= session.expiresAt) sessions.delete(sid);
+      if (current >= session.expiresAt) dropSession(sid);
     }
   }
 
@@ -92,7 +124,7 @@ export default function createInMemorySessionStore({
     if (!session) return undefined;
 
     if (now() >= session.expiresAt) {
-      sessions.delete(sid);
+      dropSession(sid);
 
       return undefined;
     }
@@ -105,15 +137,17 @@ export default function createInMemorySessionStore({
       purgeExpiredSessions();
       const sid = createSid();
       const refreshToken = createOpaqueToken();
+      const refreshTokenHash = hashToken(refreshToken);
 
       sessions.set(sid, {
         saasAccessToken: input.saasAccessToken,
         saasRefreshTokenBlob: cipher.encrypt(input.saasRefreshToken),
-        refreshTokenHash: hashToken(refreshToken),
+        refreshTokenHash,
         renderingId: input.renderingId,
         userId: input.userId,
         expiresAt: now() + sessionTtlSeconds * 1000,
       });
+      activeRefreshHashToSid.set(refreshTokenHash, sid);
 
       return { sid, refreshToken };
     },
@@ -136,6 +170,69 @@ export default function createInMemorySessionStore({
 
       session.saasAccessToken = tokens.saasAccessToken;
       session.saasRefreshTokenBlob = cipher.encrypt(tokens.saasRefreshToken);
+    },
+
+    prepareRotation(presentedToken) {
+      const hash = hashToken(presentedToken);
+
+      const reusedSid = rotatedRefreshHashToSid.get(hash);
+
+      if (reusedSid !== undefined) {
+        const session = liveSession(reusedSid);
+        if (!session) return { outcome: 'unknown' };
+
+        const lastRotation = lastRotationBySid.get(reusedSid);
+
+        if (lastRotation?.rotatedHash === hash) {
+          return {
+            outcome: 'replay',
+            sid: reusedSid,
+            renderingId: session.renderingId,
+            lastIssuedRefreshToken: cipher.decrypt(lastRotation.issuedRefreshBlob),
+          };
+        }
+
+        return { outcome: 'reuse', sid: reusedSid };
+      }
+
+      const sid = activeRefreshHashToSid.get(hash);
+      if (sid === undefined) return { outcome: 'unknown' };
+
+      const session = liveSession(sid);
+      if (!session) return { outcome: 'unknown' };
+
+      return {
+        outcome: 'ready',
+        sid,
+        renderingId: session.renderingId,
+        newRefreshToken: createOpaqueToken(),
+      };
+    },
+
+    commitRotation(presentedToken, newRefreshToken) {
+      const hash = hashToken(presentedToken);
+      const sid = activeRefreshHashToSid.get(hash);
+
+      if (sid === undefined) return false;
+
+      const session = liveSession(sid);
+      if (!session) return false;
+
+      const newHash = hashToken(newRefreshToken);
+      activeRefreshHashToSid.delete(hash);
+      rotatedRefreshHashToSid.set(hash, sid);
+      lastRotationBySid.set(sid, {
+        rotatedHash: hash,
+        issuedRefreshBlob: cipher.encrypt(newRefreshToken),
+      });
+      activeRefreshHashToSid.set(newHash, sid);
+      session.refreshTokenHash = newHash;
+
+      return true;
+    },
+
+    destroy(sid) {
+      dropSession(sid);
     },
 
     claimAuthorizationCode(code) {

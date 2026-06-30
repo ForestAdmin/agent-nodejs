@@ -131,6 +131,9 @@ describe('ensureFreshServerAccess', () => {
         updateSaasTokens: jest.fn(),
         claimAuthorizationCode: jest.fn(),
         releaseAuthorizationCode: jest.fn(),
+        prepareRotation: jest.fn(),
+        commitRotation: jest.fn(),
+        destroy: jest.fn(),
         pendingClaimCount: jest.fn(),
       };
       const refreshServerToken = jest.fn();
@@ -158,6 +161,9 @@ describe('ensureFreshServerAccess', () => {
         updateSaasTokens,
         claimAuthorizationCode: jest.fn(),
         releaseAuthorizationCode: jest.fn(),
+        prepareRotation: jest.fn(),
+        commitRotation: jest.fn(),
+        destroy: jest.fn(),
         pendingClaimCount: jest.fn(),
       };
       const client = {

@@ -189,4 +189,180 @@ describe('session-store', () => {
       expect(JSON.stringify(store.get(sid))).not.toContain('NEW-REFRESH');
     });
   });
+
+  function rotate(store: ReturnType<typeof buildStore>, presented: string) {
+    const prepared = store.prepareRotation(presented);
+    if (prepared.outcome !== 'ready') return prepared;
+
+    expect(store.commitRotation(presented, prepared.newRefreshToken)).toBe(true);
+
+    return prepared;
+  }
+
+  describe('when preparing a rotation for a valid refresh token', () => {
+    it('should return a fresh opaque token distinct from the presented one for the same session', () => {
+      const store = buildStore();
+      const { sid, refreshToken } = store.create(SESSION_INPUT);
+
+      const result = store.prepareRotation(refreshToken);
+
+      expect(result.outcome).toBe('ready');
+      if (result.outcome !== 'ready') throw new Error('unreachable');
+      expect(result.sid).toBe(sid);
+      expect(result.newRefreshToken).not.toBe(refreshToken);
+      expect(result.newRefreshToken.length).toBeGreaterThanOrEqual(32);
+    });
+
+    it('should not mutate the store: the presented token stays valid until commit', () => {
+      const store = buildStore();
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      store.prepareRotation(refreshToken);
+      store.prepareRotation(refreshToken);
+
+      expect(store.prepareRotation(refreshToken).outcome).toBe('ready');
+    });
+  });
+
+  describe('when committing a prepared rotation', () => {
+    it('should accept the new token and flag the just-rotated old one as a benign replay', () => {
+      const store = buildStore();
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      const first = rotate(store, refreshToken);
+      if (first.outcome !== 'ready') throw new Error('unreachable');
+
+      expect(store.prepareRotation(refreshToken).outcome).toBe('replay');
+      expect(store.prepareRotation(first.newRefreshToken).outcome).toBe('ready');
+    });
+
+    it('should never persist the raw rotated token (hash only)', () => {
+      const store = buildStore();
+      const { sid, refreshToken } = store.create(SESSION_INPUT);
+
+      const result = rotate(store, refreshToken);
+      if (result.outcome !== 'ready') throw new Error('unreachable');
+
+      expect(JSON.stringify(store.get(sid))).not.toContain(result.newRefreshToken);
+    });
+
+    it('should return false when committing a token the store no longer tracks as active', () => {
+      const store = buildStore();
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      const prepared = store.prepareRotation(refreshToken);
+      if (prepared.outcome !== 'ready') throw new Error('unreachable');
+
+      store.commitRotation(refreshToken, prepared.newRefreshToken);
+
+      expect(store.commitRotation(refreshToken, prepared.newRefreshToken)).toBe(false);
+    });
+
+    it('should return false when the session expires between prepare and commit', () => {
+      let clock = 1_000_000;
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => clock,
+        sessionTtlSeconds: 60,
+      });
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      const prepared = store.prepareRotation(refreshToken);
+      if (prepared.outcome !== 'ready') throw new Error('unreachable');
+
+      clock += 61 * 1000;
+
+      expect(store.commitRotation(refreshToken, prepared.newRefreshToken)).toBe(false);
+    });
+  });
+
+  describe('when an unknown refresh token is presented', () => {
+    it('should return unknown for a token that was never issued', () => {
+      const store = buildStore();
+      store.create(SESSION_INPUT);
+
+      expect(store.prepareRotation('never-issued-token').outcome).toBe('unknown');
+    });
+  });
+
+  describe('when a rotated-out refresh token is replayed', () => {
+    it('should flag the most recently rotated-out token as a benign replay, identifying the session', () => {
+      const store = buildStore();
+      const { sid, refreshToken } = store.create(SESSION_INPUT);
+
+      rotate(store, refreshToken);
+      const replay = store.prepareRotation(refreshToken);
+
+      expect(replay.outcome).toBe('replay');
+      if (replay.outcome !== 'replay') throw new Error('unreachable');
+      expect(replay.sid).toBe(sid);
+    });
+
+    it('should flag a token older than the latest rotated-out one as reuse', () => {
+      const store = buildStore();
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      const r1 = refreshToken;
+      const first = rotate(store, r1);
+      if (first.outcome !== 'ready') throw new Error('unreachable');
+      const r2 = first.newRefreshToken;
+      rotate(store, r2);
+
+      expect(store.prepareRotation(r2).outcome).toBe('replay');
+      expect(store.prepareRotation(r1).outcome).toBe('reuse');
+    });
+
+    it('should treat a replay against an expired session as unknown, not reuse', () => {
+      let clock = 1_000_000;
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => clock,
+        sessionTtlSeconds: 60,
+      });
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      rotate(store, refreshToken);
+      clock += 61 * 1000;
+
+      expect(store.prepareRotation(refreshToken).outcome).toBe('unknown');
+    });
+  });
+
+  describe('when destroying a session', () => {
+    it('should remove the session and reject its current refresh token as unknown', () => {
+      const store = buildStore();
+      const { sid, refreshToken } = store.create(SESSION_INPUT);
+
+      store.destroy(sid);
+
+      expect(store.get(sid)).toBeUndefined();
+      expect(store.prepareRotation(refreshToken).outcome).toBe('unknown');
+    });
+
+    it('should drop a rotated-out token after destroy so a later replay is no longer flagged as reuse', () => {
+      const store = buildStore();
+      const { sid, refreshToken } = store.create(SESSION_INPUT);
+
+      rotate(store, refreshToken);
+      store.destroy(sid);
+
+      expect(store.prepareRotation(refreshToken).outcome).toBe('unknown');
+    });
+  });
+
+  describe('when a session expires', () => {
+    it('should reject a rotation against the expired session as unknown', () => {
+      let clock = 1_000_000;
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => clock,
+        sessionTtlSeconds: 60,
+      });
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      clock += 61 * 1000;
+
+      expect(store.prepareRotation(refreshToken).outcome).toBe('unknown');
+    });
+  });
 });
