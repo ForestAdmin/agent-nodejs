@@ -1357,16 +1357,20 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
       });
     });
 
-    it('still pauses when clearing the re-auth state fails (best-effort cleanup)', async () => {
-      // GIVEN a store whose cleanup delete rejects.
+    it('surfaces a store error from the re-auth cleanup as a step error, not a stuck pause', async () => {
+      // GIVEN cleanup that fails — a left-behind 'executing' marker would make the pause
+      // non-resumable, so the failure must surface as an error rather than a stuck awaiting-input.
       const store = new InMemoryStore();
-      jest.spyOn(store, 'deleteStepExecution').mockRejectedValue(new Error('store down'));
+      jest
+        .spyOn(store, 'deleteStepExecution')
+        .mockRejectedValue(new RunStorePortError('deleteStepExecution', new Error('store down')));
 
       // WHEN a FullyAutomated step pauses for re-auth (no pendingData → cleanup goes via delete).
       const result = await pauseFor(store).execute();
 
-      // THEN the cleanup failure is swallowed and the step still pauses.
-      expect(result.stepOutcome.status).toBe('awaiting-input');
+      // THEN the store failure propagates to a step error instead of a non-resumable pause.
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
   });
 

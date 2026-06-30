@@ -106,24 +106,16 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   // Keep a confirmation-flow record's approved pendingData (clear only the marker) so resume replays
   // it; delete a pendingData-less record, which would otherwise mis-route resume into confirmation.
   private async clearReauthPauseState(): Promise<void> {
-    try {
-      const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');
-      if (!existing) return;
+    const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');
+    if (!existing) return;
 
-      if (existing.pendingData) {
-        await this.context.runStore.saveStepExecution(this.context.runId, {
-          ...existing,
-          idempotencyPhase: undefined,
-        });
-      } else {
-        await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
-      }
-    } catch (cause) {
-      this.context.logger('Error', 'Failed to clear re-auth pause state; resume may need a retry', {
-        runId: this.context.runId,
-        stepIndex: this.context.stepIndex,
-        cause: cause instanceof Error ? cause.message : String(cause),
+    if (existing.pendingData) {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existing,
+        idempotencyPhase: undefined,
       });
+    } else {
+      await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
     }
   }
 
