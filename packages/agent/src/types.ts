@@ -1,6 +1,25 @@
+import type { AuditStore } from './audit-trail/types';
 import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { IncomingMessage, ServerResponse } from 'http';
+
+export type AuditTrailConfig = {
+  /**
+   * Postgres / SQL connection string for the audit database. May point at an empty database, the
+   * database already used by the agent, or one that already contains the `forest` schema — the
+   * schema and table are created on the fly when missing.
+   */
+  connectionString: string;
+  /** Defaults to `forest`. */
+  schema?: string;
+  /** Defaults to `audit_logs`. */
+  tableName?: string;
+  /**
+   * Fields to mask, keyed by collection name. Redacted fields still produce an audit entry when
+   * they change, but their value is replaced with a sentinel instead of being stored.
+   */
+  redact?: Record<string, string[]>;
+};
 
 /** Options to configure behavior of an agent's forestadmin driver */
 export type AgentOptions = {
@@ -52,8 +71,21 @@ export type AgentOptions = {
    * @example 'http://localhost:4001'
    */
   workflowExecutorUrl?: string | null;
+  /**
+   * Records every create/update/delete and exposes `/_audit-trail/{collection}/:id` and
+   * `/_audit-trail/correlation*` routes. Disabled when `null` or unset.
+   */
+  auditTrail?: AuditTrailConfig | null;
 };
-export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
+
+// Runtime view of `auditTrail`: the validator has built the SQL store from the connection string.
+export type AuditTrailRuntime = AuditTrailConfig & { store: AuditStore };
+
+export type AgentOptionsWithDefaults = Readonly<
+  Required<Omit<AgentOptions, 'auditTrail'>> & {
+    auditTrail: AuditTrailRuntime | null;
+  }
+>;
 
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 

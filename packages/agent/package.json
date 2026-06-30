@@ -31,7 +31,9 @@
     "koa-jwt": "^4.0.4",
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
+    "sequelize": "^6.37.8",
     "superagent": "^10.3.0",
+    "umzug": "^3.8.2",
     "uuid": "11.1.1"
   },
   "files": [
@@ -53,7 +55,6 @@
     "@nestjs/platform-express": "^10.4.16",
     "@nestjs/platform-fastify": "^10.4.16",
     "@shopify/jest-koa-mocks": "^3.1.0",
-    "sequelize": "^6.37.8",
     "sqlite3": "^5.1.7",
     "@types/json-api-serializer": "^2.6.3",
     "@types/jsonwebtoken": "^9.0.1",

@@ -21,10 +21,12 @@ import Router from '@koa/router';
 import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
 
+import { installAuditTrailHooks } from './audit-trail';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
+import { CORRELATION_ID_HEADER, correlationIdMiddleware } from './utils/correlation-id';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
 
@@ -315,7 +317,15 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     // Build main router
     const router = new Router();
-    router.all('(.*)', cors({ credentials: true, maxAge: 24 * 3600, privateNetworkAccess: true }));
+    router.all(
+      '(.*)',
+      cors({
+        credentials: true,
+        maxAge: 24 * 3600,
+        privateNetworkAccess: true,
+        exposeHeaders: [CORRELATION_ID_HEADER],
+      }),
+    );
     router.use(
       bodyParser({
         encoding: 'utf-8',
@@ -324,6 +334,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         ...this.options.bodyParserOptions,
       }),
     );
+    router.use(correlationIdMiddleware);
     routes.forEach(route => route.setupRoutes(router));
 
     return { router, mcpHttpCallback };
@@ -382,6 +393,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     });
     this.nocodeCustomizer.addDataSource(this.customizer.getFactory());
     this.nocodeCustomizer.use(this.customizationService.addCustomizations);
+
+    if (this.options.auditTrail) {
+      const { store, redact } = this.options.auditTrail;
+      this.nocodeCustomizer.use(installAuditTrailHooks, { store, redact });
+    }
 
     const dataSource = await this.nocodeCustomizer.getDataSource(logger);
     const [routers] = await Promise.all([
