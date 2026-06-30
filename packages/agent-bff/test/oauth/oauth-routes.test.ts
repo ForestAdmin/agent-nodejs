@@ -754,7 +754,7 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
   });
 
   describe('when the most recently rotated-out token is replayed (benign retry)', () => {
-    it('should return the same pair it last issued without killing the session', async () => {
+    it('should return the same refresh token it last issued without killing the session', async () => {
       const { app } = buildApp(
         stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
       );
@@ -767,10 +767,28 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
 
       expect(replay.status).toBe(200);
       expect(replay.body.refresh_token).toBe(newToken);
-      expect(replay.body.access_token).toBe(first.body.access_token);
 
       const useNew = await refresh(app, newToken);
       expect(useNew.status).toBe(200);
+    });
+
+    it('should not leak any SaaS token in a replayed response', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+      );
+      const refreshToken = await login(app);
+
+      await refresh(app, refreshToken);
+      const replay = await refresh(app, refreshToken);
+
+      const decoded = jsonwebtoken.verify(replay.body.access_token, AUTH_SECRET) as Record<
+        string,
+        unknown
+      >;
+      const serialized = JSON.stringify(replay.body) + JSON.stringify(decoded);
+      expect(decoded.type).toBe('bff_access');
+      expect(serialized).not.toContain(SENTINEL_REFRESH);
+      expect(serialized).not.toContain('ROTATED-SAAS-REFRESH');
     });
   });
 

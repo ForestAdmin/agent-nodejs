@@ -372,14 +372,12 @@ interface RefreshGrantResult {
 
 type RuntimeOptions = OAuthRoutesOptions & {
   inFlightRefreshByPresentedHash: Map<string, Promise<RefreshGrantResult>>;
-  lastIssuedBySid: Map<string, RefreshGrantResult>;
 };
 
-async function reissueThenCommitRotation(
-  presentedToken: string,
+async function issueAccessForSession(
   sid: string,
   renderingId: number,
-  newRefreshToken: string,
+  refreshToken: string,
   options: OAuthRoutesOptions,
 ): Promise<RefreshGrantResult> {
   const saasAccessToken = await ensureFreshServerAccess({
@@ -391,10 +389,6 @@ async function reissueThenCommitRotation(
   const expiresInSeconds = expiresInFromAccessToken(saasAccessToken);
   const user = await resolveIdentity(renderingId, saasAccessToken, options);
 
-  if (!options.sessionStore.commitRotation(presentedToken, newRefreshToken)) {
-    throw sessionExpired('Session expired during refresh');
-  }
-
   const accessToken = issueBffAccessToken({
     sid,
     user,
@@ -403,7 +397,23 @@ async function reissueThenCommitRotation(
     expiresInSeconds,
   });
 
-  return { sid, accessToken, expiresInSeconds, newRefreshToken };
+  return { sid, accessToken, expiresInSeconds, newRefreshToken: refreshToken };
+}
+
+async function reissueThenCommitRotation(
+  presentedToken: string,
+  sid: string,
+  renderingId: number,
+  newRefreshToken: string,
+  options: OAuthRoutesOptions,
+): Promise<RefreshGrantResult> {
+  const result = await issueAccessForSession(sid, renderingId, newRefreshToken, options);
+
+  if (!options.sessionStore.commitRotation(presentedToken, newRefreshToken)) {
+    throw sessionExpired('Session expired during refresh');
+  }
+
+  return result;
 }
 
 async function handleRefreshGrant(ctx: Context, options: RuntimeOptions): Promise<void> {
@@ -417,29 +427,8 @@ async function handleRefreshGrant(ctx: Context, options: RuntimeOptions): Promis
   if (!pending) {
     const rotation = options.sessionStore.prepareRotation(presentedToken);
 
-    if (rotation.outcome === 'replay') {
-      const cached = options.lastIssuedBySid.get(rotation.sid);
-
-      if (cached) {
-        options.logger('Info', 'Replayed last refresh result for a benign retry', {
-          sid: rotation.sid,
-        });
-        writeTokenResponse(
-          ctx,
-          cached.accessToken,
-          cached.expiresInSeconds,
-          cached.newRefreshToken,
-        );
-
-        return;
-      }
-
-      throw invalidGrant('Unknown or malformed refresh token');
-    }
-
     if (rotation.outcome === 'reuse') {
       options.sessionStore.destroy(rotation.sid);
-      options.lastIssuedBySid.delete(rotation.sid);
       options.logger('Warn', 'Rotated-out refresh token replayed; session invalidated', {
         sid: rotation.sid,
       });
@@ -450,21 +439,30 @@ async function handleRefreshGrant(ctx: Context, options: RuntimeOptions): Promis
       throw invalidGrant('Unknown or malformed refresh token');
     }
 
-    pending = reissueThenCommitRotation(
-      presentedToken,
-      rotation.sid,
-      rotation.renderingId,
-      rotation.newRefreshToken,
-      options,
-    )
-      .then(result => {
-        options.lastIssuedBySid.set(result.sid, result);
-
-        return result;
-      })
-      .finally(() => {
+    if (rotation.outcome === 'replay') {
+      options.logger('Info', 'Replayed the last issued pair for a benign retry', {
+        sid: rotation.sid,
+      });
+      pending = issueAccessForSession(
+        rotation.sid,
+        rotation.renderingId,
+        rotation.lastIssuedRefreshToken,
+        options,
+      ).finally(() => {
         inFlight.delete(presentedHash);
       });
+    } else {
+      pending = reissueThenCommitRotation(
+        presentedToken,
+        rotation.sid,
+        rotation.renderingId,
+        rotation.newRefreshToken,
+        options,
+      ).finally(() => {
+        inFlight.delete(presentedHash);
+      });
+    }
+
     inFlight.set(presentedHash, pending);
   }
 
@@ -521,7 +519,6 @@ export default function createOAuthRoutes(options: OAuthRoutesOptions): Middlewa
   const runtimeOptions: RuntimeOptions = {
     ...options,
     inFlightRefreshByPresentedHash: new Map(),
-    lastIssuedBySid: new Map(),
   };
 
   return async function oauthRoutes(ctx, next) {
