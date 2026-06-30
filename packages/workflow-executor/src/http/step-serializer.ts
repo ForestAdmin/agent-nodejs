@@ -15,9 +15,13 @@ export default function serializeStepForWire(step: StepExecutionData): unknown {
       return { ...step, selectedRecordRef: serializeRecordRef(step.selectedRecordRef) };
 
     case 'load-related-record': {
+      // selectedRecordRef is absent on a Full AI no-source auto-skip — omit it rather than
+      // dereferencing undefined (which would throw and 503 the run-fetch).
       const result: Record<string, unknown> = {
         ...step,
-        selectedRecordRef: serializeRecordRef(step.selectedRecordRef),
+        ...(step.selectedRecordRef && {
+          selectedRecordRef: serializeRecordRef(step.selectedRecordRef),
+        }),
       };
 
       if (step.pendingData) {

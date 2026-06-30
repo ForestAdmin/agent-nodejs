@@ -108,6 +108,19 @@ describe('serializeStepForWire', () => {
 
       expect(result.executionResult).toEqual({ skipped: true });
     });
+
+    it('does not throw when selectedRecordRef is absent (Full AI no-source skip)', () => {
+      const step: LoadRelatedRecordStepExecutionData = {
+        type: 'load-related-record',
+        stepIndex: 2,
+        executionResult: { skipped: true },
+      };
+
+      const result = serializeStepForWire(step) as Record<string, unknown>;
+
+      expect(result.executionResult).toEqual({ skipped: true });
+      expect('selectedRecordRef' in result).toBe(false);
+    });
   });
 
   it('returns non-record steps unchanged', () => {
