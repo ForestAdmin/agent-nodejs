@@ -24,9 +24,8 @@ export interface McpOAuthCredentialsStore {
   close(logger?: Logger): Promise<void>;
   get(userId: number, mcpServerId: string): Promise<StoredMcpOAuthCredential | null>;
   upsert(credential: McpOAuthCredentialInput): Promise<void>;
-  // Atomic update-only, keyed on the row `id` the caller read: writes the fields to that exact row,
-  // never inserts. A no-op if the row is gone — or was deleted and re-created with a new id — so a
-  // stale refresh write-back cannot resurrect a deleted credential nor clobber a re-authorized one.
+  // Update-only by the row id the caller read: never inserts, and no-ops if that row is gone or was
+  // re-created with a new id — so a stale write-back can't resurrect or clobber a credential.
   updateIfPresent(id: number, credential: McpOAuthCredentialInput): Promise<void>;
   delete(userId: number, mcpServerId: string): Promise<void>;
 }

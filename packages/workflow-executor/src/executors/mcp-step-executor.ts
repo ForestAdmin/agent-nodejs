@@ -103,11 +103,8 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
   }
 
-  // Drop the 'executing' write-ahead marker left by beforeCall so the resumed step is not rejected
-  // as interrupted. A confirmation-flow record carries the user-approved pendingData — preserve it
-  // (clear only the phase) so resume replays that exact call instead of re-selecting a tool; a
-  // record with no pendingData would mis-route the resumed step into the confirmation flow, so
-  // delete it. Best-effort: a store error here must not turn the pause into a hard failure.
+  // Keep a confirmation-flow record's approved pendingData (clear only the marker) so resume replays
+  // it; delete a pendingData-less record, which would otherwise mis-route resume into confirmation.
   private async clearReauthPauseState(): Promise<void> {
     try {
       const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');

@@ -401,9 +401,8 @@ describe('OAuthTokenService.getAccessToken', () => {
   });
 });
 
-// A disconnect (DELETE) landing between the grant read and the rotated-token write-back must not
-// re-create the row. The write-back uses the atomic update-only path, so a deleted credential stays
-// deleted instead of being silently resurrected with a fresh, valid refresh token.
+// A disconnect (DELETE) landing between the grant read and the write-back must not re-create the
+// row: the atomic update-only path leaves a deleted credential deleted, not silently resurrected.
 describe('OAuthTokenService — concurrent disconnect during refresh write-back', () => {
   it('does not resurrect a credential deleted between the snapshot read and the rotated-token write-back', async () => {
     // GIVEN a stored credential and a refresh that rotates the token while a concurrent disconnect
