@@ -753,8 +753,8 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
-  describe('when a rotated-out refresh token is replayed', () => {
-    it('should invalidate the whole session and reject with 401 session_invalidated', async () => {
+  describe('when the most recently rotated-out token is replayed (benign retry)', () => {
+    it('should return the same pair it last issued without killing the session', async () => {
       const { app } = buildApp(
         stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
       );
@@ -764,7 +764,30 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
       const newToken = first.body.refresh_token as string;
 
       const replay = await refresh(app, refreshToken);
-      const afterReplay = await refresh(app, newToken);
+
+      expect(replay.status).toBe(200);
+      expect(replay.body.refresh_token).toBe(newToken);
+      expect(replay.body.access_token).toBe(first.body.access_token);
+
+      const useNew = await refresh(app, newToken);
+      expect(useNew.status).toBe(200);
+    });
+  });
+
+  describe('when a token older than the latest rotated-out one is replayed', () => {
+    it('should invalidate the whole session and reject with 401 session_invalidated', async () => {
+      const { app } = buildApp(
+        stubServerClient({ refreshServerToken: async () => decodableServerTokens() }),
+      );
+      const r1 = await login(app);
+
+      const firstRefresh = await refresh(app, r1);
+      const r2 = firstRefresh.body.refresh_token as string;
+      const secondRefresh = await refresh(app, r2);
+      const r3 = secondRefresh.body.refresh_token as string;
+
+      const replay = await refresh(app, r1);
+      const afterReplay = await refresh(app, r3);
 
       expect(replay.status).toBe(401);
       expect(replay.body.error).toBe('session_invalidated');

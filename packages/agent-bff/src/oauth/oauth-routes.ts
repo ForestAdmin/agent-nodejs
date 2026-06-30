@@ -372,6 +372,7 @@ interface RefreshGrantResult {
 
 type RuntimeOptions = OAuthRoutesOptions & {
   inFlightRefreshByPresentedHash: Map<string, Promise<RefreshGrantResult>>;
+  lastIssuedBySid: Map<string, RefreshGrantResult>;
 };
 
 async function reissueThenCommitRotation(
@@ -416,8 +417,29 @@ async function handleRefreshGrant(ctx: Context, options: RuntimeOptions): Promis
   if (!pending) {
     const rotation = options.sessionStore.prepareRotation(presentedToken);
 
+    if (rotation.outcome === 'replay') {
+      const cached = options.lastIssuedBySid.get(rotation.sid);
+
+      if (cached) {
+        options.logger('Info', 'Replayed last refresh result for a benign retry', {
+          sid: rotation.sid,
+        });
+        writeTokenResponse(
+          ctx,
+          cached.accessToken,
+          cached.expiresInSeconds,
+          cached.newRefreshToken,
+        );
+
+        return;
+      }
+
+      throw invalidGrant('Unknown or malformed refresh token');
+    }
+
     if (rotation.outcome === 'reuse') {
       options.sessionStore.destroy(rotation.sid);
+      options.lastIssuedBySid.delete(rotation.sid);
       options.logger('Warn', 'Rotated-out refresh token replayed; session invalidated', {
         sid: rotation.sid,
       });
@@ -434,9 +456,15 @@ async function handleRefreshGrant(ctx: Context, options: RuntimeOptions): Promis
       rotation.renderingId,
       rotation.newRefreshToken,
       options,
-    ).finally(() => {
-      inFlight.delete(presentedHash);
-    });
+    )
+      .then(result => {
+        options.lastIssuedBySid.set(result.sid, result);
+
+        return result;
+      })
+      .finally(() => {
+        inFlight.delete(presentedHash);
+      });
     inFlight.set(presentedHash, pending);
   }
 
@@ -493,6 +521,7 @@ export default function createOAuthRoutes(options: OAuthRoutesOptions): Middlewa
   const runtimeOptions: RuntimeOptions = {
     ...options,
     inFlightRefreshByPresentedHash: new Map(),
+    lastIssuedBySid: new Map(),
   };
 
   return async function oauthRoutes(ctx, next) {

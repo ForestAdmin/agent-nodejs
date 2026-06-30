@@ -225,14 +225,14 @@ describe('session-store', () => {
   });
 
   describe('when committing a prepared rotation', () => {
-    it('should accept the new token and flag the old one as reuse afterwards', () => {
+    it('should accept the new token and flag the just-rotated old one as a benign replay', () => {
       const store = buildStore();
       const { refreshToken } = store.create(SESSION_INPUT);
 
       const first = rotate(store, refreshToken);
       if (first.outcome !== 'ready') throw new Error('unreachable');
 
-      expect(store.prepareRotation(refreshToken).outcome).toBe('reuse');
+      expect(store.prepareRotation(refreshToken).outcome).toBe('replay');
       expect(store.prepareRotation(first.newRefreshToken).outcome).toBe('ready');
     });
 
@@ -286,19 +286,19 @@ describe('session-store', () => {
   });
 
   describe('when a rotated-out refresh token is replayed', () => {
-    it('should flag reuse only after a committed rotation, identifying the session', () => {
+    it('should flag the most recently rotated-out token as a benign replay, identifying the session', () => {
       const store = buildStore();
       const { sid, refreshToken } = store.create(SESSION_INPUT);
 
       rotate(store, refreshToken);
-      const reuse = store.prepareRotation(refreshToken);
+      const replay = store.prepareRotation(refreshToken);
 
-      expect(reuse.outcome).toBe('reuse');
-      if (reuse.outcome !== 'reuse') throw new Error('unreachable');
-      expect(reuse.sid).toBe(sid);
+      expect(replay.outcome).toBe('replay');
+      if (replay.outcome !== 'replay') throw new Error('unreachable');
+      expect(replay.sid).toBe(sid);
     });
 
-    it('should flag reuse for any rotated-out token in the session history, not just the latest', () => {
+    it('should flag a token older than the latest rotated-out one as reuse', () => {
       const store = buildStore();
       const { refreshToken } = store.create(SESSION_INPUT);
 
@@ -308,7 +308,7 @@ describe('session-store', () => {
       const r2 = first.newRefreshToken;
       rotate(store, r2);
 
-      expect(store.prepareRotation(r2).outcome).toBe('reuse');
+      expect(store.prepareRotation(r2).outcome).toBe('replay');
       expect(store.prepareRotation(r1).outcome).toBe('reuse');
     });
 

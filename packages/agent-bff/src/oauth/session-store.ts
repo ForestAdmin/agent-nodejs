@@ -25,6 +25,7 @@ export interface CreatedSession {
 
 export type PrepareRotationResult =
   | { outcome: 'ready'; sid: string; renderingId: number; newRefreshToken: string }
+  | { outcome: 'replay'; sid: string }
   | { outcome: 'reuse'; sid: string }
   | { outcome: 'unknown' };
 
@@ -80,6 +81,7 @@ export default function createInMemorySessionStore({
   const usedCodes = new Map<string, number>();
   const activeRefreshHashToSid = new Map<string, string>();
   const rotatedRefreshHashToSid = new Map<string, string>();
+  const sidToLastRotatedHash = new Map<string, string>();
 
   function forgetRefreshHashes(sid: string): void {
     for (const [hash, owner] of activeRefreshHashToSid) {
@@ -89,6 +91,8 @@ export default function createInMemorySessionStore({
     for (const [hash, owner] of rotatedRefreshHashToSid) {
       if (owner === sid) rotatedRefreshHashToSid.delete(hash);
     }
+
+    sidToLastRotatedHash.delete(sid);
   }
 
   function dropSession(sid: string): void {
@@ -173,6 +177,10 @@ export default function createInMemorySessionStore({
       if (reusedSid !== undefined) {
         if (!liveSession(reusedSid)) return { outcome: 'unknown' };
 
+        if (sidToLastRotatedHash.get(reusedSid) === hash) {
+          return { outcome: 'replay', sid: reusedSid };
+        }
+
         return { outcome: 'reuse', sid: reusedSid };
       }
 
@@ -202,6 +210,7 @@ export default function createInMemorySessionStore({
       const newHash = hashToken(newRefreshToken);
       activeRefreshHashToSid.delete(hash);
       rotatedRefreshHashToSid.set(hash, sid);
+      sidToLastRotatedHash.set(sid, hash);
       activeRefreshHashToSid.set(newHash, sid);
       session.refreshTokenHash = newHash;
 
