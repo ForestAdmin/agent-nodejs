@@ -128,6 +128,20 @@ npx @forestadmin/workflow-executor
 
 ---
 
+## OAuth-protected MCP connectors
+
+When your workflows use OAuth-protected MCP connectors, the executor stores each user's OAuth credentials in its database, encrypted at rest. Provide the encryption key the same way as the other secrets (in `.env`, or with `-e` on `docker run`):
+
+| Variable | Description |
+| --- | --- |
+| `FOREST_EXECUTOR_ENCRYPTION_KEY` | At-rest encryption key (AES-256-GCM) for the OAuth credentials the executor stores. Generate with `openssl rand -hex 32`. Use a **separate** secret from `FOREST_AUTH_SECRET`. The value isn't validated, so use a genuinely random secret. |
+
+- **Required only for OAuth-protected MCP connectors**, and read lazily — an executor that stores no such credentials boots and runs fine without it.
+- **Use the same value on every instance that shares a database.** Otherwise an instance cannot decrypt credentials stored by another.
+- **Treat it as permanent: there is no managed rotation.** Changing it forces every affected user to reconnect their OAuth-protected MCP connectors.
+
+---
+
 ## Testing only
 
 The following modes skip the database requirement but are **not suitable for production** — state is lost on restart.
