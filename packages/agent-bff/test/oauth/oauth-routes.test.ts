@@ -870,6 +870,25 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
     });
   });
 
+  describe('when the Forest server returns a non-JWT (opaque) SaaS access token', () => {
+    it('should still rotate and cap expires_in at the BFF maximum', async () => {
+      const opaqueTokens = async (): Promise<ServerTokens> => ({
+        saasAccessToken: 'opaque-saas-access-token',
+        saasRefreshToken: 'ROTATED-SAAS-REFRESH',
+        renderingId: 17,
+        expiresAt: 0,
+      });
+      const { app } = buildApp(stubServerClient({ refreshServerToken: opaqueTokens }));
+      const refreshToken = await login(app);
+
+      const response = await refresh(app, refreshToken);
+
+      expect(response.status).toBe(200);
+      expect(response.body.expires_in).toBe(15 * 60);
+      expect(response.body.refresh_token).not.toBe(refreshToken);
+    });
+  });
+
   describe('when the session is destroyed mid-refresh, before the rotation commits', () => {
     it('should not commit the rotation and reject with 401 session_expired', async () => {
       let sessionStore: ReturnType<typeof buildApp>['sessionStore'];

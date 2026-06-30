@@ -80,18 +80,14 @@ export default function createInMemorySessionStore({
   const usedCodes = new Map<string, number>();
   const activeRefreshHashToSid = new Map<string, string>();
   const rotatedRefreshHashToSid = new Map<string, string>();
-  const sidToRotatedHash = new Map<string, string>();
 
   function forgetRefreshHashes(sid: string): void {
     for (const [hash, owner] of activeRefreshHashToSid) {
       if (owner === sid) activeRefreshHashToSid.delete(hash);
     }
 
-    const rotatedHash = sidToRotatedHash.get(sid);
-
-    if (rotatedHash !== undefined) {
-      rotatedRefreshHashToSid.delete(rotatedHash);
-      sidToRotatedHash.delete(sid);
+    for (const [hash, owner] of rotatedRefreshHashToSid) {
+      if (owner === sid) rotatedRefreshHashToSid.delete(hash);
     }
   }
 
@@ -204,12 +200,8 @@ export default function createInMemorySessionStore({
       if (!session) return false;
 
       const newHash = hashToken(newRefreshToken);
-      const previousRotatedHash = sidToRotatedHash.get(sid);
-      if (previousRotatedHash !== undefined) rotatedRefreshHashToSid.delete(previousRotatedHash);
-
       activeRefreshHashToSid.delete(hash);
       rotatedRefreshHashToSid.set(hash, sid);
-      sidToRotatedHash.set(sid, hash);
       activeRefreshHashToSid.set(newHash, sid);
       session.refreshTokenHash = newHash;
 

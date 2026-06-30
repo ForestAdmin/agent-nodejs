@@ -298,7 +298,7 @@ describe('session-store', () => {
       expect(reuse.sid).toBe(sid);
     });
 
-    it('should only retain the most recently rotated-out token for reuse detection', () => {
+    it('should flag reuse for any rotated-out token in the session history, not just the latest', () => {
       const store = buildStore();
       const { refreshToken } = store.create(SESSION_INPUT);
 
@@ -309,7 +309,7 @@ describe('session-store', () => {
       rotate(store, r2);
 
       expect(store.prepareRotation(r2).outcome).toBe('reuse');
-      expect(store.prepareRotation(r1).outcome).toBe('unknown');
+      expect(store.prepareRotation(r1).outcome).toBe('reuse');
     });
 
     it('should treat a replay against an expired session as unknown, not reuse', () => {

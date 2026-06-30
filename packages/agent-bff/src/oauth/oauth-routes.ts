@@ -349,7 +349,12 @@ async function handleAuthorizationCodeGrant(
 
 function expiresInFromAccessToken(saasAccessToken: string): number {
   const decoded = jsonwebtoken.decode(saasAccessToken) as { exp?: number } | null;
-  const saasRemaining = (decoded?.exp ?? 0) - Math.floor(Date.now() / 1000);
+
+  if (decoded?.exp === undefined) {
+    return BFF_ACCESS_TOKEN_MAX_EXPIRES_IN;
+  }
+
+  const saasRemaining = decoded.exp - Math.floor(Date.now() / 1000);
 
   if (saasRemaining <= 0) {
     throw sessionExpired('The Forest server access token is already expired');
