@@ -21,7 +21,7 @@
 import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
-import { ExecutorEncryptionKeyMissingError } from '../../src/errors';
+import { ExecutorEncryptionKeyMissingError, OAuthReauthRequiredError } from '../../src/errors';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
 
 const AUTH_SECRET = 'test-auth-secret';
@@ -71,6 +71,14 @@ function createMockEncryption() {
   };
 }
 
+function createMockFetcher() {
+  return { fetch: jest.fn().mockResolvedValue({ tools: [], mcpServerName: undefined }) };
+}
+
+function createMockTokenService() {
+  return { evict: jest.fn() };
+}
+
 function createServer(overrides: Record<string, unknown> = {}) {
   return new ExecutorHttpServer({
     port: 0,
@@ -79,6 +87,7 @@ function createServer(overrides: Record<string, unknown> = {}) {
     workflowPort: createMockWorkflowPort(),
     mcpOAuthCredentialsStore: createMockStore(),
     credentialEncryption: createMockEncryption(),
+    remoteToolFetcher: createMockFetcher(),
     ...overrides,
   } as never);
 }
@@ -318,6 +327,20 @@ describe('POST /mcp-oauth-credentials', () => {
       expect(store.upsert).not.toHaveBeenCalled();
     });
 
+    it('returns 400 when tokenEndpoint points at a link-local / metadata address (SSRF guard)', async () => {
+      const store = createMockStore();
+      const server = createServer({ mcpOAuthCredentialsStore: store });
+      const token = signToken({ id: 1 });
+
+      const response = await request(server.callback)
+        .post('/mcp-oauth-credentials')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...validBody, tokenEndpoint: 'http://169.254.169.254/latest/meta-data' });
+
+      expect(response.status).toBe(400);
+      expect(store.upsert).not.toHaveBeenCalled();
+    });
+
     it('returns 400 when a field has the wrong type', async () => {
       const store = createMockStore();
       const server = createServer({ mcpOAuthCredentialsStore: store });
@@ -401,6 +424,18 @@ describe('DELETE /mcp-oauth-credentials/:mcpServerId', () => {
     expect(store.delete).toHaveBeenCalledWith(7, 'mcp-server-1');
   });
 
+  it('evicts the in-process cached access token so the disconnect takes effect immediately', async () => {
+    const oauthTokenService = createMockTokenService();
+    const server = createServer({ oauthTokenService });
+    const token = signToken({ id: 7 });
+
+    await request(server.callback)
+      .delete('/mcp-oauth-credentials/mcp-server-1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(oauthTokenService.evict).toHaveBeenCalledWith(7, 'mcp-server-1');
+  });
+
   it("does not delete another user's credential", async () => {
     const store = createMockStore();
     const server = createServer({ mcpOAuthCredentialsStore: store });
@@ -424,5 +459,88 @@ describe('DELETE /mcp-oauth-credentials/:mcpServerId', () => {
 
     expect(response.status).toBe(401);
     expect(store.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe('GET /list-mcp-tools', () => {
+  const toolDef = (name: string, description: string) => ({ base: { name, description } });
+
+  it('returns 401 when no token is provided', async () => {
+    const server = createServer();
+
+    const response = await request(server.callback).get('/list-mcp-tools?mcpServerId=mcp-server-1');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('lists the tools for (token user, mcpServerId), resolving the vault credential', async () => {
+    const fetcher = {
+      fetch: jest.fn().mockResolvedValue({
+        tools: [toolDef('search', 'Search things'), toolDef('create', 'Create a thing')],
+        mcpServerName: 'srv',
+      }),
+    };
+    const server = createServer({ remoteToolFetcher: fetcher });
+    const token = signToken({ id: 7 });
+
+    const response = await request(server.callback)
+      .get('/list-mcp-tools?mcpServerId=mcp-server-1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    // user_id comes from the validated JWT (7), never the request.
+    expect(fetcher.fetch).toHaveBeenCalledWith('mcp-server-1', 7);
+    expect(response.body).toEqual({
+      tools: [
+        { name: 'search', description: 'Search things' },
+        { name: 'create', description: 'Create a thing' },
+      ],
+    });
+  });
+
+  it('returns 400 when mcpServerId is missing', async () => {
+    const fetcher = { fetch: jest.fn() };
+    const server = createServer({ remoteToolFetcher: fetcher });
+    const token = signToken({ id: 7 });
+
+    const response = await request(server.callback)
+      .get('/list-mcp-tools')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(400);
+    expect(fetcher.fetch).not.toHaveBeenCalled();
+  });
+
+  it('returns a typed needs-oauth-reauth (409) when the credential is missing or unrefreshable', async () => {
+    const fetcher = {
+      fetch: jest.fn().mockRejectedValue(new OAuthReauthRequiredError('mcp-server-1')),
+    };
+    const server = createServer({ remoteToolFetcher: fetcher });
+    const token = signToken({ id: 7 });
+
+    const response = await request(server.callback)
+      .get('/list-mcp-tools?mcpServerId=mcp-server-1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      awaitingInputReason: 'needs-oauth-reauth',
+      mcpServerId: 'mcp-server-1',
+    });
+  });
+
+  it('returns the typed 503 executor_encryption_key_missing when the key is absent', async () => {
+    const fetcher = {
+      fetch: jest.fn().mockRejectedValue(new ExecutorEncryptionKeyMissingError()),
+    };
+    const server = createServer({ remoteToolFetcher: fetcher });
+    const token = signToken({ id: 7 });
+
+    const response = await request(server.callback)
+      .get('/list-mcp-tools?mcpServerId=mcp-server-1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ code: 'executor_encryption_key_missing' });
   });
 });

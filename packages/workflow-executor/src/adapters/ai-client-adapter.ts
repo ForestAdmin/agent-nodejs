@@ -1,5 +1,11 @@
 import type { AiModelPort, GetModelOptions } from '../ports/ai-model-port';
-import type { AiConfiguration, BaseChatModel, RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
+import type {
+  AiConfiguration,
+  BaseChatModel,
+  McpServerLoadFailure,
+  RemoteTool,
+  ToolConfig,
+} from '@forestadmin/ai-proxy';
 
 import { AiClient } from '@forestadmin/ai-proxy';
 
@@ -24,6 +30,14 @@ export default class AiClientAdapter implements AiModelPort {
 
   loadRemoteTools(configs: Record<string, ToolConfig>): Promise<RemoteTool[]> {
     return this.callPort('loadRemoteTools', () => this.aiClient.loadRemoteTools(configs));
+  }
+
+  loadRemoteToolsWithFailures(
+    configs: Record<string, ToolConfig>,
+  ): Promise<{ tools: RemoteTool[]; failures: McpServerLoadFailure[] }> {
+    return this.callPort('loadRemoteToolsWithFailures', () =>
+      this.aiClient.loadRemoteToolsWithFailures(configs),
+    );
   }
 
   closeConnections(): Promise<void> {

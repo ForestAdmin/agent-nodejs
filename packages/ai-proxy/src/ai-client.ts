@@ -1,3 +1,4 @@
+import type { McpServerLoadFailure } from './mcp-client';
 import type { AiConfiguration } from './provider';
 import type RemoteTool from './remote-tool';
 import type { ToolProvider } from './tool-provider';
@@ -39,13 +40,31 @@ export class AiClient {
   }
 
   async loadRemoteTools(configs: Record<string, ToolConfig>): Promise<RemoteTool[]> {
+    return (await this.loadRemoteToolsWithFailures(configs)).tools;
+  }
+
+  // Same load as loadRemoteTools, but also returns the classified per-server failures providers
+  // surface (only MCP providers do today). The default loadRemoteTools drops them, so existing
+  // consumers are unaffected.
+  async loadRemoteToolsWithFailures(
+    configs: Record<string, ToolConfig>,
+  ): Promise<{ tools: RemoteTool[]; failures: McpServerLoadFailure[] }> {
     await this.disposeToolProviders('Error closing previous remote tool connection');
 
     const providers = createToolProviders(configs, this.logger);
-    const toolsByProvider = await Promise.all(providers.map(p => p.loadTools()));
+    const resultsByProvider = await Promise.all(
+      providers.map(async provider =>
+        provider.loadToolsWithFailures
+          ? provider.loadToolsWithFailures()
+          : { tools: await provider.loadTools(), failures: [] },
+      ),
+    );
     this.toolProviders = providers;
 
-    return toolsByProvider.flat();
+    return {
+      tools: resultsByProvider.flatMap(result => result.tools),
+      failures: resultsByProvider.flatMap(result => result.failures),
+    };
   }
 
   async closeConnections(): Promise<void> {

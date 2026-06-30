@@ -8,7 +8,7 @@ import type { McpStepDefinition } from '../../src/types/validated/step-definitio
 
 import RemoteTool from '@forestadmin/ai-proxy/src/remote-tool';
 
-import { RunStorePortError, StepStateError } from '../../src/errors';
+import { OAuthReauthRequiredError, RunStorePortError, StepStateError } from '../../src/errors';
 import ActivityLog from '../../src/executors/activity-log';
 import AgentWithLog from '../../src/executors/agent-with-log';
 import McpStepExecutor from '../../src/executors/mcp-step-executor';
@@ -1135,5 +1135,115 @@ describe('McpStepExecutor', () => {
         expect.objectContaining({ mcpServerId: 'id-missing', mcpServerName: undefined }),
       );
     });
+  });
+});
+
+// The executor's OAuth responsibility is the tool-call 401 retry and the re-auth pause mapping.
+// authType identification, the credential lookup, list-tools retry and Bearer injection live in
+// RemoteToolFetcher / StepExecutorFactory and are covered by their own suites.
+describe('McpStepExecutor — OAuth2 tool-call re-authentication', () => {
+  const authError = () => new Error('Request failed with status 401');
+
+  function makeAutomated(invoke: jest.Mock) {
+    const tool = new MockRemoteTool({
+      name: 'send_notification',
+      sourceId: 'mcp-server-1',
+      invoke,
+    });
+    const { model } = makeMockModel('send_notification', { message: 'Hello' });
+    const context = makeContext({
+      model,
+      stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+    });
+
+    return { tool, context };
+  }
+
+  it('force-refreshes, rebuilds the tool, and retries once when the call returns 401', async () => {
+    const { tool, context } = makeAutomated(jest.fn().mockRejectedValue(authError()));
+    const freshInvoke = jest.fn().mockResolvedValue('ok-after-refresh');
+    const freshTool = new MockRemoteTool({
+      name: 'send_notification',
+      sourceId: 'mcp-server-1',
+      invoke: freshInvoke,
+    });
+    const reloadWithFreshAuth = jest.fn().mockResolvedValue([freshTool]);
+
+    const result = await new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth).execute();
+
+    expect(result.stepOutcome.status).toBe('success');
+    expect(reloadWithFreshAuth).toHaveBeenCalledTimes(1);
+    expect(freshInvoke).toHaveBeenCalledWith({ message: 'Hello' });
+  });
+
+  it("pauses with awaiting-input/'needs-oauth-reauth' when the credential can no longer be refreshed", async () => {
+    const { tool, context } = makeAutomated(jest.fn().mockRejectedValue(authError()));
+    const reloadWithFreshAuth = jest.fn().mockRejectedValue(new OAuthReauthRequiredError('srv'));
+
+    const result = await new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth).execute();
+
+    expect(result.stepOutcome).toMatchObject({
+      status: 'awaiting-input',
+      awaitingInputReason: 'needs-oauth-reauth',
+    });
+  });
+
+  it("pauses with 'needs-oauth-reauth' when the retried call still returns 401", async () => {
+    const { tool, context } = makeAutomated(jest.fn().mockRejectedValue(authError()));
+    const freshTool = new MockRemoteTool({
+      name: 'send_notification',
+      sourceId: 'mcp-server-1',
+      invoke: jest.fn().mockRejectedValue(authError()),
+    });
+    const reloadWithFreshAuth = jest.fn().mockResolvedValue([freshTool]);
+
+    const result = await new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth).execute();
+
+    expect(result.stepOutcome).toMatchObject({
+      status: 'awaiting-input',
+      awaitingInputReason: 'needs-oauth-reauth',
+    });
+    expect(reloadWithFreshAuth).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh for a non-auth tool error — surfaces it as a step error', async () => {
+    const { tool, context } = makeAutomated(jest.fn().mockRejectedValue(new Error('boom')));
+    const reloadWithFreshAuth = jest.fn();
+
+    const result = await new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth).execute();
+
+    expect(result.stepOutcome.status).toBe('error');
+    expect(reloadWithFreshAuth).not.toHaveBeenCalled();
+  });
+
+  it('does not refresh on a 401 for a bearer/none step (no reload hook)', async () => {
+    const { tool, context } = makeAutomated(jest.fn().mockRejectedValue(authError()));
+
+    const result = await new McpStepExecutor(context, [tool], 'srv').execute();
+
+    expect(result.stepOutcome.status).toBe('error');
+  });
+
+  it('surfaces a non-auth error from the retried call as a step error (not a reauth pause)', async () => {
+    const { tool, context } = makeAutomated(jest.fn().mockRejectedValue(authError()));
+    const freshTool = new MockRemoteTool({
+      name: 'send_notification',
+      sourceId: 'mcp-server-1',
+      invoke: jest.fn().mockRejectedValue(new Error('downstream 500')),
+    });
+    const reloadWithFreshAuth = jest.fn().mockResolvedValue([freshTool]);
+
+    const result = await new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth).execute();
+
+    expect(result.stepOutcome.status).toBe('error');
+  });
+
+  it('errors when the refreshed tool set no longer contains the selected tool', async () => {
+    const { tool, context } = makeAutomated(jest.fn().mockRejectedValue(authError()));
+    const reloadWithFreshAuth = jest.fn().mockResolvedValue([]);
+
+    const result = await new McpStepExecutor(context, [tool], 'srv', reloadWithFreshAuth).execute();
+
+    expect(result.stepOutcome.status).toBe('error');
   });
 });

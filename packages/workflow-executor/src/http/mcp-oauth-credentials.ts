@@ -3,6 +3,8 @@ import type { McpOAuthCredentialInput } from '../ports/mcp-oauth-credentials-sto
 
 import { z } from 'zod';
 
+import assertSafeTokenEndpoint from '../oauth/token-endpoint-url';
+
 // String lengths mirror the DB column limits, so oversized values are rejected here at the boundary
 // rather than at insert. .strict() matters for security: it blocks a body-supplied user id, since
 // identity comes only from the JWT.
@@ -16,7 +18,22 @@ export const depositCredentialsBodySchema = z
       .string()
       .refine(value => !Number.isNaN(Date.parse(value)), { message: 'must be a parseable date' })
       .optional(),
-    tokenEndpoint: z.string().min(1).max(2048),
+    tokenEndpoint: z
+      .string()
+      .min(1)
+      .max(2048)
+      .superRefine((value, ctx) => {
+        // The executor POSTs the refresh grant here, so reject SSRF-prone endpoints at deposit
+        // rather than discovering them at refresh time.
+        try {
+          assertSafeTokenEndpoint(value);
+        } catch (error) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: error instanceof Error ? error.message : 'invalid token endpoint',
+          });
+        }
+      }),
     tokenEndpointAuthMethod: z.string().max(64).optional(),
     scopes: z.string().max(2048).optional(),
   })
