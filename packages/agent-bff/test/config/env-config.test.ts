@@ -8,6 +8,7 @@ const VALID_ENV = {
   FOREST_SERVER_URL: 'https://api.forestadmin.com',
   FOREST_APP_URL: 'https://app.forestadmin.com',
   AGENT_URL: 'https://agent.example.com',
+  BFF_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32).toString('base64'),
 } satisfies NodeJS.ProcessEnv;
 
 describe('parseConfig', () => {
@@ -107,6 +108,58 @@ describe('parseConfig', () => {
 
       expect(config.presence.FOREST_AUTH_SECRET).toBe(true);
       expect(config.forestAuthSecret).toBe('  abc  ');
+    });
+  });
+
+  describe('when resolving BFF_TOKEN_ENCRYPTION_KEY', () => {
+    const validKey = Buffer.alloc(32).toString('base64');
+
+    it('should not be part of REQUIRED_KEYS (it gates OAuth, not boot)', () => {
+      expect(REQUIRED_KEYS).not.toContain('BFF_TOKEN_ENCRYPTION_KEY');
+    });
+
+    it('should leave the key undefined and mark hasAllRequired false when absent', () => {
+      const { BFF_TOKEN_ENCRYPTION_KEY, ...envWithoutKey } = VALID_ENV;
+      const config = parseConfig(envWithoutKey);
+
+      expect(config.tokenEncryptionKey).toBeUndefined();
+      expect(config.hasAllRequired).toBe(false);
+    });
+
+    it('should expose the key when a valid base64 32-byte value is provided', () => {
+      const config = parseConfig({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: validKey });
+
+      expect(config.tokenEncryptionKey).toBe(validKey);
+    });
+
+    it('should throw ConfigurationError when the key is too short (< 32 bytes)', () => {
+      const shortKey = Buffer.alloc(16).toString('base64');
+
+      expect(() => parseConfig({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: shortKey })).toThrow(
+        ConfigurationError,
+      );
+    });
+
+    it('should throw ConfigurationError when the key is longer than 32 bytes (AES-256 needs exactly 32)', () => {
+      const longKey = Buffer.alloc(48).toString('base64');
+
+      expect(() => parseConfig({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: longKey })).toThrow(
+        ConfigurationError,
+      );
+    });
+
+    it('should throw ConfigurationError when the key is not valid base64', () => {
+      expect(() =>
+        parseConfig({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: 'not-base64-!!!' }),
+      ).toThrow(ConfigurationError);
+    });
+
+    it('should not echo the key value in the error message', () => {
+      const badKey = 'too-short-secret-key-value';
+
+      expect(() => parseConfig({ ...VALID_ENV, BFF_TOKEN_ENCRYPTION_KEY: badKey })).not.toThrow(
+        new RegExp(badKey),
+      );
     });
   });
 });
