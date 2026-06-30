@@ -332,6 +332,34 @@ describe('readEnvConfig', () => {
       expect(config.databaseUrl).toBe('postgres://user@db.example.com:5432/mydb');
     });
 
+    it('brackets an IPv6 host so the connection URI is well-formed', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: '2001:db8::1',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'user',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user@[2001:db8::1]:5432/mydb');
+    });
+
+    it('does not double-bracket an already-bracketed IPv6 host', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: '[::1]',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'user',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user@[::1]:5432/mydb');
+    });
+
     it('url-encodes special characters in the user and password', () => {
       const config = readEnvConfig(
         {

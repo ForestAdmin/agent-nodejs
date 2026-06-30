@@ -189,8 +189,10 @@ function buildDatabaseUrlFromParts(env: NodeJS.ProcessEnv): string | undefined {
   const port = parsePositiveIntEnv('DATABASE_PORT', DATABASE_PORT) ?? DEFAULT_DATABASE_PORT;
   const user = encodeURIComponent(DATABASE_USER as string);
   const auth = DATABASE_PASSWORD ? `${user}:${encodeURIComponent(DATABASE_PASSWORD)}` : user;
+  const rawHost = DATABASE_HOST as string;
+  const host = rawHost.includes(':') && !rawHost.startsWith('[') ? `[${rawHost}]` : rawHost;
 
-  return `postgres://${auth}@${DATABASE_HOST}:${port}/${DATABASE_NAME}`;
+  return `postgres://${auth}@${host}:${port}/${DATABASE_NAME}`;
 }
 
 function resolveDatabaseUrl(env: NodeJS.ProcessEnv): string | undefined {
