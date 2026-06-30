@@ -158,7 +158,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
             stepIndex: this.context.stepIndex,
             idempotencyPhase: 'executing',
           }),
-        isNonFailure: error => error instanceof OAuthReauthRequiredError,
       },
     );
 

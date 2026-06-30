@@ -1250,8 +1250,8 @@ describe('McpStepExecutor — OAuth2 tool-call re-authentication', () => {
   });
 });
 
-// On a re-auth pause the executor must clear the 'executing' write-ahead marker (so the resumed
-// step is not rejected as interrupted) and record the pause as a non-failure in the activity log.
+// On a re-auth pause the executor clears the 'executing' write-ahead marker so the resumed step is
+// not rejected as interrupted; the failed tool call still surfaces as a failed audit-log entry.
 describe('McpStepExecutor — re-auth pause hardening', () => {
   const authError = () => new Error('Request failed with status 401');
 
@@ -1315,8 +1315,8 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
     });
   });
 
-  describe('re-auth pause is not a logged failure', () => {
-    it('opens an activity-log entry but does not mark it failed when the step pauses for re-auth', async () => {
+  describe('re-auth pause surfaces the tool-call failure in the audit log', () => {
+    it('marks the activity-log entry failed while the step pauses for re-auth', async () => {
       // GIVEN an activity-log port we can inspect.
       const activityLogPort = {
         createPending: jest.fn().mockResolvedValue({ id: 'log-1', index: '0' }),
@@ -1342,11 +1342,11 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
         reloadWithFreshAuth,
       ).execute();
 
-      // THEN the activity entry is opened and closed as succeeded, never failed.
+      // THEN the failed tool call is audited as failed, while the step itself pauses (not errors).
       expect(result.stepOutcome.status).toBe('awaiting-input');
       expect(activityLogPort.createPending).toHaveBeenCalledTimes(1);
-      expect(activityLogPort.markFailed).not.toHaveBeenCalled();
-      expect(activityLogPort.markSucceeded).toHaveBeenCalledTimes(1);
+      expect(activityLogPort.markFailed).toHaveBeenCalledTimes(1);
+      expect(activityLogPort.markSucceeded).not.toHaveBeenCalled();
     });
   });
 });
