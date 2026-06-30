@@ -98,9 +98,7 @@ export type TriggerActionStepDefinition = z.infer<typeof TriggerActionStepDefini
 export const LoadRelatedRecordStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.LoadRelatedRecord),
-  // Manual (present the narrowed list, no AI prefill), AI-assisted (AutomatedWithConfirmation,
-  // AI suggests a record) or Full AI (FullyAutomated). NO `.catch` — coercing a `manual` value to
-  // AutomatedWithConfirmation would silently opt the builder back into AI prefill (see TriggerAction).
+  // No `.catch`: it would silently coerce `manual` to AutomatedWithConfirmation (AI prefill back on).
   executionType: z
     .enum([Manual, AutomatedWithConfirmation, FullyAutomated])
     .default(AutomatedWithConfirmation),

@@ -183,8 +183,7 @@ export interface LoadRelatedRecordStepExecutionData
     WithUserConfirmation<LoadRelatedRecordConfirmation> {
   type: 'load-related-record';
   pendingData?: LoadRelatedRecordPendingData;
-  // Absent only for the Full AI auto-skip when there is no source record to load from
-  // (nothing was resolved). Always set on the await/load paths.
+  // Absent only on the Full AI no-source auto-skip; always set on the await/load paths.
   selectedRecordRef?: RecordRef;
   executionParams?: RelationRef;
   executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
