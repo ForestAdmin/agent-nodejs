@@ -741,7 +741,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     const shown = lines.length;
 
-    if (shown < candidates.length) {
+    const truncated = shown < candidates.length;
+
+    if (truncated) {
       this.context.logger('Warn', 'load-related-record: candidate list truncated for AI prompt', {
         ...this.logCtx,
         shown,
@@ -749,8 +751,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       });
     }
 
+    // "None relevant" (-1) is only trustworthy when the AI saw the whole list. If it was truncated,
+    // force a pick from what was shown — otherwise a match in the unseen tail would be silently skipped.
+    const noneAllowed = allowNone && !truncated;
     const maxIndex = shown - 1;
-    const minIndex = allowNone ? -1 : 0;
+    const minIndex = noneAllowed ? -1 : 0;
     const tool = new DynamicStructuredTool({
       name: 'select-record-by-content',
       description: 'Select the most relevant related record by its index.',
@@ -761,7 +766,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
           .min(minIndex)
           .max(maxIndex)
           .describe(
-            allowNone
+            noneAllowed
               ? `0-based index of the most relevant record (0 to ${maxIndex}), or -1 if none of the candidates is relevant`
               : `0-based index of the most relevant record (0 to ${maxIndex})`,
           ),
@@ -784,7 +789,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
     // NOTE: The Zod schema's .min().max() shapes the tool prompt only — it is NOT validated against
     // the AI response. This guard is the sole runtime enforcement. -1 (none relevant) is accepted
-    // only when allowNone.
+    // only when noneAllowed (allowNone and the list was not truncated).
     if (!Number.isInteger(recordIndex) || recordIndex < minIndex || recordIndex > maxIndex) {
       throw new InvalidAIResponseError(
         `AI selected record index ${recordIndex} which is out of range (${minIndex}-${maxIndex}) or not an integer`,
