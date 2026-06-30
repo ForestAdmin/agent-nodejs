@@ -453,22 +453,32 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Note: when experimental no-code customizations are enabled, this still fetches
    * their configuration from the Forest API so the generated schema includes them,
    * which requires connectivity to Forest.
+   *
+   * Unlike `start()`, this always rebuilds the schema — even when `isProduction` is
+   * true — and writes the typings whenever `typingsPath` is set, regardless of
+   * `isProduction`.
    */
   async generateSchemaOnly(): Promise<void> {
     const { logger, schemaPath, typingsPath, typingsMaxDepth } = this.options;
 
-    const dataSource = await this.buildNoCodeDataSource();
-    const schema = await this.schemaGenerator.buildSchema(dataSource);
-    const meta = this.buildSchemaMeta();
+    try {
+      const dataSource = await this.buildNoCodeDataSource();
+      const schema = await this.schemaGenerator.buildSchema(dataSource);
+      const meta = this.buildSchemaMeta();
 
-    await writeFile(schemaPath, stringify({ ...schema, meta }, { maxLength: 100 }), {
-      encoding: 'utf-8',
-    });
+      await writeFile(schemaPath, stringify({ ...schema, meta }, { maxLength: 100 }), {
+        encoding: 'utf-8',
+      });
 
-    if (typingsPath) {
-      await this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth, logger);
+      if (typingsPath) {
+        await this.customizer.updateTypesOnFileSystem(typingsPath, typingsMaxDepth, logger);
+      }
+
+      logger('Info', `Schema written to ${schemaPath}`);
+    } catch (error) {
+      const { message } = error as Error;
+      logger('Error', `Forest Admin schema generation failed: ${message}`);
+      throw error;
     }
-
-    logger('Info', `Schema written to ${schemaPath}`);
   }
 }
