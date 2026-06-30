@@ -297,6 +297,35 @@ describe('session-store', () => {
       if (reuse.outcome !== 'reuse') throw new Error('unreachable');
       expect(reuse.sid).toBe(sid);
     });
+
+    it('should only retain the most recently rotated-out token for reuse detection', () => {
+      const store = buildStore();
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      const r1 = refreshToken;
+      const first = rotate(store, r1);
+      if (first.outcome !== 'ready') throw new Error('unreachable');
+      const r2 = first.newRefreshToken;
+      rotate(store, r2);
+
+      expect(store.prepareRotation(r2).outcome).toBe('reuse');
+      expect(store.prepareRotation(r1).outcome).toBe('unknown');
+    });
+
+    it('should treat a replay against an expired session as unknown, not reuse', () => {
+      let clock = 1_000_000;
+      const store = createInMemorySessionStore({
+        cipher: createTokenCipher(KEY),
+        now: () => clock,
+        sessionTtlSeconds: 60,
+      });
+      const { refreshToken } = store.create(SESSION_INPUT);
+
+      rotate(store, refreshToken);
+      clock += 61 * 1000;
+
+      expect(store.prepareRotation(refreshToken).outcome).toBe('unknown');
+    });
   });
 
   describe('when destroying a session', () => {

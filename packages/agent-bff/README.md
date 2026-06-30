@@ -47,10 +47,15 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 
 OAuth sessions, opaque refresh tokens, and rotated-out-token reuse detection are held in an
 **in-memory, single-process** store. Refresh-token rotation and reuse detection (a replayed
-rotated-out token invalidates the whole session) are only correct within one process: the session
-maps and the in-flight refresh dedup are module-local and are not shared across instances. Running
-the BFF behind a load balancer without sticky sessions would break both reuse detection and the
-single-rotation guarantee. A shared/distributed session store is required before horizontal scaling.
+rotated-out token invalidates the whole session) are only correct within one process. Two layers
+are process-local: the session/rotation maps in the store, and the in-flight refresh dedup maps
+(`inFlightRefreshByPresentedHash` in `oauth-routes`, `inFlightRefreshesBySid` in
+`session-lifecycle`) that collapse concurrent refreshes of the same token into a single rotation.
+Running the BFF behind a load balancer without sticky sessions breaks reuse detection and the
+single-rotation guarantee — and a shared session store alone does not fix it: two concurrent
+refreshes landing on different nodes would each try to rotate, one committing and the other failing
+with `session_expired`. Horizontal scaling requires both a shared session store **and** a shared
+(or node-pinned) refresh-coordination mechanism.
 
 ## `/health`
 
