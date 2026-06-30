@@ -194,7 +194,7 @@ describe('session-store', () => {
     const prepared = store.prepareRotation(presented);
     if (prepared.outcome !== 'ready') return prepared;
 
-    store.commitRotation(presented, prepared.newRefreshToken);
+    expect(store.commitRotation(presented, prepared.newRefreshToken)).toBe(true);
 
     return prepared;
   }

@@ -71,7 +71,7 @@ function stubServerClient(overrides: StubOverrides = {}): ForestServerClient {
       (async () => ({ client_id: CLIENT_ID, redirect_uris: [REDIRECT_URI] })),
     exchangeCode: overrides.exchangeCode ?? (async () => serverTokens()),
     getUserInfo: overrides.getUserInfo ?? (async () => USER),
-    refreshServerToken: overrides.refreshServerToken ?? (async () => serverTokens()),
+    refreshServerToken: overrides.refreshServerToken ?? (async () => decodableServerTokens()),
   } as unknown as ForestServerClient;
 }
 
@@ -892,6 +892,20 @@ describe('oauth-routes POST /oauth/token refresh_token grant', () => {
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe('session_expired');
+    });
+  });
+
+  describe('when two independent BFF instances run in the same process', () => {
+    it('should not let one instance refresh resolve against another instance store', async () => {
+      const appA = buildApp(stubServerClient());
+      const appB = buildApp(stubServerClient());
+
+      const refreshTokenFromA = await login(appA.app);
+
+      const response = await refresh(appB.app, refreshTokenFromA);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('invalid_grant');
     });
   });
 

@@ -358,14 +358,16 @@ function expiresInFromAccessToken(saasAccessToken: string): number {
   return Math.min(BFF_ACCESS_TOKEN_MAX_EXPIRES_IN, saasRemaining);
 }
 
-const inFlightRefreshByPresentedHash = new Map<string, Promise<RefreshGrantResult>>();
-
 interface RefreshGrantResult {
   sid: string;
   accessToken: string;
   expiresInSeconds: number;
   newRefreshToken: string;
 }
+
+type RuntimeOptions = OAuthRoutesOptions & {
+  inFlightRefreshByPresentedHash: Map<string, Promise<RefreshGrantResult>>;
+};
 
 async function reissueThenCommitRotation(
   presentedToken: string,
@@ -398,12 +400,13 @@ async function reissueThenCommitRotation(
   return { sid, accessToken, expiresInSeconds, newRefreshToken };
 }
 
-async function handleRefreshGrant(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
+async function handleRefreshGrant(ctx: Context, options: RuntimeOptions): Promise<void> {
   const params = parseBody(ctx);
   const presentedToken = requireBodyString(params, 'refresh_token');
   const presentedHash = hashPresentedToken(presentedToken);
+  const inFlight = options.inFlightRefreshByPresentedHash;
 
-  let pending = inFlightRefreshByPresentedHash.get(presentedHash);
+  let pending = inFlight.get(presentedHash);
 
   if (!pending) {
     const rotation = options.sessionStore.prepareRotation(presentedToken);
@@ -427,9 +430,9 @@ async function handleRefreshGrant(ctx: Context, options: OAuthRoutesOptions): Pr
       rotation.newRefreshToken,
       options,
     ).finally(() => {
-      inFlightRefreshByPresentedHash.delete(presentedHash);
+      inFlight.delete(presentedHash);
     });
-    inFlightRefreshByPresentedHash.set(presentedHash, pending);
+    inFlight.set(presentedHash, pending);
   }
 
   const result = await pending;
@@ -438,7 +441,7 @@ async function handleRefreshGrant(ctx: Context, options: OAuthRoutesOptions): Pr
   writeTokenResponse(ctx, result.accessToken, result.expiresInSeconds, result.newRefreshToken);
 }
 
-async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<void> {
+async function handleToken(ctx: Context, options: RuntimeOptions): Promise<void> {
   const params = parseBody(ctx);
 
   if (params.grant_type === 'refresh_token') {
@@ -456,7 +459,7 @@ async function handleToken(ctx: Context, options: OAuthRoutesOptions): Promise<v
   throw unsupportedGrantType('Only authorization_code and refresh_token are supported');
 }
 
-type RouteHandler = (ctx: Context, options: OAuthRoutesOptions) => Promise<void>;
+type RouteHandler = (ctx: Context, options: RuntimeOptions) => Promise<void>;
 
 function matchRoute(ctx: Context): RouteHandler | undefined {
   if (ctx.method === 'GET' && ctx.path === '/oauth/authorize') return handleAuthorize;
@@ -482,6 +485,11 @@ function writeError(ctx: Context, error: unknown, options: OAuthRoutesOptions): 
 }
 
 export default function createOAuthRoutes(options: OAuthRoutesOptions): Middleware {
+  const runtimeOptions: RuntimeOptions = {
+    ...options,
+    inFlightRefreshByPresentedHash: new Map(),
+  };
+
   return async function oauthRoutes(ctx, next) {
     const handler = matchRoute(ctx);
 
@@ -492,9 +500,9 @@ export default function createOAuthRoutes(options: OAuthRoutesOptions): Middlewa
     }
 
     try {
-      await handler(ctx, options);
+      await handler(ctx, runtimeOptions);
     } catch (error) {
-      writeError(ctx, error, options);
+      writeError(ctx, error, runtimeOptions);
     }
   };
 }
