@@ -201,7 +201,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
   const requiredBase = ['FOREST_ENV_SECRET', 'FOREST_AUTH_SECRET', 'AGENT_URL'] as const;
   const missing: string[] = requiredBase.filter(key => !env[key]);
 
-  const databaseUrl = resolveDatabaseUrl(env);
+  const databaseUrl = args.inMemory ? undefined : resolveDatabaseUrl(env);
 
   if (!args.inMemory && !databaseUrl) {
     missing.push(

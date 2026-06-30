@@ -390,6 +390,16 @@ describe('readEnvConfig', () => {
         /DATABASE_URL \(or DATABASE_HOST, DATABASE_NAME, DATABASE_USER\)/,
       );
     });
+
+    it('ignores database parts in --in-memory mode and does not throw on partial parts', () => {
+      const config = readEnvConfig(
+        { ...baseEnvNoUrl, DATABASE_HOST: 'db.example.com' },
+        { ...args, inMemory: true },
+      );
+
+      expect(config.mode).toBe('in-memory');
+      expect(config.databaseUrl).toBeUndefined();
+    });
   });
 
   it('builds aiConfigurations when AI vars are set', () => {

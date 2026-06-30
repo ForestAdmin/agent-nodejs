@@ -118,8 +118,11 @@ DATABASE_HOST="localhost" \
 DATABASE_NAME="mydb" \
 DATABASE_USER="user" \
 DATABASE_PASSWORD="pass" \
+DATABASE_SSL="false" \
 npx @forestadmin/workflow-executor
 ```
+
+`DATABASE_SSL` defaults to `true` (managed Postgres requires TLS); set it to `false` for a local database without TLS.
 
 `DATABASE_URL` takes precedence: when it is set, the individual parts are ignored.
 
