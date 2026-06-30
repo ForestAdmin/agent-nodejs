@@ -249,11 +249,18 @@ jobs:
 
       # The tag-push trigger can't build the image: the release commit carries
       # `[skip ci]`, which GitHub honors on tag pushes too. Dispatch explicitly.
+      # Runs even on a failed release: tags/npm are published partway, so a new
+      # tag still means the image must be built to match. The snapshot guard below
+      # skips the case where the release step never ran (failure before it).
       - name: Trigger workflow-executor Docker image publish (if released)
-        if: success()
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          if [ ! -f /tmp/we-tags-before.txt ]; then
+            echo "Pre-release snapshot missing — release step never ran; nothing to publish."
+            exit 0
+          fi
           git tag --list '@forestadmin/workflow-executor@*' | sort > /tmp/we-tags-after.txt
           NEW_TAGS=$(comm -13 /tmp/we-tags-before.txt /tmp/we-tags-after.txt)
           if [ -z "$NEW_TAGS" ]; then
@@ -265,7 +272,7 @@ jobs:
             | sed 's|^@forestadmin/workflow-executor@||' \
             | sort -V | tail -n1)
           echo "workflow-executor@${VERSION} released — dispatching docker-publish.yml."
-          gh workflow run docker-publish.yml --ref main -f version="$VERSION"
+          gh workflow run docker-publish.yml --ref "$GITHUB_REF_NAME" -f version="$VERSION"
 
   publish-api-reference:
     name: Publish API Reference
