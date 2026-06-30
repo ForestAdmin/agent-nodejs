@@ -87,6 +87,21 @@ describe('assertSafeTokenEndpoint', () => {
       );
     });
 
+    it('rejects loopback hostname aliases (localhost. and the .localhost TLD)', () => {
+      expect(() => assertSafeTokenEndpoint('https://localhost./token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+      expect(() => assertSafeTokenEndpoint('https://foo.localhost/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+    });
+
+    it('does not over-block a real domain that merely contains "localhost"', () => {
+      expect(() =>
+        assertSafeTokenEndpoint('https://auth.localhost.example.com/token'),
+      ).not.toThrow();
+    });
+
     it('rejects an IPv4-mapped IPv6 loopback (e.g. ::ffff:127.0.0.1)', () => {
       expect(() => assertSafeTokenEndpoint('https://[::ffff:127.0.0.1]/token')).toThrow(
         InvalidTokenEndpointError,

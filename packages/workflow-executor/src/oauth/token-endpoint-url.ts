@@ -68,9 +68,15 @@ function classify(host: string): HostClass {
     };
   }
 
-  // Not an IP literal — only the obvious local alias is treated as loopback; other hostnames are
-  // left to the scheme rule (not resolved).
-  return { loopback: host.toLowerCase() === 'localhost', linkLocal: false, unspecified: false };
+  // Not an IP literal. Reject the reserved loopback names — bare `localhost`, the `.localhost` TLD
+  // (RFC 6761), and their trailing-dot FQDN forms — since they resolve to loopback. Other hostnames
+  // are left to the scheme rule; their DNS is not resolved here (a hostname pointed at an internal
+  // IP is the filtering-agent's job, not this string check).
+  return {
+    loopback: /^localhost\.?$|\.localhost\.?$/.test(host.toLowerCase()),
+    linkLocal: false,
+    unspecified: false,
+  };
 }
 
 export default function assertSafeTokenEndpoint(raw: string): void {
