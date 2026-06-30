@@ -83,6 +83,9 @@ export type ExecuteActionResult =
   | { approvalRequested: true; approvalRequest?: { id: string } }
   | { result: unknown };
 
+// Kept off StepUser: mintToken splats StepUser into the agent JWT, a token there would leak.
+export type ActionCaller = { user: StepUser; forestServerToken?: string };
+
 export interface AgentPort {
   getRecord(query: GetRecordQuery, user: StepUser): Promise<RecordData>;
   updateRecord(query: UpdateRecordQuery, user: StepUser): Promise<RecordData>;
@@ -98,11 +101,7 @@ export interface AgentPort {
     query: ResolvePolymorphicTypeQuery,
     user: StepUser,
   ): Promise<{ type: string; id: string } | null>;
-  executeAction(
-    query: ExecuteActionQuery,
-    user: StepUser,
-    forestServerToken?: string,
-  ): Promise<ExecuteActionResult>;
+  executeAction(query: ExecuteActionQuery, caller: ActionCaller): Promise<ExecuteActionResult>;
   // Old Ruby agents with hooks.load=false return 404; agent-client falls back to the fields
   // passed via ActionEndpointsByCollection (populated from the orchestrator's schema).
   getActionFormInfo(query: GetActionFormInfoQuery, user: StepUser): Promise<{ hasForm: boolean }>;

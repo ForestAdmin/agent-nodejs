@@ -228,8 +228,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         { collection: 'customers', action: 'send-welcome-email', id: [42] },
-        expect.objectContaining({ id: 1 }),
-        undefined,
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -819,8 +818,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'send-welcome-email', values: { amount: 50 } }),
-        expect.anything(),
-        undefined,
+        { user: expect.anything(), forestServerToken: undefined },
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -1050,8 +1048,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         { collection: 'customers', action: 'archive', id: [42] },
-        expect.objectContaining({ id: 1 }),
-        undefined,
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
     });
 
@@ -1081,8 +1078,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         { collection: 'customers', action: 'archive', id: [42] },
-        expect.objectContaining({ id: 1 }),
-        undefined,
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
     });
   });
@@ -1455,8 +1451,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(mockModel.bindTools).not.toHaveBeenCalled();
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'send-welcome-email' }),
-        context.user,
-        undefined,
+        { user: context.user, forestServerToken: undefined },
       );
       // Pre-recorded reference is the technical name; the persisted displayName is resolved
       // from the schema, not received on the wire.
@@ -1540,8 +1535,7 @@ describe('TriggerRecordActionStepExecutor', () => {
       // Triggers action A ('archive'), not action B ('send' / displayName 'archive').
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'archive' }),
-        context.user,
-        undefined,
+        { user: context.user, forestServerToken: undefined },
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -1715,8 +1709,7 @@ describe('TriggerRecordActionStepExecutor', () => {
           action: 'send-welcome-email',
           id: [42],
         }),
-        context.user,
-        undefined,
+        { user: context.user, forestServerToken: undefined },
       );
     });
 

@@ -257,8 +257,7 @@ describe('AgentWithLog', () => {
 
       expect(agentPort.executeAction).toHaveBeenCalledWith(
         { collection: 'customers', action: 'send-email', id: [42] },
-        expect.objectContaining({ id: 1 }),
-        'server-token',
+        { user: expect.objectContaining({ id: 1 }), forestServerToken: 'server-token' },
       );
     });
   });

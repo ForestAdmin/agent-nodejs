@@ -112,7 +112,11 @@ export default class AgentWithLog {
         label: `triggered the action "${query.action}"`,
       },
       {
-        operation: () => this.agentPort.executeAction(query, this.user, this.forestServerToken),
+        operation: () =>
+          this.agentPort.executeAction(query, {
+            user: this.user,
+            forestServerToken: this.forestServerToken,
+          }),
         beforeCall: opts.beforeCall,
       },
     );

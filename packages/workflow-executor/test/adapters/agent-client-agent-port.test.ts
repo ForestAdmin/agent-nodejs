@@ -762,7 +762,7 @@ describe('AgentClientAgentPort', () => {
           action: 'sendEmail',
           id: [1],
         },
-        user,
+        { user },
       );
 
       expect(mockCollection.action).toHaveBeenCalledWith('sendEmail', { recordIds: [[1]] });
@@ -778,7 +778,7 @@ describe('AgentClientAgentPort', () => {
 
       const result = await port.executeAction(
         { collection: 'users', action: 'sendEmail', id: [1] },
-        user,
+        { user },
       );
 
       expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_42' } });
@@ -795,8 +795,7 @@ describe('AgentClientAgentPort', () => {
 
       await portWithServer.executeAction(
         { collection: 'users', action: 'sendEmail', id: [1] },
-        user,
-        'server-token',
+        { user, forestServerToken: 'server-token' },
       );
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
@@ -821,7 +820,7 @@ describe('AgentClientAgentPort', () => {
 
       await portWithServer.executeAction(
         { collection: 'users', action: 'sendEmail', id: [1] },
-        user,
+        { user },
       );
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
@@ -835,14 +834,14 @@ describe('AgentClientAgentPort', () => {
       );
 
       await expect(
-        port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, user),
+        port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user }),
       ).rejects.toBeInstanceOf(ApprovalRequestCreationError);
     });
 
     it('should call execute with empty recordIds when ids is not provided', async () => {
       mockAction.execute.mockResolvedValue(undefined);
 
-      await port.executeAction({ collection: 'users', action: 'archive' }, user);
+      await port.executeAction({ collection: 'users', action: 'archive' }, { user });
 
       expect(mockCollection.action).toHaveBeenCalledWith('archive', { recordIds: [] });
       expect(mockAction.execute).toHaveBeenCalled();
@@ -852,7 +851,7 @@ describe('AgentClientAgentPort', () => {
       mockAction.execute.mockRejectedValue(new Error('Action failed'));
 
       await expect(
-        port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, user),
+        port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user }),
       ).rejects.toThrow('Action failed');
     });
 
@@ -861,7 +860,7 @@ describe('AgentClientAgentPort', () => {
 
       await port.executeAction(
         { collection: 'users', action: 'refund', id: [1], values: { amount: 50 } },
-        user,
+        { user },
       );
 
       expect(mockAction.setFields).toHaveBeenCalledWith({ amount: 50 });
@@ -874,7 +873,7 @@ describe('AgentClientAgentPort', () => {
       await expect(
         port.executeAction(
           { collection: 'users', action: 'refund', id: [1], values: { x: 1 } },
-          user,
+          { user },
         ),
       ).rejects.toBeInstanceOf(ActionFormValidationError);
       expect(mockAction.execute).not.toHaveBeenCalled();
@@ -884,7 +883,7 @@ describe('AgentClientAgentPort', () => {
       mockAction.execute.mockRejectedValue(new ClientApprovalError('Needs approval', [7, 9]));
 
       const error = await port
-        .executeAction({ collection: 'users', action: 'refund', id: [1] }, user)
+        .executeAction({ collection: 'users', action: 'refund', id: [1] }, { user })
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ActionRequiresApprovalError);
@@ -895,7 +894,7 @@ describe('AgentClientAgentPort', () => {
       mockAction.execute.mockRejectedValue(new ClientFormValidationError('invalid'));
 
       await expect(
-        port.executeAction({ collection: 'users', action: 'refund', id: [1] }, user),
+        port.executeAction({ collection: 'users', action: 'refund', id: [1] }, { user }),
       ).rejects.toBeInstanceOf(ActionFormValidationError);
     });
 
@@ -905,7 +904,7 @@ describe('AgentClientAgentPort', () => {
       );
 
       await expect(
-        port.executeAction({ collection: 'users', action: 'refund', id: [1] }, user),
+        port.executeAction({ collection: 'users', action: 'refund', id: [1] }, { user }),
       ).rejects.toBeInstanceOf(AgentPortError);
     });
   });
@@ -1029,7 +1028,7 @@ describe('AgentClientAgentPort', () => {
         schemaCache,
       });
 
-      await customPort.executeAction({ collection: 'users', action: 'refund', id: [1] }, user);
+      await customPort.executeAction({ collection: 'users', action: 'refund', id: [1] }, { user });
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1049,7 +1048,7 @@ describe('AgentClientAgentPort', () => {
 
     it('falls back to neutral hooks/fields when the schema omits them', async () => {
       // Default schema in beforeEach has no hooks/fields on actions.
-      await port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, user);
+      await port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user });
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -1,4 +1,5 @@
 import type {
+  ActionCaller,
   ActionForm,
   ActionFormField,
   AgentPort,
@@ -230,8 +231,7 @@ export default class AgentClientAgentPort implements AgentPort {
 
   async executeAction(
     { collection, action, id, values }: ExecuteActionQuery,
-    user: StepUser,
-    forestServerToken?: string,
+    { user, forestServerToken }: ActionCaller,
   ): Promise<ExecuteActionResult> {
     return this.callAgent('executeAction', async () => {
       const client = this.createClient(user, forestServerToken);
