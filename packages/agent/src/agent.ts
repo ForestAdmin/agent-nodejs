@@ -457,6 +457,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Unlike `start()`, this always rebuilds the schema — even when `isProduction` is
    * true — and writes the typings whenever `typingsPath` is set, regardless of
    * `isProduction`.
+   *
+   * Like the rest of the agent, this does not own the data source connection
+   * lifecycle: a data source that opens a connection pool stays open after this
+   * resolves. In a one-shot script, close your data source (or call
+   * `process.exit()`) once it returns so the process can exit.
    */
   async generateSchemaOnly(): Promise<void> {
     const { logger, schemaPath, typingsPath, typingsMaxDepth } = this.options;
