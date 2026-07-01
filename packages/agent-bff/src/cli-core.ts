@@ -86,9 +86,9 @@ interface ResolvedApiKeyConfig {
 }
 
 function resolveApiKeyConfig(config: BFFConfig): ResolvedApiKeyConfig | undefined {
-  const { forestServerUrl, forestEnvSecret, forestAuthSecret, agentUrl } = config;
+  const { forestServerUrl, forestEnvSecret, forestAuthSecret } = config;
 
-  if (forestServerUrl && forestEnvSecret && forestAuthSecret && agentUrl) {
+  if (forestServerUrl && forestEnvSecret && forestAuthSecret) {
     return { forestServerUrl, forestEnvSecret, forestAuthSecret };
   }
 
