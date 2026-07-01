@@ -61,17 +61,29 @@ export default class ApiKeyClient {
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as SaasErrorBody;
       const firstError = body.errors?.[0];
-      const retryAfterHeader = response.headers.get('retry-after');
 
       throw new ApiKeyResolveError({
         status: response.status,
         code: firstError?.meta?.code,
         name: firstError?.name,
-        retryAfter: retryAfterHeader ? Number(retryAfterHeader) : undefined,
+        retryAfter: ApiKeyClient.parseRetryAfter(response.headers.get('retry-after')),
       });
     }
 
-    return (await response.json()) as ResolvedApiKeyIdentity;
+    try {
+      return (await response.json()) as ResolvedApiKeyIdentity;
+    } catch {
+      throw new ApiKeyResolveError({ unreachable: true });
+    }
+  }
+
+  // Retry-After may be an HTTP-date rather than delay-seconds; only keep a finite number.
+  private static parseRetryAfter(header: string | null): number | undefined {
+    if (header === null) return undefined;
+
+    const seconds = Number(header);
+
+    return Number.isFinite(seconds) ? seconds : undefined;
   }
 
   private url(path: string): string {

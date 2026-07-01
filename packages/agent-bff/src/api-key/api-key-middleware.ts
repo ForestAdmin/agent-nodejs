@@ -1,4 +1,4 @@
-import type { ApiKeyAuthenticator } from './api-key-authenticator';
+import type { ApiKeyAuthenticator, AuthenticatedApiKey } from './api-key-authenticator';
 import type { Logger } from '../ports/logger-port';
 import type { Context, Middleware } from 'koa';
 
@@ -46,20 +46,24 @@ export default function createApiKeyMiddleware({
       return;
     }
 
+    let authenticated: AuthenticatedApiKey;
+
     try {
-      const { agentToken, identity } = await authenticator.authenticate(rawKey);
-
-      ctx.state.agentToken = agentToken;
-      ctx.state.apiKeyIdentity = identity;
-      ctx.set('Cache-Control', 'no-store');
-      logger('Info', 'Resolved BFF API key', {
-        keyHash: fingerprintApiKey(rawKey),
-        renderingId: identity.renderingId,
-      });
-
-      await next();
+      authenticated = await authenticator.authenticate(rawKey);
     } catch (error) {
       writeError(ctx, error, rawKey, logger);
+
+      return;
     }
+
+    ctx.state.agentToken = authenticated.agentToken;
+    ctx.state.apiKeyIdentity = authenticated.identity;
+    ctx.set('Cache-Control', 'no-store');
+    logger('Info', 'Resolved BFF API key', {
+      keyHash: fingerprintApiKey(rawKey),
+      renderingId: authenticated.identity.renderingId,
+    });
+
+    await next();
   };
 }

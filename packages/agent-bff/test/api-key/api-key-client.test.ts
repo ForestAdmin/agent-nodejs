@@ -30,13 +30,15 @@ function fakeResponse(
   } as unknown as Response;
 }
 
+const originalFetch = global.fetch;
+
 function mockFetch(impl: jest.Mock): void {
   global.fetch = impl as unknown as typeof fetch;
 }
 
 describe('ApiKeyClient.resolveApiKey', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    global.fetch = originalFetch;
   });
 
   it('should POST to the resolve endpoint with the env secret header and key body', async () => {
@@ -84,6 +86,37 @@ describe('ApiKeyClient.resolveApiKey', () => {
     await expect(new ApiKeyClient(OPTS).resolveApiKey(PARSED)).rejects.toMatchObject({
       status: 429,
       retryAfter: 7,
+    });
+  });
+
+  it('should drop a non-numeric Retry-After (HTTP-date form) rather than emit NaN', async () => {
+    mockFetch(
+      jest.fn(async () =>
+        fakeResponse(429, { errors: [] }, { 'retry-after': 'Wed, 21 Oct 2015 07:28:00 GMT' }),
+      ),
+    );
+
+    await expect(new ApiKeyClient(OPTS).resolveApiKey(PARSED)).rejects.toMatchObject({
+      status: 429,
+      retryAfter: undefined,
+    });
+  });
+
+  it('should mark the error unreachable when a 200 body is not valid JSON', async () => {
+    mockFetch(
+      jest.fn(async () => ({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => {
+          throw new SyntaxError('Unexpected token');
+        },
+      })),
+    );
+
+    await expect(new ApiKeyClient(OPTS).resolveApiKey(PARSED)).rejects.toMatchObject({
+      name: 'ApiKeyResolveError',
+      unreachable: true,
     });
   });
 

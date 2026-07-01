@@ -91,6 +91,8 @@ export default function createResolveCache({
     },
 
     size() {
+      purgeExpired();
+
       return entries.size;
     },
   };

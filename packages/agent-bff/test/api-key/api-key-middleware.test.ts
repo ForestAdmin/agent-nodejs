@@ -116,6 +116,35 @@ describe('api key middleware', () => {
     });
   });
 
+  describe('when a downstream handler throws after the key is accepted', () => {
+    it('should let the error propagate instead of rewriting it as an API key failure', async () => {
+      const authenticate = jest.fn(async () => ({
+        agentToken: 'minted-token',
+        identity: IDENTITY,
+      }));
+      const logs: LogLine[] = [];
+
+      const logger = (level: LoggerLevel, message: string, context?: Record<string, unknown>) => {
+        logs.push({ level, message, context });
+      };
+
+      const app = new Koa();
+      app.silent = true;
+      app.use(createApiKeyMiddleware({ authenticator: { authenticate }, logger }));
+      app.use(async () => {
+        throw new Error('downstream boom');
+      });
+
+      const response = await request(app.callback()).get('/').set(BFF_KEY_HEADER, RAW);
+
+      expect(response.status).toBe(500);
+      expect(response.body).not.toHaveProperty('error.type', 'server_error');
+      expect(logs).not.toContainEqual(
+        expect.objectContaining({ message: 'BFF API key middleware failure' }),
+      );
+    });
+  });
+
   describe('when no key header is present', () => {
     it('should pass through to the next middleware without authenticating', async () => {
       const authenticate = jest.fn();
