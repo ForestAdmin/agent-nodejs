@@ -22,3 +22,30 @@ export { issueBffAccessToken, BFF_ACCESS_TOKEN_TYPE } from './oauth/bff-token';
 export type { BffAccessTokenPayload } from './oauth/bff-token';
 export { createPkcePair } from './oauth/pkce';
 export { OAuthRequestError } from './oauth/oauth-error';
+export { parseApiKey, hashApiKey, fingerprintApiKey } from './api-key/api-key';
+export type { ParsedApiKey } from './api-key/api-key';
+export { issueAgentToken, AGENT_TOKEN_EXPIRES_IN } from './api-key/agent-token';
+export { default as ApiKeyClient, ApiKeyResolveError } from './api-key/api-key-client';
+export type {
+  ResolvedApiKeyIdentity,
+  ApiKeyIdentityUser,
+  ApiKeyClientOptions,
+} from './api-key/api-key-client';
+export { default as createResolveCache } from './api-key/resolve-cache';
+export type { ResolveCache, ResolveCacheOptions } from './api-key/resolve-cache';
+export { default as createApiKeyAuthenticator } from './api-key/api-key-authenticator';
+export type {
+  ApiKeyAuthenticator,
+  AuthenticatedApiKey,
+  ApiKeyAuthenticatorOptions,
+} from './api-key/api-key-authenticator';
+export { default as createApiKeyMiddleware, BFF_KEY_HEADER } from './api-key/api-key-middleware';
+export {
+  ApiKeyError,
+  invalidApiKey,
+  forestIdentityNotAllowed,
+  invalidRequest,
+  keyResolutionUnavailable,
+  toErrorBody as toApiKeyErrorBody,
+} from './api-key/api-key-error';
+export type { ApiKeyErrorType, ApiKeyErrorBody } from './api-key/api-key-error';
