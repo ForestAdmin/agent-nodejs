@@ -63,6 +63,22 @@ describe('ApiKeyClient.resolveApiKey', () => {
     await expect(new ApiKeyClient(OPTS).resolveApiKey(PARSED)).resolves.toEqual(IDENTITY);
   });
 
+  it.each([
+    ['missing user', { renderingId: 17, allowedOrigins: [] }],
+    ['missing renderingId', { user: IDENTITY.user, allowedOrigins: [] }],
+    ['empty object', {}],
+  ])(
+    'should mark the error unreachable when a 200 body is incomplete (%s)',
+    async (_label, body) => {
+      mockFetch(jest.fn(async () => fakeResponse(200, body)));
+
+      await expect(new ApiKeyClient(OPTS).resolveApiKey(PARSED)).rejects.toMatchObject({
+        name: 'ApiKeyResolveError',
+        unreachable: true,
+      });
+    },
+  );
+
   it.each([401, 403, 400])(
     'should throw ApiKeyResolveError carrying the SaaS status %s',
     async status => {

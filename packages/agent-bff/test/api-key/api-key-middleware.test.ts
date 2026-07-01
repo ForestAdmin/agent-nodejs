@@ -114,6 +114,24 @@ describe('api key middleware', () => {
       expect(response.body.error.type).toBe('key_resolution_unavailable');
       expect(response.headers['retry-after']).toBe('5');
     });
+
+    it('should return a 500 server_error for an unexpected non-ApiKeyError', async () => {
+      const authenticate = jest.fn(async () => {
+        throw new Error('unexpected boom');
+      });
+      const { app, logs } = buildApp(authenticate);
+
+      const response = await request(app.callback()).get('/').set(BFF_KEY_HEADER, RAW);
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: { type: 'server_error', status: 500, message: 'API key processing failed' },
+      });
+      expect(logs).toContainEqual(
+        expect.objectContaining({ level: 'Error', message: 'BFF API key middleware failure' }),
+      );
+      expect(JSON.stringify(logs)).not.toContain(SECRET);
+    });
   });
 
   describe('when a downstream handler throws after the key is accepted', () => {

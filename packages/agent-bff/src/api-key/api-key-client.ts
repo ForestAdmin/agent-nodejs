@@ -70,11 +70,33 @@ export default class ApiKeyClient {
       });
     }
 
+    let body: unknown;
+
     try {
-      return (await response.json()) as ResolvedApiKeyIdentity;
+      body = await response.json();
     } catch {
       throw new ApiKeyResolveError({ unreachable: true });
     }
+
+    // A well-formed HTTP 200 with an incomplete body is an unusable resolution, not a caller
+    // error: surface it as unavailable rather than letting a later `user` deref throw a 500.
+    if (!ApiKeyClient.isResolvedIdentity(body)) {
+      throw new ApiKeyResolveError({ unreachable: true });
+    }
+
+    return body;
+  }
+
+  private static isResolvedIdentity(body: unknown): body is ResolvedApiKeyIdentity {
+    if (typeof body !== 'object' || body === null) return false;
+
+    const candidate = body as { user?: unknown; renderingId?: unknown };
+
+    return (
+      typeof candidate.user === 'object' &&
+      candidate.user !== null &&
+      typeof candidate.renderingId === 'number'
+    );
   }
 
   // Retry-After may be an HTTP-date rather than delay-seconds; only keep a finite number.
