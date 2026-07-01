@@ -6,6 +6,7 @@ import request from 'supertest';
 
 import { invalidApiKey, keyResolutionUnavailable } from '../../src/api-key/api-key-error';
 import createApiKeyMiddleware, { BFF_KEY_HEADER } from '../../src/api-key/api-key-middleware';
+import createErrorMiddleware from '../../src/http/error-middleware';
 
 const KEY_ID = 'a'.repeat(16);
 const SECRET = 'b'.repeat(64);
@@ -39,6 +40,8 @@ function buildApp(authenticate: ApiKeyAuthenticator['authenticate']) {
   };
 
   const app = new Koa();
+  app.silent = true;
+  app.use(createErrorMiddleware({ logger }));
   app.use(createApiKeyMiddleware({ authenticator: { authenticate }, logger }));
   app.use(async ctx => {
     ctx.status = 200;
@@ -88,7 +91,7 @@ describe('api key middleware', () => {
   });
 
   describe('when the authenticator rejects', () => {
-    it('should return 401 invalid_api_key in the nested error shape', async () => {
+    it('should surface 401 invalid_api_key in the nested error shape', async () => {
       const authenticate = jest.fn(async () => {
         throw invalidApiKey();
       });
@@ -115,7 +118,23 @@ describe('api key middleware', () => {
       expect(response.headers['retry-after']).toBe('5');
     });
 
-    it('should return a 500 server_error for an unexpected non-ApiKeyError', async () => {
+    it('should log a fingerprinted rejection without the raw secret', async () => {
+      const authenticate = jest.fn(async () => {
+        throw invalidApiKey();
+      });
+      const { app, logs } = buildApp(authenticate);
+
+      await request(app.callback()).get('/').set(BFF_KEY_HEADER, RAW);
+
+      expect(logs).toContainEqual(
+        expect.objectContaining({ level: 'Warn', message: 'BFF API key rejected' }),
+      );
+      expect(JSON.stringify(logs)).not.toContain(SECRET);
+    });
+  });
+
+  describe('when the authenticator throws an unexpected error', () => {
+    it('should surface a 500 internal_error and log the failure without the raw secret', async () => {
       const authenticate = jest.fn(async () => {
         throw new Error('unexpected boom');
       });
@@ -124,9 +143,7 @@ describe('api key middleware', () => {
       const response = await request(app.callback()).get('/').set(BFF_KEY_HEADER, RAW);
 
       expect(response.status).toBe(500);
-      expect(response.body).toEqual({
-        error: { type: 'server_error', status: 500, message: 'API key processing failed' },
-      });
+      expect(response.body.error.type).toBe('internal_error');
       expect(logs).toContainEqual(
         expect.objectContaining({ level: 'Error', message: 'BFF API key middleware failure' }),
       );
@@ -135,7 +152,7 @@ describe('api key middleware', () => {
   });
 
   describe('when a downstream handler throws after the key is accepted', () => {
-    it('should let the error propagate instead of rewriting it as an API key failure', async () => {
+    it('should not report it as an API key failure', async () => {
       const authenticate = jest.fn(async () => ({
         agentToken: 'minted-token',
         identity: IDENTITY,
@@ -148,6 +165,7 @@ describe('api key middleware', () => {
 
       const app = new Koa();
       app.silent = true;
+      app.use(createErrorMiddleware({ logger }));
       app.use(createApiKeyMiddleware({ authenticator: { authenticate }, logger }));
       app.use(async () => {
         throw new Error('downstream boom');
@@ -156,7 +174,6 @@ describe('api key middleware', () => {
       const response = await request(app.callback()).get('/').set(BFF_KEY_HEADER, RAW);
 
       expect(response.status).toBe(500);
-      expect(response.body).not.toHaveProperty('error.type', 'server_error');
       expect(logs).not.toContainEqual(
         expect.objectContaining({ message: 'BFF API key middleware failure' }),
       );

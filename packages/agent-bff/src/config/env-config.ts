@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
+import { parseAllowedOrigins } from '../cors/origin';
 import DEFAULT_BFF_PORT from '../defaults';
 import { ConfigurationError } from '../errors';
+import { isValidTimezone } from '../timezone/timezone';
 
 export const REQUIRED_KEYS = [
   'FOREST_AUTH_SECRET',
@@ -24,6 +26,9 @@ export interface BFFConfig {
   forestAppUrl?: string;
   agentUrl?: string;
   tokenEncryptionKey?: string;
+  allowedOrigins: string[];
+  invalidAllowedOrigins: string[];
+  defaultTimezone?: string;
   httpPort: number;
   presence: PresenceMap;
   hasAllRequired: boolean;
@@ -74,6 +79,18 @@ function parseEncryptionKey(raw: string | undefined): string | undefined {
   return value;
 }
 
+function parseDefaultTimezone(raw: string | undefined): string | undefined {
+  const value = normalize(raw);
+
+  if (value !== undefined && !isValidTimezone(value)) {
+    throw new ConfigurationError(
+      `Invalid configuration: BFF_DEFAULT_TIMEZONE must be a valid IANA timezone.`,
+    );
+  }
+
+  return value;
+}
+
 export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
   const normalized = Object.fromEntries(
     REQUIRED_KEYS.map(key => [key, normalize(env[key])]),
@@ -92,6 +109,10 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
   ) as PresenceMap;
 
   const tokenEncryptionKey = parseEncryptionKey(env.BFF_TOKEN_ENCRYPTION_KEY);
+  const { origins: allowedOrigins, invalid: invalidAllowedOrigins } = parseAllowedOrigins(
+    env.BFF_ALLOWED_ORIGINS,
+  );
+  const defaultTimezone = parseDefaultTimezone(env.BFF_DEFAULT_TIMEZONE);
 
   return {
     forestAuthSecret: normalized.FOREST_AUTH_SECRET,
@@ -100,6 +121,9 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     forestAppUrl: normalized.FOREST_APP_URL,
     agentUrl: normalized.AGENT_URL,
     tokenEncryptionKey,
+    allowedOrigins,
+    invalidAllowedOrigins,
+    defaultTimezone,
     httpPort: parsePort(env.HTTP_PORT),
     presence,
     hasAllRequired: REQUIRED_KEYS.every(key => presence[key]) && tokenEncryptionKey !== undefined,

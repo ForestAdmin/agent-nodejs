@@ -5,21 +5,43 @@ import type { Middleware } from 'koa';
 import { bodyParser } from '@koa/bodyparser';
 
 import createConsoleLogger from './adapters/console-logger';
+import createAgentStubMiddleware from './agent/agent-stub';
 import createApiKeyAuthenticator from './api-key/api-key-authenticator';
 import ApiKeyClient from './api-key/api-key-client';
 import createApiKeyMiddleware from './api-key/api-key-middleware';
 import createResolveCache from './api-key/resolve-cache';
+import createAuthModeMiddleware from './auth/auth-mode-middleware';
 import { parseConfig } from './config/env-config';
+import createCorsMiddleware from './cors/cors-middleware';
+import createPerKeyOriginMiddleware from './cors/per-key-origin';
 import { extractErrorMessage } from './errors';
 import BFFHttpServer from './http/bff-http-server';
+import createErrorMiddleware from './http/error-middleware';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
 import createTokenCipher from './oauth/token-cipher';
+import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
 
 const BODY_LIMIT = '16kb';
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
+
+function isAgentPath(path: string): boolean {
+  return path === '/agent' || path.startsWith('/agent/');
+}
+
+function agentScoped(middleware: Middleware): Middleware {
+  return async function scoped(ctx, next) {
+    if (!isAgentPath(ctx.path)) {
+      await next();
+
+      return;
+    }
+
+    await middleware(ctx, next);
+  };
+}
 
 interface ResolvedOAuthConfig {
   forestServerUrl: string;
@@ -76,7 +98,7 @@ async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise
     logger,
   });
 
-  return [bodyParser({ jsonLimit: BODY_LIMIT }), oauthRoutes];
+  return [oauthRoutes];
 }
 
 interface ResolvedApiKeyConfig {
@@ -118,14 +140,49 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
   return createApiKeyMiddleware({ authenticator, logger });
 }
 
+function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
+  const { forestAuthSecret, defaultTimezone } = config;
+
+  if (!forestAuthSecret) {
+    logger('Warn', 'Agent edge disabled: FOREST_AUTH_SECRET is missing');
+
+    return [];
+  }
+
+  const apiKeyMiddleware = buildApiKeyMiddleware(config, logger);
+
+  const chain: Middleware[] = [
+    createErrorMiddleware({ logger }),
+    createAuthModeMiddleware({ authSecret: forestAuthSecret }),
+    ...(apiKeyMiddleware ? [apiKeyMiddleware] : []),
+    createPerKeyOriginMiddleware(),
+    createTimezoneMiddleware({ defaultTimezone }),
+    createAgentStubMiddleware(),
+  ];
+
+  return chain.map(agentScoped);
+}
+
 export default async function runCli(
   env: NodeJS.ProcessEnv,
   logger: Logger = createConsoleLogger(),
 ): Promise<BFFHttpServer> {
   const config = parseConfig(env);
+
+  if (config.invalidAllowedOrigins.length > 0) {
+    logger('Warn', 'Ignoring malformed BFF_ALLOWED_ORIGINS entries', {
+      entries: config.invalidAllowedOrigins,
+    });
+  }
+
   const oauthMiddlewares = await buildOAuthMiddlewares(config, logger);
-  const apiKeyMiddleware = buildApiKeyMiddleware(config, logger);
-  const middlewares = [...oauthMiddlewares, ...(apiKeyMiddleware ? [apiKeyMiddleware] : [])];
+  const agentMiddlewares = buildAgentMiddlewares(config, logger);
+  const middlewares = [
+    createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
+    bodyParser({ jsonLimit: BODY_LIMIT }),
+    ...oauthMiddlewares,
+    ...agentMiddlewares,
+  ];
   const server = new BFFHttpServer({
     port: config.httpPort,
     version,
