@@ -10,6 +10,7 @@ import { readFile } from 'fs/promises';
 
 import * as factories from './__factories__';
 import Agent from '../src/agent';
+import SchemaGenerator from '../src/utils/forest-schema/generator';
 
 // Mock routes
 const mockSetupRoute = jest.fn();
@@ -283,6 +284,80 @@ describe('Agent', () => {
         await agent.restart();
 
         expect(mockLogger).toHaveBeenCalledWith('Info', 'Agent is restarting...');
+      });
+    });
+
+    describe('generateSchemaOnly', () => {
+      test('should build and write the schema to disk and log where', async () => {
+        const logger = jest.fn();
+        const agent = new Agent({ ...options, logger });
+
+        await agent.generateSchemaOnly();
+
+        expect(DataSourceCustomizer.prototype.getDataSource).toHaveBeenCalledOnceWith(logger);
+        const { collections } = JSON.parse(await readFile(options.schemaPath, 'utf8'));
+        expect(collections).toEqual([]);
+        expect(logger).toHaveBeenCalledWith('Info', `Schema written to ${options.schemaPath}`);
+      });
+
+      test('should write the typings when typingsPath is set', async () => {
+        const agent = new Agent(options);
+
+        await agent.generateSchemaOnly();
+
+        expect(DataSourceCustomizer.prototype.updateTypesOnFileSystem).toHaveBeenCalledOnceWith(
+          options.typingsPath,
+          options.typingsMaxDepth,
+          options.logger,
+        );
+      });
+
+      test('should not write the typings when typingsPath is not set', async () => {
+        const agent = new Agent({ ...options, typingsPath: null });
+
+        await agent.generateSchemaOnly();
+
+        expect(DataSourceCustomizer.prototype.updateTypesOnFileSystem).not.toHaveBeenCalled();
+      });
+
+      test('should neither send the schema to Forest nor build the routes', async () => {
+        const agent = new Agent(options);
+
+        await agent.generateSchemaOnly();
+
+        expect(mockPostSchema).not.toHaveBeenCalled();
+        expect(options.forestAdminClient.subscribeToServerEvents).not.toHaveBeenCalled();
+        expect(mockMakeRoutes).not.toHaveBeenCalled();
+      });
+
+      test('should build the schema in production instead of reading it from disk', async () => {
+        const buildSchema = jest.spyOn(SchemaGenerator.prototype, 'buildSchema');
+        // A path that does not exist: start() would throw "mandatory in production",
+        // generateSchemaOnly must build the schema instead.
+        const agent = new Agent({
+          ...options,
+          isProduction: true,
+          schemaPath: '/tmp/.forest-generate-prod.json',
+        });
+
+        await agent.generateSchemaOnly();
+
+        expect(buildSchema).toHaveBeenCalledTimes(1);
+        const { collections } = JSON.parse(
+          await readFile('/tmp/.forest-generate-prod.json', 'utf8'),
+        );
+        expect(collections).toEqual([]);
+      });
+
+      test('should log an Error and rethrow when generation fails', async () => {
+        const logger = jest.fn();
+        jest
+          .mocked(DataSourceCustomizer.prototype.getDataSource)
+          .mockRejectedValueOnce(new Error('boom'));
+        const agent = new Agent({ ...options, logger });
+
+        await expect(agent.generateSchemaOnly()).rejects.toThrow('boom');
+        expect(logger).toHaveBeenCalledWith('Error', 'Forest Admin schema generation failed: boom');
       });
     });
   });
