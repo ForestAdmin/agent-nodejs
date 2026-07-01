@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.9.2...@forestadmin/workflow-executor@1.10.0) (2026-07-01)
+
+
+### Features
+
+* **workflow-executor:** build database connection from split env vars ([#1727](https://github.com/ForestAdmin/agent-nodejs/issues/1727)) ([1a13e71](https://github.com/ForestAdmin/agent-nodejs/commit/1a13e71d17c5d2473346efc9cbff89cd14f98bfb))
+
 ## @forestadmin/workflow-executor [1.9.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.9.1...@forestadmin/workflow-executor@1.9.2) (2026-06-29)
 
 
