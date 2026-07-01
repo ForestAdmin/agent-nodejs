@@ -386,6 +386,20 @@ describe('Agent Integration Tests', () => {
           ],
         });
       });
+
+      it('echoes the correlation id and exposes it through CORS', async () => {
+        const token = createTestToken();
+
+        const response = await superagent
+          .get(`${testContext.baseUrl}/forest/users`)
+          .query({ timezone: 'Europe/Paris' })
+          .set('Authorization', `Bearer ${token}`);
+
+        expect(response.headers['x-forest-correlation-id']).toEqual(expect.any(String));
+        expect(response.headers['access-control-expose-headers']).toContain(
+          'x-forest-correlation-id',
+        );
+      });
     });
 
     describe('With MCP enabled', () => {
