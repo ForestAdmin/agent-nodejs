@@ -177,6 +177,9 @@ export interface LoadRelatedRecordPendingData {
   availableRecordIds: LoadRelatedRecordCandidate[];
   // Absent when the relation has no linked record(s): the list is empty and there's nothing to suggest.
   suggestedRecord?: LoadRelatedRecordCandidate;
+  // The AI actively judged no candidate relevant (incl. Full AI degrading to confirmation) → the front
+  // pre-checks "No X to load". Distinct from a plain absent suggestedRecord (Manual: the user picks).
+  suggestNoRecord?: boolean;
 }
 
 export interface LoadRelatedRecordStepExecutionData
@@ -184,7 +187,8 @@ export interface LoadRelatedRecordStepExecutionData
     WithUserConfirmation<LoadRelatedRecordConfirmation> {
   type: 'load-related-record';
   pendingData?: LoadRelatedRecordPendingData;
-  selectedRecordRef: RecordRef;
+  // Set on every await/load path (and preserved through the user-initiated "continue without" skip).
+  selectedRecordRef?: RecordRef;
   executionParams?: RelationRef;
   executionResult?: { relation: RelationRef; record: RecordRef } | { skipped: true };
 }

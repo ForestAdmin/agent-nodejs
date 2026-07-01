@@ -975,13 +975,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // To-many path: /relationships call with limit: 1, no parent-record projection.
+      // To-many path: /relationships call with the candidate-list limit (a lone record short-circuits
+      // ranking, so it loads without an AI call).
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({
           collection: 'customers',
           id: [42],
           relation: 'tags',
-          limit: 1,
+          limit: 50,
           relatedSchema: expect.objectContaining({ collectionName: 'tags' }),
         }),
         expect.objectContaining({ id: 1 }),
@@ -997,9 +998,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    // fetchCandidates throws RelatedRecordNotFoundError when the agent returns an
-    // empty list. Same user-facing message as the other empty-result paths.
-    it('returns error when getRelatedData returns an empty array', async () => {
+    // Empty list → nothing to load: Full AI degrades to an AI-assisted confirmation ("No X to load"
+    // pre-checked) instead of skipping, so a human decides.
+    it('falls back to awaiting-input (No X to load) when getRelatedData returns an empty array (Branch B)', async () => {
       const belongsToManySchema = makeCollectionSchema({
         fields: [
           {
@@ -1025,11 +1026,335 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'The related record could not be found. It may have been deleted.',
-      );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      // Full AI with no candidate → hands off to the user with "No X to load" pre-checked.
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toEqual([]);
+      expect(saved.pendingData.suggestedRecord).toBeUndefined();
+      expect(saved.pendingData.suggestNoRecord).toBe(true);
+    });
+  });
+
+  describe('executionType=Manual: no AI pre-selection (PRD-148)', () => {
+    const customersWithAddress = makeCollectionSchema({
+      fields: [
+        {
+          fieldName: 'address',
+          displayName: 'Address',
+          isRelationship: true,
+          relationType: 'HasMany',
+          relatedCollectionName: 'addresses',
+        },
+      ],
+    });
+    const addressSchema = makeCollectionSchema({
+      collectionName: 'addresses',
+      collectionDisplayName: 'Addresses',
+      fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+    });
+
+    it('lists the narrowed candidates with no suggestion and never invokes the AI model', async () => {
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ];
+      const agentPort = makeMockAgentPort(relatedData);
+      const bindTools = jest.fn();
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddress,
+          addresses: addressSchema,
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.Manual,
+          preRecordedArgs: { relationName: 'address' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      // Manual mode performs zero AI calls — no relation chooser, no field/record ranking.
+      expect(bindTools).not.toHaveBeenCalled();
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls[0][1];
+      expect(saved.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
+      expect(saved.pendingData.suggestedRecord).toBeUndefined();
+    });
+
+    it('still pre-fills the single xToOne record in Manual (the only option, not an AI pick)', async () => {
+      // BelongsTo 'order' → one linked record; pre-filled even in Manual, with no AI call.
+      const agentPort = makeMockAgentPort(); // default: 1 related order #99 via getSingleRelatedData
+      const bindTools = jest.fn();
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.Manual,
+          preRecordedArgs: { relationName: 'order' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(bindTools).not.toHaveBeenCalled();
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls[0][1];
+      expect(saved.pendingData.availableRecordIds).toEqual([cand(['99'])]);
+      expect(saved.pendingData.suggestedRecord).toEqual(cand(['99']));
+    });
+
+    it('switching relation (refreshCandidatesForField) in Manual makes no AI suggestion', async () => {
+      const execution = makePendingExecution({
+        pendingData: {
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand(['99'])],
+          suggestedRecord: cand(['99']),
+        },
+      });
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ]);
+      const addressesSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const bindTools = jest.fn();
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: addressesSchema,
+        }),
+        incomingPendingData: { fieldName: 'address' },
+        stepDefinition: makeStep({ executionType: StepExecutionMode.Manual }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      // Manual: switching to a multi-record relation must neither call the AI nor pre-select.
+      expect(bindTools).not.toHaveBeenCalled();
+
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
+      expect(finalSave.pendingData.suggestedRecord).toBeUndefined();
+    });
+  });
+
+  describe('executionType=AutomatedWithConfirmation: AI may decline (PRD-148)', () => {
+    it('pre-checks "No X to load" (suggestNoRecord) when the AI judges no candidate relevant', async () => {
+      const customersWithAddress = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'address',
+            displayName: 'Address',
+            isRelationship: true,
+            relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
+          },
+        ],
+      });
+      const addressSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ];
+      const agentPort = makeMockAgentPort(relatedData);
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: -1, reasoning: 'None of the candidates is relevant' },
+              id: 'c3',
+            },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddress,
+          addresses: addressSchema,
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          preRecordedArgs: { relationName: 'address' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      // AI-assisted no longer forces a pick: the AI may return -1, and the user reviews with
+      // "No X to load" pre-checked (rather than a potentially misleading forced suggestion).
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
+      expect(saved.pendingData.suggestedRecord).toBeUndefined();
+      expect(saved.pendingData.suggestNoRecord).toBe(true);
+    });
+
+    it('tells the AI it may return -1 in the record-selection prompt (Bug 2)', async () => {
+      const customersWithAddress = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'address',
+            displayName: 'Address',
+            isRelationship: true,
+            relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
+          },
+        ],
+      });
+      const addressSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ];
+      const agentPort = makeMockAgentPort(relatedData);
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'match' },
+              id: 'c3',
+            },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddress,
+          addresses: addressSchema,
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
+          preRecordedArgs: { relationName: 'address' },
+        }),
+      });
+
+      await new LoadRelatedRecordStepExecutor(context).execute();
+
+      // 2nd AI call = record selection. Without the decline guidance the base prompt forces a pick,
+      // so an impossible request would return a weak match instead of -1 (Bug 2).
+      const recordSelectionMessages = invoke.mock.calls[1][0] as Array<{ content: unknown }>;
+      const content = recordSelectionMessages.map(m => String(m.content)).join('\n');
+      expect(content).toContain('-1');
+    });
+  });
+
+  describe('executionType=FullyAutomated: AI judges none relevant → confirmation (PRD-148)', () => {
+    it('falls back to awaiting-input (No X to load) when select-record-by-content returns -1', async () => {
+      const customersWithAddress = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'address',
+            displayName: 'Address',
+            isRelationship: true,
+            relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
+          },
+        ],
+      });
+      const addressSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const relatedData: RecordData[] = [
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ];
+      const agentPort = makeMockAgentPort(relatedData);
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: -1, reasoning: 'None of the candidates is relevant' },
+              id: 'c3',
+            },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddress,
+          addresses: addressSchema,
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { relationName: 'address' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      // Two AI calls run (field + record selection); the record call returns -1 → hand off to the
+      // user with the candidates listed and "No X to load" pre-checked.
+      expect(bindTools).toHaveBeenCalledTimes(2);
+      expect(bindTools.mock.calls[1][0][0].name).toBe('select-record-by-content');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
+      expect(saved.pendingData.suggestedRecord).toBeUndefined();
+      expect(saved.pendingData.suggestNoRecord).toBe(true);
     });
   });
 
@@ -2523,8 +2848,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('RelatedRecordNotFoundError', () => {
-    it('returns error when BelongsTo getRelatedData returns empty array (Branch B)', async () => {
+  describe('empty candidate list → awaiting-input (No X to load)', () => {
+    it('falls back to awaiting-input when BelongsTo has no linked record (Branch B)', async () => {
       const agentPort = makeMockAgentPort([]);
       const mockModel = makeMockModel({
         relation: relationOption({
@@ -2545,14 +2870,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'The related record could not be found. It may have been deleted.',
-      );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      // Full AI: linked record absent → hand off to the user with "No X to load" pre-checked.
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toEqual([]);
+      expect(saved.pendingData.suggestNoRecord).toBe(true);
     });
 
-    it('returns error when HasMany getRelatedData returns empty array (Branch B)', async () => {
+    it('falls back to awaiting-input when HasMany returns an empty array (Branch B)', async () => {
       const hasManySchema = makeCollectionSchema({
         fields: [
           {
@@ -2578,11 +2903,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('error');
-      expect(result.stepOutcome.error).toBe(
-        'The related record could not be found. It may have been deleted.',
-      );
-      expect(runStore.saveStepExecution).not.toHaveBeenCalled();
+      // Full AI: empty candidate list → hand off to the user with "No X to load" pre-checked.
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toEqual([]);
+      expect(saved.pendingData.suggestNoRecord).toBe(true);
     });
   });
 
@@ -3610,14 +3935,35 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
     });
 
-    it('surfaces a distinct "no source record" message when the source step loaded nothing', async () => {
-      // The source step exists in the live path but its run-store execution has no record.
+    it('errors (Full AI) when the source step loaded nothing — no longer auto-skips', async () => {
+      // The source step exists in the live path but its run-store execution has no record. Full AI
+      // now surfaces the error like the await modes (no silent skip); the front offers "continue
+      // without" (PRD-550).
       const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
       const context = makeContext({
         runStore,
         previousSteps: [makeLoadRelatedPreviousStep(1)],
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: 'load-1', relationName: 'customer' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toContain("didn't load any record");
+    });
+
+    it('surfaces a "no source record" error in await modes when the source step loaded nothing', async () => {
+      // Same as Full AI now — every mode surfaces the error so the front can offer
+      // "continue without" (PRD-550).
+      const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
+      const context = makeContext({
+        runStore,
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.AutomatedWithConfirmation,
           preRecordedArgs: { selectedRecordStepId: 'load-1', relationName: 'customer' },
         }),
       });
