@@ -100,6 +100,7 @@ export {
   AiModelPortError,
   AgentProbeError,
   ConfigurationError,
+  ExecutorEncryptionKeyMissingError,
   InvalidPreRecordedArgsError,
   UnsupportedStepTypeError,
   UnsupportedActionFormError,
@@ -126,6 +127,16 @@ export { default as SchemaResolver } from './schema-resolver';
 export { default as InMemoryStore } from './stores/in-memory-store';
 export { default as DatabaseStore } from './stores/database-store';
 export type { DatabaseStoreOptions } from './stores/database-store';
+export { default as DatabaseMcpOAuthCredentialsStore } from './stores/database-mcp-oauth-credentials-store';
+export type { DatabaseMcpOAuthCredentialsStoreOptions } from './stores/database-mcp-oauth-credentials-store';
+export { default as InMemoryMcpOAuthCredentialsStore } from './stores/in-memory-mcp-oauth-credentials-store';
+export type {
+  McpOAuthCredentialsStore,
+  McpOAuthCredentialInput,
+  StoredMcpOAuthCredential,
+} from './ports/mcp-oauth-credentials-store';
+export { default as CredentialEncryption } from './crypto/credential-encryption';
+export type { EncryptedValue } from './crypto/credential-encryption';
 export { buildDatabaseRunStore, buildInMemoryRunStore } from './stores/build-run-store';
 export { buildInMemoryExecutor, buildDatabaseExecutor } from './build-workflow-executor';
 export { runCli } from './cli-core';
