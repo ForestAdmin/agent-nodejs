@@ -169,12 +169,47 @@ function parseAiConfig(env: NodeJS.ProcessEnv): AiConfiguration[] | undefined {
   ];
 }
 
+const DEFAULT_DATABASE_PORT = 5432;
+const DATABASE_PARTS = ['DATABASE_HOST', 'DATABASE_NAME', 'DATABASE_USER'] as const;
+
+function buildDatabaseUrlFromParts(env: NodeJS.ProcessEnv): string | undefined {
+  const { DATABASE_HOST, DATABASE_PORT, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD } = env;
+
+  if (DATABASE_PARTS.every(key => !env[key])) return undefined;
+
+  const missing = DATABASE_PARTS.filter(key => !env[key]);
+
+  if (missing.length > 0) {
+    throw new ConfigurationError(
+      `When DATABASE_URL is not set, the connection is built from parts; ` +
+        `also set: ${missing.join(', ')}.`,
+    );
+  }
+
+  const port = parsePositiveIntEnv('DATABASE_PORT', DATABASE_PORT) ?? DEFAULT_DATABASE_PORT;
+  const user = encodeURIComponent(DATABASE_USER as string);
+  const auth = DATABASE_PASSWORD ? `${user}:${encodeURIComponent(DATABASE_PASSWORD)}` : user;
+  const rawHost = DATABASE_HOST as string;
+  const host = rawHost.includes(':') && !rawHost.startsWith('[') ? `[${rawHost}]` : rawHost;
+  const database = encodeURIComponent(DATABASE_NAME as string);
+
+  return `postgres://${auth}@${host}:${port}/${database}`;
+}
+
+function resolveDatabaseUrl(env: NodeJS.ProcessEnv): string | undefined {
+  return env.DATABASE_URL || buildDatabaseUrlFromParts(env);
+}
+
 export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig {
   const requiredBase = ['FOREST_ENV_SECRET', 'FOREST_AUTH_SECRET', 'AGENT_URL'] as const;
   const missing: string[] = requiredBase.filter(key => !env[key]);
 
-  if (!args.inMemory && !env.DATABASE_URL) {
-    missing.push('DATABASE_URL (required unless --in-memory)');
+  const databaseUrl = args.inMemory ? undefined : resolveDatabaseUrl(env);
+
+  if (!args.inMemory && !databaseUrl) {
+    missing.push(
+      'DATABASE_URL (or DATABASE_HOST, DATABASE_NAME, DATABASE_USER); required unless --in-memory',
+    );
   }
 
   if (missing.length > 0) {
@@ -205,7 +240,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
 
   return {
     executorOptions,
-    databaseUrl: env.DATABASE_URL,
+    databaseUrl,
     // Defaults to true: managed Postgres (RDS, Supabase, Railway…) requires TLS.
     // Set DATABASE_SSL=false for a local/dev database without TLS.
     databaseSsl: parseBooleanEnv('DATABASE_SSL', env.DATABASE_SSL, true),
@@ -230,6 +265,13 @@ Required environment variables:
   FOREST_AUTH_SECRET  JWT signing secret (shared with your agent)
   AGENT_URL           URL of your running Forest Admin agent
   DATABASE_URL        Postgres connection string (not needed with --in-memory)
+
+Database connection (use DATABASE_URL, or build it from parts when it is unset):
+  DATABASE_HOST         Database host
+  DATABASE_NAME         Database name
+  DATABASE_USER         Database user
+  DATABASE_PASSWORD     Database password (optional)
+  DATABASE_PORT         Database port (default: ${DEFAULT_DATABASE_PORT})
 
 Optional environment variables:
   DATABASE_SSL          Connect to the database over TLS (default: true; set "false" for a local DB without TLS)

@@ -279,6 +279,189 @@ describe('readEnvConfig', () => {
     expect(() => readEnvConfig({}, { ...args, inMemory: true })).toThrow(/FOREST_ENV_SECRET/);
   });
 
+  describe('database connection from parts', () => {
+    const baseEnvNoUrl = (() => {
+      const env = { ...baseEnv };
+      delete env.DATABASE_URL;
+
+      return env;
+    })();
+
+    it('builds the connection string from parts when DATABASE_URL is unset', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: 'db.example.com',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'user',
+          DATABASE_PASSWORD: 'pass',
+          DATABASE_PORT: '6543',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user:pass@db.example.com:6543/mydb');
+    });
+
+    it('defaults the port to 5432 when DATABASE_PORT is unset', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: 'db.example.com',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'user',
+          DATABASE_PASSWORD: 'pass',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user:pass@db.example.com:5432/mydb');
+    });
+
+    it('omits the password segment when DATABASE_PASSWORD is unset', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: 'db.example.com',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'user',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user@db.example.com:5432/mydb');
+    });
+
+    it('brackets an IPv6 host so the connection URI is well-formed', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: '2001:db8::1',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'user',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user@[2001:db8::1]:5432/mydb');
+    });
+
+    it('does not double-bracket an already-bracketed IPv6 host', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: '[::1]',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'user',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user@[::1]:5432/mydb');
+    });
+
+    it('url-encodes special characters in the database name', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: 'db.example.com',
+          DATABASE_NAME: 'my db/prod',
+          DATABASE_USER: 'user',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user@db.example.com:5432/my%20db%2Fprod');
+    });
+
+    it('treats all-empty parts as absent and reports the missing database vars', () => {
+      expect(() =>
+        readEnvConfig(
+          { ...baseEnvNoUrl, DATABASE_HOST: '', DATABASE_NAME: '', DATABASE_USER: '' },
+          args,
+        ),
+      ).toThrow(/DATABASE_URL \(or DATABASE_HOST, DATABASE_NAME, DATABASE_USER\)/);
+    });
+
+    it('treats a present-but-empty part as absent and throws the some-but-not-all error', () => {
+      expect(() =>
+        readEnvConfig(
+          { ...baseEnvNoUrl, DATABASE_HOST: '', DATABASE_NAME: 'mydb', DATABASE_USER: 'user' },
+          args,
+        ),
+      ).toThrow(/built from parts; also set: DATABASE_HOST/);
+    });
+
+    it('url-encodes special characters in the user and password', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: 'db.example.com',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'u@ser',
+          DATABASE_PASSWORD: 'p@ss:word',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://u%40ser:p%40ss%3Aword@db.example.com:5432/mydb');
+    });
+
+    it('prefers DATABASE_URL over the individual parts when both are set', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnv,
+          DATABASE_HOST: 'db.example.com',
+          DATABASE_NAME: 'mydb',
+          DATABASE_USER: 'user',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://u:p@localhost:5432/wfe');
+    });
+
+    it('throws ConfigurationError when only some parts are set', () => {
+      expect(() =>
+        readEnvConfig({ ...baseEnvNoUrl, DATABASE_HOST: 'db.example.com' }, args),
+      ).toThrow(ConfigurationError);
+      expect(() =>
+        readEnvConfig({ ...baseEnvNoUrl, DATABASE_HOST: 'db.example.com' }, args),
+      ).toThrow(/DATABASE_NAME, DATABASE_USER/);
+    });
+
+    it('throws ConfigurationError when DATABASE_PORT is non-numeric', () => {
+      expect(() =>
+        readEnvConfig(
+          {
+            ...baseEnvNoUrl,
+            DATABASE_HOST: 'db.example.com',
+            DATABASE_NAME: 'mydb',
+            DATABASE_USER: 'user',
+            DATABASE_PORT: 'abc',
+          },
+          args,
+        ),
+      ).toThrow(/DATABASE_PORT must be a positive integer/);
+    });
+
+    it('reports the missing database vars when neither DATABASE_URL nor parts are set', () => {
+      expect(() => readEnvConfig(baseEnvNoUrl, args)).toThrow(
+        /DATABASE_URL \(or DATABASE_HOST, DATABASE_NAME, DATABASE_USER\)/,
+      );
+    });
+
+    it('ignores database parts in --in-memory mode and does not throw on partial parts', () => {
+      const config = readEnvConfig(
+        { ...baseEnvNoUrl, DATABASE_HOST: 'db.example.com' },
+        { ...args, inMemory: true },
+      );
+
+      expect(config.mode).toBe('in-memory');
+      expect(config.databaseUrl).toBeUndefined();
+    });
+  });
+
   it('builds aiConfigurations when AI vars are set', () => {
     const config = readEnvConfig(
       { ...baseEnv, AI_PROVIDER: 'anthropic', AI_MODEL: 'claude', AI_API_KEY: 'sk-xxx' },
@@ -533,6 +716,29 @@ describe('runCli', () => {
     );
     expect(factories.buildInMemory).not.toHaveBeenCalled();
     expect(executor.start).toHaveBeenCalled();
+  });
+
+  it('passes a URI built from split DB parts through to buildDatabase', async () => {
+    const { factories } = makeFactories();
+    const env = { ...baseEnv };
+    delete env.DATABASE_URL;
+    await runCli(
+      [],
+      {
+        ...env,
+        DATABASE_HOST: 'db.example.com',
+        DATABASE_NAME: 'mydb',
+        DATABASE_USER: 'user',
+        DATABASE_SSL: 'false',
+      },
+      factories,
+    );
+
+    expect(factories.buildDatabase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        database: { uri: 'postgres://user@db.example.com:5432/mydb' },
+      }),
+    );
   });
 
   it('enables TLS (no cert verification) on the database when DATABASE_SSL=true', async () => {

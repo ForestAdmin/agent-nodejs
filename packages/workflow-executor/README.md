@@ -96,6 +96,36 @@ Both values are already in your agent's environment variables. `FOREST_ENV_SECRE
 
 `AGENT_URL` is the URL where your Forest Admin agent is running (e.g. `http://localhost:3351`).
 
+### Database connection
+
+The Postgres connection can be provided in two ways. If `DATABASE_URL` is set, it
+is used as-is. Otherwise the executor builds the connection string from individual
+parts — handy when your platform exposes credentials as separate variables:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_HOST` | yes | Database host |
+| `DATABASE_NAME` | yes | Database name |
+| `DATABASE_USER` | yes | Database user |
+| `DATABASE_PASSWORD` | no | Database password |
+| `DATABASE_PORT` | no | Database port (default: `5432`) |
+
+```bash
+FOREST_ENV_SECRET="your-env-secret" \
+FOREST_AUTH_SECRET="your-auth-secret" \
+AGENT_URL="https://your-agent-url" \
+DATABASE_HOST="localhost" \
+DATABASE_NAME="mydb" \
+DATABASE_USER="user" \
+DATABASE_PASSWORD="pass" \
+DATABASE_SSL="false" \
+npx @forestadmin/workflow-executor
+```
+
+`DATABASE_SSL` defaults to `true` (managed Postgres requires TLS); set it to `false` for a local database without TLS.
+
+`DATABASE_URL` takes precedence: when it is set, the individual parts are ignored.
+
 ---
 
 ## Testing only
