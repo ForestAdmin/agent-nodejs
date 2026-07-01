@@ -5,6 +5,10 @@ import type { Middleware } from 'koa';
 import { bodyParser } from '@koa/bodyparser';
 
 import createConsoleLogger from './adapters/console-logger';
+import createApiKeyAuthenticator from './api-key/api-key-authenticator';
+import ApiKeyClient from './api-key/api-key-client';
+import createApiKeyMiddleware from './api-key/api-key-middleware';
+import createResolveCache from './api-key/resolve-cache';
 import { parseConfig } from './config/env-config';
 import { extractErrorMessage } from './errors';
 import BFFHttpServer from './http/bff-http-server';
@@ -75,12 +79,53 @@ async function buildOAuthMiddlewares(config: BFFConfig, logger: Logger): Promise
   return [bodyParser({ jsonLimit: BODY_LIMIT }), oauthRoutes];
 }
 
+interface ResolvedApiKeyConfig {
+  forestServerUrl: string;
+  forestEnvSecret: string;
+  forestAuthSecret: string;
+}
+
+function resolveApiKeyConfig(config: BFFConfig): ResolvedApiKeyConfig | undefined {
+  const { forestServerUrl, forestEnvSecret, forestAuthSecret } = config;
+
+  if (forestServerUrl && forestEnvSecret && forestAuthSecret) {
+    return { forestServerUrl, forestEnvSecret, forestAuthSecret };
+  }
+
+  return undefined;
+}
+
+function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | undefined {
+  const apiKeyConfig = resolveApiKeyConfig(config);
+
+  if (!apiKeyConfig) {
+    logger('Warn', 'API key auth disabled: required configuration is missing');
+
+    return undefined;
+  }
+
+  const client = new ApiKeyClient({
+    forestServerUrl: apiKeyConfig.forestServerUrl,
+    envSecret: apiKeyConfig.forestEnvSecret,
+  });
+  const cache = createResolveCache({ now: () => Date.now() });
+  const authenticator = createApiKeyAuthenticator({
+    client,
+    cache,
+    authSecret: apiKeyConfig.forestAuthSecret,
+  });
+
+  return createApiKeyMiddleware({ authenticator, logger });
+}
+
 export default async function runCli(
   env: NodeJS.ProcessEnv,
   logger: Logger = createConsoleLogger(),
 ): Promise<BFFHttpServer> {
   const config = parseConfig(env);
-  const middlewares = await buildOAuthMiddlewares(config, logger);
+  const oauthMiddlewares = await buildOAuthMiddlewares(config, logger);
+  const apiKeyMiddleware = buildApiKeyMiddleware(config, logger);
+  const middlewares = [...oauthMiddlewares, ...(apiKeyMiddleware ? [apiKeyMiddleware] : [])];
   const server = new BFFHttpServer({
     port: config.httpPort,
     version,
