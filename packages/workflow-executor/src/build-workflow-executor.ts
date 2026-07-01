@@ -54,6 +54,11 @@ export interface ExecutorOptions {
   schemaCacheTtlS?: number;
   // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
   forceAiError?: boolean;
+  // When true (default), the executor installs its own SIGTERM/SIGINT handlers that drain and
+  // call process.exit() — correct for the standalone CLI which owns the process. Set false when
+  // embedding in a host process (e.g. @forestadmin/agent): the executor must never touch the
+  // host's signals or exit it; the host drives shutdown by calling stop().
+  manageProcessSignals?: boolean;
 }
 
 export type DatabaseExecutorOptions = ExecutorOptions &
@@ -138,6 +143,7 @@ function createWorkflowExecutor(
   runner: Runner,
   server: ExecutorHttpServer,
   logger: Logger,
+  manageProcessSignals: boolean,
 ): WorkflowExecutor {
   let shutdownPromise: Promise<void> | null = null;
 
@@ -184,13 +190,19 @@ function createWorkflowExecutor(
       await runner.start();
       await server.start();
 
-      process.on('SIGTERM', onSignal);
-      process.on('SIGINT', onSignal);
+      // Only own the host's signals when explicitly allowed (the standalone CLI). When embedded,
+      // the host process must keep control of SIGTERM/SIGINT and its own exit.
+      if (manageProcessSignals) {
+        process.on('SIGTERM', onSignal);
+        process.on('SIGINT', onSignal);
+      }
     },
 
     async stop() {
-      process.removeListener('SIGTERM', onSignal);
-      process.removeListener('SIGINT', onSignal);
+      if (manageProcessSignals) {
+        process.removeListener('SIGTERM', onSignal);
+        process.removeListener('SIGINT', onSignal);
+      }
 
       if (!shutdownPromise) shutdownPromise = shutdown();
       await shutdownPromise;
@@ -214,7 +226,7 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     logger: deps.logger,
   });
 
-  return createWorkflowExecutor(runner, server, deps.logger);
+  return createWorkflowExecutor(runner, server, deps.logger, options.manageProcessSignals ?? true);
 }
 
 export function buildDatabaseExecutor(options: DatabaseExecutorOptions): WorkflowExecutor {
@@ -242,5 +254,5 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     logger: deps.logger,
   });
 
-  return createWorkflowExecutor(runner, server, deps.logger);
+  return createWorkflowExecutor(runner, server, deps.logger, options.manageProcessSignals ?? true);
 }

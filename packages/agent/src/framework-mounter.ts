@@ -13,6 +13,7 @@ import McpMiddleware from './mcp-middleware';
 
 export default class FrameworkMounter {
   public standaloneServerPort: number;
+  public standaloneServerHost?: string;
 
   private readonly onFirstStart: (() => Promise<void>)[] = [];
   private readonly onEachStart: ((router: Router) => Promise<void>)[] = [];
@@ -67,6 +68,7 @@ export default class FrameworkMounter {
   mountOnStandaloneServer(port?: number, host?: string): this {
     const portFromEnv = Number(process.env.PORT) || undefined;
     const chosenPort = port ?? portFromEnv ?? 3351;
+    this.standaloneServerHost = host;
     const server = createServer(this.getConnectCallback(true));
 
     this.onFirstStart.push(() => {

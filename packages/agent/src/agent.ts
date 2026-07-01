@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ForestAdminHttpDriverServices } from './services';
-import type { AgentOptions, AgentOptionsWithDefaults, HttpCallback } from './types';
+import type {
+  AgentOptions,
+  AgentOptionsWithDefaults,
+  HttpCallback,
+  WorkflowExecutorEmbedOptions,
+} from './types';
 import type { AiProviderDefinition } from '@forestadmin/agent-toolkit';
 import type {
   CollectionCustomizer,
@@ -21,6 +26,7 @@ import Router from '@koa/router';
 import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
 
+import EmbeddedWorkflowExecutor from './embedded-workflow-executor';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
@@ -49,6 +55,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
   private mcpEnabledTools?: ToolName[];
+
+  /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
+  private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
 
   private isRestarting = false;
 
@@ -92,6 +101,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       this.setMcpCallback(mcpHttpCallback ?? null);
       await this.mount(router);
+
+      // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
+      // standalone server's host/port (used to derive that URL) are only known once mounted.
+      await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
     } catch (error) {
       const { message } = error as Error;
       this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
@@ -103,6 +116,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Stop the agent.
    */
   override async stop(): Promise<void> {
+    // Drain the embedded executor first, while the agent it depends on is still serving.
+    await this.embeddedExecutor?.stop();
     // Close anything related to ForestAdmin client
     this.options.forestAdminClient.close();
     // Stop at framework level
@@ -282,6 +297,44 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
           'Make sure to test Forest Admin AI features thoroughly to ensure compatibility.',
       );
     }
+
+    return this;
+  }
+
+  /**
+   * Run a workflow executor in-process, alongside the agent. The agent boots it on start(),
+   * stops it on stop(), and proxies `/_internal/executor/*` to it — no separate deployment.
+   *
+   * Requires the `@forestadmin/workflow-executor` package to be installed:
+   * ```bash
+   * npm install @forestadmin/workflow-executor
+   * ```
+   *
+   * The executor persists run state in a database: provide `database`, or set the `DATABASE_URL`
+   * environment variable. Mutually exclusive with the `workflowExecutorUrl` option, which targets
+   * a separately-deployed executor instead.
+   *
+   * @param options embedded executor options
+   * @returns the agent instance for chaining
+   * @throws Error if called more than once, or if `workflowExecutorUrl` is also set
+   *
+   * @example
+   * createAgent(options)
+   *   .addDataSource(...)
+   *   .addWorkflowExecutor({ database: { uri: process.env.DATABASE_URL } })
+   *   .start();
+   */
+  addWorkflowExecutor(options: WorkflowExecutorEmbedOptions = {}): this {
+    if (this.embeddedExecutor) {
+      throw new Error('addWorkflowExecutor can only be called once.');
+    }
+
+    const executor = new EmbeddedWorkflowExecutor(this.options);
+    // Wire the existing proxy route to the loopback executor. Set here (before start() builds the
+    // routes) so the proxy is registered with the right target. Assign the field only after
+    // configure() succeeds, so a conflict error leaves no half-initialized executor.
+    (this.options as AgentOptions).workflowExecutorUrl = executor.configure(options);
+    this.embeddedExecutor = executor;
 
     return this;
   }
