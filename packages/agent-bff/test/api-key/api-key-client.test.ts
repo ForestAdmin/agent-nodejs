@@ -66,6 +66,15 @@ describe('ApiKeyClient.resolveApiKey', () => {
   it.each([
     ['missing user', { renderingId: 17, allowedOrigins: [] }],
     ['missing renderingId', { user: IDENTITY.user, allowedOrigins: [] }],
+    ['missing allowedOrigins', { user: IDENTITY.user, renderingId: 17 }],
+    [
+      'user missing tags array',
+      { user: { ...IDENTITY.user, tags: undefined }, renderingId: 17, allowedOrigins: [] },
+    ],
+    [
+      'user missing email',
+      { user: { ...IDENTITY.user, email: undefined }, renderingId: 17, allowedOrigins: [] },
+    ],
     ['empty object', {}],
   ])(
     'should mark the error unreachable when a 200 body is incomplete (%s)',
@@ -105,12 +114,13 @@ describe('ApiKeyClient.resolveApiKey', () => {
     });
   });
 
-  it('should drop a non-numeric Retry-After (HTTP-date form) rather than emit NaN', async () => {
-    mockFetch(
-      jest.fn(async () =>
-        fakeResponse(429, { errors: [] }, { 'retry-after': 'Wed, 21 Oct 2015 07:28:00 GMT' }),
-      ),
-    );
+  it.each([
+    ['HTTP-date form', 'Wed, 21 Oct 2015 07:28:00 GMT'],
+    ['negative', '-5'],
+    ['fractional', '3.7'],
+    ['zero', '0'],
+  ])('should drop a non-usable Retry-After (%s) rather than emit it', async (_label, header) => {
+    mockFetch(jest.fn(async () => fakeResponse(429, { errors: [] }, { 'retry-after': header })));
 
     await expect(new ApiKeyClient(OPTS).resolveApiKey(PARSED)).rejects.toMatchObject({
       status: 429,

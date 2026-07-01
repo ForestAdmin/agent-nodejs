@@ -86,9 +86,10 @@ export default function createApiKeyAuthenticator({
         throw error;
       }
 
+      const authenticated = mint(identity);
       cache.setPositive(hash, identity);
 
-      return mint(identity);
+      return authenticated;
     },
   };
 }

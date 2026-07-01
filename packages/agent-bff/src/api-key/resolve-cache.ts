@@ -65,7 +65,12 @@ export default function createResolveCache({
 
   function store(hash: string, entry: CacheEntry): void {
     purgeExpired();
-    if (!entries.has(hash) && entries.size >= maxEntries) return;
+
+    if (!entries.has(hash) && entries.size >= maxEntries) {
+      const oldest = entries.keys().next().value;
+      if (oldest !== undefined) entries.delete(oldest);
+    }
+
     entries.set(hash, entry);
   }
 

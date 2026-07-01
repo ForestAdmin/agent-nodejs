@@ -72,14 +72,16 @@ describe('resolve cache', () => {
   });
 
   describe('memory bound', () => {
-    it('should not insert new entries once maxEntries is reached', () => {
+    it('should evict the oldest entry once maxEntries is reached', () => {
       const cache = createResolveCache({ now, maxEntries: 2 });
       cache.setPositive('a', IDENTITY);
       cache.setPositive('b', IDENTITY);
       cache.setPositive('c', IDENTITY);
 
       expect(cache.size()).toBe(2);
-      expect(cache.getPositive('c')).toBeUndefined();
+      expect(cache.getPositive('a')).toBeUndefined();
+      expect(cache.getPositive('b')).toEqual(IDENTITY);
+      expect(cache.getPositive('c')).toEqual(IDENTITY);
     });
 
     it('should still overwrite an existing key when full', () => {

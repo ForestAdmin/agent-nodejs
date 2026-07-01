@@ -90,22 +90,39 @@ export default class ApiKeyClient {
   private static isResolvedIdentity(body: unknown): body is ResolvedApiKeyIdentity {
     if (typeof body !== 'object' || body === null) return false;
 
-    const candidate = body as { user?: unknown; renderingId?: unknown };
+    const candidate = body as { user?: unknown; renderingId?: unknown; allowedOrigins?: unknown };
 
     return (
-      typeof candidate.user === 'object' &&
-      candidate.user !== null &&
-      typeof candidate.renderingId === 'number'
+      typeof candidate.renderingId === 'number' &&
+      Array.isArray(candidate.allowedOrigins) &&
+      ApiKeyClient.isIdentityUser(candidate.user)
     );
   }
 
-  // Retry-After may be an HTTP-date rather than delay-seconds; only keep a finite number.
+  // Every field the agent-token mint reads must be present, so a partial body fails here
+  // (mapped to unavailable) instead of minting a token with undefined claims later.
+  private static isIdentityUser(user: unknown): user is ApiKeyIdentityUser {
+    if (typeof user !== 'object' || user === null) return false;
+
+    const candidate = user as Record<string, unknown>;
+
+    return (
+      typeof candidate.id === 'number' &&
+      typeof candidate.email === 'string' &&
+      typeof candidate.team === 'string' &&
+      typeof candidate.permissionLevel === 'string' &&
+      Array.isArray(candidate.tags)
+    );
+  }
+
+  // Retry-After may be an HTTP-date rather than delay-seconds; keep only a positive integer so a
+  // date/negative/zero value falls back to the caller's default instead of a useless backoff hint.
   private static parseRetryAfter(header: string | null): number | undefined {
     if (header === null) return undefined;
 
     const seconds = Number(header);
 
-    return Number.isFinite(seconds) ? seconds : undefined;
+    return Number.isInteger(seconds) && seconds > 0 ? seconds : undefined;
   }
 
   private url(path: string): string {
