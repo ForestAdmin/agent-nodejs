@@ -1,5 +1,6 @@
 import type { Logger } from '../src/ports/logger-port';
 
+import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 
 import runCli, { reportFatalError } from '../src/cli-core';
@@ -94,6 +95,39 @@ describe('runCli', () => {
     });
   });
 
+  describe('when FOREST_AUTH_SECRET is absent', () => {
+    it('should disable the agent edge and log it', async () => {
+      const logs: string[] = [];
+      const logger: Logger = (_level, message) => logs.push(message);
+
+      const server = await runCli({ ...VALID_ENV, FOREST_AUTH_SECRET: undefined }, logger);
+
+      try {
+        expect(logs).toContain('Agent edge disabled: FOREST_AUTH_SECRET is missing');
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
+  describe('when BFF_ALLOWED_ORIGINS has malformed entries', () => {
+    it('should log that the malformed entries are ignored', async () => {
+      const logs: string[] = [];
+      const logger: Logger = (_level, message) => logs.push(message);
+
+      const server = await runCli(
+        { ...VALID_ENV, BFF_ALLOWED_ORIGINS: 'https://ok.com, garbage' },
+        logger,
+      );
+
+      try {
+        expect(logs).toContain('Ignoring malformed BFF_ALLOWED_ORIGINS entries');
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
   describe('when the API key resolver is not configured', () => {
     it('should fail closed with 401 for an api-key request instead of reaching the agent stub', async () => {
       const server = await runCli({ ...VALID_ENV, FOREST_ENV_SECRET: undefined }, noopLogger);
@@ -105,6 +139,39 @@ describe('runCli', () => {
 
         expect(response.status).toBe(401);
         expect(response.body.error.type).toBe('unauthorized');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should let an oauth Bearer request through the guard to timezone resolution', async () => {
+      const token = jsonwebtoken.sign({ type: 'bff_access' }, VALID_ENV.FOREST_AUTH_SECRET, {
+        algorithm: 'HS256',
+        expiresIn: '15m',
+      });
+      const server = await runCli({ ...VALID_ENV, FOREST_ENV_SECRET: undefined }, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .get('/agent/records')
+          .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(400);
+        expect(response.body.error.type).toBe('missing_timezone');
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
+  describe('when a request targets a non-agent path', () => {
+    it('should skip the agent chain and fall through to 404', async () => {
+      const server = await runCli({ ...VALID_ENV }, noopLogger);
+
+      try {
+        const response = await request(server.callback).get('/not-agent');
+
+        expect(response.status).toBe(404);
       } finally {
         await server.stop();
       }
