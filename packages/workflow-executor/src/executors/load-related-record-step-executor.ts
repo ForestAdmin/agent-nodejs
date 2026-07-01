@@ -21,7 +21,6 @@ import {
   NoRelationshipFieldsError,
   RelatedRecordNotFoundError,
   RelationNotFoundError,
-  SourceRecordMissingError,
   StepStateError,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
@@ -42,6 +41,10 @@ Choose the fields that are most useful for determining which record best matches
 
 const SELECT_RECORD_SYSTEM_PROMPT = `You are an AI agent selecting the most relevant related record from a list of candidates.
 Choose the record that best matches the user request based on the provided field values.`;
+
+// Only appended when -1 is a valid answer. The base prompt tells the AI to always pick, so without
+// this it forces a weak match on an impossible request instead of declining.
+const SELECT_RECORD_NONE_ALLOWED_PROMPT = `If the request states a specific requirement that NO candidate satisfies, return -1 instead of forcing an arbitrary or loosely-related match. Do NOT return -1 merely because a match is imperfect — only when no candidate genuinely fits the request.`;
 
 // Bound only what is sent to the AI in selectBestRecordIndex — the full candidate list is
 // always returned to the front via availableRecordIds. These cap the prompt size, not the data.
@@ -135,7 +138,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const useAi = step.executionType !== StepExecutionMode.Manual;
 
     if (step.executionType === StepExecutionMode.FullyAutomated) {
-      return this.resolveAndLoadAutomatic(useAi);
+      return this.resolveAndLoadAutomatic();
     }
 
     const target = await this.resolveTarget(useAi);
@@ -278,12 +281,30 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     sourceSchema: CollectionSchema,
     suggestViaAi: boolean,
   ): Promise<StepExecutionResult> {
-    const { selectedRecordRef, name, displayName } = target;
-
     const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(
       target,
       suggestViaAi,
     );
+
+    return this.persistAwaitInput(target, sourceSchema, {
+      availableRecordIds,
+      suggestedRecord,
+      // An AI pass that yields no record is a deliberate "nothing relevant" → pre-check "No X to load".
+      // A Manual pass with no suggestion just means the user picks, so no pre-check.
+      suggestNoRecord: suggestViaAi && !suggestedRecord,
+    });
+  }
+
+  private async persistAwaitInput(
+    target: RelationTarget,
+    sourceSchema: CollectionSchema,
+    pending: {
+      availableRecordIds: LoadRelatedRecordCandidate[];
+      suggestedRecord?: LoadRelatedRecordCandidate;
+      suggestNoRecord: boolean;
+    },
+  ): Promise<StepExecutionResult> {
+    const { selectedRecordRef, name, displayName } = target;
 
     const availableFields: RelationRef[] = sourceSchema.fields
       .filter(isFollowableRelation)
@@ -295,8 +316,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       pendingData: {
         availableFields,
         suggestedField: { name, displayName },
-        availableRecordIds,
-        suggestedRecord,
+        availableRecordIds: pending.availableRecordIds,
+        suggestedRecord: pending.suggestedRecord,
+        ...(pending.suggestNoRecord && { suggestNoRecord: true }),
       },
       selectedRecordRef,
     });
@@ -322,7 +344,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const { relatedData, bestIndex, relatedSchema } = await this.selectBestFromRelatedData(
       target,
       50,
-      { rank: suggestViaAi, allowNone: false },
+      // allowNone: the AI may judge no candidate relevant (→ "No X to load"); only meaningful when
+      // ranking (Manual passes rank=false and never calls the AI).
+      { rank: suggestViaAi, allowNone: true },
     );
 
     if (relatedData.length === 0) {
@@ -352,48 +376,30 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return v === undefined || v === null ? null : String(v);
   }
 
-  private async resolveAndLoadAutomatic(useAi: boolean): Promise<StepExecutionResult> {
-    let target: RelationTarget;
+  private async resolveAndLoadAutomatic(): Promise<StepExecutionResult> {
+    // No source record throws (like Manual/AI-assisted) → the front offers "continue without" (PRD-550).
+    const target = await this.resolveTarget(true);
+    const { availableRecordIds, suggestedRecord } = await this.collectCandidateIds(target, true);
 
-    try {
-      target = await this.resolveTarget(useAi);
-    } catch (error) {
-      // No source record to load from → Full AI auto-continues. (Manual/AI-assisted let this error
-      // surface so the front can offer "continue without" — PRD-550.)
-      if (error instanceof SourceRecordMissingError) return this.persistSkip();
-      throw error;
+    // Full AI auto-loads a confident pick and advances. With nothing relevant to load it degrades to
+    // an AI-assisted confirmation (a human decides, "No X to load" pre-checked) instead of skipping —
+    // mirrors the Trigger Action automated→confirmation fallback.
+    if (!suggestedRecord) {
+      const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
+
+      return this.persistAwaitInput(target, sourceSchema, {
+        availableRecordIds,
+        suggestNoRecord: true,
+      });
     }
 
-    const record = await this.fetchRecordForRelation(target);
-
-    if (record === null) return this.persistSkip(target.selectedRecordRef);
-
-    return this.persistAndReturn(record, target, undefined);
-  }
-
-  private async fetchRecordForRelation(target: RelationTarget): Promise<RecordRef | null> {
-    if (target.relationType === 'BelongsTo' || target.relationType === 'HasOne') {
-      return this.fetchXToOneRecordRef(target);
-    }
-
-    if (target.relationType === 'HasMany') {
-      return this.selectBestRelatedRecord(target);
-    }
-
-    return this.fetchFirstCandidate(target);
-  }
-
-  // Returns null (→ Full AI skip) when the relation has no linked record.
-  private async fetchXToOneRecordRef(target: RelationTarget): Promise<RecordRef | null> {
-    const candidate = await this.fetchXToOneCandidate(target);
-
-    if (!candidate) return null;
-
-    return {
+    const record: RecordRef = {
       collectionName: target.relatedCollectionName,
-      recordId: candidate.recordId,
+      recordId: suggestedRecord.recordId,
       stepIndex: this.context.stepIndex,
     };
+
+    return this.persistAndReturn(record, target, undefined);
   }
 
   private async fetchXToOneCandidate(
@@ -509,24 +515,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return { relatedData, bestIndex, suggestedFields, relatedSchema };
   }
 
-  private async selectBestRelatedRecord(target: RelationTarget): Promise<RecordRef | null> {
-    const { relatedData, bestIndex } = await this.selectBestFromRelatedData(target, 50, {
-      rank: true,
-      allowNone: true,
-    });
-
-    if (relatedData.length === 0 || bestIndex < 0) return null;
-
-    return this.toRecordRef(relatedData[bestIndex]);
-  }
-
-  private async fetchFirstCandidate(target: RelationTarget): Promise<RecordRef | null> {
-    const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
-    const relatedData = await this.fetchRelatedData(target, relatedSchema, 1);
-
-    return relatedData.length > 0 ? this.toRecordRef(relatedData[0]) : null;
-  }
-
   private async fetchRelatedData(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name'>,
     relatedSchema: CollectionSchema,
@@ -557,19 +545,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       executionParams: { displayName, name },
       executionResult: { relation: { name, displayName }, record },
       selectedRecordRef,
-    });
-
-    return this.buildOutcomeResult({ status: 'success' });
-  }
-
-  // Reuses handleConfirmationFlow's `{ skipped: true }` marker so downstream + the front treat it as
-  // a deliberate skip. selectedRecordRef is absent only on the no-source skip.
-  private async persistSkip(selectedRecordRef?: RecordRef): Promise<StepExecutionResult> {
-    await this.context.runStore.saveStepExecution(this.context.runId, {
-      type: 'load-related-record',
-      stepIndex: this.context.stepIndex,
-      selectedRecordRef,
-      executionResult: { skipped: true },
     });
 
     return this.buildOutcomeResult({ status: 'success' });
@@ -749,6 +724,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const messages = [
       this.buildContextMessage(),
       new SystemMessage(SELECT_RECORD_SYSTEM_PROMPT),
+      ...(noneAllowed ? [new SystemMessage(SELECT_RECORD_NONE_ALLOWED_PROMPT)] : []),
       new SystemMessage(`Candidates:\n${lines.join('\n')}`),
       new HumanMessage(`**Request**: ${prompt ?? 'Select the most relevant record.'}`),
     ];
@@ -768,13 +744,5 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     return recordIndex;
-  }
-
-  private toRecordRef(data: RecordData): RecordRef {
-    return {
-      collectionName: data.collectionName,
-      recordId: data.recordId,
-      stepIndex: this.context.stepIndex,
-    };
   }
 }

@@ -15,7 +15,7 @@ export default function serializeStepForWire(step: StepExecutionData): unknown {
       return { ...step, selectedRecordRef: serializeRecordRef(step.selectedRecordRef) };
 
     case 'load-related-record': {
-      // Omit selectedRecordRef when absent (Full AI no-source skip) — serializing undefined throws.
+      // Omit selectedRecordRef when absent — serializing undefined throws.
       const result: Record<string, unknown> = {
         ...step,
         ...(step.selectedRecordRef && {
