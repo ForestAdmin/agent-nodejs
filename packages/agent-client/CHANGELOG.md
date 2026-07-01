@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.8.0...@forestadmin/agent-client@1.9.0) (2026-07-01)
+
+
+### Features
+
+* **workflow-executor:** approval requests on Full AI / Automatic trigger actions [PRD-688] ([#1720](https://github.com/ForestAdmin/agent-nodejs/issues/1720)) ([aa3ef58](https://github.com/ForestAdmin/agent-nodejs/commit/aa3ef58da383d92e96390e8931d41fa87fd72353))
+
 # @forestadmin/agent-client [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.7.1...@forestadmin/agent-client@1.8.0) (2026-06-29)
 
 
