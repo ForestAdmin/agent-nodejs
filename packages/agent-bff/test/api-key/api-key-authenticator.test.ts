@@ -195,4 +195,51 @@ describe('api key authenticator', () => {
       expect(resolve).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('malformed BFF call (SaaS 400)', () => {
+    it('should map a SaaS 400 to invalid_request without negatively caching it', async () => {
+      const resolve = jest.fn(async () => {
+        throw new ApiKeyResolveError({ status: 400 });
+      });
+      const authenticator = buildAuthenticator(resolve, nowRef);
+
+      await expect(authenticator.authenticate(RAW)).rejects.toMatchObject({
+        type: 'invalid_request',
+        status: 400,
+      });
+
+      await authenticator.authenticate(RAW).catch(() => undefined);
+      expect(resolve).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('unexpected SaaS status', () => {
+    it('should map an out-of-taxonomy status to a non-cached 503', async () => {
+      const resolve = jest.fn(async () => {
+        throw new ApiKeyResolveError({ status: 500 });
+      });
+      const authenticator = buildAuthenticator(resolve, nowRef);
+
+      await expect(authenticator.authenticate(RAW)).rejects.toMatchObject({
+        type: 'key_resolution_unavailable',
+        status: 503,
+        retryAfter: 5,
+      });
+
+      await authenticator.authenticate(RAW).catch(() => undefined);
+      expect(resolve).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('non-resolver error', () => {
+    it('should rethrow an error that is not an ApiKeyResolveError unchanged', async () => {
+      const boom = new Error('unexpected');
+      const resolve = jest.fn(async () => {
+        throw boom;
+      });
+      const authenticator = buildAuthenticator(resolve, nowRef);
+
+      await expect(authenticator.authenticate(RAW)).rejects.toBe(boom);
+    });
+  });
 });
