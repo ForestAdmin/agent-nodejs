@@ -1,5 +1,7 @@
 import type { Logger } from '../src/ports/logger-port';
 
+import request from 'supertest';
+
 import runCli, { reportFatalError } from '../src/cli-core';
 import { ConfigurationError } from '../src/errors';
 
@@ -89,6 +91,23 @@ describe('runCli', () => {
       await expect(runCli({ ...FULL_ENV }, noopLogger)).rejects.toThrow(
         'forest server unreachable',
       );
+    });
+  });
+
+  describe('when the API key resolver is not configured', () => {
+    it('should fail closed with 401 for an api-key request instead of reaching the agent stub', async () => {
+      const server = await runCli({ ...VALID_ENV, FOREST_ENV_SECRET: undefined }, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .get('/agent/records')
+          .set('X-Forest-Bff-Key', 'fbff_anything');
+
+        expect(response.status).toBe(401);
+        expect(response.body.error.type).toBe('unauthorized');
+      } finally {
+        await server.stop();
+      }
     });
   });
 

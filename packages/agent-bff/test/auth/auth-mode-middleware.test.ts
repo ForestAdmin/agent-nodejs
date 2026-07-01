@@ -62,6 +62,15 @@ describe('auth mode middleware', () => {
     expect(response.body.authMode).toBe('oauth');
   });
 
+  it('accepts a lowercase bearer scheme (auth schemes are case-insensitive)', async () => {
+    const response = await request(buildApp())
+      .get('/agent/x')
+      .set('Authorization', `bearer ${bffAccess('15m')}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.authMode).toBe('oauth');
+  });
+
   it('returns 401 session_expired for an expired bff_access', async () => {
     const response = await request(buildApp())
       .get('/agent/x')

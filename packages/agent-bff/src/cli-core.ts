@@ -15,6 +15,7 @@ import { parseConfig } from './config/env-config';
 import createCorsMiddleware from './cors/cors-middleware';
 import createPerKeyOriginMiddleware from './cors/per-key-origin';
 import { extractErrorMessage } from './errors';
+import { unauthorized } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
 import createErrorMiddleware from './http/error-middleware';
 import ForestServerClient from './oauth/forest-server-client';
@@ -40,6 +41,17 @@ function agentScoped(middleware: Middleware): Middleware {
     }
 
     await middleware(ctx, next);
+  };
+}
+
+function createApiKeyUnavailableGuard(logger: Logger): Middleware {
+  return async function apiKeyUnavailableGuard(ctx, next) {
+    if (ctx.state.authMode === 'api-key') {
+      logger('Error', 'API key auth requested but the resolver is not configured');
+      throw unauthorized('Credentials could not be validated');
+    }
+
+    await next();
   };
 }
 
@@ -149,12 +161,11 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
     return [];
   }
 
-  const apiKeyMiddleware = buildApiKeyMiddleware(config, logger);
+  const apiKeyStep = buildApiKeyMiddleware(config, logger) ?? createApiKeyUnavailableGuard(logger);
 
   const chain: Middleware[] = [
-    createErrorMiddleware({ logger }),
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
-    ...(apiKeyMiddleware ? [apiKeyMiddleware] : []),
+    apiKeyStep,
     createPerKeyOriginMiddleware(),
     createTimezoneMiddleware({ defaultTimezone }),
     createAgentStubMiddleware(),
@@ -177,8 +188,11 @@ export default async function runCli(
 
   const oauthMiddlewares = await buildOAuthMiddlewares(config, logger);
   const agentMiddlewares = buildAgentMiddlewares(config, logger);
+  const agentErrorMiddleware =
+    agentMiddlewares.length > 0 ? [agentScoped(createErrorMiddleware({ logger }))] : [];
   const middlewares = [
     createCorsMiddleware({ allowedOrigins: config.allowedOrigins }),
+    ...agentErrorMiddleware,
     bodyParser({ jsonLimit: BODY_LIMIT }),
     ...oauthMiddlewares,
     ...agentMiddlewares,

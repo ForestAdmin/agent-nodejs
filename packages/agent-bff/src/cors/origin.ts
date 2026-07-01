@@ -45,5 +45,5 @@ export function originAllowed(requestOrigin: string | undefined, allowList: stri
   const normalized = normalizeOrigin(requestOrigin);
   if (normalized === null) return false;
 
-  return allowList.includes(normalized);
+  return allowList.some(entry => normalizeOrigin(entry) === normalized);
 }

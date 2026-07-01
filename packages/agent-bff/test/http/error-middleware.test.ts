@@ -28,6 +28,20 @@ describe('error middleware', () => {
     });
   });
 
+  it('maps a client-status http error (e.g. malformed body) to a structured 4xx', async () => {
+    const { callback } = buildApp(() => {
+      const error = Object.assign(new Error('Unexpected token in JSON'), { status: 400 });
+      throw error;
+    });
+
+    const res = await request(callback).get('/');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: { type: 'invalid_request', status: 400, message: 'Invalid request' },
+    });
+  });
+
   it('maps an unknown error to 500 internal_error and logs it', async () => {
     const { callback, logs } = buildApp(() => {
       throw new Error('unexpected');

@@ -42,6 +42,14 @@ describe('per-key origin middleware (layer 2)', () => {
     });
   });
 
+  it('matches a per-key origin returned by SaaS in a non-normalized form', async () => {
+    const response = await request(buildApp(['https://a.com:443']).callback())
+      .get('/agent/x')
+      .set('Origin', 'https://a.com');
+
+    expect(response.status).toBe(200);
+  });
+
   it('is a no-op when the per-key list is empty', async () => {
     const response = await request(buildApp([]).callback())
       .get('/agent/x')

@@ -2,12 +2,15 @@ import { ambiguousCredentials, unauthorized } from '../http/bff-http-error';
 
 export type AuthMode = 'oauth' | 'api-key';
 
-const BEARER_PREFIX = 'Bearer ';
+const BEARER_PATTERN = /^Bearer[ \t]+(.+)$/i;
 
 export function extractBearerToken(authorization: string | undefined): string | undefined {
-  if (!authorization || !authorization.startsWith(BEARER_PREFIX)) return undefined;
+  if (!authorization) return undefined;
 
-  const token = authorization.slice(BEARER_PREFIX.length).trim();
+  const match = BEARER_PATTERN.exec(authorization.trim());
+  if (!match) return undefined;
+
+  const token = match[1].trim();
 
   return token === '' ? undefined : token;
 }
