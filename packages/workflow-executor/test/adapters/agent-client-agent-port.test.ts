@@ -965,6 +965,15 @@ describe('AgentClientAgentPort', () => {
       expect(form.requiredFields).toEqual([]);
       expect(mockAction.tryToSetFields).not.toHaveBeenCalled();
     });
+
+    it('builds the form against no record when the id is omitted (global action)', async () => {
+      mockAction.getFields.mockReturnValue([]);
+
+      await port.getActionForm({ collection: 'users', action: 'archive' }, user);
+
+      // Parity with executeAction: a global action carries no recordId.
+      expect(mockCollection.action).toHaveBeenCalledWith('archive', { recordIds: [] });
+    });
   });
 
   describe('getActionFormInfo', () => {

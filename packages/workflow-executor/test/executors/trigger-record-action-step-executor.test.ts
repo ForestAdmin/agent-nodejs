@@ -412,6 +412,55 @@ describe('TriggerRecordActionStepExecutor', () => {
       // Replay must NOT re-trigger the action.
       expect(agentPort.executeAction).not.toHaveBeenCalled();
     });
+
+    it('rebuilds an executed outcome on replay (phase=done) without an approvalRequest', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'trigger-action',
+            stepIndex: 0,
+            idempotencyPhase: 'done',
+            executionResult: {
+              success: true,
+              submissionOutcome: 'executed',
+              submittedBy: 'ai',
+              actionResult: { ok: true },
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({ agentPort, runStore });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(result.stepOutcome).not.toHaveProperty('approvalRequest');
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+    });
+
+    it('rebuilds a success outcome on replay (phase=done) when the step was skipped', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'trigger-action',
+            stepIndex: 0,
+            idempotencyPhase: 'done',
+            executionResult: { skipped: true },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({ agentPort, runStore });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(result.stepOutcome).not.toHaveProperty('approvalRequest');
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+    });
   });
 
   describe('operation activity log', () => {

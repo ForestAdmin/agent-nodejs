@@ -62,10 +62,17 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
 
     if (existing?.idempotencyPhase === 'done') {
       const result = existing.executionResult;
-      const approvalRequest =
-        result && !('skipped' in result) && result.submissionOutcome === 'pending-approval'
-          ? result.approvalRequest
-          : undefined;
+      const isPendingApproval =
+        result && !('skipped' in result) && result.submissionOutcome === 'pending-approval';
+      const approvalRequest = isPendingApproval ? result.approvalRequest : undefined;
+
+      if (isPendingApproval && !approvalRequest) {
+        this.context.logger(
+          'Warn',
+          'Replayed a pending-approval step with no approval id; no deep-link available.',
+          { stepIndex: this.context.stepIndex, renderingId: this.context.user.renderingId },
+        );
+      }
 
       return this.buildOutcomeResult({
         status: 'success',
@@ -389,6 +396,20 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     };
 
     if ('approvalRequested' in outcome) {
+      if (!outcome.approvalRequest) {
+        // The approval exists server-side but no id came back — the step still succeeds, but
+        // there's no deep-link to surface. Log it so the missing link isn't a silent mystery.
+        this.context.logger(
+          'Warn',
+          'Approval request created but the server returned no id; the step has no approval deep-link.',
+          {
+            collectionName: selectedRecordRef.collectionName,
+            actionName: name,
+            renderingId: this.context.user.renderingId,
+          },
+        );
+      }
+
       await this.context.runStore.saveStepExecution(this.context.runId, {
         type: 'trigger-action',
         stepIndex: this.context.stepIndex,
