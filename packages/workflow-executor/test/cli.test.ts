@@ -360,6 +360,38 @@ describe('readEnvConfig', () => {
       expect(config.databaseUrl).toBe('postgres://user@[::1]:5432/mydb');
     });
 
+    it('url-encodes special characters in the database name', () => {
+      const config = readEnvConfig(
+        {
+          ...baseEnvNoUrl,
+          DATABASE_HOST: 'db.example.com',
+          DATABASE_NAME: 'my db/prod',
+          DATABASE_USER: 'user',
+        },
+        args,
+      );
+
+      expect(config.databaseUrl).toBe('postgres://user@db.example.com:5432/my%20db%2Fprod');
+    });
+
+    it('treats all-empty parts as absent and reports the missing database vars', () => {
+      expect(() =>
+        readEnvConfig(
+          { ...baseEnvNoUrl, DATABASE_HOST: '', DATABASE_NAME: '', DATABASE_USER: '' },
+          args,
+        ),
+      ).toThrow(/DATABASE_URL \(or DATABASE_HOST, DATABASE_NAME, DATABASE_USER\)/);
+    });
+
+    it('treats a present-but-empty part as absent and throws the some-but-not-all error', () => {
+      expect(() =>
+        readEnvConfig(
+          { ...baseEnvNoUrl, DATABASE_HOST: '', DATABASE_NAME: 'mydb', DATABASE_USER: 'user' },
+          args,
+        ),
+      ).toThrow(/built from parts; also set: DATABASE_HOST/);
+    });
+
     it('url-encodes special characters in the user and password', () => {
       const config = readEnvConfig(
         {
@@ -684,6 +716,29 @@ describe('runCli', () => {
     );
     expect(factories.buildInMemory).not.toHaveBeenCalled();
     expect(executor.start).toHaveBeenCalled();
+  });
+
+  it('passes a URI built from split DB parts through to buildDatabase', async () => {
+    const { factories } = makeFactories();
+    const env = { ...baseEnv };
+    delete env.DATABASE_URL;
+    await runCli(
+      [],
+      {
+        ...env,
+        DATABASE_HOST: 'db.example.com',
+        DATABASE_NAME: 'mydb',
+        DATABASE_USER: 'user',
+        DATABASE_SSL: 'false',
+      },
+      factories,
+    );
+
+    expect(factories.buildDatabase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        database: { uri: 'postgres://user@db.example.com:5432/mydb' },
+      }),
+    );
   });
 
   it('enables TLS (no cert verification) on the database when DATABASE_SSL=true', async () => {
