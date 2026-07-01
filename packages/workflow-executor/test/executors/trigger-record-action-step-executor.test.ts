@@ -440,6 +440,38 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(agentPort.executeAction).not.toHaveBeenCalled();
     });
 
+    it('warns and rebuilds success on replay of a pending-approval step with no approval id', async () => {
+      const logger = jest.fn();
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'trigger-action',
+            stepIndex: 0,
+            idempotencyPhase: 'done',
+            executionResult: {
+              success: true,
+              submissionOutcome: 'pending-approval',
+              submittedBy: 'ai',
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({ agentPort, runStore, logger });
+
+      const result = await new TriggerRecordActionStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(result.stepOutcome).not.toHaveProperty('approvalRequest');
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining('no approval id'),
+        expect.anything(),
+      );
+      expect(agentPort.executeAction).not.toHaveBeenCalled();
+    });
+
     it('rebuilds a success outcome on replay (phase=done) when the step was skipped', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([
