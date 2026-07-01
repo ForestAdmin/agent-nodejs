@@ -389,6 +389,24 @@ describe('WorkflowExecutor lifecycle', () => {
     expect(removeSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
   });
 
+  it('does not register signal handlers when manageProcessSignals is false', async () => {
+    const exec = buildInMemoryExecutor({ ...BASE_OPTIONS, manageProcessSignals: false });
+    await exec.start();
+
+    // Embedded in a host process: the executor must never touch the host's signals.
+    expect(onSpy).not.toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+    expect(onSpy).not.toHaveBeenCalledWith('SIGINT', expect.any(Function));
+  });
+
+  it('still drains the runner on stop() when manageProcessSignals is false', async () => {
+    const exec = buildInMemoryExecutor({ ...BASE_OPTIONS, manageProcessSignals: false });
+    await exec.start();
+    await exec.stop();
+
+    expect(removeSpy).not.toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+    expect(MockedRunner.prototype.stop).toHaveBeenCalled();
+  });
+
   it('stop() calls runner.stop', async () => {
     await executor.start();
     await executor.stop();

@@ -18,7 +18,6 @@ import type {
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 import type { ToolName } from '@forestadmin/mcp-server';
-import type { WorkflowExecutor } from '@forestadmin/workflow-executor';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
@@ -26,17 +25,14 @@ import cors from '@koa/cors';
 import Router from '@koa/router';
 import { readFile, writeFile } from 'fs/promises';
 import stringify from 'json-stringify-pretty-compact';
-import path from 'path';
 
+import EmbeddedWorkflowExecutor from './embedded-workflow-executor';
 import FrameworkMounter from './framework-mounter';
 import makeRoutes from './routes';
 import makeServices from './services';
 import CustomizationService from './services/model-customizations/customization';
 import SchemaGenerator from './utils/forest-schema/generator';
 import OptionsValidator from './utils/options-validator';
-
-/** Default loopback port for an embedded workflow executor (mirrors the executor CLI's HTTP_PORT). */
-const DEFAULT_EMBEDDED_EXECUTOR_PORT = 3400;
 
 /**
  * Allow to create a new Forest Admin agent from scratch.
@@ -60,10 +56,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private mcpEnabled = false;
   private mcpEnabledTools?: ToolName[];
 
-  /** Embedded workflow executor configuration, set by addWorkflowExecutor() (null when disabled). */
-  private embeddedExecutorConfig: (WorkflowExecutorEmbedOptions & { port: number }) | null = null;
-  /** Running embedded workflow executor instance, created on start(). */
-  private embeddedExecutor: WorkflowExecutor | null = null;
+  /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
+  private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
 
   private isRestarting = false;
 
@@ -110,7 +104,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
       // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
       // standalone server's port (used to derive that URL) is only known once mounted.
-      if (this.embeddedExecutorConfig) await this.startEmbeddedExecutor();
+      await this.embeddedExecutor?.start(this.standaloneServerPort);
     } catch (error) {
       const { message } = error as Error;
       this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
@@ -152,83 +146,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       await this.remount(router);
     } finally {
       this.isRestarting = false;
-    }
-  }
-
-  /**
-   * Build and start the embedded workflow executor. Called from start() after mount().
-   */
-  private async startEmbeddedExecutor(): Promise<void> {
-    const config = this.embeddedExecutorConfig;
-    if (!config) return;
-
-    const agentUrl = config.agentUrl ?? this.deriveEmbeddedExecutorAgentUrl();
-
-    if (!agentUrl) {
-      throw new Error(
-        'Embedded workflow executor: unable to derive the agent URL. It is only auto-derived when ' +
-          'the agent runs on its own server (mountOnStandaloneServer). When mounting on Express, ' +
-          'Fastify or NestJS, pass `agentUrl` to addWorkflowExecutor().',
-      );
-    }
-
-    const database =
-      config.database ?? (process.env.DATABASE_URL ? { uri: process.env.DATABASE_URL } : undefined);
-
-    if (!database) {
-      throw new Error(
-        'Embedded workflow executor requires a database to persist run state. Pass `database` to ' +
-          'addWorkflowExecutor() or set the DATABASE_URL environment variable.',
-      );
-    }
-
-    const { buildDatabaseExecutor } = await this.importWorkflowExecutor();
-
-    this.embeddedExecutor = buildDatabaseExecutor({
-      envSecret: this.options.envSecret,
-      authSecret: this.options.authSecret,
-      forestServerUrl: this.options.forestServerUrl,
-      agentUrl,
-      httpPort: config.port,
-      pollingIntervalS: config.pollingIntervalS,
-      stepTimeoutS: config.stepTimeoutS,
-      logger: (level, message) => this.options.logger(level, `[workflow-executor] ${message}`),
-      database: database as Parameters<typeof buildDatabaseExecutor>[0]['database'],
-    });
-
-    await this.embeddedExecutor.start();
-    this.options.logger(
-      'Info',
-      `Embedded workflow executor started (loopback port ${config.port})`,
-    );
-  }
-
-  /**
-   * Derive the URL the embedded executor uses to reach this agent over HTTP.
-   * Only possible on a standalone server, where the agent owns the listening port.
-   */
-  private deriveEmbeddedExecutorAgentUrl(): string | null {
-    if (!this.standaloneServerPort) return null;
-
-    // agent-client appends `/forest`, so the URL stops at the configured prefix.
-    const prefixPath = path.posix.join('/', this.options.prefix);
-    const base = `http://127.0.0.1:${this.standaloneServerPort}`;
-
-    return prefixPath === '/' ? base : `${base}${prefixPath}`;
-  }
-
-  /**
-   * Dynamically load the optional @forestadmin/workflow-executor package.
-   * Deferred so agents that don't embed an executor never pull its dependencies.
-   */
-  private async importWorkflowExecutor() {
-    try {
-      return await import('@forestadmin/workflow-executor');
-    } catch (error) {
-      throw new Error(
-        'The embedded workflow executor requires the `@forestadmin/workflow-executor` package. ' +
-          'Install it with `npm install @forestadmin/workflow-executor`.',
-      );
     }
   }
 
@@ -408,23 +325,16 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    *   .start();
    */
   addWorkflowExecutor(options: WorkflowExecutorEmbedOptions = {}): this {
-    if (this.embeddedExecutorConfig) {
+    if (this.embeddedExecutor) {
       throw new Error('addWorkflowExecutor can only be called once.');
     }
 
-    if (this.options.workflowExecutorUrl) {
-      throw new Error(
-        'Cannot use addWorkflowExecutor together with the workflowExecutorUrl option: the former ' +
-          'embeds an executor in-process, the latter targets a remote one. Choose one.',
-      );
-    }
-
-    const port = options.port ?? (Number(process.env.HTTP_PORT) || DEFAULT_EMBEDDED_EXECUTOR_PORT);
-    this.embeddedExecutorConfig = { ...options, port };
-
+    const executor = new EmbeddedWorkflowExecutor(this.options);
     // Wire the existing proxy route to the loopback executor. Set here (before start() builds the
-    // routes) so the proxy is registered with the right target.
-    (this.options as AgentOptions).workflowExecutorUrl = `http://127.0.0.1:${port}`;
+    // routes) so the proxy is registered with the right target. Assign the field only after
+    // configure() succeeds, so a conflict error leaves no half-initialized executor.
+    (this.options as AgentOptions).workflowExecutorUrl = executor.configure(options);
+    this.embeddedExecutor = executor;
 
     return this;
   }

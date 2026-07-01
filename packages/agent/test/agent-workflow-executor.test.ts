@@ -117,9 +117,24 @@ describe('Agent.addWorkflowExecutor', () => {
           agentUrl: 'http://my-agent/prefix',
           httpPort: 4400,
           database: { uri: 'postgres://localhost/db' },
+          // Embedded: the host process keeps control of SIGTERM/SIGINT and its own exit.
+          manageProcessSignals: false,
         }),
       );
       expect(mockExecutorStart).toHaveBeenCalledTimes(1);
+    });
+
+    test('fails the agent start when the embedded executor fails to start', async () => {
+      // No graceful degradation: a failing executor (e.g. failed agent probe / unreachable DB)
+      // must crash agent.start() rather than leave the agent serving a dead executor.
+      mockExecutorStart.mockRejectedValueOnce(new Error('agent probe failed'));
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+      });
+
+      await expect(agent.start()).rejects.toThrow('agent probe failed');
     });
 
     test('forwards executor logs through the agent logger with a prefix', async () => {
@@ -138,6 +153,29 @@ describe('Agent.addWorkflowExecutor', () => {
       await agent.start();
 
       expect(logger).toHaveBeenCalledWith('Warn', '[workflow-executor] something happened');
+    });
+
+    test('forwards the executor structured log context onto the message', async () => {
+      const logger = jest.fn();
+      mockBuildDatabaseExecutor.mockImplementation((opts: any) => {
+        opts.logger('Error', 'step failed', { runId: 'run-1', error: 'boom' });
+
+        return { start: mockExecutorStart, stop: mockExecutorStop, state: 'idle' };
+      });
+      const agent = new Agent(buildOptions({ logger }));
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+      });
+
+      await agent.start();
+
+      // The agent logger only takes an Error as 3rd arg, so the context must survive in the
+      // message rather than being dropped.
+      expect(logger).toHaveBeenCalledWith(
+        'Error',
+        '[workflow-executor] step failed {"runId":"run-1","error":"boom"}',
+      );
     });
 
     test('falls back to the DATABASE_URL environment variable when no database is provided', async () => {
