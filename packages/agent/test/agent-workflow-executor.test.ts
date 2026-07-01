@@ -206,6 +206,40 @@ describe('Agent.addWorkflowExecutor', () => {
       await agent.stop();
     });
 
+    test('derives the agentUrl using the standalone server host when one is provided', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({ database: { uri: 'postgres://localhost/db' } });
+      // A specific bind host must be used verbatim, not replaced by a hard-coded 127.0.0.1.
+      agent.mountOnStandaloneServer(0, 'localhost');
+
+      await agent.start();
+
+      expect(mockBuildDatabaseExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentUrl: `http://localhost:${agent.standaloneServerPort}/prefix`,
+        }),
+      );
+
+      await agent.stop();
+    });
+
+    test('maps a wildcard standalone host to loopback for the agentUrl', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({ database: { uri: 'postgres://localhost/db' } });
+      // 0.0.0.0 is a bind wildcard, not a connectable address → the executor must use loopback.
+      agent.mountOnStandaloneServer(0, '0.0.0.0');
+
+      await agent.start();
+
+      expect(mockBuildDatabaseExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentUrl: `http://127.0.0.1:${agent.standaloneServerPort}/prefix`,
+        }),
+      );
+
+      await agent.stop();
+    });
+
     test('throws when no database is configured', async () => {
       const agent = new Agent(buildOptions());
       agent.addWorkflowExecutor({ agentUrl: 'http://my-agent' });

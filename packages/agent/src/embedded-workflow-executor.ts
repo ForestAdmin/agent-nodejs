@@ -22,6 +22,17 @@ function formatLog(message: string, context?: Record<string, unknown>): string {
 }
 
 /**
+ * Turn the standalone server's bind host into a host the embedded executor can actually connect
+ * to. Wildcard/unspecified binds (undefined, `0.0.0.0`, `::`) are not valid connect targets, so
+ * fall back to loopback. IPv6 literals must be bracketed to sit in a URL authority.
+ */
+function toConnectableHost(host?: string): string {
+  if (!host || host === '0.0.0.0' || host === '::') return '127.0.0.1';
+
+  return host.includes(':') ? `[${host}]` : host;
+}
+
+/**
  * Owns the lifecycle of a workflow executor embedded in the agent process: configuration,
  * dynamic loading of the optional package, build, and start/stop. The agent only wires the proxy
  * route to the loopback URL `configure()` returns and delegates start/stop.
@@ -53,13 +64,17 @@ export default class EmbeddedWorkflowExecutor {
 
   /**
    * Build and start the executor. Called from agent.start() after mount(), so the standalone
-   * server's port (used to derive the agent URL) is already known.
+   * server's host/port (used to derive the agent URL) are already known.
    */
-  async start(standaloneServerPort: number | undefined): Promise<void> {
+  async start(
+    standaloneServerHost: string | undefined,
+    standaloneServerPort: number | undefined,
+  ): Promise<void> {
     const { config } = this;
     if (!config) return;
 
-    const agentUrl = config.agentUrl ?? this.deriveAgentUrl(standaloneServerPort);
+    const agentUrl =
+      config.agentUrl ?? this.deriveAgentUrl(standaloneServerHost, standaloneServerPort);
 
     if (!agentUrl) {
       throw new Error(
@@ -109,14 +124,17 @@ export default class EmbeddedWorkflowExecutor {
 
   /**
    * Derive the URL the embedded executor uses to reach this agent over HTTP. Only possible on a
-   * standalone server, where the agent owns the listening port.
+   * standalone server, where the agent owns the listening host/port.
    */
-  private deriveAgentUrl(standaloneServerPort: number | undefined): string | null {
+  private deriveAgentUrl(
+    standaloneServerHost: string | undefined,
+    standaloneServerPort: number | undefined,
+  ): string | null {
     if (!standaloneServerPort) return null;
 
     // agent-client appends `/forest`, so the URL stops at the configured prefix.
     const prefixPath = path.posix.join('/', this.options.prefix);
-    const base = `http://127.0.0.1:${standaloneServerPort}`;
+    const base = `http://${toConnectableHost(standaloneServerHost)}:${standaloneServerPort}`;
 
     return prefixPath === '/' ? base : `${base}${prefixPath}`;
   }

@@ -103,8 +103,8 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
       await this.mount(router);
 
       // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
-      // standalone server's port (used to derive that URL) is only known once mounted.
-      await this.embeddedExecutor?.start(this.standaloneServerPort);
+      // standalone server's host/port (used to derive that URL) are only known once mounted.
+      await this.embeddedExecutor?.start(this.standaloneServerHost, this.standaloneServerPort);
     } catch (error) {
       const { message } = error as Error;
       this.options.logger('Error', `Forest Admin agent startup failure: ${message}`);
