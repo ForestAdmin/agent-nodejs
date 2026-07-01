@@ -119,6 +119,36 @@ describe('toUpdateStepRequest', () => {
     expect(body.executionStatus).toEqual({ type: 'success' });
   });
 
+  it('forwards approvalRequest in the context for a pending-approval record outcome', () => {
+    const outcome: StepOutcome = {
+      type: 'record',
+      stepId: 'step-1',
+      stepIndex: 1,
+      status: 'success',
+      approvalRequest: { id: 'req_42' },
+    };
+
+    const body = toUpdateStepRequest('42', outcome);
+
+    expect(body.stepUpdate.attributes.context).toEqual({
+      status: 'success',
+      approvalRequest: { id: 'req_42' },
+    });
+  });
+
+  it('omits approvalRequest from the context when the record outcome has none', () => {
+    const outcome: StepOutcome = {
+      type: 'record',
+      stepId: 'step-1',
+      stepIndex: 1,
+      status: 'success',
+    };
+
+    const body = toUpdateStepRequest('42', outcome);
+
+    expect(body.stepUpdate.attributes.context).not.toHaveProperty('approvalRequest');
+  });
+
   it('maps an mcp awaiting-input outcome like a record', () => {
     const outcome: StepOutcome = {
       type: 'mcp',

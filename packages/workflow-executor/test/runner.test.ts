@@ -1255,6 +1255,7 @@ describe('chain', () => {
       expect.anything(),
       expect.any(Function),
       { userConfirmed: true },
+      'token-0',
     );
     expect(createSpy).toHaveBeenNthCalledWith(
       2,
@@ -1263,6 +1264,7 @@ describe('chain', () => {
       expect.anything(),
       expect.any(Function),
       undefined,
+      'token-1',
     );
 
     createSpy.mockRestore();
@@ -2350,6 +2352,7 @@ describe('triggerPoll with options', () => {
       expect.anything(),
       expect.any(Function),
       { userConfirmed: true, value: 'new' },
+      'test-forest-token',
     );
 
     createSpy.mockRestore();
@@ -2379,6 +2382,7 @@ describe('triggerPoll with options', () => {
       expect.anything(),
       expect.any(Function),
       undefined,
+      'test-forest-token',
     );
 
     createSpy.mockRestore();

@@ -45,4 +45,35 @@ describe('makeCreateApprovalRequest', () => {
       },
     });
   });
+
+  it('returns the approval id read from the server response data.id', async () => {
+    queryWithBearerToken.mockResolvedValue({ data: { id: 'req_42', type: 'action-approvals' } });
+    const create = makeCreateApprovalRequest({
+      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerToken: 'server-token',
+      renderingId: 42,
+    });
+
+    const result = await create({
+      collectionName: 'users',
+      actionName: 'refund',
+      recordIds: ['1'],
+      inputs: [],
+    });
+
+    expect(result).toEqual({ id: 'req_42' });
+  });
+
+  it('returns undefined (no throw) when the response carries no usable id', async () => {
+    queryWithBearerToken.mockResolvedValue({ data: { attributes: { status: 'pending' } } });
+    const create = makeCreateApprovalRequest({
+      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerToken: 'server-token',
+      renderingId: 42,
+    });
+
+    await expect(
+      create({ collectionName: 'users', actionName: 'refund', recordIds: ['1'], inputs: [] }),
+    ).resolves.toBeUndefined();
+  });
 });

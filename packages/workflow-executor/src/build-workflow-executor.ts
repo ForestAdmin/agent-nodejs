@@ -105,6 +105,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     agentUrl: options.agentUrl,
     authSecret: options.authSecret,
     schemaCache,
+    forestServerUrl,
   });
 
   const activityLogsService = new ActivityLogsService(new ForestHttpApi(), {

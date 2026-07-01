@@ -1,8 +1,10 @@
 import type {
+  ActionCaller,
   ActionForm,
   ActionFormField,
   AgentPort,
   ExecuteActionQuery,
+  ExecuteActionResult,
   GetActionFormInfoQuery,
   GetActionFormQuery,
   GetRecordQuery,
@@ -19,6 +21,7 @@ import type { ActionEndpointsByCollection, SelectOptions } from '@forestadmin/ag
 import {
   ActionFormValidationError as ClientActionFormValidationError,
   ActionRequiresApprovalError as ClientActionRequiresApprovalError,
+  ApprovalRequestCreationError as ClientApprovalRequestCreationError,
   HttpRequester,
   createRemoteAgentClient,
 } from '@forestadmin/agent-client';
@@ -29,6 +32,7 @@ import {
   ActionRequiresApprovalError,
   AgentPortError,
   AgentProbeError,
+  ApprovalRequestCreationError,
   RecordNotFoundError,
   WorkflowExecutorError,
   extractErrorMessage,
@@ -43,6 +47,10 @@ function mapActionExecutionError(action: string, cause: unknown): unknown {
 
   if (cause instanceof ClientActionFormValidationError) {
     return new ActionFormValidationError(action, cause);
+  }
+
+  if (cause instanceof ClientApprovalRequestCreationError) {
+    return new ApprovalRequestCreationError(action, cause);
   }
 
   return cause;
@@ -74,11 +82,18 @@ export default class AgentClientAgentPort implements AgentPort {
   private readonly agentUrl: string;
   private readonly authSecret: string;
   private readonly schemaCache: SchemaCache;
+  private readonly forestServerUrl?: string;
 
-  constructor(params: { agentUrl: string; authSecret: string; schemaCache: SchemaCache }) {
+  constructor(params: {
+    agentUrl: string;
+    authSecret: string;
+    schemaCache: SchemaCache;
+    forestServerUrl?: string;
+  }) {
     this.agentUrl = params.agentUrl;
     this.authSecret = params.authSecret;
     this.schemaCache = params.schemaCache;
+    this.forestServerUrl = params.forestServerUrl;
   }
 
   async getRecord({ collection, id, fields }: GetRecordQuery, user: StepUser): Promise<RecordData> {
@@ -216,10 +231,10 @@ export default class AgentClientAgentPort implements AgentPort {
 
   async executeAction(
     { collection, action, id, values }: ExecuteActionQuery,
-    user: StepUser,
-  ): Promise<unknown> {
+    { user, forestServerToken }: ActionCaller,
+  ): Promise<ExecuteActionResult> {
     return this.callAgent('executeAction', async () => {
-      const client = this.createClient(user);
+      const client = this.createClient(user, forestServerToken);
       const recordIds = id?.length ? [id] : [];
       const act = await client.collection(collection).action(action, { recordIds });
 
@@ -234,7 +249,18 @@ export default class AgentClientAgentPort implements AgentPort {
       }
 
       try {
-        return await act.execute();
+        const executeResult = await act.execute();
+
+        return typeof executeResult === 'object' &&
+          executeResult !== null &&
+          'approvalRequested' in executeResult
+          ? {
+              approvalRequested: true,
+              ...(executeResult.approvalRequest && {
+                approvalRequest: executeResult.approvalRequest,
+              }),
+            }
+          : { result: executeResult };
       } catch (cause) {
         throw mapActionExecutionError(action, cause);
       }
@@ -259,7 +285,8 @@ export default class AgentClientAgentPort implements AgentPort {
   ): Promise<ActionForm> {
     return this.callAgent('getActionForm', async () => {
       const client = this.createClient(user);
-      const act = await client.collection(collection).action(action, { recordIds: [id] });
+      const recordIds = id?.length ? [id] : [];
+      const act = await client.collection(collection).action(action, { recordIds });
 
       // Soft-apply so dependent fields are revealed by change hooks; unknown fields (dropped by a
       // prior hook) come back in skippedFields rather than throwing (mirrors MCP get-action-form).
@@ -311,11 +338,20 @@ export default class AgentClientAgentPort implements AgentPort {
     );
   }
 
-  private createClient(user: StepUser) {
+  private createClient(user: StepUser, forestServerToken?: string) {
     return createRemoteAgentClient({
       url: this.agentUrl,
       token: this.mintToken(user),
       actionEndpoints: this.buildActionEndpoints(user.renderingId),
+      ...(this.forestServerUrl && forestServerToken
+        ? {
+            forestServer: {
+              serverUrl: this.forestServerUrl,
+              serverToken: forestServerToken,
+              renderingId: user.renderingId,
+            },
+          }
+        : {}),
     });
   }
 

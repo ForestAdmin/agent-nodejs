@@ -7,6 +7,7 @@ import type {
 } from '../types/step-execution-data';
 import type { ActionSchema, CollectionSchema, RecordRef } from '../types/validated/collection';
 import type { TriggerActionStepDefinition } from '../types/validated/step-definition';
+import type { RecordStepStatus } from '../types/validated/step-outcome';
 
 import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
 import { z } from 'zod';
@@ -41,16 +42,42 @@ Important rules:
 
 interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
+  isGlobal?: boolean;
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
+  // approvalRequest lives here, off the shared record builder; super spreads it onto the outcome.
+  protected override buildOutcomeResult(outcome: {
+    status: RecordStepStatus;
+    error?: string;
+    approvalRequest?: { id: string };
+  }): StepExecutionResult {
+    return super.buildOutcomeResult(outcome);
+  }
+
   protected override async checkIdempotency(): Promise<StepExecutionResult | null> {
     const existing = await this.findPendingExecution<TriggerRecordActionStepExecutionData>(
       'trigger-action',
     );
 
     if (existing?.idempotencyPhase === 'done') {
-      return this.buildOutcomeResult({ status: 'success' });
+      const result = existing.executionResult;
+      const isPendingApproval =
+        result && !('skipped' in result) && result.submissionOutcome === 'pending-approval';
+      const approvalRequest = isPendingApproval ? result.approvalRequest : undefined;
+
+      if (isPendingApproval && !approvalRequest) {
+        this.context.logger(
+          'Warn',
+          'Replayed a pending-approval step with no approval id; no deep-link available.',
+          { stepIndex: this.context.stepIndex, renderingId: this.context.user.renderingId },
+        );
+      }
+
+      return this.buildOutcomeResult({
+        status: 'success',
+        ...(approvalRequest && { approvalRequest }),
+      });
     }
 
     if (existing?.idempotencyPhase === 'executing') {
@@ -125,12 +152,15 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       selectedRecordRef,
       displayName: action.displayName,
       name: action.name,
+      isGlobal: action.type === 'global',
     };
 
     const form = await this.context.agent.getActionForm({
       collection: selectedRecordRef.collectionName,
       action: target.name,
-      id: selectedRecordRef.recordId,
+      // Global actions run on no record — building the form against one yields the wrong
+      // record-scoped defaults/dynamic fields (must match executeAction, which omits the id too).
+      ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
     });
     const hasForm = form.fields.length > 0;
 
@@ -151,6 +181,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       selectedRecordRef,
       target.name,
       form,
+      target.isGlobal,
     );
     const reviewState = { fields: filledForm.fields, aiFilledValues };
 
@@ -207,6 +238,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     recordRef: RecordRef,
     action: string,
     initialForm: ActionForm,
+    isGlobal?: boolean,
   ): Promise<{ aiFilledValues: AiFilledFormValue[]; form: ActionForm }> {
     const MAX_ITERATIONS = 3;
     const accumulator: Record<string, unknown> = {};
@@ -239,7 +271,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       form = await this.context.agent.getActionForm({
         collection: recordRef.collectionName,
         action,
-        id: recordRef.recordId,
+        ...(isGlobal ? {} : { id: recordRef.recordId }),
         values: accumulator,
       });
 
@@ -338,11 +370,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, displayName, name } = target;
 
-    const actionResult = await this.context.agent.executeAction(
+    const outcome = await this.context.agent.executeAction(
       {
         collection: selectedRecordRef.collectionName,
         action: name,
-        id: selectedRecordRef.recordId,
+        // Global actions run on no record — omit the id so the approval isn't linked to one.
+        ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
         ...(form && { values: form.values }),
       },
       {
@@ -356,20 +389,56 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       },
     );
 
+    const submission = form && {
+      submittedBy: 'ai' as const,
+      submittedValues: form.values,
+      ...(form.aiFilledValues.length && { aiFilledValues: form.aiFilledValues }),
+    };
+
+    if ('approvalRequested' in outcome) {
+      if (!outcome.approvalRequest) {
+        // The approval exists server-side but no id came back — the step still succeeds, but
+        // there's no deep-link to surface. Log it so the missing link isn't a silent mystery.
+        this.context.logger(
+          'Warn',
+          'Approval request created but the server returned no id; the step has no approval deep-link.',
+          {
+            collectionName: selectedRecordRef.collectionName,
+            actionName: name,
+            renderingId: this.context.user.renderingId,
+          },
+        );
+      }
+
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        type: 'trigger-action',
+        stepIndex: this.context.stepIndex,
+        executionParams: { displayName, name },
+        executionResult: {
+          success: true,
+          submissionOutcome: 'pending-approval',
+          ...(submission || { submittedBy: 'ai' as const }),
+          ...(outcome.approvalRequest && { approvalRequest: outcome.approvalRequest }),
+        },
+        selectedRecordRef,
+        idempotencyPhase: 'done',
+      });
+
+      return this.buildOutcomeResult({
+        status: 'success',
+        ...(outcome.approvalRequest && { approvalRequest: outcome.approvalRequest }),
+      });
+    }
+
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'trigger-action',
       stepIndex: this.context.stepIndex,
       executionParams: { displayName, name },
       executionResult: {
         success: true,
-        actionResult,
+        actionResult: outcome.result,
         // Form-bearing Full AI: record what the executor submitted.
-        ...(form && {
-          submissionOutcome: 'executed',
-          submittedBy: 'ai',
-          submittedValues: form.values,
-          ...(form.aiFilledValues.length && { aiFilledValues: form.aiFilledValues }),
-        }),
+        ...(submission && { submissionOutcome: 'executed', ...submission }),
       },
       selectedRecordRef,
       idempotencyPhase: 'done',

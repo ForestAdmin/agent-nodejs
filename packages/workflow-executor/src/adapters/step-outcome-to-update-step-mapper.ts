@@ -32,6 +32,10 @@ export default function toUpdateStepRequest(
     context.selectedOption = outcome.selectedOption;
   }
 
+  if (outcome.type === 'record' && outcome.approvalRequest !== undefined) {
+    context.approvalRequest = outcome.approvalRequest;
+  }
+
   const attributes: ServerStepHistoryUpdate = {
     done: outcome.status !== 'awaiting-input',
     context,

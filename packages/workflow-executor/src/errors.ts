@@ -155,6 +155,17 @@ export class ActionRequiresApprovalError extends WorkflowExecutorError {
   }
 }
 
+// Approval-gated action whose approval request couldn't be filed — neither executed nor approved.
+export class ApprovalRequestCreationError extends WorkflowExecutorError {
+  constructor(actionName: string, cause?: unknown) {
+    super(
+      `Action "${actionName}" requires an approval, but the approval request could not be created`,
+      'This action requires an approval, but the approval request could not be created. Please retry.',
+    );
+    this.cause = cause;
+  }
+}
+
 export class RunStorePortError extends UnavailableError {
   constructor(operation: string, cause: unknown) {
     super(

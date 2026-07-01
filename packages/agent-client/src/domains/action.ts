@@ -83,7 +83,9 @@ export type BaseActionContext = {
   recordIds?: RecordId[];
 };
 
-export type ActionExecuteResult = { success: string; html?: string } | { approvalRequested: true };
+export type ActionExecuteResult =
+  | { success: string; html?: string }
+  | { approvalRequested: true; approvalRequest?: { id: string } };
 
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
@@ -151,8 +153,10 @@ export default class Action {
           value: field.getValue(),
         }));
 
+        let approvalRequest: { id: string } | undefined;
+
         try {
-          await this.createApprovalRequest({
+          approvalRequest = await this.createApprovalRequest({
             collectionName: this.collectionName,
             actionName: this.actionName,
             recordIds: this.ids ?? [],
@@ -162,7 +166,7 @@ export default class Action {
           throw new ApprovalRequestCreationError(cause);
         }
 
-        return { approvalRequested: true };
+        return { approvalRequested: true, ...(approvalRequest && { approvalRequest }) };
       }
 
       throw mapped;

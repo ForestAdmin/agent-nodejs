@@ -48,7 +48,8 @@ export type ExecuteActionQuery = {
 export type GetActionFormQuery = {
   collection: string;
   action: string;
-  id: Id[];
+  // Omitted for global actions (no record context), like ExecuteActionQuery.
+  id?: Id[];
   // Optional values to apply before reading the form back (fires the change hooks so dependent
   // fields appear/update). Soft-applied: unknown fields are reported in `skippedFields`.
   values?: Record<string, unknown>;
@@ -79,6 +80,13 @@ export type GetActionFormInfoQuery = { collection: string; action: string; id: I
 
 export type ResolvePolymorphicTypeQuery = { collection: string; id: Id[]; relation: string };
 
+export type ExecuteActionResult =
+  | { approvalRequested: true; approvalRequest?: { id: string } }
+  | { result: unknown };
+
+// Kept off StepUser: mintToken splats StepUser into the agent JWT, a token there would leak.
+export type ActionCaller = { user: StepUser; forestServerToken?: string };
+
 export interface AgentPort {
   getRecord(query: GetRecordQuery, user: StepUser): Promise<RecordData>;
   updateRecord(query: UpdateRecordQuery, user: StepUser): Promise<RecordData>;
@@ -94,7 +102,7 @@ export interface AgentPort {
     query: ResolvePolymorphicTypeQuery,
     user: StepUser,
   ): Promise<{ type: string; id: string } | null>;
-  executeAction(query: ExecuteActionQuery, user: StepUser): Promise<unknown>;
+  executeAction(query: ExecuteActionQuery, caller: ActionCaller): Promise<ExecuteActionResult>;
   // Old Ruby agents with hooks.load=false return 404; agent-client falls back to the fields
   // passed via ActionEndpointsByCollection (populated from the orchestrator's schema).
   getActionFormInfo(query: GetActionFormInfoQuery, user: StepUser): Promise<{ hasForm: boolean }>;

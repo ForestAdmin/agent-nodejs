@@ -59,6 +59,7 @@ export default class StepExecutorFactory {
     activityLogPort: ActivityLogPort,
     fetchRemoteTools: (mcpServerId: string) => Promise<FetchRemoteToolsResult>,
     incomingPendingData?: unknown,
+    forestServerToken?: string,
   ): Promise<IStepExecutor> {
     try {
       const context = StepExecutorFactory.buildContext(
@@ -66,6 +67,7 @@ export default class StepExecutorFactory {
         contextConfig,
         activityLogPort,
         incomingPendingData,
+        forestServerToken,
       );
 
       switch (step.stepDefinition.type) {
@@ -134,6 +136,7 @@ export default class StepExecutorFactory {
     cfg: StepContextConfig,
     activityLogPort: ActivityLogPort,
     incomingPendingData?: unknown,
+    forestServerToken?: string,
   ): ExecutionContext {
     const schemaResolver = new SchemaResolver(
       cfg.schemaCache,
@@ -161,6 +164,7 @@ export default class StepExecutorFactory {
         schemaResolver,
         user: step.user,
         activityLog,
+        forestServerToken,
       }),
       activityLog,
       runStore: cfg.runStore,

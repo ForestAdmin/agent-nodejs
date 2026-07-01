@@ -88,6 +88,7 @@ describe('buildInMemoryExecutor', () => {
       agentUrl: 'http://localhost:3310',
       authSecret: 'test-secret',
       schemaCache: expect.any(SchemaCache),
+      forestServerUrl: 'https://api.forestadmin.com',
     });
   });
 

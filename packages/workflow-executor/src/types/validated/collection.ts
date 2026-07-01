@@ -72,6 +72,7 @@ export const ActionSchemaSchema = z.object({
   name: z.string().min(1),
   displayName: z.string().min(1),
   endpoint: z.string().min(1),
+  type: z.enum(['single', 'bulk', 'global']).optional(),
   /** Static form fields. Used as fallback when the agent's /hooks/load route 404s (old Ruby agents). */
   fields: ActionFieldsSchema,
   /** Action lifecycle hooks. Drives agent-client's dynamic form loading. */

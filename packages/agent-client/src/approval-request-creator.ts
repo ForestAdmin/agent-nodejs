@@ -9,7 +9,9 @@ export type ApprovalRequestPayload = {
   inputs: ApprovalRequestInput[];
 };
 
-export type CreateApprovalRequest = (payload: ApprovalRequestPayload) => Promise<void>;
+export type CreateApprovalRequest = (
+  payload: ApprovalRequestPayload,
+) => Promise<{ id: string } | undefined>;
 
 const APPROVAL_REQUEST_PATH = '/api/action-approvals';
 
@@ -19,7 +21,8 @@ export default function makeCreateApprovalRequest(options: {
   renderingId: number | string;
 }): CreateApprovalRequest {
   return async payload => {
-    await ServerUtils.queryWithBearerToken({
+    // JSON:API create response — the created approval's id is the resource id (data.id).
+    const body = await ServerUtils.queryWithBearerToken<{ data?: { id?: string | number } }>({
       forestServerUrl: options.forestServerUrl,
       bearerToken: options.forestServerToken,
       method: 'post',
@@ -39,5 +42,7 @@ export default function makeCreateApprovalRequest(options: {
         },
       },
     });
+
+    return body?.data?.id ? { id: String(body.data.id) } : undefined;
   };
 }
