@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.83.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.82.0...@forestadmin/agent@1.83.0) (2026-07-01)
+
+
+### Features
+
+* **agent:** generate the schema without starting the agent ([#1729](https://github.com/ForestAdmin/agent-nodejs/issues/1729)) ([58647b0](https://github.com/ForestAdmin/agent-nodejs/commit/58647b0a13d0b7f4c89f4087ce57bc15a6812339))
+
 # @forestadmin/agent [1.82.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.81.3...@forestadmin/agent@1.82.0) (2026-06-29)
 
 
