@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.2.0...@forestadmin/agent-bff@1.3.0) (2026-07-01)
+
+
+### Features
+
+* **agent-bff:** BFF API key resolver wiring ([#1730](https://github.com/ForestAdmin/agent-nodejs/issues/1730)) ([df806aa](https://github.com/ForestAdmin/agent-nodejs/commit/df806aae7442944b66bed90cbd7591563513eeb4))
+
 # @forestadmin/agent-bff [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.1.0...@forestadmin/agent-bff@1.2.0) (2026-07-01)
 
 
