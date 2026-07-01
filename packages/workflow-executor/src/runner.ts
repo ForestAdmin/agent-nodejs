@@ -302,6 +302,13 @@ export default class Runner {
     let chainedCount = 0; // additional steps chained after the initial one
     const maxDepth = this.config.maxChainDepth ?? DEFAULT_MAX_CHAIN_DEPTH;
 
+    this.logger('Debug', 'Run started executing', {
+      runId: step.runId,
+      stepId: step.stepId,
+      stepIndex: step.stepIndex,
+      triggerType: step.triggerType,
+    });
+
     // Sequential by design: each step's outcome drives the next dispatch; steps within one run
     // cannot overlap. The no-await-in-loop rule doesn't apply here.
     /* eslint-disable no-await-in-loop, no-constant-condition */
