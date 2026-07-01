@@ -12,6 +12,9 @@ export interface ApiKeyMiddlewareOptions {
   logger: Logger;
 }
 
+// On authentication failure this middleware rethrows `ApiKeyError` rather than
+// writing the response itself; it must be mounted behind an error middleware
+// that serializes the structured body (see `createErrorMiddleware`).
 export default function createApiKeyMiddleware({
   authenticator,
   logger,
