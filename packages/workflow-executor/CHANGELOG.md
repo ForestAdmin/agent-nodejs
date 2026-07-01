@@ -1,3 +1,18 @@
+# @forestadmin/workflow-executor [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.10.0...@forestadmin/workflow-executor@1.11.0) (2026-07-01)
+
+
+### Features
+
+* **workflow-executor:** approval requests on Full AI / Automatic trigger actions [PRD-688] ([#1720](https://github.com/ForestAdmin/agent-nodejs/issues/1720)) ([aa3ef58](https://github.com/ForestAdmin/agent-nodejs/commit/aa3ef58da383d92e96390e8931d41fa87fd72353))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.9.0
+
 # @forestadmin/workflow-executor [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.9.2...@forestadmin/workflow-executor@1.10.0) (2026-07-01)
 
 
