@@ -31,78 +31,81 @@ export default function makeAgent() {
     envSecret: process.env.FOREST_ENV_SECRET,
     forestServerUrl: process.env.FOREST_SERVER_URL,
     forestAppUrl: process.env.FOREST_APP_URL,
-    workflowExecutorUrl: process.env.WORKFLOW_EXECUTOR_URL,
+    // workflowExecutorUrl: process.env.WORKFLOW_EXECUTOR_URL,
     isProduction: false,
     loggerLevel: 'Info',
     typingsPath: 'src/forest/typings.ts',
   };
 
-  return createAgent<Schema>(envOptions)
-    .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
+  return (
+    createAgent<Schema>(envOptions)
+      .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
 
-    .addDataSource(
-      // Using an URI
-      createSqlDataSource('mariadb://example:password@localhost:3808/example', {
-        liveQueryConnections: 'Main database',
-      }),
-      { include: ['customer'] },
-    )
-    .addDataSource(
-      // Using a connection object
-      createSqlDataSource({
-        dialect: 'mariadb',
-        username: 'example',
-        password: 'password',
-        port: 3808,
-        database: 'example',
-      }),
-      { include: ['card', 'active_cards'] }, // active_cards is a view
-    )
-    .addDataSource(createTypicode())
-    .addDataSource(
-      createSequelizeDataSource(sequelizePostgres, {
-        liveQueryConnections: 'Business intel',
-      }),
-    )
-    .addDataSource(createSequelizeDataSource(sequelizeMySql))
-    .addDataSource(createSequelizeDataSource(sequelizeMsSql))
-    .addDataSource(
-      createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
-    )
-    .addDataSource(
-      createMongoDataSource({
-        uri: connectionString,
-        dataSource: { flattenMode: 'auto' },
-      }),
-      {
-        exclude: ['accounts', 'accounts_bills', 'accounts_bills_items'],
-      },
-    )
-    .addChart('numRentals', async (context, resultBuilder) => {
-      const rentals = context.dataSource.getCollection('rental');
-      const rows = await rentals.aggregate({}, { operation: 'Count' });
+      .addDataSource(
+        // Using an URI
+        createSqlDataSource('mariadb://example:password@localhost:3808/example', {
+          liveQueryConnections: 'Main database',
+        }),
+        { include: ['customer'] },
+      )
+      .addDataSource(
+        // Using a connection object
+        createSqlDataSource({
+          dialect: 'mariadb',
+          username: 'example',
+          password: 'password',
+          port: 3808,
+          database: 'example',
+        }),
+        { include: ['card', 'active_cards'] }, // active_cards is a view
+      )
+      .addDataSource(createTypicode())
+      .addDataSource(
+        createSequelizeDataSource(sequelizePostgres, {
+          liveQueryConnections: 'Business intel',
+        }),
+      )
+      .addDataSource(createSequelizeDataSource(sequelizeMySql))
+      .addDataSource(createSequelizeDataSource(sequelizeMsSql))
+      .addDataSource(
+        createMongooseDataSource(mongoose, { asModels: { account: ['address', 'bills.items'] } }),
+      )
+      .addDataSource(
+        createMongoDataSource({
+          uri: connectionString,
+          dataSource: { flattenMode: 'auto' },
+        }),
+        {
+          exclude: ['accounts', 'accounts_bills', 'accounts_bills_items'],
+        },
+      )
+      .addChart('numRentals', async (context, resultBuilder) => {
+        const rentals = context.dataSource.getCollection('rental');
+        const rows = await rentals.aggregate({}, { operation: 'Count' });
 
-      return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
-    })
-    .mountAiMcpServer()
+        return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
+      })
+      .mountAiMcpServer()
 
-    .customizeCollection('card', customizeCard)
-    .customizeCollection('account', customizeAccount)
-    .customizeCollection('owner', customizeOwner)
-    .customizeCollection('store', customizeStore)
-    .customizeCollection('rental', customizeRental)
-    .customizeCollection('dvd', customizeDvd)
-    .customizeCollection('customer', customizeCustomer)
-    .customizeCollection('post', customizePost)
-    .customizeCollection('comment', customizeComment)
-    .customizeCollection('review', customizeReview)
-    .customizeCollection('sales', customizeSales)
-    .addAi(
-      createAiProvider({
-        model: 'gpt-4o',
-        provider: 'openai',
-        name: 'test',
-        apiKey: process.env.OPENAI_API_KEY,
-      }),
-    );
+      .customizeCollection('card', customizeCard)
+      .customizeCollection('account', customizeAccount)
+      .customizeCollection('owner', customizeOwner)
+      .customizeCollection('store', customizeStore)
+      .customizeCollection('rental', customizeRental)
+      .customizeCollection('dvd', customizeDvd)
+      .customizeCollection('customer', customizeCustomer)
+      .customizeCollection('post', customizePost)
+      .customizeCollection('comment', customizeComment)
+      .customizeCollection('review', customizeReview)
+      .customizeCollection('sales', customizeSales)
+      // .addAi(
+      //   createAiProvider({
+      //     model: 'gpt-4o',
+      //     provider: 'openai',
+      //     name: 'test',
+      //     apiKey: process.env.OPENAI_API_KEY,
+      //   }),
+      // )
+      .addWorkflowExecutor({ database: { uri: 'postgres://forest:secret@localhost:5435/exec' } })
+  );
 }

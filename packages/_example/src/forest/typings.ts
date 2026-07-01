@@ -120,6 +120,62 @@ export type AccountBillsItemsFilter = TPaginatedFilter<Schema, 'account_bills_it
 export type AccountBillsItemsSortClause = TSortClause<Schema, 'account_bills_items'>;
 export type AccountBillsItemsAggregation = TAggregation<Schema, 'account_bills_items'>;
 
+export type ConversationsCustomizer = CollectionCustomizer<Schema, 'conversations'>;
+export type ConversationsRecord = TPartialRow<Schema, 'conversations'>;
+export type ConversationsConditionTree = TConditionTree<Schema, 'conversations'>;
+export type ConversationsFilter = TPaginatedFilter<Schema, 'conversations'>;
+export type ConversationsSortClause = TSortClause<Schema, 'conversations'>;
+export type ConversationsAggregation = TAggregation<Schema, 'conversations'>;
+
+export type ConversationsTagValuesCustomizer = CollectionCustomizer<Schema, 'conversations_tagValues'>;
+export type ConversationsTagValuesRecord = TPartialRow<Schema, 'conversations_tagValues'>;
+export type ConversationsTagValuesConditionTree = TConditionTree<Schema, 'conversations_tagValues'>;
+export type ConversationsTagValuesFilter = TPaginatedFilter<Schema, 'conversations_tagValues'>;
+export type ConversationsTagValuesSortClause = TSortClause<Schema, 'conversations_tagValues'>;
+export type ConversationsTagValuesAggregation = TAggregation<Schema, 'conversations_tagValues'>;
+
+export type PartisCustomizer = CollectionCustomizer<Schema, 'partis'>;
+export type PartisRecord = TPartialRow<Schema, 'partis'>;
+export type PartisConditionTree = TConditionTree<Schema, 'partis'>;
+export type PartisFilter = TPaginatedFilter<Schema, 'partis'>;
+export type PartisSortClause = TSortClause<Schema, 'partis'>;
+export type PartisAggregation = TAggregation<Schema, 'partis'>;
+
+export type PartisPsCustomizer = CollectionCustomizer<Schema, 'partis_ps'>;
+export type PartisPsRecord = TPartialRow<Schema, 'partis_ps'>;
+export type PartisPsConditionTree = TConditionTree<Schema, 'partis_ps'>;
+export type PartisPsFilter = TPaginatedFilter<Schema, 'partis_ps'>;
+export type PartisPsSortClause = TSortClause<Schema, 'partis_ps'>;
+export type PartisPsAggregation = TAggregation<Schema, 'partis_ps'>;
+
+export type ProgramsCustomizer = CollectionCustomizer<Schema, 'programs'>;
+export type ProgramsRecord = TPartialRow<Schema, 'programs'>;
+export type ProgramsConditionTree = TConditionTree<Schema, 'programs'>;
+export type ProgramsFilter = TPaginatedFilter<Schema, 'programs'>;
+export type ProgramsSortClause = TSortClause<Schema, 'programs'>;
+export type ProgramsAggregation = TAggregation<Schema, 'programs'>;
+
+export type ProgramsAttributeFieldsCustomizer = CollectionCustomizer<Schema, 'programs_attributeFields'>;
+export type ProgramsAttributeFieldsRecord = TPartialRow<Schema, 'programs_attributeFields'>;
+export type ProgramsAttributeFieldsConditionTree = TConditionTree<Schema, 'programs_attributeFields'>;
+export type ProgramsAttributeFieldsFilter = TPaginatedFilter<Schema, 'programs_attributeFields'>;
+export type ProgramsAttributeFieldsSortClause = TSortClause<Schema, 'programs_attributeFields'>;
+export type ProgramsAttributeFieldsAggregation = TAggregation<Schema, 'programs_attributeFields'>;
+
+export type ProgramsAttributeFieldsValuesCustomizer = CollectionCustomizer<Schema, 'programs_attributeFields_values'>;
+export type ProgramsAttributeFieldsValuesRecord = TPartialRow<Schema, 'programs_attributeFields_values'>;
+export type ProgramsAttributeFieldsValuesConditionTree = TConditionTree<Schema, 'programs_attributeFields_values'>;
+export type ProgramsAttributeFieldsValuesFilter = TPaginatedFilter<Schema, 'programs_attributeFields_values'>;
+export type ProgramsAttributeFieldsValuesSortClause = TSortClause<Schema, 'programs_attributeFields_values'>;
+export type ProgramsAttributeFieldsValuesAggregation = TAggregation<Schema, 'programs_attributeFields_values'>;
+
+export type ProgramsCsCustomizer = CollectionCustomizer<Schema, 'programs_cs'>;
+export type ProgramsCsRecord = TPartialRow<Schema, 'programs_cs'>;
+export type ProgramsCsConditionTree = TConditionTree<Schema, 'programs_cs'>;
+export type ProgramsCsFilter = TPaginatedFilter<Schema, 'programs_cs'>;
+export type ProgramsCsSortClause = TSortClause<Schema, 'programs_cs'>;
+export type ProgramsCsAggregation = TAggregation<Schema, 'programs_cs'>;
+
 export type SalesCustomizer = CollectionCustomizer<Schema, 'sales'>;
 export type SalesRecord = TPartialRow<Schema, 'sales'>;
 export type SalesConditionTree = TConditionTree<Schema, 'sales'>;
@@ -317,6 +373,32 @@ export type Schema = {
       'post:owner:lastName': string;
     };
   };
+  'conversations': {
+    plain: {
+      '_id': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'conversations_tagValues': {
+    plain: {
+      '_id': string;
+      'parentId': string;
+      'participantTagName@@@_id': string;
+      'participantTagName@@@label': string;
+      'participantTagName@@@order': number;
+      'participantTagName@@@values': Array<any> | null;
+      'participantTagValue@@@_id': string;
+      'participantTagValue@@@label': string;
+      'participantTagValue@@@order': number;
+    };
+    nested: {
+      'parent': Schema['conversations']['plain'] & Schema['conversations']['nested'];
+    };
+    flat: {
+      'parent:_id': string;
+    };
+  };
   'customer': {
     plain: {
       'createdAt': string;
@@ -405,6 +487,26 @@ export type Schema = {
     nested: {};
     flat: {};
   };
+  'partis': {
+    plain: {
+      '_id': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'partis_ps': {
+    plain: {
+      '_id': string;
+      'name': string;
+      'parentId': string;
+    };
+    nested: {
+      'parent': Schema['partis']['plain'] & Schema['partis']['nested'];
+    };
+    flat: {
+      'parent:_id': string;
+    };
+  };
   'post': {
     plain: {
       'body': string | null;
@@ -420,6 +522,60 @@ export type Schema = {
       'owner:fullName': string | null;
       'owner:id': number;
       'owner:lastName': string;
+    };
+  };
+  'programs': {
+    plain: {
+      '_id': string;
+    };
+    nested: {};
+    flat: {};
+  };
+  'programs_attributeFields': {
+    plain: {
+      '_id': string;
+      'label': string;
+      'order': number;
+      'parentId': string;
+      'valuesEmbed': Array<any> | null;
+    };
+    nested: {
+      'parent': Schema['programs']['plain'] & Schema['programs']['nested'];
+    };
+    flat: {
+      'parent:_id': string;
+    };
+  };
+  'programs_attributeFields_values': {
+    plain: {
+      '_id': string;
+      'label': string;
+      'order': number;
+      'parentId': string;
+    };
+    nested: {
+      'parent': Schema['programs_attributeFields']['plain'] & Schema['programs_attributeFields']['nested'];
+    };
+    flat: {
+      'parent:_id': string;
+      'parent:label': string;
+      'parent:order': number;
+      'parent:parentId': string;
+      'parent:valuesEmbed': Array<any> | null;
+      'parent:parent:_id': string;
+    };
+  };
+  'programs_cs': {
+    plain: {
+      '_id': string;
+      'p': string;
+      'parentId': string;
+    };
+    nested: {
+      'parent': Schema['programs']['plain'] & Schema['programs']['nested'];
+    };
+    flat: {
+      'parent:_id': string;
     };
   };
   'rental': {
