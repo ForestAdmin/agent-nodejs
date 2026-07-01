@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.2.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.1.0...@forestadmin/agent-bff@1.2.0) (2026-07-01)
+
+
+### Features
+
+* **agent-bff:** add refresh_token grant with rotation and reuse detection ([#1726](https://github.com/ForestAdmin/agent-nodejs/issues/1726)) ([79cbbbd](https://github.com/ForestAdmin/agent-nodejs/commit/79cbbbd67b7f2f54ae58dd80794ce73a126bef6d))
+
 # @forestadmin/agent-bff [1.1.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.0.0...@forestadmin/agent-bff@1.1.0) (2026-06-30)
 
 
