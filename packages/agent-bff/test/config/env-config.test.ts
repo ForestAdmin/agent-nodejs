@@ -162,4 +162,53 @@ describe('parseConfig', () => {
       );
     });
   });
+
+  describe('when resolving BFF_ALLOWED_ORIGINS', () => {
+    it('should default to an empty allow-list when unset', () => {
+      const config = parseConfig({ ...VALID_ENV });
+
+      expect(config.allowedOrigins).toEqual([]);
+      expect(config.invalidAllowedOrigins).toEqual([]);
+    });
+
+    it('should normalize and keep valid comma-separated origins', () => {
+      const config = parseConfig({
+        ...VALID_ENV,
+        BFF_ALLOWED_ORIGINS: 'https://app.example.com:443, https://zendesk.example.com',
+      });
+
+      expect(config.allowedOrigins).toEqual([
+        'https://app.example.com',
+        'https://zendesk.example.com',
+      ]);
+    });
+
+    it('should drop malformed and wildcard entries into invalidAllowedOrigins', () => {
+      const config = parseConfig({
+        ...VALID_ENV,
+        BFF_ALLOWED_ORIGINS: 'https://app.example.com, *, garbage',
+      });
+
+      expect(config.allowedOrigins).toEqual(['https://app.example.com']);
+      expect(config.invalidAllowedOrigins).toEqual(['*', 'garbage']);
+    });
+  });
+
+  describe('when resolving BFF_DEFAULT_TIMEZONE', () => {
+    it('should leave it undefined when unset', () => {
+      expect(parseConfig({ ...VALID_ENV }).defaultTimezone).toBeUndefined();
+    });
+
+    it('should expose a valid IANA timezone', () => {
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_DEFAULT_TIMEZONE: 'Europe/Paris' }).defaultTimezone,
+      ).toBe('Europe/Paris');
+    });
+
+    it('should throw ConfigurationError for a non-IANA timezone', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_DEFAULT_TIMEZONE: 'Mars/Phobos' })).toThrow(
+        ConfigurationError,
+      );
+    });
+  });
 });
