@@ -2450,6 +2450,109 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(finalSave.pendingData.suggestNoRecord).toBeUndefined();
     });
 
+    it('degrades to the no-AI candidate list when the AI fails during a field switch', async () => {
+      // AI mode + user switches to a HasMany relation; the ranking AI call throws → refresh must
+      // fall back to the deterministic list (no suggestion) instead of erroring the run.
+      const execution = makePendingExecution({
+        pendingData: {
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand(['99'])],
+          suggestedRecord: cand(['99']),
+        },
+      });
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+        { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
+      ]);
+      const addressesSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      // The ranking AI call rejects (provider outage/timeout).
+      const invoke = jest.fn().mockRejectedValue(new Error('AI provider timed out'));
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: addressesSchema,
+        }),
+        incomingPendingData: { fieldName: 'address' },
+        stepDefinition: makeStep({ executionType: StepExecutionMode.AutomatedWithConfirmation }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(finalSave.pendingData.suggestedField).toEqual({
+        name: 'address',
+        displayName: 'Address',
+      });
+      expect(finalSave.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
+      // Degraded → no AI suggestion and no stale "No X to load" flag.
+      expect(finalSave.pendingData.suggestedRecord).toBeUndefined();
+      expect(finalSave.pendingData.suggestNoRecord).toBeUndefined();
+    });
+
+    it('rethrows a non-AI failure during a field switch instead of degrading', async () => {
+      // A data-fetch failure (not an AI failure) must surface as a step error — only tagged AI
+      // failures degrade to the Manual path.
+      const execution = makePendingExecution({
+        pendingData: {
+          availableFields: [
+            { name: 'order', displayName: 'Order' },
+            { name: 'address', displayName: 'Address' },
+          ],
+          suggestedField: { name: 'order', displayName: 'Order' },
+          availableRecordIds: [cand(['99'])],
+          suggestedRecord: cand(['99']),
+        },
+      });
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+      ]);
+      (agentPort.getRelatedData as jest.Mock).mockRejectedValue(
+        new AgentPortError('getRelatedData', new Error('db down')),
+      );
+      const addressesSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const mockModel = makeMockModel({});
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([execution]),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          addresses: addressesSchema,
+        }),
+        incomingPendingData: { fieldName: 'address' },
+        stepDefinition: makeStep({ executionType: StepExecutionMode.AutomatedWithConfirmation }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+    });
+
     it('reruns xToOne candidate lookup when previewing a BelongsTo relation', async () => {
       // Same setup but switching to Order (BelongsTo). Verifies the xToOne path is
       // used inside refreshCandidatesForField — no AI calls, single candidate from
