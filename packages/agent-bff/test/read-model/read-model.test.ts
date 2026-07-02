@@ -60,6 +60,15 @@ describe('ReadModel', () => {
       });
     });
 
+    it('should ignore a relation field that has neither a reference nor polymorphic targets', () => {
+      const model = new ReadModel([
+        collection('users', [{ ...column('mystery'), relationship: 'HasMany' }]),
+      ]);
+
+      expect(model.isRelationAllowed('users', 'mystery')).toBe(false);
+      expect(model.getRelationTarget('users', 'mystery')).toBeUndefined();
+    });
+
     it('should flag a polymorphic relation and store its target list', () => {
       const model = new ReadModel([
         collection('comments', [polymorphic('commentable', ['posts', 'videos'])]),
@@ -116,6 +125,22 @@ describe('ReadModel', () => {
 
       expect(model.isActionAllowed('users', 'ban')).toBe(false);
       expect(model.getActionEndpoints().users).toBeUndefined();
+    });
+
+    it('should handle a collection with no actions key', () => {
+      const model = new ReadModel([{ name: 'users', fields: [] }]);
+
+      expect(model.isActionAllowed('users', 'ban')).toBe(false);
+    });
+  });
+
+  describe('queries on an unknown collection', () => {
+    it('should report everything as not allowed', () => {
+      const model = new ReadModel([collection('users', [])]);
+
+      expect(model.isRelationAllowed('ghost', 'x')).toBe(false);
+      expect(model.getRelationTarget('ghost', 'x')).toBeUndefined();
+      expect(model.isActionAllowed('ghost', 'x')).toBe(false);
     });
   });
 });

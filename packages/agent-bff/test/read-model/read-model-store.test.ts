@@ -86,4 +86,15 @@ describe('ReadModelStore', () => {
       expect(capsFetcher).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('ageSeconds', () => {
+    it('should reflect the schema cache age of the last good schema', async () => {
+      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+
+      await store.getReadModel();
+      clock += 7_000;
+
+      expect(store.ageSeconds()).toBe(7);
+    });
+  });
 });
