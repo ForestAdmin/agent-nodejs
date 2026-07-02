@@ -49,9 +49,41 @@ export type AgentOptions = {
    * Base URL of the workflow executor to proxy requests to.
    * When set, the agent forwards `/_internal/executor/*` to the executor verbatim,
    * benefiting from the agent's authentication layer.
+   *
+   * Mutually exclusive with `agent.addWorkflowExecutor()`: use this option to target a
+   * separately-deployed executor, or `addWorkflowExecutor()` to run one in-process.
    * @example 'http://localhost:4001'
    */
   workflowExecutorUrl?: string | null;
+};
+
+/**
+ * Options for an embedded workflow executor, started in the same process as the agent
+ * through `agent.addWorkflowExecutor()`.
+ */
+export type WorkflowExecutorEmbedOptions = {
+  /**
+   * Database connection used to persist workflow run state. Accepts a connection URI or a
+   * Sequelize options object. Falls back to the `DATABASE_URL` environment variable when omitted.
+   * The agent throws at startup if neither is provided.
+   */
+  database?: { uri?: string; [option: string]: unknown };
+  /**
+   * URL the executor uses to reach this agent's data layer.
+   * Auto-derived when the agent runs on its own server (`mountOnStandaloneServer`).
+   * Required when the agent is mounted on an external framework (Express/Fastify/NestJS),
+   * since the agent cannot know the host application's address.
+   */
+  agentUrl?: string;
+  /**
+   * Loopback port the embedded executor listens on; the agent proxies to it internally.
+   * Defaults to the `HTTP_PORT` environment variable, or `3400`.
+   */
+  port?: number;
+  /** Interval in seconds at which the executor polls the orchestrator for pending steps. */
+  pollingIntervalS?: number;
+  /** Per-step execution timeout in seconds. */
+  stepTimeoutS?: number;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
