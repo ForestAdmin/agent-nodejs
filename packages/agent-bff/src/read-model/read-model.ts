@@ -17,7 +17,9 @@ function toRelationTarget(field: ForestSchemaField): RelationTarget | null {
   }
 
   if (field.reference) {
-    return { type, polymorphic: false, target: field.reference.split('.')[0] };
+    // reference is `${foreignCollection}.${key}`; the collection name may itself contain dots
+    // (e.g. mongoose nested collections like `User.address`), so drop only the trailing key.
+    return { type, polymorphic: false, target: field.reference.split('.').slice(0, -1).join('.') };
   }
 
   return null;

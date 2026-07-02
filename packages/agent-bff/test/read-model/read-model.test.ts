@@ -48,6 +48,18 @@ describe('ReadModel', () => {
       expect(model.getRelationTarget('users', 'roles')?.type).toBe('BelongsToMany');
     });
 
+    it('should resolve a dotted foreign collection name (e.g. mongoose nested) as the target', () => {
+      const model = new ReadModel([
+        collection('users', [relation('address', 'HasOne', 'users.address.id')]),
+      ]);
+
+      expect(model.getRelationTarget('users', 'address')).toEqual({
+        type: 'HasOne',
+        polymorphic: false,
+        target: 'users.address',
+      });
+    });
+
     it('should flag a polymorphic relation and store its target list', () => {
       const model = new ReadModel([
         collection('comments', [polymorphic('commentable', ['posts', 'videos'])]),
