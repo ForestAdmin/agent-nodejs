@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.4.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.3.0...@forestadmin/agent-bff@1.4.0) (2026-07-02)
+
+
+### Features
+
+* **agent-bff:** request-edge wiring (timezone + CORS + auth-mode precedence) ([#1731](https://github.com/ForestAdmin/agent-nodejs/issues/1731)) ([4ba9402](https://github.com/ForestAdmin/agent-nodejs/commit/4ba94021078b22418339fbae25e341d52413fb10))
+
 # @forestadmin/agent-bff [1.3.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.2.0...@forestadmin/agent-bff@1.3.0) (2026-07-01)
 
 
