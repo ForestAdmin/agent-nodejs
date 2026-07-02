@@ -1,9 +1,9 @@
 import type { ApiKeyAuthenticator, AuthenticatedApiKey } from './api-key-authenticator';
 import type { Logger } from '../ports/logger-port';
-import type { Context, Middleware } from 'koa';
+import type { Middleware } from 'koa';
 
 import { fingerprintApiKey } from './api-key';
-import { ApiKeyError, toErrorBody } from './api-key-error';
+import { ApiKeyError } from './api-key-error';
 
 export const BFF_KEY_HEADER = 'X-Forest-Bff-Key';
 
@@ -12,27 +12,9 @@ export interface ApiKeyMiddlewareOptions {
   logger: Logger;
 }
 
-function writeError(ctx: Context, error: unknown, rawKey: string, logger: Logger): void {
-  if (error instanceof ApiKeyError) {
-    if (error.retryAfter !== undefined) ctx.set('Retry-After', String(error.retryAfter));
-    ctx.status = error.status;
-    ctx.body = toErrorBody(error);
-    logger('Warn', 'BFF API key rejected', {
-      keyHash: fingerprintApiKey(rawKey),
-      type: error.type,
-    });
-
-    return;
-  }
-
-  logger('Error', 'BFF API key middleware failure', {
-    keyHash: fingerprintApiKey(rawKey),
-    cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-  });
-  ctx.status = 500;
-  ctx.body = { error: { type: 'server_error', status: 500, message: 'API key processing failed' } };
-}
-
+// On authentication failure this middleware rethrows `ApiKeyError` rather than
+// writing the response itself; it must be mounted behind an error middleware
+// that serializes the structured body (see `createErrorMiddleware`).
 export default function createApiKeyMiddleware({
   authenticator,
   logger,
@@ -51,9 +33,19 @@ export default function createApiKeyMiddleware({
     try {
       authenticated = await authenticator.authenticate(rawKey);
     } catch (error) {
-      writeError(ctx, error, rawKey, logger);
+      if (error instanceof ApiKeyError) {
+        logger('Warn', 'BFF API key rejected', {
+          keyHash: fingerprintApiKey(rawKey),
+          type: error.type,
+        });
+      } else {
+        logger('Error', 'BFF API key middleware failure', {
+          keyHash: fingerprintApiKey(rawKey),
+          cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+        });
+      }
 
-      return;
+      throw error;
     }
 
     ctx.state.agentToken = authenticated.agentToken;
