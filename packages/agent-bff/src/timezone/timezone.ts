@@ -12,13 +12,18 @@ export function isValidTimezone(value: string): boolean {
   if (value === '') return false;
   if (VALID_TIMEZONES.has(value)) return true;
 
+  let canonical: string;
+
   try {
-    Intl.DateTimeFormat('en-US', { timeZone: value });
+    canonical = Intl.DateTimeFormat('en-US', { timeZone: value }).resolvedOptions().timeZone;
   } catch {
     return false;
   }
 
-  VALID_TIMEZONES.add(value);
+  // Cache the canonical form, not the raw input: Intl matches IANA names
+  // case-insensitively, so caching raw casings would grow this Set without
+  // bound on attacker-controlled input.
+  VALID_TIMEZONES.add(canonical);
 
   return true;
 }

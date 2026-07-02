@@ -42,6 +42,18 @@ describe('error middleware', () => {
     });
   });
 
+  it('maps a known client status to its specific type (413 → payload_too_large)', async () => {
+    const { callback } = buildApp(() => {
+      const error = Object.assign(new Error('Payload too large'), { status: 413 });
+      throw error;
+    });
+
+    const res = await request(callback).get('/');
+
+    expect(res.status).toBe(413);
+    expect(res.body.error.type).toBe('payload_too_large');
+  });
+
   it('maps an unknown error to 500 internal_error and logs it', async () => {
     const { callback, logs } = buildApp(() => {
       throw new Error('unexpected');

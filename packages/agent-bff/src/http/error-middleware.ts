@@ -7,6 +7,11 @@ export interface ErrorMiddlewareOptions {
   logger: Logger;
 }
 
+const CLIENT_ERROR_TYPES: Record<number, string> = {
+  413: 'payload_too_large',
+  415: 'unsupported_media_type',
+};
+
 function clientErrorStatus(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
 
@@ -35,7 +40,7 @@ export default function createErrorMiddleware({ logger }: ErrorMiddlewareOptions
         ctx.status = clientStatus;
         ctx.body = toErrorBody({
           status: clientStatus,
-          type: 'invalid_request',
+          type: CLIENT_ERROR_TYPES[clientStatus] ?? 'invalid_request',
           message: 'Invalid request',
         });
 

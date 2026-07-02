@@ -101,4 +101,13 @@ describe('auth mode middleware', () => {
     expect(response.status).toBe(401);
     expect(response.body.error.type).toBe('unauthorized');
   });
+
+  it('returns 401 unauthorized for an expired token of the wrong type (type checked before expiry)', async () => {
+    const response = await request(buildApp())
+      .get('/agent/x')
+      .set('Authorization', `Bearer ${bffAccess(-10, 'agent_token')}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.type).toBe('unauthorized');
+  });
 });

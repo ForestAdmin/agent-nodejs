@@ -9,6 +9,10 @@ describe('isValidTimezone', () => {
   it.each(['Mars/Phobos', 'Not/AZone', ''])('rejects %s', tz => {
     expect(isValidTimezone(tz)).toBe(false);
   });
+
+  it('accepts an IANA zone in non-canonical casing', () => {
+    expect(isValidTimezone('europe/paris')).toBe(true);
+  });
 });
 
 describe('resolveTimezone', () => {

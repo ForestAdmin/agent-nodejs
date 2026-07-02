@@ -1,16 +1,7 @@
-export type BffErrorType =
-  | 'unauthorized'
-  | 'ambiguous_credentials'
-  | 'session_expired'
-  | 'origin_not_allowed'
-  | 'missing_timezone'
-  | 'invalid_timezone';
-
 export class BffHttpError extends Error {
   readonly status: number;
   readonly type: string;
   readonly details?: unknown;
-  readonly retryAfter?: number;
 
   constructor(status: number, type: string, message: string, details?: unknown) {
     super(message);

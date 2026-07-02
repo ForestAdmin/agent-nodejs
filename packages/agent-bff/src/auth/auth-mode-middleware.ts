@@ -16,11 +16,15 @@ export interface AuthModeMiddlewareOptions {
 function verifyBffAccess(token: string, authSecret: string): BffAccessTokenPayload {
   let decoded: unknown;
 
+  // Verify the signature first but ignore expiration, so the token type can be
+  // checked before expiry: a wrong-typed token must be `unauthorized`, and only
+  // a genuine expired `bff_access` should map to `session_expired`.
   try {
-    decoded = jsonwebtoken.verify(token, authSecret, { algorithms: ['HS256'] });
-  } catch (error) {
-    if (error instanceof jsonwebtoken.TokenExpiredError) throw sessionExpired();
-
+    decoded = jsonwebtoken.verify(token, authSecret, {
+      algorithms: ['HS256'],
+      ignoreExpiration: true,
+    });
+  } catch {
     throw unauthorized();
   }
 
@@ -30,6 +34,12 @@ function verifyBffAccess(token: string, authSecret: string): BffAccessTokenPaylo
     (decoded as { type?: unknown }).type !== BFF_ACCESS_TOKEN_TYPE
   ) {
     throw unauthorized();
+  }
+
+  const { exp } = decoded as { exp?: unknown };
+
+  if (typeof exp === 'number' && exp * 1000 <= Date.now()) {
+    throw sessionExpired();
   }
 
   return decoded as BffAccessTokenPayload;
