@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.84.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.83.1...@forestadmin/agent@1.84.0) (2026-07-02)
+
+
+### Features
+
+* **agent:** embed workflow executor in-process via addWorkflowExecutor() ([#1717](https://github.com/ForestAdmin/agent-nodejs/issues/1717)) ([3931aeb](https://github.com/ForestAdmin/agent-nodejs/commit/3931aebcf39a284f2e43b682dcc8b6514933d2b2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.12.0
+
 ## @forestadmin/agent [1.83.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.83.0...@forestadmin/agent@1.83.1) (2026-07-01)
 
 
