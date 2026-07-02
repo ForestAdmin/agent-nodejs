@@ -110,4 +110,17 @@ describe('auth mode middleware', () => {
     expect(response.status).toBe(401);
     expect(response.body.error.type).toBe('unauthorized');
   });
+
+  it('returns 401 unauthorized for a bff_access token with no exp claim', async () => {
+    const noExp = jsonwebtoken.sign({ type: 'bff_access', sid: 's1' }, AUTH_SECRET, {
+      algorithm: 'HS256',
+    });
+
+    const response = await request(buildApp())
+      .get('/agent/x')
+      .set('Authorization', `Bearer ${noExp}`);
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.type).toBe('unauthorized');
+  });
 });

@@ -38,7 +38,11 @@ function verifyBffAccess(token: string, authSecret: string): BffAccessTokenPaylo
 
   const { exp } = decoded as { exp?: unknown };
 
-  if (typeof exp === 'number' && exp * 1000 <= Date.now()) {
+  if (typeof exp !== 'number') {
+    throw unauthorized();
+  }
+
+  if (exp * 1000 <= Date.now()) {
     throw sessionExpired();
   }
 
