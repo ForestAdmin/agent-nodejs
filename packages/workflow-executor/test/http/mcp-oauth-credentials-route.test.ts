@@ -153,6 +153,20 @@ describe('POST /mcp-oauth-credentials', () => {
       );
     });
 
+    it('evicts any cached access token on deposit so a reconnect takes effect immediately', async () => {
+      const tokenService = createMockTokenService();
+      const server = createServer({ oauthTokenService: tokenService });
+      const token = signToken({ id: 7 });
+
+      const response = await request(server.callback)
+        .post('/mcp-oauth-credentials')
+        .set('Authorization', `Bearer ${token}`)
+        .send(validBody);
+
+      expect(response.status).toBe(200);
+      expect(tokenService.evict).toHaveBeenCalledWith(7, 'mcp-server-1');
+    });
+
     it('rejects a body that tries to supply a user id (the token is the only source)', async () => {
       const store = createMockStore();
       const server = createServer({ mcpOAuthCredentialsStore: store });

@@ -126,4 +126,31 @@ describe('assertSafeTokenEndpoint', () => {
       expect(() => assertSafeTokenEndpoint('https://idp.example.com/oauth/token')).not.toThrow();
     });
   });
+
+  describe('fails closed on a non-explicit environment', () => {
+    it('applies the strict rules when NODE_ENV is unset (not silently relaxed)', () => {
+      delete process.env.NODE_ENV;
+      expect(() => assertSafeTokenEndpoint('http://idp.example.com/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+      expect(() => assertSafeTokenEndpoint('https://127.0.0.1/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+    });
+
+    it('applies the strict rules when NODE_ENV is an unexpected value (e.g. misspelled)', () => {
+      process.env.NODE_ENV = 'produciton';
+      expect(() => assertSafeTokenEndpoint('http://idp.example.com/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+      expect(() => assertSafeTokenEndpoint('https://localhost/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+    });
+
+    it('relaxes only for an explicit development/test opt-in', () => {
+      process.env.NODE_ENV = 'test';
+      expect(() => assertSafeTokenEndpoint('http://127.0.0.1:9101/token')).not.toThrow();
+    });
+  });
 });

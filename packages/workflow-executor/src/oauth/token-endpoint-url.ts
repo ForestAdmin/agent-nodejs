@@ -7,12 +7,15 @@ import { InvalidTokenEndpointError } from '../errors';
 // that are never a legitimate endpoint but are prime SSRF targets (loopback, link-local /
 // cloud-metadata) and requires TLS, while deliberately allowing private (RFC1918) hosts: a private
 // OAuth provider reached over the internal network is a supported deployment, so blocking it would
-// break a real use case. http and loopback are relaxed off-production for local development.
-// Only IP literals are inspected — resolving a hostname here would be racy (it can resolve to a
-// different address at fetch time), not safer.
+// break a real use case. http and loopback are relaxed only when NODE_ENV explicitly opts in
+// (development/test) — see isRelaxedEnv. Only IP literals are inspected — resolving a hostname here
+// would be racy (it can resolve to a different address at fetch time), not safer.
 
-function isProduction(): boolean {
-  return process.env.NODE_ENV === 'production';
+// Fail closed: the strict rules (https + no loopback) apply everywhere UNLESS NODE_ENV explicitly
+// opts into the local-dev relaxation. An unset or misspelled NODE_ENV stays strict, so a
+// misconfigured deploy can't silently allow loopback targets or cleartext http.
+function isRelaxedEnv(): boolean {
+  return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 }
 
 function unbracket(hostname: string): string {
@@ -102,7 +105,7 @@ export default function assertSafeTokenEndpoint(raw: string): void {
     throw new InvalidTokenEndpointError('it points at a link-local / metadata address');
   }
 
-  if (isProduction()) {
+  if (!isRelaxedEnv()) {
     if (url.protocol !== 'https:') {
       throw new InvalidTokenEndpointError('it must use https');
     }

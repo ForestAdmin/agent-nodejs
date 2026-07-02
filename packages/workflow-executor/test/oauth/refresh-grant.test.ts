@@ -46,6 +46,33 @@ describe('refreshAccessToken', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('sends the request with redirect:manual so redirects are never followed', async () => {
+    fetchSpy.mockResolvedValue(
+      mockResponse({ ok: true, status: 200, payload: { access_token: 'at' } }),
+    );
+
+    await refreshAccessToken({ tokenEndpoint: 'https://idp/token', refreshToken: 'rt-1' });
+
+    expect(fetchSpy.mock.calls[0][1].redirect).toBe('manual');
+  });
+
+  it('rejects a redirect response without following it or reading the body (SSRF via redirect)', async () => {
+    const jsonSpy = jest.fn();
+    fetchSpy.mockResolvedValue({
+      ok: false,
+      status: 302,
+      type: 'opaqueredirect',
+      json: jsonSpy,
+    } as unknown as Response);
+
+    await expect(
+      refreshAccessToken({ tokenEndpoint: 'https://idp/token', refreshToken: 'rt-1' }),
+    ).rejects.toBeInstanceOf(OAuthRefreshError);
+
+    // The grant body (refresh token / client secret) must not be re-sent nor the reply parsed.
+    expect(jsonSpy).not.toHaveBeenCalled();
+  });
+
   it('posts a refresh_token grant with the refresh token to the token endpoint', async () => {
     fetchSpy.mockResolvedValue(
       mockResponse({ ok: true, status: 200, payload: { access_token: 'at' } }),

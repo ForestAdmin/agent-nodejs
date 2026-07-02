@@ -290,6 +290,9 @@ export default class ExecutorHttpServer {
       throw err;
     }
 
+    // Evict any cached access token so a reconnect/re-deposit takes effect immediately, instead of
+    // serving the token minted from the previous credential until it expires (mirrors delete).
+    this.options.oauthTokenService?.evict(userId, parsed.data.mcpServerId);
     ctx.status = 200;
     ctx.body = { stored: true };
   }

@@ -75,9 +75,21 @@ export default async function refreshAccessToken(
   let response: Awaited<ReturnType<typeof fetch>>;
 
   try {
-    response = await fetch(params.tokenEndpoint, { method: 'POST', headers, body });
+    // Never follow redirects: a 3xx to an internal host would re-send the grant body (refresh
+    // token, plus the client secret in client_secret_post) there and parse its reply as a token —
+    // bypassing the endpoint validation above. Any redirect is treated as a failure.
+    response = await fetch(params.tokenEndpoint, {
+      method: 'POST',
+      headers,
+      body,
+      redirect: 'manual',
+    });
   } catch (cause) {
     throw new OAuthRefreshError('the token endpoint could not be reached', cause);
+  }
+
+  if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+    throw new OAuthRefreshError('the token endpoint attempted a redirect');
   }
 
   let payload: TokenEndpointResponse = {};
