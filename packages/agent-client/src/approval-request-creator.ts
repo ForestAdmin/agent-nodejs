@@ -58,8 +58,15 @@ export default function makeCreateApprovalRequest(options: {
           headers: { 'forest-rendering-id': String(options.renderingId) },
           body: { data: { attributes: { comment: payload.message } } },
         });
-      } catch {
-        /* approval created; the message is optional context */
+      } catch (error) {
+        // The approval already exists; the comment is optional context, so don't fail the
+        // request. Warn (rather than swallow silently) so a persistently broken comments
+        // route — or a bug in this block — is discoverable.
+        // eslint-disable-next-line no-console
+        console.warn(
+          `Approval request ${id} created, but posting the reasoning comment failed`,
+          error,
+        );
       }
     }
 

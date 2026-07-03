@@ -83,6 +83,13 @@ export type BaseActionContext = {
   recordIds?: RecordId[];
 };
 
+export type ActionExecuteOptions = {
+  // Signed approval token replayed when an approver confirms an approval-gated action.
+  signedApprovalRequest?: Record<string, unknown>;
+  // AI reasoning attached as a comment on the approval request when the action is approval-gated.
+  approvalRequestMessage?: string;
+};
+
 export type ActionExecuteResult =
   | { success: string; html?: string }
   | { approvalRequested: true; approvalRequest?: { id: string } };
@@ -123,10 +130,8 @@ export default class Action {
     this.createApprovalRequest = createApprovalRequest;
   }
 
-  async execute(
-    signedApprovalRequest?: Record<string, unknown>,
-    approvalRequestMessage?: string,
-  ): Promise<ActionExecuteResult> {
+  async execute(options: ActionExecuteOptions = {}): Promise<ActionExecuteResult> {
+    const { signedApprovalRequest, approvalRequestMessage } = options;
     const requestBody = {
       data: {
         attributes: {

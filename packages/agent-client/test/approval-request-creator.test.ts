@@ -95,10 +95,11 @@ describe('makeCreateApprovalRequest', () => {
     expect(queryWithBearerToken).toHaveBeenCalledTimes(1);
   });
 
-  it('still returns the approval id when posting the comment fails', async () => {
+  it('still returns the approval id (and warns) when posting the comment fails', async () => {
     queryWithBearerToken
       .mockResolvedValueOnce({ data: { id: 'req_42' } })
       .mockRejectedValueOnce(new Error('comments route down'));
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const create = makeCreateApprovalRequest({
       forestServerUrl: 'https://api.forestadmin.com',
       forestServerToken: 'server-token',
@@ -114,6 +115,8 @@ describe('makeCreateApprovalRequest', () => {
     });
 
     expect(result).toEqual({ id: 'req_42' });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('req_42'), expect.any(Error));
+    warn.mockRestore();
   });
 
   it('returns the approval id read from the server response data.id', async () => {

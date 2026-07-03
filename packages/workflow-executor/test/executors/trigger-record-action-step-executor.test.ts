@@ -253,6 +253,48 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    it('falls back to the step prompt as approvalMessage when the AI returns no reasoning', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
+      const mockModel = makeMockModel({ actionName: 'Send Welcome Email' });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: 'Send a welcome email to the customer',
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      await executor.execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({ approvalMessage: 'Send a welcome email to the customer' }),
+        expect.anything(),
+      );
+    });
+
+    it('omits approvalMessage when the AI returns no reasoning and there is no prompt', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
+      const mockModel = makeMockModel({ actionName: 'Send Welcome Email' });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          prompt: undefined,
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      await executor.execute();
+
+      const query = (agentPort.executeAction as jest.Mock).mock.calls[0][0];
+      expect('approvalMessage' in query).toBe(false);
+    });
+
     it('does NOT attach a record when the action is global', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });

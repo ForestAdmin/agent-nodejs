@@ -797,10 +797,9 @@ describe('AgentClientAgentPort', () => {
         { user },
       );
 
-      expect(mockAction.execute).toHaveBeenCalledWith(
-        undefined,
-        'AI reasoning: resend requested by the workflow',
-      );
+      expect(mockAction.execute).toHaveBeenCalledWith({
+        approvalRequestMessage: 'AI reasoning: resend requested by the workflow',
+      });
     });
 
     it('wires the forestServer connection into agent-client when a server token is supplied', async () => {

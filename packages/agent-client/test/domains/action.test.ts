@@ -106,7 +106,7 @@ describe('Action', () => {
       httpRequester.query.mockResolvedValue({ success: 'Action executed' });
       const signedApprovalRequest = { token: 'approval-token', requesterId: '123' };
 
-      await action.execute(signedApprovalRequest);
+      await action.execute({ signedApprovalRequest });
 
       expect(httpRequester.query).toHaveBeenCalledWith({
         method: 'post',
@@ -203,7 +203,9 @@ describe('Action', () => {
         }),
       );
 
-      await approvalAction.execute(undefined, 'AI reasoning: user asked for a resend');
+      await approvalAction.execute({
+        approvalRequestMessage: 'AI reasoning: user asked for a resend',
+      });
 
       expect(createApprovalRequest).toHaveBeenCalledWith(
         expect.objectContaining({ message: 'AI reasoning: user asked for a resend' }),

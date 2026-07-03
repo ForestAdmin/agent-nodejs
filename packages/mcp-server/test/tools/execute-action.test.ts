@@ -354,10 +354,9 @@ describe('declareExecuteActionTool', () => {
         mockExtra,
       );
 
-      expect(mockExecute).toHaveBeenCalledWith(
-        undefined,
-        'Duplicate payment detected on order #42',
-      );
+      expect(mockExecute).toHaveBeenCalledWith({
+        approvalRequestMessage: 'Duplicate payment detected on order #42',
+      });
     });
 
     describe('activity logging', () => {

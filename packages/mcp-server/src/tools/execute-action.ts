@@ -74,7 +74,7 @@ If you call executeAction with missing required fields, it will return an error 
             await action.setFields(options.values);
           }
 
-          const result = await action.execute(undefined, options.reasoning);
+          const result = await action.execute({ approvalRequestMessage: options.reasoning });
 
           if ('approvalRequested' in result) {
             return {

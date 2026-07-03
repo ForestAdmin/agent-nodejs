@@ -249,7 +249,7 @@ export default class AgentClientAgentPort implements AgentPort {
       }
 
       try {
-        const executeResult = await act.execute(undefined, approvalMessage);
+        const executeResult = await act.execute({ approvalRequestMessage: approvalMessage });
 
         return typeof executeResult === 'object' &&
           executeResult !== null &&
