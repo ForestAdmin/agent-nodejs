@@ -7,6 +7,7 @@ export type ApprovalRequestPayload = {
   actionName: string;
   recordIds: (string | number)[];
   inputs: ApprovalRequestInput[];
+  message?: string;
 };
 
 export type CreateApprovalRequest = (
@@ -43,6 +44,28 @@ export default function makeCreateApprovalRequest(options: {
       },
     });
 
-    return body?.data?.id ? { id: String(body.data.id) } : undefined;
+    const id = body?.data?.id ? String(body.data.id) : undefined;
+
+    // Best-effort: the approval already exists, so a comment failure must not fail the request.
+    if (id && payload.message) {
+      try {
+        await ServerUtils.queryWithBearerToken({
+          forestServerUrl: options.forestServerUrl,
+          bearerToken: options.forestServerToken,
+          method: 'post',
+          path: `${APPROVAL_REQUEST_PATH}/${id}/comments`,
+          headers: { 'forest-rendering-id': String(options.renderingId) },
+          body: { data: { attributes: { comment: payload.message } } },
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `Approval request ${id} created, but posting the reasoning comment failed`,
+          error,
+        );
+      }
+    }
+
+    return id ? { id } : undefined;
   };
 }

@@ -784,6 +784,24 @@ describe('AgentClientAgentPort', () => {
       expect(result).toEqual({ approvalRequested: true, approvalRequest: { id: 'req_42' } });
     });
 
+    it('forwards the approvalMessage to execute so it reaches the approval request', async () => {
+      mockAction.execute.mockResolvedValue({ approvalRequested: true });
+
+      await port.executeAction(
+        {
+          collection: 'users',
+          action: 'sendEmail',
+          id: [1],
+          approvalMessage: 'AI reasoning: resend requested by the workflow',
+        },
+        { user },
+      );
+
+      expect(mockAction.execute).toHaveBeenCalledWith({
+        approvalRequestMessage: 'AI reasoning: resend requested by the workflow',
+      });
+    });
+
     it('wires the forestServer connection into agent-client when a server token is supplied', async () => {
       const portWithServer = new AgentClientAgentPort({
         agentUrl: 'http://localhost:3310',

@@ -230,7 +230,7 @@ export default class AgentClientAgentPort implements AgentPort {
   }
 
   async executeAction(
-    { collection, action, id, values }: ExecuteActionQuery,
+    { collection, action, id, values, approvalMessage }: ExecuteActionQuery,
     { user, forestServerToken }: ActionCaller,
   ): Promise<ExecuteActionResult> {
     return this.callAgent('executeAction', async () => {
@@ -249,7 +249,7 @@ export default class AgentClientAgentPort implements AgentPort {
       }
 
       try {
-        const executeResult = await act.execute();
+        const executeResult = await act.execute({ approvalRequestMessage: approvalMessage });
 
         return typeof executeResult === 'object' &&
           executeResult !== null &&

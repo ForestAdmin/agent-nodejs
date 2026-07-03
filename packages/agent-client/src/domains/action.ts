@@ -83,6 +83,12 @@ export type BaseActionContext = {
   recordIds?: RecordId[];
 };
 
+export type ActionExecuteOptions = {
+  signedApprovalRequest?: Record<string, unknown>;
+  // Posted as a comment on the approval request when the action is approval-gated.
+  approvalRequestMessage?: string;
+};
+
 export type ActionExecuteResult =
   | { success: string; html?: string }
   | { approvalRequested: true; approvalRequest?: { id: string } };
@@ -123,7 +129,8 @@ export default class Action {
     this.createApprovalRequest = createApprovalRequest;
   }
 
-  async execute(signedApprovalRequest?: Record<string, unknown>): Promise<ActionExecuteResult> {
+  async execute(options: ActionExecuteOptions = {}): Promise<ActionExecuteResult> {
+    const { signedApprovalRequest, approvalRequestMessage } = options;
     const requestBody = {
       data: {
         attributes: {
@@ -161,6 +168,7 @@ export default class Action {
             actionName: this.actionName,
             recordIds: this.ids ?? [],
             inputs,
+            ...(approvalRequestMessage && { message: approvalRequestMessage }),
           });
         } catch (cause) {
           throw new ApprovalRequestCreationError(cause);

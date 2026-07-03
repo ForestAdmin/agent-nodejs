@@ -46,6 +46,79 @@ describe('makeCreateApprovalRequest', () => {
     });
   });
 
+  it('posts the message as a comment on the created approval', async () => {
+    queryWithBearerToken.mockResolvedValueOnce({ data: { id: 'req_42' } });
+    const create = makeCreateApprovalRequest({
+      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerToken: 'server-token',
+      renderingId: 42,
+    });
+
+    const result = await create({
+      collectionName: 'users',
+      actionName: 'refund',
+      recordIds: ['1'],
+      inputs: [],
+      message: 'Refund requested by AI: duplicate payment detected',
+    });
+
+    expect(queryWithBearerToken).toHaveBeenCalledTimes(2);
+    expect(queryWithBearerToken).toHaveBeenLastCalledWith({
+      forestServerUrl: 'https://api.forestadmin.com',
+      bearerToken: 'server-token',
+      method: 'post',
+      path: '/api/action-approvals/req_42/comments',
+      headers: { 'forest-rendering-id': '42' },
+      body: {
+        data: { attributes: { comment: 'Refund requested by AI: duplicate payment detected' } },
+      },
+    });
+    expect(result).toEqual({ id: 'req_42' });
+  });
+
+  it('skips the comment when no approval id came back', async () => {
+    queryWithBearerToken.mockResolvedValueOnce({ data: {} });
+    const create = makeCreateApprovalRequest({
+      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerToken: 'server-token',
+      renderingId: 42,
+    });
+
+    await create({
+      collectionName: 'users',
+      actionName: 'refund',
+      recordIds: ['1'],
+      inputs: [],
+      message: 'some reasoning',
+    });
+
+    expect(queryWithBearerToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('still returns the approval id (and warns) when posting the comment fails', async () => {
+    queryWithBearerToken
+      .mockResolvedValueOnce({ data: { id: 'req_42' } })
+      .mockRejectedValueOnce(new Error('comments route down'));
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const create = makeCreateApprovalRequest({
+      forestServerUrl: 'https://api.forestadmin.com',
+      forestServerToken: 'server-token',
+      renderingId: 42,
+    });
+
+    const result = await create({
+      collectionName: 'users',
+      actionName: 'refund',
+      recordIds: ['1'],
+      inputs: [],
+      message: 'some reasoning',
+    });
+
+    expect(result).toEqual({ id: 'req_42' });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('req_42'), expect.any(Error));
+    warn.mockRestore();
+  });
+
   it('returns the approval id read from the server response data.id', async () => {
     queryWithBearerToken.mockResolvedValue({ data: { id: 'req_42', type: 'action-approvals' } });
     const create = makeCreateApprovalRequest({

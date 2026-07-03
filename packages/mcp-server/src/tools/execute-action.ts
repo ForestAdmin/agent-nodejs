@@ -2,6 +2,8 @@ import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { z } from 'zod';
+
 import { createActionArgumentShape } from '../utils/action-helpers';
 import { buildClientWithActions } from '../utils/agent-caller';
 import registerToolWithLogging from '../utils/tool-with-logging';
@@ -12,6 +14,7 @@ interface ExecuteActionArgument {
   actionName: string;
   recordIds: (string | number)[] | null;
   values?: Record<string, unknown>;
+  reasoning?: string;
 }
 
 export default function declareExecuteActionTool(
@@ -20,7 +23,16 @@ export default function declareExecuteActionTool(
   logger: Logger,
   collectionNames: string[] = [],
 ): string {
-  const argumentShape = createActionArgumentShape(collectionNames);
+  const argumentShape = {
+    ...createActionArgumentShape(collectionNames),
+    reasoning: z
+      .string()
+      .optional()
+      .describe(
+        'A clear explanation of why you are executing this action. ' +
+          'Shown to the approver when the action requires an approval — always provide it.',
+      ),
+  };
 
   return registerToolWithLogging(
     mcpServer,
@@ -62,7 +74,7 @@ If you call executeAction with missing required fields, it will return an error 
             await action.setFields(options.values);
           }
 
-          const result = await action.execute();
+          const result = await action.execute({ approvalRequestMessage: options.reasoning });
 
           if ('approvalRequested' in result) {
             return {
