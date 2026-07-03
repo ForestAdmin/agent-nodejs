@@ -835,8 +835,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      // An out-of-range index is an AI failure → degrade to the Manual path (deterministic list,
-      // user picks) rather than erroring the run or auto-loading a guess.
+      // Out-of-range index = AI failure → degrade to Manual (see AiAssistUnavailableError), not an error/auto-load.
       expect(result.stepOutcome.status).toBe('awaiting-input');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
@@ -886,7 +885,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      // An invalid field-selection response is an AI failure → degrade to the Manual path.
+      // Invalid field-selection response = AI failure → degrade to Manual (see AiAssistUnavailableError).
       expect(result.stepOutcome.status).toBe('awaiting-input');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
@@ -978,8 +977,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // To-many path: /relationships call with the candidate-list limit (a lone record short-circuits
-      // ranking, so it loads without an AI call).
+      // To-many path uses the candidate-list limit (50); a lone record short-circuits ranking, so it
+      // loads with no AI call.
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({
           collection: 'customers',
@@ -1001,8 +1000,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    // Empty list → nothing to load: Full AI degrades to an AI-assisted confirmation ("No X to load"
-    // pre-checked) instead of skipping, so a human decides.
+    // Empty list: Full AI hands off with "No X to load" pre-checked rather than auto-skipping.
     it('falls back to awaiting-input (No X to load) when getRelatedData returns an empty array (Branch B)', async () => {
       const belongsToManySchema = makeCollectionSchema({
         fields: [
@@ -1029,7 +1027,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      // Full AI with no candidate → hands off to the user with "No X to load" pre-checked.
       expect(result.stepOutcome.status).toBe('awaiting-input');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.availableRecordIds).toEqual([]);
@@ -1082,7 +1079,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      // Manual mode performs zero AI calls — no relation chooser, no field/record ranking.
       expect(bindTools).not.toHaveBeenCalled();
 
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls[0][1];
@@ -1091,7 +1087,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('still pre-fills the single xToOne record in Manual (the only option, not an AI pick)', async () => {
-      // BelongsTo 'order' → one linked record; pre-filled even in Manual, with no AI call.
       const agentPort = makeMockAgentPort(); // default: 1 related order #99 via getSingleRelatedData
       const bindTools = jest.fn();
       const model = { bindTools } as unknown as ExecutionContext['model'];
@@ -1157,7 +1152,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      // Manual: switching to a multi-record relation must neither call the AI nor pre-select.
       expect(bindTools).not.toHaveBeenCalled();
 
       const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
@@ -1222,8 +1216,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
-      // AI-assisted no longer forces a pick: the AI may return -1, and the user reviews with
-      // "No X to load" pre-checked (rather than a potentially misleading forced suggestion).
+      // AI-assisted lets the AI decline (-1): the user reviews with "No X to load" pre-checked rather
+      // than a misleading forced suggestion.
       expect(result.stepOutcome.status).toBe('awaiting-input');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
@@ -1285,8 +1279,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await new LoadRelatedRecordStepExecutor(context).execute();
 
-      // 2nd AI call = record selection. Without the decline guidance the base prompt forces a pick,
-      // so an impossible request would return a weak match instead of -1 (Bug 2).
+      // 2nd AI call = record selection. Without the decline guidance the base prompt forces a pick, so
+      // an impossible request returns a weak match instead of -1.
       const recordSelectionMessages = invoke.mock.calls[1][0] as Array<{ content: unknown }>;
       const content = recordSelectionMessages.map(m => String(m.content)).join('\n');
       expect(content).toContain('-1');
@@ -1350,8 +1344,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('awaiting-input');
-      // Two AI calls run (field + record selection); the record call returns -1 → hand off to the
-      // user with the candidates listed and "No X to load" pre-checked.
+      // Field + record-selection AI calls both run; the record call returns -1 → hand off with "No X
+      // to load" pre-checked.
       expect(bindTools).toHaveBeenCalledTimes(2);
       expect(bindTools.mock.calls[1][0][0].name).toBe('select-record-by-content');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
@@ -1422,15 +1416,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await new LoadRelatedRecordStepExecutor(context).execute();
 
-      // Full AI can't confidently single one out → hand off to a human with the AI's best guess
-      // (index 0 → recordId [1]) pre-selected, rather than auto-loading an arbitrary pick.
+      // Full AI can't confidently single one out → hand off with the AI's best guess (index 0 →
+      // recordId [1]) pre-selected, not an auto-load.
       expect(result.stepOutcome.status).toBe('awaiting-input');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
       expect(saved.pendingData.suggestedRecord).toEqual(cand([1]));
-      // Not a "none relevant" outcome — the "No X to load" box must stay unchecked.
+      // A best guess, not "none relevant" — the "No X to load" box must stay unchecked.
       expect(saved.pendingData.suggestNoRecord).toBeUndefined();
-      // Nothing was auto-loaded.
       expect(saved.executionResult).toBeUndefined();
     });
 
@@ -1502,7 +1495,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         { collectionName: 'addresses', recordId: [2], values: { city: 'Lyon' } },
       ];
       const agentPort = makeMockAgentPort(relatedData);
-      // AI provider outage/timeout: the model invoke rejects.
       const invoke = jest.fn().mockRejectedValue(new Error('AI provider timed out'));
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
@@ -2412,8 +2404,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
     it('clears a stale suggestNoRecord flag when switching to a relation that yields a suggestion', async () => {
       // Previous field ended in "No X to load" (suggestNoRecord true, no suggestion). Switching to a
-      // relation that resolves a record must drop the stale flag and surface the new suggestion —
-      // pendingData is rebuilt for the new field, not spread over the old one.
+      // relation that resolves a record must drop the stale flag — pendingData is rebuilt, not spread.
       const execution = makePendingExecution({
         pendingData: {
           availableFields: [
@@ -2446,13 +2437,12 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const finalSave = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(finalSave.pendingData.suggestedField).toEqual({ name: 'order', displayName: 'Order' });
       expect(finalSave.pendingData.suggestedRecord).toEqual(cand(['99']));
-      // The stale "No X to load" flag from the previous field must not linger.
       expect(finalSave.pendingData.suggestNoRecord).toBeUndefined();
     });
 
     it('degrades to the no-AI candidate list when the AI fails during a field switch', async () => {
-      // AI mode + user switches to a HasMany relation; the ranking AI call throws → refresh must
-      // fall back to the deterministic list (no suggestion) instead of erroring the run.
+      // HasMany field switch; the ranking AI call throws → falls back to the deterministic list, no
+      // suggestion (degrade, not error).
       const execution = makePendingExecution({
         pendingData: {
           availableFields: [
@@ -2473,7 +2463,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
         collectionDisplayName: 'Addresses',
         fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
       });
-      // The ranking AI call rejects (provider outage/timeout).
       const invoke = jest.fn().mockRejectedValue(new Error('AI provider timed out'));
       const model = {
         bindTools: jest.fn().mockReturnValue({ invoke }),
@@ -2502,14 +2491,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
         displayName: 'Address',
       });
       expect(finalSave.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
-      // Degraded → no AI suggestion and no stale "No X to load" flag.
       expect(finalSave.pendingData.suggestedRecord).toBeUndefined();
       expect(finalSave.pendingData.suggestNoRecord).toBeUndefined();
     });
 
     it('rethrows a non-AI failure during a field switch instead of degrading', async () => {
-      // A data-fetch failure (not an AI failure) must surface as a step error — only tagged AI
-      // failures degrade to the Manual path.
+      // A data-fetch failure is not a tagged AI failure, so it surfaces as a step error instead of
+      // degrading.
       const execution = makePendingExecution({
         pendingData: {
           availableFields: [
@@ -3013,9 +3001,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(saved.pendingData.availableRecordIds).toHaveLength(50);
     });
 
-    // Safety core (noneAllowed = allowNone && !truncated): when the candidate list is truncated the
-    // AI must NOT be offered the -1 "none relevant" option, so it can't decline based on a partial
-    // view — a match could be hiding in the unseen tail.
+    // Safety core (noneAllowed = allowNone && !truncated): a truncated list must NOT offer the AI the
+    // -1 "none relevant" option, or it could decline while a match hides in the unseen tail.
     it('withholds the -1 (none) option from the AI when the candidate list is truncated', async () => {
       const big = 'y'.repeat(80);
       const values = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`f${i}`, big]));
@@ -3034,14 +3021,13 @@ describe('LoadRelatedRecordStepExecutor', () => {
           customers: makeCollectionSchema(),
           addresses: wideSchema(6),
         }),
-        // AI-assisted so allowNone is true at the call site — the truncation guard is what suppresses
-        // the -1 option, not the mode.
+        // AI-assisted so allowNone is true at the call site — the truncation guard, not the mode,
+        // suppresses the -1 option.
         stepDefinition: makeStep({ executionType: StepExecutionMode.AutomatedWithConfirmation }),
       });
 
       await new LoadRelatedRecordStepExecutor(context).execute();
 
-      // Neither the decline guidance nor the "-1" index appears in the record-selection prompt.
       expect(selectRecordPrompt(invoke)).not.toContain('-1');
     });
 
@@ -3243,7 +3229,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      // Full AI: linked record absent → hand off to the user with "No X to load" pre-checked.
       expect(result.stepOutcome.status).toBe('awaiting-input');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.availableRecordIds).toEqual([]);
@@ -3276,7 +3261,6 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      // Full AI: empty candidate list → hand off to the user with "No X to load" pre-checked.
       expect(result.stepOutcome.status).toBe('awaiting-input');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.availableRecordIds).toEqual([]);
@@ -3335,9 +3319,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('select-relation-to-follow failure', () => {
-    // With >=2 candidates the AI must echo back one of the offered labels. A label that matches no
-    // option (here a fabricated relation) is an invalid AI response → the step degrades to the
-    // deterministic Manual path instead of erroring the run.
+    // With >=2 candidates the AI must echo back an offered label; a fabricated one is an invalid
+    // response → degrade to Manual (see AiAssistUnavailableError).
     it('degrades to manual selection when AI selects a relation label not among the offered options', async () => {
       const agentPort = makeMockAgentPort();
       // Default schema has two relations (Order, Address) → select-relation-to-follow IS invoked.
@@ -3360,8 +3343,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      // Degrade picks the first eligible relation (Order, BelongsTo) deterministically and presents
-      // its single linked record for confirmation — no error, no auto-load off a bad relation pick.
+      // Degrade picks the first eligible relation (Order) and presents its linked record — no auto-load.
       expect(result.stepOutcome.status).toBe('awaiting-input');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.pendingData.suggestedField).toEqual({ name: 'order', displayName: 'Order' });
@@ -3370,8 +3352,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
   });
 
   describe('AI malformed/missing tool call', () => {
-    // A malformed or missing tool call is an AI failure. In an AI mode it degrades to the Manual
-    // path (first eligible relation + its candidate) rather than erroring the run.
+    // A malformed/missing tool call is an AI failure → degrade to Manual (see AiAssistUnavailableError).
     it('degrades to manual selection on a malformed tool call', async () => {
       const invoke = jest.fn().mockResolvedValue({
         tool_calls: [],
@@ -4307,8 +4288,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('errors (Full AI) when the source step loaded no record', async () => {
-      // The source step exists in the live path but its run-store execution has no record. Full AI
-      // surfaces the error like the await modes; the front offers "continue without".
+      // Source step exists but its run-store execution has no record. Full AI surfaces the error (the
+      // front offers "continue without").
       const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
       const context = makeContext({
         runStore,
@@ -4326,8 +4307,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
 
     it('surfaces a "no source record" error in await modes when the source step loaded nothing', async () => {
-      // Same as Full AI now — every mode surfaces the error so the front can offer
-      // "continue without".
+      // Await modes surface the same error as Full AI so the front can offer "continue without".
       const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
       const context = makeContext({
         runStore,

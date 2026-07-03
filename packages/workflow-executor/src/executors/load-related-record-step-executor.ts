@@ -82,9 +82,8 @@ function isFollowableRelation(field: FieldSchema): boolean {
   return field.isRelationship && Boolean(field.relatedCollectionName || field.polymorphicTypeField);
 }
 
-// Internal marker: wraps any failure raised while calling the AI (timeout, provider outage,
-// missing/malformed tool call, out-of-range choice) so the step handlers can degrade to the
-// deterministic Manual path instead of erroring the run. Never leaves this module.
+// Marks any AI-call failure (timeout, outage, malformed/missing tool call, out-of-range pick) so
+// handlers degrade to the deterministic Manual path instead of erroring — never auto-skips. Internal only.
 class AiAssistUnavailableError extends Error {
   readonly reason: unknown;
 
@@ -130,8 +129,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const schema = await this.getCollectionSchema(execution.selectedRecordRef.collectionName);
     const target = await this.buildTarget(schema, fieldName, execution.selectedRecordRef);
 
-    // A field switch must not error the run: an AI failure/timeout while re-listing degrades to the
-    // no-AI candidate path (no suggestion), like the first-call degrade.
+    // AI failure while re-listing → degrade to the no-AI list, not a run error (see AiAssistUnavailableError).
     let aiSuggested = useAi;
     let candidates;
 
@@ -177,8 +175,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
       return await this.saveAndAwaitInput(target, sourceSchema, useAi);
     } catch (error) {
-      // AI failure/timeout in any AI mode (relation pick, field/record ranking, or a Full AI
-      // auto-load) degrades to Manual instead of erroring the run — never auto-skip.
+      // AI failure in any AI mode → degrade to Manual (see AiAssistUnavailableError).
       if (useAi && error instanceof AiAssistUnavailableError) {
         this.logAiDegrade(error.reason);
 
@@ -197,8 +194,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     );
   }
 
-  // Degrades to the deterministic Manual path: first eligible relation, candidate list fetched
-  // without AI, user picks. The re-run is AI-free, so it cannot re-trigger the failure.
+  // The re-run is AI-free (first eligible relation, no-AI list), so it can't re-trigger the failure.
   private async degradeToManualAwaitInput(): Promise<StepExecutionResult> {
     const target = await this.resolveTarget(false);
     const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
@@ -234,9 +230,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       );
     }
 
-    // Manual never invokes the AI chooser → eligible[0], i.e. the workflow-start record's first
-    // relation (getAvailableRecordRefs lists the base record first). The user switches the relation
-    // at runtime; a non-base source needs deterministic "Related to" pinning (selectedRecordStepId).
+    // No-AI path picks eligible[0] — the base record's first relation (getAvailableRecordRefs lists
+    // it first). The user switches relation at runtime; a non-base source needs selectedRecordStepId pinning.
     const chosen =
       eligible.length > 1 && useAi
         ? await this.withAiAssist(() => this.selectRelationToFollow(eligible))
@@ -554,9 +549,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   ): Promise<{
     relatedData: RecordData[];
     bestIndex: number;
-    // Whether the suggested record is a confident pick. The deterministic/short-circuit paths
-    // (single candidate, no ranking) are confident by construction; the ranked path reflects the
-    // AI's own confidence flag.
+    // Whether the suggested record is a confident pick. Deterministic/short-circuit paths (single
+    // candidate, no ranking) are confident by construction; the ranked path reflects the AI's flag.
     confident: boolean;
     suggestedFields: string[];
     relatedSchema: CollectionSchema;
@@ -574,9 +568,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       return { relatedData, bestIndex: -1, confident: true, suggestedFields: [], relatedSchema };
     }
 
-    // The final record stays AI-suggested + user-confirmed (or AI-decided in Full AI) — only the
-    // source + relation are pinned deterministically. Index-based record pinning was removed.
-    // withAiAssist tags any AI failure so callers degrade to the Manual path instead of erroring.
+    // The final record stays AI-suggested + user-confirmed (or AI-decided in Full AI): only the
+    // source and relation are pinned deterministically, not the record index (not revise-safe).
     const suggestedFields = await this.withAiAssist(() =>
       this.selectRelevantFields(relatedSchema, this.context.stepDefinition.prompt),
     );
@@ -592,8 +585,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     return { relatedData, bestIndex, confident, suggestedFields, relatedSchema };
   }
 
-  // Tags any failure raised inside an AI call so the step handlers can degrade to the deterministic
-  // Manual path. Passing through an already-tagged error avoids double-wrapping when calls nest.
+  // Tags failures raised in an AI call as AiAssistUnavailableError; passing an already-tagged error
+  // through avoids double-wrapping when calls nest.
   private async withAiAssist<T>(call: () => Promise<T>): Promise<T> {
     try {
       return await call();
@@ -829,9 +822,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       reasoning: string;
     }>(messages, tool);
 
-    // NOTE: The Zod schema's .min().max() shapes the tool prompt only — it is NOT validated against
-    // the AI response. This guard is the sole runtime enforcement. -1 (none relevant) is accepted
-    // only when noneAllowed (allowNone and the list was not truncated).
+    // The Zod .min().max() shapes the tool prompt only — NOT validated against the AI response; this
+    // guard is the sole runtime enforcement. -1 is accepted only when noneAllowed (allowNone && !truncated).
     if (!Number.isInteger(recordIndex) || recordIndex < minIndex || recordIndex > maxIndex) {
       throw new InvalidAIResponseError(
         `AI selected record index ${recordIndex} which is out of range (${minIndex}-${maxIndex}) or not an integer`,
@@ -839,8 +831,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     }
 
     // A definitive -1 ("none relevant") is not ambiguity. For a positive pick, honour the AI's
-    // confidence flag, defaulting to confident when omitted (the schema is not validated, and a
-    // missing flag must preserve the prior auto-load behaviour).
+    // confidence flag, defaulting to confident when omitted so a missing flag still auto-loads.
     const confident = recordIndex < 0 ? true : rawConfident !== false;
 
     return { index: recordIndex, confident };
