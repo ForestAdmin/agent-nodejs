@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.9.0...@forestadmin/agent-client@1.10.0) (2026-07-03)
+
+
+### Features
+
+* attach AI reasoning as a comment on approval requests ([#1733](https://github.com/ForestAdmin/agent-nodejs/issues/1733)) ([bb6ee3f](https://github.com/ForestAdmin/agent-nodejs/commit/bb6ee3fc2a58c061dee5930281597f4563b3c159))
+
 # @forestadmin/agent-client [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.8.0...@forestadmin/agent-client@1.9.0) (2026-07-01)
 
 
