@@ -43,6 +43,9 @@ Important rules:
 interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
   isGlobal?: boolean;
+  // AI reasoning (or the step prompt as fallback) forwarded to the approval request
+  // when the action is approval-gated, so the approver sees why it was triggered.
+  approvalMessage?: string;
 }
 
 export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<TriggerActionStepDefinition> {
@@ -141,18 +144,24 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       : await this.resolveRecordRef(await this.getAvailableRecordRefs(), step.prompt);
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
     const recordedAction = preRecordedArgs?.actionName;
-    const actionName = recordedAction ?? (await this.selectAction(schema, step.prompt)).actionName;
+    const selection = recordedAction
+      ? { actionName: recordedAction }
+      : await this.selectAction(schema, step.prompt);
+    const { actionName } = selection;
     const action = this.findActionByTechnicalName(schema, actionName);
 
     if (!action) {
       throw new ActionNotFoundError(actionName, schema.collectionName);
     }
 
+    const approvalMessage = ('reasoning' in selection && selection.reasoning) || step.prompt;
+
     const target: ActionTarget = {
       selectedRecordRef,
       displayName: action.displayName,
       name: action.name,
       isGlobal: action.type === 'global',
+      ...(approvalMessage && { approvalMessage }),
     };
 
     const form = await this.context.agent.getActionForm({
@@ -377,6 +386,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         // Global actions run on no record — omit the id so the approval isn't linked to one.
         ...(target.isGlobal ? {} : { id: selectedRecordRef.recordId }),
         ...(form && { values: form.values }),
+        ...(target.approvalMessage && { approvalMessage: target.approvalMessage }),
       },
       {
         beforeCall: () =>
@@ -485,7 +495,7 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
   private async selectAction(
     schema: CollectionSchema,
     prompt: string | undefined,
-  ): Promise<{ actionName: string }> {
+  ): Promise<{ actionName: string; reasoning?: string }> {
     const tool = this.buildSelectActionTool(schema);
     const messages = [
       this.buildContextMessage(),
@@ -497,12 +507,12 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       new HumanMessage(`**Request**: ${prompt ?? 'Trigger the relevant action.'}`),
     ];
 
-    const { actionName } = await this.invokeWithTool<{ actionName: string; reasoning: string }>(
-      messages,
-      tool,
-    );
+    const { actionName, reasoning } = await this.invokeWithTool<{
+      actionName: string;
+      reasoning: string;
+    }>(messages, tool);
 
-    return { actionName: this.findAction(schema, actionName)?.name ?? actionName };
+    return { actionName: this.findAction(schema, actionName)?.name ?? actionName, reasoning };
   }
 
   private buildSelectActionTool(schema: CollectionSchema): DynamicStructuredTool {

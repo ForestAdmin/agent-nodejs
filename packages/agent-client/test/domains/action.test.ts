@@ -184,6 +184,32 @@ describe('Action', () => {
       expect(result).toEqual({ approvalRequested: true });
     });
 
+    it('forwards the approval message to the approval request creator', async () => {
+      fieldsFormStates.getFields.mockReturnValue([] as any);
+      const createApprovalRequest = jest.fn().mockResolvedValue(undefined);
+      const approvalAction = new Action(
+        'users',
+        'send-email',
+        httpRequester,
+        '/forest/actions/send-email',
+        fieldsFormStates,
+        ['1'],
+        undefined,
+        createApprovalRequest,
+      );
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(403, {
+          errors: [{ name: 'CustomActionRequiresApprovalError', detail: 'Needs approval' }],
+        }),
+      );
+
+      await approvalAction.execute(undefined, 'AI reasoning: user asked for a resend');
+
+      expect(createApprovalRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'AI reasoning: user asked for a resend' }),
+      );
+    });
+
     it('includes the approval request id when the creator returns one', async () => {
       fieldsFormStates.getFields.mockReturnValue([] as any);
       const createApprovalRequest = jest.fn().mockResolvedValue({ id: 'req_42' });

@@ -227,7 +227,12 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
-        { collection: 'customers', action: 'send-welcome-email', id: [42] },
+        {
+          collection: 'customers',
+          action: 'send-welcome-email',
+          id: [42],
+          approvalMessage: 'User requested welcome email',
+        },
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
       expect(runStore.saveStepExecution).toHaveBeenCalledWith(
@@ -274,7 +279,11 @@ describe('TriggerRecordActionStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       // The query carries no `id` for a global action.
       const query = (agentPort.executeAction as jest.Mock).mock.calls[0][0];
-      expect(query).toEqual({ collection: 'customers', action: 'send-welcome-email' });
+      expect(query).toEqual({
+        collection: 'customers',
+        action: 'send-welcome-email',
+        approvalMessage: 'User requested welcome email',
+      });
       expect('id' in query).toBe(false);
     });
 
@@ -1176,7 +1185,12 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
-        { collection: 'customers', action: 'archive', id: [42] },
+        {
+          collection: 'customers',
+          action: 'archive',
+          id: [42],
+          approvalMessage: 'User wants to archive',
+        },
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
     });
@@ -1206,7 +1220,12 @@ describe('TriggerRecordActionStepExecutor', () => {
 
       expect(result.stepOutcome.status).toBe('success');
       expect(agentPort.executeAction).toHaveBeenCalledWith(
-        { collection: 'customers', action: 'archive', id: [42] },
+        {
+          collection: 'customers',
+          action: 'archive',
+          id: [42],
+          approvalMessage: 'fallback to technical name',
+        },
         { user: expect.objectContaining({ id: 1 }), forestServerToken: undefined },
       );
     });
@@ -1589,6 +1608,30 @@ describe('TriggerRecordActionStepExecutor', () => {
         expect.objectContaining({
           executionParams: { displayName: 'Send Welcome Email', name: 'send-welcome-email' },
         }),
+      );
+    });
+
+    it('falls back to the step prompt as approvalMessage when the action is pre-recorded', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.executeAction as jest.Mock).mockResolvedValue({ result: { ok: true } });
+      const mockModel = makeMockModel();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { actionName: 'send-welcome-email' },
+        }),
+      });
+      const executor = new TriggerRecordActionStepExecutor(context);
+
+      await executor.execute();
+
+      expect(agentPort.executeAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          approvalMessage: 'Send a welcome email to the customer',
+        }),
+        expect.anything(),
       );
     });
 

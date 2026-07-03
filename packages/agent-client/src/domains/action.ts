@@ -123,7 +123,10 @@ export default class Action {
     this.createApprovalRequest = createApprovalRequest;
   }
 
-  async execute(signedApprovalRequest?: Record<string, unknown>): Promise<ActionExecuteResult> {
+  async execute(
+    signedApprovalRequest?: Record<string, unknown>,
+    approvalRequestMessage?: string,
+  ): Promise<ActionExecuteResult> {
     const requestBody = {
       data: {
         attributes: {
@@ -161,6 +164,7 @@ export default class Action {
             actionName: this.actionName,
             recordIds: this.ids ?? [],
             inputs,
+            ...(approvalRequestMessage && { message: approvalRequestMessage }),
           });
         } catch (cause) {
           throw new ApprovalRequestCreationError(cause);

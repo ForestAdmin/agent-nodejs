@@ -43,6 +43,9 @@ export type ExecuteActionQuery = {
   // Pre-filled form values. Set on the form before execution, going through the agent's
   // normal server-side validation — no bypass. Omitted for formless actions.
   values?: Record<string, unknown>;
+  // AI explanation attached to the approval request when the action is approval-gated,
+  // so the approver sees why the action was triggered.
+  approvalMessage?: string;
 };
 
 export type GetActionFormQuery = {

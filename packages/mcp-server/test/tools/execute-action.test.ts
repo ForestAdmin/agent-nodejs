@@ -332,6 +332,34 @@ describe('declareExecuteActionTool', () => {
       });
     });
 
+    it('should forward the reasoning to execute so it reaches the approval request', async () => {
+      const mockExecute = jest.fn().mockResolvedValue({ approvalRequested: true });
+      const mockAction = jest.fn().mockResolvedValue({
+        execute: mockExecute,
+        setFields: jest.fn().mockResolvedValue(undefined),
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      await registeredToolHandler(
+        {
+          collectionName: 'users',
+          actionName: 'refund',
+          recordIds: [1],
+          reasoning: 'Duplicate payment detected on order #42',
+        },
+        mockExtra,
+      );
+
+      expect(mockExecute).toHaveBeenCalledWith(
+        undefined,
+        'Duplicate payment detected on order #42',
+      );
+    });
+
     describe('activity logging', () => {
       beforeEach(() => {
         const mockExecute = jest.fn().mockResolvedValue({ success: 'Action executed' });
