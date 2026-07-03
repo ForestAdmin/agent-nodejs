@@ -451,12 +451,8 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       true,
     );
 
-    // Full AI auto-loads a confident pick and advances. It degrades to an AI-assisted confirmation
-    // (a human decides) instead of auto-loading when either:
-    //  - nothing is relevant to load → "No X to load" pre-checked (suggestNoRecord); or
-    //  - the AI cannot confidently single out one of several viable candidates → its best guess is
-    //    pre-selected for the human to confirm (no "No X to load").
-    // Mirrors the Trigger Action automated→confirmation fallback.
+    // Full AI auto-loads only a confident single pick; otherwise it degrades to an AI-assisted
+    // confirmation — "No X to load" pre-checked when nothing fits, else its best guess pre-selected.
     if (!suggestedRecord || ambiguous) {
       const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
 

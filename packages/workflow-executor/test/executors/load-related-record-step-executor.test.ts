@@ -4306,10 +4306,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
     });
 
-    it('errors (Full AI) when the source step loaded nothing — no longer auto-skips', async () => {
+    it('errors (Full AI) when the source step loaded no record', async () => {
       // The source step exists in the live path but its run-store execution has no record. Full AI
-      // now surfaces the error like the await modes (no silent skip); the front offers "continue
-      // without".
+      // surfaces the error like the await modes; the front offers "continue without".
       const runStore = makeMockRunStore({ getStepExecutions: jest.fn().mockResolvedValue([]) });
       const context = makeContext({
         runStore,
