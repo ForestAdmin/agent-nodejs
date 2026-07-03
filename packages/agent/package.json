@@ -69,9 +69,6 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0"
   },
-  "overrides": {
-    "@paralleldrive/cuid2": "2.2.2"
-  },
   "peerDependencies": {
     "@fastify/express": "^1.1.0 || ^2.0.0 || ^3.0.0 || ^4.0.0",
     "@forestadmin/workflow-executor": "1.12.0"
