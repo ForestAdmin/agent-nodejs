@@ -79,3 +79,12 @@ export function missingTimezone(
 export function invalidTimezone(value: string): BffHttpError {
   return new BffHttpError(400, 'invalid_timezone', `Invalid timezone: "${value}"`);
 }
+
+export function relationFieldNotSupported(fields: string[]): BffHttpError {
+  return new BffHttpError(
+    422,
+    'relation_field_not_supported',
+    'Nested relation field paths are not supported on top-level list and count',
+    { fields },
+  );
+}
