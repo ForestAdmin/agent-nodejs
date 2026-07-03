@@ -3,7 +3,7 @@ import type { WorkflowExecutor } from '@forestadmin/workflow-executor';
 
 import path from 'path';
 
-/** Default loopback port for an embedded workflow executor (mirrors the executor CLI's HTTP_PORT). */
+/** Default loopback port for an embedded workflow executor. */
 const DEFAULT_EMBEDDED_EXECUTOR_PORT = 3400;
 
 /**
@@ -55,8 +55,14 @@ export default class EmbeddedWorkflowExecutor {
       );
     }
 
-    const port =
-      embedOptions.port ?? (Number(process.env.HTTP_PORT) || DEFAULT_EMBEDDED_EXECUTOR_PORT);
+    if (embedOptions.inMemory && embedOptions.database) {
+      throw new Error(
+        'addWorkflowExecutor: `inMemory` and `database` are mutually exclusive. The in-memory run ' +
+          'store persists nothing; drop one of the two options.',
+      );
+    }
+
+    const port = embedOptions.port ?? DEFAULT_EMBEDDED_EXECUTOR_PORT;
     this.config = { ...embedOptions, port };
 
     return `http://127.0.0.1:${port}`;
@@ -84,19 +90,9 @@ export default class EmbeddedWorkflowExecutor {
       );
     }
 
-    const database =
-      config.database ?? (process.env.DATABASE_URL ? { uri: process.env.DATABASE_URL } : undefined);
+    const { buildDatabaseExecutor, buildInMemoryExecutor } = await this.importPackage();
 
-    if (!database) {
-      throw new Error(
-        'Embedded workflow executor requires a database to persist run state. Pass `database` to ' +
-          'addWorkflowExecutor() or set the DATABASE_URL environment variable.',
-      );
-    }
-
-    const { buildDatabaseExecutor } = await this.importPackage();
-
-    this.executor = buildDatabaseExecutor({
+    const commonOptions = {
       envSecret: this.options.envSecret,
       authSecret: this.options.authSecret,
       forestServerUrl: this.options.forestServerUrl,
@@ -108,8 +104,32 @@ export default class EmbeddedWorkflowExecutor {
       // Embedded: the host process owns SIGTERM/SIGINT; the executor must not exit it. agent.stop()
       // drains the executor explicitly.
       manageProcessSignals: false,
-      database: database as Parameters<typeof buildDatabaseExecutor>[0]['database'],
-    });
+    };
+
+    if (config.inMemory) {
+      this.options.logger(
+        'Warn',
+        formatLog(
+          'Using an in-memory run store: workflow runs are kept in memory and lost on restart. ' +
+            'Pass a `database` to addWorkflowExecutor() to persist them in production.',
+        ),
+      );
+      this.executor = buildInMemoryExecutor(commonOptions);
+    } else {
+      const { database } = config;
+
+      if (!database) {
+        throw new Error(
+          'Embedded workflow executor requires a database to persist run state. Pass `database` ' +
+            'to addWorkflowExecutor(), or use `inMemory: true`.',
+        );
+      }
+
+      this.executor = buildDatabaseExecutor({
+        ...commonOptions,
+        database: database as Parameters<typeof buildDatabaseExecutor>[0]['database'],
+      });
+    }
 
     await this.executor.start();
     this.options.logger(
