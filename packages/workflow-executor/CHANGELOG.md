@@ -1,3 +1,18 @@
+# @forestadmin/workflow-executor [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.12.0...@forestadmin/workflow-executor@1.13.0) (2026-07-03)
+
+
+### Features
+
+* attach AI reasoning as a comment on approval requests ([#1733](https://github.com/ForestAdmin/agent-nodejs/issues/1733)) ([bb6ee3f](https://github.com/ForestAdmin/agent-nodejs/commit/bb6ee3fc2a58c061dee5930281597f4563b3c159))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.10.0
+
 # @forestadmin/workflow-executor [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.11.0...@forestadmin/workflow-executor@1.12.0) (2026-07-02)
 
 
