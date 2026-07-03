@@ -10,9 +10,14 @@ export default class Structure {
     }: { collectionSampleSize: number; referenceSampleSize: number },
   ): Promise<ModelStudy[]> {
     const collections = await connection.collections();
-    const promises = collections.map(collection =>
-      this.analyzeCollection(collection, collectionSampleSize, referenceSampleSize),
-    );
+
+    // https://www.mongodb.com/docs/manual/reference/system-collections/
+    // collection within admin.system are reserved for mongodb
+    const promises = collections
+      .filter(collection => !collection.namespace?.startsWith('admin.system.'))
+      .map(collection =>
+        this.analyzeCollection(collection, collectionSampleSize, referenceSampleSize),
+      );
     const structure = await Promise.all(promises);
 
     return structure
