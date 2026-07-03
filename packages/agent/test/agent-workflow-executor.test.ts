@@ -270,10 +270,7 @@ describe('Agent.addWorkflowExecutor', () => {
 
       await agent.start();
 
-      expect(logger).toHaveBeenCalledWith(
-        'Warn',
-        expect.stringContaining('in-memory run store'),
-      );
+      expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('in-memory run store'));
     });
 
     test('throws when the agentUrl cannot be derived (not standalone) and is not provided', async () => {
