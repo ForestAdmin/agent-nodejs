@@ -46,9 +46,8 @@ export default function makeCreateApprovalRequest(options: {
 
     const id = body?.data?.id ? String(body.data.id) : undefined;
 
+    // Best-effort: the approval already exists, so a comment failure must not fail the request.
     if (id && payload.message) {
-      // Best-effort: the approval already exists, so a comment failure must not turn the
-      // successful request into an error.
       try {
         await ServerUtils.queryWithBearerToken({
           forestServerUrl: options.forestServerUrl,
@@ -59,9 +58,6 @@ export default function makeCreateApprovalRequest(options: {
           body: { data: { attributes: { comment: payload.message } } },
         });
       } catch (error) {
-        // The approval already exists; the comment is optional context, so don't fail the
-        // request. Warn (rather than swallow silently) so a persistently broken comments
-        // route — or a bug in this block — is discoverable.
         // eslint-disable-next-line no-console
         console.warn(
           `Approval request ${id} created, but posting the reasoning comment failed`,

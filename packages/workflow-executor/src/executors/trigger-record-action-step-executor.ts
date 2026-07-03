@@ -43,8 +43,6 @@ Important rules:
 interface ActionTarget extends ActionRef {
   selectedRecordRef: RecordRef;
   isGlobal?: boolean;
-  // AI reasoning (or the step prompt as fallback) forwarded to the approval request
-  // when the action is approval-gated, so the approver sees why it was triggered.
   approvalMessage?: string;
 }
 

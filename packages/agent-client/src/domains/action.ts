@@ -84,9 +84,8 @@ export type BaseActionContext = {
 };
 
 export type ActionExecuteOptions = {
-  // Signed approval token replayed when an approver confirms an approval-gated action.
   signedApprovalRequest?: Record<string, unknown>;
-  // AI reasoning attached as a comment on the approval request when the action is approval-gated.
+  // Posted as a comment on the approval request when the action is approval-gated.
   approvalRequestMessage?: string;
 };
 
