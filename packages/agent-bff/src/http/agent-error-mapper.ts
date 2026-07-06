@@ -3,6 +3,7 @@ import type { Logger } from '../ports/logger-port';
 import { AgentHttpError } from '@forestadmin/agent-client';
 
 import { BffHttpError } from './bff-http-error';
+import { mappingError } from './bff-local-errors';
 
 const STATUS_BAD_REQUEST = 400;
 const STATUS_UNAUTHORIZED = 401;
@@ -15,6 +16,7 @@ const STATUS_BAD_GATEWAY = 502;
 const STATUS_SERVICE_UNAVAILABLE = 503;
 
 const TYPE_INVALID_REQUEST = 'invalid_request';
+const TYPE_VALIDATION_ERROR = 'validation_error';
 const TYPE_UNAUTHORIZED = 'unauthorized';
 const TYPE_FORBIDDEN = 'forbidden';
 const TYPE_NOT_FOUND = 'not_found';
@@ -28,7 +30,7 @@ const DEFAULT_UNAVAILABLE_MESSAGE = 'The agent is unavailable';
 const DEFAULT_ERROR_MESSAGE = 'Unexpected error';
 
 export const AGENT_ERROR_TYPE_MAP: Record<string, string> = {
-  ValidationError: 'validation_error',
+  ValidationError: TYPE_VALIDATION_ERROR,
   BadRequestError: TYPE_INVALID_REQUEST,
   UnauthorizedError: TYPE_UNAUTHORIZED,
   ForbiddenError: TYPE_FORBIDDEN,
@@ -53,11 +55,7 @@ interface AgentJsonApiError {
   data?: unknown;
 }
 
-function fallbackTypeByStatus(status: number, name?: string, logger?: Logger): string {
-  if (name !== undefined && logger !== undefined) {
-    logger('Warn', 'Unmapped agent error name, falling back to status', { name, status });
-  }
-
+function fallbackTypeByStatus(status: number): string {
   return FALLBACK_TYPE_BY_STATUS[status] ?? TYPE_INVALID_REQUEST;
 }
 
@@ -72,11 +70,20 @@ function firstJsonApiError(body: unknown): AgentJsonApiError | undefined {
 function mapJsonApiError(agentError: AgentJsonApiError, logger: Logger): BffHttpError {
   const status = agentError.status ?? STATUS_BAD_REQUEST;
   const message = agentError.detail ?? DEFAULT_ERROR_MESSAGE;
-  const type =
-    (agentError.name !== undefined ? AGENT_ERROR_TYPE_MAP[agentError.name] : undefined) ??
-    fallbackTypeByStatus(status, agentError.name, logger);
 
-  return new BffHttpError(status, type, message, agentError.data);
+  if (agentError.name !== undefined) {
+    const type = AGENT_ERROR_TYPE_MAP[agentError.name];
+
+    if (type === undefined) {
+      logger('Error', 'Unmapped agent error name', { name: agentError.name, status });
+
+      return mappingError(`Unmapped agent error name: ${agentError.name}`);
+    }
+
+    return new BffHttpError(status, type, message, agentError.data);
+  }
+
+  return new BffHttpError(status, fallbackTypeByStatus(status), message, agentError.data);
 }
 
 function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined {

@@ -1,6 +1,6 @@
 import { AgentHttpError } from '@forestadmin/agent-client';
 
-import { AGENT_ERROR_TYPE_MAP, mapAgentError } from '../../src/http/agent-error-mapper';
+import { mapAgentError } from '../../src/http/agent-error-mapper';
 
 function jsonApiBody(error: { name?: string; detail?: string; status?: number; data?: unknown }) {
   return { errors: [error] };
@@ -29,7 +29,15 @@ describe('mapAgentError', () => {
     });
   });
 
-  it.each(Object.entries(AGENT_ERROR_TYPE_MAP))('maps agent name %s to type %s', (name, type) => {
+  it.each([
+    ['ValidationError', 'validation_error'],
+    ['BadRequestError', 'invalid_request'],
+    ['UnauthorizedError', 'unauthorized'],
+    ['ForbiddenError', 'forbidden'],
+    ['NotFoundError', 'not_found'],
+    ['UnprocessableError', 'unprocessable_entity'],
+    ['TooManyRequestsError', 'too_many_requests'],
+  ])('maps agent name %s to type %s', (name, type) => {
     const status = 422;
     const error = new AgentHttpError(status, jsonApiBody({ name, status, detail: 'd' }));
 
@@ -72,7 +80,7 @@ describe('mapAgentError', () => {
     expect(result).toMatchObject({ type: 'invalid_request', status: 400, message: 'boom' });
   });
 
-  it('falls back to invalid_request and warns for an unmapped name', () => {
+  it('maps an unmapped agent error name to mapping_error (500) and logs it', () => {
     const error = new AgentHttpError(
       400,
       jsonApiBody({ name: 'MissingCollectionError', status: 400, detail: 'gone' }),
@@ -80,9 +88,9 @@ describe('mapAgentError', () => {
 
     const result = mapAgentError(error, { logger });
 
-    expect(result).toMatchObject({ type: 'invalid_request', status: 400 });
+    expect(result).toMatchObject({ type: 'mapping_error', status: 500 });
     expect(logger).toHaveBeenCalledWith(
-      'Warn',
+      'Error',
       expect.any(String),
       expect.objectContaining({ name: 'MissingCollectionError' }),
     );
