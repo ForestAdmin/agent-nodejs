@@ -31,6 +31,7 @@ describe('mcp-paths', () => {
       '/mcp*',
       '/tenant/:id',
       '/m%20cp',
+      '/foo[bar]',
     ])('throws for %p (would desync routes from advertised metadata)', input => {
       expect(() => normalizeMountPath(input)).toThrow(/Invalid MCP mount path/);
     });
@@ -76,8 +77,8 @@ describe('mcp-paths', () => {
       },
     );
 
-    it('isMcpRoute passes through unrelated routes', () => {
-      expect(isMcpRoute('/api/other')).toBe(false);
+    it.each(['/api/other', '/mcp-dashboard'])('isMcpRoute passes through %p', url => {
+      expect(isMcpRoute(url)).toBe(false);
     });
   });
 
@@ -100,6 +101,8 @@ describe('mcp-paths', () => {
       '/.well-known/oauth-authorization-server',
       '/.well-known/oauth-protected-resource',
       '/api/other',
+      '/mcp/mcp-dashboard',
+      '/.well-known/oauth-protected-resource/mcp-dashboard',
     ])('passes through host route %p', url => {
       expect(matches(url)).toBe(false);
     });

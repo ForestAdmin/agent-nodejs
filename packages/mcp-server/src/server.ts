@@ -487,9 +487,13 @@ export default class ForestMCPServer {
     }
 
     const { mountPath: prefix } = this;
-    // Relative resolution (not leading-slash) so a base path on effectiveBaseUrl is preserved.
-    const mountBase = prefix ? new URL(`${prefix.slice(1)}/`, effectiveBaseUrl) : effectiveBaseUrl;
-    const issuerUrl = prefix ? new URL(prefix.slice(1), effectiveBaseUrl) : effectiveBaseUrl;
+    // Resolve the prefix relatively against a trailing-slash base so a path on the base URL
+    // (e.g. https://host/agent) is preserved rather than dropped by URL resolution.
+    const baseWithSlash = effectiveBaseUrl.href.endsWith('/')
+      ? effectiveBaseUrl
+      : new URL(`${effectiveBaseUrl.href}/`);
+    const mountBase = prefix ? new URL(`${prefix.slice(1)}/`, baseWithSlash) : baseWithSlash;
+    const issuerUrl = prefix ? new URL(prefix.slice(1), baseWithSlash) : baseWithSlash;
 
     const scopesSupported = ['mcp:read', 'mcp:write', 'mcp:action', 'mcp:admin'];
 

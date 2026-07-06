@@ -2627,14 +2627,14 @@ describe('mountPath prefix', () => {
       expect(mcp.status).toBe(401);
     });
 
-    it('preserves a base path on the origin when it has a trailing slash', async () => {
+    it('preserves a base path on the origin even without a trailing slash', async () => {
       const server = new ForestMCPServer({
         envSecret: 'ENV_SECRET',
         authSecret: 'AUTH_SECRET',
         forestServerClient: createMockForestServerClient(),
         mountPath: '/mcp',
       });
-      const app = await server.buildExpressApp(new URL('http://localhost:3000/agent/'));
+      const app = await server.buildExpressApp(new URL('http://localhost:3000/agent'));
 
       const metadata = await request(app).get('/.well-known/oauth-authorization-server/mcp');
       expect(metadata.body.issuer).toBe('http://localhost:3000/agent/mcp');

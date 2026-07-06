@@ -17,7 +17,7 @@ export function normalizeMountPath(input?: string): string {
     '',
   );
 
-  if (/[?#\s\\:*()+%]/.test(collapsed) || urlPath !== collapsed) {
+  if (/[?#\s\\:*()+%[\]]/.test(collapsed) || urlPath !== collapsed) {
     throw new Error(
       `Invalid MCP mount path "${input}": use a plain path prefix like "/mcp" ` +
         `(no "..", backslashes, %-escapes, or route metacharacters).`,
@@ -47,7 +47,10 @@ export function buildMcpPaths(prefix = ''): string[] {
 export function makeIsMcpRoute(prefix = ''): McpRouteMatcher {
   const paths = buildMcpPaths(prefix);
 
-  return (url: string) => paths.some(p => url === p || url.startsWith(p));
+  // Match on a segment boundary so a claimed path like '/ai/mcp' does not shadow an
+  // unrelated host route like '/ai/mcp-dashboard'.
+  return (url: string) =>
+    paths.some(p => url === p || url.startsWith(p.endsWith('/') ? p : `${p}/`));
 }
 
 export const MCP_PATHS = buildMcpPaths('');
