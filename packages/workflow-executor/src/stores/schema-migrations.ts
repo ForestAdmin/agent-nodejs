@@ -71,8 +71,12 @@ export async function runMigrations({
     }
 
     // The migration lock holds one pool connection while umzug opens a second.
-    const { pool } = sequelize.connectionManager as unknown as { pool?: { maxSize?: number } };
-    const poolMax = pool?.maxSize ?? 1;
+    const { pool } = sequelize.connectionManager as unknown as {
+      pool?: { maxSize?: number; write?: { maxSize?: number }; read?: { maxSize?: number } };
+    };
+    // With replication configured, `pool` splits into write/read sub-pools and `maxSize` is
+    // undefined; the migration lock runs on the write pool, so size the check against it.
+    const poolMax = pool?.maxSize ?? pool?.write?.maxSize ?? pool?.read?.maxSize ?? 1;
 
     if (poolMax < 2) {
       throw new Error(

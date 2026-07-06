@@ -1372,6 +1372,41 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
       expect(result.stepOutcome.status).toBe('error');
       expect(result.stepOutcome.error).toBe('The step state could not be accessed. Please retry.');
     });
+
+    it('clears the executing marker when the refresh fails with a non-auth error, leaving the step retryable', async () => {
+      // GIVEN a 401 that triggers a refresh, but the refresh itself fails with a non-auth error
+      // (e.g. the token endpoint is unreachable). The first call was auth-rejected (not executed) and
+      // the retry never ran, so no side effect fired — the step must stay retryable, not wedged.
+      const store = new InMemoryStore();
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: jest.fn().mockRejectedValue(authError()),
+      });
+      const reloadWithFreshAuth = jest
+        .fn()
+        .mockRejectedValue(new Error('token endpoint unreachable'));
+      const context = makeContext({
+        runStore: store,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      // WHEN the refresh path fails with a non-auth error.
+      const result = await new McpStepExecutor(
+        context,
+        [tool],
+        'srv',
+        reloadWithFreshAuth,
+      ).execute();
+
+      // THEN it surfaces as a step error (not a re-auth pause), and the 'executing' marker is gone so
+      // a retry is not rejected as interrupted.
+      expect(result.stepOutcome.status).toBe('error');
+      const persisted = (await store.getStepExecutions('run-1')).find(e => e.stepIndex === 0) as
+        | McpStepExecutionData
+        | undefined;
+      expect(persisted?.idempotencyPhase).not.toBe('executing');
+    });
   });
 
   describe('re-auth pause surfaces the tool-call failure in the audit log', () => {

@@ -238,6 +238,27 @@ describe('DatabaseStore — schema namespacing', () => {
       await expect(new DatabaseStore({ sequelize }).init()).rejects.toThrow('pool.max >= 2');
     });
 
+    it('sizes the pool check against the write sub-pool when replication makes maxSize undefined', async () => {
+      const { sequelize, calls } = setup('postgres');
+      (sequelize as unknown as { connectionManager: { pool: unknown } }).connectionManager.pool = {
+        write: { maxSize: 5 },
+        read: { maxSize: 5 },
+      };
+
+      await new DatabaseStore({ sequelize }).init();
+
+      expect(calls).toContain('migrate'); // passed the pool>=2 guard and proceeded to migrate
+    });
+
+    it('throws when the replication write-pool max is < 2', async () => {
+      const { sequelize } = setup('postgres');
+      (sequelize as unknown as { connectionManager: { pool: unknown } }).connectionManager.pool = {
+        write: { maxSize: 1 },
+      };
+
+      await expect(new DatabaseStore({ sequelize }).init()).rejects.toThrow('pool.max >= 2');
+    });
+
     it('does not open a transaction or take a lock on SQLite', async () => {
       const { sequelize, query } = setup('sqlite');
 

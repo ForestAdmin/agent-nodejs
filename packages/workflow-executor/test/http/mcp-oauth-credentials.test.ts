@@ -2,7 +2,10 @@ import type CredentialEncryption from '../../src/crypto/credential-encryption';
 import type { DepositCredentialsBody } from '../../src/http/mcp-oauth-credentials';
 
 import { ExecutorEncryptionKeyMissingError } from '../../src/errors';
-import { buildMcpOAuthCredentialInput } from '../../src/http/mcp-oauth-credentials';
+import {
+  buildMcpOAuthCredentialInput,
+  depositCredentialsBodySchema,
+} from '../../src/http/mcp-oauth-credentials';
 
 function createEncryption(): CredentialEncryption {
   return {
@@ -77,4 +80,49 @@ describe('buildMcpOAuthCredentialInput', () => {
       ExecutorEncryptionKeyMissingError,
     );
   });
+});
+
+describe('depositCredentialsBodySchema', () => {
+  const validBody = {
+    mcpServerId: 'mcp-server-1',
+    refreshToken: 'refresh-token-xyz',
+    tokenEndpoint: 'https://auth.example.com/token',
+  };
+
+  it('rejects a clientSecret supplied without a clientId', () => {
+    const result = depositCredentialsBodySchema.safeParse({ ...validBody, clientSecret: 'secret' });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts a clientSecret paired with a clientId', () => {
+    const result = depositCredentialsBodySchema.safeParse({
+      ...validBody,
+      clientId: 'client-abc',
+      clientSecret: 'secret',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an unsupported tokenEndpointAuthMethod', () => {
+    const result = depositCredentialsBodySchema.safeParse({
+      ...validBody,
+      tokenEndpointAuthMethod: 'client_secret_posst',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it.each(['client_secret_basic', 'client_secret_post', 'none'] as const)(
+    'accepts the supported client-authentication method %s',
+    method => {
+      const result = depositCredentialsBodySchema.safeParse({
+        ...validBody,
+        tokenEndpointAuthMethod: method,
+      });
+
+      expect(result.success).toBe(true);
+    },
+  );
 });

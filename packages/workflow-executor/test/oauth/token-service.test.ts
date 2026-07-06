@@ -439,3 +439,27 @@ describe('OAuthTokenService — concurrent disconnect during refresh write-back'
     expect(await store.get(USER_ID, SERVER_ID)).toBeNull();
   });
 });
+
+// evict() fires on disconnect. A refresh already in flight (its snapshot read taken before the
+// disconnect) must not repopulate the cache afterwards, or later calls keep serving a token for a
+// credential the user disconnected.
+describe('OAuthTokenService — evict during in-flight refresh', () => {
+  it('does not cache the freshly-minted token when a disconnect evicts mid-refresh', async () => {
+    const refresh = jest.fn().mockResolvedValue({ accessToken: 'at-2', expiresInS: 3600 });
+    const { service } = setup({ refresh });
+    // The disconnect (evict) lands during the first refresh — after the snapshot read, before caching.
+    refresh.mockImplementationOnce(async () => {
+      service.evict(USER_ID, SERVER_ID);
+
+      return { accessToken: 'at-1', expiresInS: 3600 };
+    });
+
+    const first = await service.getAccessToken(USER_ID, SERVER_ID);
+    const second = await service.getAccessToken(USER_ID, SERVER_ID);
+
+    // The in-flight caller still gets its token, but it was not cached — the next call refreshes anew.
+    expect(first).toBe('at-1');
+    expect(second).toBe('at-2');
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+});

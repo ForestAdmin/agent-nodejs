@@ -17,8 +17,7 @@ import defaultRefreshAccessToken from './refresh-grant';
 
 interface CachedToken {
   accessToken: string;
-  // Absent when the grant omitted expires_in: the token is used once but never served from cache.
-  expiresAtMs?: number;
+  expiresAtMs: number;
 }
 
 export interface OAuthTokenServiceOptions {
@@ -44,6 +43,9 @@ export default class OAuthTokenService {
   private readonly now: () => number;
   private readonly cache = new Map<string, CachedToken>();
   private readonly mutex = new KeyedMutex();
+  // Bumped on evict() so a refresh already in flight for a key can detect a disconnect that landed
+  // mid-refresh and skip repopulating the cache for the now-deleted credential.
+  private readonly evictionEpoch = new Map<string, number>();
 
   constructor(options: OAuthTokenServiceOptions) {
     this.store = options.store;
@@ -81,18 +83,27 @@ export default class OAuthTokenService {
   // Drop the cached access token for a (user, server). Called on credential delete so a disconnect
   // takes effect immediately, instead of the executor serving the cached token until it expires.
   evict(userId: number, mcpServerId: string): void {
-    this.cache.delete(`${userId}:${mcpServerId}`);
+    const key = `${userId}:${mcpServerId}`;
+    this.cache.delete(key);
+    this.evictionEpoch.set(key, (this.evictionEpoch.get(key) ?? 0) + 1);
   }
 
   private readCache(key: string): string | undefined {
     const entry = this.cache.get(key);
-    if (!entry || entry.expiresAtMs === undefined) return undefined;
-    if (this.now() >= entry.expiresAtMs - this.expirySkewMs) return undefined;
+    if (!entry) return undefined;
+
+    if (this.now() >= entry.expiresAtMs - this.expirySkewMs) {
+      // Drop expired entries on read so the cache can't grow without bound across many keys.
+      this.cache.delete(key);
+
+      return undefined;
+    }
 
     return entry.accessToken;
   }
 
   private async refreshAndCache(userId: number, mcpServerId: string, key: string): Promise<string> {
+    const epochAtStart = this.evictionEpoch.get(key) ?? 0;
     const credential = await this.store.get(userId, mcpServerId);
     if (!credential) throw new OAuthReauthRequiredError(mcpServerId);
 
@@ -102,11 +113,19 @@ export default class OAuthTokenService {
       mcpServerId,
     );
 
-    this.cache.set(key, {
-      accessToken: result.accessToken,
-      expiresAtMs:
-        result.expiresInS !== undefined ? this.now() + result.expiresInS * 1000 : undefined,
-    });
+    const evictedDuringRefresh = (this.evictionEpoch.get(key) ?? 0) !== epochAtStart;
+
+    // Don't cache when the credential was disconnected while this refresh was in flight (else the
+    // just-minted token would be served to later calls for a deleted credential), nor when the grant
+    // carried no expiry (never servable). The in-flight caller still receives its token below.
+    if (!evictedDuringRefresh && result.expiresInS !== undefined) {
+      this.cache.set(key, {
+        accessToken: result.accessToken,
+        expiresAtMs: this.now() + result.expiresInS * 1000,
+      });
+    } else {
+      this.cache.delete(key);
+    }
 
     if (result.refreshToken) {
       await this.persistRotatedRefreshToken(grantedCredential, result.refreshToken);

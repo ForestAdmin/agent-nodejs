@@ -34,10 +34,26 @@ export const depositCredentialsBodySchema = z
           });
         }
       }),
-    tokenEndpointAuthMethod: z.string().max(64).optional(),
+    // Only the client-authentication methods the refresh grant actually implements. An unsupported
+    // or typo'd method is rejected here rather than silently falling through to the wrong auth at
+    // refresh time. 'none' is the public-client case (client_id, no secret).
+    tokenEndpointAuthMethod: z
+      .enum(['client_secret_basic', 'client_secret_post', 'none'])
+      .optional(),
     scopes: z.string().max(2048).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((body, ctx) => {
+    // RFC 6749 requires client_id alongside client_secret; a secret with no id can never
+    // authenticate, so reject it here instead of persisting an unusable credential.
+    if (body.clientSecret && !body.clientId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['clientId'],
+        message: 'clientId is required when clientSecret is provided',
+      });
+    }
+  });
 
 export type DepositCredentialsBody = z.infer<typeof depositCredentialsBodySchema>;
 

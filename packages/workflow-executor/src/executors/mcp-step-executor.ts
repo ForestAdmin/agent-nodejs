@@ -242,7 +242,22 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
         throw new McpToolInvocationError(target.name, cause);
       }
 
-      const refreshedTools = await this.reloadWithFreshAuth();
+      let refreshedTools: RemoteTool[];
+
+      try {
+        refreshedTools = await this.reloadWithFreshAuth();
+      } catch (refreshError) {
+        // The first call was auth-rejected (401 → not executed) and the retry never ran, so no side
+        // effect fired. On a non-auth refresh failure (token-store/network) clear the write-ahead
+        // marker so a transient error doesn't wedge the step; OAuthReauthRequiredError still
+        // propagates to pause for re-authentication.
+        if (!(refreshError instanceof OAuthReauthRequiredError)) {
+          await this.clearReauthPauseState();
+        }
+
+        throw refreshError;
+      }
+
       const refreshedTool = refreshedTools.find(
         t => t.base.name === target.name && t.sourceId === target.sourceId,
       );

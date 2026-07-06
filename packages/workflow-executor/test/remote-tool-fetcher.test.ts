@@ -94,6 +94,24 @@ describe('scopeConfigsToServer', () => {
 });
 
 // ---------------------------------------------------------------------------
+// RemoteToolFetcher construction
+// ---------------------------------------------------------------------------
+
+describe('RemoteToolFetcher construction', () => {
+  it('throws when constructed without an OAuth token service', () => {
+    expect(
+      () =>
+        new RemoteToolFetcher(
+          createMockWorkflowPort() as unknown as WorkflowPort,
+          createMockAiModelPort() as unknown as AiModelPort,
+          createMockLogger(),
+          undefined as unknown as OAuthTokenService,
+        ),
+    ).toThrow('requires an OAuth token service');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // RemoteToolFetcher.fetch
 // ---------------------------------------------------------------------------
 
@@ -339,6 +357,27 @@ describe('RemoteToolFetcher.fetch — OAuth2 servers', () => {
     });
     expect(result.tools).toEqual([tool]);
     expect(typeof result.reloadWithFreshAuth).toBe('function');
+  });
+
+  it('injects the Bearer token for every scoped config that shares the mcpServerId', async () => {
+    const getAccessToken = jest.fn().mockResolvedValue('tok-1');
+    const loadRemoteToolsWithFailures = jest.fn().mockResolvedValue({ tools: [], failures: [] });
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest
+          .fn()
+          .mockResolvedValue({ 'srv-a': oauthCfg('id-A'), 'srv-a-dup': oauthCfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteToolsWithFailures },
+      tokenService: makeTokenService(getAccessToken),
+    });
+
+    await fetcher.fetch('id-A', USER_ID);
+
+    expect(loadRemoteToolsWithFailures).toHaveBeenCalledWith({
+      'srv-a': expect.objectContaining({ headers: { Authorization: 'Bearer tok-1' } }),
+      'srv-a-dup': expect.objectContaining({ headers: { Authorization: 'Bearer tok-1' } }),
+    });
   });
 
   it('force-refreshes and retries list-tools once on an auth failure, then succeeds', async () => {

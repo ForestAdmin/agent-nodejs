@@ -43,6 +43,13 @@ export default class RemoteToolFetcher {
     logger: Logger,
     oauthTokenService: OAuthTokenService,
   ) {
+    // Required for oauth2 MCP steps. Fail loudly at construction rather than deferring a cryptic
+    // undefined dereference to the first OAuth tool fetch — Runner/RunnerConfig are public API, so a
+    // JavaScript caller can bypass the compile-time check that the field is present.
+    if (!oauthTokenService) {
+      throw new Error('RemoteToolFetcher requires an OAuth token service (mcpOAuthTokenService)');
+    }
+
     this.workflowPort = workflowPort;
     this.aiModelPort = aiModelPort;
     this.logger = logger;
@@ -83,10 +90,16 @@ export default class RemoteToolFetcher {
       forceRefresh: boolean,
     ): Promise<{ tools: RemoteTool[]; hasAuthFailure: boolean }> => {
       const token = await tokenService.getAccessToken(userId, mcpServerId, { forceRefresh });
+      const bearer = `Bearer ${token}`;
+      // Every scoped config shares this mcpServerId, so the per-(user, server) token applies to each.
+      // Inject it for all of them, not just the first key, or extra same-id servers load without an
+      // Authorization header and report spurious auth failures.
       const injected =
         injectOauthTokens({
           configs: scoped,
-          tokensByMcpServerName: { [mcpServerName]: `Bearer ${token}` },
+          tokensByMcpServerName: Object.fromEntries(
+            Object.keys(scoped).map(name => [name, bearer]),
+          ),
         }) ?? scoped;
       const { tools, failures } = await this.aiModelPort.loadRemoteToolsWithFailures(injected);
 
