@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { HttpCallback } from './types';
+import type { HttpCallback, McpRouteMatcher } from './types';
 import type { Logger } from '@forestadmin/datasource-toolkit';
 import type net from 'net';
 
@@ -40,8 +40,8 @@ export default class FrameworkMounter {
   /**
    * Set the MCP HTTP callback. Call this before mount() or remount().
    */
-  protected setMcpCallback(callback: HttpCallback | null): void {
-    this.mcpMiddleware.setCallback(callback);
+  protected setMcpCallback(callback: HttpCallback | null, routeMatcher?: McpRouteMatcher): void {
+    this.mcpMiddleware.setCallback(callback, routeMatcher);
   }
 
   protected async mount(router: Router): Promise<void> {

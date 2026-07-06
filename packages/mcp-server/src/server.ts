@@ -6,6 +6,7 @@ import type { ForestServerClient } from './http-client';
 import type { Express } from 'express';
 
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
+import { metadataHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/metadata.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
 import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
 import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
@@ -21,7 +22,7 @@ import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
 import { createForestServerClient } from './http-client';
-import { isMcpRoute } from './mcp-paths';
+import { makeIsMcpRoute, normalizeMountPath } from './mcp-paths';
 import declareAssociateTool from './tools/associate';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
@@ -117,6 +118,14 @@ export interface ForestMCPServerOptions {
   forestServerClient?: ForestServerClient;
   /** List of tool names to enable (allowlist). Only these tools will be exposed. New tools in future releases will NOT be auto-enabled. */
   enabledTools?: ToolName[];
+  /**
+   * Opt-in path prefix under which the MCP protocol and OAuth routes are mounted, e.g. '/ai'.
+   * The `.well-known` discovery documents stay at the origin root (per RFC 8414/9728) but are
+   * served at prefix-suffixed paths. Defaults to the origin root. Use it to avoid colliding
+   * with a host app's own OAuth routes when embedded. Requires the agent to be served at the
+   * domain root.
+   */
+  basePath?: string;
 }
 
 /**
@@ -138,6 +147,7 @@ export default class ForestMCPServer {
   private logger: Logger;
   private collectionNames: string[] = [];
   private enabledTools: Set<ToolName>;
+  private basePath: string;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -146,6 +156,7 @@ export default class ForestMCPServer {
     this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
     this.enabledTools = this.resolveEnabledTools(options);
+    this.basePath = normalizeMountPath(options?.basePath);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -477,13 +488,28 @@ export default class ForestMCPServer {
       );
     }
 
+    const { basePath: prefix } = this;
+
+    // OAuth discovery must be served at the origin root, so a mount prefix only works when the
+    // agent itself is at the domain root. Fail loudly rather than advertise URLs we can't serve.
+    if (prefix && effectiveBaseUrl.pathname !== '/') {
+      throw new Error(
+        `MCP basePath "${prefix}" requires the agent to be served at the domain root, but its ` +
+          `base URL has a path ("${effectiveBaseUrl.pathname}"). Remove the basePath or mount ` +
+          `the agent at the root.`,
+      );
+    }
+
+    const mountBase = prefix ? new URL(`${prefix.slice(1)}/`, effectiveBaseUrl) : effectiveBaseUrl;
+    const issuerUrl = prefix ? new URL(prefix.slice(1), effectiveBaseUrl) : effectiveBaseUrl;
+
     const scopesSupported = ['mcp:read', 'mcp:write', 'mcp:action', 'mcp:admin'];
 
     // Create OAuth metadata with custom registration_endpoint pointing to Forest Admin
     const oauthMetadata = createOAuthMetadata({
       provider: oauthProvider,
-      issuerUrl: effectiveBaseUrl,
-      baseUrl: effectiveBaseUrl,
+      issuerUrl,
+      baseUrl: issuerUrl,
       scopesSupported,
     });
 
@@ -491,8 +517,8 @@ export default class ForestMCPServer {
     oauthMetadata.response_types_supported = ['code'];
     oauthMetadata.code_challenge_methods_supported = ['S256'];
 
-    oauthMetadata.token_endpoint = `${effectiveBaseUrl.href}oauth/token`;
-    oauthMetadata.authorization_endpoint = `${effectiveBaseUrl.href}oauth/authorize`;
+    oauthMetadata.token_endpoint = `${mountBase.href}oauth/token`;
+    oauthMetadata.authorization_endpoint = `${mountBase.href}oauth/authorize`;
     // Override registration_endpoint to point to Forest Admin server
     oauthMetadata.registration_endpoint = `${this.forestServerUrl}/oauth/register`;
     // Remove revocation_endpoint from metadata (not supported)
@@ -521,34 +547,50 @@ export default class ForestMCPServer {
     });
 
     app.use(
-      '/oauth/authorize',
+      `${prefix}/oauth/authorize`,
       authorizationHandler({
         provider: oauthProvider,
       }),
     );
-    app.use('/oauth/token', tokenHandler({ provider: oauthProvider }));
+    app.use(`${prefix}/oauth/token`, tokenHandler({ provider: oauthProvider }));
 
-    // Mount metadata router with custom metadata
-    // The resourceServerUrl should include the /mcp path to match RFC 9728 requirements.
-    // This creates the .well-known/oauth-protected-resource/mcp endpoint.
-    const mcpResourceUrl = new URL('mcp', effectiveBaseUrl);
-    app.use(
-      mcpAuthMetadataRouter({
-        oauthMetadata,
-        resourceServerUrl: mcpResourceUrl,
-        scopesSupported,
-      }),
-    );
+    // The resourceServerUrl includes the /mcp path to match RFC 9728 requirements.
+    const mcpResourceUrl = new URL('mcp', mountBase);
+
+    if (prefix) {
+      // Serve both discovery documents ourselves at the RFC 8414/9728 prefix-suffixed paths.
+      // mcpAuthMetadataRouter would additionally mount the authorization-server metadata at the
+      // bare origin root, which would shadow a host app's own root discovery.
+      app.use(
+        `/.well-known/oauth-protected-resource${mcpResourceUrl.pathname}`,
+        metadataHandler({
+          resource: mcpResourceUrl.href,
+          authorization_servers: [oauthMetadata.issuer],
+          scopes_supported: scopesSupported,
+        }),
+      );
+      app.use(`/.well-known/oauth-authorization-server${prefix}`, metadataHandler(oauthMetadata));
+    } else {
+      app.use(
+        mcpAuthMetadataRouter({
+          oauthMetadata,
+          resourceServerUrl: mcpResourceUrl,
+          scopesSupported,
+        }),
+      );
+    }
 
     app.use(allowedMethods(['POST']));
 
     app.post(
-      '/mcp',
+      `${prefix}/mcp`,
       requireBearerAuth({
         verifier: oauthProvider,
         requiredScopes: ['mcp:read'],
-        resourceMetadataUrl: new URL('/.well-known/oauth-protected-resource/mcp', effectiveBaseUrl)
-          .href,
+        resourceMetadataUrl: new URL(
+          `/.well-known/oauth-protected-resource${mcpResourceUrl.pathname}`,
+          effectiveBaseUrl,
+        ).href,
       }),
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
@@ -608,8 +650,8 @@ export default class ForestMCPServer {
 
   /**
    * Build and return an HTTP callback that can be used as middleware.
-   * The callback will handle MCP-related routes (/.well-known/*, /oauth/*, /mcp)
-   * and call next() for other routes.
+   * The callback handles the MCP OAuth, `.well-known` and protocol routes (scoped under
+   * `basePath` when set) and calls next() for every other route.
    *
    * @param baseUrl - Optional base URL override. If not provided, will use the
    *                  environmentApiEndpoint from Forest Admin API.
@@ -617,6 +659,7 @@ export default class ForestMCPServer {
    */
   async getHttpCallback(baseUrl?: URL): Promise<HttpCallback> {
     const app = await this.buildExpressApp(baseUrl);
+    const isMcpRoute = makeIsMcpRoute(this.basePath);
 
     return (req, res, next) => {
       const url = req.url || '/';

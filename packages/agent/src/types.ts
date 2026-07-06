@@ -89,6 +89,8 @@ export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 
 export type HttpCallback = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 
+export type McpRouteMatcher = (url: string) => boolean;
+
 export enum HttpCode {
   BadRequest = 400,
   Unauthorized = 401,

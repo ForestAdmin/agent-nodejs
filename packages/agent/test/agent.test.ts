@@ -581,6 +581,33 @@ describe('Agent', () => {
       );
     });
 
+    test('should pass basePath to ForestMCPServer', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer({ basePath: '/mcp' });
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(expect.objectContaining({ basePath: '/mcp' }));
+    });
+
+    test('threads a basePath-scoped route matcher to the MCP middleware', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+      type SetMcpCallback = (cb: unknown, matcher?: (url: string) => boolean) => void;
+      const setMcpCallbackSpy = jest.spyOn(
+        agent as unknown as { setMcpCallback: SetMcpCallback },
+        'setMcpCallback',
+      );
+
+      agent.mountAiMcpServer({ basePath: '/ai' });
+      await agent.start();
+
+      const matcher = setMcpCallbackSpy.mock.calls.at(-1)?.[1];
+      expect(matcher?.('/ai/mcp')).toBe(true);
+      expect(matcher?.('/oauth/token')).toBe(false);
+    });
+
     test('should log error when MCP initialization fails', async () => {
       const mockLogger = jest.fn();
       const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });
