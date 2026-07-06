@@ -117,6 +117,24 @@ describe('refreshAccessToken', () => {
     expect(body.get('client_secret')).toBeNull();
   });
 
+  it('form-encodes the Basic credentials per RFC 6749 (a space becomes +, not %20)', async () => {
+    fetchSpy.mockResolvedValue(
+      mockResponse({ ok: true, status: 200, payload: { access_token: 'at' } }),
+    );
+
+    await refreshAccessToken({
+      tokenEndpoint: 'https://idp/token',
+      refreshToken: 'rt-1',
+      clientId: 'client id',
+      clientSecret: 'sec ret',
+    });
+
+    const { headers } = lastRequest();
+    expect(headers.authorization).toBe(
+      `Basic ${Buffer.from('client+id:sec+ret').toString('base64')}`,
+    );
+  });
+
   it('sends client credentials in the body for client_secret_post', async () => {
     fetchSpy.mockResolvedValue(
       mockResponse({ ok: true, status: 200, payload: { access_token: 'at' } }),
