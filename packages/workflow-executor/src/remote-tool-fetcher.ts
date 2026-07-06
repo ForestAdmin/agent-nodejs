@@ -43,9 +43,8 @@ export default class RemoteToolFetcher {
     logger: Logger,
     oauthTokenService: OAuthTokenService,
   ) {
-    // Required for oauth2 MCP steps. Fail loudly at construction rather than deferring a cryptic
-    // undefined dereference to the first OAuth tool fetch — Runner/RunnerConfig are public API, so a
-    // JavaScript caller can bypass the compile-time check that the field is present.
+    // Fail loudly here instead of a cryptic undefined dereference at the first OAuth fetch —
+    // Runner/RunnerConfig are public API, so a JS caller can bypass the compile-time check.
     if (!oauthTokenService) {
       throw new Error('RemoteToolFetcher requires an OAuth token service (mcpOAuthTokenService)');
     }
@@ -91,9 +90,8 @@ export default class RemoteToolFetcher {
     ): Promise<{ tools: RemoteTool[]; hasAuthFailure: boolean }> => {
       const token = await tokenService.getAccessToken(userId, mcpServerId, { forceRefresh });
       const bearer = `Bearer ${token}`;
-      // Every scoped config shares this mcpServerId, so the per-(user, server) token applies to each.
-      // Inject it for all of them, not just the first key, or extra same-id servers load without an
-      // Authorization header and report spurious auth failures.
+      // All scoped configs share this mcpServerId, so inject the token for every one — not just the
+      // first key — or extra same-id servers load unauthenticated and report spurious auth failures.
       const injected =
         injectOauthTokens({
           configs: scoped,

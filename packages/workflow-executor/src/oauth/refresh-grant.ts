@@ -25,10 +25,8 @@ interface TokenEndpointResponse {
   error_description?: unknown;
 }
 
-// RFC 6749 §2.3.1 form-url-encodes the client id/secret before base64 for client_secret_basic, which
-// renders a space as '+' (encodeURIComponent would emit '%20'). For the base64url/hex credentials
-// providers actually issue this matches encodeURIComponent; it differs only for a value containing a
-// space or one of !'()*~.
+// RFC 6749 §2.3.1 form-url-encodes the client id/secret before base64 (space → '+', unlike
+// encodeURIComponent's '%20'); identical for the base64url/hex credentials providers actually issue.
 function formUrlEncode(value: string): string {
   const params = new URLSearchParams();
   params.set('v', value);

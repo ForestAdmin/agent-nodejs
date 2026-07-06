@@ -440,9 +440,8 @@ describe('OAuthTokenService — concurrent disconnect during refresh write-back'
   });
 });
 
-// evict() fires on disconnect. A refresh already in flight (its snapshot read taken before the
-// disconnect) must not repopulate the cache afterwards, or later calls keep serving a token for a
-// credential the user disconnected.
+// A refresh already in flight when evict() fires (disconnect) must not repopulate the cache
+// afterwards, or later calls keep serving a token for a disconnected credential.
 describe('OAuthTokenService — evict during in-flight refresh', () => {
   it('does not cache the freshly-minted token when a disconnect evicts mid-refresh', async () => {
     const refresh = jest.fn().mockResolvedValue({ accessToken: 'at-2', expiresInS: 3600 });

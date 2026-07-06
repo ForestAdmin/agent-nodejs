@@ -34,9 +34,8 @@ export const depositCredentialsBodySchema = z
           });
         }
       }),
-    // Only the client-authentication methods the refresh grant actually implements. An unsupported
-    // or typo'd method is rejected here rather than silently falling through to the wrong auth at
-    // refresh time. 'none' is the public-client case (client_id, no secret).
+    // Restrict to the methods the refresh grant implements, so an unsupported/typo'd one is rejected
+    // here rather than silently mis-authenticating at refresh time ('none' = public client).
     tokenEndpointAuthMethod: z
       .enum(['client_secret_basic', 'client_secret_post', 'none'])
       .optional(),

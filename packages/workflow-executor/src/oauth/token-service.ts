@@ -115,9 +115,8 @@ export default class OAuthTokenService {
 
     const evictedDuringRefresh = (this.evictionEpoch.get(key) ?? 0) !== epochAtStart;
 
-    // Don't cache when the credential was disconnected while this refresh was in flight (else the
-    // just-minted token would be served to later calls for a deleted credential), nor when the grant
-    // carried no expiry (never servable). The in-flight caller still receives its token below.
+    // Skip caching if the credential was disconnected mid-refresh (would serve a token for a deleted
+    // credential) or the grant carried no expiry (never servable); the in-flight caller still gets it.
     if (!evictedDuringRefresh && result.expiresInS !== undefined) {
       this.cache.set(key, {
         accessToken: result.accessToken,

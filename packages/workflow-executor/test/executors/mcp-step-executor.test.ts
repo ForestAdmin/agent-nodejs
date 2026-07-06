@@ -1374,9 +1374,8 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
     });
 
     it('clears the executing marker when the refresh fails with a non-auth error, leaving the step retryable', async () => {
-      // GIVEN a 401 that triggers a refresh, but the refresh itself fails with a non-auth error
-      // (e.g. the token endpoint is unreachable). The first call was auth-rejected (not executed) and
-      // the retry never ran, so no side effect fired — the step must stay retryable, not wedged.
+      // GIVEN a 401 that triggers a refresh which then fails with a non-auth error (e.g. the token
+      // endpoint is unreachable): nothing executed, so the step must stay retryable, not wedged.
       const store = new InMemoryStore();
       const tool = new MockRemoteTool({
         name: 'send_notification',
