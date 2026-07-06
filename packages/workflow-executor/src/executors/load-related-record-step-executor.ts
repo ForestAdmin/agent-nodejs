@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file -- private AI-degrade control-flow marker, not a public domain error */
 import type { StepExecutionResult } from '../types/execution-context';
 import type {
   LoadRelatedRecordCandidate,
@@ -17,6 +16,7 @@ import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin
 import { z } from 'zod';
 
 import {
+  AiAssistUnavailableError,
   InvalidAIResponseError,
   InvalidPreRecordedArgsError,
   NoRelationshipFieldsError,
@@ -80,18 +80,6 @@ interface RelationCandidate {
 // per record (polymorphicTypeField names the discriminator). The concrete target is resolved later.
 function isFollowableRelation(field: FieldSchema): boolean {
   return field.isRelationship && Boolean(field.relatedCollectionName || field.polymorphicTypeField);
-}
-
-// Marks any AI-call failure (timeout, outage, malformed/missing tool call, out-of-range pick) so
-// handlers degrade to the deterministic Manual path instead of erroring — never auto-skips. Internal only.
-class AiAssistUnavailableError extends Error {
-  readonly reason: unknown;
-
-  constructor(reason: unknown) {
-    super('AI assistance unavailable');
-    this.name = 'AiAssistUnavailableError';
-    this.reason = reason;
-  }
 }
 
 export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<LoadRelatedRecordStepDefinition> {
