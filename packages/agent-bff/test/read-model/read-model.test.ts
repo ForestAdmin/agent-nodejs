@@ -82,6 +82,16 @@ describe('ReadModel', () => {
         targets: ['posts', 'videos'],
       });
     });
+
+    it('should return frozen relation targets that a consumer cannot mutate', () => {
+      const model = new ReadModel([
+        collection('comments', [polymorphic('commentable', ['posts'])]),
+      ]);
+
+      const target = model.getRelationTarget('comments', 'commentable');
+
+      expect(Object.isFrozen(target)).toBe(true);
+    });
   });
 
   describe('collection-scoped keying', () => {
@@ -147,6 +157,20 @@ describe('ReadModel', () => {
       const model = new ReadModel([{ name: 'users', fields: [] }]);
 
       expect(model.isActionAllowed('users', 'ban')).toBe(false);
+    });
+
+    it('should return a frozen action-endpoint map that a consumer cannot mutate', () => {
+      const model = new ReadModel([
+        collection('users', [], [action('ban', '/forest/users/actions/ban')]),
+      ]);
+
+      const endpoints = model.getActionEndpoints();
+
+      expect(Object.isFrozen(endpoints)).toBe(true);
+      expect(Object.isFrozen(endpoints.users.ban)).toBe(true);
+      expect(() => {
+        endpoints.users.ban.endpoint = 'mutated';
+      }).toThrow();
     });
 
     it('should not throw on a malformed collection with no fields key', () => {

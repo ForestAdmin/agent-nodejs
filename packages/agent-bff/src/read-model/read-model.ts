@@ -25,6 +25,15 @@ function toRelationTarget(field: ForestSchemaField): RelationTarget | null {
   return null;
 }
 
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object') {
+    Object.values(value as Record<string, unknown>).forEach(deepFreeze);
+    Object.freeze(value);
+  }
+
+  return value;
+}
+
 /**
  * The agent read-model derived from a schema. Names are collection-scoped: relations and actions
  * are keyed by `(collection, name)` so the same relation/action name on two collections stays
@@ -46,6 +55,10 @@ export default class ReadModel {
       this.buildRelations(collection);
       this.buildActionEndpoints(collection);
     }
+
+    // Freeze the exposed structures so a consumer cannot mutate the shared cached read-model.
+    deepFreeze(this.actionEndpoints);
+    this.relations.forEach(byRelation => byRelation.forEach(deepFreeze));
   }
 
   private buildRelations(collection: ForestSchemaCollection): void {

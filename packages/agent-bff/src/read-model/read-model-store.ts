@@ -40,6 +40,11 @@ export default class ReadModelStore {
     // Ensure any pending schema refresh (and its capabilities invalidation) runs first.
     await this.getReadModel();
 
+    // TODO(wiring): possible TOCTOU once this is called from request handling. A concurrent schema
+    // refresh can clear capabilities while this fetch is in flight, so the caller could receive
+    // capabilities from the previous schema generation alongside the new allow-list. When wiring
+    // the data endpoints, re-check `schemaCache.revision` after the fetch resolves and retry on a
+    // mismatch so capabilities and schema stay atomically coupled.
     return this.capabilitiesCache.get(collection, fetcher);
   }
 
