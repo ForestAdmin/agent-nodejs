@@ -12,7 +12,7 @@ export const depositCredentialsBodySchema = z
   .object({
     mcpServerId: z.string().min(1).max(255),
     refreshToken: z.string().min(1),
-    clientId: z.string().max(255).optional(),
+    clientId: z.string().min(1).max(255).optional(),
     clientSecret: z.string().min(1).optional(),
     clientSecretExpiresAt: z
       .string()

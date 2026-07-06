@@ -95,6 +95,12 @@ describe('depositCredentialsBodySchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects an empty-string clientId (would drop client_id at refresh time)', () => {
+    const result = depositCredentialsBodySchema.safeParse({ ...validBody, clientId: '' });
+
+    expect(result.success).toBe(false);
+  });
+
   it('accepts a clientSecret paired with a clientId', () => {
     const result = depositCredentialsBodySchema.safeParse({
       ...validBody,
