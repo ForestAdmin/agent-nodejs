@@ -2565,7 +2565,7 @@ describe('mountPath prefix', () => {
         envSecret: 'ENV_SECRET',
         authSecret: 'AUTH_SECRET',
         forestServerClient: createMockForestServerClient(),
-        mountPath: '/mcp',
+        basePath: '/mcp',
       });
       app = await server.buildExpressApp(new URL('http://localhost:3000'));
     });
@@ -2579,13 +2579,19 @@ describe('mountPath prefix', () => {
         'http://localhost:3000/mcp/oauth/authorize',
       );
       expect(response.body.token_endpoint).toBe('http://localhost:3000/mcp/oauth/token');
+      // registration_endpoint must stay the unprefixed Forest server URL.
+      expect(response.body.registration_endpoint).toBe(
+        'https://api.forestadmin.com/oauth/register',
+      );
     });
 
-    it('serves protected-resource metadata under the prefixed resource path', async () => {
+    it('serves protected-resource metadata pointing at the prefixed issuer', async () => {
       const response = await request(app).get('/.well-known/oauth-protected-resource/mcp/mcp');
 
       expect(response.status).toBe(200);
       expect(response.body.resource).toBe('http://localhost:3000/mcp/mcp');
+      // authorization_servers is the field the client follows to reach the issuer.
+      expect(response.body.authorization_servers).toEqual(['http://localhost:3000/mcp']);
     });
 
     it('mounts the MCP endpoint at the prefixed path with a prefixed resource metadata url', async () => {
@@ -2611,7 +2617,7 @@ describe('mountPath prefix', () => {
         envSecret: 'ENV_SECRET',
         authSecret: 'AUTH_SECRET',
         forestServerClient: createMockForestServerClient(),
-        mountPath: '/api/mcp',
+        basePath: '/api/mcp',
       });
       const app = await server.buildExpressApp(new URL('http://localhost:3000'));
 
@@ -2627,18 +2633,17 @@ describe('mountPath prefix', () => {
       expect(mcp.status).toBe(401);
     });
 
-    it('preserves a base path on the origin even without a trailing slash', async () => {
+    it('rejects a basePath when the base URL is not at the domain root', async () => {
       const server = new ForestMCPServer({
         envSecret: 'ENV_SECRET',
         authSecret: 'AUTH_SECRET',
         forestServerClient: createMockForestServerClient(),
-        mountPath: '/mcp',
+        basePath: '/mcp',
       });
-      const app = await server.buildExpressApp(new URL('http://localhost:3000/agent'));
 
-      const metadata = await request(app).get('/.well-known/oauth-authorization-server/mcp');
-      expect(metadata.body.issuer).toBe('http://localhost:3000/agent/mcp');
-      expect(metadata.body.token_endpoint).toBe('http://localhost:3000/agent/mcp/oauth/token');
+      await expect(server.buildExpressApp(new URL('http://localhost:3000/agent'))).rejects.toThrow(
+        /requires the agent to be served at the domain root/,
+      );
     });
   });
 
@@ -2652,7 +2657,7 @@ describe('mountPath prefix', () => {
         envSecret: 'ENV_SECRET',
         authSecret: 'AUTH_SECRET',
         forestServerClient: createMockForestServerClient(),
-        mountPath: '/mcp',
+        basePath: '/mcp',
       });
       callback = await server.getHttpCallback(new URL('http://localhost:3000'));
     });

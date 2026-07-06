@@ -119,11 +119,13 @@ export interface ForestMCPServerOptions {
   /** List of tool names to enable (allowlist). Only these tools will be exposed. New tools in future releases will NOT be auto-enabled. */
   enabledTools?: ToolName[];
   /**
-   * Opt-in path prefix under which all MCP routes (OAuth, .well-known, /mcp) are mounted,
-   * e.g. '/mcp'. Defaults to the origin root. Use it to avoid colliding with a host app's
-   * own OAuth routes when the server is embedded in an agent.
+   * Opt-in path prefix under which the MCP protocol and OAuth routes are mounted, e.g. '/ai'.
+   * The `.well-known` discovery documents stay at the origin root (per RFC 8414/9728) but are
+   * served at prefix-suffixed paths. Defaults to the origin root. Use it to avoid colliding
+   * with a host app's own OAuth routes when embedded. Requires the agent to be served at the
+   * domain root.
    */
-  mountPath?: string;
+  basePath?: string;
 }
 
 /**
@@ -145,7 +147,7 @@ export default class ForestMCPServer {
   private logger: Logger;
   private collectionNames: string[] = [];
   private enabledTools: Set<ToolName>;
-  private mountPath: string;
+  private basePath: string;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -154,7 +156,7 @@ export default class ForestMCPServer {
     this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
     this.enabledTools = this.resolveEnabledTools(options);
-    this.mountPath = normalizeMountPath(options?.mountPath);
+    this.basePath = normalizeMountPath(options?.basePath);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -486,14 +488,20 @@ export default class ForestMCPServer {
       );
     }
 
-    const { mountPath: prefix } = this;
-    // Resolve the prefix relatively against a trailing-slash base so a path on the base URL
-    // (e.g. https://host/agent) is preserved rather than dropped by URL resolution.
-    const baseWithSlash = effectiveBaseUrl.href.endsWith('/')
-      ? effectiveBaseUrl
-      : new URL(`${effectiveBaseUrl.href}/`);
-    const mountBase = prefix ? new URL(`${prefix.slice(1)}/`, baseWithSlash) : baseWithSlash;
-    const issuerUrl = prefix ? new URL(prefix.slice(1), baseWithSlash) : baseWithSlash;
+    const { basePath: prefix } = this;
+
+    // OAuth discovery must be served at the origin root, so a mount prefix only works when the
+    // agent itself is at the domain root. Fail loudly rather than advertise URLs we can't serve.
+    if (prefix && effectiveBaseUrl.pathname !== '/') {
+      throw new Error(
+        `MCP basePath "${prefix}" requires the agent to be served at the domain root, but its ` +
+          `base URL has a path ("${effectiveBaseUrl.pathname}"). Remove the basePath or mount ` +
+          `the agent at the root.`,
+      );
+    }
+
+    const mountBase = prefix ? new URL(`${prefix.slice(1)}/`, effectiveBaseUrl) : effectiveBaseUrl;
+    const issuerUrl = prefix ? new URL(prefix.slice(1), effectiveBaseUrl) : effectiveBaseUrl;
 
     const scopesSupported = ['mcp:read', 'mcp:write', 'mcp:action', 'mcp:admin'];
 
@@ -634,8 +642,8 @@ export default class ForestMCPServer {
 
   /**
    * Build and return an HTTP callback that can be used as middleware.
-   * The callback will handle MCP-related routes (/.well-known/*, /oauth/*, /mcp)
-   * and call next() for other routes.
+   * The callback handles the MCP OAuth, `.well-known` and protocol routes (scoped under
+   * `basePath` when set) and calls next() for every other route.
    *
    * @param baseUrl - Optional base URL override. If not provided, will use the
    *                  environmentApiEndpoint from Forest Admin API.
@@ -643,7 +651,7 @@ export default class ForestMCPServer {
    */
   async getHttpCallback(baseUrl?: URL): Promise<HttpCallback> {
     const app = await this.buildExpressApp(baseUrl);
-    const isMcpRoute = makeIsMcpRoute(this.mountPath);
+    const isMcpRoute = makeIsMcpRoute(this.basePath);
 
     return (req, res, next) => {
       const url = req.url || '/';

@@ -249,7 +249,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * agent.mountAiMcpServer();
    * // Example: read-only mode (only browse data, no create/update/delete/actions)
    * agent.mountAiMcpServer({ enabledTools: ['describeCollection', 'list', 'listRelated'] });
-   * // Example: scope MCP routes under a prefix to avoid colliding with your app's own OAuth routes
+   * // Example: scope MCP routes under a prefix to avoid colliding with your app's own OAuth routes.
+   * // OAuth discovery metadata stays at the origin root (prefix-suffixed), so root `.well-known`
+   * // traffic must still reach the agent.
    * agent.mountAiMcpServer({ basePath: '/ai' });
    */
   mountAiMcpServer(options?: { enabledTools?: ToolName[]; basePath?: string }): this {
@@ -422,7 +424,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         logger: mcpLogger,
         forestServerClient,
         enabledTools: this.mcpEnabledTools,
-        mountPath: this.mcpBasePath,
+        basePath: this.mcpBasePath,
       });
 
       const httpCallback = await mcpServer.getHttpCallback();
