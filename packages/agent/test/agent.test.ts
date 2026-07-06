@@ -581,6 +581,16 @@ describe('Agent', () => {
       );
     });
 
+    test('should pass basePath to ForestMCPServer as mountPath', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer({ basePath: '/mcp' });
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(expect.objectContaining({ mountPath: '/mcp' }));
+    });
+
     test('should log error when MCP initialization fails', async () => {
       const mockLogger = jest.fn();
       const options = factories.forestAdminHttpDriverOptions.build({ logger: mockLogger });

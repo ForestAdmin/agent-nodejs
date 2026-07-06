@@ -2528,6 +2528,169 @@ describe('getHttpCallback', () => {
   });
 });
 
+describe('mountPath prefix', () => {
+  const originalFetch = global.fetch;
+
+  function mockForestFetch(): void {
+    const mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: { name: 'users', fields: [{ field: 'id', type: 'Number' }] },
+          },
+        ],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+
+    global.fetch = mockFetchServer.fetch;
+  }
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  describe('metadata and routes under /mcp', () => {
+    let app: Awaited<ReturnType<ForestMCPServer['buildExpressApp']>>;
+
+    beforeEach(async () => {
+      mockForestFetch();
+      const server = new ForestMCPServer({
+        envSecret: 'ENV_SECRET',
+        authSecret: 'AUTH_SECRET',
+        forestServerClient: createMockForestServerClient(),
+        mountPath: '/mcp',
+      });
+      app = await server.buildExpressApp(new URL('http://localhost:3000'));
+    });
+
+    it('serves authorization-server metadata at the RFC 8414 suffixed path with prefixed endpoints', async () => {
+      const response = await request(app).get('/.well-known/oauth-authorization-server/mcp');
+
+      expect(response.status).toBe(200);
+      expect(response.body.issuer).toBe('http://localhost:3000/mcp');
+      expect(response.body.authorization_endpoint).toBe(
+        'http://localhost:3000/mcp/oauth/authorize',
+      );
+      expect(response.body.token_endpoint).toBe('http://localhost:3000/mcp/oauth/token');
+    });
+
+    it('serves protected-resource metadata under the prefixed resource path', async () => {
+      const response = await request(app).get('/.well-known/oauth-protected-resource/mcp/mcp');
+
+      expect(response.status).toBe(200);
+      expect(response.body.resource).toBe('http://localhost:3000/mcp/mcp');
+    });
+
+    it('mounts the MCP endpoint at the prefixed path with a prefixed resource metadata url', async () => {
+      const response = await request(app)
+        .post('/mcp/mcp')
+        .set('Content-Type', 'application/json')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      expect(response.status).toBe(401);
+      expect(response.headers['www-authenticate']).toContain(
+        '/.well-known/oauth-protected-resource/mcp/mcp',
+      );
+    });
+  });
+
+  describe('nested prefix and base-path resolution', () => {
+    beforeEach(() => {
+      mockForestFetch();
+    });
+
+    it('scopes routes and metadata under a nested prefix', async () => {
+      const server = new ForestMCPServer({
+        envSecret: 'ENV_SECRET',
+        authSecret: 'AUTH_SECRET',
+        forestServerClient: createMockForestServerClient(),
+        mountPath: '/api/mcp',
+      });
+      const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+      const metadata = await request(app).get('/.well-known/oauth-authorization-server/api/mcp');
+      expect(metadata.status).toBe(200);
+      expect(metadata.body.issuer).toBe('http://localhost:3000/api/mcp');
+      expect(metadata.body.token_endpoint).toBe('http://localhost:3000/api/mcp/oauth/token');
+
+      const mcp = await request(app)
+        .post('/api/mcp/mcp')
+        .set('Content-Type', 'application/json')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+      expect(mcp.status).toBe(401);
+    });
+
+    it('preserves a base path on the origin when it has a trailing slash', async () => {
+      const server = new ForestMCPServer({
+        envSecret: 'ENV_SECRET',
+        authSecret: 'AUTH_SECRET',
+        forestServerClient: createMockForestServerClient(),
+        mountPath: '/mcp',
+      });
+      const app = await server.buildExpressApp(new URL('http://localhost:3000/agent/'));
+
+      const metadata = await request(app).get('/.well-known/oauth-authorization-server/mcp');
+      expect(metadata.body.issuer).toBe('http://localhost:3000/agent/mcp');
+      expect(metadata.body.token_endpoint).toBe('http://localhost:3000/agent/mcp/oauth/token');
+    });
+  });
+
+  describe('getHttpCallback route filtering under /mcp', () => {
+    let callback: (req: http.IncomingMessage, res: http.ServerResponse, next?: () => void) => void;
+    let callbackServer: http.Server;
+
+    beforeEach(async () => {
+      mockForestFetch();
+      const server = new ForestMCPServer({
+        envSecret: 'ENV_SECRET',
+        authSecret: 'AUTH_SECRET',
+        forestServerClient: createMockForestServerClient(),
+        mountPath: '/mcp',
+      });
+      callback = await server.getHttpCallback(new URL('http://localhost:3000'));
+    });
+
+    afterEach(async () => {
+      await shutDownHttpServer(callbackServer);
+    });
+
+    it('delegates the prefixed MCP endpoint to the Express app', async () => {
+      callbackServer = http.createServer(callback);
+      callbackServer.listen(0);
+      await new Promise(resolve => {
+        callbackServer.on('listening', resolve);
+      });
+
+      const response = await request(callbackServer)
+        .post('/mcp/mcp')
+        .set('Content-Type', 'application/json')
+        .send({ jsonrpc: '2.0', method: 'tools/list', id: 1 });
+
+      expect(response.status).toBe(401);
+    });
+
+    it.each(['/oauth/token', '/mcp', '/.well-known/oauth-authorization-server', '/api/other'])(
+      'passes host route %p through to next()',
+      url => {
+        const req = { url } as http.IncomingMessage;
+        const res = {} as http.ServerResponse;
+        const next = jest.fn();
+
+        callback(req, res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+      },
+    );
+  });
+});
+
 describe('handleMcpRequest cleanup', () => {
   const originalFetch = global.fetch;
   let cleanupServer: ForestMCPServer;

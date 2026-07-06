@@ -1,4 +1,4 @@
-import type { HttpCallback } from './types';
+import type { HttpCallback, McpRouteMatcher } from './types';
 import type Koa from 'koa';
 
 import expressToKoa from './utils/express-to-koa';
@@ -22,12 +22,11 @@ function isMcpRoute(url: string): boolean {
  */
 export default class McpMiddleware {
   private mcpHttpCallback: HttpCallback | null = null;
+  private routeMatcher: McpRouteMatcher = isMcpRoute;
 
-  /**
-   * Set the MCP HTTP callback. Call this before using the middleware.
-   */
-  setCallback(callback: HttpCallback | null): void {
+  setCallback(callback: HttpCallback | null, routeMatcher?: McpRouteMatcher): void {
     this.mcpHttpCallback = callback;
+    this.routeMatcher = routeMatcher ?? isMcpRoute;
   }
 
   /**
@@ -64,8 +63,7 @@ export default class McpMiddleware {
           next();
         }
       },
-      // MCP routes are at root: /.well-known/*, /oauth/*, /mcp
-      isMcpRoute,
+      url => this.routeMatcher(url),
     );
   }
 }

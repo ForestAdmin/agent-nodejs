@@ -4,6 +4,7 @@ import type {
   AgentOptions,
   AgentOptionsWithDefaults,
   HttpCallback,
+  McpRouteMatcher,
   WorkflowExecutorEmbedOptions,
 } from './types';
 import type { AiProviderDefinition } from '@forestadmin/agent-toolkit';
@@ -55,6 +56,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
   private mcpEnabledTools?: ToolName[];
+  private mcpBasePath?: string;
 
   /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
   private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
@@ -94,12 +96,12 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    */
   async start(): Promise<void> {
     try {
-      const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
+      const { router, mcpHttpCallback, mcpIsMcpRoute } = await this.buildRouterAndSendSchema();
 
       await this.options.forestAdminClient.subscribeToServerEvents();
       this.options.forestAdminClient.onRefreshCustomizations(this.restart.bind(this));
 
-      this.setMcpCallback(mcpHttpCallback ?? null);
+      this.setMcpCallback(mcpHttpCallback ?? null, mcpIsMcpRoute);
       await this.mount(router);
 
       // Boot after mount(): the embedded executor reaches the agent over HTTP, and the
@@ -140,9 +142,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     try {
       // We force sending schema when restarting
-      const { router, mcpHttpCallback } = await this.buildRouterAndSendSchema();
+      const { router, mcpHttpCallback, mcpIsMcpRoute } = await this.buildRouterAndSendSchema();
 
-      this.setMcpCallback(mcpHttpCallback ?? null);
+      this.setMcpCallback(mcpHttpCallback ?? null, mcpIsMcpRoute);
       await this.remount(router);
     } finally {
       this.isRestarting = false;
@@ -247,10 +249,13 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * agent.mountAiMcpServer();
    * // Example: read-only mode (only browse data, no create/update/delete/actions)
    * agent.mountAiMcpServer({ enabledTools: ['describeCollection', 'list', 'listRelated'] });
+   * // Example: scope MCP routes under a prefix to avoid colliding with your app's own OAuth routes
+   * agent.mountAiMcpServer({ basePath: '/ai' });
    */
-  mountAiMcpServer(options?: { enabledTools?: ToolName[] }): this {
+  mountAiMcpServer(options?: { enabledTools?: ToolName[]; basePath?: string }): this {
     this.mcpEnabled = true;
     this.mcpEnabledTools = options?.enabledTools;
+    this.mcpBasePath = options?.basePath;
 
     return this;
   }
@@ -350,9 +355,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Create an http handler which can respond to all queries which are expected from an agent.
    * Returns the main router and optional MCP HTTP callback.
    */
-  private async getRouter(
-    dataSource: DataSource,
-  ): Promise<{ router: Router; mcpHttpCallback?: HttpCallback }> {
+  private async getRouter(dataSource: DataSource): Promise<{
+    router: Router;
+    mcpHttpCallback?: HttpCallback;
+    mcpIsMcpRoute?: McpRouteMatcher;
+  }> {
     // Bootstrap app
     const services = makeServices(this.options);
     const routes = this.getRoutes(dataSource, services);
@@ -361,9 +368,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
 
     // Initialize MCP server if enabled via mountAiMcpServer()
     let mcpHttpCallback: HttpCallback | undefined;
+    let mcpIsMcpRoute: McpRouteMatcher | undefined;
 
     if (this.mcpEnabled) {
-      mcpHttpCallback = await this.initializeMcpServer();
+      ({ httpCallback: mcpHttpCallback, isMcpRoute: mcpIsMcpRoute } =
+        await this.initializeMcpServer());
     }
 
     // Build main router
@@ -379,7 +388,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
     );
     routes.forEach(route => route.setupRoutes(router));
 
-    return { router, mcpHttpCallback };
+    return { router, mcpHttpCallback, mcpIsMcpRoute };
   }
 
   /**
@@ -387,12 +396,17 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Uses dynamic import to defer loading until mountAiMcpServer() is actually used.
    * This avoids loading the mcp-server dependency at startup for users who don't use MCP.
    */
-  private async initializeMcpServer(): Promise<HttpCallback> {
+  private async initializeMcpServer(): Promise<{
+    httpCallback: HttpCallback;
+    isMcpRoute: McpRouteMatcher;
+  }> {
     const mcpLogger = (level, message) => this.options.logger(level, `[MCP] ${message}`);
 
     try {
       // Dynamic import to defer loading until actually needed
-      const { ForestMCPServer, ForestServerClientImpl } = await import('@forestadmin/mcp-server');
+      const { ForestMCPServer, ForestServerClientImpl, makeIsMcpRoute } = await import(
+        '@forestadmin/mcp-server'
+      );
 
       const forestServerClient = new ForestServerClientImpl(
         this.options.forestAdminClient.schemaService,
@@ -408,13 +422,15 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         logger: mcpLogger,
         forestServerClient,
         enabledTools: this.mcpEnabledTools,
+        mountPath: this.mcpBasePath,
       });
 
       const httpCallback = await mcpServer.getHttpCallback();
+      const isMcpRoute = makeIsMcpRoute(this.mcpBasePath);
 
       mcpLogger('Info', 'Server initialized successfully');
 
-      return httpCallback;
+      return { httpCallback, isMcpRoute };
     } catch (error) {
       const { message } = error as Error;
       mcpLogger('Error', `Failed to initialize MCP server: ${message}`);
@@ -443,6 +459,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private async buildRouterAndSendSchema(): Promise<{
     router: Router;
     mcpHttpCallback?: HttpCallback;
+    mcpIsMcpRoute?: McpRouteMatcher;
   }> {
     const { isProduction, logger, typingsPath, typingsMaxDepth } = this.options;
 

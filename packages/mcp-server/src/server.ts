@@ -6,6 +6,7 @@ import type { ForestServerClient } from './http-client';
 import type { Express } from 'express';
 
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
+import { metadataHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/metadata.js';
 import { tokenHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/token.js';
 import { allowedMethods } from '@modelcontextprotocol/sdk/server/auth/middleware/allowedMethods.js';
 import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
@@ -21,7 +22,7 @@ import * as http from 'http';
 
 import ForestOAuthProvider from './forest-oauth-provider';
 import { createForestServerClient } from './http-client';
-import { isMcpRoute } from './mcp-paths';
+import { makeIsMcpRoute, normalizeMountPath } from './mcp-paths';
 import declareAssociateTool from './tools/associate';
 import declareCreateTool from './tools/create';
 import declareDeleteTool from './tools/delete';
@@ -117,6 +118,12 @@ export interface ForestMCPServerOptions {
   forestServerClient?: ForestServerClient;
   /** List of tool names to enable (allowlist). Only these tools will be exposed. New tools in future releases will NOT be auto-enabled. */
   enabledTools?: ToolName[];
+  /**
+   * Opt-in path prefix under which all MCP routes (OAuth, .well-known, /mcp) are mounted,
+   * e.g. '/mcp'. Defaults to the origin root. Use it to avoid colliding with a host app's
+   * own OAuth routes when the server is embedded in an agent.
+   */
+  mountPath?: string;
 }
 
 /**
@@ -138,6 +145,7 @@ export default class ForestMCPServer {
   private logger: Logger;
   private collectionNames: string[] = [];
   private enabledTools: Set<ToolName>;
+  private mountPath: string;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -146,6 +154,7 @@ export default class ForestMCPServer {
     this.authSecret = options?.authSecret;
     this.logger = options?.logger || defaultLogger;
     this.enabledTools = this.resolveEnabledTools(options);
+    this.mountPath = normalizeMountPath(options?.mountPath);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -477,13 +486,18 @@ export default class ForestMCPServer {
       );
     }
 
+    const { mountPath: prefix } = this;
+    // Relative resolution (not leading-slash) so a base path on effectiveBaseUrl is preserved.
+    const mountBase = prefix ? new URL(`${prefix.slice(1)}/`, effectiveBaseUrl) : effectiveBaseUrl;
+    const issuerUrl = prefix ? new URL(prefix.slice(1), effectiveBaseUrl) : effectiveBaseUrl;
+
     const scopesSupported = ['mcp:read', 'mcp:write', 'mcp:action', 'mcp:admin'];
 
     // Create OAuth metadata with custom registration_endpoint pointing to Forest Admin
     const oauthMetadata = createOAuthMetadata({
       provider: oauthProvider,
-      issuerUrl: effectiveBaseUrl,
-      baseUrl: effectiveBaseUrl,
+      issuerUrl,
+      baseUrl: issuerUrl,
       scopesSupported,
     });
 
@@ -491,8 +505,8 @@ export default class ForestMCPServer {
     oauthMetadata.response_types_supported = ['code'];
     oauthMetadata.code_challenge_methods_supported = ['S256'];
 
-    oauthMetadata.token_endpoint = `${effectiveBaseUrl.href}oauth/token`;
-    oauthMetadata.authorization_endpoint = `${effectiveBaseUrl.href}oauth/authorize`;
+    oauthMetadata.token_endpoint = `${mountBase.href}oauth/token`;
+    oauthMetadata.authorization_endpoint = `${mountBase.href}oauth/authorize`;
     // Override registration_endpoint to point to Forest Admin server
     oauthMetadata.registration_endpoint = `${this.forestServerUrl}/oauth/register`;
     // Remove revocation_endpoint from metadata (not supported)
@@ -521,17 +535,16 @@ export default class ForestMCPServer {
     });
 
     app.use(
-      '/oauth/authorize',
+      `${prefix}/oauth/authorize`,
       authorizationHandler({
         provider: oauthProvider,
       }),
     );
-    app.use('/oauth/token', tokenHandler({ provider: oauthProvider }));
+    app.use(`${prefix}/oauth/token`, tokenHandler({ provider: oauthProvider }));
 
     // Mount metadata router with custom metadata
-    // The resourceServerUrl should include the /mcp path to match RFC 9728 requirements.
-    // This creates the .well-known/oauth-protected-resource/mcp endpoint.
-    const mcpResourceUrl = new URL('mcp', effectiveBaseUrl);
+    // The resourceServerUrl includes the /mcp path to match RFC 9728 requirements.
+    const mcpResourceUrl = new URL('mcp', mountBase);
     app.use(
       mcpAuthMetadataRouter({
         oauthMetadata,
@@ -540,15 +553,24 @@ export default class ForestMCPServer {
       }),
     );
 
+    // mcpAuthMetadataRouter hardcodes the authorization-server metadata at the root
+    // /.well-known/oauth-authorization-server. With a path-scoped issuer the client fetches it
+    // at the RFC 8414 suffixed path instead, so mount it there ourselves.
+    if (prefix) {
+      app.use(`/.well-known/oauth-authorization-server${prefix}`, metadataHandler(oauthMetadata));
+    }
+
     app.use(allowedMethods(['POST']));
 
     app.post(
-      '/mcp',
+      `${prefix}/mcp`,
       requireBearerAuth({
         verifier: oauthProvider,
         requiredScopes: ['mcp:read'],
-        resourceMetadataUrl: new URL('/.well-known/oauth-protected-resource/mcp', effectiveBaseUrl)
-          .href,
+        resourceMetadataUrl: new URL(
+          `/.well-known/oauth-protected-resource${mcpResourceUrl.pathname}`,
+          effectiveBaseUrl,
+        ).href,
       }),
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
@@ -617,6 +639,7 @@ export default class ForestMCPServer {
    */
   async getHttpCallback(baseUrl?: URL): Promise<HttpCallback> {
     const app = await this.buildExpressApp(baseUrl);
+    const isMcpRoute = makeIsMcpRoute(this.mountPath);
 
     return (req, res, next) => {
       const url = req.url || '/';
