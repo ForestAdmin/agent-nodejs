@@ -1139,6 +1139,37 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(saved.pendingData.suggestedRecord).toBeUndefined();
     });
 
+    it('pre-fills a sole toMany candidate in Manual (the only option, not an AI pick)', async () => {
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+      ]);
+      const bindTools = jest.fn();
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddress,
+          addresses: addressSchema,
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.Manual,
+          preRecordedArgs: { relationName: 'address' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(bindTools).not.toHaveBeenCalled();
+
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls[0][1];
+      expect(saved.pendingData.availableRecordIds).toEqual([cand([1])]);
+      expect(saved.pendingData.suggestedRecord).toEqual(cand([1]));
+    });
+
     it('still pre-fills the single xToOne record in Manual (the only option, not an AI pick)', async () => {
       const agentPort = makeMockAgentPort(); // default: 1 related order #99 via getSingleRelatedData
       const bindTools = jest.fn();

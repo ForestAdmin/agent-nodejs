@@ -544,11 +544,25 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
     const relatedData = await this.fetchRelatedData(target, relatedSchema, limit);
 
-    // Manual (user picks) and empty lists never rank. A lone candidate in an AI mode still goes
-    // through the AI below so Full AI can decline it (-1 → "No X to load") rather than auto-load.
-    if (!opts.rank || relatedData.length === 0) {
+    // Empty lists have nothing to rank or pre-select.
+    if (relatedData.length === 0) {
       return { relatedData, bestIndex: -1, confident: true, suggestedFields: [], relatedSchema };
     }
+
+    // Manual: no AI. A sole candidate is pre-selected (the only possible choice, as for an xToOne
+    // relation); with several, the user picks from the list.
+    if (!opts.rank) {
+      return {
+        relatedData,
+        bestIndex: relatedData.length === 1 ? 0 : -1,
+        confident: true,
+        suggestedFields: [],
+        relatedSchema,
+      };
+    }
+
+    // Ranking (AI-assisted / Full AI): even a lone candidate goes through the AI so Full AI can
+    // decline it (-1 → "No X to load") rather than auto-loading a possibly-irrelevant sole record.
 
     // The final record stays AI-suggested + user-confirmed (or AI-decided in Full AI): only the
     // source and relation are pinned deterministically, not the record index (not revise-safe).
