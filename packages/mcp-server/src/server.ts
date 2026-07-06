@@ -554,22 +554,30 @@ export default class ForestMCPServer {
     );
     app.use(`${prefix}/oauth/token`, tokenHandler({ provider: oauthProvider }));
 
-    // Mount metadata router with custom metadata
     // The resourceServerUrl includes the /mcp path to match RFC 9728 requirements.
     const mcpResourceUrl = new URL('mcp', mountBase);
-    app.use(
-      mcpAuthMetadataRouter({
-        oauthMetadata,
-        resourceServerUrl: mcpResourceUrl,
-        scopesSupported,
-      }),
-    );
 
-    // mcpAuthMetadataRouter hardcodes the authorization-server metadata at the root
-    // /.well-known/oauth-authorization-server. With a path-scoped issuer the client fetches it
-    // at the RFC 8414 suffixed path instead, so mount it there ourselves.
     if (prefix) {
+      // Serve both discovery documents ourselves at the RFC 8414/9728 prefix-suffixed paths.
+      // mcpAuthMetadataRouter would additionally mount the authorization-server metadata at the
+      // bare origin root, which would shadow a host app's own root discovery.
+      app.use(
+        `/.well-known/oauth-protected-resource${mcpResourceUrl.pathname}`,
+        metadataHandler({
+          resource: mcpResourceUrl.href,
+          authorization_servers: [oauthMetadata.issuer],
+          scopes_supported: scopesSupported,
+        }),
+      );
       app.use(`/.well-known/oauth-authorization-server${prefix}`, metadataHandler(oauthMetadata));
+    } else {
+      app.use(
+        mcpAuthMetadataRouter({
+          oauthMetadata,
+          resourceServerUrl: mcpResourceUrl,
+          scopesSupported,
+        }),
+      );
     }
 
     app.use(allowedMethods(['POST']));

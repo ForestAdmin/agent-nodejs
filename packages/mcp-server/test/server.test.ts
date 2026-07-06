@@ -2594,6 +2594,14 @@ describe('mountPath prefix', () => {
       expect(response.body.authorization_servers).toEqual(['http://localhost:3000/mcp']);
     });
 
+    it('does not serve authorization-server metadata at the bare origin root', async () => {
+      const response = await request(app).get('/.well-known/oauth-authorization-server');
+
+      // The root discovery document is left to the host app, not shadowed by the MCP server.
+      expect(response.status).not.toBe(200);
+      expect(response.body.issuer).toBeUndefined();
+    });
+
     it('mounts the MCP endpoint at the prefixed path with a prefixed resource metadata url', async () => {
       const response = await request(app)
         .post('/mcp/mcp')
