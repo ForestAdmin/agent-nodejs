@@ -2528,7 +2528,7 @@ describe('getHttpCallback', () => {
   });
 });
 
-describe('mountPath prefix', () => {
+describe('basePath prefix', () => {
   const originalFetch = global.fetch;
 
   function mockForestFetch(): void {
