@@ -42,6 +42,12 @@ describe('assertSafeTokenEndpoint', () => {
       );
     });
 
+    it('rejects an integer-encoded cloud-metadata address (2852039166 -> 169.254.169.254)', () => {
+      expect(() => assertSafeTokenEndpoint('https://2852039166/token')).toThrow(
+        InvalidTokenEndpointError,
+      );
+    });
+
     it('rejects an IPv6 link-local address', () => {
       expect(() => assertSafeTokenEndpoint('http://[fe80::1]/token')).toThrow(
         InvalidTokenEndpointError,
@@ -85,6 +91,14 @@ describe('assertSafeTokenEndpoint', () => {
       expect(() => assertSafeTokenEndpoint('https://[::1]/token')).toThrow(
         InvalidTokenEndpointError,
       );
+    });
+
+    it('rejects alternate-encoding loopback IPs (integer/hex/octal/short-form -> 127.0.0.1)', () => {
+      for (const host of ['2130706433', '0x7f000001', '0177.0.0.1', '127.1']) {
+        expect(() => assertSafeTokenEndpoint(`https://${host}/token`)).toThrow(
+          InvalidTokenEndpointError,
+        );
+      }
     });
 
     it('rejects loopback hostname aliases (localhost. and the .localhost TLD)', () => {

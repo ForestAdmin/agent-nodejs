@@ -36,6 +36,11 @@ describe('isMcpAuthError', () => {
       false,
     );
   });
+
+  it('classifies a JSON-RPC McpError by message, ignoring its non-HTTP code (e.g. -32603)', () => {
+    expect(isMcpAuthError(Object.assign(new Error('Unauthorized'), { code: -32603 }))).toBe(true);
+    expect(isMcpAuthError(Object.assign(new Error('boom'), { code: -32603 }))).toBe(false);
+  });
 });
 
 describe('classifyMcpLoadError', () => {

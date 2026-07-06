@@ -152,7 +152,7 @@ describe('RemoteToolFetcher.fetch', () => {
 
     const result = await fetcher.fetch('id-A', USER_ID);
 
-    expect(result).toEqual({ tools: remoteTools, mcpServerName: 'srv-a' });
+    expect(result).toEqual({ tools: remoteTools, mcpServerName: 'srv-a', loadFailed: false });
   });
 
   it('warns about the missing target with the list of advertised ids when no config matches', async () => {
@@ -223,6 +223,30 @@ describe('RemoteToolFetcher.fetch', () => {
       mcpServerName: 'srv-a',
       failedConfigNames: ['srv-a'],
     });
+  });
+
+  it('sets loadFailed when the scoped server produced no tools', async () => {
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue([]) },
+    });
+
+    expect((await fetcher.fetch('id-A', USER_ID)).loadFailed).toBe(true);
+  });
+
+  it('does not set loadFailed when tools load successfully', async () => {
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
+      },
+      aiModelPort: {
+        loadRemoteTools: jest.fn().mockResolvedValue([makeRemoteTool('srv-a', 'id-A')]),
+      },
+    });
+
+    expect((await fetcher.fetch('id-A', USER_ID)).loadFailed).toBeFalsy();
   });
 
   it('does not log a partial-failure error when a tool carries the scoped config id', async () => {

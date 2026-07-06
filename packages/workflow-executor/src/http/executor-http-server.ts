@@ -17,6 +17,7 @@ import { type BearerClaims, BearerClaimsSchema } from './bearer-claims';
 import {
   BadRequestHttpError,
   ForbiddenHttpError,
+  NotFoundHttpError,
   ServiceUnavailableHttpError,
   UnauthorizedHttpError,
   toHttpError,
@@ -324,7 +325,20 @@ export default class ExecutorHttpServer {
     }
 
     try {
-      const { tools } = await fetcher.fetch(mcpServerId, userId);
+      const { tools, mcpServerName, loadFailed } = await fetcher.fetch(mcpServerId, userId);
+
+      // A dead or misrouted server otherwise renders as an (indistinguishable) empty tool list, so
+      // surface it — mirroring the run path, which errors rather than executing against no tools.
+      if (!mcpServerName) {
+        throw new NotFoundHttpError(`No MCP server is configured for id "${mcpServerId}"`);
+      }
+
+      if (loadFailed) {
+        throw new ServiceUnavailableHttpError(
+          'The MCP server could not be reached to list its tools',
+        );
+      }
+
       ctx.status = 200;
       ctx.body = {
         tools: tools.map(tool => ({ name: tool.base.name, description: tool.base.description })),

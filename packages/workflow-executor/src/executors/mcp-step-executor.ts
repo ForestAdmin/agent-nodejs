@@ -259,7 +259,14 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       const refreshedTool = refreshedTools.find(
         t => t.base.name === target.name && t.sourceId === target.sourceId,
       );
-      if (!refreshedTool) throw new McpToolNotFoundError(target.name);
+
+      if (!refreshedTool) {
+        // The 401 first call never ran and the reload yielded no tool (empty on a connection
+        // failure), so clear the marker to keep the step retryable rather than wedged.
+        await this.clearReauthPauseState();
+
+        throw new McpToolNotFoundError(target.name);
+      }
 
       try {
         return await refreshedTool.base.invoke(target.input);

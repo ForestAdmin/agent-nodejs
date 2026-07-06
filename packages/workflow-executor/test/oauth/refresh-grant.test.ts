@@ -219,6 +219,23 @@ describe('refreshAccessToken', () => {
     expect(result.refreshToken).toBeUndefined();
   });
 
+  it('coerces a numeric-string expires_in so the token is still cacheable', async () => {
+    fetchSpy.mockResolvedValue(
+      mockResponse({
+        ok: true,
+        status: 200,
+        payload: { access_token: 'at-1', expires_in: '3600' },
+      }),
+    );
+
+    const result = await refreshAccessToken({
+      tokenEndpoint: 'https://idp/token',
+      refreshToken: 'rt-1',
+    });
+
+    expect(result.expiresInS).toBe(3600);
+  });
+
   it('throws OAuthInvalidGrantError when the endpoint returns error invalid_grant', async () => {
     fetchSpy.mockResolvedValue(
       mockResponse({ ok: false, status: 400, payload: { error: 'invalid_grant' } }),
@@ -229,15 +246,26 @@ describe('refreshAccessToken', () => {
     ).rejects.toBeInstanceOf(OAuthInvalidGrantError);
   });
 
-  it('throws OAuthRefreshError for a non-invalid_grant error response', async () => {
+  it('throws OAuthRefreshError for a generic error response', async () => {
     fetchSpy.mockResolvedValue(
-      mockResponse({ ok: false, status: 400, payload: { error: 'invalid_client' } }),
+      mockResponse({ ok: false, status: 400, payload: { error: 'invalid_scope' } }),
     );
 
     await expect(
       refreshAccessToken({ tokenEndpoint: 'https://idp/token', refreshToken: 'rt-1' }),
     ).rejects.toBeInstanceOf(OAuthRefreshError);
   });
+
+  it.each(['invalid_client', 'unauthorized_client'])(
+    'maps a dead client credential (%s) to re-auth',
+    async error => {
+      fetchSpy.mockResolvedValue(mockResponse({ ok: false, status: 401, payload: { error } }));
+
+      await expect(
+        refreshAccessToken({ tokenEndpoint: 'https://idp/token', refreshToken: 'rt-1' }),
+      ).rejects.toBeInstanceOf(OAuthInvalidGrantError);
+    },
+  );
 
   it('throws OAuthRefreshError on a 5xx from the token endpoint', async () => {
     fetchSpy.mockResolvedValue(mockResponse({ ok: false, status: 503, nonJson: true }));

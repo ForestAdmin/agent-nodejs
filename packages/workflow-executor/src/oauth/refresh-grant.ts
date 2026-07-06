@@ -34,6 +34,15 @@ function formUrlEncode(value: string): string {
   return params.toString().slice('v='.length);
 }
 
+// Some providers return expires_in as a numeric string; coerce it so the token is still cached
+// (an unusable value leaves it uncached, forcing a full refresh — and rotation — on every call).
+function coerceExpiresInS(value: unknown): number | undefined {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+
+  return undefined;
+}
+
 function buildRequest(params: RefreshGrantParams): {
   headers: Record<string, string>;
   body: URLSearchParams;
@@ -111,7 +120,13 @@ export default async function refreshAccessToken(
   }
 
   if (!response.ok) {
-    if (payload.error === 'invalid_grant') {
+    // invalid_client / unauthorized_client mean the client credential itself is dead (e.g. an expired
+    // secret) — non-retryable like invalid_grant, so route to re-consent instead of a doomed retry.
+    if (
+      payload.error === 'invalid_grant' ||
+      payload.error === 'invalid_client' ||
+      payload.error === 'unauthorized_client'
+    ) {
       throw new OAuthInvalidGrantError(
         typeof payload.error_description === 'string' ? payload.error_description : undefined,
       );
@@ -130,7 +145,7 @@ export default async function refreshAccessToken(
 
   return {
     accessToken: payload.access_token,
-    expiresInS: typeof payload.expires_in === 'number' ? payload.expires_in : undefined,
+    expiresInS: coerceExpiresInS(payload.expires_in),
     refreshToken: typeof payload.refresh_token === 'string' ? payload.refresh_token : undefined,
   };
 }

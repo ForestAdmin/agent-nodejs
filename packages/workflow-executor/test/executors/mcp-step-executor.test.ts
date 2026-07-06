@@ -1406,6 +1406,35 @@ describe('McpStepExecutor — re-auth pause hardening', () => {
         | undefined;
       expect(persisted?.idempotencyPhase).not.toBe('executing');
     });
+
+    it('clears the executing marker when the reload yields no matching tool, leaving the step retryable', async () => {
+      // The reload succeeds but returns no tool (empty on a connection failure); the 401 first call
+      // never ran, so the step must stay retryable rather than wedged as interrupted.
+      const store = new InMemoryStore();
+      const tool = new MockRemoteTool({
+        name: 'send_notification',
+        sourceId: 'mcp-server-1',
+        invoke: jest.fn().mockRejectedValue(authError()),
+      });
+      const reloadWithFreshAuth = jest.fn().mockResolvedValue([]);
+      const context = makeContext({
+        runStore: store,
+        stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
+      });
+
+      const result = await new McpStepExecutor(
+        context,
+        [tool],
+        'srv',
+        reloadWithFreshAuth,
+      ).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      const persisted = (await store.getStepExecutions('run-1')).find(e => e.stepIndex === 0) as
+        | McpStepExecutionData
+        | undefined;
+      expect(persisted?.idempotencyPhase).not.toBe('executing');
+    });
   });
 
   describe('re-auth pause surfaces the tool-call failure in the audit log', () => {
