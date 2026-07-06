@@ -51,7 +51,7 @@ export default class ReadModel {
   private buildRelations(collection: ForestSchemaCollection): void {
     const relations = new Map<string, RelationTarget>();
 
-    for (const field of collection.fields) {
+    for (const field of collection.fields ?? []) {
       const target = toRelationTarget(field);
       if (target) relations.set(field.field, target);
     }
@@ -68,12 +68,13 @@ export default class ReadModel {
     this.actionEndpoints[collection.name] = {};
 
     for (const action of withEndpoint) {
+      // Copy fields/hooks so a mutating consumer can't corrupt the shared cached schema.
       this.actionEndpoints[collection.name][action.name] = {
         id: action.id,
         name: action.name,
         endpoint: action.endpoint,
-        hooks: action.hooks,
-        fields: action.fields,
+        hooks: { ...action.hooks, change: [...action.hooks.change] },
+        fields: action.fields.map(field => ({ ...field })),
       };
     }
   }

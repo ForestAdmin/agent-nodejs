@@ -175,4 +175,71 @@ describe('SchemaCache', () => {
       expect(metrics.gauge).toHaveBeenCalledWith(SCHEMA_CACHE_AGE_SECONDS, 5);
     });
   });
+
+  describe('empty schema', () => {
+    it('should treat an empty schema as a failed fetch on a cold cache', async () => {
+      fetcher.fetchSchema.mockResolvedValue([]);
+      const cache = build();
+
+      await expect(cache.get()).rejects.toBeInstanceOf(SchemaUnavailableError);
+      expect(metrics.increment).toHaveBeenCalledWith(SCHEMA_CACHE_REFRESH_ERROR);
+      expect(cache.ageSeconds()).toBeUndefined();
+    });
+
+    it('should keep serving the last good schema when a refresh returns empty', async () => {
+      const good = makeSchema('users');
+      fetcher.fetchSchema.mockResolvedValueOnce(good).mockResolvedValueOnce([]);
+      const cache = build();
+
+      await cache.get();
+      clock += ONE_DAY_MS;
+      const result = await cache.get();
+
+      expect(result).toBe(good);
+      expect(metrics.increment).toHaveBeenCalledWith(SCHEMA_CACHE_REFRESH_ERROR);
+    });
+  });
+
+  describe('revision', () => {
+    it('should start at 0 before any successful fetch', () => {
+      expect(build().revision).toBe(0);
+    });
+
+    it('should increment on each successful refresh', async () => {
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(makeSchema('users'))
+        .mockResolvedValueOnce(makeSchema('users-v2'));
+      const cache = build();
+
+      await cache.get();
+      expect(cache.revision).toBe(1);
+
+      clock += ONE_DAY_MS;
+      await cache.get();
+      expect(cache.revision).toBe(2);
+    });
+
+    it('should not increment on a cache hit', async () => {
+      fetcher.fetchSchema.mockResolvedValue(makeSchema('users'));
+      const cache = build();
+
+      await cache.get();
+      await cache.get();
+
+      expect(cache.revision).toBe(1);
+    });
+
+    it('should not increment on a warm refresh failure', async () => {
+      fetcher.fetchSchema
+        .mockResolvedValueOnce(makeSchema('users'))
+        .mockRejectedValueOnce(new Error('boom'));
+      const cache = build();
+
+      await cache.get();
+      clock += ONE_DAY_MS;
+      await cache.get();
+
+      expect(cache.revision).toBe(1);
+    });
+  });
 });

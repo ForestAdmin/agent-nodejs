@@ -1,20 +1,19 @@
 import type CapabilitiesCache from './capabilities-cache';
 import type { CapabilitiesFetcher, CapabilitiesResult } from './capabilities-cache';
 import type SchemaCache from './schema-cache';
-import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
 
 import ReadModel from './read-model';
 
 /**
- * Single owner of the coupled schema + capabilities lifecycle. A successful schema refresh (a new
- * collections reference from the cache) rebuilds the read-model and clears capabilities atomically,
- * so the allow-list and capabilities never split-brain across schema generations.
+ * Single owner of the coupled schema + capabilities lifecycle. A successful schema refresh (a bump
+ * of the cache `revision`) rebuilds the read-model and clears capabilities atomically, so the
+ * allow-list and capabilities never split-brain across schema generations.
  */
 export default class ReadModelStore {
   private readonly schemaCache: SchemaCache;
   private readonly capabilitiesCache: CapabilitiesCache;
 
-  private lastCollections: ForestSchemaCollection[] | null = null;
+  private builtRevision = -1;
   private readModel: ReadModel | null = null;
 
   constructor(schemaCache: SchemaCache, capabilitiesCache: CapabilitiesCache) {
@@ -25,9 +24,9 @@ export default class ReadModelStore {
   async getReadModel(): Promise<ReadModel> {
     const collections = await this.schemaCache.get();
 
-    if (collections !== this.lastCollections || !this.readModel) {
+    if (this.schemaCache.revision !== this.builtRevision || !this.readModel) {
       this.readModel = new ReadModel(collections);
-      this.lastCollections = collections;
+      this.builtRevision = this.schemaCache.revision;
       this.capabilitiesCache.clear();
     }
 

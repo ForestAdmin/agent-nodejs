@@ -24,8 +24,8 @@ interface CacheEntry {
 /**
  * Caches the agent schema for 24h. The TTL only *triggers* a refresh attempt: the last good
  * schema keeps being served until a refresh succeeds. A cold cache (no last good) surfaces a
- * typed `SchemaUnavailableError`. Cache hits return the same array reference so a consumer can
- * detect a refresh by reference identity.
+ * typed `SchemaUnavailableError`. A monotonic `revision` increments on each successful refresh so
+ * a consumer can detect a new schema generation explicitly.
  */
 export default class SchemaCache {
   private readonly fetcher: SchemaFetcher;
@@ -35,6 +35,7 @@ export default class SchemaCache {
 
   private entry: CacheEntry | null = null;
   private inFlight: Promise<ForestSchemaCollection[]> | null = null;
+  private revisionValue = 0;
 
   constructor({ fetcher, metrics, now = Date.now, ttlMs = ONE_DAY_MS }: SchemaCacheOptions) {
     this.fetcher = fetcher;
@@ -59,6 +60,10 @@ export default class SchemaCache {
     return Math.floor((this.now() - this.entry.fetchedAt) / 1000);
   }
 
+  get revision(): number {
+    return this.revisionValue;
+  }
+
   private async refresh(): Promise<ForestSchemaCollection[]> {
     if (!this.inFlight) {
       this.inFlight = this.doRefresh().finally(() => {
@@ -72,7 +77,14 @@ export default class SchemaCache {
   private async doRefresh(): Promise<ForestSchemaCollection[]> {
     try {
       const collections = await this.fetcher.fetchSchema();
+
+      // An agent always exposes collections, so an empty result is far likelier a broken response
+      // than a valid state. Caching it would silently deny everything for 24h — treat it as a
+      // failed fetch and fall through to the failure path below.
+      if (collections.length === 0) throw new Error('Forest returned an empty schema');
+
       this.entry = { collections, fetchedAt: this.now() };
+      this.revisionValue += 1;
       this.emitAge();
 
       return collections;

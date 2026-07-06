@@ -59,10 +59,25 @@ describe('createReadModel', () => {
     });
   });
 
-  it('should default to console metrics when none is provided', () => {
-    const bundle = createReadModel({ forestServerUrl: 'x', envSecret: 'y' });
+  it('should route metrics through the console logger when none is provided', async () => {
+    const info = jest.spyOn(console, 'info').mockImplementation(() => undefined);
 
-    expect(bundle.store).toBeDefined();
-    expect(bundle.actionEndpointResolver).toBeDefined();
+    try {
+      const { actionEndpointResolver } = createReadModel({ forestServerUrl: 'x', envSecret: 'y' });
+      await actionEndpointResolver.resolve('users', 'missing', { rendering: 9 });
+
+      const logged = info.mock.calls.map(call => JSON.parse(call[0] as string));
+      expect(logged).toContainEqual(
+        expect.objectContaining({
+          message: 'metric.increment',
+          metric: ACTION_ENDPOINT_MISS,
+          rendering: 9,
+          collection: 'users',
+          action: 'missing',
+        }),
+      );
+    } finally {
+      info.mockRestore();
+    }
   });
 });

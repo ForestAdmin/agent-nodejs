@@ -1,3 +1,5 @@
+import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
+
 import { action, collection, column, polymorphic, relation } from './fixtures';
 import ReadModel from '../../src/read-model/read-model';
 
@@ -127,10 +129,31 @@ describe('ReadModel', () => {
       expect(model.getActionEndpoints().users).toBeUndefined();
     });
 
+    it('should defensively copy action fields and hooks so a consumer cannot mutate the cache', () => {
+      const original = action('ban', '/forest/users/actions/ban');
+      original.fields = [{ field: 'reason', type: 'String' }];
+      original.hooks = { load: true, change: ['dep'] };
+      const model = new ReadModel([collection('users', [], [original])]);
+
+      const stored = model.getActionEndpoints().users.ban;
+
+      expect(stored.fields).toEqual([{ field: 'reason', type: 'String' }]);
+      expect(stored.fields).not.toBe(original.fields);
+      expect(stored.fields[0]).not.toBe(original.fields[0]);
+      expect(stored.hooks.change).not.toBe(original.hooks.change);
+    });
+
     it('should handle a collection with no actions key', () => {
       const model = new ReadModel([{ name: 'users', fields: [] }]);
 
       expect(model.isActionAllowed('users', 'ban')).toBe(false);
+    });
+
+    it('should not throw on a malformed collection with no fields key', () => {
+      const model = new ReadModel([{ name: 'weird' } as unknown as ForestSchemaCollection]);
+
+      expect(model.isCollectionAllowed('weird')).toBe(true);
+      expect(model.isRelationAllowed('weird', 'x')).toBe(false);
     });
   });
 

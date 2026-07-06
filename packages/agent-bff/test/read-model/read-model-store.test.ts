@@ -85,6 +85,33 @@ describe('ReadModelStore', () => {
 
       expect(capsFetcher).toHaveBeenCalledTimes(2);
     });
+
+    it('should not rebuild the read-model or clear capabilities when a refresh fails', async () => {
+      const fetchSchema = jest
+        .fn()
+        .mockResolvedValueOnce(makeSchema('users'))
+        .mockRejectedValueOnce(new Error('boom'));
+      // Capabilities TTL kept longer than the schema TTL so this asserts the *clear* (not a
+      // capabilities TTL expiry) does not happen on a warm schema-refresh failure.
+      const schemaCache = new SchemaCache({
+        fetcher: { fetchSchema } as SchemaFetcher,
+        metrics: makeMetrics(),
+        now,
+      });
+      const capabilitiesCache = new CapabilitiesCache({ now, ttlMs: ONE_DAY_MS * 10 });
+      const store = new ReadModelStore(schemaCache, capabilitiesCache);
+      const capsFetcher = jest.fn().mockResolvedValue({ fields: [] });
+
+      const before = await store.getReadModel();
+      await store.getCapabilities('users', capsFetcher);
+
+      clock += ONE_DAY_MS;
+      const after = await store.getReadModel();
+      await store.getCapabilities('users', capsFetcher);
+
+      expect(after).toBe(before);
+      expect(capsFetcher).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('ageSeconds', () => {
