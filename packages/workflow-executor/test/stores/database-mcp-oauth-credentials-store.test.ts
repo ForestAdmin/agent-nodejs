@@ -169,6 +169,36 @@ describe('DatabaseMcpOAuthCredentialsStore (SQLite)', () => {
     });
   });
 
+  describe('updateIfPresent', () => {
+    it('updates the row matching the given id in place', async () => {
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
+      const { id } = unwrap(await store.get(42, 'mcp-server-1'));
+
+      await store.updateIfPresent(id, makeCredential({ refreshTokenEnc: Buffer.from('rotated') }));
+
+      const row = unwrap(await store.get(42, 'mcp-server-1'));
+      expect(row.refreshTokenEnc.toString()).toBe('rotated');
+    });
+
+    it('does not insert a row when none exists for the key', async () => {
+      await store.updateIfPresent(1, makeCredential());
+
+      expect(await store.get(42, 'mcp-server-1')).toBeNull();
+    });
+
+    it('does not touch a row that was re-created with a different id', async () => {
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('old') }));
+      const staleId = unwrap(await store.get(42, 'mcp-server-1')).id;
+      await store.delete(42, 'mcp-server-1');
+      await store.upsert(makeCredential({ refreshTokenEnc: Buffer.from('reauthorized') }));
+
+      await store.updateIfPresent(staleId, makeCredential({ refreshTokenEnc: Buffer.from('rot') }));
+
+      const row = unwrap(await store.get(42, 'mcp-server-1'));
+      expect(row.refreshTokenEnc.toString()).toBe('reauthorized');
+    });
+  });
+
   describe('isolation', () => {
     it('keeps credentials for the same server but different users separate', async () => {
       await store.upsert(makeCredential({ userId: 1, refreshTokenEnc: Buffer.from('user-1') }));

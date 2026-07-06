@@ -24,5 +24,8 @@ export interface McpOAuthCredentialsStore {
   close(logger?: Logger): Promise<void>;
   get(userId: number, mcpServerId: string): Promise<StoredMcpOAuthCredential | null>;
   upsert(credential: McpOAuthCredentialInput): Promise<void>;
+  // Update-only by the row id the caller read: never inserts, and no-ops if that row is gone or was
+  // re-created with a new id — so a stale write-back can't resurrect or clobber a credential.
+  updateIfPresent(id: number, credential: McpOAuthCredentialInput): Promise<void>;
   delete(userId: number, mcpServerId: string): Promise<void>;
 }

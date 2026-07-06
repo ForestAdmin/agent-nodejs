@@ -9,8 +9,11 @@ import jsonwebtoken from 'jsonwebtoken';
 import request from 'supertest';
 import { z } from 'zod';
 
+import createConsoleLogger from '../../src/adapters/console-logger';
 import CredentialEncryption from '../../src/crypto/credential-encryption';
 import ExecutorHttpServer from '../../src/http/executor-http-server';
+import OAuthTokenService from '../../src/oauth/token-service';
+import RemoteToolFetcher from '../../src/remote-tool-fetcher';
 import Runner from '../../src/runner';
 import SchemaCache from '../../src/schema-cache';
 import InMemoryMcpOAuthCredentialsStore from '../../src/stores/in-memory-mcp-oauth-credentials-store';
@@ -194,6 +197,13 @@ function createIntegrationSetup(overrides?: {
   const agentPort = overrides?.agentPort ?? createMockAgentPort();
   const runStore = new InMemoryStore();
   const schemaCache = new SchemaCache();
+  const mcpOAuthCredentialsStore = new InMemoryMcpOAuthCredentialsStore();
+  const credentialEncryption = new CredentialEncryption();
+  const mcpOAuthTokenService = new OAuthTokenService({
+    store: mcpOAuthCredentialsStore,
+    encryption: credentialEncryption,
+    logger: createConsoleLogger(),
+  });
 
   const runner = new Runner({
     agentPort,
@@ -212,15 +222,24 @@ function createIntegrationSetup(overrides?: {
     pollingIntervalS: overrides?.pollingIntervalS ?? 60,
     envSecret: ENV_SECRET,
     authSecret: AUTH_SECRET,
+    mcpOAuthTokenService,
   });
+
+  const remoteToolFetcher = new RemoteToolFetcher(
+    workflowPort,
+    aiClient,
+    createConsoleLogger(),
+    mcpOAuthTokenService,
+  );
 
   const server = new ExecutorHttpServer({
     port: 0,
     runner,
     authSecret: AUTH_SECRET,
     workflowPort,
-    mcpOAuthCredentialsStore: new InMemoryMcpOAuthCredentialsStore(),
-    credentialEncryption: new CredentialEncryption(),
+    mcpOAuthCredentialsStore,
+    credentialEncryption,
+    remoteToolFetcher,
   });
 
   return { runner, server, workflowPort, agentPort, runStore, aiClient, model };

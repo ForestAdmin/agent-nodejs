@@ -2,6 +2,9 @@ import {
   AiModelPortError,
   InvalidPendingDataError,
   NoMcpToolsError,
+  OAuthInvalidGrantError,
+  OAuthReauthRequiredError,
+  OAuthRefreshError,
   PendingDataNotFoundError,
   extractErrorMessage,
 } from '../src/errors';
@@ -141,5 +144,36 @@ describe('InvalidPendingDataError', () => {
     const err = new InvalidPendingDataError([]);
 
     expect(err.userMessage).toBe('The request body is invalid.');
+  });
+});
+
+describe('OAuthReauthRequiredError', () => {
+  it("defaults awaitingInputReason to 'needs-oauth-reauth' and names the server in the technical message", () => {
+    const err = new OAuthReauthRequiredError('srv-1');
+
+    expect(err.awaitingInputReason).toBe('needs-oauth-reauth');
+    expect(err.message).toMatch(/srv-1/);
+  });
+
+  it('keeps the user-facing message free of the internal server id', () => {
+    const err = new OAuthReauthRequiredError('srv-1');
+
+    expect(err.userMessage).not.toMatch(/srv-1/);
+  });
+});
+
+describe('OAuthRefreshError', () => {
+  it('prefixes the technical message and stores the cause', () => {
+    const cause = new Error('5xx');
+    const err = new OAuthRefreshError('endpoint unreachable', cause);
+
+    expect(err.message).toMatch(/endpoint unreachable/);
+    expect(err.cause).toBe(cause);
+  });
+});
+
+describe('OAuthInvalidGrantError', () => {
+  it('includes the detail when provided', () => {
+    expect(new OAuthInvalidGrantError('token expired').message).toMatch(/token expired/);
   });
 });

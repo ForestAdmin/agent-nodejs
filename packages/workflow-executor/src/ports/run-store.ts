@@ -6,4 +6,5 @@ export interface RunStore {
   close(logger?: Logger): Promise<void>;
   getStepExecutions(runId: string): Promise<StepExecutionData[]>;
   saveStepExecution(runId: string, stepExecution: StepExecutionData): Promise<void>;
+  deleteStepExecution(runId: string, stepIndex: number): Promise<void>;
 }

@@ -1,16 +1,25 @@
+import type OAuthTokenService from '../src/oauth/token-service';
 import type { AiModelPort } from '../src/ports/ai-model-port';
 import type { Logger } from '../src/ports/logger-port';
 import type { WorkflowPort } from '../src/ports/workflow-port';
 import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
+import { OAuthReauthRequiredError } from '../src/errors';
 import RemoteToolFetcher, { scopeConfigsToServer } from '../src/remote-tool-fetcher';
+
+const USER_ID = 1;
+
+type AiModelMethods = Pick<AiModelPort, 'loadRemoteTools' | 'loadRemoteToolsWithFailures'>;
 
 function createMockWorkflowPort(): jest.Mocked<Pick<WorkflowPort, 'getMcpServerConfigs'>> {
   return { getMcpServerConfigs: jest.fn().mockResolvedValue({}) };
 }
 
-function createMockAiModelPort(): jest.Mocked<Pick<AiModelPort, 'loadRemoteTools'>> {
-  return { loadRemoteTools: jest.fn().mockResolvedValue([]) };
+function createMockAiModelPort(): jest.Mocked<AiModelMethods> {
+  return {
+    loadRemoteTools: jest.fn().mockResolvedValue([]),
+    loadRemoteToolsWithFailures: jest.fn().mockResolvedValue({ tools: [], failures: [] }),
+  };
 }
 
 function createMockLogger(): jest.MockedFunction<Logger> {
@@ -23,16 +32,23 @@ function makeRemoteTool(sourceId: string, mcpServerId?: string): RemoteTool {
 
 function makeFetcher(overrides?: {
   workflowPort?: Partial<jest.Mocked<Pick<WorkflowPort, 'getMcpServerConfigs'>>>;
-  aiModelPort?: Partial<jest.Mocked<Pick<AiModelPort, 'loadRemoteTools'>>>;
+  aiModelPort?: Partial<jest.Mocked<AiModelMethods>>;
   logger?: jest.MockedFunction<Logger>;
+  tokenService?: OAuthTokenService;
 }) {
   const workflowPort = { ...createMockWorkflowPort(), ...overrides?.workflowPort };
   const aiModelPort = { ...createMockAiModelPort(), ...overrides?.aiModelPort };
   const logger = overrides?.logger ?? createMockLogger();
+  const tokenService =
+    overrides?.tokenService ??
+    ({
+      getAccessToken: jest.fn().mockResolvedValue('access-token'),
+    } as unknown as OAuthTokenService);
   const fetcher = new RemoteToolFetcher(
     workflowPort as unknown as WorkflowPort,
     aiModelPort as unknown as AiModelPort,
     logger,
+    tokenService,
   );
 
   return { fetcher, workflowPort, aiModelPort, logger };
@@ -40,6 +56,15 @@ function makeFetcher(overrides?: {
 
 const cfg = (id: string | undefined): ToolConfig =>
   ({ id, url: 'https://x.example', type: 'http' as const, headers: {} } as unknown as ToolConfig);
+
+const oauthCfg = (id: string): ToolConfig =>
+  ({
+    id,
+    authType: 'oauth2',
+    url: 'https://x.example',
+    type: 'http' as const,
+    headers: {},
+  } as unknown as ToolConfig);
 
 // ---------------------------------------------------------------------------
 // scopeConfigsToServer (pure)
@@ -82,7 +107,7 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await fetcher.fetch('id-A');
+    await fetcher.fetch('id-A', USER_ID);
 
     expect(aiModelPort.loadRemoteTools).toHaveBeenCalledWith({ 'srv-a': cfg('id-A') });
   });
@@ -92,7 +117,7 @@ describe('RemoteToolFetcher.fetch', () => {
       workflowPort: { getMcpServerConfigs: jest.fn().mockResolvedValue({}) },
     });
 
-    const result = await fetcher.fetch('id-A');
+    const result = await fetcher.fetch('id-A', USER_ID);
 
     expect(result).toEqual({ tools: [], mcpServerName: undefined });
     expect(aiModelPort.loadRemoteTools).not.toHaveBeenCalled();
@@ -107,7 +132,7 @@ describe('RemoteToolFetcher.fetch', () => {
       aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue(remoteTools) },
     });
 
-    const result = await fetcher.fetch('id-A');
+    const result = await fetcher.fetch('id-A', USER_ID);
 
     expect(result).toEqual({ tools: remoteTools, mcpServerName: 'srv-a' });
   });
@@ -121,7 +146,7 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await fetcher.fetch('id-missing');
+    await fetcher.fetch('id-missing', USER_ID);
 
     expect(logger).toHaveBeenCalledWith(
       'Warn',
@@ -139,7 +164,7 @@ describe('RemoteToolFetcher.fetch', () => {
       workflowPort: { getMcpServerConfigs: jest.fn().mockResolvedValue({}) },
     });
 
-    await fetcher.fetch('id-A');
+    await fetcher.fetch('id-A', USER_ID);
 
     expect(logger).toHaveBeenCalledWith(
       'Warn',
@@ -160,7 +185,7 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await fetcher.fetch('id-A');
+    await fetcher.fetch('id-A', USER_ID);
 
     expect(logger.mock.calls.find(c => c[0] === 'Warn')).toBeUndefined();
   });
@@ -173,7 +198,7 @@ describe('RemoteToolFetcher.fetch', () => {
       aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue([]) },
     });
 
-    await fetcher.fetch('id-A');
+    await fetcher.fetch('id-A', USER_ID);
 
     expect(logger).toHaveBeenCalledWith('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: 'id-A',
@@ -192,7 +217,7 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await fetcher.fetch('id-A');
+    await fetcher.fetch('id-A', USER_ID);
 
     expect(logger.mock.calls.find(c => c[0] === 'Error')).toBeUndefined();
   });
@@ -214,7 +239,7 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await fetcher.fetch('id-zendesk');
+    await fetcher.fetch('id-zendesk', USER_ID);
 
     expect(logger.mock.calls.find(c => c[0] === 'Error')).toBeUndefined();
   });
@@ -232,7 +257,7 @@ describe('RemoteToolFetcher.fetch', () => {
       aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue([]) },
     });
 
-    await fetcher.fetch('id-zendesk');
+    await fetcher.fetch('id-zendesk', USER_ID);
 
     expect(logger).toHaveBeenCalledWith('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: 'id-zendesk',
@@ -250,7 +275,7 @@ describe('RemoteToolFetcher.fetch', () => {
       aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue(remoteTools) },
     });
 
-    const result = await fetcher.fetch('id-A');
+    const result = await fetcher.fetch('id-A', USER_ID);
 
     expect(result.tools).toBe(remoteTools);
   });
@@ -265,7 +290,7 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await expect(fetcher.fetch('id-A')).rejects.toThrow('MCP unreachable');
+    await expect(fetcher.fetch('id-A', USER_ID)).rejects.toThrow('MCP unreachable');
     expect(logger.mock.calls.find(c => c[0] === 'Error')).toBeUndefined();
   });
 
@@ -276,7 +301,132 @@ describe('RemoteToolFetcher.fetch', () => {
       },
     });
 
-    await expect(fetcher.fetch('id-A')).rejects.toThrow('orchestrator down');
+    await expect(fetcher.fetch('id-A', USER_ID)).rejects.toThrow('orchestrator down');
     expect(aiModelPort.loadRemoteTools).not.toHaveBeenCalled();
+  });
+});
+
+describe('RemoteToolFetcher.fetch — OAuth2 servers', () => {
+  const makeTokenService = (getAccessToken: jest.Mock): OAuthTokenService =>
+    ({ getAccessToken } as unknown as OAuthTokenService);
+
+  const authFailure = {
+    server: 'srv-a',
+    mcpServerId: 'id-A',
+    kind: 'auth',
+    error: new Error('401'),
+  };
+
+  it('acquires a token, injects it as a Bearer header, and returns the loaded tools + a reload hook', async () => {
+    const tool = makeRemoteTool('srv-a', 'id-A');
+    const getAccessToken = jest.fn().mockResolvedValue('tok-1');
+    const loadRemoteToolsWithFailures = jest
+      .fn()
+      .mockResolvedValue({ tools: [tool], failures: [] });
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': oauthCfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteToolsWithFailures },
+      tokenService: makeTokenService(getAccessToken),
+    });
+
+    const result = await fetcher.fetch('id-A', USER_ID);
+
+    expect(getAccessToken).toHaveBeenCalledWith(USER_ID, 'id-A', { forceRefresh: false });
+    expect(loadRemoteToolsWithFailures).toHaveBeenCalledWith({
+      'srv-a': expect.objectContaining({ headers: { Authorization: 'Bearer tok-1' } }),
+    });
+    expect(result.tools).toEqual([tool]);
+    expect(typeof result.reloadWithFreshAuth).toBe('function');
+  });
+
+  it('force-refreshes and retries list-tools once on an auth failure, then succeeds', async () => {
+    const tool = makeRemoteTool('srv-a', 'id-A');
+    const getAccessToken = jest.fn().mockResolvedValue('tok');
+    const loadRemoteToolsWithFailures = jest
+      .fn()
+      .mockResolvedValueOnce({ tools: [], failures: [authFailure] })
+      .mockResolvedValueOnce({ tools: [tool], failures: [] });
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': oauthCfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteToolsWithFailures },
+      tokenService: makeTokenService(getAccessToken),
+    });
+
+    const result = await fetcher.fetch('id-A', USER_ID);
+
+    expect(getAccessToken).toHaveBeenNthCalledWith(1, USER_ID, 'id-A', { forceRefresh: false });
+    expect(getAccessToken).toHaveBeenNthCalledWith(2, USER_ID, 'id-A', { forceRefresh: true });
+    expect(result.tools).toEqual([tool]);
+  });
+
+  it('raises OAuthReauthRequiredError when the auth failure persists after a forced refresh', async () => {
+    const getAccessToken = jest.fn().mockResolvedValue('tok');
+    const loadRemoteToolsWithFailures = jest
+      .fn()
+      .mockResolvedValue({ tools: [], failures: [authFailure] });
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': oauthCfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteToolsWithFailures },
+      tokenService: makeTokenService(getAccessToken),
+    });
+
+    await expect(fetcher.fetch('id-A', USER_ID)).rejects.toBeInstanceOf(OAuthReauthRequiredError);
+  });
+
+  it('propagates OAuthReauthRequiredError from token acquisition (no stored credential)', async () => {
+    const getAccessToken = jest.fn().mockRejectedValue(new OAuthReauthRequiredError('id-A'));
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': oauthCfg('id-A') }),
+      },
+      tokenService: makeTokenService(getAccessToken),
+    });
+
+    await expect(fetcher.fetch('id-A', USER_ID)).rejects.toBeInstanceOf(OAuthReauthRequiredError);
+  });
+
+  it('reloadWithFreshAuth forces a refresh and returns freshly-authed tools', async () => {
+    const tool = makeRemoteTool('srv-a', 'id-A');
+    const getAccessToken = jest.fn().mockResolvedValue('tok');
+    const loadRemoteToolsWithFailures = jest
+      .fn()
+      .mockResolvedValue({ tools: [tool], failures: [] });
+    const { fetcher } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': oauthCfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteToolsWithFailures },
+      tokenService: makeTokenService(getAccessToken),
+    });
+
+    const { reloadWithFreshAuth } = await fetcher.fetch('id-A', USER_ID);
+    if (!reloadWithFreshAuth) throw new Error('expected reloadWithFreshAuth to be defined');
+    getAccessToken.mockClear();
+    const reloaded = await reloadWithFreshAuth();
+
+    expect(getAccessToken).toHaveBeenCalledWith(USER_ID, 'id-A', { forceRefresh: true });
+    expect(reloaded).toEqual([tool]);
+  });
+
+  it('leaves the token service untouched for a bearer/none server', async () => {
+    const getAccessToken = jest.fn();
+    const tool = makeRemoteTool('srv-a', 'id-A');
+    const { fetcher, aiModelPort } = makeFetcher({
+      workflowPort: { getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }) },
+      aiModelPort: { loadRemoteTools: jest.fn().mockResolvedValue([tool]) },
+      tokenService: makeTokenService(getAccessToken),
+    });
+
+    const result = await fetcher.fetch('id-A', USER_ID);
+
+    expect(getAccessToken).not.toHaveBeenCalled();
+    expect(aiModelPort.loadRemoteTools).toHaveBeenCalled();
+    expect(result.reloadWithFreshAuth).toBeUndefined();
   });
 });

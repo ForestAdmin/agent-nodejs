@@ -9,6 +9,11 @@ export type BaseStepStatus = z.infer<typeof BaseStepStatusSchema>;
 export const RecordStepStatusSchema = z.enum(['success', 'error', 'awaiting-input']);
 export type RecordStepStatus = z.infer<typeof RecordStepStatusSchema>;
 
+// Typed reason for an awaiting-input pause the user must resolve out of band: the Forest server
+// validates it and the front reads it to prompt the matching action.
+export const AwaitingInputReasonSchema = z.enum(['needs-oauth-reauth']);
+export type AwaitingInputReason = z.infer<typeof AwaitingInputReasonSchema>;
+
 export type StepStatus = BaseStepStatus | RecordStepStatus;
 
 /**
@@ -49,6 +54,8 @@ export const McpStepOutcomeSchema = z
     ...baseOutcomeFields,
     type: z.literal('mcp'),
     status: RecordStepStatusSchema,
+    /** Present when status is 'awaiting-input' because the step paused for re-authentication. */
+    awaitingInputReason: AwaitingInputReasonSchema.optional(),
   })
   .strict();
 export type McpStepOutcome = z.infer<typeof McpStepOutcomeSchema>;

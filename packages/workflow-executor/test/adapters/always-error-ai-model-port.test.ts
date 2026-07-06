@@ -32,6 +32,15 @@ describe('AlwaysErrorAiModelPort', () => {
     });
   });
 
+  describe('loadRemoteToolsWithFailures', () => {
+    it('returns no tools and no failures', async () => {
+      await expect(port.loadRemoteToolsWithFailures({} as never)).resolves.toEqual({
+        tools: [],
+        failures: [],
+      });
+    });
+  });
+
   describe('closeConnections', () => {
     it('resolves without error', async () => {
       await expect(port.closeConnections()).resolves.toBeUndefined();
