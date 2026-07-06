@@ -1,14 +1,7 @@
 // Library exports only - no side effects
 export { default as ForestMCPServer } from './server';
 export type { ForestMCPServerOptions, HttpCallback, ToolName } from './server';
-export {
-  MCP_PATHS,
-  isMcpRoute,
-  makeIsMcpRoute,
-  buildMcpPaths,
-  normalizeMountPath,
-} from './mcp-paths';
-export type { McpRouteMatcher } from './mcp-paths';
+export { MCP_PATHS, isMcpRoute, makeIsMcpRoute } from './mcp-paths';
 export { ForestServerClientImpl, createForestServerClient } from './http-client';
 export type {
   ForestServerClient,
