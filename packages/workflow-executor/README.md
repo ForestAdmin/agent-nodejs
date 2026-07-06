@@ -96,3 +96,7 @@ FOREST_AUTH_SECRET="your-auth-secret" \
 AGENT_URL="https://your-agent-url" \
 npx @forestadmin/workflow-executor --in-memory
 ```
+
+### OAuth2-protected MCP
+
+To exercise the executor's OAuth2-protected MCP path end-to-end, point it at [mcp-oauth-test-server](https://github.com/hercemer42/mcp-oauth-test-server) — a standalone OAuth2 + MCP server that can simulate refresh-token revocation/rotation, consent denial, and upstream 403s.

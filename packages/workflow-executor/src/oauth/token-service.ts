@@ -186,7 +186,9 @@ export default class OAuthTokenService {
     try {
       const encrypted = this.encryption.encrypt(refreshToken);
 
-      await this.store.upsert({
+      // Id-scoped so a disconnect (or disconnect + re-authorize) after the grant read leaves an
+      // absent or different row — the rotated-token write-back then can't resurrect or clobber it.
+      await this.store.updateIfPresent(credential.id, {
         userId: credential.userId,
         mcpServerId: credential.mcpServerId,
         refreshTokenEnc: encrypted.ciphertext,
