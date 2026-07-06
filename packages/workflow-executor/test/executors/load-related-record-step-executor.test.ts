@@ -746,7 +746,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(bindTools.mock.calls[0][0][0].name).toBe('select-record-by-content');
     });
 
-    it('takes the single candidate directly without AI record-selection calls', async () => {
+    it('consults the AI for a lone candidate and loads it when the AI picks index 0', async () => {
       const hasManySchema = makeCollectionSchema({
         fields: [
           {
@@ -761,15 +761,37 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const agentPort = makeMockAgentPort([
         { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
       ]);
+      const addressSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
 
-      const invoke = jest.fn();
+      // A lone candidate in an AI mode still runs the AI so it can be declined (-1); here the AI
+      // picks index 0. Call 1: select-fields → ['City']; Call 2: select-record-by-content → 0.
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'Paris is relevant' },
+              id: 'c3',
+            },
+          ],
+        });
       const bindTools = jest.fn().mockReturnValue({ invoke });
       const model = { bindTools } as unknown as ExecutionContext['model'];
 
+      const runStore = makeMockRunStore();
       const context = makeContext({
         model,
         agentPort,
-        workflowPort: makeMockWorkflowPort({ customers: hasManySchema }),
+        runStore,
+        workflowPort: makeMockWorkflowPort({ customers: hasManySchema, addresses: addressSchema }),
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -777,9 +799,16 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // Single relation (auto-picked, no select-relation-to-follow) AND single related
-      // candidate (no field/record AI calls) → no AI calls at all.
-      expect(bindTools).not.toHaveBeenCalled();
+      expect(bindTools).toHaveBeenCalledTimes(2);
+      expect(bindTools.mock.calls[1][0][0].name).toBe('select-record-by-content');
+      expect(runStore.saveStepExecution).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          executionResult: expect.objectContaining({
+            record: expect.objectContaining({ collectionName: 'addresses', recordId: [1] }),
+          }),
+        }),
+      );
     });
 
     it('degrades to manual selection when the AI returns an out-of-range record index', async () => {
@@ -962,14 +991,39 @@ describe('LoadRelatedRecordStepExecutor', () => {
           },
         ],
       });
-      const agentPort = makeMockAgentPort([{ collectionName: 'tags', recordId: [7], values: {} }]);
-      const mockModel = makeMockModel({ relationName: 'Tags', reasoning: 'Load tags' });
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'tags', recordId: [7], values: { name: 'urgent' } },
+      ]);
+      const tagsSchema = makeCollectionSchema({
+        collectionName: 'tags',
+        collectionDisplayName: 'Tags',
+        fields: [{ fieldName: 'name', displayName: 'Name', isRelationship: false }],
+      });
+      // A lone toMany candidate is still ranked by the AI (so Full AI can decline it); here it picks
+      // index 0. Call 1: select-fields → ['Name']; Call 2: select-record-by-content → 0.
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['Name'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'The only tag is relevant' },
+              id: 'c3',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
       const runStore = makeMockRunStore();
       const context = makeContext({
-        model: mockModel.model,
+        model,
         agentPort,
         runStore,
-        workflowPort: makeMockWorkflowPort({ customers: belongsToManySchema }),
+        workflowPort: makeMockWorkflowPort({ customers: belongsToManySchema, tags: tagsSchema }),
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });
       const executor = new LoadRelatedRecordStepExecutor(context);
@@ -977,8 +1031,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('success');
-      // To-many path uses the candidate-list limit (50); a lone record short-circuits ranking, so it
-      // loads with no AI call.
+      // To-many path uses the candidate-list limit (50) and ranks even a lone candidate via the AI.
       expect(agentPort.getRelatedData).toHaveBeenCalledWith(
         expect.objectContaining({
           collection: 'customers',
@@ -1352,6 +1405,70 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(saved.pendingData.availableRecordIds).toEqual([cand([1]), cand([2])]);
       expect(saved.pendingData.suggestedRecord).toBeUndefined();
       expect(saved.pendingData.suggestNoRecord).toBe(true);
+    });
+
+    it('consults the AI for a lone candidate and hands off (No X to load) when it returns -1', async () => {
+      const customersWithAddress = makeCollectionSchema({
+        fields: [
+          {
+            fieldName: 'address',
+            displayName: 'Address',
+            isRelationship: true,
+            relationType: 'HasMany',
+            relatedCollectionName: 'addresses',
+          },
+        ],
+      });
+      const addressSchema = makeCollectionSchema({
+        collectionName: 'addresses',
+        collectionDisplayName: 'Addresses',
+        fields: [{ fieldName: 'city', displayName: 'City', isRelationship: false }],
+      });
+      const agentPort = makeMockAgentPort([
+        { collectionName: 'addresses', recordId: [1], values: { city: 'Paris' } },
+      ]);
+      // A lone candidate must not auto-load in Full AI: it still goes through the AI, which returns
+      // -1 to decline. Call 1: select-fields → ['City']; Call 2: select-record-by-content → -1.
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['City'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: -1, reasoning: 'The only candidate does not fit the request' },
+              id: 'c3',
+            },
+          ],
+        });
+      const bindTools = jest.fn().mockReturnValue({ invoke });
+      const model = { bindTools } as unknown as ExecutionContext['model'];
+      const runStore = makeMockRunStore();
+      const context = makeContext({
+        model,
+        agentPort,
+        runStore,
+        workflowPort: makeMockWorkflowPort({
+          customers: customersWithAddress,
+          addresses: addressSchema,
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { relationName: 'address' },
+        }),
+      });
+
+      const result = await new LoadRelatedRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(bindTools.mock.calls[1][0][0].name).toBe('select-record-by-content');
+      const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
+      expect(saved.pendingData.availableRecordIds).toEqual([cand([1])]);
+      expect(saved.pendingData.suggestedRecord).toBeUndefined();
+      expect(saved.pendingData.suggestNoRecord).toBe(true);
+      expect(saved.executionResult).toBeUndefined();
     });
   });
 
@@ -3797,16 +3914,43 @@ describe('LoadRelatedRecordStepExecutor', () => {
           collectionDisplayName: 'Addresses',
         }),
       });
-      const mockModel = makeMockModel({
-        relation: relationOption({
-          recordId: [42],
-          relationDisplayName: 'Address',
-          relatedCollectionName: 'addresses',
-        }),
-        reasoning: 'Load address',
-      });
+      // 3 AI calls (2 relations → follow; lone candidate → field + record ranking). The ranking
+      // reuses the already-fetched 'addresses' schema, so no extra getCollectionSchema call.
+      const invoke = jest
+        .fn()
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-relation-to-follow',
+              args: {
+                relation: relationOption({
+                  recordId: [42],
+                  relationDisplayName: 'Address',
+                  relatedCollectionName: 'addresses',
+                }),
+                reasoning: 'Load address',
+              },
+              id: 'c1',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [{ name: 'select-fields', args: { fieldNames: ['Email'] }, id: 'c2' }],
+        })
+        .mockResolvedValueOnce({
+          tool_calls: [
+            {
+              name: 'select-record-by-content',
+              args: { recordIndex: 0, reasoning: 'The only candidate is relevant' },
+              id: 'c3',
+            },
+          ],
+        });
+      const model = {
+        bindTools: jest.fn().mockReturnValue({ invoke }),
+      } as unknown as ExecutionContext['model'];
       const context = makeContext({
-        model: mockModel.model,
+        model,
         workflowPort,
         stepDefinition: makeStep({ executionType: StepExecutionMode.FullyAutomated }),
       });

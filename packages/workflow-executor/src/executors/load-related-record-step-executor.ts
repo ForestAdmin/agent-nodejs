@@ -233,9 +233,7 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     // No-AI path picks eligible[0] — the base record's first relation (getAvailableRecordRefs lists
     // it first). The user switches relation at runtime; a non-base source needs selectedRecordStepId pinning.
     const chosen =
-      eligible.length > 1 && useAi
-        ? await this.withAiAssist(() => this.selectRelationToFollow(eligible))
-        : eligible[0];
+      eligible.length > 1 && useAi ? await this.selectRelationToFollow(eligible) : eligible[0];
 
     return this.targetFromCandidate(chosen);
   }
@@ -558,13 +556,9 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     const relatedSchema = await this.getCollectionSchema(target.relatedCollectionName);
     const relatedData = await this.fetchRelatedData(target, relatedSchema, limit);
 
-    // length<=1 short-circuits before opts.allowNone, so Full AI with a single candidate always
-    // loads it — the AI is never asked to reject a sole option.
-    if (relatedData.length <= 1) {
-      return { relatedData, bestIndex: 0, confident: true, suggestedFields: [], relatedSchema };
-    }
-
-    if (!opts.rank) {
+    // Manual (user picks) and empty lists never rank. A lone candidate in an AI mode still goes
+    // through the AI below so Full AI can decline it (-1 → "No X to load") rather than auto-load.
+    if (!opts.rank || relatedData.length === 0) {
       return { relatedData, bestIndex: -1, confident: true, suggestedFields: [], relatedSchema };
     }
 
@@ -664,20 +658,24 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       ),
     ];
 
-    const { relation } = await this.invokeWithTool<{ relation: string; reasoning: string }>(
-      messages,
-      tool,
-    );
-
-    const index = labels.indexOf(relation);
-
-    if (index === -1) {
-      throw new InvalidAIResponseError(
-        `AI selected relation "${relation}" which does not match any available option`,
+    // Wrap only the AI call + response validation: buildPreviousStepsMessages above reads the run
+    // store, and a store failure must surface, not be mistagged as an AI failure and degraded.
+    return this.withAiAssist(async () => {
+      const { relation } = await this.invokeWithTool<{ relation: string; reasoning: string }>(
+        messages,
+        tool,
       );
-    }
 
-    return candidates[index];
+      const index = labels.indexOf(relation);
+
+      if (index === -1) {
+        throw new InvalidAIResponseError(
+          `AI selected relation "${relation}" which does not match any available option`,
+        );
+      }
+
+      return candidates[index];
+    });
   }
 
   /** AI call 1 for HasMany: selects the most relevant fields to compare candidates. */
