@@ -1,3 +1,10 @@
+# @forestadmin/mcp-server [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.16.0...@forestadmin/mcp-server@1.17.0) (2026-07-06)
+
+
+### Features
+
+* **mcp-server:** configurable basePath to avoid host OAuth route collisions ([#1737](https://github.com/ForestAdmin/agent-nodejs/issues/1737)) ([a815fc4](https://github.com/ForestAdmin/agent-nodejs/commit/a815fc4b0414521a56923e2e85066a894fc9b22b))
+
 # @forestadmin/mcp-server [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.15.1...@forestadmin/mcp-server@1.16.0) (2026-07-03)
 
 
