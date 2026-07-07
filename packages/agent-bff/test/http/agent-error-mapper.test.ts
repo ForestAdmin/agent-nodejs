@@ -2,7 +2,13 @@ import { AgentHttpError } from '@forestadmin/agent-client';
 
 import { mapAgentError } from '../../src/http/agent-error-mapper';
 
-function jsonApiBody(error: { name?: string; detail?: string; status?: number; data?: unknown }) {
+function jsonApiBody(error: {
+  name?: string;
+  detail?: string;
+  message?: string;
+  status?: number;
+  data?: unknown;
+}) {
   return { errors: [error] };
 }
 
@@ -44,6 +50,25 @@ describe('mapAgentError', () => {
     const result = mapAgentError(error, { logger });
 
     expect(result).toMatchObject({ type, status });
+  });
+
+  it('uses the outer AgentHttpError status when the JSON:API error omits it', () => {
+    const error = new AgentHttpError(403, jsonApiBody({ name: 'ForbiddenError', detail: 'no' }));
+
+    const result = mapAgentError(error, { logger });
+
+    expect(result).toMatchObject({ type: 'forbidden', status: 403 });
+  });
+
+  it('falls back to the JSON:API message when detail is absent', () => {
+    const error = new AgentHttpError(
+      404,
+      jsonApiBody({ name: 'NotFoundError', status: 404, message: 'gone' }),
+    );
+
+    const result = mapAgentError(error, { logger });
+
+    expect(result).toMatchObject({ type: 'not_found', status: 404, message: 'gone' });
   });
 
   it('parses a JSON:API body carried in a plain Error message', () => {

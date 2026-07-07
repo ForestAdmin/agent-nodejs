@@ -51,6 +51,7 @@ const FALLBACK_TYPE_BY_STATUS: Record<number, string> = {
 interface AgentJsonApiError {
   name?: string;
   detail?: string;
+  message?: string;
   status?: number;
   data?: unknown;
 }
@@ -67,9 +68,13 @@ function firstJsonApiError(body: unknown): AgentJsonApiError | undefined {
   return Array.isArray(errors) ? (errors[0] as AgentJsonApiError) : undefined;
 }
 
-function mapJsonApiError(agentError: AgentJsonApiError, logger: Logger): BffHttpError {
-  const status = agentError.status ?? STATUS_BAD_REQUEST;
-  const message = agentError.detail ?? DEFAULT_ERROR_MESSAGE;
+function mapJsonApiError(
+  agentError: AgentJsonApiError,
+  fallbackStatus: number,
+  logger: Logger,
+): BffHttpError {
+  const status = agentError.status ?? fallbackStatus;
+  const message = agentError.detail ?? agentError.message ?? DEFAULT_ERROR_MESSAGE;
 
   if (agentError.name !== undefined) {
     const type = AGENT_ERROR_TYPE_MAP[agentError.name];
@@ -112,7 +117,7 @@ function mapFlatBody(status: number, body: unknown): BffHttpError {
 export function mapAgentError(error: unknown, { logger }: { logger: Logger }): BffHttpError {
   if (!(error instanceof AgentHttpError)) {
     const agentError = parseJsonApiFromMessage(error);
-    if (agentError) return mapJsonApiError(agentError, logger);
+    if (agentError) return mapJsonApiError(agentError, STATUS_BAD_REQUEST, logger);
 
     const message = error instanceof Error ? error.message : DEFAULT_NETWORK_MESSAGE;
 
@@ -128,7 +133,7 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
   }
 
   const agentError = firstJsonApiError(error.body);
-  if (agentError) return mapJsonApiError(agentError, logger);
+  if (agentError) return mapJsonApiError(agentError, error.status, logger);
 
   return mapFlatBody(error.status, error.body);
 }
