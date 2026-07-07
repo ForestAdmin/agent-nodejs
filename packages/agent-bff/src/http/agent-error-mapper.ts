@@ -52,8 +52,14 @@ interface AgentJsonApiError {
   name?: string;
   detail?: string;
   message?: string;
-  status?: number;
+  status?: number | string;
   data?: unknown;
+}
+
+function coerceStatus(status: number | string | undefined, fallback: number): number {
+  const parsed = typeof status === 'string' ? Number(status) : status;
+
+  return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function fallbackTypeByStatus(status: number): string {
@@ -73,7 +79,7 @@ function mapJsonApiError(
   fallbackStatus: number,
   logger: Logger,
 ): BffHttpError {
-  const status = agentError.status ?? fallbackStatus;
+  const status = coerceStatus(agentError.status, fallbackStatus);
   const message = agentError.detail ?? agentError.message ?? DEFAULT_ERROR_MESSAGE;
 
   if (agentError.name !== undefined) {

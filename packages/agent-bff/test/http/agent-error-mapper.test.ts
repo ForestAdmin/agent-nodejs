@@ -6,7 +6,7 @@ function jsonApiBody(error: {
   name?: string;
   detail?: string;
   message?: string;
-  status?: number;
+  status?: number | string;
   data?: unknown;
 }) {
   return { errors: [error] };
@@ -50,6 +50,18 @@ describe('mapAgentError', () => {
     const result = mapAgentError(error, { logger });
 
     expect(result).toMatchObject({ type, status });
+  });
+
+  it('coerces a spec-compliant string JSON:API status to a number', () => {
+    const error = new AgentHttpError(
+      404,
+      jsonApiBody({ name: 'NotFoundError', status: '404', detail: 'x' }),
+    );
+
+    const result = mapAgentError(error, { logger });
+
+    expect(result).toMatchObject({ type: 'not_found', status: 404 });
+    expect(typeof result.status).toBe('number');
   });
 
   it('uses the outer AgentHttpError status when the JSON:API error omits it', () => {
