@@ -1,3 +1,20 @@
+# @forestadmin/workflow-executor [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.13.0...@forestadmin/workflow-executor@1.14.0) (2026-07-07)
+
+
+### Features
+
+* **workflow-executor:** add OAuth credential store + deposit endpoint (PRD-367 PR1) ([#1619](https://github.com/ForestAdmin/agent-nodejs/issues/1619)) ([17d786f](https://github.com/ForestAdmin/agent-nodejs/commit/17d786f083fd11d0298b42d8072036f76c7164c2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.10.1
+* **@forestadmin/ai-proxy:** upgraded to 1.12.0
+* **@forestadmin/forestadmin-client:** upgraded to 1.40.4
+
 # @forestadmin/workflow-executor [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.12.0...@forestadmin/workflow-executor@1.13.0) (2026-07-03)
 
 
