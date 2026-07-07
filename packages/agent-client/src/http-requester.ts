@@ -15,8 +15,31 @@ function parseJson(text: string | undefined): unknown {
   }
 }
 
+// Any transport reaching the agent must build this exact AgentHttpError shape — the approval-gate
+// detection in domains/action.ts routes on it.
+export function buildAgentHttpError(status: number, body: unknown, text?: string): AgentHttpError {
+  const hasBody = !!body && typeof body === 'object' && Object.keys(body).length > 0;
+
+  return new AgentHttpError(status, hasBody ? body : parseJson(text), text);
+}
+
+export async function deserializeAgentBody<Data>(
+  deserializer: Deserializer,
+  body: unknown,
+  text: string | undefined,
+  skipDeserialization?: boolean,
+): Promise<Data> {
+  if (skipDeserialization) return body as Data;
+
+  try {
+    return (await deserializer.deserialize(body)) as Data;
+  } catch {
+    return (body ?? text) as Data;
+  }
+}
+
 export default class HttpRequester {
-  private readonly deserializer: Deserializer;
+  protected readonly deserializer: Deserializer;
 
   private get baseUrl() {
     const prefix = this.options.prefix ? `/${this.options.prefix}` : '';
@@ -62,25 +85,20 @@ export default class HttpRequester {
 
       const response = await req;
 
-      if (skipDeserialization) {
-        return response.body as Data;
-      }
-
-      try {
-        return (await this.deserializer.deserialize(response.body)) as Data;
-      } catch {
-        return (response.body ?? response.text) as Data;
-      }
+      return await deserializeAgentBody<Data>(
+        this.deserializer,
+        response.body,
+        response.text,
+        skipDeserialization,
+      );
     } catch (error) {
       const res = (error as { response?: { status?: number; body?: unknown; text?: string } })
         .response;
       if (!res) throw error; // network/timeout/abort → no HTTP response, propagate raw
 
       const text = typeof res.text === 'string' ? res.text : undefined;
-      const hasBody =
-        !!res.body && typeof res.body === 'object' && Object.keys(res.body).length > 0;
 
-      throw new AgentHttpError(res.status ?? 0, hasBody ? res.body : parseJson(text), text);
+      throw buildAgentHttpError(res.status ?? 0, res.body, text);
     }
   }
 

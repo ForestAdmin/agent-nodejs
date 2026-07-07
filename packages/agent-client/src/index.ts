@@ -14,7 +14,7 @@ import AgentHttpError, {
   ActionRequiresApprovalError,
   ApprovalRequestCreationError,
 } from './errors';
-import HttpRequester from './http-requester';
+import HttpRequester, { buildAgentHttpError, deserializeAgentBody } from './http-requester';
 
 export {
   ActionFieldJson,
@@ -22,6 +22,8 @@ export {
   makeCreateApprovalRequest,
   RemoteAgentClient,
   HttpRequester,
+  buildAgentHttpError,
+  deserializeAgentBody,
   AgentHttpError,
   ActionRequiresApprovalError,
   ActionFormValidationError,
@@ -46,8 +48,10 @@ export function createRemoteAgentClient(params: {
    * agent (e.g. tests). `serverUrl` is the Forest server, distinct from the agent `url` above.
    */
   forestServer?: { serverUrl: string; serverToken: string; renderingId: number | string };
+  httpRequester?: HttpRequester;
 }) {
-  const httpRequester = new HttpRequester(params.token, { url: params.url });
+  const httpRequester =
+    params.httpRequester ?? new HttpRequester(params.token, { url: params.url });
 
   return new RemoteAgentClient({
     actionEndpoints: params.actionEndpoints,
