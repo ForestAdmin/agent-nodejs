@@ -80,4 +80,26 @@ describe('createReadModel', () => {
       info.mockRestore();
     }
   });
+
+  it('should not let a throwing metrics backend break the read-model', async () => {
+    const throwing = {
+      increment: () => {
+        throw new Error('backend down');
+      },
+      gauge: () => {
+        throw new Error('backend down');
+      },
+    };
+    const { store, actionEndpointResolver } = createReadModel({
+      forestServerUrl: 'x',
+      envSecret: 'y',
+      metrics: throwing,
+    });
+
+    await expect(store.getReadModel()).resolves.toBeDefined(); // cold fetch emits the age gauge
+    await expect(store.getReadModel()).resolves.toBeDefined(); // cache hit re-emits the age gauge
+    await expect(
+      actionEndpointResolver.resolve('users', 'missing', { rendering: 1 }),
+    ).resolves.toBeUndefined(); // miss emits the counter
+  });
 });
