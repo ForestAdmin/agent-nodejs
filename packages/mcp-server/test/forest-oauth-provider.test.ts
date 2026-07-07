@@ -74,8 +74,13 @@ describe('ForestOAuthProvider', () => {
       expect(customProvider).toBeDefined();
     });
 
-    it('throws for an invalid agentUrl', () => {
-      expect(() => createProvider('https://api.forestadmin.com', 'not-a-url')).toThrow(
+    it.each([
+      'not-a-url',
+      'ftp://internal:3310',
+      'http://internal:3310?x=1',
+      'http://internal:3310/#frag',
+    ])('throws for an invalid agentUrl %p', agentUrl => {
+      expect(() => createProvider('https://api.forestadmin.com', agentUrl)).toThrow(
         /Invalid agentUrl/,
       );
     });

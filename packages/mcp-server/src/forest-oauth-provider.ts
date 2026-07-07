@@ -70,15 +70,28 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private static normalizeAgentUrl(agentUrl?: string): string | undefined {
     if (!agentUrl) return undefined;
 
+    let parsed: URL;
+
     try {
-      // eslint-disable-next-line no-new
-      new URL(agentUrl);
+      parsed = new URL(agentUrl);
     } catch {
-      throw new Error(`Invalid agentUrl "${agentUrl}": it must be an absolute URL.`);
+      throw new Error(`Invalid agentUrl "${agentUrl}": it must be an absolute http(s) URL.`);
     }
 
-    // agent-client concatenates the path directly onto this URL, so drop any trailing slash.
-    return agentUrl.replace(/\/+$/, '');
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`Invalid agentUrl "${agentUrl}": only http and https are supported.`);
+    }
+
+    // agent-client concatenates the request path directly onto this URL, so a query string or
+    // fragment would swallow it — reject them, and return the parsed (whitespace-normalized)
+    // form rather than the raw input. Drop any trailing slash to avoid a double slash on join.
+    if (parsed.search || parsed.hash) {
+      throw new Error(
+        `Invalid agentUrl "${agentUrl}": it must not contain a query string or fragment.`,
+      );
+    }
+
+    return parsed.href.replace(/\/+$/, '');
   }
 
   async initialize(): Promise<void> {
