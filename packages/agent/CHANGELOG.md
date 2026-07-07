@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.86.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.85.1...@forestadmin/agent@1.86.0) (2026-07-07)
+
+
+### Features
+
+* allow embedded in-mem executor ([#1735](https://github.com/ForestAdmin/agent-nodejs/issues/1735)) ([5e17256](https://github.com/ForestAdmin/agent-nodejs/commit/5e172561bc38ce701bf5a12f5d309d898a1132eb))
+
 ## @forestadmin/agent [1.85.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.85.0...@forestadmin/agent@1.85.1) (2026-07-07)
 
 
