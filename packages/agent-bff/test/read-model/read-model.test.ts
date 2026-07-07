@@ -216,4 +216,35 @@ describe('ReadModel', () => {
       expect(model.isActionAllowed('ghost', 'x')).toBe(false);
     });
   });
+
+  describe('primary keys', () => {
+    it('should expose the primary key field name and type', () => {
+      const model = new ReadModel([
+        collection('users', [{ ...column('id'), type: 'Number', isPrimaryKey: true }]),
+      ]);
+
+      expect(model.getPrimaryKeys('users')).toEqual([{ name: 'id', type: 'Number' }]);
+    });
+
+    it('should expose composite keys in schema field order', () => {
+      const model = new ReadModel([
+        collection('orderLines', [
+          { ...column('orderId'), type: 'Number', isPrimaryKey: true },
+          { ...column('sku'), type: 'String', isPrimaryKey: true },
+          { ...column('label'), isPrimaryKey: false },
+        ]),
+      ]);
+
+      expect(model.getPrimaryKeys('orderLines')).toEqual([
+        { name: 'orderId', type: 'Number' },
+        { name: 'sku', type: 'String' },
+      ]);
+    });
+
+    it('should return an empty array for an unknown collection', () => {
+      const model = new ReadModel([collection('users', [])]);
+
+      expect(model.getPrimaryKeys('ghost')).toEqual([]);
+    });
+  });
 });
