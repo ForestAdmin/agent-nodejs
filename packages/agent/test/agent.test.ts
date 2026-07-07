@@ -591,6 +591,18 @@ describe('Agent', () => {
       expect(mcpServerSpy).toHaveBeenCalledWith(expect.objectContaining({ basePath: '/mcp' }));
     });
 
+    test('should pass agentUrl to ForestMCPServer', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer({ agentUrl: 'http://forest-agent.internal:3310' });
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ agentUrl: 'http://forest-agent.internal:3310' }),
+      );
+    });
+
     test('threads a basePath-scoped route matcher to the MCP middleware', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);

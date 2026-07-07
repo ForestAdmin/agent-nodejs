@@ -30,6 +30,7 @@ export interface ForestOAuthProviderOptions {
   envSecret: string;
   authSecret: string;
   logger: Logger;
+  agentUrl?: string;
 }
 
 /**
@@ -43,6 +44,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private forestClient: ForestAdminClient;
   private environmentId?: number;
   private environmentApiEndpoint?: string;
+  private agentUrl?: string;
   private logger: Logger;
 
   constructor({
@@ -51,16 +53,32 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     envSecret,
     authSecret,
     logger,
+    agentUrl,
   }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
     this.forestAppUrl = forestAppUrl;
     this.envSecret = envSecret;
     this.authSecret = authSecret;
     this.logger = logger;
+    this.agentUrl = ForestOAuthProvider.normalizeAgentUrl(agentUrl);
     this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
     });
+  }
+
+  private static normalizeAgentUrl(agentUrl?: string): string | undefined {
+    if (!agentUrl) return undefined;
+
+    try {
+      // eslint-disable-next-line no-new
+      new URL(agentUrl);
+    } catch {
+      throw new Error(`Invalid agentUrl "${agentUrl}": it must be an absolute URL.`);
+    }
+
+    // agent-client concatenates the path directly onto this URL, so drop any trailing slash.
+    return agentUrl.replace(/\/+$/, '');
   }
 
   async initialize(): Promise<void> {
@@ -408,7 +426,9 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
           userId: decoded.id,
           email: decoded.email,
           renderingId: decoded.renderingId,
-          environmentApiEndpoint: this.environmentApiEndpoint,
+          // Tools call back into the agent at this URL. Prefer the configured internal agentUrl
+          // (self-hosted) and fall back to the environment's public api_endpoint.
+          environmentApiEndpoint: this.agentUrl ?? this.environmentApiEndpoint,
           forestServerToken: decoded.serverToken,
         },
       };

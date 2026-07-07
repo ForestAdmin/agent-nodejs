@@ -2704,6 +2704,39 @@ describe('basePath prefix', () => {
   });
 });
 
+describe('agentUrl option', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('does not affect the advertised OAuth metadata URLs', async () => {
+    const mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '1', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+    global.fetch = mockFetchServer.fetch;
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: createMockForestServerClient(),
+      agentUrl: 'http://forest-agent.internal:3310',
+    });
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).get('/.well-known/oauth-authorization-server');
+
+    expect(response.status).toBe(200);
+    expect(response.body.issuer).toBe('http://localhost:3000/');
+    expect(response.body.authorization_endpoint).toBe('http://localhost:3000/oauth/authorize');
+    expect(response.body.token_endpoint).toBe('http://localhost:3000/oauth/token');
+  });
+});
+
 describe('handleMcpRequest cleanup', () => {
   const originalFetch = global.fetch;
   let cleanupServer: ForestMCPServer;
