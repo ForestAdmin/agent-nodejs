@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.4.1...@forestadmin/agent-bff@1.5.0) (2026-07-07)
+
+
+### Features
+
+* **agent-bff:** reject nested relation field paths in top-level list and count ([#1736](https://github.com/ForestAdmin/agent-nodejs/issues/1736)) ([92bb366](https://github.com/ForestAdmin/agent-nodejs/commit/92bb36658b8b639d47f2daf64fb03062ebdbe2ac))
+
 ## @forestadmin/agent-bff [1.4.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.4.0...@forestadmin/agent-bff@1.4.1) (2026-07-07)
 
 
