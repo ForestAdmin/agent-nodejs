@@ -1,3 +1,10 @@
+# @forestadmin/ai-proxy [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.11.3...@forestadmin/ai-proxy@1.12.0) (2026-07-07)
+
+
+### Features
+
+* **workflow-executor:** add OAuth credential store + deposit endpoint (PRD-367 PR1) ([#1619](https://github.com/ForestAdmin/agent-nodejs/issues/1619)) ([17d786f](https://github.com/ForestAdmin/agent-nodejs/commit/17d786f083fd11d0298b42d8072036f76c7164c2))
+
 ## @forestadmin/ai-proxy [1.11.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.11.2...@forestadmin/ai-proxy@1.11.3) (2026-06-11)
 
 
