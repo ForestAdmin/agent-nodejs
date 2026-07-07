@@ -29,7 +29,7 @@ function createDissociateArgumentShape(collectionNames: string[]) {
 }
 
 export default function declareDissociateTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames = [] } = ctx;
+  const { forestServerClient, logger, collectionNames } = ctx;
   const argumentShape = createDissociateArgumentShape(collectionNames);
 
   return registerToolWithLogging(

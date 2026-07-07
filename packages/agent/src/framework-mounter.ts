@@ -25,7 +25,7 @@ export default class FrameworkMounter {
 
   private readonly fastifyAdapter: FastifyAdapter;
   private readonly mcpMiddleware: McpMiddleware;
-  private readonly inProcessDispatcher = new InProcessDispatcher();
+  private readonly inProcessDispatcher: InProcessDispatcher;
   private inProcessHookRegistered = false;
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
@@ -38,6 +38,7 @@ export default class FrameworkMounter {
     this.logger = logger;
     this.fastifyAdapter = new FastifyAdapter(logger);
     this.mcpMiddleware = new McpMiddleware();
+    this.inProcessDispatcher = new InProcessDispatcher(logger);
   }
 
   /**

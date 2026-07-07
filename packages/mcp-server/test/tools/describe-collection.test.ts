@@ -60,6 +60,7 @@ describe('declareDescribeCollectionTool', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
@@ -73,6 +74,7 @@ describe('declareDescribeCollectionTool', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.title).toBe('Describe a collection');
@@ -87,6 +89,7 @@ describe('declareDescribeCollectionTool', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
@@ -96,6 +99,7 @@ describe('declareDescribeCollectionTool', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
@@ -105,6 +109,7 @@ describe('declareDescribeCollectionTool', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -153,6 +158,7 @@ describe('declareDescribeCollectionTool', () => {
       declareDescribeCollectionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
     });
 

@@ -29,7 +29,7 @@ function createAssociateArgumentShape(collectionNames: string[]) {
 }
 
 export default function declareAssociateTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames = [] } = ctx;
+  const { forestServerClient, logger, collectionNames } = ctx;
   const argumentShape = createAssociateArgumentShape(collectionNames);
 
   return registerToolWithLogging(

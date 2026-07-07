@@ -57,6 +57,35 @@ describe('InProcessHttpRequester', () => {
     ).rejects.toMatchObject({ constructor: AgentHttpError, status: 403 });
   });
 
+  it('preserves the approval-gate error shape (403 + CustomActionRequiresApprovalError)', async () => {
+    const approvalBody = { errors: [{ name: 'CustomActionRequiresApprovalError' }] };
+    const approvalText = JSON.stringify(approvalBody);
+    const { requester } = setup({ status: 403, body: approvalBody, text: approvalText });
+
+    const error = (await requester
+      .query({ method: 'post', path: '/forest/books/1/actions/x' })
+      .catch(e => e)) as AgentHttpError;
+
+    // domains/action.ts routes on both of these to raise ActionRequiresApprovalError.
+    expect(error).toBeInstanceOf(AgentHttpError);
+    expect(error.status).toBe(403);
+    expect(error.body).toEqual(approvalBody);
+    expect(error.responseText).toContain('CustomActionRequiresApprovalError');
+  });
+
+  it('forwards maxTimeAllowed to the dispatcher as timeoutMs', async () => {
+    const { request, requester } = setup({ status: 200, body: {}, text: '{}' });
+
+    await requester.query({
+      method: 'get',
+      path: '/forest/books',
+      maxTimeAllowed: 2000,
+      skipDeserialization: true,
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 2000 }));
+  });
+
   it('does not support CSV export in-process', async () => {
     const { requester } = setup({ status: 200, body: null, text: '' });
 

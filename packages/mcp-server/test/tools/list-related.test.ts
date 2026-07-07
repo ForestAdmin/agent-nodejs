@@ -84,6 +84,7 @@ describe('declareListRelatedTool', () => {
       declareListRelatedTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
@@ -97,6 +98,7 @@ describe('declareListRelatedTool', () => {
       declareListRelatedTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.title).toBe('List records from a relation');
@@ -109,6 +111,7 @@ describe('declareListRelatedTool', () => {
       declareListRelatedTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
@@ -118,6 +121,7 @@ describe('declareListRelatedTool', () => {
       declareListRelatedTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
@@ -132,6 +136,7 @@ describe('declareListRelatedTool', () => {
       declareListRelatedTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -185,6 +190,7 @@ describe('declareListRelatedTool', () => {
       declareListRelatedTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -198,6 +204,7 @@ describe('declareListRelatedTool', () => {
       declareListRelatedTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -223,6 +230,7 @@ describe('declareListRelatedTool', () => {
       declareListRelatedTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
     });
 

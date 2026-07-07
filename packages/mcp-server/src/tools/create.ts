@@ -34,7 +34,7 @@ function createArgumentShape(collectionNames: string[]) {
 }
 
 export default function declareCreateTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames = [] } = ctx;
+  const { forestServerClient, logger, collectionNames } = ctx;
   const argumentShape = createArgumentShape(collectionNames);
 
   return registerToolWithLogging(

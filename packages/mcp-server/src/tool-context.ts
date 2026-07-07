@@ -5,7 +5,7 @@ import type { Logger } from './server';
 export interface ToolContext {
   forestServerClient: ForestServerClient;
   logger: Logger;
-  collectionNames?: string[];
+  collectionNames: string[];
   // Present only when the MCP server is mounted in an agent — tool calls then dispatch in-process.
   agentDispatcher?: InProcessAgentDispatcher;
 }

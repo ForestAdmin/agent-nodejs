@@ -45,6 +45,7 @@ describe('declareDeleteTool', () => {
       declareDeleteTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
@@ -58,6 +59,7 @@ describe('declareDeleteTool', () => {
       declareDeleteTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.title).toBe('Delete records');
@@ -70,6 +72,7 @@ describe('declareDeleteTool', () => {
       declareDeleteTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
@@ -79,6 +82,7 @@ describe('declareDeleteTool', () => {
       declareDeleteTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
@@ -89,6 +93,7 @@ describe('declareDeleteTool', () => {
       declareDeleteTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -119,6 +124,7 @@ describe('declareDeleteTool', () => {
       declareDeleteTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -146,6 +152,7 @@ describe('declareDeleteTool', () => {
       declareDeleteTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
     });
 

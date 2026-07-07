@@ -45,6 +45,7 @@ describe('declareAssociateTool', () => {
       declareAssociateTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
@@ -58,6 +59,7 @@ describe('declareAssociateTool', () => {
       declareAssociateTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.title).toBe('Associate records in a relation');
@@ -70,6 +72,7 @@ describe('declareAssociateTool', () => {
       declareAssociateTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
@@ -79,6 +82,7 @@ describe('declareAssociateTool', () => {
       declareAssociateTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
@@ -117,6 +121,7 @@ describe('declareAssociateTool', () => {
       declareAssociateTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
     });
 

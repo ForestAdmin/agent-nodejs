@@ -72,7 +72,7 @@ function createErrorEnhancer(
 }
 
 export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames = [] } = ctx;
+  const { forestServerClient, logger, collectionNames } = ctx;
   const listArgumentShape = createHasManyArgumentShape(collectionNames);
 
   return registerToolWithLogging(

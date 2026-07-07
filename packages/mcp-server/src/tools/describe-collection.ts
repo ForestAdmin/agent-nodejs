@@ -82,7 +82,7 @@ export default function declareDescribeCollectionTool(
   mcpServer: McpServer,
   ctx: ToolContext,
 ): string {
-  const { forestServerClient, logger, collectionNames = [] } = ctx;
+  const { forestServerClient, logger, collectionNames } = ctx;
   const argumentShape = createDescribeCollectionArgumentShape(collectionNames);
 
   return registerToolWithLogging(

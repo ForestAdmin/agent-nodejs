@@ -44,6 +44,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
@@ -57,6 +58,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.title).toBe('Retrieve action form');
@@ -70,6 +72,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
@@ -79,6 +82,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
@@ -91,6 +95,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -121,6 +126,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -136,6 +142,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -149,6 +156,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -175,6 +183,7 @@ describe('declareGetActionFormTool', () => {
       declareGetActionFormTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
     });
 

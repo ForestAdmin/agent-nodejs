@@ -370,4 +370,20 @@ describe('buildClientWithActions', () => {
       expect.objectContaining({ forestServer: undefined }),
     );
   });
+
+  it('builds an in-process httpRequester when an agentDispatcher is provided', async () => {
+    mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
+    mockGetActionEndpoints.mockReturnValue({});
+    const agentDispatcher = { request: jest.fn() };
+
+    const request = {
+      authInfo: { token: 'test-token', extra: { environmentApiEndpoint: 'http://public:3310' } },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    await buildClientWithActions(request, mockForestServerClient, agentDispatcher);
+
+    expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester) }),
+    );
+  });
 });

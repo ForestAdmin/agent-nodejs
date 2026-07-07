@@ -25,6 +25,7 @@ export default class InProcessHttpRequester extends HttpRequester {
     path,
     body,
     query,
+    maxTimeAllowed,
     contentType,
     skipDeserialization,
   }: {
@@ -50,6 +51,7 @@ export default class InProcessHttpRequester extends HttpRequester {
       },
       query: { timezone: 'Europe/Paris', ...query },
       payload: body,
+      timeoutMs: maxTimeAllowed,
     });
 
     if (status >= 400) throw buildAgentHttpError(status, responseBody, text);

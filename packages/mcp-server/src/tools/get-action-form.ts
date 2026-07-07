@@ -13,7 +13,7 @@ interface GetActionFormArgument {
 }
 
 export default function declareGetActionFormTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames = [] } = ctx;
+  const { forestServerClient, logger, collectionNames } = ctx;
   const argumentShape = createActionArgumentShape(collectionNames);
 
   return registerToolWithLogging(

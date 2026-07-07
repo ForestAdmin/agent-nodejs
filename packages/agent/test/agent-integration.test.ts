@@ -606,7 +606,7 @@ describe('Agent Integration Tests', () => {
         try {
           const token = createTestToken({ scopes: ['mcp:read'], renderingId: 1 });
 
-          await superagent
+          const response = await superagent
             .post(`${testContext.baseUrl}/mcp`)
             .set('Authorization', `Bearer ${token}`)
             .set('Content-Type', 'application/json')
@@ -618,6 +618,7 @@ describe('Agent Integration Tests', () => {
               params: { name: 'list', arguments: { collectionName: 'users' } },
             });
 
+          expect(response.status).toBe(200);
           expect(requestSpy).toHaveBeenCalledWith(
             expect.objectContaining({ method: 'get', path: '/forest/users' }),
           );

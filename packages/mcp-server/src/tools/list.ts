@@ -75,7 +75,7 @@ export function createListArgumentShape(collectionNames: string[]) {
 }
 
 export default function declareListTool(mcpServer: McpServer, ctx: ToolContext): string {
-  const { forestServerClient, logger, collectionNames = [] } = ctx;
+  const { forestServerClient, logger, collectionNames } = ctx;
   const listArgumentShape = createListArgumentShape(collectionNames);
 
   return registerToolWithLogging(

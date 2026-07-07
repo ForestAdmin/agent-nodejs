@@ -50,6 +50,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
@@ -63,6 +64,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.title).toBe('Execute an action');
@@ -76,6 +78,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
@@ -85,6 +88,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
@@ -97,6 +101,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -127,6 +132,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -142,6 +148,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -155,6 +162,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
 
       const schema = registeredToolConfig.inputSchema as Record<
@@ -181,6 +189,7 @@ describe('declareExecuteActionTool', () => {
       declareExecuteActionTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
+        collectionNames: [],
       });
     });
 

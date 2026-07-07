@@ -7,5 +7,6 @@ export interface InProcessAgentDispatcher {
     headers: Record<string, string>;
     query?: Record<string, unknown>;
     payload?: unknown;
+    timeoutMs?: number;
   }): Promise<{ status: number; body: unknown; text: string }>;
 }

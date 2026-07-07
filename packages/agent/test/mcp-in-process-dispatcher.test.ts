@@ -77,6 +77,81 @@ describe('InProcessDispatcher', () => {
     expect(response.body).toEqual({ got: 'bar' });
   });
 
+  it('forwards the payload and content-type to the handler (mutating call)', async () => {
+    const dispatcher = new InProcessDispatcher();
+    dispatcher.setHandler(
+      handlerFor(r =>
+        r.post('/echo', async ctx => {
+          const raw = await new Promise<string>(resolve => {
+            let data = '';
+            ctx.req.on('data', chunk => {
+              data += chunk;
+            });
+            ctx.req.on('end', () => resolve(data));
+          });
+
+          ctx.body = { received: JSON.parse(raw), contentType: ctx.headers['content-type'] };
+        }),
+      ),
+    );
+
+    const response = await dispatcher.request({
+      method: 'post',
+      path: '/echo',
+      headers: { 'Content-Type': 'application/json' },
+      payload: { name: 'Ada' },
+    });
+
+    expect(response.body).toEqual({
+      received: { name: 'Ada' },
+      contentType: 'application/json',
+    });
+  });
+
+  it('rejects when the handler does not respond within the timeout', async () => {
+    const dispatcher = new InProcessDispatcher();
+    dispatcher.setHandler(handlerFor(r => r.get('/hang', () => new Promise(() => {}))));
+
+    await expect(
+      dispatcher.request({ method: 'get', path: '/hang', headers: {}, timeoutMs: 50 }),
+    ).rejects.toThrow(/timed out after 50ms/);
+  });
+
+  it('returns an undefined body for an empty (204) response', async () => {
+    const dispatcher = new InProcessDispatcher();
+    dispatcher.setHandler(
+      handlerFor(r =>
+        r.delete('/x', ctx => {
+          ctx.status = 204;
+        }),
+      ),
+    );
+
+    const response = await dispatcher.request({ method: 'delete', path: '/x', headers: {} });
+
+    expect(response.status).toBe(204);
+    expect(response.body).toBeUndefined();
+  });
+
+  it('warns and returns an undefined body when a non-empty response body is not JSON', async () => {
+    const logger = jest.fn();
+    const dispatcher = new InProcessDispatcher(logger);
+    dispatcher.setHandler(
+      handlerFor(r =>
+        r.get('/broken', ctx => {
+          ctx.type = 'text/plain';
+          ctx.body = 'not json';
+        }),
+      ),
+    );
+
+    const response = await dispatcher.request({ method: 'get', path: '/broken', headers: {} });
+
+    expect(response.body).toBeUndefined();
+    expect(response.text).toBe('not json');
+    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('non-JSON response body'));
+  });
+
   it('reflects a handler swap (remount) instead of a stale reference', async () => {
     const dispatcher = new InProcessDispatcher();
     dispatcher.setHandler(
