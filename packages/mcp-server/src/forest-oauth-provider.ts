@@ -24,14 +24,13 @@ import {
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
-import normalizeAgentUrl from './utils/normalize-agent-url';
-
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
   forestAppUrl: string;
   envSecret: string;
   authSecret: string;
   logger: Logger;
+  // Pre-normalized by the caller (ForestMCPServer); not re-validated here.
   agentUrl?: string;
 }
 
@@ -62,7 +61,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     this.envSecret = envSecret;
     this.authSecret = authSecret;
     this.logger = logger;
-    this.agentUrl = normalizeAgentUrl(agentUrl);
+    this.agentUrl = agentUrl;
     this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,

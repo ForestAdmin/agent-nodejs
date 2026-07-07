@@ -73,17 +73,6 @@ describe('ForestOAuthProvider', () => {
 
       expect(customProvider).toBeDefined();
     });
-
-    it.each([
-      'not-a-url',
-      'ftp://internal:3310',
-      'http://internal:3310?x=1',
-      'http://internal:3310/#frag',
-    ])('throws for an invalid agentUrl %p', agentUrl => {
-      expect(() => createProvider('https://api.forestadmin.com', agentUrl)).toThrow(
-        /Invalid agentUrl/,
-      );
-    });
   });
 
   describe('initialize', () => {
@@ -889,24 +878,6 @@ describe('ForestOAuthProvider', () => {
 
       expect((result.extra as { environmentApiEndpoint: string }).environmentApiEndpoint).toBe(
         'https://public.example.com',
-      );
-    });
-
-    it('strips a trailing slash from agentUrl', async () => {
-      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
-        id: 1,
-        email: 'user@example.com',
-        renderingId: 2,
-        serverToken: 'forest-server-token',
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        iat: Math.floor(Date.now() / 1000),
-      });
-
-      const provider = createProvider('https://api.forestadmin.com', 'http://internal:3310/');
-      const result = await provider.verifyAccessToken('valid-access-token');
-
-      expect((result.extra as { environmentApiEndpoint: string }).environmentApiEndpoint).toBe(
-        'http://internal:3310',
       );
     });
 
