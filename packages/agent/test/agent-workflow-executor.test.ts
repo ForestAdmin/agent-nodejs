@@ -21,19 +21,24 @@ jest.mock('@forestadmin/datasource-customizer');
 const mockExecutorStart = jest.fn();
 const mockExecutorStop = jest.fn();
 const mockBuildDatabaseExecutor = jest.fn();
+const mockBuildInMemoryExecutor = jest.fn();
 
 jest.mock('@forestadmin/workflow-executor', () => ({
   __esModule: true,
   buildDatabaseExecutor: (options: unknown) => mockBuildDatabaseExecutor(options),
+  buildInMemoryExecutor: (options: unknown) => mockBuildInMemoryExecutor(options),
 }));
 
 beforeEach(() => {
   jest.clearAllMocks();
-  delete process.env.DATABASE_URL;
-  delete process.env.HTTP_PORT;
 
   mockMakeRoutes.mockReturnValue([{ setupRoutes: mockSetupRoute, bootstrap: mockBootstrap }]);
   mockBuildDatabaseExecutor.mockReturnValue({
+    start: mockExecutorStart,
+    stop: mockExecutorStop,
+    state: 'idle',
+  });
+  mockBuildInMemoryExecutor.mockReturnValue({
     start: mockExecutorStart,
     stop: mockExecutorStop,
     state: 'idle',
@@ -64,15 +69,6 @@ describe('Agent.addWorkflowExecutor', () => {
       expect((agent as any).options.workflowExecutorUrl).toBe('http://127.0.0.1:5005');
     });
 
-    test('falls back to the HTTP_PORT environment variable', () => {
-      process.env.HTTP_PORT = '4567';
-      const agent = new Agent(buildOptions());
-
-      agent.addWorkflowExecutor();
-
-      expect((agent as any).options.workflowExecutorUrl).toBe('http://127.0.0.1:4567');
-    });
-
     test('returns the agent for chaining', () => {
       const agent = new Agent(buildOptions());
 
@@ -94,6 +90,14 @@ describe('Agent.addWorkflowExecutor', () => {
       expect(() => agent.addWorkflowExecutor()).toThrow(
         'Cannot use addWorkflowExecutor together with the workflowExecutorUrl option',
       );
+    });
+
+    test('throws when both inMemory and database are provided', () => {
+      const agent = new Agent(buildOptions());
+
+      expect(() =>
+        agent.addWorkflowExecutor({ inMemory: true, database: { uri: 'postgres://localhost/db' } }),
+      ).toThrow('`inMemory` and `database` are mutually exclusive');
     });
   });
 
@@ -178,18 +182,6 @@ describe('Agent.addWorkflowExecutor', () => {
       );
     });
 
-    test('falls back to the DATABASE_URL environment variable when no database is provided', async () => {
-      process.env.DATABASE_URL = 'postgres://env-host/env-db';
-      const agent = new Agent(buildOptions());
-      agent.addWorkflowExecutor({ agentUrl: 'http://my-agent' });
-
-      await agent.start();
-
-      expect(mockBuildDatabaseExecutor).toHaveBeenCalledWith(
-        expect.objectContaining({ database: { uri: 'postgres://env-host/env-db' } }),
-      );
-    });
-
     test('derives the agentUrl from the standalone server port and prefix', async () => {
       const agent = new Agent(buildOptions());
       agent.addWorkflowExecutor({ database: { uri: 'postgres://localhost/db' } });
@@ -248,6 +240,37 @@ describe('Agent.addWorkflowExecutor', () => {
         'Embedded workflow executor requires a database to persist run state',
       );
       expect(mockBuildDatabaseExecutor).not.toHaveBeenCalled();
+    });
+
+    test('builds an in-memory executor without any database when inMemory is set', async () => {
+      const options = buildOptions();
+      const agent = new Agent(options);
+      agent.addWorkflowExecutor({ agentUrl: 'http://my-agent', inMemory: true, port: 4400 });
+
+      await agent.start();
+
+      expect(mockBuildInMemoryExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          envSecret: options.envSecret,
+          authSecret: options.authSecret,
+          agentUrl: 'http://my-agent',
+          httpPort: 4400,
+          manageProcessSignals: false,
+        }),
+      );
+      // In-memory: the database builder must never be reached.
+      expect(mockBuildDatabaseExecutor).not.toHaveBeenCalled();
+      expect(mockExecutorStart).toHaveBeenCalledTimes(1);
+    });
+
+    test('warns that in-memory runs are not persisted', async () => {
+      const logger = jest.fn();
+      const agent = new Agent(buildOptions({ logger }));
+      agent.addWorkflowExecutor({ agentUrl: 'http://my-agent', inMemory: true });
+
+      await agent.start();
+
+      expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('in-memory run store'));
     });
 
     test('throws when the agentUrl cannot be derived (not standalone) and is not provided', async () => {

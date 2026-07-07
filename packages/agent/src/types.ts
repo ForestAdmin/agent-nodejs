@@ -63,9 +63,15 @@ export type AgentOptions = {
  */
 export type WorkflowExecutorEmbedOptions = {
   /**
+   * Use an in-memory run store instead of a database. No database is required, but runs are lost
+   * when the process restarts, so it is not meant for production. Mutually exclusive with
+   * `database`.
+   */
+  inMemory?: boolean;
+  /**
    * Database connection used to persist workflow run state. Accepts a connection URI or a
-   * Sequelize options object. Falls back to the `DATABASE_URL` environment variable when omitted.
-   * The agent throws at startup if neither is provided.
+   * Sequelize options object. The agent throws at startup if it is omitted (unless `inMemory` is
+   * set).
    */
   database?: { uri?: string; [option: string]: unknown };
   /**
@@ -77,7 +83,7 @@ export type WorkflowExecutorEmbedOptions = {
   agentUrl?: string;
   /**
    * Loopback port the embedded executor listens on; the agent proxies to it internally.
-   * Defaults to the `HTTP_PORT` environment variable, or `3400`.
+   * Defaults to `3400`.
    */
   port?: number;
   /** Interval in seconds at which the executor polls the orchestrator for pending steps. */
