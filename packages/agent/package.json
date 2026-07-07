@@ -29,6 +29,7 @@
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",
     "koa-jwt": "^4.0.4",
+    "light-my-request": "^5.14.0",
     "luxon": "^3.2.1",
     "object-hash": "^3.0.0",
     "superagent": "^10.3.0",

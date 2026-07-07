@@ -9,6 +9,7 @@ import Koa from 'koa';
 import path from 'path';
 
 import FastifyAdapter from './fastify-adapter';
+import InProcessDispatcher from './mcp-in-process-dispatcher';
 import McpMiddleware from './mcp-middleware';
 
 export default class FrameworkMounter {
@@ -24,6 +25,8 @@ export default class FrameworkMounter {
 
   private readonly fastifyAdapter: FastifyAdapter;
   private readonly mcpMiddleware: McpMiddleware;
+  private readonly inProcessDispatcher = new InProcessDispatcher();
+  private inProcessHookRegistered = false;
 
   /** Compute the prefix that the main router should be mounted at in the client's application */
   private get completeMountPrefix(): string {
@@ -42,6 +45,23 @@ export default class FrameworkMounter {
    */
   protected setMcpCallback(callback: HttpCallback | null, routeMatcher?: McpRouteMatcher): void {
     this.mcpMiddleware.setCallback(callback, routeMatcher);
+  }
+
+  /**
+   * Dispatcher that runs agent-client requests against the agent's own `/forest` stack in-memory.
+   * Its handler is rebuilt on every (re)mount; the `/forest` prefix is fixed (not the external
+   * mount prefix) because agent-client hardcodes `/forest/...` paths.
+   */
+  protected getInProcessDispatcher(): InProcessDispatcher {
+    if (!this.inProcessHookRegistered) {
+      this.inProcessHookRegistered = true;
+      this.onEachStart.push(async driverRouter => {
+        const router = new Router({ prefix: '/forest' }).use(driverRouter.routes());
+        this.inProcessDispatcher.setHandler(new Koa().use(router.routes()).callback());
+      });
+    }
+
+    return this.inProcessDispatcher;
   }
 
   protected async mount(router: Router): Promise<void> {
