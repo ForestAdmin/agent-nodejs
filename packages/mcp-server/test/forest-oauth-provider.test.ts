@@ -868,6 +868,30 @@ describe('ForestOAuthProvider', () => {
       );
     });
 
+    it('falls back to the environment api_endpoint when no agentUrl is set', async () => {
+      mockServer.get('/liana/environment', {
+        data: { id: '1', attributes: { api_endpoint: 'https://public.example.com' } },
+      });
+      global.fetch = mockServer.fetch;
+
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        id: 1,
+        email: 'user@example.com',
+        renderingId: 2,
+        serverToken: 'forest-server-token',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000),
+      });
+
+      const provider = createProvider();
+      await provider.initialize();
+      const result = await provider.verifyAccessToken('valid-access-token');
+
+      expect((result.extra as { environmentApiEndpoint: string }).environmentApiEndpoint).toBe(
+        'https://public.example.com',
+      );
+    });
+
     it('strips a trailing slash from agentUrl', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         id: 1,

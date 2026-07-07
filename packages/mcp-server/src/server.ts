@@ -33,6 +33,7 @@ import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareUpdateTool from './tools/update';
+import normalizeAgentUrl from './utils/normalize-agent-url';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
@@ -127,17 +128,9 @@ export interface ForestMCPServerOptions {
    */
   basePath?: string;
   /**
-   * URL the MCP tools use to call back into the agent's data layer (list/create/execute actions…).
-   *
-   * By default this is the environment's public `api_endpoint` (as registered in Forest), which
-   * means every tool call leaves over the public internet — even when the MCP server is mounted
-   * inside the agent (same process). Set `agentUrl` to an internal address (e.g. a loopback port
-   * or a Kubernetes service URL) to keep that traffic on your private network in self-hosted
-   * deployments.
-   *
-   * This only affects the internal tool→agent channel. The advertised OAuth URLs (issuer,
-   * `.well-known` metadata, authorize/token endpoints) stay public so external MCP clients can
-   * still authenticate.
+   * Internal URL the MCP tools use to call back into the agent's data layer, e.g.
+   * 'http://forest-agent.internal:3310'. Defaults to the environment's public `api_endpoint`.
+   * Only affects the tool→agent channel; the advertised OAuth URLs stay public.
    */
   agentUrl?: string;
 }
@@ -172,7 +165,7 @@ export default class ForestMCPServer {
     this.logger = options?.logger || defaultLogger;
     this.enabledTools = this.resolveEnabledTools(options);
     this.basePath = normalizeMountPath(options?.basePath);
-    this.agentUrl = options?.agentUrl;
+    this.agentUrl = normalizeAgentUrl(options?.agentUrl);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();

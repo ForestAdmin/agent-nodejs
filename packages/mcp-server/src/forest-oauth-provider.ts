@@ -24,6 +24,8 @@ import {
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
+import normalizeAgentUrl from './utils/normalize-agent-url';
+
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
   forestAppUrl: string;
@@ -60,38 +62,11 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     this.envSecret = envSecret;
     this.authSecret = authSecret;
     this.logger = logger;
-    this.agentUrl = ForestOAuthProvider.normalizeAgentUrl(agentUrl);
+    this.agentUrl = normalizeAgentUrl(agentUrl);
     this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
     });
-  }
-
-  private static normalizeAgentUrl(agentUrl?: string): string | undefined {
-    if (!agentUrl) return undefined;
-
-    let parsed: URL;
-
-    try {
-      parsed = new URL(agentUrl);
-    } catch {
-      throw new Error(`Invalid agentUrl "${agentUrl}": it must be an absolute http(s) URL.`);
-    }
-
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new Error(`Invalid agentUrl "${agentUrl}": only http and https are supported.`);
-    }
-
-    // agent-client concatenates the request path directly onto this URL, so a query string or
-    // fragment would swallow it — reject them, and return the parsed (whitespace-normalized)
-    // form rather than the raw input. Drop any trailing slash to avoid a double slash on join.
-    if (parsed.search || parsed.hash) {
-      throw new Error(
-        `Invalid agentUrl "${agentUrl}": it must not contain a query string or fragment.`,
-      );
-    }
-
-    return parsed.href.replace(/\/+$/, '');
   }
 
   async initialize(): Promise<void> {
