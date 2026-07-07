@@ -101,7 +101,7 @@ function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined 
   }
 }
 
-function mapFlatBody(status: number, body: unknown): BffHttpError {
+function mapFlatBody(status: number, body: unknown, responseText?: string): BffHttpError {
   const flat = (typeof body === 'object' && body !== null ? body : {}) as {
     error?: unknown;
     message?: unknown;
@@ -109,6 +109,7 @@ function mapFlatBody(status: number, body: unknown): BffHttpError {
   const message =
     (typeof flat.error === 'string' ? flat.error : undefined) ??
     (typeof flat.message === 'string' ? flat.message : undefined) ??
+    (typeof responseText === 'string' && responseText !== '' ? responseText : undefined) ??
     DEFAULT_ERROR_MESSAGE;
 
   return new BffHttpError(status, fallbackTypeByStatus(status), message);
@@ -135,5 +136,5 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
   const agentError = firstJsonApiError(error.body);
   if (agentError) return mapJsonApiError(agentError, error.status, logger);
 
-  return mapFlatBody(error.status, error.body);
+  return mapFlatBody(error.status, error.body, error.responseText);
 }

@@ -105,6 +105,18 @@ describe('mapAgentError', () => {
     expect(result).toMatchObject({ type: 'invalid_request', status: 400, message: 'boom' });
   });
 
+  it('falls back to responseText when the agent body is not a JSON error object', () => {
+    const result = mapAgentError(new AgentHttpError(400, 'oops', 'Bad things happened'), {
+      logger,
+    });
+
+    expect(result).toMatchObject({
+      type: 'invalid_request',
+      status: 400,
+      message: 'Bad things happened',
+    });
+  });
+
   it('maps an unmapped agent error name to mapping_error (500) and logs it', () => {
     const error = new AgentHttpError(
       400,
