@@ -57,7 +57,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private mcpEnabled = false;
   private mcpEnabledTools?: ToolName[];
   private mcpBasePath?: string;
-  private mcpAgentUrl?: string;
 
   /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
   private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
@@ -254,19 +253,11 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * // OAuth discovery metadata stays at the origin root (prefix-suffixed), so root `.well-known`
    * // traffic must still reach the agent.
    * agent.mountAiMcpServer({ basePath: '/ai' });
-   * // Example: in a self-hosted setup, keep the tools' callbacks to the agent on the internal
-   * // network instead of the public URL Forest has for this environment.
-   * agent.mountAiMcpServer({ agentUrl: 'http://forest-agent.internal:3310' });
    */
-  mountAiMcpServer(options?: {
-    enabledTools?: ToolName[];
-    basePath?: string;
-    agentUrl?: string;
-  }): this {
+  mountAiMcpServer(options?: { enabledTools?: ToolName[]; basePath?: string }): this {
     this.mcpEnabled = true;
     this.mcpEnabledTools = options?.enabledTools;
     this.mcpBasePath = options?.basePath;
-    this.mcpAgentUrl = options?.agentUrl;
 
     return this;
   }
@@ -434,7 +425,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         forestServerClient,
         enabledTools: this.mcpEnabledTools,
         basePath: this.mcpBasePath,
-        agentUrl: this.mcpAgentUrl,
       });
 
       const httpCallback = await mcpServer.getHttpCallback();

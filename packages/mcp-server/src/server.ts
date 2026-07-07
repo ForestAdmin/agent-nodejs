@@ -128,9 +128,8 @@ export interface ForestMCPServerOptions {
    */
   basePath?: string;
   /**
-   * Internal URL the MCP tools use to call back into the agent's data layer, e.g.
-   * 'http://forest-agent.internal:3310'. Defaults to the environment's public `api_endpoint`.
-   * Only affects the tool→agent channel; the advertised OAuth URLs stay public.
+   * Standalone MCP server only (set via FOREST_AGENT_URL). Internal URL the tools use to reach
+   * the agent's data layer, defaulting to the environment's public `api_endpoint`.
    */
   agentUrl?: string;
 }
