@@ -19,8 +19,9 @@ import {
 } from '../types/validated/step-definition';
 
 function mapTask(task: ServerWorkflowTask): StepDefinition {
-  // executionType is passed through as-is; each schema's .default().catch() handles
-  // missing or unsupported values without requiring an explicit mapping here.
+  // executionType is passed through as-is. Each schema applies its own `.default()` for a missing
+  // value; schemas that accept `manual` (guidance, load-related, trigger-action) drop `.catch` and
+  // reject an out-of-enum value rather than coercing it — server values are a 1:1 enum mapping today.
   const base = { prompt: task.prompt, executionType: task.executionType, title: task.title };
 
   switch (task.taskType) {

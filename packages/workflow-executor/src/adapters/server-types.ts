@@ -56,7 +56,8 @@ export interface ServerWorkflowTaskBase extends ServerWorkflowStepBase {
 
 export interface ServerWorkflowTaskGuideline extends ServerWorkflowTaskBase {
   taskType: ServerTaskTypeEnum.Guideline;
-  executionType: ServerStepExecutionTypeEnum.Manual;
+  // AI modes only for a user-input guidance; simple-completion is always Manual (parser-enforced).
+  executionType: ServerStepExecutionTypeEnum;
   completionType: 'simple' | 'user-input';
   inputType?: 'free-text';
   automaticCompletion: false;

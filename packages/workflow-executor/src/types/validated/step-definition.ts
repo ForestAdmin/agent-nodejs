@@ -137,7 +137,9 @@ export type McpStepDefinition = z.infer<typeof McpStepDefinitionSchema>;
 export const GuidanceStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.Guidance),
-  executionType: z.literal(Manual).default(Manual).catch(Manual),
+  // No `.catch`; default Manual (not AWC) — the orchestrator owns the legacy default, so the
+  // executor fallback only fires on a missing field, where "never call AI" is the safe direction.
+  executionType: z.enum([Manual, AutomatedWithConfirmation, FullyAutomated]).default(Manual),
 });
 export type GuidanceStepDefinition = z.infer<typeof GuidanceStepDefinitionSchema>;
 

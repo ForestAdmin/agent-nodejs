@@ -138,6 +138,27 @@ describe('toStepDefinition', () => {
       });
     });
 
+    it.each([
+      ServerStepExecutionTypeEnum.Manual,
+      ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      ServerStepExecutionTypeEnum.FullyAutomated,
+    ])('maps a guideline task with executionType=%s through verbatim', executionType => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.Guideline,
+        prompt: 'guide',
+        executionType,
+      });
+
+      expect(toStepDefinition(task)).toMatchObject({ type: StepType.Guidance, executionType });
+    });
+
+    it('defaults a guideline task without executionType to manual', () => {
+      const task = makeTask({ taskType: ServerTaskTypeEnum.Guideline, prompt: 'guide' });
+      delete (task as { executionType?: unknown }).executionType;
+
+      expect(toStepDefinition(task)).toMatchObject({ executionType: StepExecutionMode.Manual });
+    });
+
     it('should preserve executionType=fully-automated', () => {
       const task = makeTask({
         taskType: ServerTaskTypeEnum.GetData,
