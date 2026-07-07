@@ -13,6 +13,9 @@ import createConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
+import CredentialEncryption, {
+  isExecutorEncryptionKeyConfigured,
+} from './crypto/credential-encryption';
 import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,
   DEFAULT_FOREST_SERVER_URL,
@@ -22,9 +25,13 @@ import {
   DEFAULT_STEP_TIMEOUT_S,
 } from './defaults';
 import ExecutorHttpServer from './http/executor-http-server';
+import OAuthTokenService from './oauth/token-service';
+import RemoteToolFetcher from './remote-tool-fetcher';
 import Runner from './runner';
 import SchemaCache from './schema-cache';
+import DatabaseMcpOAuthCredentialsStore from './stores/database-mcp-oauth-credentials-store';
 import DatabaseStore from './stores/database-store';
+import InMemoryMcpOAuthCredentialsStore from './stores/in-memory-mcp-oauth-credentials-store';
 import InMemoryStore from './stores/in-memory-store';
 
 const FORCE_EXIT_DELAY_S = 5;
@@ -73,6 +80,15 @@ function positiveOrDefault(value: number | undefined, fallback: number): number 
 function buildCommonDependencies(options: ExecutorOptions) {
   const forestServerUrl = options.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL;
   const logger = options.logger ?? createConsoleLogger(options.loggerLevel ?? DEFAULT_LOGGER_LEVEL);
+
+  // Lazy key by design (OAuth-less executors boot without it), but surface a security-relevant
+  // heads-up so a missing key isn't discovered only when a deposit 503s.
+  if (!isExecutorEncryptionKeyConfigured()) {
+    logger(
+      'Warn',
+      'FOREST_EXECUTOR_ENCRYPTION_KEY is not set — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is configured.',
+    );
+  }
 
   const workflowPort = new ForestServerWorkflowPort({
     envSecret: options.envSecret,
@@ -188,7 +204,15 @@ function createWorkflowExecutor(
 
     async start() {
       await runner.start();
-      await server.start();
+
+      // server.start() runs the OAuth-store migration; if it fails, don't leave the runner polling
+      // in the background — stop it so start() is all-or-nothing.
+      try {
+        await server.start();
+      } catch (err) {
+        await runner.stop().catch(() => {});
+        throw err;
+      }
 
       // Only own the host's signals when explicitly allowed (the standalone CLI). When embedded,
       // the host process must keep control of SIGTERM/SIGINT and its own exit.
@@ -213,9 +237,28 @@ function createWorkflowExecutor(
 export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecutor {
   const deps = buildCommonDependencies(options);
 
+  const mcpOAuthCredentialsStore = new InMemoryMcpOAuthCredentialsStore();
+  const credentialEncryption = new CredentialEncryption();
+  // Shares the store + encryption with the deposit endpoint so runtime reads and writes (rotation)
+  // go through the same instance the HTTP server exposes. In-memory is dev-only: credentials live
+  // only for the process lifetime, but oauth2 steps work end-to-end just like the database executor.
+  const mcpOAuthTokenService = new OAuthTokenService({
+    store: mcpOAuthCredentialsStore,
+    encryption: credentialEncryption,
+    logger: deps.logger,
+  });
+
+  const remoteToolFetcher = new RemoteToolFetcher(
+    deps.workflowPort,
+    deps.aiModelPort,
+    deps.logger,
+    mcpOAuthTokenService,
+  );
+
   const runner = new Runner({
     ...deps,
     runStore: new InMemoryStore(),
+    mcpOAuthTokenService,
   });
 
   const server = new ExecutorHttpServer({
@@ -224,6 +267,10 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
+    mcpOAuthCredentialsStore,
+    credentialEncryption,
+    remoteToolFetcher,
+    oauthTokenService: mcpOAuthTokenService,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger, options.manageProcessSignals ?? true);
@@ -241,9 +288,30 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
   if (mergedOptions.logging === undefined) mergedOptions.logging = false;
   const sequelize = uri ? new Sequelize(uri, mergedOptions) : new Sequelize(mergedOptions);
 
+  const mcpOAuthCredentialsStore = new DatabaseMcpOAuthCredentialsStore({
+    sequelize,
+    schema: mergedOptions.schema,
+  });
+  const credentialEncryption = new CredentialEncryption();
+  // Shares the store + encryption with the deposit endpoint so runtime reads and writes (rotation)
+  // go through the same instance the HTTP server migrates on start.
+  const mcpOAuthTokenService = new OAuthTokenService({
+    store: mcpOAuthCredentialsStore,
+    encryption: credentialEncryption,
+    logger: deps.logger,
+  });
+
+  const remoteToolFetcher = new RemoteToolFetcher(
+    deps.workflowPort,
+    deps.aiModelPort,
+    deps.logger,
+    mcpOAuthTokenService,
+  );
+
   const runner = new Runner({
     ...deps,
     runStore: new DatabaseStore({ sequelize, schema: mergedOptions.schema }),
+    mcpOAuthTokenService,
   });
 
   const server = new ExecutorHttpServer({
@@ -252,6 +320,10 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     authSecret: options.authSecret,
     workflowPort: deps.workflowPort,
     logger: deps.logger,
+    mcpOAuthCredentialsStore,
+    credentialEncryption,
+    remoteToolFetcher,
+    oauthTokenService: mcpOAuthTokenService,
   });
 
   return createWorkflowExecutor(runner, server, deps.logger, options.manageProcessSignals ?? true);

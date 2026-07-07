@@ -2,6 +2,7 @@ import ServerAiAdapter from '../../src/adapters/server-ai-adapter';
 
 const mockGetModel = jest.fn().mockReturnValue({ id: 'fake-model' });
 const mockLoadRemoteTools = jest.fn().mockResolvedValue([]);
+const mockLoadRemoteToolsWithFailures = jest.fn().mockResolvedValue({ tools: [], failures: [] });
 const mockCloseConnections = jest.fn().mockResolvedValue(undefined);
 const mockAiClientConstructor = jest.fn();
 
@@ -12,6 +13,7 @@ jest.mock('@forestadmin/ai-proxy', () => ({
     return {
       getModel: mockGetModel,
       loadRemoteTools: mockLoadRemoteTools,
+      loadRemoteToolsWithFailures: mockLoadRemoteToolsWithFailures,
       closeConnections: mockCloseConnections,
     };
   }),
@@ -129,6 +131,17 @@ describe('ServerAiAdapter', () => {
 
       expect(mockLoadRemoteTools).toHaveBeenCalledWith(configs);
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('loadRemoteToolsWithFailures', () => {
+    it('delegates to internal AiClient with the given configs', async () => {
+      const configs = {};
+
+      const result = await adapter.loadRemoteToolsWithFailures(configs);
+
+      expect(mockLoadRemoteToolsWithFailures).toHaveBeenCalledWith(configs);
+      expect(result).toEqual({ tools: [], failures: [] });
     });
   });
 

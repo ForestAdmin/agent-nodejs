@@ -23,6 +23,7 @@ import type {
 } from '../types/validated/step-definition';
 
 import {
+  OAuthReauthRequiredError,
   StepStateError,
   WorkflowExecutorError,
   causeMessage,
@@ -57,7 +58,7 @@ export default class StepExecutorFactory {
     step: AvailableStepExecution,
     contextConfig: StepContextConfig,
     activityLogPort: ActivityLogPort,
-    fetchRemoteTools: (mcpServerId: string) => Promise<FetchRemoteToolsResult>,
+    fetchRemoteTools: (mcpServerId: string, userId: number) => Promise<FetchRemoteToolsResult>,
     incomingPendingData?: unknown,
     forestServerToken?: string,
   ): Promise<IStepExecutor> {
@@ -90,11 +91,12 @@ export default class StepExecutorFactory {
 
         case StepType.Mcp: {
           const mcpContext = context as ExecutionContext<McpStepDefinition>;
-          const { tools, mcpServerName } = await fetchRemoteTools(
+          const { tools, mcpServerName, reloadWithFreshAuth } = await fetchRemoteTools(
             mcpContext.stepDefinition.mcpServerId,
+            step.user.id,
           );
 
-          return new McpStepExecutor(mcpContext, tools, mcpServerName);
+          return new McpStepExecutor(mcpContext, tools, mcpServerName, reloadWithFreshAuth);
         }
 
         case StepType.Guidance:
@@ -105,6 +107,29 @@ export default class StepExecutorFactory {
           );
       }
     } catch (error) {
+      // Re-auth required while loading tools is an expected pause, not a failure: emit awaiting-input
+      // with the typed reason so the user can reconnect, rather than erroring the step.
+      if (error instanceof OAuthReauthRequiredError) {
+        contextConfig.logger('Info', 'MCP step paused for OAuth re-authentication', {
+          runId: step.runId,
+          stepId: step.stepId,
+          stepIndex: step.stepIndex,
+          awaitingInputReason: error.awaitingInputReason,
+        });
+
+        return {
+          execute: async (): Promise<StepExecutionResult> => ({
+            stepOutcome: {
+              type: 'mcp',
+              stepId: step.stepId,
+              stepIndex: step.stepIndex,
+              status: 'awaiting-input',
+              awaitingInputReason: error.awaitingInputReason,
+            },
+          }),
+        };
+      }
+
       contextConfig.logger('Error', 'Step execution failed unexpectedly', {
         runId: step.runId,
         stepId: step.stepId,

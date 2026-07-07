@@ -1,6 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import type { MalformedRunInfo } from './ports/workflow-port';
 import type { RecordId } from './types/validated/collection';
+import type { AwaitingInputReason } from './types/validated/step-outcome';
 import type { z } from 'zod';
 
 export function causeMessage(error: unknown): string | undefined {
@@ -361,6 +362,67 @@ export class ConfigurationError extends Error {
   }
 }
 
+// Carries the typed pause reason so the step executor can emit an awaiting-input outcome (and the
+// orchestrator/front can prompt the user to reconnect) instead of a generic error.
+export class OAuthReauthRequiredError extends WorkflowExecutorError {
+  readonly awaitingInputReason: AwaitingInputReason;
+
+  constructor(
+    mcpServerId: string,
+    awaitingInputReason: AwaitingInputReason = 'needs-oauth-reauth',
+  ) {
+    super(
+      `OAuth re-authentication required for mcpServerId="${mcpServerId}"`,
+      'This tool needs to be reconnected before it can run. Please re-authorize it and try again.',
+    );
+    this.awaitingInputReason = awaitingInputReason;
+  }
+}
+
+// Transient refresh failure (network error, 5xx, malformed response). Surfaces as a retryable step
+// error rather than a re-auth pause — re-authenticating would not fix a temporarily unreachable endpoint.
+export class OAuthRefreshError extends WorkflowExecutorError {
+  constructor(message: string, cause?: unknown) {
+    super(
+      `OAuth token refresh failed: ${message}`,
+      'Could not refresh the connection to this tool. Please try again.',
+    );
+    if (cause !== undefined) this.cause = cause;
+  }
+}
+
+// The token endpoint rejected the refresh token (RFC 6749 invalid_grant). Internal control-flow
+// signal: the token service catches it to drive the re-read + single-retry, then converts a genuine
+// failure into OAuthReauthRequiredError.
+export class OAuthInvalidGrantError extends WorkflowExecutorError {
+  constructor(detail?: string) {
+    super(`OAuth refresh token rejected${detail ? `: ${detail}` : ''}`);
+  }
+}
+
+// The token endpoint is where the executor POSTs the refresh grant (with client credentials), so an
+// unconstrained value is an SSRF vector. A rejected one fails closed (terminal) before any network
+// call, rather than letting an authenticated caller aim the executor at an internal address.
+export class InvalidTokenEndpointError extends WorkflowExecutorError {
+  constructor(reason: string) {
+    super(
+      `Invalid OAuth token endpoint: ${reason}`,
+      'This tool is misconfigured (invalid token endpoint). Contact your administrator.',
+    );
+  }
+}
+
+// Boundary error — the deposit endpoint maps it to a typed HTTP response so the frontend can tell
+// an operator to provision the key, not a generic or re-consent failure.
+export class ExecutorEncryptionKeyMissingError extends Error {
+  readonly code = 'executor_encryption_key_missing';
+
+  constructor() {
+    super('FOREST_EXECUTOR_ENCRYPTION_KEY is not set');
+    this.name = 'ExecutorEncryptionKeyMissingError';
+  }
+}
+
 // Run lifecycle/access errors raised by the Runner. Each extends a domain category, so toHttpError
 // maps them by category (404/409/403) — no per-error HTTP binding.
 export class RunNotFoundError extends NotFoundError {
@@ -433,7 +495,7 @@ export class SourceRecordMissingError extends WorkflowExecutorError {
 
 // Boundary error — surfaces from Runner.start() and is caught at the CLI/HTTP layer, not by step executors.
 export class AgentProbeError extends Error {
-  // Manual `cause` assignment: Error accepts it natively since Node 16.9 but our TS target is ES2020.
+  // Manual `cause` assignment: our ES2020 TS target doesn't type the native Error `cause` option.
   readonly cause?: unknown;
 
   constructor(message: string, options?: { cause?: unknown }) {

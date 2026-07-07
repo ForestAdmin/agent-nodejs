@@ -1,5 +1,9 @@
+import type CredentialEncryption from '../crypto/credential-encryption';
+import type OAuthTokenService from '../oauth/token-service';
 import type { Logger } from '../ports/logger-port';
+import type { McpOAuthCredentialsStore } from '../ports/mcp-oauth-credentials-store';
 import type { WorkflowPort } from '../ports/workflow-port';
+import type RemoteToolFetcher from '../remote-tool-fetcher';
 import type Runner from '../runner';
 import type { Server } from 'http';
 
@@ -11,14 +15,24 @@ import koaJwt from 'koa-jwt';
 
 import { type BearerClaims, BearerClaimsSchema } from './bearer-claims';
 import {
+  BadRequestHttpError,
   ForbiddenHttpError,
+  NotFoundHttpError,
   ServiceUnavailableHttpError,
   UnauthorizedHttpError,
   toHttpError,
 } from './http-errors';
+import {
+  buildMcpOAuthCredentialInput,
+  depositCredentialsBodySchema,
+} from './mcp-oauth-credentials';
 import serializeStepForWire from './step-serializer';
 import createConsoleLogger from '../adapters/console-logger';
-import { extractErrorMessage } from '../errors';
+import {
+  ExecutorEncryptionKeyMissingError,
+  OAuthReauthRequiredError,
+  extractErrorMessage,
+} from '../errors';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-dynamic-require, global-require
 const { version } = require('../../package.json') as { version: string };
@@ -29,17 +43,25 @@ export interface ExecutorHttpServerOptions {
   authSecret: string;
   workflowPort: WorkflowPort;
   logger?: Logger;
+  mcpOAuthCredentialsStore: McpOAuthCredentialsStore;
+  credentialEncryption: CredentialEncryption;
+  remoteToolFetcher: RemoteToolFetcher;
+  // The runtime always provides this (build-workflow-executor); optional so tests that don't
+  // exercise credential deletion don't all have to construct one.
+  oauthTokenService?: OAuthTokenService;
 }
 
 export default class ExecutorHttpServer {
   private readonly app: Koa;
   private readonly options: ExecutorHttpServerOptions;
   private readonly logger: Logger;
+  private readonly mcpOAuthCredentialsStore: McpOAuthCredentialsStore;
   private server: Server | null = null;
 
   constructor(options: ExecutorHttpServerOptions) {
     this.options = options;
     this.logger = options.logger ?? createConsoleLogger();
+    this.mcpOAuthCredentialsStore = options.mcpOAuthCredentialsStore;
     this.app = new Koa();
 
     this.app.use(async (ctx, next) => {
@@ -142,11 +164,30 @@ export default class ExecutorHttpServer {
     );
     router.post('/runs/:runId/trigger', this.handleTrigger.bind(this));
 
+    const {
+      mcpOAuthCredentialsStore: credentialsStore,
+      credentialEncryption,
+      remoteToolFetcher,
+    } = this.options;
+
+    // Design-time tool listing for the MCP-server details page: resolve the caller's vault
+    // credential, refresh, and list the oauth2 server's tools — no workflow run involved.
+    router.get('/list-mcp-tools', ctx => this.handleListMcpTools(ctx, remoteToolFetcher));
+
+    router.post('/mcp-oauth-credentials', ctx =>
+      this.handleDepositCredentials(ctx, credentialsStore, credentialEncryption),
+    );
+    router.delete('/mcp-oauth-credentials/:mcpServerId', ctx =>
+      this.handleDeleteCredentials(ctx, credentialsStore),
+    );
+
     this.app.use(router.routes());
     this.app.use(router.allowedMethods());
   }
 
   async start(): Promise<void> {
+    await this.mcpOAuthCredentialsStore.init(this.logger);
+
     return new Promise((resolve, reject) => {
       this.server = http.createServer(this.app.callback());
       this.server.once('error', reject);
@@ -217,5 +258,111 @@ export default class ExecutorHttpServer {
 
     ctx.status = 200;
     ctx.body = { triggered: true };
+  }
+
+  private async handleDepositCredentials(
+    ctx: Koa.Context,
+    store: McpOAuthCredentialsStore,
+    encryption: CredentialEncryption,
+  ): Promise<void> {
+    const userId = (ctx.state.user as BearerClaims).id;
+    const parsed = depositCredentialsBodySchema.safeParse(ctx.request.body ?? {});
+
+    if (!parsed.success) {
+      const details = parsed.error.issues
+        .map(issue => `${issue.path.join('.') || 'body'}: ${issue.message}`)
+        .join('; ');
+
+      throw new BadRequestHttpError(`Invalid request body — ${details}`);
+    }
+
+    try {
+      await store.upsert(buildMcpOAuthCredentialInput({ body: parsed.data, userId, encryption }));
+    } catch (err) {
+      // The frontend must tell this missing-key config error apart from a generic failure (to route
+      // the user to an admin rather than retry), so it returns a typed { code } the middleware won't.
+      if (err instanceof ExecutorEncryptionKeyMissingError) {
+        ctx.status = 503;
+        ctx.body = { code: err.code };
+
+        return;
+      }
+
+      throw err;
+    }
+
+    // Evict any cached access token so a reconnect/re-deposit takes effect immediately, instead of
+    // serving the token minted from the previous credential until it expires (mirrors delete).
+    this.options.oauthTokenService?.evict(userId, parsed.data.mcpServerId);
+    ctx.status = 200;
+    ctx.body = { stored: true };
+  }
+
+  private async handleDeleteCredentials(
+    ctx: Koa.Context,
+    store: McpOAuthCredentialsStore,
+  ): Promise<void> {
+    const userId = (ctx.state.user as BearerClaims).id;
+
+    await store.delete(userId, ctx.params.mcpServerId);
+    // Evict any in-process cached access token so the disconnect is immediate, not deferred until
+    // the cached token expires (the row is gone, but the runtime would otherwise still serve it).
+    this.options.oauthTokenService?.evict(userId, ctx.params.mcpServerId);
+    ctx.status = 204;
+  }
+
+  // Design-time tool listing: resolve the caller's vault credential for the target oauth2 server,
+  // refresh + inject the Bearer, and return the server's tool definitions. user_id comes from the
+  // validated JWT, so a caller only ever lists with their own stored credential. A missing/dead
+  // credential surfaces as a typed needs-oauth-reauth response (not a generic error or empty list)
+  // so the details page can prompt a reconnect — mirroring the run path's awaiting-input reason.
+  private async handleListMcpTools(ctx: Koa.Context, fetcher: RemoteToolFetcher): Promise<void> {
+    const userId = (ctx.state.user as BearerClaims).id;
+    const { mcpServerId } = ctx.query;
+
+    if (typeof mcpServerId !== 'string' || mcpServerId.length === 0) {
+      throw new BadRequestHttpError('Missing required query parameter "mcpServerId"');
+    }
+
+    try {
+      const { tools, mcpServerName, loadFailed } = await fetcher.fetch(mcpServerId, userId);
+
+      // A dead or misrouted server otherwise renders as an (indistinguishable) empty tool list, so
+      // surface it — mirroring the run path, which errors rather than executing against no tools.
+      if (!mcpServerName) {
+        throw new NotFoundHttpError(`No MCP server is configured for id "${mcpServerId}"`);
+      }
+
+      if (loadFailed) {
+        throw new ServiceUnavailableHttpError(
+          'The MCP server could not be reached to list its tools',
+        );
+      }
+
+      ctx.status = 200;
+      ctx.body = {
+        tools: tools.map(tool => ({ name: tool.base.name, description: tool.base.description })),
+      };
+    } catch (err) {
+      // Set the body directly so the error middleware (which would map this to a generic 400 and
+      // drop the typed reason) doesn't touch it — the frontend needs the reason to prompt reconnect.
+      if (err instanceof OAuthReauthRequiredError) {
+        ctx.status = 409;
+        ctx.body = { awaitingInputReason: err.awaitingInputReason, mcpServerId };
+
+        return;
+      }
+
+      // Key-missing is an operator misconfig, not re-consent-resolvable: return the same typed 503
+      // the deposit endpoint uses so the details page shows the admin message, not a generic error.
+      if (err instanceof ExecutorEncryptionKeyMissingError) {
+        ctx.status = 503;
+        ctx.body = { code: err.code };
+
+        return;
+      }
+
+      throw err;
+    }
   }
 }

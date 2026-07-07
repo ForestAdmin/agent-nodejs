@@ -1,9 +1,14 @@
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
+import CredentialEncryption from '../src/crypto/credential-encryption';
 import { DEFAULT_SCHEMA_CACHE_TTL_S } from '../src/defaults';
+import ExecutorHttpServer from '../src/http/executor-http-server';
+import OAuthTokenService from '../src/oauth/token-service';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
+import DatabaseMcpOAuthCredentialsStore from '../src/stores/database-mcp-oauth-credentials-store';
 import DatabaseStore from '../src/stores/database-store';
+import InMemoryMcpOAuthCredentialsStore from '../src/stores/in-memory-mcp-oauth-credentials-store';
 import InMemoryStore from '../src/stores/in-memory-store';
 
 jest.mock('../src/runner');
@@ -53,6 +58,25 @@ describe('buildInMemoryExecutor', () => {
     expect(InMemoryStore).toHaveBeenCalledTimes(1);
     expect(MockedRunner).toHaveBeenCalledWith(
       expect.objectContaining({ runStore: expect.any(InMemoryStore) }),
+    );
+  });
+
+  it('wires the in-memory OAuth credentials store and encryption into the HTTP server', () => {
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(ExecutorHttpServer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mcpOAuthCredentialsStore: expect.any(InMemoryMcpOAuthCredentialsStore),
+        credentialEncryption: expect.any(CredentialEncryption),
+      }),
+    );
+  });
+
+  it('wires an OAuth token service into the in-memory runner', () => {
+    buildInMemoryExecutor(BASE_OPTIONS);
+
+    expect(MockedRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ mcpOAuthTokenService: expect.any(OAuthTokenService) }),
     );
   });
 
@@ -258,6 +282,17 @@ describe('buildDatabaseExecutor', () => {
     );
   });
 
+  it('wires the database OAuth credentials store and encryption into the HTTP server', () => {
+    buildDatabaseExecutor(DB_OPTIONS);
+
+    expect(ExecutorHttpServer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mcpOAuthCredentialsStore: expect.any(DatabaseMcpOAuthCredentialsStore),
+        credentialEncryption: expect.any(CredentialEncryption),
+      }),
+    );
+  });
+
   it('creates Sequelize with uri and passes remaining options through', () => {
     buildDatabaseExecutor(DB_OPTIONS);
 
@@ -440,6 +475,23 @@ describe('WorkflowExecutor lifecycle', () => {
     expect(MockedRunner.prototype.stop).toHaveBeenCalled();
   });
 
+  it('start() stops the runner when server.start fails (all-or-nothing boot)', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const { default: MockedHttpServer } = require('../src/http/executor-http-server');
+    const originalStart = MockedHttpServer.prototype.start;
+    MockedHttpServer.prototype.start = jest.fn().mockRejectedValue(new Error('migration failed'));
+
+    try {
+      const exec = buildInMemoryExecutor(BASE_OPTIONS);
+
+      await expect(exec.start()).rejects.toThrow('migration failed');
+      // the migration source is in server.start(); the runner must not be left polling
+      expect(MockedRunner.prototype.stop).toHaveBeenCalled();
+    } finally {
+      MockedHttpServer.prototype.start = originalStart;
+    }
+  });
+
   it('state getter returns runner state', () => {
     expect(executor.state).toBe('running');
   });
@@ -496,5 +548,39 @@ describe('WorkflowExecutor lifecycle', () => {
       exitSpy.mockRestore();
       jest.useRealTimers();
     }
+  });
+});
+
+describe('FOREST_EXECUTOR_ENCRYPTION_KEY startup warning', () => {
+  const ENV_KEY = 'FOREST_EXECUTOR_ENCRYPTION_KEY';
+  const original = process.env[ENV_KEY];
+
+  afterEach(() => {
+    if (original === undefined) delete process.env[ENV_KEY];
+    else process.env[ENV_KEY] = original;
+  });
+
+  it('warns at startup when the encryption key is unset (no default key — fail closed)', () => {
+    delete process.env[ENV_KEY];
+    const logger = jest.fn();
+
+    buildInMemoryExecutor({ ...BASE_OPTIONS, logger });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('FOREST_EXECUTOR_ENCRYPTION_KEY'),
+    );
+  });
+
+  it('does not warn when the encryption key is set', () => {
+    process.env[ENV_KEY] = 'a'.repeat(64);
+    const logger = jest.fn();
+
+    buildInMemoryExecutor({ ...BASE_OPTIONS, logger });
+
+    expect(logger).not.toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('FOREST_EXECUTOR_ENCRYPTION_KEY'),
+    );
   });
 });

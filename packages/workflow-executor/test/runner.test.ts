@@ -1,4 +1,5 @@
 import type { StepContextConfig } from '../src/executors/step-executor-factory';
+import type OAuthTokenService from '../src/oauth/token-service';
 import type { AgentPort } from '../src/ports/agent-port';
 import type { AiModelPort } from '../src/ports/ai-model-port';
 import type { Logger } from '../src/ports/logger-port';
@@ -79,6 +80,7 @@ function createMockRunStore(overrides: Partial<RunStore> = {}): jest.Mocked<RunS
     close: jest.fn().mockResolvedValue(undefined),
     getStepExecutions: jest.fn().mockResolvedValue([]),
     saveStepExecution: jest.fn().mockResolvedValue(undefined),
+    deleteStepExecution: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as jest.Mocked<RunStore>;
 }
@@ -105,6 +107,7 @@ function createRunnerConfig(
       close: jest.fn().mockResolvedValue(undefined),
       getStepExecutions: jest.fn().mockResolvedValue([]),
       saveStepExecution: jest.fn().mockResolvedValue(undefined),
+      deleteStepExecution: jest.fn().mockResolvedValue(undefined),
     } as unknown as RunStore,
     pollingIntervalS: POLLING_INTERVAL_S,
     aiModelPort: createMockAiClient() as unknown as AiModelPort,
@@ -120,6 +123,9 @@ function createRunnerConfig(
     schemaCache: new SchemaCache(),
     envSecret: VALID_ENV_SECRET,
     authSecret: VALID_AUTH_SECRET,
+    mcpOAuthTokenService: {
+      getAccessToken: jest.fn().mockResolvedValue('access-token'),
+    } as unknown as OAuthTokenService,
     ...overrides,
   };
 }
@@ -1713,7 +1719,7 @@ describe('StepExecutorFactory.create — factory', () => {
       fetchRemoteTools,
     );
     expect(executor).toBeInstanceOf(McpStepExecutor);
-    expect(fetchRemoteTools).toHaveBeenCalledWith('srv-42');
+    expect(fetchRemoteTools).toHaveBeenCalledWith('srv-42', 1);
     expect(
       (
         executor as unknown as { getExtraLogContext(): Record<string, unknown> }

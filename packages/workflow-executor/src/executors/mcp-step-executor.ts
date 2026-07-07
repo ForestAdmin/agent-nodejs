@@ -1,16 +1,22 @@
 import type { ExecutionContext, StepExecutionResult } from '../types/execution-context';
 import type { McpStepExecutionData, McpToolCall } from '../types/step-execution-data';
 import type { McpStepDefinition } from '../types/validated/step-definition';
-import type { RecordStepStatus } from '../types/validated/step-outcome';
+import type { AwaitingInputReason, RecordStepStatus } from '../types/validated/step-outcome';
 import type { RemoteTool } from '@forestadmin/ai-proxy';
 
-import { DynamicStructuredTool, HumanMessage, SystemMessage } from '@forestadmin/ai-proxy';
+import {
+  DynamicStructuredTool,
+  HumanMessage,
+  SystemMessage,
+  isMcpAuthError,
+} from '@forestadmin/ai-proxy';
 import { z } from 'zod';
 
 import {
   McpToolInvocationError,
   McpToolNotFoundError,
   NoMcpToolsError,
+  OAuthReauthRequiredError,
   StepStateError,
 } from '../errors';
 import BaseStepExecutor from './base-step-executor';
@@ -28,14 +34,18 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
 
   private readonly mcpServerName?: string;
 
+  private readonly reloadWithFreshAuth?: () => Promise<RemoteTool[]>;
+
   constructor(
     context: ExecutionContext<McpStepDefinition>,
     remoteTools: readonly RemoteTool[],
     mcpServerName?: string,
+    reloadWithFreshAuth?: () => Promise<RemoteTool[]>,
   ) {
     super(context);
     this.remoteTools = remoteTools;
     this.mcpServerName = mcpServerName;
+    this.reloadWithFreshAuth = reloadWithFreshAuth;
   }
 
   protected override getExtraLogContext(): Record<string, unknown> {
@@ -48,6 +58,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   protected buildOutcomeResult(outcome: {
     status: RecordStepStatus;
     error?: string;
+    awaitingInputReason?: AwaitingInputReason;
   }): StepExecutionResult {
     return {
       stepOutcome: {
@@ -74,7 +85,41 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
   }
 
   protected async doExecute(): Promise<StepExecutionResult> {
-    // Branch A -- Re-entry after pending execution found in RunStore
+    try {
+      return await this.runStep();
+    } catch (error) {
+      // An unrefreshable OAuth credential pauses the step for re-authentication rather than failing
+      // it. Clear the write-ahead marker so the resumed step is not rejected as interrupted.
+      if (error instanceof OAuthReauthRequiredError) {
+        await this.clearReauthPauseState();
+
+        return this.buildOutcomeResult({
+          status: 'awaiting-input',
+          awaitingInputReason: error.awaitingInputReason,
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  // Keep a confirmation-flow record's approved pendingData (clear only the marker) so resume replays
+  // it; delete a pendingData-less record, which would otherwise mis-route resume into confirmation.
+  private async clearReauthPauseState(): Promise<void> {
+    const existing = await this.findPendingExecution<McpStepExecutionData>('mcp');
+    if (!existing) return;
+
+    if (existing.pendingData) {
+      await this.context.runStore.saveStepExecution(this.context.runId, {
+        ...existing,
+        idempotencyPhase: undefined,
+      });
+    } else {
+      await this.context.runStore.deleteStepExecution(this.context.runId, this.context.stepIndex);
+    }
+  }
+
+  private async runStep(): Promise<StepExecutionResult> {
     const pending = await this.patchAndReloadPendingData<McpStepExecutionData>(
       this.context.incomingPendingData,
     );
@@ -85,7 +130,6 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
       );
     }
 
-    // Branches B & C -- First call
     const tools = this.requireTools();
     const { toolName, args } = await this.selectTool(tools);
     const selectedTool = tools.find(t => t.base.name === toolName);
@@ -93,11 +137,9 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     const target: McpToolCall = { name: toolName, sourceId: selectedTool.sourceId, input: args };
 
     if (this.context.stepDefinition.executionType === StepExecutionMode.FullyAutomated) {
-      // Branch B -- direct execution
       return this.executeToolAndPersist(target);
     }
 
-    // Branch C -- Awaiting confirmation
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'mcp',
       stepIndex: this.context.stepIndex,
@@ -124,13 +166,7 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
         recordId: this.context.baseRecordRef.recordId,
       },
       {
-        operation: async () => {
-          try {
-            return await tool.base.invoke(target.input);
-          } catch (cause) {
-            throw new McpToolInvocationError(target.name, cause);
-          }
-        },
+        operation: () => this.invokeWithReauthRetry(tool, target),
         beforeCall: () =>
           this.context.runStore.saveStepExecution(this.context.runId, {
             ...existingExecution,
@@ -193,6 +229,55 @@ export default class McpStepExecutor extends BaseStepExecutor<McpStepDefinition>
     }
 
     return this.buildOutcomeResult({ status: 'success' });
+  }
+
+  // No-op for bearer/none steps (no reloadWithFreshAuth). For an OAuth2 step, a 401 on the call means
+  // the token was rejected after listing tools succeeded: force one refresh, rebuild the tool, retry
+  // once. A second 401 pauses the step for re-authentication.
+  private async invokeWithReauthRetry(tool: RemoteTool, target: McpToolCall): Promise<unknown> {
+    try {
+      return await tool.base.invoke(target.input);
+    } catch (cause) {
+      if (!this.reloadWithFreshAuth || !isMcpAuthError(cause)) {
+        throw new McpToolInvocationError(target.name, cause);
+      }
+
+      let refreshedTools: RemoteTool[];
+
+      try {
+        refreshedTools = await this.reloadWithFreshAuth();
+      } catch (refreshError) {
+        // A non-auth refresh failure means nothing ran (the first call was a rejected 401), so clear
+        // the write-ahead marker to keep the step retryable; OAuthReauthRequiredError still pauses.
+        if (!(refreshError instanceof OAuthReauthRequiredError)) {
+          await this.clearReauthPauseState();
+        }
+
+        throw refreshError;
+      }
+
+      const refreshedTool = refreshedTools.find(
+        t => t.base.name === target.name && t.sourceId === target.sourceId,
+      );
+
+      if (!refreshedTool) {
+        // The 401 first call never ran and the reload yielded no tool (empty on a connection
+        // failure), so clear the marker to keep the step retryable rather than wedged.
+        await this.clearReauthPauseState();
+
+        throw new McpToolNotFoundError(target.name);
+      }
+
+      try {
+        return await refreshedTool.base.invoke(target.input);
+      } catch (retryCause) {
+        if (isMcpAuthError(retryCause)) {
+          throw new OAuthReauthRequiredError(this.context.stepDefinition.mcpServerId);
+        }
+
+        throw new McpToolInvocationError(target.name, retryCause);
+      }
+    }
   }
 
   private async formatToolResult(tool: McpToolCall, toolResult: unknown): Promise<string | null> {

@@ -4,17 +4,27 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 import { McpConnectionError } from './errors';
+import { type McpLoadFailureKind, classifyMcpLoadError } from './mcp-auth-error';
 import McpServerRemoteTool from './mcp-server-remote-tool';
 
 export type McpServers = MultiServerMCPClient['config']['mcpServers'];
 
 export type McpServerConfig = MultiServerMCPClient['config']['mcpServers'][string] & {
   id?: string;
+  // Executor-side routing hint served by the orchestrator; stripped before reaching the SDK.
+  authType?: string;
 };
 
 export type McpConfiguration = {
   configs: Record<string, McpServerConfig>;
 } & Omit<MultiServerMCPClient['config'], 'mcpServers'>;
+
+export interface McpServerLoadFailure {
+  server: string;
+  mcpServerId?: string;
+  kind: McpLoadFailureKind;
+  error: Error;
+}
 
 export default class McpClient implements ToolProvider {
   private readonly mcpClients: Record<string, MultiServerMCPClient> = {};
@@ -26,8 +36,11 @@ export default class McpClient implements ToolProvider {
     // split the config into several clients to be more resilient
     // if a mcp server is down, the others will still work
     Object.entries(config.configs).forEach(([name, serverConfig]) => {
-      const { id: mcpServerId, ...rest } = serverConfig as McpServerConfig &
-        Record<string, unknown>;
+      const {
+        id: mcpServerId,
+        authType,
+        ...rest
+      } = serverConfig as McpServerConfig & Record<string, unknown>;
       this.mcpServerIdsByName[name] = mcpServerId;
       this.mcpClients[name] = new MultiServerMCPClient({
         mcpServers: { [name]: rest as McpServerConfig },
@@ -36,9 +49,15 @@ export default class McpClient implements ToolProvider {
     });
   }
 
-  async loadTools(): Promise<McpServerRemoteTool[]> {
+  // Exposes per-server failures classified by cause (auth vs connection) alongside the tools that
+  // did load, so a caller holding a per-user token can tell a revoked token (retry after refresh)
+  // from an unreachable server (genuine failure). loadTools() keeps its tools-only contract.
+  async loadToolsWithFailures(): Promise<{
+    tools: McpServerRemoteTool[];
+    failures: McpServerLoadFailure[];
+  }> {
     const tools: McpServerRemoteTool[] = [];
-    const errors: Array<{ server: string; error: Error }> = [];
+    const failures: McpServerLoadFailure[] = [];
 
     await Promise.all(
       Object.entries(this.mcpClients).map(async ([name, client]) => {
@@ -55,22 +74,31 @@ export default class McpClient implements ToolProvider {
           tools.push(...extendedTools);
         } catch (error) {
           this.logger?.('Error', `Error loading tools for ${name}`, error as Error);
-          errors.push({ server: name, error: error as Error });
+          failures.push({
+            server: name,
+            mcpServerId: this.mcpServerIdsByName[name],
+            kind: classifyMcpLoadError(error),
+            error: error as Error,
+          });
         }
       }),
     );
 
     // Surface partial failures to provide better feedback
-    if (errors.length > 0) {
-      const errorMessage = errors.map(e => `${e.server}: ${e.error.message}`).join('; ');
+    if (failures.length > 0) {
+      const errorMessage = failures.map(f => `${f.server}: ${f.error.message}`).join('; ');
       this.logger?.(
         'Error',
-        `Failed to load tools from ${errors.length}/${Object.keys(this.mcpClients).length} ` +
+        `Failed to load tools from ${failures.length}/${Object.keys(this.mcpClients).length} ` +
           `MCP server(s): ${errorMessage}`,
       );
     }
 
-    return tools;
+    return { tools, failures };
+  }
+
+  async loadTools(): Promise<McpServerRemoteTool[]> {
+    return (await this.loadToolsWithFailures()).tools;
   }
 
   async checkConnection(): Promise<true> {

@@ -24,11 +24,12 @@ Front  ◀──▶  Orchestrator  ◀──pull/push──▶  Executor (this p
 
 - `runner.ts` — main entry: `Runner` (start/stop/triggerPoll, HTTP wiring, graceful drain, auto-chain).
 - `executors/` — one per step type + infra: `base-step-executor.ts` (template method, idempotency hook, error→outcome), `record-step-executor.ts` (shared record-step base), `trigger-record-action-step-executor.ts` (the `trigger-action` step), `step-executor-factory.ts`, `agent-with-log.ts` + `activity-log.ts` (audit-logged agent wrapper for mutating ops). Step types (`StepType`): `condition`, `read-record`, `update-record`, `trigger-action`, `load-related-record`, `mcp`, `guidance`.
-- `ports/` — IO interfaces (all external IO is injected): `agent-port.ts` (datasource: getRecord/updateRecord/getRelatedData/getSingleRelatedData/resolvePolymorphicType/executeAction/getActionFormInfo/getActionForm/probe), `workflow-port.ts` (orchestrator), `run-store.ts` (per-run state).
+- `ports/` — IO interfaces (all external IO is injected): `agent-port.ts` (datasource: getRecord/updateRecord/getRelatedData/getSingleRelatedData/resolvePolymorphicType/executeAction/getActionFormInfo/getActionForm/probe), `workflow-port.ts` (orchestrator), `run-store.ts` (per-run state), `mcp-oauth-credentials-store.ts` (`McpOAuthCredentialsStore` — at-rest OAuth-MCP creds; Database + InMemory impls).
 - `adapters/` — port impls: `agent-client-agent-port.ts` (via `@forestadmin/agent-client`), `forest-server-workflow-port.ts` (HTTP via `forestadmin-client` `ServerUtils`).
-- `stores/` — `InMemoryStore` (tests + the `--in-memory` CLI mode, not for prod), `DatabaseStore` (Sequelize + umzug, `forest` schema), `build-run-store.ts` factories.
+- `stores/` — `InMemoryStore` (tests + the `--in-memory` CLI mode, not for prod), `DatabaseStore` (Sequelize + umzug, `forest` schema), `database-mcp-oauth-credentials-store.ts` / `in-memory-mcp-oauth-credentials-store.ts` (OAuth-MCP creds store, migration `002`), `schema-migrations.ts` (shared `forest`-schema + advisory-lock migration runner), `build-run-store.ts` factories.
+- `crypto/credential-encryption.ts` — at-rest encryption: HKDF (`FOREST_EXECUTOR_ENCRYPTION_KEY`) + AES-256-GCM, lazy key, fail-closed.
 - `types/validated/` — zod schemas + inferred types for everything crossing a trust boundary (`step-definition.ts`, `step-outcome.ts`, `collection.ts`, `execution.ts`). Non-validated runtime types live in `types/*.ts`.
-- `errors.ts` — error hierarchy (see below). `http/executor-http-server.ts` — optional Koa server for the front.
+- `errors.ts` — error hierarchy (see below). `http/executor-http-server.ts` — optional Koa server for the front (`GET /runs/:runId`, `POST /runs/:runId/trigger`, `POST`/`DELETE /mcp-oauth-credentials`); `http/mcp-oauth-credentials.ts` — `.strict()` deposit-body zod + `buildMcpOAuthCredentialInput` mapper.
 
 ## Step types & execution modes
 
