@@ -98,10 +98,10 @@ export type TriggerActionStepDefinition = z.infer<typeof TriggerActionStepDefini
 export const LoadRelatedRecordStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.LoadRelatedRecord),
+  // No `.catch`: it would silently coerce `manual` to AutomatedWithConfirmation (AI prefill back on).
   executionType: z
-    .enum([AutomatedWithConfirmation, FullyAutomated])
-    .default(AutomatedWithConfirmation)
-    .catch(AutomatedWithConfirmation),
+    .enum([Manual, AutomatedWithConfirmation, FullyAutomated])
+    .default(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
       /**

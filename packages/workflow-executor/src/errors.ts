@@ -282,6 +282,17 @@ export class AiInvokeTimeoutError extends WorkflowExecutorError {
   }
 }
 
+// Wraps any AI-call failure (timeout, outage, malformed/missing tool call, out-of-range pick) so
+// handlers degrade to the Manual path. Caught internally — never HTTP-mapped; not exported from index.
+export class AiAssistUnavailableError extends WorkflowExecutorError {
+  readonly reason: unknown;
+
+  constructor(reason: unknown) {
+    super('AI assistance unavailable');
+    this.reason = reason;
+  }
+}
+
 export class NoMcpToolsError extends WorkflowExecutorError {
   constructor(requestedMcpServerId: string) {
     super(
