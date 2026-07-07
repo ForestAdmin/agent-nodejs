@@ -1,5 +1,4 @@
-import type { ForestServerClient } from '../http-client';
-import type { Logger } from '../server';
+import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
@@ -17,12 +16,8 @@ interface ExecuteActionArgument {
   reasoning?: string;
 }
 
-export default function declareExecuteActionTool(
-  mcpServer: McpServer,
-  forestServerClient: ForestServerClient,
-  logger: Logger,
-  collectionNames: string[] = [],
-): string {
+export default function declareExecuteActionTool(mcpServer: McpServer, ctx: ToolContext): string {
+  const { forestServerClient, logger, collectionNames = [] } = ctx;
   const argumentShape = {
     ...createActionArgumentShape(collectionNames),
     reasoning: z
@@ -50,7 +45,11 @@ If you call executeAction with missing required fields, it will return an error 
       inputSchema: argumentShape,
     },
     async (options: ExecuteActionArgument, extra) => {
-      const { rpcClient } = await buildClientWithActions(extra, forestServerClient);
+      const { rpcClient } = await buildClientWithActions(
+        extra,
+        forestServerClient,
+        ctx.agentDispatcher,
+      );
 
       // Cast to satisfy the type system - the API accepts both string[] and number[]
       const recordIds = (options.recordIds ?? []) as string[] | number[];

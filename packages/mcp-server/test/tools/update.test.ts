@@ -42,7 +42,10 @@ describe('declareUpdateTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "update"', () => {
-      declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareUpdateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'update',
@@ -52,7 +55,10 @@ describe('declareUpdateTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareUpdateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.title).toBe('Update a record');
       expect(registeredToolConfig.description).toBe(
@@ -61,13 +67,19 @@ describe('declareUpdateTool', () => {
     });
 
     it('should not be annotated as read-only', () => {
-      declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareUpdateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {
-      declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareUpdateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('recordId');
@@ -75,7 +87,10 @@ describe('declareUpdateTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareUpdateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -86,7 +101,11 @@ describe('declareUpdateTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareUpdateTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'products']);
+      declareUpdateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'products'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -98,7 +117,10 @@ describe('declareUpdateTool', () => {
     });
 
     it('should accept both string and number for recordId', () => {
-      declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareUpdateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -121,7 +143,10 @@ describe('declareUpdateTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareUpdateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareUpdateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -137,7 +162,7 @@ describe('declareUpdateTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra);
+      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
     });
 
     it('should call rpcClient.collection with the collection name', async () => {

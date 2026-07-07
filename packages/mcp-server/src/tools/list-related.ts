@@ -1,6 +1,7 @@
 import type { ListArgument } from './list';
 import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
+import type { ToolContext } from '../tool-context';
 import type { SelectOptions } from '@forestadmin/agent-client';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
@@ -70,12 +71,8 @@ function createErrorEnhancer(
   };
 }
 
-export default function declareListRelatedTool(
-  mcpServer: McpServer,
-  forestServerClient: ForestServerClient,
-  logger: Logger,
-  collectionNames: string[] = [],
-): string {
+export default function declareListRelatedTool(mcpServer: McpServer, ctx: ToolContext): string {
+  const { forestServerClient, logger, collectionNames = [] } = ctx;
   const listArgumentShape = createHasManyArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -88,7 +85,7 @@ export default function declareListRelatedTool(
       inputSchema: listArgumentShape,
     },
     async (options: HasManyArgument, extra) => {
-      const { rpcClient } = buildClient(extra);
+      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
 
       const labelParts = [];
 

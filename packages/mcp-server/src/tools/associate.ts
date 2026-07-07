@@ -1,5 +1,4 @@
-import type { ForestServerClient } from '../http-client';
-import type { Logger } from '../server';
+import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
@@ -29,12 +28,8 @@ function createAssociateArgumentShape(collectionNames: string[]) {
   };
 }
 
-export default function declareAssociateTool(
-  mcpServer: McpServer,
-  forestServerClient: ForestServerClient,
-  logger: Logger,
-  collectionNames: string[] = [],
-): string {
+export default function declareAssociateTool(mcpServer: McpServer, ctx: ToolContext): string {
+  const { forestServerClient, logger, collectionNames = [] } = ctx;
   const argumentShape = createAssociateArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -47,7 +42,7 @@ export default function declareAssociateTool(
       inputSchema: argumentShape,
     },
     async (options: AssociateArgument, extra) => {
-      const { rpcClient } = buildClient(extra);
+      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
 
       return withActivityLog({
         forestServerClient,

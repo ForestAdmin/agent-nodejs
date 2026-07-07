@@ -42,7 +42,10 @@ describe('declareCreateTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "create"', () => {
-      declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareCreateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'create',
@@ -52,7 +55,10 @@ describe('declareCreateTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareCreateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.title).toBe('Create a record');
       expect(registeredToolConfig.description).toBe(
@@ -61,20 +67,29 @@ describe('declareCreateTool', () => {
     });
 
     it('should not be annotated as read-only', () => {
-      declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareCreateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {
-      declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareCreateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('attributes');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareCreateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -85,7 +100,11 @@ describe('declareCreateTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareCreateTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'products']);
+      declareCreateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'products'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -109,7 +128,10 @@ describe('declareCreateTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareCreateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareCreateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -125,7 +147,7 @@ describe('declareCreateTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra);
+      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
     });
 
     it('should call rpcClient.collection with the collection name', async () => {

@@ -42,7 +42,10 @@ describe('declareDissociateTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "dissociate"', () => {
-      declareDissociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDissociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'dissociate',
@@ -52,7 +55,10 @@ describe('declareDissociateTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareDissociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDissociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.title).toBe('Dissociate records from a relation');
       expect(registeredToolConfig.description).toBe(
@@ -61,13 +67,19 @@ describe('declareDissociateTool', () => {
     });
 
     it('should not be annotated as read-only', () => {
-      declareDissociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDissociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {
-      declareDissociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDissociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('relationName');
@@ -76,7 +88,11 @@ describe('declareDissociateTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareDissociateTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'posts']);
+      declareDissociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'posts'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -98,7 +114,10 @@ describe('declareDissociateTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareDissociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDissociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
     });
 
     it('should call dissociate on the relation', async () => {

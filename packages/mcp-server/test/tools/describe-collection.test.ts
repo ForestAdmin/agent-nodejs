@@ -57,7 +57,10 @@ describe('declareDescribeCollectionTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "describeCollection"', () => {
-      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'describeCollection',
@@ -67,7 +70,10 @@ describe('declareDescribeCollectionTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.title).toBe('Describe a collection');
       expect(registeredToolConfig.description).toContain(
@@ -78,19 +84,28 @@ describe('declareDescribeCollectionTool', () => {
     });
 
     it('should be annotated as read-only', () => {
-      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
     });
 
     it('should define correct input schema', () => {
-      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -103,11 +118,11 @@ describe('declareDescribeCollectionTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger, [
-        'users',
-        'products',
-        'orders',
-      ]);
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'products', 'orders'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -135,7 +150,10 @@ describe('declareDescribeCollectionTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareDescribeCollectionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDescribeCollectionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -151,7 +169,7 @@ describe('declareDescribeCollectionTool', () => {
 
       await registeredToolHandler({ collectionName: 'users' }, mockExtra);
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra);
+      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
     });
 
     it('should fetch forest schema', async () => {

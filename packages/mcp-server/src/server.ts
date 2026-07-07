@@ -3,6 +3,8 @@
 import './polyfills';
 
 import type { ForestServerClient } from './http-client';
+import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
+import type { ToolContext } from './tool-context';
 import type { Express } from 'express';
 
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
@@ -132,6 +134,11 @@ export interface ForestMCPServerOptions {
    * the agent's data layer, defaulting to the environment's public `api_endpoint`.
    */
   agentUrl?: string;
+  /**
+   * Set by the agent when mounted: tool calls then dispatch to the agent in-process (no socket)
+   * instead of reaching its public `api_endpoint` over HTTP.
+   */
+  agentDispatcher?: InProcessAgentDispatcher;
 }
 
 /**
@@ -155,6 +162,7 @@ export default class ForestMCPServer {
   private enabledTools: Set<ToolName>;
   private basePath: string;
   private agentUrl?: string;
+  private agentDispatcher?: InProcessAgentDispatcher;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -165,6 +173,7 @@ export default class ForestMCPServer {
     this.enabledTools = this.resolveEnabledTools(options);
     this.basePath = normalizeMountPath(options?.basePath);
     this.agentUrl = normalizeAgentUrl(options?.agentUrl);
+    this.agentDispatcher = options?.agentDispatcher;
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -196,87 +205,24 @@ export default class ForestMCPServer {
       icons: [{ src: LOGO_URL, mimeType: 'image/png' }],
     });
 
+    const ctx: ToolContext = {
+      forestServerClient: this.forestServerClient,
+      logger: this.logger,
+      collectionNames: this.collectionNames,
+      agentDispatcher: this.agentDispatcher,
+    };
+
     const allTools: Array<{ name: ToolName; register: () => string }> = [
-      {
-        name: 'describeCollection',
-        register: () =>
-          declareDescribeCollectionTool(
-            mcpServer,
-            this.forestServerClient,
-            this.logger,
-            this.collectionNames,
-          ),
-      },
-      {
-        name: 'list',
-        register: () =>
-          declareListTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      },
-      {
-        name: 'listRelated',
-        register: () =>
-          declareListRelatedTool(
-            mcpServer,
-            this.forestServerClient,
-            this.logger,
-            this.collectionNames,
-          ),
-      },
-      {
-        name: 'create',
-        register: () =>
-          declareCreateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      },
-      {
-        name: 'update',
-        register: () =>
-          declareUpdateTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      },
-      {
-        name: 'delete',
-        register: () =>
-          declareDeleteTool(mcpServer, this.forestServerClient, this.logger, this.collectionNames),
-      },
-      {
-        name: 'associate',
-        register: () =>
-          declareAssociateTool(
-            mcpServer,
-            this.forestServerClient,
-            this.logger,
-            this.collectionNames,
-          ),
-      },
-      {
-        name: 'dissociate',
-        register: () =>
-          declareDissociateTool(
-            mcpServer,
-            this.forestServerClient,
-            this.logger,
-            this.collectionNames,
-          ),
-      },
-      {
-        name: 'getActionForm',
-        register: () =>
-          declareGetActionFormTool(
-            mcpServer,
-            this.forestServerClient,
-            this.logger,
-            this.collectionNames,
-          ),
-      },
-      {
-        name: 'executeAction',
-        register: () =>
-          declareExecuteActionTool(
-            mcpServer,
-            this.forestServerClient,
-            this.logger,
-            this.collectionNames,
-          ),
-      },
+      { name: 'describeCollection', register: () => declareDescribeCollectionTool(mcpServer, ctx) },
+      { name: 'list', register: () => declareListTool(mcpServer, ctx) },
+      { name: 'listRelated', register: () => declareListRelatedTool(mcpServer, ctx) },
+      { name: 'create', register: () => declareCreateTool(mcpServer, ctx) },
+      { name: 'update', register: () => declareUpdateTool(mcpServer, ctx) },
+      { name: 'delete', register: () => declareDeleteTool(mcpServer, ctx) },
+      { name: 'associate', register: () => declareAssociateTool(mcpServer, ctx) },
+      { name: 'dissociate', register: () => declareDissociateTool(mcpServer, ctx) },
+      { name: 'getActionForm', register: () => declareGetActionFormTool(mcpServer, ctx) },
+      { name: 'executeAction', register: () => declareExecuteActionTool(mcpServer, ctx) },
     ];
 
     const enabledToolEntries = allTools.filter(tool => this.enabledTools.has(tool.name));

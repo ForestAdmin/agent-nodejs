@@ -42,7 +42,10 @@ describe('declareAssociateTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "associate"', () => {
-      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareAssociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'associate',
@@ -52,7 +55,10 @@ describe('declareAssociateTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareAssociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.title).toBe('Associate records in a relation');
       expect(registeredToolConfig.description).toBe(
@@ -61,13 +67,19 @@ describe('declareAssociateTool', () => {
     });
 
     it('should not be annotated as read-only', () => {
-      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareAssociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {
-      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareAssociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('relationName');
@@ -76,7 +88,11 @@ describe('declareAssociateTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'posts']);
+      declareAssociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'posts'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -98,7 +114,10 @@ describe('declareAssociateTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareAssociateTool(mcpServer, mockForestServerClient, mockLogger);
+      declareAssociateTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
     });
 
     it('should call associate on the relation', async () => {

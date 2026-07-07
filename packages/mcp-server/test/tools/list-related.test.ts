@@ -81,7 +81,10 @@ describe('declareListRelatedTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "listRelated"', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'listRelated',
@@ -91,7 +94,10 @@ describe('declareListRelatedTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.title).toBe('List records from a relation');
       expect(registeredToolConfig.description).toBe(
@@ -100,13 +106,19 @@ describe('declareListRelatedTool', () => {
     });
 
     it('should be annotated as read-only', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
     });
 
     it('should define correct input schema', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('relationName');
@@ -117,7 +129,10 @@ describe('declareListRelatedTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -130,7 +145,11 @@ describe('declareListRelatedTool', () => {
     });
 
     it('should use string type for collectionName when empty array provided', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger, []);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -143,11 +162,11 @@ describe('declareListRelatedTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger, [
-        'users',
-        'products',
-        'orders',
-      ]);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'products', 'orders'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -163,7 +182,10 @@ describe('declareListRelatedTool', () => {
     });
 
     it('should accept string parentRecordId', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -173,7 +195,10 @@ describe('declareListRelatedTool', () => {
     });
 
     it('should accept number parentRecordId', () => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -195,7 +220,10 @@ describe('declareListRelatedTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareListRelatedTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListRelatedTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+      });
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -212,7 +240,7 @@ describe('declareListRelatedTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra);
+      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
     });
 
     it('should call rpcClient.collection with the collection name', async () => {

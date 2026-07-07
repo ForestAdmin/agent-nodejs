@@ -425,6 +425,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         forestServerClient,
         enabledTools: this.mcpEnabledTools,
         basePath: this.mcpBasePath,
+        agentDispatcher: this.getInProcessDispatcher(),
       });
 
       const httpCallback = await mcpServer.getHttpCallback();

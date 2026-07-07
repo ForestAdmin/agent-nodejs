@@ -1,5 +1,5 @@
-import type { ForestServerClient } from '../http-client';
 import type { Logger } from '../server';
+import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
@@ -80,10 +80,9 @@ function mapRelationType(relationship: string | undefined): string {
 
 export default function declareDescribeCollectionTool(
   mcpServer: McpServer,
-  forestServerClient: ForestServerClient,
-  logger: Logger,
-  collectionNames: string[] = [],
+  ctx: ToolContext,
 ): string {
+  const { forestServerClient, logger, collectionNames = [] } = ctx;
   const argumentShape = createDescribeCollectionArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -105,7 +104,7 @@ Check \`_meta\` for data availability context.`,
       inputSchema: argumentShape,
     },
     async (options: DescribeCollectionArgument, extra) => {
-      const { rpcClient } = buildClient(extra);
+      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
 
       return withActivityLog({
         forestServerClient,

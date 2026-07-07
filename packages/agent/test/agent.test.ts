@@ -591,6 +591,20 @@ describe('Agent', () => {
       expect(mcpServerSpy).toHaveBeenCalledWith(expect.objectContaining({ basePath: '/mcp' }));
     });
 
+    test('passes an in-process agentDispatcher to ForestMCPServer', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer();
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentDispatcher: expect.objectContaining({ request: expect.any(Function) }),
+        }),
+      );
+    });
+
     test('threads a basePath-scoped route matcher to the MCP middleware', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);
