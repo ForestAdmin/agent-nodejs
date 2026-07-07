@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.14.0...@forestadmin/workflow-executor@1.15.0) (2026-07-07)
+
+
+### Features
+
+* **workflow-executor:** add 3-way execution mode to the load related record step (PRD-148) ([#1728](https://github.com/ForestAdmin/agent-nodejs/issues/1728)) ([43a15c7](https://github.com/ForestAdmin/agent-nodejs/commit/43a15c7e8efa0b3c3a3ef30fbbbbac87f602f870))
+
 # @forestadmin/workflow-executor [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.13.0...@forestadmin/workflow-executor@1.14.0) (2026-07-07)
 
 
