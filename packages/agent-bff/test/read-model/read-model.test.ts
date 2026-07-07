@@ -189,6 +189,16 @@ describe('ReadModel', () => {
       expect(stored.fields).toEqual([]);
     });
 
+    it('should not allow an action named like an Object.prototype member', () => {
+      const model = new ReadModel([
+        collection('users', [], [action('ban', '/forest/users/actions/ban')]),
+      ]);
+
+      expect(model.isActionAllowed('users', 'constructor')).toBe(false);
+      expect(model.isActionAllowed('users', 'toString')).toBe(false);
+      expect(model.isActionAllowed('users', 'hasOwnProperty')).toBe(false);
+    });
+
     it('should not throw on a malformed collection with no fields key', () => {
       const model = new ReadModel([{ name: 'weird' } as unknown as ForestSchemaCollection]);
 

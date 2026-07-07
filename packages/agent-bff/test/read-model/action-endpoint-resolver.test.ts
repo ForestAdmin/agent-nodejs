@@ -64,4 +64,28 @@ describe('ActionEndpointResolver', () => {
       });
     });
   });
+
+  describe('when the metrics backend throws', () => {
+    const throwingMetrics: Metrics = {
+      increment: () => {
+        throw new Error('metrics backend down');
+      },
+      gauge: jest.fn(),
+    };
+
+    it('should still return undefined on a miss (never throws)', async () => {
+      const model = modelWith([action('ban', '/forest/users/actions/ban')]);
+      const resolver = new ActionEndpointResolver(async () => model, throwingMetrics);
+
+      await expect(resolver.resolve('users', 'unknown', { rendering: 7 })).resolves.toBeUndefined();
+    });
+
+    it('should still return undefined on the error path (never throws)', async () => {
+      const resolver = new ActionEndpointResolver(async () => {
+        throw new SchemaUnavailableError();
+      }, throwingMetrics);
+
+      await expect(resolver.resolve('users', 'ban', { rendering: 7 })).resolves.toBeUndefined();
+    });
+  });
 });

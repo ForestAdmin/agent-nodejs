@@ -48,7 +48,9 @@ export default class ReadModel {
   constructor(collections: ForestSchemaCollection[]) {
     this.collections = new Set();
     this.relations = new Map();
-    this.actionEndpoints = {};
+    // Null-prototype so an action/collection named like an Object.prototype member
+    // (`toString`, `constructor`, `__proto__`, …) can't falsely pass the allow-list.
+    this.actionEndpoints = Object.create(null) as ActionEndpointsByCollection;
 
     for (const collection of collections) {
       this.collections.add(collection.name);
@@ -78,7 +80,7 @@ export default class ReadModel {
 
     if (withEndpoint.length === 0) return;
 
-    this.actionEndpoints[collection.name] = {};
+    this.actionEndpoints[collection.name] = Object.create(null);
 
     for (const action of withEndpoint) {
       // Copy fields/hooks so a mutating consumer can't corrupt the shared cached schema, and

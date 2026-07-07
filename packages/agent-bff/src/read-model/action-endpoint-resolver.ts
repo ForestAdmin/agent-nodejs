@@ -37,7 +37,7 @@ export default class ActionEndpointResolver {
     try {
       readModel = await this.getReadModel();
     } catch {
-      this.metrics.increment(ACTION_ENDPOINT_ERROR, tags);
+      this.safeIncrement(ACTION_ENDPOINT_ERROR, tags);
 
       return undefined;
     }
@@ -45,11 +45,20 @@ export default class ActionEndpointResolver {
     const info = readModel.getActionEndpoints()[collection]?.[action];
 
     if (!info) {
-      this.metrics.increment(ACTION_ENDPOINT_MISS, tags);
+      this.safeIncrement(ACTION_ENDPOINT_MISS, tags);
 
       return undefined;
     }
 
     return info;
+  }
+
+  // Metrics is a user-supplied port; a throwing backend must not break the "never throws" contract.
+  private safeIncrement(name: string, tags: Record<string, string | number>): void {
+    try {
+      this.metrics.increment(name, tags);
+    } catch {
+      // Swallow: emitting a metric must never turn a missing action into a request failure.
+    }
   }
 }
