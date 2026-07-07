@@ -1,4 +1,4 @@
-import type { ForestSchemaCollection } from '@forestadmin/forestadmin-client';
+import type { ForestSchemaAction, ForestSchemaCollection } from '@forestadmin/forestadmin-client';
 
 import { action, collection, column, polymorphic, relation } from './fixtures';
 import ReadModel from '../../src/read-model/read-model';
@@ -171,6 +171,22 @@ describe('ReadModel', () => {
       expect(() => {
         endpoints.users.ban.endpoint = 'mutated';
       }).toThrow();
+    });
+
+    it('should default hooks and fields when a malformed action omits them', () => {
+      const malformed = {
+        id: 'ban-id',
+        name: 'ban',
+        type: 'single',
+        endpoint: '/forest/users/actions/ban',
+        download: false,
+      } as unknown as ForestSchemaAction;
+      const model = new ReadModel([collection('users', [], [malformed])]);
+
+      const stored = model.getActionEndpoints().users.ban;
+
+      expect(stored.hooks).toEqual({ load: false, change: [] });
+      expect(stored.fields).toEqual([]);
     });
 
     it('should not throw on a malformed collection with no fields key', () => {

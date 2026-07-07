@@ -81,13 +81,15 @@ export default class ReadModel {
     this.actionEndpoints[collection.name] = {};
 
     for (const action of withEndpoint) {
-      // Copy fields/hooks so a mutating consumer can't corrupt the shared cached schema.
+      // Copy fields/hooks so a mutating consumer can't corrupt the shared cached schema, and
+      // default them defensively: the schema is cast from `Record<string, unknown>`, so a
+      // malformed action could omit them at runtime despite the declared type.
       this.actionEndpoints[collection.name][action.name] = {
         id: action.id,
         name: action.name,
         endpoint: action.endpoint,
-        hooks: { ...action.hooks, change: [...action.hooks.change] },
-        fields: action.fields.map(field => ({ ...field })),
+        hooks: { load: action.hooks?.load ?? false, change: [...(action.hooks?.change ?? [])] },
+        fields: (action.fields ?? []).map(field => ({ ...field })),
       };
     }
   }
