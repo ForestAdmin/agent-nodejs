@@ -1,3 +1,4 @@
+import { AgentHttpError } from '@forestadmin/agent-client';
 import { z } from 'zod';
 
 import registerToolWithLogging from '../../src/utils/tool-with-logging';
@@ -169,6 +170,46 @@ describe('registerToolWithLogging', () => {
       const result = await registeredHandler({ name: 'test', count: 42 }, {});
       expect(result).toEqual({
         content: [{ type: 'text', text: '[object Object]' }],
+        isError: true,
+      });
+    });
+
+    it('should surface the agent error detail and HTTP status for an AgentHttpError', async () => {
+      const error = new AgentHttpError(422, {
+        errors: [{ name: 'ValidationError', detail: 'The value "reason" is required' }],
+      });
+      const handler = jest.fn().mockRejectedValue(error);
+
+      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
+
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: 'The value "reason" is required (HTTP 422)' }],
+        isError: true,
+      });
+    });
+
+    it('should return the generic HTTP message without a doubled status when the body is not JSON:API', async () => {
+      const error = new AgentHttpError(500, '<html>Internal Server Error</html>');
+      const handler = jest.fn().mockRejectedValue(error);
+
+      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
+
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: 'Agent responded with HTTP 500' }],
+        isError: true,
+      });
+    });
+
+    it('should use the message of a thrown non-Error object that has one', async () => {
+      const handler = jest.fn().mockRejectedValue({ message: 'boom', code: 'X' });
+
+      registerToolWithLogging(mockMcpServer as never, 'test-tool', toolConfig, handler, mockLogger);
+
+      const result = await registeredHandler({ name: 'test', count: 42 }, {});
+      expect(result).toEqual({
+        content: [{ type: 'text', text: 'boom' }],
         isError: true,
       });
     });

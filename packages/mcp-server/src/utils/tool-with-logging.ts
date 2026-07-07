@@ -10,6 +10,8 @@ import type {
 
 import { z } from 'zod';
 
+import parseAgentError from './error-parser';
+
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -114,7 +116,7 @@ export default function registerToolWithLogging<
         let message: string;
 
         try {
-          message = error instanceof Error ? error.message : JSON.stringify(error) ?? String(error);
+          message = parseAgentError(error) ?? JSON.stringify(error) ?? String(error);
         } catch {
           message = String(error);
         }

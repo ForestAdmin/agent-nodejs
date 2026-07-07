@@ -17,10 +17,13 @@ function jsonApiDetail(body: unknown, text?: string): string | null {
   return null;
 }
 
-// Turn an agent RPC error into a human-readable message (AgentHttpError detail, else raw message).
+// Turn an agent RPC error into a human-readable message: the JSON:API detail with its HTTP status
+// when one can be extracted, else the raw message (which already carries the status).
 export default function parseAgentError(error: unknown): string | null {
   if (error instanceof AgentHttpError) {
-    return jsonApiDetail(error.body, error.responseText) ?? error.message;
+    const detail = jsonApiDetail(error.body, error.responseText);
+
+    return detail ? `${detail} (HTTP ${error.status})` : error.message;
   }
 
   if (error && typeof error === 'object' && 'message' in error) {
