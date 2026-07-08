@@ -1,22 +1,18 @@
 import type { Logger } from '@forestadmin/datasource-toolkit';
-import type { InProcessAgentDispatcher } from '@forestadmin/mcp-server';
+import type {
+  InProcessAgentDispatcher,
+  InProcessDispatchRequest,
+  InProcessDispatchResponse,
+} from '@forestadmin/mcp-server';
 import type { RequestListener } from 'http';
 
 import inject, { type InjectOptions, type InjectPayload } from 'light-my-request';
 
-export type InProcessRequest = {
-  method: string;
-  path: string;
-  headers: Record<string, string>;
-  query?: Record<string, unknown>;
-  payload?: unknown;
-  timeoutMs?: number;
-};
+// Single-sourced from mcp-server (the dispatcher contract) — no re-declaration to drift.
+export type InProcessRequest = InProcessDispatchRequest;
+export type InProcessResponse = InProcessDispatchResponse;
 
-// Superagent-shaped so agent-client's HttpRequester helpers parse it identically.
-export type InProcessResponse = { status: number; body: unknown; text: string };
-
-// Matches superagent's HTTP path, which times out after 10s (HttpRequester.query/stream).
+// Matches superagent's HTTP path, which times out after 10s (HttpRequester.query).
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 function toStringQuery(query: Record<string, unknown>): Record<string, string> {

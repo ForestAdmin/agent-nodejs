@@ -35,7 +35,6 @@ function createClient(options: BuildClientOptions) {
     throw new Error('Authentication token is missing');
   }
 
-  // Mounted in an agent: reach it in-process. Standalone: reach the public api_endpoint over HTTP.
   const httpRequester = agentDispatcher
     ? new InProcessHttpRequester(token, agentDispatcher)
     : undefined;
