@@ -3,7 +3,6 @@ import type { Logger } from '../ports/logger-port';
 import { AgentHttpError } from '@forestadmin/agent-client';
 
 import { BffHttpError } from './bff-http-error';
-import { mappingError } from './bff-local-errors';
 
 const STATUS_BAD_REQUEST = 400;
 const STATUS_UNAUTHORIZED = 401;
@@ -81,20 +80,24 @@ function mapJsonApiError(
 ): BffHttpError {
   const status = coerceStatus(agentError.status, fallbackStatus);
   const message = agentError.detail ?? agentError.message ?? DEFAULT_ERROR_MESSAGE;
+  const mappedType = agentError.name ? AGENT_ERROR_TYPE_MAP[agentError.name] : undefined;
 
-  if (agentError.name !== undefined) {
-    const type = AGENT_ERROR_TYPE_MAP[agentError.name];
-
-    if (type === undefined) {
-      logger('Error', 'Unmapped agent error name', { name: agentError.name, status });
-
-      return mappingError(`Unmapped agent error name: ${agentError.name}`);
-    }
-
-    return new BffHttpError(status, type, message, agentError.data);
+  // An unknown agent name (e.g. a ValidationError subclass like MissingCollectionError, whose
+  // `name` is its own class name) keeps the agent's real status/category via the status-derived
+  // type instead of collapsing to a 500. Log it so a curated mapping can be added.
+  if (agentError.name && mappedType === undefined) {
+    logger('Warn', 'Unmapped agent error name; using status-derived type', {
+      name: agentError.name,
+      status,
+    });
   }
 
-  return new BffHttpError(status, fallbackTypeByStatus(status), message, agentError.data);
+  return new BffHttpError(
+    status,
+    mappedType ?? fallbackTypeByStatus(status),
+    message,
+    agentError.data,
+  );
 }
 
 function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined {
@@ -126,6 +129,9 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
     const agentError = parseJsonApiFromMessage(error);
     if (agentError) return mapJsonApiError(agentError, STATUS_BAD_REQUEST, logger);
 
+    // No HTTP response: treated as a transport failure reaching the agent. Callers must scope their
+    // try/catch to the agent call so a local BFF bug surfaces as a 500 through the error middleware
+    // rather than being mislabelled network_error here.
     const message = error instanceof Error ? error.message : DEFAULT_NETWORK_MESSAGE;
 
     return new BffHttpError(STATUS_BAD_GATEWAY, TYPE_NETWORK_ERROR, message);

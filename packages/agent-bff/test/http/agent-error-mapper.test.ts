@@ -129,19 +129,40 @@ describe('mapAgentError', () => {
     });
   });
 
-  it('maps an unmapped agent error name to mapping_error (500) and logs it', () => {
+  it('maps an unmapped agent error name to the status-derived type (preserving status) and logs it', () => {
     const error = new AgentHttpError(
       400,
-      jsonApiBody({ name: 'MissingCollectionError', status: 400, detail: 'gone' }),
+      jsonApiBody({
+        name: 'MissingCollectionError',
+        status: 400,
+        detail: 'gone',
+        data: { field: 'x' },
+      }),
     );
 
     const result = mapAgentError(error, { logger });
 
-    expect(result).toMatchObject({ type: 'mapping_error', status: 500 });
+    expect(result).toMatchObject({
+      type: 'invalid_request',
+      status: 400,
+      message: 'gone',
+      details: { field: 'x' },
+    });
     expect(logger).toHaveBeenCalledWith(
-      'Error',
+      'Warn',
       expect.any(String),
-      expect.objectContaining({ name: 'MissingCollectionError' }),
+      expect.objectContaining({ name: 'MissingCollectionError', status: 400 }),
     );
+  });
+
+  it('maps an unmapped agent error name with an unmapped status to invalid_request', () => {
+    const error = new AgentHttpError(
+      418,
+      jsonApiBody({ name: 'TeapotError', status: 418, detail: 'nope' }),
+    );
+
+    const result = mapAgentError(error, { logger });
+
+    expect(result).toMatchObject({ type: 'invalid_request', status: 418 });
   });
 });
