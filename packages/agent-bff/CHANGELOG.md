@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.5.0...@forestadmin/agent-bff@1.6.0) (2026-07-08)
+
+
+### Features
+
+* **agent-bff:** fetch and cache agent schema, capabilities and allow-list ([#1732](https://github.com/ForestAdmin/agent-nodejs/issues/1732)) ([54b445b](https://github.com/ForestAdmin/agent-nodejs/commit/54b445b0061ca566e56f792634876951ec9c70e6))
+
 # @forestadmin/agent-bff [1.5.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.4.1...@forestadmin/agent-bff@1.5.0) (2026-07-07)
 
 
