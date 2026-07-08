@@ -1,3 +1,4 @@
+import bodyParser from '@koa/bodyparser';
 import Router from '@koa/router';
 import Koa from 'koa';
 
@@ -106,6 +107,31 @@ describe('InProcessDispatcher', () => {
       received: { name: 'Ada' },
       contentType: 'application/json',
     });
+  });
+
+  it('preserves router-level middleware (bodyParser) so a mutating body reaches the route parsed', async () => {
+    // Mirrors FrameworkMounter.getInProcessDispatcher(): a `/forest`-prefixed router wrapping a
+    // driver router that carries bodyParser via `router.use()` (as agent.ts does). Guards against
+    // a regression where the wrapping drops router-level middleware and mutating tool calls
+    // (create/update/…) reach the route with an unparsed body.
+    const driver = new Router();
+    driver.use(bodyParser({ parsedMethods: ['POST', 'PUT', 'PATCH', 'DELETE'] }));
+    driver.post('/users', ctx => {
+      ctx.body = { got: ctx.request.body };
+    });
+    const dispatcher = new InProcessDispatcher();
+    dispatcher.setHandler(
+      new Koa().use(new Router({ prefix: '/forest' }).use(driver.routes()).routes()).callback(),
+    );
+
+    const response = await dispatcher.request({
+      method: 'post',
+      path: '/forest/users',
+      headers: { 'Content-Type': 'application/json' },
+      payload: { email: 'in@process.dev' },
+    });
+
+    expect(response.body).toEqual({ got: { email: 'in@process.dev' } });
   });
 
   it('rejects when the handler does not respond within the timeout', async () => {
