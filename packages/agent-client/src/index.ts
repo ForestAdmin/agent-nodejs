@@ -14,7 +14,7 @@ import AgentHttpError, {
   ActionRequiresApprovalError,
   ApprovalRequestCreationError,
 } from './errors';
-import HttpRequester, { buildAgentHttpError, deserializeAgentBody } from './http-requester';
+import HttpRequester from './http-requester';
 
 export {
   ActionFieldJson,
@@ -22,8 +22,6 @@ export {
   makeCreateApprovalRequest,
   RemoteAgentClient,
   HttpRequester,
-  buildAgentHttpError,
-  deserializeAgentBody,
   AgentHttpError,
   ActionRequiresApprovalError,
   ActionFormValidationError,

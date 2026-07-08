@@ -1,10 +1,6 @@
 import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
 
-import {
-  HttpRequester,
-  buildAgentHttpError,
-  deserializeAgentBody,
-} from '@forestadmin/agent-client';
+import { HttpRequester } from '@forestadmin/agent-client';
 
 /**
  * HttpRequester that reaches the agent in-process (via the dispatcher) instead of over the network.
@@ -54,8 +50,8 @@ export default class InProcessHttpRequester extends HttpRequester {
       timeoutMs: maxTimeAllowed,
     });
 
-    if (status >= 400) throw buildAgentHttpError(status, responseBody, text);
+    if (status >= 400) throw this.buildError(status, responseBody, text);
 
-    return deserializeAgentBody<Data>(this.deserializer, responseBody, text, skipDeserialization);
+    return this.deserialize<Data>(responseBody, text, skipDeserialization);
   }
 }

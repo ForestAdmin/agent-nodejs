@@ -15,29 +15,6 @@ function parseJson(text: string | undefined): unknown {
   }
 }
 
-// Any transport reaching the agent must build this exact AgentHttpError shape — the approval-gate
-// detection in domains/action.ts routes on it.
-export function buildAgentHttpError(status: number, body: unknown, text?: string): AgentHttpError {
-  const hasBody = !!body && typeof body === 'object' && Object.keys(body).length > 0;
-
-  return new AgentHttpError(status, hasBody ? body : parseJson(text), text);
-}
-
-export async function deserializeAgentBody<Data>(
-  deserializer: Deserializer,
-  body: unknown,
-  text: string | undefined,
-  skipDeserialization?: boolean,
-): Promise<Data> {
-  if (skipDeserialization) return body as Data;
-
-  try {
-    return (await deserializer.deserialize(body)) as Data;
-  } catch {
-    return (body ?? text) as Data;
-  }
-}
-
 export default class HttpRequester {
   protected readonly deserializer: Deserializer;
 
@@ -52,6 +29,28 @@ export default class HttpRequester {
     private readonly options: { prefix?: string; url: string },
   ) {
     this.deserializer = new Deserializer({ keyForAttribute: 'camelCase' });
+  }
+
+  // Any transport reaching the agent must build this exact AgentHttpError shape — the approval-gate
+  // detection in domains/action.ts routes on it. Shared with in-process transports via subclassing.
+  protected buildError(status: number, body: unknown, text?: string): AgentHttpError {
+    const hasBody = !!body && typeof body === 'object' && Object.keys(body).length > 0;
+
+    return new AgentHttpError(status, hasBody ? body : parseJson(text), text);
+  }
+
+  protected async deserialize<Data>(
+    body: unknown,
+    text: string | undefined,
+    skipDeserialization?: boolean,
+  ): Promise<Data> {
+    if (skipDeserialization) return body as Data;
+
+    try {
+      return (await this.deserializer.deserialize(body)) as Data;
+    } catch {
+      return (body ?? text) as Data;
+    }
   }
 
   async query<Data = unknown>({
@@ -85,12 +84,7 @@ export default class HttpRequester {
 
       const response = await req;
 
-      return await deserializeAgentBody<Data>(
-        this.deserializer,
-        response.body,
-        response.text,
-        skipDeserialization,
-      );
+      return await this.deserialize<Data>(response.body, response.text, skipDeserialization);
     } catch (error) {
       const res = (error as { response?: { status?: number; body?: unknown; text?: string } })
         .response;
@@ -98,7 +92,7 @@ export default class HttpRequester {
 
       const text = typeof res.text === 'string' ? res.text : undefined;
 
-      throw buildAgentHttpError(res.status ?? 0, res.body, text);
+      throw this.buildError(res.status ?? 0, res.body, text);
     }
   }
 
