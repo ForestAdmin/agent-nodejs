@@ -16,7 +16,7 @@ export default class InProcessHttpRequester extends HttpRequester {
     private readonly bearerToken: string,
     private readonly dispatcher: InProcessAgentDispatcher,
   ) {
-    // Base url is unused: query()/stream() are overridden to dispatch in-process.
+    // Base url is unused: query() is overridden to dispatch in-process.
     super(bearerToken, { url: 'http://in-process.agent' });
   }
 
@@ -57,11 +57,5 @@ export default class InProcessHttpRequester extends HttpRequester {
     if (status >= 400) throw buildAgentHttpError(status, responseBody, text);
 
     return deserializeAgentBody<Data>(this.deserializer, responseBody, text, skipDeserialization);
-  }
-
-  override async stream(): Promise<void> {
-    throw new Error(
-      'CSV export is not supported when the MCP server runs in-process in the agent.',
-    );
   }
 }

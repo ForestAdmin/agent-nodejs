@@ -85,10 +85,4 @@ describe('InProcessHttpRequester', () => {
 
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 2000 }));
   });
-
-  it('does not support CSV export in-process', async () => {
-    const { requester } = setup({ status: 200, body: null, text: '' });
-
-    await expect(requester.stream()).rejects.toThrow('CSV export is not supported');
-  });
 });
