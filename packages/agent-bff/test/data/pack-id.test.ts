@@ -24,6 +24,12 @@ describe('unpackPrimaryKey', () => {
     );
   });
 
+  it('should throw a 500 mapping error when a Number segment is not numeric', () => {
+    expect(() => unpackPrimaryKey('abc', [{ name: 'id', type: 'Number' }])).toThrow(
+      expect.objectContaining({ type: 'mapping_error', status: 500 }),
+    );
+  });
+
   it('should throw a 500 mapping error when segment count does not match the keys', () => {
     expect(() =>
       unpackPrimaryKey('7', [

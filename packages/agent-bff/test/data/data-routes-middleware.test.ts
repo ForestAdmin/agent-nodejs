@@ -27,14 +27,18 @@ function storeOf(readModel: ReadModel | Error): ReadModelStore {
   } as unknown as ReadModelStore;
 }
 
-function buildApp(store: ReadModelStore, client: Partial<AgentDataClient>) {
+function buildApp(
+  store: ReadModelStore,
+  client: Partial<AgentDataClient>,
+  { agentToken = 'agent-jwt' }: { agentToken?: string | null } = {},
+) {
   const app = new Koa();
   app.silent = true;
   app.use(createErrorMiddleware({ logger: noopLogger }));
   app.use(bodyParser());
   app.use(async (ctx, next) => {
     ctx.state.timezone = TIMEZONE;
-    ctx.state.agentToken = 'agent-jwt';
+    if (agentToken !== null) ctx.state.agentToken = agentToken;
     await next();
   });
   app.use(
@@ -140,6 +144,26 @@ describe('data routes middleware', () => {
 
       expect(response.status).toBe(503);
       expect(response.body.error).toMatchObject({ type: 'schema_unavailable', status: 503 });
+    });
+
+    it('should return 401 when no agent token is available (e.g. OAuth mode)', async () => {
+      const list = jest.fn();
+      const app = buildApp(storeOf(usersReadModel), { list }, { agentToken: null });
+
+      const response = await request(app.callback()).post('/agent/v1/users/list').send({});
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toMatchObject({ type: 'unauthorized', status: 401 });
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 for a malformed percent-encoded collection name', async () => {
+      const app = buildApp(storeOf(usersReadModel), { list: jest.fn() });
+
+      const response = await request(app.callback()).post('/agent/v1/%E0%A4%A/list').send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
     });
   });
 

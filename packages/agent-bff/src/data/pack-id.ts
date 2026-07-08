@@ -33,7 +33,22 @@ export default function unpackPrimaryKey(
 
   primaryKeys.forEach(({ name, type }, index) => {
     const value = values[index];
-    result[name] = type === NUMBER_COLUMN_TYPE ? Number(value) : value;
+
+    if (type !== NUMBER_COLUMN_TYPE) {
+      result[name] = value;
+
+      return;
+    }
+
+    const numeric = Number(value);
+
+    if (Number.isNaN(numeric)) {
+      throw mappingError(
+        `Cannot build primary key: invalid numeric value "${value}" for "${name}"`,
+      );
+    }
+
+    result[name] = numeric;
   });
 
   return result;

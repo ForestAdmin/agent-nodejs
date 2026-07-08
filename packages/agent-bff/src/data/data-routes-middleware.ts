@@ -15,7 +15,8 @@ import {
 } from './agent-query';
 import { mapCountResponse, mapListResponse } from './response-mappers';
 import { mapAgentError } from '../http/agent-error-mapper';
-import { schemaUnavailable, unknownCollection } from '../http/bff-local-errors';
+import { unauthorized } from '../http/bff-http-error';
+import { invalidRequest, schemaUnavailable, unknownCollection } from '../http/bff-local-errors';
 import SchemaUnavailableError from '../read-model/errors';
 import assertNoRelationFieldPaths from '../validation/relation-field-guard';
 
@@ -33,6 +34,16 @@ interface RequestHandlerDeps {
   client: AgentDataClient;
   timezone: string;
   logger: Logger;
+}
+
+type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
+
+function decodeCollection(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    throw invalidRequest('Malformed collection name in path');
+  }
 }
 
 async function resolveReadModel(store: ReadModelStore): Promise<ReadModel> {
@@ -54,19 +65,14 @@ async function callAgent<T>(fn: () => Promise<T>, logger: Logger): Promise<T> {
   }
 }
 
-async function handleList(
-  ctx: Context,
-  body: ListRequestBody,
-  deps: RequestHandlerDeps,
-  primaryKeys: PrimaryKeyField[],
-) {
+async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
   const query = buildListAgentQuery(deps.collection, deps.timezone, body);
   const records = await callAgent(() => deps.client.list(deps.collection, query), deps.logger);
 
   ctx.status = 200;
-  ctx.body = mapListResponse(deps.collection, records, primaryKeys);
+  ctx.body = mapListResponse(deps.collection, records, deps.primaryKeys);
 }
 
 async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerDeps) {
@@ -94,8 +100,15 @@ export default function createDataRoutesMiddleware({
       return;
     }
 
-    const collection = decodeURIComponent(match[1]);
+    const collection = decodeCollection(match[1]);
     const operation = match[2] as 'list' | 'count';
+
+    // The agent token is minted only on the API-key path; the OAuth path sets a principal but no
+    // agent token yet. Fail closed instead of calling the agent with `Bearer undefined`.
+    // TODO(PRD-637): mint an agent token from the OAuth principal so data routes work in OAuth mode.
+    const token = ctx.state.agentToken as string | undefined;
+    if (!token) throw unauthorized('No agent credentials for this request');
+
     const readModel = await resolveReadModel(store);
 
     if (!readModel.isCollectionAllowed(collection)) {
@@ -108,14 +121,14 @@ export default function createDataRoutesMiddleware({
 
     const deps: RequestHandlerDeps = {
       collection,
-      client: createClient({ agentUrl, token: ctx.state.agentToken as string }),
+      client: createClient({ agentUrl, token }),
       timezone: ctx.state.timezone as string,
       logger,
     };
     const body = (ctx.request.body ?? {}) as ListRequestBody & CountRequestBody;
 
     if (operation === 'list') {
-      await handleList(ctx, body, deps, readModel.getPrimaryKeys(collection));
+      await handleList(ctx, body, { ...deps, primaryKeys: readModel.getPrimaryKeys(collection) });
     } else {
       await handleCount(ctx, body, deps);
     }
