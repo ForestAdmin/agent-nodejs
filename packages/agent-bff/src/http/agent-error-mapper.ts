@@ -142,8 +142,10 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
 
     // No HTTP response: treated as a transport failure reaching the agent. Log the real cause but
     // return a generic message — transport errors embed internal topology (hostnames/IPs) that must
-    // not leak to the client. Callers must scope their try/catch to the agent call so a local BFF
-    // bug surfaces as a 500 through the error middleware rather than being mislabelled here.
+    // not leak to the client. Semantic agent-client errors (action form validation / approval
+    // outcomes) are NOT transport failures: the action endpoint catches and maps those before this
+    // fallback. Callers must scope their try/catch to the agent call so a local BFF bug surfaces as
+    // a 500 through the error middleware rather than being mislabelled here.
     logger('Warn', 'Agent transport failure mapped to network_error', {
       cause: error instanceof Error ? error.message : String(error),
     });
