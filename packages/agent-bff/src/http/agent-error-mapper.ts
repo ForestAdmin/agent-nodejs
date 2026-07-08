@@ -86,7 +86,10 @@ function mapJsonApiError(
   fallbackStatus: number,
   logger: Logger,
 ): BffHttpError {
-  const status = coerceStatus(agentError.status, fallbackStatus);
+  const bodyStatus = coerceStatus(agentError.status, fallbackStatus);
+  // A JSON:API error status must be a 4xx/5xx. If the body reports a non-error code (e.g. 200),
+  // trust the enclosing status instead so an upstream failure is never surfaced as a 2xx/3xx.
+  const status = bodyStatus >= STATUS_BAD_REQUEST ? bodyStatus : fallbackStatus;
 
   // Normalize a 5xx here too (not only in the AgentHttpError branch), so a wrapped-message error
   // carrying a 5xx JSON:API body is reported as agent_unavailable, not a client-error type.

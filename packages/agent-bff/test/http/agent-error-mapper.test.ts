@@ -93,6 +93,17 @@ describe('mapAgentError', () => {
     expect(result).toMatchObject({ type: 'forbidden', status: 403, message: 'nope' });
   });
 
+  it('ignores a non-error JSON:API status and keeps the enclosing error status', () => {
+    const error = new AgentHttpError(
+      404,
+      jsonApiBody({ name: 'NotFoundError', status: 200, detail: 'gone' }),
+    );
+
+    const result = mapAgentError(error, { logger });
+
+    expect(result).toMatchObject({ type: 'not_found', status: 404 });
+  });
+
   it('normalizes a wrapped-message JSON:API 5xx to agent_unavailable (503)', () => {
     const error = new Error(
       JSON.stringify(jsonApiBody({ name: 'InternalServerError', status: 503, detail: 'down' })),
