@@ -4,16 +4,6 @@ import { AgentHttpError } from '@forestadmin/agent-client';
 
 import { BffHttpError } from './bff-http-error';
 
-const STATUS_BAD_REQUEST = 400;
-const STATUS_UNAUTHORIZED = 401;
-const STATUS_FORBIDDEN = 403;
-const STATUS_NOT_FOUND = 404;
-const STATUS_UNPROCESSABLE = 422;
-const STATUS_TOO_MANY_REQUESTS = 429;
-const STATUS_SERVER_ERROR = 500;
-const STATUS_BAD_GATEWAY = 502;
-const STATUS_SERVICE_UNAVAILABLE = 503;
-
 const TYPE_INVALID_REQUEST = 'invalid_request';
 const TYPE_VALIDATION_ERROR = 'validation_error';
 const TYPE_UNAUTHORIZED = 'unauthorized';
@@ -24,11 +14,22 @@ const TYPE_TOO_MANY_REQUESTS = 'too_many_requests';
 const TYPE_NETWORK_ERROR = 'network_error';
 const TYPE_AGENT_UNAVAILABLE = 'agent_unavailable';
 
+type BffErrorType =
+  | typeof TYPE_INVALID_REQUEST
+  | typeof TYPE_VALIDATION_ERROR
+  | typeof TYPE_UNAUTHORIZED
+  | typeof TYPE_FORBIDDEN
+  | typeof TYPE_NOT_FOUND
+  | typeof TYPE_UNPROCESSABLE
+  | typeof TYPE_TOO_MANY_REQUESTS
+  | typeof TYPE_NETWORK_ERROR
+  | typeof TYPE_AGENT_UNAVAILABLE;
+
 const DEFAULT_NETWORK_MESSAGE = 'The agent could not be reached';
 const DEFAULT_UNAVAILABLE_MESSAGE = 'The agent is unavailable';
 const DEFAULT_ERROR_MESSAGE = 'Unexpected error';
 
-export const AGENT_ERROR_TYPE_MAP: Record<string, string> = {
+export const AGENT_ERROR_TYPE_MAP: Record<string, BffErrorType> = {
   ValidationError: TYPE_VALIDATION_ERROR,
   BadRequestError: TYPE_INVALID_REQUEST,
   UnauthorizedError: TYPE_UNAUTHORIZED,
@@ -38,13 +39,13 @@ export const AGENT_ERROR_TYPE_MAP: Record<string, string> = {
   TooManyRequestsError: TYPE_TOO_MANY_REQUESTS,
 };
 
-const FALLBACK_TYPE_BY_STATUS: Record<number, string> = {
-  [STATUS_BAD_REQUEST]: TYPE_INVALID_REQUEST,
-  [STATUS_UNAUTHORIZED]: TYPE_UNAUTHORIZED,
-  [STATUS_FORBIDDEN]: TYPE_FORBIDDEN,
-  [STATUS_NOT_FOUND]: TYPE_NOT_FOUND,
-  [STATUS_UNPROCESSABLE]: TYPE_UNPROCESSABLE,
-  [STATUS_TOO_MANY_REQUESTS]: TYPE_TOO_MANY_REQUESTS,
+const FALLBACK_TYPE_BY_STATUS: Record<number, BffErrorType> = {
+  400: TYPE_INVALID_REQUEST,
+  401: TYPE_UNAUTHORIZED,
+  403: TYPE_FORBIDDEN,
+  404: TYPE_NOT_FOUND,
+  422: TYPE_UNPROCESSABLE,
+  429: TYPE_TOO_MANY_REQUESTS,
 };
 
 interface AgentJsonApiError {
@@ -61,16 +62,12 @@ function coerceStatus(status: number | string | undefined, fallback: number): nu
   return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function fallbackTypeByStatus(status: number): string {
+function fallbackTypeByStatus(status: number): BffErrorType {
   return FALLBACK_TYPE_BY_STATUS[status] ?? TYPE_INVALID_REQUEST;
 }
 
 function agentUnavailable(): BffHttpError {
-  return new BffHttpError(
-    STATUS_SERVICE_UNAVAILABLE,
-    TYPE_AGENT_UNAVAILABLE,
-    DEFAULT_UNAVAILABLE_MESSAGE,
-  );
+  return new BffHttpError(503, TYPE_AGENT_UNAVAILABLE, DEFAULT_UNAVAILABLE_MESSAGE);
 }
 
 function firstJsonApiError(body: unknown): AgentJsonApiError | undefined {
@@ -87,13 +84,11 @@ function mapJsonApiError(
   logger: Logger,
 ): BffHttpError {
   const bodyStatus = coerceStatus(agentError.status, fallbackStatus);
-  // A JSON:API error status must be a 4xx/5xx. If the body reports a non-error code (e.g. 200),
-  // trust the enclosing status instead so an upstream failure is never surfaced as a 2xx/3xx.
-  const status = bodyStatus >= STATUS_BAD_REQUEST ? bodyStatus : fallbackStatus;
+  // Never surface an upstream failure as a 2xx/3xx: ignore a non-error body status.
+  const status = bodyStatus >= 400 ? bodyStatus : fallbackStatus;
 
-  // Normalize a 5xx here too (not only in the AgentHttpError branch), so a wrapped-message error
-  // carrying a 5xx JSON:API body is reported as agent_unavailable, not a client-error type.
-  if (status >= STATUS_SERVER_ERROR) return agentUnavailable();
+  // The wrapped-message path skips the outer AgentHttpError 5xx check, so normalize here too.
+  if (status >= 500) return agentUnavailable();
 
   const message = agentError.detail ?? agentError.message ?? DEFAULT_ERROR_MESSAGE;
   const mappedType = agentError.name ? AGENT_ERROR_TYPE_MAP[agentError.name] : undefined;
@@ -143,17 +138,20 @@ function mapFlatBody(status: number, body: unknown, responseText?: string): BffH
 export function mapAgentError(error: unknown, { logger }: { logger: Logger }): BffHttpError {
   if (!(error instanceof AgentHttpError)) {
     const agentError = parseJsonApiFromMessage(error);
-    if (agentError) return mapJsonApiError(agentError, STATUS_BAD_REQUEST, logger);
+    if (agentError) return mapJsonApiError(agentError, 400, logger);
 
-    // No HTTP response: treated as a transport failure reaching the agent. Callers must scope their
-    // try/catch to the agent call so a local BFF bug surfaces as a 500 through the error middleware
-    // rather than being mislabelled network_error here.
-    const message = error instanceof Error ? error.message : DEFAULT_NETWORK_MESSAGE;
+    // No HTTP response: treated as a transport failure reaching the agent. Log the real cause but
+    // return a generic message — transport errors embed internal topology (hostnames/IPs) that must
+    // not leak to the client. Callers must scope their try/catch to the agent call so a local BFF
+    // bug surfaces as a 500 through the error middleware rather than being mislabelled here.
+    logger('Warn', 'Agent transport failure mapped to network_error', {
+      cause: error instanceof Error ? error.message : String(error),
+    });
 
-    return new BffHttpError(STATUS_BAD_GATEWAY, TYPE_NETWORK_ERROR, message);
+    return new BffHttpError(502, TYPE_NETWORK_ERROR, DEFAULT_NETWORK_MESSAGE);
   }
 
-  if (error.status >= STATUS_SERVER_ERROR) return agentUnavailable();
+  if (error.status >= 500) return agentUnavailable();
 
   const agentError = firstJsonApiError(error.body);
   if (agentError) return mapJsonApiError(agentError, error.status, logger);

@@ -114,10 +114,46 @@ describe('mapAgentError', () => {
     expect(result).toMatchObject({ type: 'agent_unavailable', status: 503 });
   });
 
-  it('maps a transport failure to network_error (502)', () => {
-    const result = mapAgentError(new Error('ECONNREFUSED'), { logger });
+  it('normalizes a 5xx JSON:API body inside an AgentHttpError whose outer status is not 5xx', () => {
+    const error = new AgentHttpError(400, jsonApiBody({ name: 'X', status: 503, detail: 'down' }));
+
+    const result = mapAgentError(error, { logger });
+
+    expect(result).toMatchObject({ type: 'agent_unavailable', status: 503 });
+  });
+
+  it('maps a transport failure to network_error (502) with a generic message and logs the cause', () => {
+    const result = mapAgentError(new Error('connect ECONNREFUSED 10.0.4.23:8080'), { logger });
+
+    expect(result).toMatchObject({
+      type: 'network_error',
+      status: 502,
+      message: 'The agent could not be reached',
+    });
+    expect(result.message).not.toContain('10.0.4.23');
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.any(String),
+      expect.objectContaining({ cause: 'connect ECONNREFUSED 10.0.4.23:8080' }),
+    );
+  });
+
+  it('maps valid JSON without an errors array to network_error and logs it', () => {
+    const result = mapAgentError(new Error('{"foo":"bar"}'), { logger });
 
     expect(result).toMatchObject({ type: 'network_error', status: 502 });
+    expect(logger).toHaveBeenCalledWith('Warn', expect.any(String), expect.anything());
+  });
+
+  it('falls back to the enclosing status when the JSON:API status is non-numeric', () => {
+    const error = new AgentHttpError(
+      404,
+      jsonApiBody({ name: 'NotFoundError', status: 'abc', detail: 'x' }),
+    );
+
+    const result = mapAgentError(error, { logger });
+
+    expect(result).toMatchObject({ type: 'not_found', status: 404 });
   });
 
   it('normalizes an agent 500 to agent_unavailable (503)', () => {
@@ -136,6 +172,12 @@ describe('mapAgentError', () => {
     const result = mapAgentError(new AgentHttpError(400, { error: 'boom' }), { logger });
 
     expect(result).toMatchObject({ type: 'invalid_request', status: 400, message: 'boom' });
+  });
+
+  it('uses body.message when a flat body has no error field', () => {
+    const result = mapAgentError(new AgentHttpError(400, { message: 'from message' }), { logger });
+
+    expect(result).toMatchObject({ type: 'invalid_request', status: 400, message: 'from message' });
   });
 
   it('falls back to responseText when the agent body is not a JSON error object', () => {
