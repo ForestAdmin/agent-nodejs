@@ -148,12 +148,16 @@ describe('buildClient', () => {
       );
     });
 
-    it('does not require environmentApiEndpoint', () => {
+    it('wires the in-process requester with an empty url when environmentApiEndpoint is absent', () => {
       const request = {
         authInfo: { token: 'test-token', extra: {} },
       } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-      expect(() => buildClient(request, agentDispatcher)).not.toThrow();
+      buildClient(request, agentDispatcher);
+
+      expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
+        expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester), url: '' }),
+      );
     });
   });
 

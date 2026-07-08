@@ -85,4 +85,12 @@ describe('InProcessHttpRequester', () => {
 
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 2000 }));
   });
+
+  it('throws on stream() instead of hitting the sentinel host (CSV unsupported in-process)', async () => {
+    const { requester } = setup({ status: 200, body: {}, text: '{}' });
+
+    await expect(requester.stream()).rejects.toThrow(
+      'CSV streaming is not supported over the in-process MCP transport',
+    );
+  });
 });

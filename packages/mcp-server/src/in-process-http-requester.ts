@@ -12,8 +12,15 @@ export default class InProcessHttpRequester extends HttpRequester {
     private readonly bearerToken: string,
     private readonly dispatcher: InProcessAgentDispatcher,
   ) {
-    // Base url is unused: query() is overridden to dispatch in-process.
+    // Sentinel base url that never reaches the network: query() dispatches in-process and stream()
+    // throws below, so nothing ever resolves this host.
     super(bearerToken, { url: 'http://in-process.agent' });
+  }
+
+  // CSV export is not supported in-process; throw eagerly rather than let the inherited stream()
+  // fire a doomed request at the sentinel host (a ~10s hang). No MCP tool streams today.
+  override async stream(): Promise<void> {
+    throw new Error('CSV streaming is not supported over the in-process MCP transport');
   }
 
   override async query<Data = unknown>({
