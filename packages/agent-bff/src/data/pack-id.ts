@@ -4,8 +4,7 @@ import { mappingError } from '../http/bff-local-errors';
 
 const PACKED_ID_SEPARATOR = '|';
 
-// The only column type that roundtrips through a non-string value, mirroring the agent's
-// `IdUtils.unpackId`. Centralized so the token is not duplicated as a bare string literal.
+// The only column type unpacked to a number, mirroring the agent's `IdUtils.unpackId`.
 const NUMBER_COLUMN_TYPE = 'Number';
 
 /**

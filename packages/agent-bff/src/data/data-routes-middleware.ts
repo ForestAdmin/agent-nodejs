@@ -2,6 +2,7 @@ import type { AgentDataClient, AgentDataClientOptions } from './agent-data-clien
 import type { CountRequestBody, ListRequestBody } from './agent-query';
 import type { Logger } from '../ports/logger-port';
 import type ReadModel from '../read-model/read-model';
+import type { PrimaryKeyField } from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
 import type { Context, Middleware } from 'koa';
 
@@ -27,9 +28,8 @@ export interface DataRoutesMiddlewareOptions {
   createClient?: (options: AgentDataClientOptions) => AgentDataClient;
 }
 
-interface RequestHandlerContext {
+interface RequestHandlerDeps {
   collection: string;
-  readModel: ReadModel;
   client: AgentDataClient;
   timezone: string;
   logger: Logger;
@@ -54,21 +54,22 @@ async function callAgent<T>(fn: () => Promise<T>, logger: Logger): Promise<T> {
   }
 }
 
-async function handleList(ctx: Context, body: ListRequestBody, deps: RequestHandlerContext) {
+async function handleList(
+  ctx: Context,
+  body: ListRequestBody,
+  deps: RequestHandlerDeps,
+  primaryKeys: PrimaryKeyField[],
+) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
   const query = buildListAgentQuery(deps.collection, deps.timezone, body);
   const records = await callAgent(() => deps.client.list(deps.collection, query), deps.logger);
 
   ctx.status = 200;
-  ctx.body = mapListResponse(
-    deps.collection,
-    records,
-    deps.readModel.getPrimaryKeys(deps.collection),
-  );
+  ctx.body = mapListResponse(deps.collection, records, primaryKeys);
 }
 
-async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerContext) {
+async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerDeps) {
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
 
   const query = buildCountAgentQuery(deps.timezone, body);
@@ -105,16 +106,18 @@ export default function createDataRoutesMiddleware({
       throw unknownCollection(`Unknown collection: ${collection}`);
     }
 
-    const deps: RequestHandlerContext = {
+    const deps: RequestHandlerDeps = {
       collection,
-      readModel,
       client: createClient({ agentUrl, token: ctx.state.agentToken as string }),
       timezone: ctx.state.timezone as string,
       logger,
     };
     const body = (ctx.request.body ?? {}) as ListRequestBody & CountRequestBody;
 
-    if (operation === 'list') await handleList(ctx, body, deps);
-    else await handleCount(ctx, body, deps);
+    if (operation === 'list') {
+      await handleList(ctx, body, deps, readModel.getPrimaryKeys(collection));
+    } else {
+      await handleCount(ctx, body, deps);
+    }
   };
 }
