@@ -63,7 +63,11 @@ export default class InProcessDispatcher implements InProcessAgentDispatcher {
       timeoutMs,
     );
 
-    return { status: response.statusCode, body: this.parseBody(response), text: response.payload };
+    return {
+      status: response.statusCode,
+      body: this.parseBody(response.payload, response.statusCode),
+      text: response.payload,
+    };
   }
 
   private async injectWithTimeout(options: InjectOptions, timeoutMs: number) {
@@ -75,20 +79,38 @@ export default class InProcessDispatcher implements InProcessAgentDispatcher {
       );
     });
 
+    const injection = inject(this.handler as RequestListener, options);
+    // If the timeout wins the race, `injection` is left unobserved; swallow+log a late settlement so
+    // a handler that rejects after the timeout can't surface as an unhandledRejection.
+    injection.catch(error =>
+      this.logger?.(
+        'Warn',
+        `In-process handler settled after the ${timeoutMs}ms timeout: ${error}`,
+      ),
+    );
+
     try {
-      return await Promise.race([inject(this.handler as RequestListener, options), timeout]);
+      return await Promise.race([injection, timeout]);
     } finally {
       if (timer) clearTimeout(timer);
     }
   }
 
-  private parseBody(response: { payload: string }): unknown {
-    if (response.payload === '') return undefined;
+  private parseBody(payload: string, status: number): unknown {
+    if (payload === '') return undefined;
 
     try {
-      return JSON.parse(response.payload);
-    } catch (error) {
-      this.logger?.('Warn', `In-process dispatch received a non-JSON response body: ${error}`);
+      return JSON.parse(payload);
+    } catch {
+      const preview = payload.length > 200 ? `${payload.slice(0, 200)}…` : payload;
+      const message = `In-process dispatch received a non-JSON ${status} response body: ${preview}`;
+
+      // A 2xx must carry a JSON:API body here; a non-JSON success body means misbehaving middleware
+      // (HTML, redirect) — fail loudly rather than hand the tool `undefined`. On 4xx+ the raw text
+      // is preserved by the error path (buildError falls back to parseJson(text)), so drop the body.
+      if (status < 400) throw new Error(message);
+
+      this.logger?.('Warn', message);
 
       return undefined;
     }

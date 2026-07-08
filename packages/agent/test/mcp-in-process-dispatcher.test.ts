@@ -159,9 +159,8 @@ describe('InProcessDispatcher', () => {
     expect(response.body).toBeUndefined();
   });
 
-  it('warns and returns an undefined body when a non-empty response body is not JSON', async () => {
-    const logger = jest.fn();
-    const dispatcher = new InProcessDispatcher(logger);
+  it('throws when a 2xx response body is not JSON (misbehaving middleware)', async () => {
+    const dispatcher = new InProcessDispatcher(jest.fn());
     dispatcher.setHandler(
       handlerFor(r =>
         r.get('/broken', ctx => {
@@ -171,11 +170,33 @@ describe('InProcessDispatcher', () => {
       ),
     );
 
-    const response = await dispatcher.request({ method: 'get', path: '/broken', headers: {} });
+    await expect(
+      dispatcher.request({ method: 'get', path: '/broken', headers: {} }),
+    ).rejects.toThrow(/non-JSON 200 response body: not json/);
+  });
 
+  it('warns and returns an undefined body for a non-JSON error (4xx+) body', async () => {
+    const logger = jest.fn();
+    const dispatcher = new InProcessDispatcher(logger);
+    dispatcher.setHandler(
+      handlerFor(r =>
+        r.get('/gateway', ctx => {
+          ctx.status = 502;
+          ctx.type = 'text/plain';
+          ctx.body = 'gateway boom';
+        }),
+      ),
+    );
+
+    const response = await dispatcher.request({ method: 'get', path: '/gateway', headers: {} });
+
+    expect(response.status).toBe(502);
     expect(response.body).toBeUndefined();
-    expect(response.text).toBe('not json');
-    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('non-JSON response body'));
+    expect(response.text).toBe('gateway boom');
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      expect.stringContaining('non-JSON 502 response body: gateway boom'),
+    );
   });
 
   it('reflects a handler swap (remount) instead of a stale reference', async () => {
