@@ -4,6 +4,10 @@ import { mappingError } from '../http/bff-local-errors';
 
 const PACKED_ID_SEPARATOR = '|';
 
+// The only column type that roundtrips through a non-string value, mirroring the agent's
+// `IdUtils.unpackId`. Centralized so the token is not duplicated as a bare string literal.
+const NUMBER_COLUMN_TYPE = 'Number';
+
 /**
  * Rebuild the structured primary key of a record from its opaque packed id, mirroring the agent's
  * `IdUtils.packId`/`unpackId` (`|`-joined values, `Number` columns cast back to numbers). Returns a
@@ -30,7 +34,7 @@ export default function unpackPrimaryKey(
 
   primaryKeys.forEach(({ name, type }, index) => {
     const value = values[index];
-    result[name] = type === 'Number' ? Number(value) : value;
+    result[name] = type === NUMBER_COLUMN_TYPE ? Number(value) : value;
   });
 
   return result;

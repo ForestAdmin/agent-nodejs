@@ -3,8 +3,6 @@ import type { PrimaryKeyField } from '../read-model/read-model';
 import unpackPrimaryKey from './pack-id';
 import { mappingError } from '../http/bff-local-errors';
 
-export type CountStatus = 'available' | 'deactivated' | 'not_requested';
-
 export interface ForestRecordMetadata {
   collection: string;
   primaryKey: Record<string, string | number>;
@@ -44,6 +42,10 @@ export function mapListResponse(
   return { data, meta: { countStatus: 'not_requested' } };
 }
 
+// The spec allows deriving deactivation from schema metadata first, else the raw agent payload.
+// Neither the Forest schema nor the capabilities response exposes a count flag (the agent decides
+// countability at request time in `access/count.ts`), so the raw payload's `meta.count` marker is
+// the only available signal — schema-first is not implementable without an agent change.
 export function mapCountResponse(raw: unknown): CountResponse {
   const body = (typeof raw === 'object' && raw !== null ? raw : {}) as {
     count?: unknown;

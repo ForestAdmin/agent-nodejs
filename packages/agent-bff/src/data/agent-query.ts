@@ -24,7 +24,6 @@ export interface CountRequestBody {
 export type AgentQuery = Record<string, unknown> & { timezone: string };
 
 interface ConditionTreeBranch {
-  aggregator: string;
   conditions: unknown[];
 }
 

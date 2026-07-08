@@ -1,8 +1,9 @@
 import type { AgentDataClient, AgentDataClientOptions } from './agent-data-client';
 import type { CountRequestBody, ListRequestBody } from './agent-query';
 import type { Logger } from '../ports/logger-port';
+import type ReadModel from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
-import type { Middleware } from 'koa';
+import type { Context, Middleware } from 'koa';
 
 import defaultCreateAgentDataClient from './agent-data-client';
 import {
@@ -26,13 +27,55 @@ export interface DataRoutesMiddlewareOptions {
   createClient?: (options: AgentDataClientOptions) => AgentDataClient;
 }
 
-async function resolveReadModel(store: ReadModelStore) {
+interface RequestHandlerContext {
+  collection: string;
+  readModel: ReadModel;
+  client: AgentDataClient;
+  timezone: string;
+  logger: Logger;
+}
+
+async function resolveReadModel(store: ReadModelStore): Promise<ReadModel> {
   try {
     return await store.getReadModel();
   } catch (error) {
     if (error instanceof SchemaUnavailableError) throw schemaUnavailable();
     throw error;
   }
+}
+
+// Only the agent call is wrapped: guard, query-building and mapping errors are BFF-origin and must
+// keep their own type, not be recategorized as agent errors.
+async function callAgent<T>(fn: () => Promise<T>, logger: Logger): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    throw mapAgentError(error, { logger });
+  }
+}
+
+async function handleList(ctx: Context, body: ListRequestBody, deps: RequestHandlerContext) {
+  assertNoRelationFieldPaths(collectListFieldPaths(body));
+
+  const query = buildListAgentQuery(deps.collection, deps.timezone, body);
+  const records = await callAgent(() => deps.client.list(deps.collection, query), deps.logger);
+
+  ctx.status = 200;
+  ctx.body = mapListResponse(
+    deps.collection,
+    records,
+    deps.readModel.getPrimaryKeys(deps.collection),
+  );
+}
+
+async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerContext) {
+  assertNoRelationFieldPaths(collectCountFieldPaths(body));
+
+  const query = buildCountAgentQuery(deps.timezone, body);
+  const raw = await callAgent(() => deps.client.countRaw(deps.collection, query), deps.logger);
+
+  ctx.status = 200;
+  ctx.body = mapCountResponse(raw);
 }
 
 export default function createDataRoutesMiddleware({
@@ -52,7 +95,6 @@ export default function createDataRoutesMiddleware({
 
     const collection = decodeURIComponent(match[1]);
     const operation = match[2] as 'list' | 'count';
-
     const readModel = await resolveReadModel(store);
 
     if (!readModel.isCollectionAllowed(collection)) {
@@ -63,41 +105,16 @@ export default function createDataRoutesMiddleware({
       throw unknownCollection(`Unknown collection: ${collection}`);
     }
 
-    const timezone = ctx.state.timezone as string;
-    const token = ctx.state.agentToken as string;
-    const client = createClient({ agentUrl, token });
+    const deps: RequestHandlerContext = {
+      collection,
+      readModel,
+      client: createClient({ agentUrl, token: ctx.state.agentToken as string }),
+      timezone: ctx.state.timezone as string,
+      logger,
+    };
     const body = (ctx.request.body ?? {}) as ListRequestBody & CountRequestBody;
 
-    if (operation === 'list') {
-      assertNoRelationFieldPaths(collectListFieldPaths(body));
-
-      const query = buildListAgentQuery(collection, timezone, body);
-      let records: Record<string, unknown>[];
-
-      try {
-        records = await client.list(collection, query);
-      } catch (error) {
-        throw mapAgentError(error, { logger });
-      }
-
-      ctx.status = 200;
-      ctx.body = mapListResponse(collection, records, readModel.getPrimaryKeys(collection));
-
-      return;
-    }
-
-    assertNoRelationFieldPaths(collectCountFieldPaths(body));
-
-    const query = buildCountAgentQuery(timezone, body);
-    let raw: unknown;
-
-    try {
-      raw = await client.countRaw(collection, query);
-    } catch (error) {
-      throw mapAgentError(error, { logger });
-    }
-
-    ctx.status = 200;
-    ctx.body = mapCountResponse(raw);
+    if (operation === 'list') await handleList(ctx, body, deps);
+    else await handleCount(ctx, body, deps);
   };
 }
