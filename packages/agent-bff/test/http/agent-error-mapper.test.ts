@@ -93,6 +93,16 @@ describe('mapAgentError', () => {
     expect(result).toMatchObject({ type: 'forbidden', status: 403, message: 'nope' });
   });
 
+  it('normalizes a wrapped-message JSON:API 5xx to agent_unavailable (503)', () => {
+    const error = new Error(
+      JSON.stringify(jsonApiBody({ name: 'InternalServerError', status: 503, detail: 'down' })),
+    );
+
+    const result = mapAgentError(error, { logger });
+
+    expect(result).toMatchObject({ type: 'agent_unavailable', status: 503 });
+  });
+
   it('maps a transport failure to network_error (502)', () => {
     const result = mapAgentError(new Error('ECONNREFUSED'), { logger });
 

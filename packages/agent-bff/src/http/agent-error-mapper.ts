@@ -65,6 +65,14 @@ function fallbackTypeByStatus(status: number): string {
   return FALLBACK_TYPE_BY_STATUS[status] ?? TYPE_INVALID_REQUEST;
 }
 
+function agentUnavailable(): BffHttpError {
+  return new BffHttpError(
+    STATUS_SERVICE_UNAVAILABLE,
+    TYPE_AGENT_UNAVAILABLE,
+    DEFAULT_UNAVAILABLE_MESSAGE,
+  );
+}
+
 function firstJsonApiError(body: unknown): AgentJsonApiError | undefined {
   if (typeof body !== 'object' || body === null) return undefined;
 
@@ -79,6 +87,11 @@ function mapJsonApiError(
   logger: Logger,
 ): BffHttpError {
   const status = coerceStatus(agentError.status, fallbackStatus);
+
+  // Normalize a 5xx here too (not only in the AgentHttpError branch), so a wrapped-message error
+  // carrying a 5xx JSON:API body is reported as agent_unavailable, not a client-error type.
+  if (status >= STATUS_SERVER_ERROR) return agentUnavailable();
+
   const message = agentError.detail ?? agentError.message ?? DEFAULT_ERROR_MESSAGE;
   const mappedType = agentError.name ? AGENT_ERROR_TYPE_MAP[agentError.name] : undefined;
 
@@ -137,13 +150,7 @@ export function mapAgentError(error: unknown, { logger }: { logger: Logger }): B
     return new BffHttpError(STATUS_BAD_GATEWAY, TYPE_NETWORK_ERROR, message);
   }
 
-  if (error.status >= STATUS_SERVER_ERROR) {
-    return new BffHttpError(
-      STATUS_SERVICE_UNAVAILABLE,
-      TYPE_AGENT_UNAVAILABLE,
-      DEFAULT_UNAVAILABLE_MESSAGE,
-    );
-  }
+  if (error.status >= STATUS_SERVER_ERROR) return agentUnavailable();
 
   const agentError = firstJsonApiError(error.body);
   if (agentError) return mapJsonApiError(agentError, error.status, logger);
