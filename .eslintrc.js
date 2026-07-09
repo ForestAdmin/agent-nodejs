@@ -33,8 +33,8 @@ module.exports = {
     // Options-object pattern is the norm; flag drift without forcing signature refactors.
     'max-params': ['warn', 4],
 
-    // Long functions are a smell; scoped to src (excluded for tests below).
-    'max-lines-per-function': ['warn', 50],
+    // Long functions are a smell; count code lines only, scoped to src (excluded for tests below).
+    'max-lines-per-function': ['warn', { max: 50, skipBlankLines: true, skipComments: true }],
 
     // Code spacing
     'prettier/prettier': 'error',
