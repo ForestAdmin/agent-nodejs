@@ -33,9 +33,10 @@ export default function createAgentDataClient({
 }: AgentDataClientOptions): AgentDataClient {
   const requester = new HttpRequester(token, { url: agentUrl });
 
+  // Segments are passed raw: HttpRequester.buildUrl already runs the whole path through
+  // escapeUrlSlug/encodeURI, so pre-encoding here would double-encode (`|` -> `%257C`).
   const relationPath = (collection: string, parentId: string, relation: string) =>
-    `/forest/${encodeURIComponent(collection)}/${encodeURIComponent(parentId)}` +
-    `/relationships/${encodeURIComponent(relation)}`;
+    `/forest/${collection}/${parentId}/relationships/${relation}`;
 
   return {
     list: (collection, query) =>

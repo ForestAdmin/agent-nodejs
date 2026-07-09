@@ -74,6 +74,7 @@ const relationReadModel = new ReadModel([
     column('email'),
     relation('posts', 'HasMany', 'posts.id'),
     relation('company', 'BelongsTo', 'companies.id'),
+    relation('secrets', 'HasMany', 'secrets.id'),
     polymorphic('avatar', ['images', 'files']),
   ]),
   collection('posts', [column('id'), column('title')]),
@@ -487,6 +488,19 @@ describe('data routes middleware', () => {
 
       expect(response.status).toBe(404);
       expect(response.body.error).toMatchObject({ type: 'unknown_relation', status: 404 });
+      expect(listRelation).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 unknown_collection when the relation targets a disallowed collection', async () => {
+      const listRelation = jest.fn();
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/secrets/list')
+        .send({ parentId: '7' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
       expect(listRelation).not.toHaveBeenCalled();
     });
 
