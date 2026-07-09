@@ -175,6 +175,16 @@ describe('data routes middleware', () => {
       expect(response.body.error).toMatchObject({ type: 'schema_unavailable', status: 503 });
     });
 
+    it('should return 500 mapping_error when an agent record has no id', async () => {
+      const list = jest.fn(async () => [{ email: 'user@example.com' }]);
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      const response = await request(app.callback()).post('/agent/v1/users/list').send({});
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toMatchObject({ type: 'mapping_error', status: 500 });
+    });
+
     it('should rethrow a non-schema read-model error as a 500', async () => {
       const app = buildApp(storeOf(new Error('boom')), { list: jest.fn() });
 
@@ -295,6 +305,38 @@ describe('data routes middleware', () => {
 
       expect(response.status).toBe(404);
       expect(response.body.error).toMatchObject({ type: 'not_found', status: 404 });
+    });
+
+    it('should return 404 for an unknown collection', async () => {
+      const countRaw = jest.fn();
+      const app = buildApp(storeOf(usersReadModel), { countRaw });
+
+      const response = await request(app.callback()).post('/agent/v1/ghosts/count').send({});
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
+      expect(countRaw).not.toHaveBeenCalled();
+    });
+
+    it('should return 503 schema_unavailable when the schema cannot be loaded', async () => {
+      const app = buildApp(storeOf(new SchemaUnavailableError()), { countRaw: jest.fn() });
+
+      const response = await request(app.callback()).post('/agent/v1/users/count').send({});
+
+      expect(response.status).toBe(503);
+      expect(response.body.error).toMatchObject({ type: 'schema_unavailable', status: 503 });
+    });
+
+    it('should pass the resolved timezone to the agent query', async () => {
+      const countRaw = jest.fn(async () => ({ count: 0 }));
+      const app = buildApp(storeOf(usersReadModel), { countRaw });
+
+      await request(app.callback()).post('/agent/v1/users/count').send({});
+
+      expect(countRaw).toHaveBeenCalledWith(
+        'users',
+        expect.objectContaining({ timezone: TIMEZONE }),
+      );
     });
   });
 });

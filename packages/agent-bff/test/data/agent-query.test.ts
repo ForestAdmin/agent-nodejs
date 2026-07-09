@@ -68,6 +68,10 @@ describe('buildCountAgentQuery', () => {
       filters: JSON.stringify({ field: 'active', operator: 'equal' }),
     });
   });
+
+  it('should emit only the timezone when no filter is provided', () => {
+    expect(buildCountAgentQuery('UTC', {})).toEqual({ timezone: 'UTC' });
+  });
 });
 
 describe('collectListFieldPaths', () => {
