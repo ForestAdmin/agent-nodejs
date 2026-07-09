@@ -17,11 +17,24 @@ module.exports = {
     sourceType: 'module',
     project: ['./tsconfig.eslint.json'],
   },
-  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting'],
+  plugins: ['@typescript-eslint', 'prettier', 'jest', 'jest-formatting', 'unicorn', 'promise'],
   rules: {
     /**********/
     /** Style */
     /**********/
+
+    // Kebab-case filenames avoid case-sensitivity mismatches between macOS and Linux CI.
+    // Generated parser, snake-case demo fixtures, and _-grouped tests are relaxed below.
+    'unicorn/filename-case': ['error', { case: 'kebabCase' }],
+
+    // Prefer async/await over .then chains; a smell, not a build blocker.
+    'promise/prefer-await-to-then': 'warn',
+
+    // Options-object pattern is the norm; flag drift without forcing signature refactors.
+    'max-params': ['warn', 4],
+
+    // Long functions are a smell; scoped to src (excluded for tests below).
+    'max-lines-per-function': ['warn', 50],
 
     // Code spacing
     'prettier/prettier': 'error',
@@ -142,6 +155,24 @@ module.exports = {
             ],
           },
         ],
+      },
+    },
+    {
+      // Generated ANTLR parser: cannot rename without breaking regeneration.
+      files: ['**/generated-parser/**/*'],
+      rules: { 'unicorn/filename-case': 'off' },
+    },
+    {
+      // Demo fixtures mirror snake_case database table names.
+      files: ['packages/datasource-demo-fintech/**/*'],
+      rules: { 'unicorn/filename-case': 'off' },
+    },
+    {
+      // Tests use _-grouped filenames and long describe/it callbacks.
+      files: ['**/test/**/*'],
+      rules: {
+        'unicorn/filename-case': 'off',
+        'max-lines-per-function': 'off',
       },
     },
   ],
