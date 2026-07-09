@@ -12,6 +12,8 @@ import {
   buildListAgentQuery,
   collectCountFieldPaths,
   collectListFieldPaths,
+  parseCountRequest,
+  parseListRequest,
 } from './agent-query';
 import { mapCountResponse, mapListResponse } from './response-mappers';
 import { mapAgentError } from '../http/agent-error-mapper';
@@ -125,11 +127,13 @@ export default function createDataRoutesMiddleware({
       timezone: ctx.state.timezone as string,
       logger,
     };
-    const body = (ctx.request.body ?? {}) as ListRequestBody & CountRequestBody;
+    const rawBody = ctx.request.body ?? {};
 
     if (operation === 'list') {
+      const body = parseListRequest(rawBody);
       await handleList(ctx, body, { ...deps, primaryKeys: readModel.getPrimaryKeys(collection) });
     } else {
+      const body = parseCountRequest(rawBody);
       await handleCount(ctx, body, deps);
     }
   };

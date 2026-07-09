@@ -3,6 +3,8 @@ import {
   buildListAgentQuery,
   collectCountFieldPaths,
   collectListFieldPaths,
+  parseCountRequest,
+  parseListRequest,
 } from '../../src/data/agent-query';
 
 describe('buildListAgentQuery', () => {
@@ -77,6 +79,42 @@ describe('collectListFieldPaths', () => {
     });
 
     expect(paths).toEqual(['id', 'company:name', 'email', 'owner:email', 'author:name']);
+  });
+});
+
+describe('parseListRequest', () => {
+  it('should accept a well-formed body', () => {
+    const body = {
+      filter: { field: 'email', operator: 'present' },
+      projection: ['id'],
+      sort: [{ field: 'createdAt', direction: 'desc' }],
+      page: { limit: 10, offset: 0 },
+    };
+
+    expect(parseListRequest(body)).toBe(body);
+  });
+
+  it.each([
+    ['a non-object body', 'nope'],
+    ['a string projection', { projection: 'id' }],
+    ['a non-string projection entry', { projection: [1] }],
+    ['a string sort', { sort: 'createdAt' }],
+    ['a sort clause without a field', { sort: [{ direction: 'asc' }] }],
+    ['an invalid sort direction', { sort: [{ field: 'a', direction: 'up' }] }],
+    ['a string filter', { filter: 'id' }],
+    ['a string page', { page: '10' }],
+  ])('should reject %s with 400 invalid_request', (_label, body) => {
+    expect(() => parseListRequest(body)).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+});
+
+describe('parseCountRequest', () => {
+  it('should reject a string filter with 400 invalid_request', () => {
+    expect(() => parseCountRequest({ filter: 'id' })).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
   });
 });
 

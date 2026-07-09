@@ -23,6 +23,59 @@ export interface CountRequestBody {
 
 export type AgentQuery = Record<string, unknown> & { timezone: string };
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Validate the untyped request body before it reaches the query builders, so malformed shapes
+// (e.g. `projection` or `sort` as a string) surface as 400 invalid_request rather than a 500 from
+// an array method blowing up downstream.
+export function parseListRequest(body: unknown): ListRequestBody {
+  if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
+
+  const { filter, projection, sort, page } = body;
+
+  if (projection !== undefined) {
+    if (!Array.isArray(projection) || projection.some(field => typeof field !== 'string')) {
+      throw invalidRequest('projection must be an array of field names');
+    }
+  }
+
+  if (sort !== undefined) {
+    const valid =
+      Array.isArray(sort) &&
+      sort.every(
+        clause =>
+          isPlainObject(clause) &&
+          typeof clause.field === 'string' &&
+          (clause.direction === undefined ||
+            clause.direction === 'asc' ||
+            clause.direction === 'desc'),
+      );
+    if (!valid) throw invalidRequest('sort must be an array of { field, direction? }');
+  }
+
+  if (filter !== undefined && !isPlainObject(filter)) {
+    throw invalidRequest('filter must be an object');
+  }
+
+  if (page !== undefined && !isPlainObject(page)) {
+    throw invalidRequest('page must be an object with limit and offset');
+  }
+
+  return body as ListRequestBody;
+}
+
+export function parseCountRequest(body: unknown): CountRequestBody {
+  if (!isPlainObject(body)) throw invalidRequest('Request body must be an object');
+
+  if (body.filter !== undefined && !isPlainObject(body.filter)) {
+    throw invalidRequest('filter must be an object');
+  }
+
+  return body as CountRequestBody;
+}
+
 interface ConditionTreeBranch {
   conditions: unknown[];
 }

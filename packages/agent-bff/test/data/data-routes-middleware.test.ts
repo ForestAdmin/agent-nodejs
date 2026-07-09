@@ -165,6 +165,19 @@ describe('data routes middleware', () => {
       expect(response.status).toBe(400);
       expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
     });
+
+    it('should return 400 when projection is not an array instead of a 500', async () => {
+      const list = jest.fn();
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ projection: 'id' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+      expect(list).not.toHaveBeenCalled();
+    });
   });
 
   describe('count', () => {
