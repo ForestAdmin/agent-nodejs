@@ -5,6 +5,7 @@ import {
   collectListFieldPaths,
   parseCountRequest,
   parseListRequest,
+  parseParentId,
 } from '../../src/data/agent-query';
 
 describe('buildListAgentQuery', () => {
@@ -124,6 +125,35 @@ describe('parseCountRequest', () => {
     ['an array', []],
   ])('should reject a non-object body (%s) with 400 invalid_request', (_label, body) => {
     expect(() => parseCountRequest(body)).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+});
+
+describe('parseParentId', () => {
+  it('should return a non-empty string unchanged, including a composite packed id', () => {
+    expect(parseParentId('a|b')).toBe('a|b');
+    expect(parseParentId('550e8400-e29b-41d4-a716-446655440000')).toBe(
+      '550e8400-e29b-41d4-a716-446655440000',
+    );
+  });
+
+  it('should coerce a finite number to a string', () => {
+    expect(parseParentId(42)).toBe('42');
+  });
+
+  it.each([
+    ['undefined', undefined],
+    ['null', null],
+    ['empty string', ''],
+    ['whitespace', '   '],
+    ['object', {}],
+    ['array', []],
+    ['boolean', true],
+    ['NaN', NaN],
+    ['Infinity', Infinity],
+  ])('should reject %s with invalid_request', (_label, value) => {
+    expect(() => parseParentId(value)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
