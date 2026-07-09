@@ -209,6 +209,18 @@ describe('action routes middleware', () => {
     expect(loadActionForm).toHaveBeenCalledWith('users', 'approve', ['1|2']);
   });
 
+  it('coerces a numeric zero recordId to a string so it survives the downstream filter', async () => {
+    const form = makeAction();
+    const loadActionForm = jest.fn(async () => form);
+    const app = buildApp(storeOf(readModel), clientOf(form, loadActionForm));
+
+    await request(app.callback())
+      .post('/agent/v1/users/actions/approve/form')
+      .send({ recordIds: [0] });
+
+    expect(loadActionForm).toHaveBeenCalledWith('users', 'approve', ['0']);
+  });
+
   it('accepts an empty recordIds array for a global action', async () => {
     const form = makeAction();
     const loadActionForm = jest.fn(async () => form);

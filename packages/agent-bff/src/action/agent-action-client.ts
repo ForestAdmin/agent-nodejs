@@ -20,11 +20,7 @@ export interface ActionForm {
 }
 
 export interface AgentActionClient {
-  loadActionForm(
-    collection: string,
-    action: string,
-    recordIds: (string | number)[],
-  ): Promise<ActionForm>;
+  loadActionForm(collection: string, action: string, recordIds: string[]): Promise<ActionForm>;
 }
 
 export interface AgentActionClientOptions {

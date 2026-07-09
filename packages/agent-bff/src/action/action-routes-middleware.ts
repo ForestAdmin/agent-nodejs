@@ -20,15 +20,17 @@ interface ActionFormRequestBody {
   values?: unknown;
 }
 
-// recordIds are opaque BFF ids passed through unchanged; only presence and array-ness are checked.
-// An empty array is allowed on purpose (global/bulk actions have no selected records); the spec AC
-// only covers a missing recordIds, so `[]` is an explicit BFF choice, not a spec requirement.
-function parseRecordIds(raw: unknown): (string | number)[] {
+// recordIds are opaque BFF ids; only presence and array-ness are checked. An empty array is allowed
+// on purpose (global/bulk actions have no selected records); the spec AC only covers a missing
+// recordIds, so `[]` is an explicit BFF choice, not a spec requirement.
+// Ids are coerced to strings so a valid `0` (numeric primary key) survives agent-client's downstream
+// `.filter(Boolean)`, which would otherwise drop it and load the form as if no record were selected.
+function parseRecordIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) {
     throw invalidRequest('recordIds is required and must be an array');
   }
 
-  return raw as (string | number)[];
+  return raw.map(id => String(id));
 }
 
 function parseValues(raw: unknown): Record<string, unknown> {
