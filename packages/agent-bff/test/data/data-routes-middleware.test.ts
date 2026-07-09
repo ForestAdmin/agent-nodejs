@@ -49,6 +49,11 @@ function buildApp(
       createClient: () => client as AgentDataClient,
     }),
   );
+  // Terminal sentinel: only reached when the dispatcher passes the request through via next().
+  app.use(async ctx => {
+    ctx.status = 418;
+    ctx.body = { passthrough: true };
+  });
 
   return app;
 }
@@ -56,6 +61,30 @@ function buildApp(
 const usersReadModel = new ReadModel([collection('users', [column('id'), column('email')])]);
 
 describe('data routes middleware', () => {
+  describe('routing', () => {
+    it('should pass non-data paths through to the next middleware', async () => {
+      const list = jest.fn();
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      const response = await request(app.callback()).post('/agent/v1/users/other').send({});
+
+      expect(response.status).toBe(418);
+      expect(response.body).toEqual({ passthrough: true });
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should pass a non-POST request on a data path through to the next middleware', async () => {
+      const list = jest.fn();
+      const app = buildApp(storeOf(usersReadModel), { list });
+
+      const response = await request(app.callback()).get('/agent/v1/users/list');
+
+      expect(response.status).toBe(418);
+      expect(response.body).toEqual({ passthrough: true });
+      expect(list).not.toHaveBeenCalled();
+    });
+  });
+
   describe('list', () => {
     it('should return flat records with __forest and meta.countStatus not_requested', async () => {
       const list = jest.fn(async () => [{ id: '42', email: 'user@example.com' }]);
@@ -144,6 +173,15 @@ describe('data routes middleware', () => {
 
       expect(response.status).toBe(503);
       expect(response.body.error).toMatchObject({ type: 'schema_unavailable', status: 503 });
+    });
+
+    it('should rethrow a non-schema read-model error as a 500', async () => {
+      const app = buildApp(storeOf(new Error('boom')), { list: jest.fn() });
+
+      const response = await request(app.callback()).post('/agent/v1/users/list').send({});
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toMatchObject({ type: 'internal_error', status: 500 });
     });
 
     it('should return 401 when no agent token is available (e.g. OAuth mode)', async () => {

@@ -51,6 +51,12 @@ describe('buildListAgentQuery', () => {
       buildListAgentQuery('users', 'Europe/Paris', { page: { limit: 0, offset: 0 } }),
     ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
   });
+
+  it('should reject a negative offset', () => {
+    expect(() =>
+      buildListAgentQuery('users', 'Europe/Paris', { page: { limit: 10, offset: -10 } }),
+    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
+  });
 });
 
 describe('buildCountAgentQuery', () => {
