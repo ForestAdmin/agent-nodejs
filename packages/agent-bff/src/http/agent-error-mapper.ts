@@ -93,9 +93,6 @@ function mapJsonApiError(
   const message = agentError.detail ?? agentError.message ?? DEFAULT_ERROR_MESSAGE;
   const mappedType = agentError.name ? AGENT_ERROR_TYPE_MAP[agentError.name] : undefined;
 
-  // An unknown agent name (e.g. a ValidationError subclass like MissingCollectionError, whose
-  // `name` is its own class name) keeps the agent's real status/category via the status-derived
-  // type instead of collapsing to a 500. Log it so a curated mapping can be added.
   if (agentError.name && mappedType === undefined) {
     logger('Warn', 'Unmapped agent error name; using status-derived type', {
       name: agentError.name,
