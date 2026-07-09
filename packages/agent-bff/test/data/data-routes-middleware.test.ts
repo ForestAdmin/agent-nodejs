@@ -216,6 +216,21 @@ describe('data routes middleware', () => {
       expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
       expect(list).not.toHaveBeenCalled();
     });
+
+    it('should expose a Number primary key as a number in __forest.primaryKey', async () => {
+      const numericPkReadModel = new ReadModel([
+        collection('metrics', [{ ...column('id'), type: 'Number' }]),
+      ]);
+      const list = jest.fn(async () => [{ id: '42', value: 10 }]);
+      const app = buildApp(storeOf(numericPkReadModel), { list });
+
+      const response = await request(app.callback()).post('/agent/v1/metrics/list').send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body.data[0]).toMatchObject({
+        __forest: { collection: 'metrics', primaryKey: { id: 42 } },
+      });
+    });
   });
 
   describe('count', () => {
@@ -253,6 +268,33 @@ describe('data routes middleware', () => {
         status: 422,
       });
       expect(countRaw).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when no agent token is available', async () => {
+      const countRaw = jest.fn();
+      const app = buildApp(storeOf(usersReadModel), { countRaw }, { agentToken: null });
+
+      const response = await request(app.callback()).post('/agent/v1/users/count').send({});
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toMatchObject({ type: 'unauthorized', status: 401 });
+      expect(countRaw).not.toHaveBeenCalled();
+    });
+
+    it('should map an agent failure through the error contract', async () => {
+      const countRaw = jest.fn(async () => {
+        throw new AgentHttpError(
+          404,
+          { errors: [{ status: 404, name: 'NotFoundError' }] },
+          undefined,
+        );
+      });
+      const app = buildApp(storeOf(usersReadModel), { countRaw });
+
+      const response = await request(app.callback()).post('/agent/v1/users/count').send({});
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toMatchObject({ type: 'not_found', status: 404 });
     });
   });
 });

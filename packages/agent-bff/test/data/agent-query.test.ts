@@ -122,6 +122,16 @@ describe('parseCountRequest', () => {
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });
+
+  it.each([
+    ['null', null],
+    ['a string', 'foo'],
+    ['an array', []],
+  ])('should reject a non-object body (%s) with 400 invalid_request', (_label, body) => {
+    expect(() => parseCountRequest(body)).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
 });
 
 describe('collectCountFieldPaths', () => {
