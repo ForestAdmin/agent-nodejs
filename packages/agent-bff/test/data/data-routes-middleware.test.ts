@@ -27,10 +27,18 @@ function storeOf(readModel: ReadModel | Error): ReadModelStore {
   } as unknown as ReadModelStore;
 }
 
+const AGENT_URL = 'https://agent.example.com';
+
 function buildApp(
   store: ReadModelStore,
   client: Partial<AgentDataClient>,
-  { agentToken = 'agent-jwt' }: { agentToken?: string | null } = {},
+  {
+    agentToken = 'agent-jwt',
+    createClient = () => client as AgentDataClient,
+  }: {
+    agentToken?: string | null;
+    createClient?: (options: { agentUrl: string; token: string }) => AgentDataClient;
+  } = {},
 ) {
   const app = new Koa();
   app.silent = true;
@@ -44,9 +52,9 @@ function buildApp(
   app.use(
     createDataRoutesMiddleware({
       store,
-      agentUrl: 'https://agent.example.com',
+      agentUrl: AGENT_URL,
       logger: noopLogger,
-      createClient: () => client as AgentDataClient,
+      createClient,
     }),
   );
   // Terminal sentinel: only reached when the dispatcher passes the request through via next().
@@ -82,6 +90,15 @@ describe('data routes middleware', () => {
       expect(response.status).toBe(418);
       expect(response.body).toEqual({ passthrough: true });
       expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should forward the agent url and resolved token to the data client', async () => {
+      const createClient = jest.fn(() => ({ list: async () => [] } as unknown as AgentDataClient));
+      const app = buildApp(storeOf(usersReadModel), {}, { agentToken: 'jwt-123', createClient });
+
+      await request(app.callback()).post('/agent/v1/users/list').send({});
+
+      expect(createClient).toHaveBeenCalledWith({ agentUrl: AGENT_URL, token: 'jwt-123' });
     });
   });
 
@@ -337,6 +354,16 @@ describe('data routes middleware', () => {
         'users',
         expect.objectContaining({ timezone: TIMEZONE }),
       );
+    });
+
+    it('should return 500 mapping_error when the count payload is unusable', async () => {
+      const countRaw = jest.fn(async () => ({}));
+      const app = buildApp(storeOf(usersReadModel), { countRaw });
+
+      const response = await request(app.callback()).post('/agent/v1/users/count').send({});
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toMatchObject({ type: 'mapping_error', status: 500 });
     });
   });
 });
