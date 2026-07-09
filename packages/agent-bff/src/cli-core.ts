@@ -4,6 +4,7 @@ import type { Middleware } from 'koa';
 
 import { bodyParser } from '@koa/bodyparser';
 
+import createActionRoutesMiddleware from './action/action-routes-middleware';
 import createConsoleLogger from './adapters/console-logger';
 import createAgentStubMiddleware from './agent/agent-stub';
 import createApiKeyAuthenticator from './api-key/api-key-authenticator';
@@ -154,13 +155,15 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
   return createApiKeyMiddleware({ authenticator, logger });
 }
 
-function buildDataRoutesMiddleware(config: BFFConfig, logger: Logger): Middleware {
+// Data and action routes share one read-model store (a single cache, a single schema fetch). The
+// data middleware falls through to the action middleware on a non-data path.
+function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
   const apiKeyConfig = resolveApiKeyConfig(config);
 
   if (!apiKeyConfig || !config.agentUrl) {
     logger('Warn', 'Data endpoints disabled: AGENT_URL or read-model configuration is missing');
 
-    return createAgentStubMiddleware();
+    return [createAgentStubMiddleware()];
   }
 
   const { store } = createReadModel({
@@ -168,8 +171,12 @@ function buildDataRoutesMiddleware(config: BFFConfig, logger: Logger): Middlewar
     envSecret: apiKeyConfig.forestEnvSecret,
     logger,
   });
+  const { agentUrl } = config;
 
-  return createDataRoutesMiddleware({ store, agentUrl: config.agentUrl, logger });
+  return [
+    createDataRoutesMiddleware({ store, agentUrl, logger }),
+    createActionRoutesMiddleware({ store, agentUrl, logger }),
+  ];
 }
 
 function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
@@ -188,7 +195,7 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
     apiKeyStep,
     createPerKeyOriginMiddleware(),
     createTimezoneMiddleware({ defaultTimezone }),
-    buildDataRoutesMiddleware(config, logger),
+    ...buildAgentRouteMiddlewares(config, logger),
   ];
 
   return chain.map(agentScoped);
