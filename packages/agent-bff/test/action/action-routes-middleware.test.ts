@@ -114,6 +114,31 @@ const readModel = new ReadModel([
   collection('users', [column('id')], [action('approve', '/forest/_actions/users/0/approve')]),
 ]);
 
+function buildAppWithTerminal(client: AgentActionClient) {
+  const app = new Koa();
+  app.silent = true;
+  app.use(createErrorMiddleware({ logger: noopLogger }));
+  app.use(bodyParser());
+  app.use(async (ctx, next) => {
+    ctx.state.timezone = TIMEZONE;
+    ctx.state.agentToken = 'agent-jwt';
+    await next();
+  });
+  app.use(
+    createActionRoutesMiddleware({
+      store: storeOf(readModel),
+      agentUrl: 'https://agent.example.com',
+      logger: noopLogger,
+      createClient: () => client,
+    }),
+  );
+  app.use(async ctx => {
+    ctx.status = 204;
+  });
+
+  return app;
+}
+
 describe('action routes middleware', () => {
   it('returns the full form shape with fields, canExecute, requiredFields, skippedFields and layout', async () => {
     const form = makeAction({
@@ -328,6 +353,26 @@ describe('action routes middleware', () => {
       .send({ recordIds: ['42'] });
 
     expect(response.status).toBe(401);
+    expect(loadActionForm).not.toHaveBeenCalled();
+  });
+
+  it('falls through to the next middleware for a non-POST request on the form path', async () => {
+    const loadActionForm = jest.fn();
+    const app = buildAppWithTerminal(clientOf(makeAction(), loadActionForm));
+
+    const response = await request(app.callback()).get('/agent/v1/users/actions/approve/form');
+
+    expect(response.status).toBe(204);
+    expect(loadActionForm).not.toHaveBeenCalled();
+  });
+
+  it('falls through to the next middleware for a path that is not an action form route', async () => {
+    const loadActionForm = jest.fn();
+    const app = buildAppWithTerminal(clientOf(makeAction(), loadActionForm));
+
+    const response = await request(app.callback()).post('/agent/v1/users/list').send({});
+
+    expect(response.status).toBe(204);
     expect(loadActionForm).not.toHaveBeenCalled();
   });
 
