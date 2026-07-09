@@ -156,7 +156,7 @@ If you embed the executor with `agent.addWorkflowExecutor({ inMemory: true })` a
 
 In development the agent rewrites `.forestadmin-schema.json` on every boot. Without this ignore, nodemon sees the change and restarts the agent, and each restart clears the in-memory store — in-flight runs vanish and users are asked to reconnect their OAuth-protected MCP connectors.
 
-Projects scaffolded with forest-cli ≤ 5.17.0 ship a broken entry, `./forestadmin-schema.json`; the leading `./` never matches the real `.forestadmin-schema.json`, so the restarts happen even though an ignore was intended. Replace it with `.forestadmin-schema.json`.
+Projects scaffolded with forest-cli ship a broken entry, `./forestadmin-schema.json`; the leading `./` never matches the real `.forestadmin-schema.json`, so the restarts happen even though an ignore was intended. Replace it with `.forestadmin-schema.json`.
 
 ---
 
