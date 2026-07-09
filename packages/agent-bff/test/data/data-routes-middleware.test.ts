@@ -365,5 +365,27 @@ describe('data routes middleware', () => {
       expect(response.status).toBe(500);
       expect(response.body.error).toMatchObject({ type: 'mapping_error', status: 500 });
     });
+
+    it('should return 400 when the filter is not an object', async () => {
+      const countRaw = jest.fn();
+      const app = buildApp(storeOf(usersReadModel), { countRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/count')
+        .send({ filter: 'id' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+      expect(countRaw).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 for a malformed percent-encoded collection name', async () => {
+      const app = buildApp(storeOf(usersReadModel), { countRaw: jest.fn() });
+
+      const response = await request(app.callback()).post('/agent/v1/%E0%A4%A/count').send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+    });
   });
 });

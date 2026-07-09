@@ -59,8 +59,18 @@ export function parseListRequest(body: unknown): ListRequestBody {
     throw invalidRequest('filter must be an object');
   }
 
-  if (page !== undefined && !isPlainObject(page)) {
-    throw invalidRequest('page must be an object with limit and offset');
+  if (page !== undefined) {
+    if (!isPlainObject(page)) {
+      throw invalidRequest('page must be an object with limit and offset');
+    }
+
+    if (!Number.isInteger(page.limit) || (page.limit as number) <= 0) {
+      throw invalidRequest('page.limit must be a positive integer');
+    }
+
+    if (!Number.isInteger(page.offset) || (page.offset as number) < 0) {
+      throw invalidRequest('page.offset must be a non-negative integer');
+    }
   }
 
   return body as ListRequestBody;
@@ -112,19 +122,12 @@ function serializeSort(sort: BffSortClause[]): string {
   return sort.map(({ field, direction }) => (direction === 'desc' ? `-${field}` : field)).join(',');
 }
 
+// `parseListRequest` guarantees `limit` > 0 and `offset` >= 0 are integers; this only enforces the
+// page-model rule. The agent paginates by page number/size, so an arbitrary offset that is not a
+// whole multiple of the limit cannot be expressed — reject it rather than return a shifted window.
 function serializePage(page: BffPage): Record<string, number> {
   const { limit, offset } = page;
 
-  if (!Number.isInteger(limit) || limit <= 0) {
-    throw invalidRequest(`Invalid page.limit: ${limit}`);
-  }
-
-  if (!Number.isInteger(offset) || offset < 0) {
-    throw invalidRequest(`Invalid page.offset: ${offset}`);
-  }
-
-  // The agent paginates by page number/size, so an arbitrary offset that is not a whole multiple
-  // of the limit cannot be expressed. Reject it rather than silently return a shifted window.
   if (offset % limit !== 0) {
     throw invalidRequest(`page.offset (${offset}) must be a multiple of page.limit (${limit})`);
   }

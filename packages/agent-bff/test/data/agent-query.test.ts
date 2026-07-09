@@ -45,18 +45,6 @@ describe('buildListAgentQuery', () => {
       buildListAgentQuery('users', 'Europe/Paris', { page: { limit: 20, offset: 15 } }),
     ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
   });
-
-  it('should reject a non-positive limit', () => {
-    expect(() =>
-      buildListAgentQuery('users', 'Europe/Paris', { page: { limit: 0, offset: 0 } }),
-    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
-  });
-
-  it('should reject a negative offset', () => {
-    expect(() =>
-      buildListAgentQuery('users', 'Europe/Paris', { page: { limit: 10, offset: -10 } }),
-    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
-  });
 });
 
 describe('buildCountAgentQuery', () => {
@@ -113,6 +101,9 @@ describe('parseListRequest', () => {
     ['an invalid sort direction', { sort: [{ field: 'a', direction: 'up' }] }],
     ['a string filter', { filter: 'id' }],
     ['a string page', { page: '10' }],
+    ['a non-positive page.limit', { page: { limit: 0, offset: 0 } }],
+    ['a non-integer page.limit', { page: { limit: 2.5, offset: 0 } }],
+    ['a negative page.offset', { page: { limit: 10, offset: -10 } }],
   ])('should reject %s with 400 invalid_request', (_label, body) => {
     expect(() => parseListRequest(body)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
