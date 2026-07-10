@@ -21,9 +21,9 @@ export interface CountRequestBody {
   filter?: unknown;
 }
 
-export type RelationListRequestBody = ListRequestBody & { parentId?: unknown };
+export type RelationListRequestBody = ListRequestBody & { parentId: string };
 
-export type RelationCountRequestBody = CountRequestBody & { parentId?: unknown };
+export type RelationCountRequestBody = CountRequestBody & { parentId: string };
 
 export type AgentQuery = Record<string, unknown> & { timezone: string };
 
@@ -185,6 +185,18 @@ export function parseParentId(parentId: unknown): string {
   }
 
   throw invalidRequest('parentId is required and must be a non-empty string or a number');
+}
+
+export function parseRelationListRequest(body: unknown): RelationListRequestBody {
+  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
+
+  return { ...parseListRequest(body), parentId };
+}
+
+export function parseRelationCountRequest(body: unknown): RelationCountRequestBody {
+  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
+
+  return { ...parseCountRequest(body), parentId };
 }
 
 export function collectCountFieldPaths(body: CountRequestBody): string[] {

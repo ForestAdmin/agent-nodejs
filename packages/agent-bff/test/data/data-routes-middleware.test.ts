@@ -73,11 +73,13 @@ const relationReadModel = new ReadModel([
     column('id'),
     column('email'),
     relation('posts', 'HasMany', 'posts.id'),
+    relation('tags', 'BelongsToMany', 'tags.slug'),
     relation('company', 'BelongsTo', 'companies.id'),
     relation('secrets', 'HasMany', 'secrets.id'),
     polymorphic('avatar', ['images', 'files']),
   ]),
   collection('posts', [column('id'), column('title')]),
+  collection('tags', [{ ...column('slug'), isPrimaryKey: true }, column('label')]),
   collection('companies', [column('id')]),
 ]);
 
@@ -462,16 +464,48 @@ describe('data routes middleware', () => {
       expect(listRelation).toHaveBeenCalledWith('users', 'tenant-1|42', 'posts', expect.anything());
     });
 
-    it('should not wire the nested-relation guard on relation routes', async () => {
+    it('should accept a plain foreign field but reject a nested foreign path with 422', async () => {
       const listRelation = jest.fn(async () => []);
       const app = buildApp(storeOf(relationReadModel), { listRelation });
 
-      const response = await request(app.callback())
+      const ok = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', projection: ['id', 'title'] });
+
+      expect(ok.status).toBe(200);
+
+      const rejected = await request(app.callback())
         .post('/agent/v1/users/relations/posts/list')
         .send({ parentId: '7', filter: { field: 'author:name', operator: 'present' } });
 
+      expect(rejected.status).toBe(422);
+      expect(rejected.body.error).toMatchObject({
+        type: 'relation_field_not_supported',
+        status: 422,
+        details: { fields: ['author:name'] },
+      });
+    });
+
+    it('should list a BelongsToMany relation and use the foreign primary key in __forest', async () => {
+      const listRelation = jest.fn(async () => [{ id: 'ts', label: 'TypeScript' }]);
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/tags/list')
+        .send({ parentId: '7', projection: ['slug', 'label'] });
+
       expect(response.status).toBe(200);
-      expect(listRelation).toHaveBeenCalled();
+      expect(listRelation).toHaveBeenCalledWith(
+        'users',
+        '7',
+        'tags',
+        expect.objectContaining({ 'fields[tags]': 'slug,label' }),
+      );
+      expect(response.body.data[0]).toEqual({
+        id: 'ts',
+        label: 'TypeScript',
+        __forest: { collection: 'tags', primaryKey: { slug: 'ts' } },
+      });
     });
 
     it.each([
@@ -577,6 +611,42 @@ describe('data routes middleware', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ count: null, countStatus: 'deactivated' });
+    });
+
+    it.each([
+      ['unknown relation', 'users', 'ghosts', 'unknown_relation'],
+      ['to-one relation', 'users', 'company', 'unknown_relation'],
+      ['disallowed foreign collection', 'users', 'secrets', 'unknown_collection'],
+    ])(
+      'should return 404 for a %s on the count path without calling the agent',
+      async (_label, parent, relationName, type) => {
+        const countRelationRaw = jest.fn();
+        const app = buildApp(storeOf(relationReadModel), { countRelationRaw });
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/${parent}/relations/${relationName}/count`)
+          .send({ parentId: '7' });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type, status: 404 });
+        expect(countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should reject a nested foreign path in the count filter with 422', async () => {
+      const countRelationRaw = jest.fn();
+      const app = buildApp(storeOf(relationReadModel), { countRelationRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({ parentId: '7', filter: { field: 'author:name', operator: 'present' } });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toMatchObject({
+        type: 'relation_field_not_supported',
+        status: 422,
+      });
+      expect(countRelationRaw).not.toHaveBeenCalled();
     });
 
     it('should return 400 for a malformed parentId without calling the agent', async () => {

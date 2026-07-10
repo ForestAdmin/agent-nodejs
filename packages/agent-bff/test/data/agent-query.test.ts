@@ -6,6 +6,8 @@ import {
   parseCountRequest,
   parseListRequest,
   parseParentId,
+  parseRelationCountRequest,
+  parseRelationListRequest,
 } from '../../src/data/agent-query';
 
 describe('buildListAgentQuery', () => {
@@ -154,6 +156,41 @@ describe('parseParentId', () => {
     ['Infinity', Infinity],
   ])('should reject %s with invalid_request', (_label, value) => {
     expect(() => parseParentId(value)).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+});
+
+describe('parseRelationListRequest', () => {
+  it('should return the validated list body with the parsed parentId', () => {
+    expect(parseRelationListRequest({ parentId: 'a|b', projection: ['id'] })).toEqual({
+      parentId: 'a|b',
+      projection: ['id'],
+    });
+  });
+
+  it('should reject a missing parentId with 400 invalid_request', () => {
+    expect(() => parseRelationListRequest({ projection: ['id'] })).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+
+  it('should reject an invalid list body with 400 invalid_request', () => {
+    expect(() => parseRelationListRequest({ parentId: '7', projection: 'id' })).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+});
+
+describe('parseRelationCountRequest', () => {
+  it('should return the validated count body with the parsed parentId', () => {
+    expect(
+      parseRelationCountRequest({ parentId: '7', filter: { field: 'a', operator: 'present' } }),
+    ).toEqual({ parentId: '7', filter: { field: 'a', operator: 'present' } });
+  });
+
+  it('should reject a missing parentId with 400 invalid_request', () => {
+    expect(() => parseRelationCountRequest({})).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
     );
   });

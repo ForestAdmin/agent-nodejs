@@ -19,7 +19,8 @@ import {
   collectListFieldPaths,
   parseCountRequest,
   parseListRequest,
-  parseParentId,
+  parseRelationCountRequest,
+  parseRelationListRequest,
 } from './agent-query';
 import { mapCountResponse, mapListResponse } from './response-mappers';
 import { mapAgentError } from '../http/agent-error-mapper';
@@ -112,7 +113,6 @@ async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHa
 // foreign collection, so the agent query is built and the response mapped against the foreign side.
 interface RelationHandlerDeps extends RequestHandlerDeps {
   relation: string;
-  parentId: string;
   foreignCollection: string;
 }
 
@@ -123,9 +123,14 @@ async function handleRelationList(
   body: RelationListRequestBody,
   deps: RelationListHandlerDeps,
 ) {
+  // The nested-relation guard IS wired here: the agent's list-related asserts browse only on the
+  // immediate foreign collection, so a nested `:`-path would traverse to a third collection whose
+  // browse is never checked. Plain foreign fields (no `:`) are unaffected.
+  assertNoRelationFieldPaths(collectListFieldPaths(body));
+
   const query = buildListAgentQuery(deps.foreignCollection, deps.timezone, body);
   const records = await callAgent(
-    () => deps.client.listRelation(deps.collection, deps.parentId, deps.relation, query),
+    () => deps.client.listRelation(deps.collection, body.parentId, deps.relation, query),
     deps.logger,
   );
 
@@ -138,9 +143,11 @@ async function handleRelationCount(
   body: RelationCountRequestBody,
   deps: RelationHandlerDeps,
 ) {
+  assertNoRelationFieldPaths(collectCountFieldPaths(body));
+
   const query = buildCountAgentQuery(deps.timezone, body);
   const raw = await callAgent(
-    () => deps.client.countRelationRaw(deps.collection, deps.parentId, deps.relation, query),
+    () => deps.client.countRelationRaw(deps.collection, body.parentId, deps.relation, query),
     deps.logger,
   );
 
@@ -157,7 +164,7 @@ async function handleRelation(
   const relation = decodeSegment(match[2], 'relation name');
   const operation = match[3] as 'list' | 'count';
 
-  // The URL identity (does this listable relation exist?) is resolved before the body's parentId,
+  // The URL identity (does this listable relation exist?) is resolved before the body,
   // so a bad path 404s before its payload is inspected.
   const foreignCollection = resolveForeignCollection(
     readModel.getRelationTarget(deps.collection, relation),
@@ -176,16 +183,15 @@ async function handleRelation(
     throw unknownCollection(`Unknown collection: ${foreignCollection}`);
   }
 
-  const parentId = parseParentId((rawBody as { parentId?: unknown }).parentId);
-  const relationDeps: RelationHandlerDeps = { ...deps, relation, parentId, foreignCollection };
+  const relationDeps: RelationHandlerDeps = { ...deps, relation, foreignCollection };
 
   if (operation === 'list') {
-    await handleRelationList(ctx, parseListRequest(rawBody), {
+    await handleRelationList(ctx, parseRelationListRequest(rawBody), {
       ...relationDeps,
       primaryKeys: readModel.getPrimaryKeys(foreignCollection),
     });
   } else {
-    await handleRelationCount(ctx, parseCountRequest(rawBody), relationDeps);
+    await handleRelationCount(ctx, parseRelationCountRequest(rawBody), relationDeps);
   }
 }
 
