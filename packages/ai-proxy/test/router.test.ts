@@ -62,13 +62,17 @@ describe('route', () => {
 
       await router.route({
         route: 'ai-query',
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: {
+          tools: [],
+          tool_choice: 'required',
+          messages: [{ role: 'user', content: 'hi' }],
+        } as unknown as DispatchBody,
       });
 
       expect(dispatchMock).toHaveBeenCalledWith({
         tools: [],
         tool_choice: 'required',
-        messages: [],
+        messages: [{ role: 'user', content: 'hi' }],
       });
     });
 
@@ -92,7 +96,11 @@ describe('route', () => {
       await router.route({
         route: 'ai-query',
         query: { 'ai-name': 'gpt4mini' },
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: {
+          tools: [],
+          tool_choice: 'required',
+          messages: [{ role: 'user', content: 'hi' }],
+        } as unknown as DispatchBody,
       });
 
       expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4MiniConfig, expect.anything());
@@ -117,7 +125,11 @@ describe('route', () => {
 
       await router.route({
         route: 'ai-query',
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: {
+          tools: [],
+          tool_choice: 'required',
+          messages: [{ role: 'user', content: 'hi' }],
+        } as unknown as DispatchBody,
       });
 
       expect(ProviderDispatcherMock).toHaveBeenCalledWith(gpt4Config, expect.anything());
@@ -139,7 +151,11 @@ describe('route', () => {
       await router.route({
         route: 'ai-query',
         query: { 'ai-name': 'non-existent' },
-        body: { tools: [], tool_choice: 'required', messages: [] } as unknown as DispatchBody,
+        body: {
+          tools: [],
+          tool_choice: 'required',
+          messages: [{ role: 'user', content: 'hi' }],
+        } as unknown as DispatchBody,
       });
 
       expect(mockLogger).toHaveBeenCalledWith(
@@ -272,7 +288,7 @@ describe('route', () => {
       await expect(
         router.route({
           route: 'ai-query',
-          body: { messages: [] },
+          body: { messages: [{ role: 'user', content: 'hi' }] },
           toolConfigs: dummyMcpServerConfigs,
         }),
       ).rejects.toThrow();
@@ -301,7 +317,7 @@ describe('route', () => {
       await expect(
         router.route({
           route: 'ai-query',
-          body: { messages: [] },
+          body: { messages: [{ role: 'user', content: 'hi' }] },
           toolConfigs: dummyMcpServerConfigs,
         }),
       ).rejects.toThrow(dispatchError);

@@ -17,9 +17,11 @@ const baseQuerySchema = z.object({
  */
 const aiQueryBodySchema = z.object(
   {
-    messages: z.array(z.any(), {
-      message: 'Missing required body parameter: messages',
-    }),
+    messages: z
+      .array(z.any(), {
+        message: 'Missing required body parameter: messages',
+      })
+      .min(1, { message: 'messages must contain at least one message' }),
     tools: z.array(z.any()).optional(),
     tool_choice: z.any().optional(),
     parallel_tool_calls: z.boolean().optional(),

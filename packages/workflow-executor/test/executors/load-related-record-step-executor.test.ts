@@ -1368,7 +1368,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // an impossible request returns a weak match instead of -1.
       const recordSelectionMessages = invoke.mock.calls[1][0] as Array<{ content: unknown }>;
       const content = recordSelectionMessages.map(m => String(m.content)).join('\n');
-      expect(content).toContain('-1');
+      expect(content).toContain('return -1');
     });
   });
 

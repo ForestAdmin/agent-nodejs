@@ -29,6 +29,7 @@ describe('createBaseChatModel', () => {
 
     expect(ChatOpenAI).toHaveBeenCalledWith({
       maxRetries: 0,
+      useResponsesApi: true,
       apiKey: 'test-key',
       model: 'gpt-4o',
     });
@@ -47,6 +48,7 @@ describe('createBaseChatModel', () => {
 
     expect(ChatOpenAI).toHaveBeenCalledWith({
       maxRetries: 0,
+      useResponsesApi: true,
       apiKey: 'test-key',
       model: 'gpt-4o',
       temperature: 0.7,

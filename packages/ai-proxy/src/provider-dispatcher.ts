@@ -1,10 +1,15 @@
 import type { OpenAIMessage } from './langchain-adapter';
-import type { AiConfiguration, ChatCompletionResponse, ChatCompletionTool } from './provider';
+import type {
+  AiConfiguration,
+  ChatCompletionResponse,
+  ChatCompletionTool,
+  ChatCompletionToolChoice,
+} from './provider';
 import type { RemoteTools } from './remote-tools';
 import type { DispatchBody } from './schemas/route';
 import type { AIMessage, BaseMessageLike } from '@langchain/core/messages';
 
-import { BusinessError, UnprocessableError } from '@forestadmin/datasource-toolkit';
+import { BusinessError } from '@forestadmin/datasource-toolkit';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
@@ -51,9 +56,12 @@ export default class ProviderDispatcher {
       const { provider, name, ...chatOpenAIOptions } = configuration;
       this.openaiModel = new ChatOpenAI({
         maxRetries: 0, // No retries by default - this lib is a passthrough
+        // Use the Responses API: reasoning models (gpt-5.x) reject tools + reasoning_effort on
+        // /v1/chat/completions. A user-supplied useResponsesApi still wins (spread after).
+        useResponsesApi: true,
         ...chatOpenAIOptions,
-        __includeRawResponse: true,
       });
+      this.modelName = configuration.model ?? null;
     } else if (configuration?.provider === 'anthropic') {
       const { provider, name, model, ...clientOptions } = configuration;
       this.anthropicModel = new ChatAnthropic({
@@ -90,12 +98,15 @@ export default class ProviderDispatcher {
     } = body;
 
     const enrichedTools = this.enrichToolDefinitions(tools);
-    const model = enrichedTools?.length
-      ? this.openaiModel.bindTools(enrichedTools, {
-          tool_choice: toolChoice,
-          parallel_tool_calls: parallelToolCalls,
-        })
-      : this.openaiModel;
+    // 'none' is also dropped by LangChain's Responses path — not binding the tools is the only
+    // way to guarantee the model cannot call them.
+    const model =
+      enrichedTools?.length && toolChoice !== 'none'
+        ? this.openaiModel.bindTools(enrichedTools, {
+            tool_choice: ProviderDispatcher.forceToolChoiceForResponses(toolChoice, enrichedTools),
+            parallel_tool_calls: parallelToolCalls,
+          })
+        : this.openaiModel;
 
     let response: AIMessage;
 
@@ -105,16 +116,9 @@ export default class ProviderDispatcher {
       throw ProviderDispatcher.wrapProviderError(error, 'OpenAI');
     }
 
-    // eslint-disable-next-line no-underscore-dangle
-    const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
-
-    if (!rawResponse) {
-      throw new UnprocessableError(
-        'OpenAI response missing raw response data. This may indicate an API change.',
-      );
-    }
-
-    return rawResponse;
+    // Build the OpenAI wire shape from LangChain's normalized AIMessage (same path as Anthropic).
+    // The Responses API returns a different raw object, so we no longer read __raw_response.
+    return LangChainAdapter.convertResponse(response, this.modelName);
   }
 
   private async dispatchAnthropic(body: DispatchBody): Promise<ChatCompletionResponse> {
@@ -145,6 +149,23 @@ export default class ProviderDispatcher {
     }
 
     return LangChainAdapter.convertResponse(response, this.modelName);
+  }
+
+  // LangChain's Responses API path silently drops string tool_choice ('required'/'any'): its
+  // param builder forwards only object-form choices. Re-express "must call a tool" as forcing the
+  // single available function — the only forcing shape it forwards. Multi-tool 'required' has no
+  // such shape under the Responses API and falls back to the model default.
+  private static forceToolChoiceForResponses(
+    toolChoice: unknown,
+    tools: ChatCompletionTool[],
+  ): ChatCompletionToolChoice {
+    const functionTools = tools.filter(tool => tool.type === 'function');
+
+    if ((toolChoice === 'required' || toolChoice === 'any') && functionTools.length === 1) {
+      return { type: 'function', function: { name: functionTools[0].function.name } };
+    }
+
+    return toolChoice as ChatCompletionToolChoice;
   }
 
   private static wrapProviderError(error: unknown, providerName: string): Error {

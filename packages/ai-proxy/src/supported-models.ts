@@ -46,10 +46,7 @@ const OPENAI_UNSUPPORTED_PATTERNS = [
 
 const OPENAI_UNSUPPORTED_MODELS = [
   'us-40-51r-vm-ev3', // Not a chat model (v1/completions only)
-  // Reject reasoning_effort with function tools on v1/chat/completions (v1/responses only)
-  'gpt-5.6-luna',
-  'gpt-5.6-sol',
-  'gpt-5.6-terra',
+  'gpt-3.5-turbo-16k', // 404 Model not found (removed from the API)
 ];
 
 const OPENAI_SUPPORTED_OVERRIDES = ['gpt-4-turbo', 'gpt-4o', 'gpt-4.1'];
