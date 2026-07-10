@@ -19,9 +19,19 @@ export class ActionRequiresApprovalError extends Error {
 }
 
 export class ActionFormValidationError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly html?: string,
+  ) {
     super(message);
     this.name = 'ActionFormValidationError';
+  }
+}
+
+export class UnknownActionFieldError extends Error {
+  constructor(readonly fieldName: string) {
+    super(`Field "${fieldName}" does not exist in this form`);
+    this.name = 'UnknownActionFieldError';
   }
 }
 
