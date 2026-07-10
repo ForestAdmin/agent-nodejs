@@ -1,6 +1,7 @@
 import { AgentHttpError } from '@forestadmin/agent-client';
 
 import { mapAgentError } from '../../src/http/agent-error-mapper';
+import { BffHttpError } from '../../src/http/bff-http-error';
 
 function jsonApiBody(error: {
   name?: string;
@@ -17,6 +18,14 @@ describe('mapAgentError', () => {
 
   beforeEach(() => {
     logger = jest.fn();
+  });
+
+  it('returns a BFF-origin error unchanged instead of recategorizing it', () => {
+    const local = new BffHttpError(422, 'relation_field_not_supported', 'nope', {
+      fields: ['a:b'],
+    });
+
+    expect(mapAgentError(local, { logger })).toBe(local);
   });
 
   it('maps a JSON:API NotFoundError to not_found with its detail and data', () => {

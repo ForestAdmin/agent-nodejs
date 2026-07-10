@@ -133,6 +133,10 @@ function mapFlatBody(status: number, body: unknown, responseText?: string): BffH
 }
 
 export function mapAgentError(error: unknown, { logger }: { logger: Logger }): BffHttpError {
+  // A BFF-origin error that reached here (e.g. thrown inside a caller's agent-call try/catch) keeps
+  // its own type — it must not be recategorized as a transport/agent error.
+  if (error instanceof BffHttpError) return error;
+
   if (!(error instanceof AgentHttpError)) {
     const agentError = parseJsonApiFromMessage(error);
     if (agentError) return mapJsonApiError(agentError, 400, logger);

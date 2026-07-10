@@ -28,14 +28,12 @@ export function invalidRequest(message = 'Invalid request', details?: unknown): 
   return new BffHttpError(400, 'invalid_request', message, details);
 }
 
-export function relationFieldNotSupported(
-  message = 'Relation field is not supported',
-): BffHttpError {
-  return new BffHttpError(422, 'relation_field_not_supported', message);
-}
-
 export function mappingError(message = 'Failed to map the agent response'): BffHttpError {
   return new BffHttpError(500, 'mapping_error', message);
+}
+
+export function schemaUnavailable(message = 'The agent schema is unavailable'): BffHttpError {
+  return new BffHttpError(503, 'schema_unavailable', message);
 }
 
 export function unsupportedActionResult(message = 'Unsupported action result'): BffHttpError {

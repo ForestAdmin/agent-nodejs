@@ -3,8 +3,8 @@ import {
   collectionNotAllowed,
   invalidRequest,
   mappingError,
-  relationFieldNotSupported,
   relationNotAllowed,
+  schemaUnavailable,
   unknownAction,
   unknownCollection,
   unknownRelation,
@@ -20,8 +20,8 @@ describe('bff local errors', () => {
     [relationNotAllowed, 'relation_not_allowed', 403],
     [actionNotAllowed, 'action_not_allowed', 403],
     [invalidRequest, 'invalid_request', 400],
-    [relationFieldNotSupported, 'relation_field_not_supported', 422],
     [mappingError, 'mapping_error', 500],
+    [schemaUnavailable, 'schema_unavailable', 503],
     [unsupportedActionResult, 'unsupported_action_result', 501],
   ])('%p builds a %s error with status %d', (factory, type, status) => {
     expect(factory()).toMatchObject({ type, status });
