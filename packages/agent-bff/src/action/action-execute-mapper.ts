@@ -40,10 +40,11 @@ export interface ActionExecuteMapped {
 export function mapActionExecuteResult(raw: unknown): ActionExecuteMapped {
   const body = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
 
-  if ('webhook' in body) {
-    const hook = (
-      typeof body.webhook === 'object' && body.webhook !== null ? body.webhook : {}
-    ) as Record<string, unknown>;
+  // Each branch validates the value shape, not just key presence: a malformed payload
+  // (`{ webhook: null }`, `{ redirectTo: {} }`, `{ success: {} }`) must fall through to the 501
+  // path rather than be surfaced as a 200 with null fields the client cannot tell from a real one.
+  if (typeof body.webhook === 'object' && body.webhook !== null) {
+    const hook = body.webhook as Record<string, unknown>;
 
     return {
       status: 200,
@@ -57,21 +58,23 @@ export function mapActionExecuteResult(raw: unknown): ActionExecuteMapped {
     };
   }
 
-  if ('redirectTo' in body) {
+  if (typeof body.redirectTo === 'string') {
     return { status: 200, body: { type: 'redirect', path: body.redirectTo } };
   }
 
-  if ('success' in body || 'refresh' in body) {
-    const refresh = (
-      typeof body.refresh === 'object' && body.refresh !== null ? body.refresh : {}
-    ) as { relationships?: unknown };
+  const refresh = typeof body.refresh === 'object' && body.refresh !== null ? body.refresh : null;
+
+  // A Success carries a string message and/or a refresh object; the agent always sends the refresh,
+  // so a bare refresh (message absent) still normalizes to a success with a null message.
+  if (typeof body.success === 'string' || refresh !== null) {
+    const relationships = (refresh as { relationships?: unknown } | null)?.relationships;
 
     return {
       status: 200,
       body: {
         type: 'success',
         message: typeof body.success === 'string' ? body.success : null,
-        invalidated: Array.isArray(refresh.relationships) ? (refresh.relationships as string[]) : [],
+        invalidated: Array.isArray(relationships) ? (relationships as string[]) : [],
         html: typeof body.html === 'string' ? body.html : null,
       },
     };
