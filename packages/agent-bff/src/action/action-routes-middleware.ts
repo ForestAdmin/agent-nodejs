@@ -108,7 +108,7 @@ async function handleExecute(
     if (error instanceof ActionRequiresApprovalError) {
       throw actionRequiresApproval(
         error.message,
-        error.roleIdsAllowedToApprove
+        error.roleIdsAllowedToApprove !== undefined
           ? { roleIdsAllowedToApprove: error.roleIdsAllowedToApprove }
           : undefined,
       );
