@@ -180,7 +180,7 @@ async function handleRelation(
   // The agent's count-related authorizes only the parent, so an unguarded foreign collection would
   // leak a hidden collection's rows/count. Guard it here, mirroring the parent allow-list check.
   if (!readModel.isCollectionAllowed(foreignCollection)) {
-    throw unknownCollection(`Unknown collection: ${foreignCollection}`);
+    throw unknownCollection();
   }
 
   const relationDeps: RelationHandlerDeps = { ...deps, relation, foreignCollection };
