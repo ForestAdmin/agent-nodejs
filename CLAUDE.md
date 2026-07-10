@@ -73,8 +73,7 @@ yarn workspace @forestadmin/agent test
 
 ## Code Review Principles
 
-Mechanical conventions (function size, parameter count, filename case, async/await
-over `.then`) are enforced by ESLint — see `.eslintrc.js`, not this file.
+Mechanical conventions are enforced by ESLint — see `.eslintrc.js`, not this file.
 
 ### Function Design
 
