@@ -573,6 +573,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
           executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'addresses', recordId: [2] }),
           }),
+          // The candidates are persisted as pendingData so the front's record dropdown can show each
+          // one's referenceFieldValue label instead of falling back to the raw recordId (PRD-751).
+          pendingData: expect.objectContaining({
+            availableRecordIds: expect.arrayContaining([
+              expect.objectContaining({ recordId: [1] }),
+              expect.objectContaining({ recordId: [2] }),
+            ]),
+          }),
         }),
       );
     });

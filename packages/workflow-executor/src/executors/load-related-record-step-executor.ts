@@ -337,6 +337,12 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     });
   }
 
+  private followableRelationFields(sourceSchema: CollectionSchema): RelationRef[] {
+    return sourceSchema.fields
+      .filter(isFollowableRelation)
+      .map(f => ({ name: f.fieldName, displayName: f.displayName }));
+  }
+
   private async persistAwaitInput(
     target: RelationTarget,
     sourceSchema: CollectionSchema,
@@ -348,15 +354,11 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   ): Promise<StepExecutionResult> {
     const { selectedRecordRef, name, displayName } = target;
 
-    const availableFields: RelationRef[] = sourceSchema.fields
-      .filter(isFollowableRelation)
-      .map(f => ({ name: f.fieldName, displayName: f.displayName }));
-
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
       pendingData: {
-        availableFields,
+        availableFields: this.followableRelationFields(sourceSchema),
         suggestedField: { name, displayName },
         availableRecordIds: pending.availableRecordIds,
         suggestedRecord: pending.suggestedRecord,
@@ -450,7 +452,21 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       stepIndex: this.context.stepIndex,
     };
 
-    return this.persistAndReturn(record, target, undefined);
+    // Persist the candidates as pendingData on the completed step so the front's record dropdown keeps
+    // each candidate's referenceFieldValue label; without it Full AI's auto-load falls back to the
+    // raw recordId (AI-assisted already carries this through its await-then-confirm execution).
+    const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
+
+    return this.persistAndReturn(record, target, {
+      type: 'load-related-record',
+      stepIndex: this.context.stepIndex,
+      pendingData: {
+        availableFields: this.followableRelationFields(sourceSchema),
+        suggestedField: { name: target.name, displayName: target.displayName },
+        availableRecordIds,
+        suggestedRecord,
+      },
+    });
   }
 
   private async fetchXToOneCandidate(
