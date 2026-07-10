@@ -13,6 +13,7 @@ import AgentHttpError, {
   ActionFormValidationError,
   ActionRequiresApprovalError,
   ApprovalRequestCreationError,
+  UnknownActionFieldError,
 } from './errors';
 import HttpRequester from './http-requester';
 
@@ -26,6 +27,7 @@ export {
   ActionRequiresApprovalError,
   ActionFormValidationError,
   ApprovalRequestCreationError,
+  UnknownActionFieldError,
 };
 export type {
   ActionEndpointsByCollection,

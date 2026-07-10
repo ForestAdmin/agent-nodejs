@@ -22,6 +22,7 @@ import AgentHttpError, {
   ActionFormValidationError,
   ActionRequiresApprovalError,
   ApprovalRequestCreationError,
+  UnknownActionFieldError,
 } from '../errors';
 
 // JSON:API error body the agent returns on a rejected action.
@@ -35,6 +36,7 @@ type ActionErrorBody = {
   }[];
   error?: string;
   message?: string;
+  html?: string;
   data?: { roleIdsAllowedToApprove?: number[] };
 };
 
@@ -72,7 +74,7 @@ function toActionError(error: unknown): unknown {
   }
 
   if (error.status === 400 || error.status === 422) {
-    return new ActionFormValidationError(detail ?? 'The action form values were rejected.');
+    return new ActionFormValidationError(detail ?? 'The action form values were rejected.', body.html);
   }
 
   return error;
@@ -184,7 +186,7 @@ export default class Action {
   async setFields(fields: Record<string, unknown>): Promise<void> {
     for (const [fieldName, value] of Object.entries(fields)) {
       if (!this.doesFieldExist(fieldName)) {
-        throw new Error(`Field "${fieldName}" does not exist in this form`);
+        throw new UnknownActionFieldError(fieldName);
       }
 
       // eslint-disable-next-line no-await-in-loop
