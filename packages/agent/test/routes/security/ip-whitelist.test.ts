@@ -154,5 +154,91 @@ describe('IpWhitelist', () => {
         });
       });
     });
+
+    describe('when the caller is a trusted internal caller (feature enabled, restrictive rules)', () => {
+      const restrictiveRules = {
+        isFeatureEnabled: true,
+        ipRules: [{ type: 0, ip: '10.20.15.10' }],
+      };
+
+      // socketIp = the true socket peer (req.socket.remoteAddress); xff is the proxy hop marker.
+      const forgeContext = (opts: { socketIp: string; xff?: string | null }): Context =>
+        ({
+          req: { socket: { remoteAddress: opts.socketIp } },
+          request: {
+            ip: opts.socketIp,
+            headers: { 'x-forwarded-for': opts.xff ?? null },
+          },
+          throw: jest.fn(),
+        } as unknown as Context);
+
+      test.each(['127.0.0.1', '::1', '::ffff:127.0.0.1'])(
+        'exempts a direct loopback caller with no proxy hop from socket %s',
+        async socketIp => {
+          const service = await setupIpWhitelistService(restrictiveRules);
+          const context = forgeContext({ socketIp });
+          const next = jest.fn() as Next;
+
+          await service.checkIp(context, next);
+
+          expect(next).toHaveBeenCalled();
+          expect(context.throw).not.toHaveBeenCalled();
+        },
+      );
+
+      test('does NOT exempt a non-loopback socket', async () => {
+        const service = await setupIpWhitelistService(restrictiveRules);
+        const context = forgeContext({ socketIp: '203.0.113.5' });
+        const next = jest.fn() as Next;
+
+        await service.checkIp(context, next);
+
+        expect(next).not.toHaveBeenCalled();
+        expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, expect.any(String));
+      });
+
+      // A proxied user's socket peer is the same-host proxy (loopback), but the proxy sets
+      // x-forwarded-for → the exemption must NOT fire, so the real IP is checked normally.
+      test('does NOT exempt a loopback socket that carries x-forwarded-for (proxy hop)', async () => {
+        const service = await setupIpWhitelistService(restrictiveRules);
+        const context = forgeContext({ socketIp: '127.0.0.1', xff: '203.0.113.5' });
+        const next = jest.fn() as Next;
+
+        await service.checkIp(context, next);
+
+        expect(next).not.toHaveBeenCalled();
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.Forbidden,
+          `IP address rejected (203.0.113.5)`,
+        );
+      });
+
+      // Anti-spoof: an external socket carrying x-forwarded-for: 127.0.0.1 must NOT be exempted
+      // (exemption reads the socket, not the header) and the header IP is what gets rejected.
+      test('ignores a spoofed x-forwarded-for loopback (socket is external)', async () => {
+        const service = await setupIpWhitelistService(restrictiveRules);
+        const context = forgeContext({ socketIp: '203.0.113.5', xff: '127.0.0.1' });
+        const next = jest.fn() as Next;
+
+        await service.checkIp(context, next);
+
+        expect(next).not.toHaveBeenCalled();
+        expect(context.throw).toHaveBeenCalledWith(
+          HttpCode.Forbidden,
+          `IP address rejected (127.0.0.1)`,
+        );
+      });
+
+      test('a proxied user from a whitelisted IP still passes the normal check', async () => {
+        const service = await setupIpWhitelistService(restrictiveRules);
+        const context = forgeContext({ socketIp: '127.0.0.1', xff: '10.20.15.10' });
+        const next = jest.fn() as Next;
+
+        await service.checkIp(context, next);
+
+        expect(next).toHaveBeenCalled();
+        expect(context.throw).not.toHaveBeenCalled();
+      });
+    });
   });
 });

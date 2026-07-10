@@ -7,6 +7,8 @@ export type RelationTarget =
   | { type: RelationshipType; polymorphic: false; target: string }
   | { type: RelationshipType; polymorphic: true; targets: string[] };
 
+export type PrimaryKeyField = { name: string; type: string };
+
 function toRelationTarget(field: ForestSchemaField): RelationTarget | null {
   if (!field.relationship) return null;
 
@@ -44,6 +46,7 @@ export default class ReadModel {
   private readonly collections: Set<string>;
   private readonly relations: Map<string, Map<string, RelationTarget>>;
   private readonly actionEndpoints: ActionEndpointsByCollection;
+  private readonly primaryKeys: Map<string, PrimaryKeyField[]>;
 
   constructor(collections: ForestSchemaCollection[]) {
     this.collections = new Set();
@@ -51,16 +54,19 @@ export default class ReadModel {
     // Null-prototype so an action/collection named like an Object.prototype member
     // (`toString`, `constructor`, `__proto__`, …) can't falsely pass the allow-list.
     this.actionEndpoints = Object.create(null) as ActionEndpointsByCollection;
+    this.primaryKeys = new Map();
 
     for (const collection of collections) {
       this.collections.add(collection.name);
       this.buildRelations(collection);
       this.buildActionEndpoints(collection);
+      this.buildPrimaryKeys(collection);
     }
 
     // Freeze the exposed structures so a consumer cannot mutate the shared cached read-model.
     deepFreeze(this.actionEndpoints);
     this.relations.forEach(byRelation => byRelation.forEach(deepFreeze));
+    this.primaryKeys.forEach(deepFreeze);
   }
 
   private buildRelations(collection: ForestSchemaCollection): void {
@@ -96,6 +102,16 @@ export default class ReadModel {
     }
   }
 
+  private buildPrimaryKeys(collection: ForestSchemaCollection): void {
+    const keys: PrimaryKeyField[] = [];
+
+    for (const field of collection.fields ?? []) {
+      if (field.isPrimaryKey) keys.push({ name: field.field, type: field.type });
+    }
+
+    this.primaryKeys.set(collection.name, keys);
+  }
+
   isCollectionAllowed(collection: string): boolean {
     return this.collections.has(collection);
   }
@@ -114,5 +130,9 @@ export default class ReadModel {
 
   getActionEndpoints(): ActionEndpointsByCollection {
     return this.actionEndpoints;
+  }
+
+  getPrimaryKeys(collection: string): PrimaryKeyField[] {
+    return this.primaryKeys.get(collection) ?? [];
   }
 }

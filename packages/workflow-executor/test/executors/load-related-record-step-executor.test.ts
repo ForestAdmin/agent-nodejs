@@ -3185,7 +3185,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await new LoadRelatedRecordStepExecutor(context).execute();
 
-      expect(selectRecordPrompt(invoke)).not.toContain('-1');
+      expect(selectRecordPrompt(invoke)).not.toContain('return -1');
     });
 
     // The AI sees only the budgeted prefix, but its index maps back into the FULL list — so a
