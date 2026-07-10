@@ -19,8 +19,15 @@ export interface ActionForm {
   getLayout(): unknown;
 }
 
+// The form and execute endpoints load the same agent-client `Action` object; execute adds the
+// strict setFields + execute members on top of the form ones.
+export interface Action extends ActionForm {
+  setFields(values: Record<string, unknown>): Promise<void>;
+  execute(): Promise<unknown>;
+}
+
 export interface AgentActionClient {
-  loadActionForm(collection: string, action: string, recordIds: string[]): Promise<ActionForm>;
+  loadAction(collection: string, action: string, recordIds: string[]): Promise<Action>;
 }
 
 export interface AgentActionClientOptions {
@@ -52,7 +59,7 @@ export default function createAgentActionClient({
   const client = createRemoteAgentClient({ url: agentUrl, token, actionEndpoints });
 
   return {
-    loadActionForm: (collection, action, recordIds) =>
+    loadAction: (collection, action, recordIds) =>
       client.collection(collection).action(action, { recordIds }),
   };
 }
