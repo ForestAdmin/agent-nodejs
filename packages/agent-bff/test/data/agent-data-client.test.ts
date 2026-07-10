@@ -11,6 +11,7 @@ describe('createAgentDataClient', () => {
 
   beforeEach(() => {
     query.mockReset();
+    query.mockResolvedValue([]);
     mockedHttpRequester.mockReset();
     mockedHttpRequester.mockImplementation(() => ({ query } as unknown as HttpRequester));
   });
@@ -48,5 +49,30 @@ describe('createAgentDataClient', () => {
       skipDeserialization: true,
     });
     expect(result).toEqual({ meta: { count: 'deactivated' } });
+  });
+
+  it('should request the relation list path without pre-encoding the segments', async () => {
+    const client = createAgentDataClient({ agentUrl: 'https://agent', token: 'tok' });
+
+    await client.listRelation('users', 'tenant-1|42', 'posts', { timezone: 'Europe/Paris' });
+
+    expect(query).toHaveBeenCalledWith({
+      method: 'get',
+      path: '/forest/users/tenant-1|42/relationships/posts',
+      query: { timezone: 'Europe/Paris' },
+    });
+  });
+
+  it('should request the relation count path with skipDeserialization and no pre-encoding', async () => {
+    const client = createAgentDataClient({ agentUrl: 'https://agent', token: 'tok' });
+
+    await client.countRelationRaw('users', 'tenant-1|42', 'posts', { timezone: 'Europe/Paris' });
+
+    expect(query).toHaveBeenCalledWith({
+      method: 'get',
+      path: '/forest/users/tenant-1|42/relationships/posts/count',
+      query: { timezone: 'Europe/Paris' },
+      skipDeserialization: true,
+    });
   });
 });

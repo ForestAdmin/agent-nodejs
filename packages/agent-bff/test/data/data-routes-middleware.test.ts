@@ -11,7 +11,7 @@ import createDataRoutesMiddleware from '../../src/data/data-routes-middleware';
 import createErrorMiddleware from '../../src/http/error-middleware';
 import SchemaUnavailableError from '../../src/read-model/errors';
 import ReadModel from '../../src/read-model/read-model';
-import { collection, column } from '../read-model/fixtures';
+import { collection, column, polymorphic, relation } from '../read-model/fixtures';
 
 const TIMEZONE = 'Europe/Paris';
 
@@ -67,6 +67,21 @@ function buildApp(
 }
 
 const usersReadModel = new ReadModel([collection('users', [column('id'), column('email')])]);
+
+const relationReadModel = new ReadModel([
+  collection('users', [
+    column('id'),
+    column('email'),
+    relation('posts', 'HasMany', 'posts.id'),
+    relation('tags', 'BelongsToMany', 'tags.slug'),
+    relation('company', 'BelongsTo', 'companies.id'),
+    relation('secrets', 'HasMany', 'secrets.id'),
+    polymorphic('avatar', ['images', 'files']),
+  ]),
+  collection('posts', [column('id'), column('title')]),
+  collection('tags', [{ ...column('slug'), isPrimaryKey: true }, column('label')]),
+  collection('companies', [column('id')]),
+]);
 
 describe('data routes middleware', () => {
   describe('routing', () => {
@@ -386,6 +401,265 @@ describe('data routes middleware', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+    });
+  });
+
+  describe('relation list', () => {
+    it('should return flat foreign records with __forest and meta.countStatus not_requested', async () => {
+      const listRelation = jest.fn(async () => [{ id: '99', title: 'Hello' }]);
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', projection: ['id', 'title'] });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        data: [
+          {
+            id: '99',
+            title: 'Hello',
+            __forest: { collection: 'posts', primaryKey: { id: '99' } },
+          },
+        ],
+        meta: { countStatus: 'not_requested' },
+      });
+    });
+
+    it('should resolve the parent from the path but project/filter/sort on the foreign collection', async () => {
+      const listRelation = jest.fn(async () => []);
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({
+          parentId: '7',
+          projection: ['id', 'title'],
+          filter: { field: 'title', operator: 'present' },
+          sort: [{ field: 'title', direction: 'desc' }],
+        });
+
+      expect(listRelation).toHaveBeenCalledWith(
+        'users',
+        '7',
+        'posts',
+        expect.objectContaining({
+          'fields[posts]': 'id,title',
+          filters: JSON.stringify({ field: 'title', operator: 'present' }),
+          sort: '-title',
+        }),
+      );
+      const query = (listRelation.mock.calls[0] as unknown[])[3];
+      expect(query).not.toHaveProperty('fields[users]');
+    });
+
+    it('should forward a composite parentId unchanged to the relation query', async () => {
+      const listRelation = jest.fn(async () => []);
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: 'tenant-1|42' });
+
+      expect(listRelation).toHaveBeenCalledWith('users', 'tenant-1|42', 'posts', expect.anything());
+    });
+
+    it('should accept a plain foreign field but reject a nested foreign path with 422', async () => {
+      const listRelation = jest.fn(async () => []);
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const ok = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', projection: ['id', 'title'] });
+
+      expect(ok.status).toBe(200);
+
+      const rejected = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', filter: { field: 'author:name', operator: 'present' } });
+
+      expect(rejected.status).toBe(422);
+      expect(rejected.body.error).toMatchObject({
+        type: 'relation_field_not_supported',
+        status: 422,
+        details: { fields: ['author:name'] },
+      });
+    });
+
+    it('should list a BelongsToMany relation and use the foreign primary key in __forest', async () => {
+      const listRelation = jest.fn(async () => [{ id: 'ts', label: 'TypeScript' }]);
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/tags/list')
+        .send({ parentId: '7', projection: ['slug', 'label'] });
+
+      expect(response.status).toBe(200);
+      expect(listRelation).toHaveBeenCalledWith(
+        'users',
+        '7',
+        'tags',
+        expect.objectContaining({ 'fields[tags]': 'slug,label' }),
+      );
+      expect(response.body.data[0]).toEqual({
+        id: 'ts',
+        label: 'TypeScript',
+        __forest: { collection: 'tags', primaryKey: { slug: 'ts' } },
+      });
+    });
+
+    it.each([
+      ['unknown', 'ghosts'],
+      ['to-one', 'company'],
+      ['polymorphic', 'avatar'],
+    ])('should return 404 unknown_relation for a %s relation', async (_label, relationName) => {
+      const listRelation = jest.fn();
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post(`/agent/v1/users/relations/${relationName}/list`)
+        .send({ parentId: '7' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toMatchObject({ type: 'unknown_relation', status: 404 });
+      expect(listRelation).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 unknown_collection when the relation targets a disallowed collection', async () => {
+      const listRelation = jest.fn();
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/secrets/list')
+        .send({ parentId: '7' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
+      expect(listRelation).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 unknown_collection for an unknown parent collection', async () => {
+      const listRelation = jest.fn();
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/ghosts/relations/posts/list')
+        .send({ parentId: '7' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
+      expect(listRelation).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['missing', {}],
+      ['empty', { parentId: '' }],
+      ['malformed', { parentId: { composite: true } }],
+    ])('should return 400 for a %s parentId without calling the agent', async (_label, body) => {
+      const listRelation = jest.fn();
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send(body);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+      expect(listRelation).not.toHaveBeenCalled();
+    });
+
+    it('should map an agent failure through the error contract', async () => {
+      const listRelation = jest.fn(async () => {
+        throw new AgentHttpError(
+          404,
+          { errors: [{ status: 404, name: 'NotFoundError' }] },
+          undefined,
+        );
+      });
+      const app = buildApp(storeOf(relationReadModel), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toMatchObject({ type: 'not_found', status: 404 });
+    });
+  });
+
+  describe('relation count', () => {
+    it('should count on the foreign collection and return available', async () => {
+      const countRelationRaw = jest.fn(async () => ({ count: 3 }));
+      const app = buildApp(storeOf(relationReadModel), { countRelationRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({ parentId: '7' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ count: 3, countStatus: 'available' });
+      expect(countRelationRaw).toHaveBeenCalledWith('users', '7', 'posts', expect.anything());
+    });
+
+    it('should return deactivated from the raw agent payload', async () => {
+      const countRelationRaw = jest.fn(async () => ({ meta: { count: 'deactivated' } }));
+      const app = buildApp(storeOf(relationReadModel), { countRelationRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({ parentId: '7' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ count: null, countStatus: 'deactivated' });
+    });
+
+    it.each([
+      ['unknown relation', 'users', 'ghosts', 'unknown_relation'],
+      ['to-one relation', 'users', 'company', 'unknown_relation'],
+      ['disallowed foreign collection', 'users', 'secrets', 'unknown_collection'],
+    ])(
+      'should return 404 for a %s on the count path without calling the agent',
+      async (_label, parent, relationName, type) => {
+        const countRelationRaw = jest.fn();
+        const app = buildApp(storeOf(relationReadModel), { countRelationRaw });
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/${parent}/relations/${relationName}/count`)
+          .send({ parentId: '7' });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type, status: 404 });
+        expect(countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should reject a nested foreign path in the count filter with 422', async () => {
+      const countRelationRaw = jest.fn();
+      const app = buildApp(storeOf(relationReadModel), { countRelationRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({ parentId: '7', filter: { field: 'author:name', operator: 'present' } });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toMatchObject({
+        type: 'relation_field_not_supported',
+        status: 422,
+      });
+      expect(countRelationRaw).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 for a malformed parentId without calling the agent', async () => {
+      const countRelationRaw = jest.fn();
+      const app = buildApp(storeOf(relationReadModel), { countRelationRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+      expect(countRelationRaw).not.toHaveBeenCalled();
     });
   });
 });
