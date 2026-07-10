@@ -510,6 +510,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const addressSchema = makeCollectionSchema({
         collectionName: 'addresses',
         collectionDisplayName: 'Addresses',
+        referenceField: 'city',
         fields: [
           { fieldName: 'city', displayName: 'City', isRelationship: false },
           { fieldName: 'zip', displayName: 'Zip', isRelationship: false },
@@ -577,8 +578,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
           // one's referenceFieldValue label instead of falling back to the raw recordId (PRD-751).
           pendingData: expect.objectContaining({
             availableRecordIds: expect.arrayContaining([
-              expect.objectContaining({ recordId: [1] }),
-              expect.objectContaining({ recordId: [2] }),
+              expect.objectContaining({ recordId: [1], referenceFieldValue: 'Paris' }),
+              expect.objectContaining({ recordId: [2], referenceFieldValue: 'Lyon' }),
             ]),
           }),
         }),
@@ -1093,6 +1094,11 @@ describe('LoadRelatedRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('success');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
       expect(saved.executionResult).toEqual({ skipped: true });
+      // The skip still records the relation and the source record for downstream steps.
+      expect(saved.executionParams).toEqual({ name: 'tags', displayName: 'Tags' });
+      expect(saved.selectedRecordRef).toEqual(
+        expect.objectContaining({ collectionName: 'customers', recordId: [42] }),
+      );
     });
   });
 

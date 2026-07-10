@@ -630,11 +630,16 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     });
   }
 
-  /** Persists the loaded record ref and returns a success outcome. */
-  /** Persists a "continue without a record" skip and returns a success outcome. */
   private async persistSkip(
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
   ): Promise<StepExecutionResult> {
+    // Full AI made this call on its own — log it so an unexpectedly empty relation is auditable.
+    this.context.logger(
+      'Info',
+      'load-related-record: no candidate to load, continuing without a record',
+      { ...this.logCtx, relation: target.name },
+    );
+
     await this.context.runStore.saveStepExecution(this.context.runId, {
       type: 'load-related-record',
       stepIndex: this.context.stepIndex,
