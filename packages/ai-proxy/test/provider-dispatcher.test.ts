@@ -18,36 +18,13 @@ import {
 } from '../src';
 import ServerRemoteTool from '../src/server-remote-tool';
 
-// Mock raw OpenAI response (returned via __includeRawResponse: true)
-const mockOpenAIResponse = {
-  id: 'chatcmpl-123',
-  object: 'chat.completion',
-  created: 1234567890,
-  model: 'gpt-4o',
-  choices: [
-    {
-      index: 0,
-      message: {
-        role: 'assistant',
-        content: 'response',
-        tool_calls: [],
-      },
-      finish_reason: 'stop',
-    },
-  ],
-  usage: {
-    prompt_tokens: 10,
-    completion_tokens: 20,
-    total_tokens: 30,
-  },
-};
-
+// Normalized LangChain AIMessage — the dispatcher converts it to the OpenAI wire shape
+// via LangChainAdapter.convertResponse (the Responses API no longer exposes __raw_response).
 const invokeMock = jest.fn().mockResolvedValue({
   content: 'response',
   tool_calls: [],
   response_metadata: { finish_reason: 'stop' },
   usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
-  additional_kwargs: { __raw_response: mockOpenAIResponse },
 });
 
 const bindToolsMock = jest.fn().mockReturnValue({ invoke: invokeMock });
@@ -129,10 +106,36 @@ describe('ProviderDispatcher', () => {
       dispatcher = new ProviderDispatcher(openaiConfig, new RemoteTools());
     });
 
-    it('should return the raw OpenAI response', async () => {
+    it('converts the OpenAI response to the chat.completion wire shape', async () => {
       const response = await dispatcher.dispatch(buildBody());
 
-      expect(response).toEqual(mockOpenAIResponse);
+      expect(response).toMatchObject({
+        object: 'chat.completion',
+        model: 'gpt-4o',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'response' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+      });
+    });
+
+    it('builds the OpenAI model with the Responses API enabled', async () => {
+      expect(ChatOpenAI).toHaveBeenCalledWith(expect.objectContaining({ useResponsesApi: true }));
+    });
+
+    it('lets an explicit useResponsesApi config win over the default', async () => {
+      new ProviderDispatcher(
+        { ...openaiConfig, useResponsesApi: false } as never,
+        new RemoteTools(),
+      );
+
+      expect(ChatOpenAI).toHaveBeenCalledWith(
+        expect.objectContaining({ useResponsesApi: false }),
+      );
     });
 
     it('should not forward user-supplied model or arbitrary properties to the LLM', async () => {
@@ -237,15 +240,29 @@ describe('ProviderDispatcher', () => {
         expect(thrown.cause).toBe(error);
       });
 
-      it('should throw when rawResponse is missing', async () => {
+      it('converts tool calls into the response (finish_reason: tool_calls)', async () => {
         invokeMock.mockResolvedValueOnce({
-          content: 'response',
-          additional_kwargs: { __raw_response: null },
+          content: '',
+          tool_calls: [{ id: 'call_1', name: 'calculate', args: { a: 1 } }],
+          usage_metadata: { input_tokens: 5, output_tokens: 3, total_tokens: 8 },
         });
 
-        await expect(dispatcher.dispatch(buildBody())).rejects.toThrow(
-          'OpenAI response missing raw response data. This may indicate an API change.',
+        const response = await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'calculate', parameters: {} } }],
+            messages: [{ role: 'user', content: 'calc' }],
+            tool_choice: 'required',
+          }),
         );
+
+        expect(response.choices[0].finish_reason).toBe('tool_calls');
+        expect(response.choices[0].message.tool_calls).toEqual([
+          {
+            id: 'call_1',
+            type: 'function',
+            function: { name: 'calculate', arguments: JSON.stringify({ a: 1 }) },
+          },
+        ]);
       });
     });
 

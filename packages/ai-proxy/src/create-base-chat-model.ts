@@ -11,7 +11,9 @@ export function createBaseChatModel(config: AiConfiguration): BaseChatModel {
   if (config.provider === 'openai') {
     const { provider, name, ...opts } = config;
 
-    return new ChatOpenAI({ maxRetries: 0, ...opts });
+    // Use the Responses API: reasoning models (gpt-5.x) reject tools + reasoning_effort on
+    // /v1/chat/completions. A user-supplied useResponsesApi still wins (spread after).
+    return new ChatOpenAI({ maxRetries: 0, useResponsesApi: true, ...opts });
   }
 
   if (config.provider === 'anthropic') {

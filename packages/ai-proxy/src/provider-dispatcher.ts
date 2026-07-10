@@ -4,7 +4,7 @@ import type { RemoteTools } from './remote-tools';
 import type { DispatchBody } from './schemas/route';
 import type { AIMessage, BaseMessageLike } from '@langchain/core/messages';
 
-import { BusinessError, UnprocessableError } from '@forestadmin/datasource-toolkit';
+import { BusinessError } from '@forestadmin/datasource-toolkit';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { convertToOpenAIFunction } from '@langchain/core/utils/function_calling';
 import { ChatOpenAI } from '@langchain/openai';
@@ -51,9 +51,12 @@ export default class ProviderDispatcher {
       const { provider, name, ...chatOpenAIOptions } = configuration;
       this.openaiModel = new ChatOpenAI({
         maxRetries: 0, // No retries by default - this lib is a passthrough
+        // Use the Responses API: reasoning models (gpt-5.x) reject tools + reasoning_effort on
+        // /v1/chat/completions. A user-supplied useResponsesApi still wins (spread after).
+        useResponsesApi: true,
         ...chatOpenAIOptions,
-        __includeRawResponse: true,
       });
+      this.modelName = configuration.model ?? null;
     } else if (configuration?.provider === 'anthropic') {
       const { provider, name, model, ...clientOptions } = configuration;
       this.anthropicModel = new ChatAnthropic({
@@ -105,16 +108,9 @@ export default class ProviderDispatcher {
       throw ProviderDispatcher.wrapProviderError(error, 'OpenAI');
     }
 
-    // eslint-disable-next-line no-underscore-dangle
-    const rawResponse = response.additional_kwargs.__raw_response as ChatCompletionResponse;
-
-    if (!rawResponse) {
-      throw new UnprocessableError(
-        'OpenAI response missing raw response data. This may indicate an API change.',
-      );
-    }
-
-    return rawResponse;
+    // Build the OpenAI wire shape from LangChain's normalized AIMessage (same path as Anthropic).
+    // The Responses API returns a different raw object, so we no longer read __raw_response.
+    return LangChainAdapter.convertResponse(response, this.modelName);
   }
 
   private async dispatchAnthropic(body: DispatchBody): Promise<ChatCompletionResponse> {
