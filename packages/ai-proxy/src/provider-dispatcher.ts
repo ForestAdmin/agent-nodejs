@@ -1,5 +1,10 @@
 import type { OpenAIMessage } from './langchain-adapter';
-import type { AiConfiguration, ChatCompletionResponse, ChatCompletionTool } from './provider';
+import type {
+  AiConfiguration,
+  ChatCompletionResponse,
+  ChatCompletionTool,
+  ChatCompletionToolChoice,
+} from './provider';
 import type { RemoteTools } from './remote-tools';
 import type { DispatchBody } from './schemas/route';
 import type { AIMessage, BaseMessageLike } from '@langchain/core/messages';
@@ -95,7 +100,7 @@ export default class ProviderDispatcher {
     const enrichedTools = this.enrichToolDefinitions(tools);
     const model = enrichedTools?.length
       ? this.openaiModel.bindTools(enrichedTools, {
-          tool_choice: toolChoice,
+          tool_choice: ProviderDispatcher.forceToolChoiceForResponses(toolChoice, enrichedTools),
           parallel_tool_calls: parallelToolCalls,
         })
       : this.openaiModel;
@@ -141,6 +146,23 @@ export default class ProviderDispatcher {
     }
 
     return LangChainAdapter.convertResponse(response, this.modelName);
+  }
+
+  // LangChain's Responses API path silently drops string tool_choice ('required'/'any'): its
+  // param builder forwards only object-form choices. Re-express "must call a tool" as forcing the
+  // single available function — the only forcing shape it forwards. Multi-tool 'required' has no
+  // such shape under the Responses API and falls back to the model default.
+  private static forceToolChoiceForResponses(
+    toolChoice: unknown,
+    tools: ChatCompletionTool[],
+  ): ChatCompletionToolChoice {
+    const functionTools = tools.filter(tool => tool.type === 'function');
+
+    if ((toolChoice === 'required' || toolChoice === 'any') && functionTools.length === 1) {
+      return { type: 'function', function: { name: functionTools[0].function.name } };
+    }
+
+    return toolChoice as ChatCompletionToolChoice;
   }
 
   private static wrapProviderError(error: unknown, providerName: string): Error {

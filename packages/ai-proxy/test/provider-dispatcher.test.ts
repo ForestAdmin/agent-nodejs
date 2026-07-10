@@ -347,6 +347,41 @@ describe('ProviderDispatcher', () => {
         });
       });
     });
+
+    describe('tool_choice: required (Responses API)', () => {
+      it('forces the single available function so the Responses API honors the request', async () => {
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'calculate', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'required',
+          }),
+        );
+
+        expect(bindToolsMock).toHaveBeenCalledWith(expect.any(Array), {
+          tool_choice: { type: 'function', function: { name: 'calculate' } },
+          parallel_tool_calls: undefined,
+        });
+      });
+
+      it('leaves required untouched when several tools are available', async () => {
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [
+              { type: 'function', function: { name: 'a', parameters: {} } },
+              { type: 'function', function: { name: 'b', parameters: {} } },
+            ],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'required',
+          }),
+        );
+
+        expect(bindToolsMock).toHaveBeenCalledWith(expect.any(Array), {
+          tool_choice: 'required',
+          parallel_tool_calls: undefined,
+        });
+      });
+    });
   });
 
   describe('anthropic', () => {
