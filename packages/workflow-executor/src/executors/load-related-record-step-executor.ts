@@ -434,8 +434,15 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
       true,
     );
 
-    // Full AI auto-loads only a confident single pick; otherwise it degrades to an AI-assisted
-    // confirmation — "No X to load" pre-checked when nothing fits, else its best guess pre-selected.
+    // Full AI with no candidate at all: a human couldn't pick one either, so continue without a
+    // record (skip) instead of handing off to AI-assisted (PRD-751 decision).
+    if (availableRecordIds.length === 0) {
+      return this.persistSkip(target);
+    }
+
+    // Otherwise Full AI auto-loads only a confident single pick; a non-empty list with no confident
+    // pick (ambiguous, or the AI judged none relevant) degrades to an AI-assisted confirmation
+    // ("No X to load" pre-checked when the AI found nothing relevant, else its best guess).
     if (!suggestedRecord || ambiguous) {
       const sourceSchema = await this.getCollectionSchema(target.selectedRecordRef.collectionName);
 
@@ -624,6 +631,21 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
   }
 
   /** Persists the loaded record ref and returns a success outcome. */
+  /** Persists a "continue without a record" skip and returns a success outcome. */
+  private async persistSkip(
+    target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
+  ): Promise<StepExecutionResult> {
+    await this.context.runStore.saveStepExecution(this.context.runId, {
+      type: 'load-related-record',
+      stepIndex: this.context.stepIndex,
+      executionParams: { name: target.name, displayName: target.displayName },
+      executionResult: { skipped: true },
+      selectedRecordRef: target.selectedRecordRef,
+    });
+
+    return this.buildOutcomeResult({ status: 'success' });
+  }
+
   private async persistAndReturn(
     record: RecordRef,
     target: Pick<RelationTarget, 'selectedRecordRef' | 'name' | 'displayName'>,
