@@ -303,6 +303,48 @@ describe('GuidanceStepExecutor', () => {
       expect(allContent).toContain('Kunstmann');
     });
 
+    it('keeps the trigger record grounding when one field value is not JSON-serializable', async () => {
+      const { model, invoke } = makeMockModel({ response: 'answer' });
+      const schema = {
+        collectionName: 'customers',
+        collectionId: 'col-customers',
+        collectionDisplayName: 'Customers',
+        primaryKeyFields: ['id'],
+        fields: [
+          { fieldName: 'firstName', displayName: 'First name', isRelationship: false },
+          { fieldName: 'balance', displayName: 'Balance', isRelationship: false },
+        ],
+        actions: [],
+      };
+      const workflowPort = {
+        getCollectionSchema: jest.fn().mockResolvedValue(schema),
+      } as unknown as WorkflowPort;
+      const agentPort = {
+        getRecord: jest.fn().mockResolvedValue({
+          values: { firstName: 'Godfried', balance: BigInt(9007199254740993n) },
+        }),
+      } as unknown as AgentPort;
+
+      const executor = new GuidanceStepExecutor(
+        makeContext({
+          model,
+          workflowPort,
+          agentPort,
+          stepDefinition: makeStep({
+            executionType: StepExecutionMode.AutomatedWithConfirmation,
+            prompt: 'Summarize the account holder',
+          }),
+        }),
+      );
+      await executor.execute();
+
+      const allContent = (invoke.mock.calls[0][0] as { content: string }[])
+        .map(m => m.content)
+        .join('\n');
+      expect(allContent).toContain('Godfried');
+      expect(allContent).toContain('9007199254740993');
+    });
+
     it('does not regenerate the draft when a pending execution already exists (re-dispatch)', async () => {
       const runStore = makeMockRunStore({
         getStepExecutions: jest.fn().mockResolvedValue([

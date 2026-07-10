@@ -24,7 +24,19 @@ const MAX_TRIGGER_FIELD_VALUE_LENGTH = 200;
 
 function clampFieldValue(value: unknown): string {
   if (value === null || value === undefined) return '';
-  const serialized = typeof value === 'string' ? value : JSON.stringify(value) ?? '';
+
+  let serialized: string;
+
+  if (typeof value === 'string') {
+    serialized = value;
+  } else {
+    // JSON.stringify throws on BigInt values — one such field must not discard the whole record.
+    try {
+      serialized = JSON.stringify(value) ?? '';
+    } catch {
+      serialized = String(value);
+    }
+  }
 
   return serialized.length > MAX_TRIGGER_FIELD_VALUE_LENGTH
     ? `${serialized.slice(0, MAX_TRIGGER_FIELD_VALUE_LENGTH)}… (truncated)`

@@ -21,7 +21,8 @@ export enum StepExecutionMode {
 }
 
 // Shared fields across all step types. executionType is intentionally excluded —
-// each schema declares its own valid modes with .default().catch() for normalization.
+// each schema declares its own valid modes (most with .default().catch() for normalization;
+// guidance deliberately omits .catch to fail loud on an unknown mode).
 const sharedFields = {
   prompt: z.string().optional(),
   aiConfigName: z.string().optional(),
