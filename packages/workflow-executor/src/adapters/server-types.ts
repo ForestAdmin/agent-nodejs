@@ -39,8 +39,9 @@ export enum ServerStepExecutionTypeEnum {
 
 interface ServerWorkflowStepBase {
   type: ServerStepTypeEnum;
-  title: string;
-  prompt?: string;
+  // The orchestrator serializes missing BPMN attributes as null (DOM getAttribute), never omits.
+  title: string | null;
+  prompt?: string | null;
   executionType: ServerStepExecutionTypeEnum;
   automaticCompletion: boolean;
   outgoing: ServerWorkflowTransition[];
@@ -50,7 +51,7 @@ export interface ServerWorkflowTaskBase extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Task;
   taskType: ServerTaskTypeEnum;
   isSubTask?: boolean;
-  prompt: string;
+  prompt: string | null;
   outgoing: [ServerWorkflowTransition];
 }
 
