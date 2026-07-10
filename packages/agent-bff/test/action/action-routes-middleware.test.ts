@@ -538,6 +538,21 @@ describe('action execute', () => {
     });
   });
 
+  it('keeps an empty roleIdsAllowedToApprove array in the 403 details', async () => {
+    const form = makeAction({
+      execute: jest.fn(async () => {
+        throw new ActionRequiresApprovalError('Needs approval', []);
+      }),
+    });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.details).toEqual({ roleIdsAllowedToApprove: [] });
+  });
+
   it('maps a transport 5xx to agent_unavailable, distinct from the action-Error 400', async () => {
     const form = makeAction({
       execute: jest.fn(async () => {

@@ -15,7 +15,7 @@ describe('mapActionExecuteResult', () => {
   });
 
   it('defaults message and html to null and invalidated to [] when absent', () => {
-    expect(mapActionExecuteResult({ success: undefined })).toEqual({
+    expect(mapActionExecuteResult({ success: undefined, refresh: { relationships: [] } })).toEqual({
       status: 200,
       body: { type: 'success', message: null, invalidated: [], html: null },
     });
@@ -61,6 +61,17 @@ describe('mapActionExecuteResult', () => {
 
   it('falls through to 501 for a non-object payload', () => {
     expect(mapActionExecuteResult(null)).toEqual({
+      status: 501,
+      body: { error: { type: 'unsupported_action_result', status: 501 } },
+    });
+  });
+
+  it.each([
+    ['a null webhook', { webhook: null }],
+    ['a non-string redirectTo', { redirectTo: {} }],
+    ['a non-string success with no refresh', { success: {} }],
+  ])('falls through to 501 for a malformed payload: %s', (_label, payload) => {
+    expect(mapActionExecuteResult(payload)).toEqual({
       status: 501,
       body: { error: { type: 'unsupported_action_result', status: 501 } },
     });
