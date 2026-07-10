@@ -14,11 +14,15 @@ describe('isModelSupportingTools', () => {
   });
 
   it.each(['gpt-5.6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra'])(
-    'should return false for %s (v1/responses only)',
+    'should return true for %s (supported since the proxy uses v1/responses)',
     model => {
-      expect(isModelSupportingTools(model)).toBe(false);
+      expect(isModelSupportingTools(model)).toBe(true);
     },
   );
+
+  it('should return false for gpt-3.5-turbo-16k (removed from the API)', () => {
+    expect(isModelSupportingTools('gpt-3.5-turbo-16k')).toBe(false);
+  });
 
   it('should return false for claude-fable-5 (always-on thinking incompatible with proxy)', () => {
     expect(isModelSupportingTools('claude-fable-5', 'anthropic')).toBe(false);
