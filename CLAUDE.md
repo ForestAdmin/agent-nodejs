@@ -67,42 +67,27 @@ yarn workspace @forestadmin/agent test
   - ✅ `expect(mock).toHaveBeenCalledWith({ host: 'localhost', port: 3000 })` - verifies exact arguments
   - ✅ `expect(mock).toHaveBeenCalledWith(expect.objectContaining({ host: 'localhost' }))` - partial match when some values are dynamic
 - **One behavior per test** - Each test should verify one specific behavior
-- **Use AAA pattern** - Arrange (setup), Act (execute), Assert (verify) - keep these sections clear
 - **Test edge cases** - Not just happy paths; test errors, null values, empty arrays, boundaries
 - **Test behavior, not implementation** - Assert on observable outputs, not internal method calls
 - **Coverage ≠ quality** - 100% coverage with weak assertions is worse than 80% with strong assertions
 
 ## Code Review Principles
 
-### Core Principles
-
-- **DRY** (Don't Repeat Yourself) - Extract common logic into reusable functions/services
-- **KISS** (Keep It Simple, Stupid) - Prefer simple, readable solutions over clever ones
-- **YAGNI** (You Aren't Gonna Need It) - Don't implement features "just in case"
+ESLint owns the mechanical rules — file naming, formatting, unused variables
+(see `.eslintrc.js`). The points below are judgment calls the linter cannot check.
 
 ### Function Design
 
-- **Single Responsibility** - One function = one task
-- **Size** - Keep functions short (20-30 lines max); split if longer
-- **Naming** - Descriptive names that explain *what*, not *how* (`getUserPermissions` not `getData`)
-- **Parameters** - Max 3-4 parameters; use an options object for more
 - **Return early** - Guard clauses at the top, avoid deep nesting
 
 ### Code Quality
 
 - **No magic numbers/strings** - Use named constants
-- **Avoid side effects** - Pure functions when possible
 - **Handle errors explicitly** - No silent failures
-- **Comments** - Explain *why*, not *what* (code should be self-documenting)
 
 ### Review Checklist
 
-1. Does this code do one thing well?
-2. Can I understand it in 30 seconds?
-3. Is there duplication that should be extracted?
-4. Are there unused variables/imports?
-5. Are edge cases handled?
-6. Is the naming clear and consistent?
+1. Are edge cases handled?
 
 ## Linear Tickets
 
