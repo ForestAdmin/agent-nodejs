@@ -32,7 +32,8 @@ export interface AgentActionClientOptions {
 // The raw layout must be read AFTER tryToSetFields: a change hook rebuilds fields+layout in place.
 // agent-client's `Action.getLayout()` only returns an `ActionLayoutRoot` wrapper whose element array
 // lives in a protected field. The rollback contract forbids agent-client changes, so we read it
-// through a cast rather than adding a public accessor. A layout-shape test guards against drift.
+// through a cast rather than adding a public accessor. `extract-raw-layout.test.ts` builds a real
+// `ActionLayoutRoot` and asserts this unwraps it, so a rename of that field fails a test.
 export function extractRawLayout(action: ActionForm): ForestServerActionFormLayoutElement[] {
   const root = action.getLayout() as { layout?: ForestServerActionFormLayoutElement[] };
 
