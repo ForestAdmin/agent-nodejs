@@ -73,7 +73,8 @@ yarn workspace @forestadmin/agent test
 
 ## Code Review Principles
 
-Mechanical conventions are enforced by ESLint — see `.eslintrc.js`, not this file.
+ESLint owns the mechanical rules — file naming, formatting, unused variables
+(see `.eslintrc.js`). The points below are judgment calls the linter cannot check.
 
 ### Function Design
 
@@ -87,7 +88,6 @@ Mechanical conventions are enforced by ESLint — see `.eslintrc.js`, not this f
 ### Review Checklist
 
 1. Are edge cases handled?
-2. Are there unused variables/imports?
 
 ## Linear Tickets
 
