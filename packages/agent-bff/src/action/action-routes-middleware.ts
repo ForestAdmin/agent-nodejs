@@ -1,21 +1,29 @@
 import type { AgentActionClient, AgentActionClientOptions } from './agent-action-client';
 import type { Logger } from '../ports/logger-port';
 import type ReadModelStore from '../read-model/read-model-store';
-import type { Middleware } from 'koa';
+import type { Context, Middleware } from 'koa';
 
+import {
+  ActionFormValidationError,
+  ActionRequiresApprovalError,
+  UnknownActionFieldError,
+} from '@forestadmin/agent-client';
+
+import { mapActionExecuteResult } from './action-execute-mapper';
 import { mapActionForm } from './action-form-mapper';
 import defaultCreateAgentActionClient, { extractRawLayout } from './agent-action-client';
+import { mapAgentError } from '../http/agent-error-mapper';
 import {
   callAgent,
   decodeSegment,
   requireAgentToken,
   resolveReadModel,
 } from '../http/agent-route-helpers';
-import { invalidRequest, unknownAction } from '../http/bff-local-errors';
+import { actionRequiresApproval, invalidRequest, unknownAction } from '../http/bff-local-errors';
 
-const ACTION_FORM_ROUTE = /^\/agent\/v1\/([^/]+)\/actions\/([^/]+)\/form$/;
+const ACTION_ROUTE = /^\/agent\/v1\/([^/]+)\/actions\/([^/]+)\/(form|execute)$/;
 
-interface ActionFormRequestBody {
+interface ActionRequestBody {
   recordIds?: unknown;
   values?: unknown;
 }
@@ -50,6 +58,77 @@ export interface ActionRoutesMiddlewareOptions {
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
 }
 
+async function handleForm(
+  ctx: Context,
+  client: AgentActionClient,
+  collection: string,
+  actionName: string,
+  recordIds: string[],
+  values: Record<string, unknown>,
+  logger: Logger,
+): Promise<void> {
+  // Each agent-hitting call is wrapped on its own; getFields/extractRawLayout/mapping stay outside
+  // callAgent so a local BFF bug surfaces as a 500, not a mislabelled agent error. Fields and
+  // layout are read AFTER tryToSetFields because a change hook rebuilds them in place.
+  const action = await callAgent(() => client.loadAction(collection, actionName, recordIds), logger);
+  const skippedFields = await callAgent(() => action.tryToSetFields(values), logger);
+
+  ctx.status = 200;
+  ctx.body = mapActionForm(action, skippedFields, extractRawLayout(action));
+}
+
+async function handleExecute(
+  ctx: Context,
+  client: AgentActionClient,
+  collection: string,
+  actionName: string,
+  recordIds: string[],
+  values: Record<string, unknown>,
+  logger: Logger,
+): Promise<void> {
+  const action = await callAgent(() => client.loadAction(collection, actionName, recordIds), logger);
+
+  // setFields is strict: an unknown submitted field is a client error (400), not a 500. A transport
+  // failure from the change-hook it triggers is a genuine agent error, so it goes to the mapper.
+  try {
+    await action.setFields(values);
+  } catch (error) {
+    if (error instanceof UnknownActionFieldError) throw invalidRequest(error.message);
+    throw mapAgentError(error, { logger });
+  }
+
+  // execute() cannot go through the generic callAgent: agent-client turns the native action Error
+  // (HTTP 400) into ActionFormValidationError, a non-AgentHttpError the mapper would mislabel as a
+  // transport 502. So the semantic outcomes are caught here, everything else falls to the mapper.
+  let raw: unknown;
+
+  try {
+    raw = await action.execute();
+  } catch (error) {
+    if (error instanceof ActionRequiresApprovalError) {
+      throw actionRequiresApproval(
+        error.message,
+        error.roleIdsAllowedToApprove
+          ? { roleIdsAllowedToApprove: error.roleIdsAllowedToApprove }
+          : undefined,
+      );
+    }
+
+    if (error instanceof ActionFormValidationError) {
+      ctx.status = 400;
+      ctx.body = { type: 'error', status: 400, message: error.message, html: error.html ?? null };
+
+      return;
+    }
+
+    throw mapAgentError(error, { logger });
+  }
+
+  const { status, body } = mapActionExecuteResult(raw);
+  ctx.status = status;
+  ctx.body = body;
+}
+
 export default function createActionRoutesMiddleware({
   store,
   agentUrl,
@@ -57,7 +136,7 @@ export default function createActionRoutesMiddleware({
   createClient = defaultCreateAgentActionClient,
 }: ActionRoutesMiddlewareOptions): Middleware {
   return async function actionRoutesMiddleware(ctx, next) {
-    const match = ACTION_FORM_ROUTE.exec(ctx.path);
+    const match = ACTION_ROUTE.exec(ctx.path);
 
     if (!match || ctx.method !== 'POST') {
       await next();
@@ -67,6 +146,7 @@ export default function createActionRoutesMiddleware({
 
     const collection = decodeSegment(match[1], 'collection name');
     const actionName = decodeSegment(match[2], 'action name');
+    const verb = match[3];
     const token = requireAgentToken(ctx);
     const readModel = await resolveReadModel(store);
 
@@ -79,7 +159,7 @@ export default function createActionRoutesMiddleware({
       throw unknownAction(`Unknown action: ${collection}.${actionName}`);
     }
 
-    const body = (ctx.request.body ?? {}) as ActionFormRequestBody;
+    const body = (ctx.request.body ?? {}) as ActionRequestBody;
     const recordIds = parseRecordIds(body.recordIds);
     const values = parseValues(body.values);
 
@@ -89,16 +169,10 @@ export default function createActionRoutesMiddleware({
       actionEndpoints: readModel.getActionEndpoints(),
     });
 
-    // Each agent-hitting call is wrapped on its own; getFields/extractRawLayout/mapping stay outside
-    // callAgent so a local BFF bug surfaces as a 500, not a mislabelled agent error. Fields and
-    // layout are read AFTER tryToSetFields because a change hook rebuilds them in place.
-    const action = await callAgent(
-      () => client.loadActionForm(collection, actionName, recordIds),
-      logger,
-    );
-    const skippedFields = await callAgent(() => action.tryToSetFields(values), logger);
-
-    ctx.status = 200;
-    ctx.body = mapActionForm(action, skippedFields, extractRawLayout(action));
+    if (verb === 'execute') {
+      await handleExecute(ctx, client, collection, actionName, recordIds, values, logger);
+    } else {
+      await handleForm(ctx, client, collection, actionName, recordIds, values, logger);
+    }
   };
 }
