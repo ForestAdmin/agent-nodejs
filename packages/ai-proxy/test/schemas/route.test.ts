@@ -59,6 +59,16 @@ describe('routeArgsSchema', () => {
       expect(result.error?.issues[0].message).toBe('Missing required body parameter: messages');
     });
 
+    it('rejects ai-query with an empty messages array', () => {
+      const result = routeArgsSchema.safeParse({
+        route: 'ai-query',
+        body: { messages: [] },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0].message).toBe('messages must contain at least one message');
+    });
+
     it('rejects ai-query with non-boolean parallel_tool_calls', () => {
       const result = routeArgsSchema.safeParse({
         route: 'ai-query',

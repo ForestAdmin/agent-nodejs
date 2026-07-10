@@ -98,12 +98,15 @@ export default class ProviderDispatcher {
     } = body;
 
     const enrichedTools = this.enrichToolDefinitions(tools);
-    const model = enrichedTools?.length
-      ? this.openaiModel.bindTools(enrichedTools, {
-          tool_choice: ProviderDispatcher.forceToolChoiceForResponses(toolChoice, enrichedTools),
-          parallel_tool_calls: parallelToolCalls,
-        })
-      : this.openaiModel;
+    // 'none' is also dropped by LangChain's Responses path — not binding the tools is the only
+    // way to guarantee the model cannot call them.
+    const model =
+      enrichedTools?.length && toolChoice !== 'none'
+        ? this.openaiModel.bindTools(enrichedTools, {
+            tool_choice: ProviderDispatcher.forceToolChoiceForResponses(toolChoice, enrichedTools),
+            parallel_tool_calls: parallelToolCalls,
+          })
+        : this.openaiModel;
 
     let response: AIMessage;
 

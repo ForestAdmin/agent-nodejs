@@ -381,6 +381,66 @@ describe('ProviderDispatcher', () => {
           parallel_tool_calls: undefined,
         });
       });
+
+      it('treats the any alias like required', async () => {
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'calculate', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'any',
+          }),
+        );
+
+        expect(bindToolsMock).toHaveBeenCalledWith(expect.any(Array), {
+          tool_choice: { type: 'function', function: { name: 'calculate' } },
+          parallel_tool_calls: undefined,
+        });
+      });
+
+      it('counts only function tools when deciding to force', async () => {
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [
+              { type: 'function', function: { name: 'calculate', parameters: {} } },
+              { type: 'custom', custom: { name: 'other' } },
+            ],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'required',
+          }),
+        );
+
+        expect(bindToolsMock).toHaveBeenCalledWith(expect.any(Array), {
+          tool_choice: { type: 'function', function: { name: 'calculate' } },
+          parallel_tool_calls: undefined,
+        });
+      });
+
+      it('does not force tool_choice auto', async () => {
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'calculate', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'auto',
+          }),
+        );
+
+        expect(bindToolsMock).toHaveBeenCalledWith(expect.any(Array), {
+          tool_choice: 'auto',
+          parallel_tool_calls: undefined,
+        });
+      });
+
+      it('does not bind tools at all for tool_choice none', async () => {
+        await dispatcher.dispatch(
+          buildBody({
+            tools: [{ type: 'function', function: { name: 'calculate', parameters: {} } }],
+            messages: [{ role: 'user', content: 'test' }],
+            tool_choice: 'none',
+          }),
+        );
+
+        expect(bindToolsMock).not.toHaveBeenCalled();
+      });
     });
   });
 
