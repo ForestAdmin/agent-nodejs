@@ -1,4 +1,5 @@
 import {
+  GuidanceStepDefinitionSchema,
   LoadRelatedRecordStepDefinitionSchema,
   StepExecutionMode,
   StepType,
@@ -39,5 +40,33 @@ describe('LoadRelatedRecordStepDefinitionSchema executionType', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe('GuidanceStepDefinitionSchema executionType', () => {
+  const base = { type: StepType.Guidance as const };
+
+  it('parses each valid execution mode to its own value', () => {
+    expect(
+      GuidanceStepDefinitionSchema.parse({ ...base, executionType: 'manual' }).executionType,
+    ).toBe(StepExecutionMode.Manual);
+    expect(
+      GuidanceStepDefinitionSchema.parse({ ...base, executionType: 'automated-with-confirmation' })
+        .executionType,
+    ).toBe(StepExecutionMode.AutomatedWithConfirmation);
+    expect(
+      GuidanceStepDefinitionSchema.parse({ ...base, executionType: 'fully-automated' })
+        .executionType,
+    ).toBe(StepExecutionMode.FullyAutomated);
+  });
+
+  it('defaults a missing executionType to Manual', () => {
+    expect(GuidanceStepDefinitionSchema.parse(base).executionType).toBe(StepExecutionMode.Manual);
+  });
+
+  it('rejects an invalid executionType instead of coercing it', () => {
+    expect(
+      GuidanceStepDefinitionSchema.safeParse({ ...base, executionType: 'not-a-mode' }).success,
+    ).toBe(false);
   });
 });
