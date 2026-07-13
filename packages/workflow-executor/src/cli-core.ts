@@ -24,6 +24,7 @@ import {
   DEFAULT_STOP_TIMEOUT_S,
 } from './defaults';
 import { ConfigurationError, extractErrorMessage } from './errors';
+import { DEFAULT_SCHEMA } from './stores/schema-migrations';
 
 const POSITIVE_INT = z.coerce.number().int().positive();
 const LOGGER_LEVEL_SCHEMA = z.enum(['Debug', 'Info', 'Warn', 'Error']);
@@ -245,7 +246,6 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     // Defaults to true: managed Postgres (RDS, Supabase, Railway…) requires TLS.
     // Set DATABASE_SSL=false for a local/dev database without TLS.
     databaseSsl: parseBooleanEnv('DATABASE_SSL', env.DATABASE_SSL, true),
-    // Unset (or blank) falls back to the DEFAULT_SCHEMA ('forest') in resolveSchema.
     databaseSchema: env.DATABASE_SCHEMA?.trim() || undefined,
     mode: args.inMemory ? 'in-memory' : 'database',
   };
@@ -319,7 +319,7 @@ export function logStartup(logger: Logger, config: CliConfig): void {
   logger('Info', 'Workflow executor starting', {
     mode,
     databaseSsl: mode === 'database' ? databaseSsl : undefined,
-    databaseSchema: mode === 'database' ? databaseSchema ?? 'forest' : undefined,
+    databaseSchema: mode === 'database' ? databaseSchema ?? DEFAULT_SCHEMA : undefined,
     forestServerUrl: opts.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL,
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,
