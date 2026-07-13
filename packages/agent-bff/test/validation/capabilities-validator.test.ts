@@ -99,6 +99,29 @@ describe('validateAgainstCapabilities', () => {
       );
     });
 
+    it('rejects a filterable-field leaf that carries no operator', () => {
+      const errors = validateAgainstCapabilities({ filter: { field: 'title' } }, capabilities);
+
+      expect(errors[0]).toEqual(
+        expect.objectContaining({
+          type: 'invalid_filter_operator',
+          status: 400,
+          details: { field: 'title', validOperators: ['Equal', 'Contains', 'IContains'] },
+        }),
+      );
+    });
+
+    it('rejects a leaf whose operator is not a string', () => {
+      const errors = validateAgainstCapabilities(
+        { filter: { field: 'title', operator: 1, value: 'a' } },
+        capabilities,
+      );
+
+      expect(errors[0]).toEqual(
+        expect.objectContaining({ type: 'invalid_filter_operator', details: { field: 'title', validOperators: ['Equal', 'Contains', 'IContains'] } }),
+      );
+    });
+
     it('accepts an operator supported by the field', () => {
       expect(
         validateAgainstCapabilities(

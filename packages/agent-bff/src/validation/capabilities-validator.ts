@@ -75,10 +75,10 @@ function validateFilter(filter: unknown, index: Map<string, string[]>): BffHttpE
       errors.push(unknownField(leaf.field));
     } else if (operators.length === 0) {
       errors.push(fieldNotFilterable(leaf.field));
-    } else if (leaf.operator !== undefined) {
+    } else {
       const normalized = normalizeFieldOperators(leaf.field, operators);
 
-      if (!normalized.includes(leaf.operator)) {
+      if (leaf.operator === undefined || !normalized.includes(leaf.operator)) {
         errors.push(invalidFilterOperator(leaf.field, normalized));
       }
     }
