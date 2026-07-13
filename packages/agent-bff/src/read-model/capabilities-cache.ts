@@ -1,7 +1,7 @@
 import { ONE_DAY_MS } from './schema-cache';
 
 export interface CapabilitiesResult {
-  fields: { name: string; type: string; operators: string[] }[];
+  fields: { name: string; type: string; operators?: string[] }[];
 }
 
 export type CapabilitiesFetcher = (collection: string) => Promise<CapabilitiesResult>;
