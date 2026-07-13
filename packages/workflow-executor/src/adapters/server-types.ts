@@ -121,13 +121,13 @@ export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
 export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Condition;
   executionType: ServerStepExecutionTypeEnum.Manual | ServerStepExecutionTypeEnum.FullyAutomated;
-  prompt: string;
+  prompt: string | null;
   automaticCompletion: false;
 }
 
 export interface ServerWorkflowEscalation extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Escalation;
-  prompt: string;
+  prompt: string | null;
   outgoing: [ServerWorkflowTransition];
   inboxId: string | null;
 }
