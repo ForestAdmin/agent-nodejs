@@ -40,11 +40,14 @@ export default class ReadModelStore {
     // Ensure any pending schema refresh (and its capabilities invalidation) runs first.
     await this.getReadModel();
 
-    // TODO(wiring): possible TOCTOU once this is called from request handling. A concurrent schema
-    // refresh can clear capabilities while this fetch is in flight, so the caller could receive
-    // capabilities from the previous schema generation alongside the new allow-list. When wiring
-    // the data endpoints, re-check `schemaCache.revision` after the fetch resolves and retry on a
-    // mismatch so capabilities and schema stay atomically coupled.
+    // TODO(wiring): known TOCTOU, deferred. Two snapshots can straddle a schema generation:
+    //   1. the data middleware captures the read-model (allow-list) once, then calls this later;
+    //   2. this capabilities fetch can be in flight when a concurrent schema refresh clear()s it.
+    // Either gap lets the caller validate against capabilities from one generation while the
+    // allow-list came from another. A full fix couples both reads to a single generation (return
+    // read-model + capabilities together, or re-check `schemaCache.revision` across both and retry);
+    // a retry here alone only closes gap 2. Low risk: the trigger is a 24h-TTL refresh landing exactly
+    // during a request, and the agent stays the final validator.
     return this.capabilitiesCache.get(collection, fetcher);
   }
 

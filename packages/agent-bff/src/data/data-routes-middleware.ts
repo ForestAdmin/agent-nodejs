@@ -6,6 +6,7 @@ import type {
   RelationListRequestBody,
 } from './agent-query';
 import type { Logger } from '../ports/logger-port';
+import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
 import type { PrimaryKeyField, RelationTarget } from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
@@ -30,6 +31,8 @@ import {
   resolveReadModel,
 } from '../http/agent-route-helpers';
 import { unknownCollection, unknownRelation } from '../http/bff-local-errors';
+import createAgentCapabilitiesFetcher from '../read-model/agent-capabilities-fetcher';
+import { assertValidAgainstCapabilities } from '../validation/capabilities-validator';
 import assertNoRelationFieldPaths from '../validation/relation-field-guard';
 
 const DATA_ROUTE = /^\/agent\/v1\/([^/]+)\/(list|count)$/;
@@ -54,14 +57,33 @@ export interface DataRoutesMiddlewareOptions {
 interface RequestHandlerDeps {
   collection: string;
   client: AgentDataClient;
+  store: ReadModelStore;
+  agentUrl: string;
+  token: string;
   timezone: string;
   logger: Logger;
 }
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
 
+function resolveCapabilities(deps: RequestHandlerDeps): Promise<CapabilitiesResult> {
+  return deps.store.getCapabilities(
+    deps.collection,
+    createAgentCapabilitiesFetcher({ agentUrl: deps.agentUrl, token: deps.token }),
+  );
+}
+
 async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
+
+  assertValidAgainstCapabilities(
+    {
+      filter: body.filter,
+      sortFields: body.sort?.map(clause => clause.field),
+      projectionFields: body.projection,
+    },
+    await resolveCapabilities(deps),
+  );
 
   const query = buildListAgentQuery(deps.collection, deps.timezone, body);
   const records = await callAgent(() => deps.client.list(deps.collection, query), deps.logger);
@@ -72,6 +94,9 @@ async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandler
 
 async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerDeps) {
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
+
+  // Count carries only a filter (no sort/projection), so that is all there is to validate.
+  assertValidAgainstCapabilities({ filter: body.filter }, await resolveCapabilities(deps));
 
   const query = buildCountAgentQuery(deps.timezone, body);
   const raw = await callAgent(() => deps.client.countRaw(deps.collection, query), deps.logger);
@@ -198,6 +223,9 @@ export default function createDataRoutesMiddleware({
     const deps: RequestHandlerDeps = {
       collection,
       client: createClient({ agentUrl, token }),
+      store,
+      agentUrl,
+      token,
       timezone: ctx.state.timezone as string,
       logger,
     };
