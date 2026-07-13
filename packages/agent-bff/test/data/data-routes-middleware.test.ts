@@ -1,5 +1,6 @@
 import type { AgentDataClient } from '../../src/data/agent-data-client';
 import type { Logger } from '../../src/ports/logger-port';
+import type { CapabilitiesResult } from '../../src/read-model/capabilities-cache';
 import type ReadModelStore from '../../src/read-model/read-model-store';
 
 import { AgentHttpError } from '@forestadmin/agent-client';
@@ -17,13 +18,33 @@ const TIMEZONE = 'Europe/Paris';
 
 const noopLogger: Logger = () => {};
 
-function storeOf(readModel: ReadModel | Error): ReadModelStore {
+type CapabilitiesStub = (collection: string) => Promise<CapabilitiesResult>;
+
+const BROAD_SNAKE_OPERATORS = ['present', 'blank', 'equal', 'not_equal', 'in', 'like'];
+
+const defaultCapabilities: CapabilitiesStub = async () => ({
+  fields: ['id', 'email', 'title', 'name', 'value', 'slug', 'label'].map(name => ({
+    name,
+    type: 'String',
+    operators: BROAD_SNAKE_OPERATORS,
+  })),
+});
+
+function capabilitiesOf(fields: CapabilitiesResult['fields']): CapabilitiesStub {
+  return async () => ({ fields });
+}
+
+function storeOf(
+  readModel: ReadModel | Error,
+  getCapabilities: CapabilitiesStub = defaultCapabilities,
+): ReadModelStore {
   return {
     getReadModel: async () => {
       if (readModel instanceof Error) throw readModel;
 
       return readModel;
     },
+    getCapabilities: (collectionName: string) => getCapabilities(collectionName),
   } as unknown as ReadModelStore;
 }
 
@@ -272,6 +293,207 @@ describe('data routes middleware', () => {
       expect(response.body.data[0]).toMatchObject({
         __forest: { collection: 'metrics', primaryKey: { id: 42 } },
       });
+    });
+  });
+
+  describe('capabilities validation', () => {
+    it('should reject a list filter operator unsupported by capabilities before calling the agent', async () => {
+      const list = jest.fn(async () => []);
+      const store = storeOf(
+        usersReadModel,
+        capabilitiesOf([{ name: 'email', type: 'String', operators: ['present'] }]),
+      );
+      const app = buildApp(store, { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ filter: { field: 'email', operator: 'Equal' } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({
+        type: 'invalid_filter_operator',
+        status: 400,
+        details: { field: 'email', validOperators: ['Present'] },
+      });
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should reject a list projection field absent from capabilities with 422 unknown_field', async () => {
+      const list = jest.fn(async () => []);
+      const store = storeOf(
+        usersReadModel,
+        capabilitiesOf([{ name: 'id', type: 'String', operators: ['equal'] }]),
+      );
+      const app = buildApp(store, { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ projection: ['id', 'ghost'] });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toMatchObject({
+        type: 'unknown_field',
+        status: 422,
+        details: { field: 'ghost' },
+      });
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should reject a list sort field absent from capabilities with 422 unknown_field', async () => {
+      const list = jest.fn(async () => []);
+      const store = storeOf(
+        usersReadModel,
+        capabilitiesOf([{ name: 'id', type: 'String', operators: ['equal'] }]),
+      );
+      const app = buildApp(store, { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ sort: [{ field: 'ghost', direction: 'asc' }] });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toMatchObject({
+        type: 'unknown_field',
+        status: 422,
+        details: { field: 'ghost' },
+      });
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should read capabilities before the agent call and skip the agent on a validation failure', async () => {
+      const calls: string[] = [];
+      const list = jest.fn(async () => {
+        calls.push('agent');
+
+        return [];
+      });
+      const getCapabilities = jest.fn(async () => {
+        calls.push('capabilities');
+
+        return {
+          fields: [{ name: 'id', type: 'String', operators: ['equal'] }],
+        } as CapabilitiesResult;
+      });
+      const app = buildApp(storeOf(usersReadModel, getCapabilities), { list });
+
+      await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ projection: ['ghost'] });
+
+      expect(getCapabilities).toHaveBeenCalledWith('users');
+      expect(calls).toEqual(['capabilities']);
+      expect(list).not.toHaveBeenCalled();
+    });
+
+    it('should proceed to the agent when the list filter, sort, and projection are all valid', async () => {
+      const list = jest.fn(async () => []);
+      const getCapabilities = jest.fn(defaultCapabilities);
+      const app = buildApp(storeOf(usersReadModel, getCapabilities), { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({
+          projection: ['id', 'email'],
+          filter: { field: 'email', operator: 'Present' },
+          sort: [{ field: 'id', direction: 'asc' }],
+        });
+
+      expect(response.status).toBe(200);
+      expect(getCapabilities).toHaveBeenCalledWith('users');
+      expect(list).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reject a count filter operator unsupported by capabilities before calling the agent', async () => {
+      const countRaw = jest.fn(async () => ({ count: 0 }));
+      const store = storeOf(
+        usersReadModel,
+        capabilitiesOf([{ name: 'email', type: 'String', operators: ['present'] }]),
+      );
+      const app = buildApp(store, { countRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/count')
+        .send({ filter: { field: 'email', operator: 'Equal' } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({
+        type: 'invalid_filter_operator',
+        status: 400,
+        details: { field: 'email', validOperators: ['Present'] },
+      });
+      expect(countRaw).not.toHaveBeenCalled();
+    });
+
+    it('should reject a count filter field absent from capabilities with 422 unknown_field', async () => {
+      const countRaw = jest.fn(async () => ({ count: 0 }));
+      const store = storeOf(
+        usersReadModel,
+        capabilitiesOf([{ name: 'id', type: 'String', operators: ['equal'] }]),
+      );
+      const app = buildApp(store, { countRaw });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/count')
+        .send({ filter: { field: 'ghost', operator: 'Equal' } });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toMatchObject({
+        type: 'unknown_field',
+        status: 422,
+        details: { field: 'ghost' },
+      });
+      expect(countRaw).not.toHaveBeenCalled();
+    });
+
+    it('should read capabilities before the agent call on the count path', async () => {
+      const calls: string[] = [];
+      const countRaw = jest.fn(async () => {
+        calls.push('agent');
+
+        return { count: 0 };
+      });
+      const getCapabilities = jest.fn(async () => {
+        calls.push('capabilities');
+
+        return {
+          fields: [{ name: 'id', type: 'String', operators: ['equal'] }],
+        } as CapabilitiesResult;
+      });
+      const app = buildApp(storeOf(usersReadModel, getCapabilities), { countRaw });
+
+      await request(app.callback())
+        .post('/agent/v1/users/count')
+        .send({ filter: { field: 'ghost', operator: 'Equal' } });
+
+      expect(getCapabilities).toHaveBeenCalledWith('users');
+      expect(calls).toEqual(['capabilities']);
+      expect(countRaw).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Zendesk stripeEmail operator regression', () => {
+    it('should reject Equal on stripeEmail with 400 and its normalized supported operators, no agent call', async () => {
+      const list = jest.fn(async () => []);
+      const store = storeOf(
+        new ReadModel([collection('tickets', [column('id'), column('stripeEmail')])]),
+        capabilitiesOf([
+          { name: 'id', type: 'String', operators: ['equal'] },
+          { name: 'stripeEmail', type: 'String', operators: ['present', 'blank'] },
+        ]),
+      );
+      const app = buildApp(store, { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/tickets/list')
+        .send({ filter: { field: 'stripeEmail', operator: 'Equal' } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({
+        type: 'invalid_filter_operator',
+        status: 400,
+        details: { field: 'stripeEmail', validOperators: ['Present', 'Blank'] },
+      });
+      expect(list).not.toHaveBeenCalled();
     });
   });
 
