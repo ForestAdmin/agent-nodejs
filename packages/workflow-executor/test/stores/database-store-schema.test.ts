@@ -77,6 +77,33 @@ describe('DatabaseStore — schema namespacing', () => {
       );
     });
 
+    it('probes pg_namespace for the schema before creating it', async () => {
+      const sequelize = makeSequelize('postgres');
+
+      await new DatabaseStore({ sequelize, schema: 'analytics' }).init();
+
+      expect(sequelize.query).toHaveBeenCalledWith(
+        'SELECT 1 FROM pg_namespace WHERE nspname = $1',
+        expect.objectContaining({ bind: ['analytics'], transaction: expect.anything() }),
+      );
+    });
+
+    it('skips CREATE SCHEMA when the schema already exists', async () => {
+      const sequelize = makeSequelize('postgres');
+      (sequelize.query as jest.Mock).mockImplementation((sql: string) =>
+        sql.includes('pg_namespace')
+          ? Promise.resolve([[{ '?column?': 1 }], {}])
+          : Promise.resolve([[], {}]),
+      );
+
+      await new DatabaseStore({ sequelize, schema: 'analytics' }).init();
+
+      expect(sequelize.query).not.toHaveBeenCalledWith(
+        expect.stringContaining('CREATE SCHEMA'),
+        expect.anything(),
+      );
+    });
+
     it('points the umzug migration registry (SequelizeMeta) at the "forest" schema', async () => {
       const sequelize = makeSequelize('postgres');
 

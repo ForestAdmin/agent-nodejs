@@ -29,6 +29,20 @@ export function tableReference(schema: string | undefined, tableName: string): s
   return schema ? `"${schema}"."${tableName}"` : `"${tableName}"`;
 }
 
+// pg_namespace is world-readable, so this probe needs no special privilege — unlike CREATE SCHEMA.
+async function schemaExists(
+  sequelize: Sequelize,
+  schema: string,
+  transaction: Transaction,
+): Promise<boolean> {
+  const [rows] = (await sequelize.query('SELECT 1 FROM pg_namespace WHERE nspname = $1', {
+    bind: [schema],
+    transaction,
+  })) as [unknown[], unknown];
+
+  return rows.length > 0;
+}
+
 // Serializes booting instances via a transaction-scoped advisory lock: auto-releases at commit and
 // is pooler-safe (RDS Proxy / PgBouncer), unlike a session lock which would leak there.
 async function withMigrationLock(
@@ -84,11 +98,17 @@ export async function runMigrations({
       );
     }
 
-    // Schema in its own committed transaction so umzug (on other connections) sees it.
+    // Schema in its own committed transaction so umzug (on other connections) sees it. Probe first
+    // and skip CREATE when it already exists: Postgres checks the database-level CREATE privilege
+    // even for CREATE SCHEMA IF NOT EXISTS, so an operator can pre-create the schema and grant only
+    // schema-level rights, avoiding database-level CREATE. The probe runs inside the lock so the
+    // create stays serialized across booting replicas.
     if (schema) {
-      await withMigrationLock(sequelize, transaction =>
-        sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`, { transaction }),
-      );
+      await withMigrationLock(sequelize, async transaction => {
+        if (!(await schemaExists(sequelize, schema, transaction))) {
+          await sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`, { transaction });
+        }
+      });
     }
 
     await withMigrationLock(sequelize, () => umzug.up());

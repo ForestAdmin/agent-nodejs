@@ -129,7 +129,20 @@ npx @forestadmin/workflow-executor
 
 `DATABASE_SCHEMA` sets the Postgres schema the executor's tables live under (default: `forest`). Set it to point the executor at another schema — e.g. `public` when it owns the database, or a shared schema alongside your agent. The value must be a valid Postgres identifier.
 
-On boot the executor runs `CREATE SCHEMA IF NOT EXISTS`, which requires the `CREATE` privilege **on the database** — Postgres checks this even when the schema already exists, so pre-creating the schema does not remove the requirement. Grant it with `GRANT CREATE ON DATABASE "<db>" TO "<user>";`.
+On boot the executor creates the schema if it is missing, which requires the `CREATE` privilege **on the database**:
+
+```sql
+GRANT CREATE ON DATABASE "<db>" TO "<user>";
+```
+
+If you can't grant database-level `CREATE`, pre-create the schema with an admin role and grant only schema-level rights — the executor probes for the schema first and skips creation when it already exists, so no database-level `CREATE` is needed:
+
+```sql
+CREATE SCHEMA analytics;
+GRANT USAGE, CREATE ON SCHEMA analytics TO "<user>";
+```
+
+(Note: Postgres checks the database-level `CREATE` privilege for `CREATE SCHEMA IF NOT EXISTS` even when the schema exists, so the executor gates the statement on an existence probe rather than relying on `IF NOT EXISTS`.)
 
 ---
 
