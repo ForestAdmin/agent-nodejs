@@ -109,6 +109,7 @@ parts — handy when your platform exposes credentials as separate variables:
 | `DATABASE_USER` | yes | Database user |
 | `DATABASE_PASSWORD` | no | Database password |
 | `DATABASE_PORT` | no | Database port (default: `5432`) |
+| `DATABASE_SCHEMA` | no | Postgres schema for the executor's tables (default: `forest`) |
 
 ```bash
 FOREST_ENV_SECRET="your-env-secret" \
@@ -125,6 +126,8 @@ npx @forestadmin/workflow-executor
 `DATABASE_SSL` defaults to `true` (managed Postgres requires TLS); set it to `false` for a local database without TLS.
 
 `DATABASE_URL` takes precedence: when it is set, the individual parts are ignored.
+
+`DATABASE_SCHEMA` sets the Postgres schema the executor's tables live under (default: `forest`). Set it to point the executor at another schema — e.g. `public` when it owns the database, or a shared schema alongside your agent.
 
 ---
 
