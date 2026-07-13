@@ -59,6 +59,26 @@ function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
 const TRUTHY = ['true', '1', 'yes', 'on'];
 const FALSY = ['false', '0', 'no', 'off'];
 
+// The schema flows unescaped into raw DDL (`CREATE SCHEMA "${schema}"`), so reject anything that
+// isn't a plain Postgres identifier at the boundary — a clear boot error beats a cryptic SQL one.
+// Postgres truncates identifiers past 63 bytes, which would silently target a different schema.
+const POSTGRES_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_$]*$/;
+const MAX_IDENTIFIER_LENGTH = 63;
+
+function parseSchemaEnv(raw: string | undefined): string | undefined {
+  const schema = raw?.trim();
+  if (!schema) return undefined;
+
+  if (schema.length > MAX_IDENTIFIER_LENGTH || !POSTGRES_IDENTIFIER.test(schema)) {
+    throw new ConfigurationError(
+      `DATABASE_SCHEMA must be a valid Postgres identifier ` +
+        `(letters, digits, _ or $; starting with a letter or _; max ${MAX_IDENTIFIER_LENGTH} chars); got "${raw}"`,
+    );
+  }
+
+  return schema;
+}
+
 function parseBooleanEnv(name: string, raw: string | undefined, defaultValue = false): boolean {
   if (!raw) return defaultValue;
 
@@ -246,7 +266,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     // Defaults to true: managed Postgres (RDS, Supabase, Railway…) requires TLS.
     // Set DATABASE_SSL=false for a local/dev database without TLS.
     databaseSsl: parseBooleanEnv('DATABASE_SSL', env.DATABASE_SSL, true),
-    databaseSchema: env.DATABASE_SCHEMA?.trim() || undefined,
+    databaseSchema: parseSchemaEnv(env.DATABASE_SCHEMA),
     mode: args.inMemory ? 'in-memory' : 'database',
   };
 }

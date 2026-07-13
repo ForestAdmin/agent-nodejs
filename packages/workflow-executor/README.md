@@ -127,7 +127,9 @@ npx @forestadmin/workflow-executor
 
 `DATABASE_URL` takes precedence: when it is set, the individual parts are ignored.
 
-`DATABASE_SCHEMA` sets the Postgres schema the executor's tables live under (default: `forest`). Set it to point the executor at another schema — e.g. `public` when it owns the database, or a shared schema alongside your agent.
+`DATABASE_SCHEMA` sets the Postgres schema the executor's tables live under (default: `forest`). Set it to point the executor at another schema — e.g. `public` when it owns the database, or a shared schema alongside your agent. The value must be a valid Postgres identifier.
+
+On boot the executor runs `CREATE SCHEMA IF NOT EXISTS`, which requires the `CREATE` privilege **on the database** — Postgres checks this even when the schema already exists, so pre-creating the schema does not remove the requirement. Grant it with `GRANT CREATE ON DATABASE "<db>" TO "<user>";`.
 
 ---
 

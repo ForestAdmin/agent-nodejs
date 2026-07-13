@@ -203,6 +203,27 @@ describe('readEnvConfig', () => {
     ).toBeUndefined();
   });
 
+  it('trims surrounding whitespace from DATABASE_SCHEMA', () => {
+    expect(
+      readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: '  analytics  ' }, args).databaseSchema,
+    ).toBe('analytics');
+  });
+
+  it.each(['1analytics', 'my-schema', 'a b', 'evil"; drop schema x; --', 'sch.ema'])(
+    'rejects an invalid DATABASE_SCHEMA identifier (%p)',
+    value => {
+      expect(() => readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: value }, args)).toThrow(
+        ConfigurationError,
+      );
+    },
+  );
+
+  it('rejects a DATABASE_SCHEMA longer than 63 characters', () => {
+    expect(() => readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: 'a'.repeat(64) }, args)).toThrow(
+      /valid Postgres identifier/,
+    );
+  });
+
   it('parses numeric env vars as numbers', () => {
     const config = readEnvConfig(
       {
