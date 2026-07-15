@@ -74,7 +74,10 @@ function toActionError(error: unknown): unknown {
   }
 
   if (error.status === 400 || error.status === 422) {
-    return new ActionFormValidationError(detail ?? 'The action form values were rejected.', body.html);
+    return new ActionFormValidationError(
+      detail ?? 'The action form values were rejected.',
+      body.html,
+    );
   }
 
   return error;
