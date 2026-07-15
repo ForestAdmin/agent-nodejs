@@ -131,6 +131,15 @@ async function handleExecute(
   }
 
   const { status, body } = mapActionExecuteResult(raw);
+
+  // An unrecognized payload (a File stream, or a new agent result type) maps to a generic 501 with
+  // no trace of what it was; log the payload keys so the case can be diagnosed without the body.
+  if (status === 501) {
+    logger('Warn', 'Unrecognized action execute result mapped to 501', {
+      keys: typeof raw === 'object' && raw !== null ? Object.keys(raw) : typeof raw,
+    });
+  }
+
   ctx.status = status;
   ctx.body = body;
 }

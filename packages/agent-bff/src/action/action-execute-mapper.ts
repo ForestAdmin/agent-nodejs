@@ -33,10 +33,10 @@ export interface ActionExecuteMapped {
   body: ActionExecuteMappedBody;
 }
 
-// Normalizes the agent's 200 execute payload into the flat BFF wrapper. The native ActionResult
-// union never reaches the BFF (agent-client `execute()` is typed `{ success, html? }`), so we
-// discriminate on the agent HTTP payload shape. A File result streams a binary with no JSON marker,
-// so any unrecognized 200 body falls through to a structured 501 rather than being mislabelled.
+// Normalizes the agent's 200 execute payload into the flat BFF wrapper. The execute result is
+// untyped at the BFF boundary (`Action.execute(): Promise<unknown>`), so we discriminate on the
+// agent HTTP payload shape. A File result streams a binary with no JSON marker, so any unrecognized
+// 200 body falls through to a structured 501 rather than being mislabelled.
 export function mapActionExecuteResult(raw: unknown): ActionExecuteMapped {
   const body = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
 
