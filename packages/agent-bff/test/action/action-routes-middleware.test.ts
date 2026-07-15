@@ -503,6 +503,21 @@ describe('action execute', () => {
     });
   });
 
+  it('defaults html to null on the error body when the action Error carries none', async () => {
+    const form = makeAction({
+      execute: jest.fn(async () => {
+        throw new ActionFormValidationError('Refund failed');
+      }),
+    });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ type: 'error', status: 400, message: 'Refund failed', html: null });
+  });
+
   it('rejects an unknown submitted field as 400 invalid_request', async () => {
     const setFields = jest.fn(async () => {
       throw new UnknownActionFieldError('ghost');
@@ -516,6 +531,22 @@ describe('action execute', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('maps a non-unknown-field setFields rejection through the agent error contract', async () => {
+    const setFields = jest.fn(async () => {
+      throw new AgentHttpError(422, { errors: [{ status: 422, name: 'UnprocessableError' }] });
+    });
+    const execute = jest.fn();
+    const form = makeAction({ setFields, execute });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'], values: { reason: 'x' } });
+
+    expect(response.status).toBe(422);
+    expect(response.body.error).toMatchObject({ type: 'unprocessable_entity', status: 422 });
     expect(execute).not.toHaveBeenCalled();
   });
 
@@ -551,6 +582,22 @@ describe('action execute', () => {
 
     expect(response.status).toBe(403);
     expect(response.body.error.details).toEqual({ roleIdsAllowedToApprove: [] });
+  });
+
+  it('omits details when the approval error carries no roleIdsAllowedToApprove', async () => {
+    const form = makeAction({
+      execute: jest.fn(async () => {
+        throw new ActionRequiresApprovalError('Needs approval');
+      }),
+    });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toMatchObject({ type: 'action_requires_approval', status: 403 });
+    expect(response.body.error.details).toBeUndefined();
   });
 
   it('maps a transport 5xx to agent_unavailable, distinct from the action-Error 400', async () => {

@@ -33,6 +33,16 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  it.each([
+    ['relationships absent', { success: 'ok', refresh: {} }],
+    ['relationships not an array', { success: 'ok', refresh: { relationships: 'x' } }],
+  ])('falls back invalidated to [] when %s', (_label, payload) => {
+    expect(mapActionExecuteResult(payload)).toEqual({
+      status: 200,
+      body: { type: 'success', message: 'ok', invalidated: [], html: null },
+    });
+  });
+
   it('maps a Webhook payload verbatim', () => {
     expect(
       mapActionExecuteResult({
