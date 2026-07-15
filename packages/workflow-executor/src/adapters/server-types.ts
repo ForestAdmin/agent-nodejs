@@ -66,6 +66,7 @@ export interface ServerWorkflowTaskGuideline extends ServerWorkflowTaskBase {
 interface ServerWorkflowTaskGetData extends ServerWorkflowTaskBase {
   taskType: ServerTaskTypeEnum.GetData;
   executionType: ServerStepExecutionTypeEnum.FullyAutomated;
+  preRecordedArgs?: { selectedRecordStepId?: string };
 }
 
 interface ServerWorkflowTaskUpdateData extends ServerWorkflowTaskBase {

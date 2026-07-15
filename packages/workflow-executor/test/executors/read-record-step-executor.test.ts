@@ -13,7 +13,11 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import ReadRecordStepExecutor from '../../src/executors/read-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
-import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
+import {
+  StepExecutionMode,
+  StepType,
+  WORKFLOW_START_STEP_ID,
+} from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<ReadRecordStepDefinition> = {}): ReadRecordStepDefinition {
   return {
@@ -1140,6 +1144,82 @@ describe('ReadRecordStepExecutor', () => {
       await executor.execute();
 
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+    });
+
+    it('resolves the source record deterministically from selectedRecordStepId (no select-record AI)', async () => {
+      const relatedRef = makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 1 });
+      const mockModel = makeMockModel({ fieldNames: ['Email'] });
+      const agentPort = makeMockAgentPort({ orders: { values: { email: 'ord@example.com' } } });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRef,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
+        stepDefinition: makeStep({ preRecordedArgs: { selectedRecordStepId: 'load-1' } }),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: makeCollectionSchema({
+            collectionName: 'orders',
+            collectionDisplayName: 'Orders',
+          }),
+        }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // Only selectFields ran (1 AI call); no select-record round.
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('resolves WORKFLOW_START_STEP_ID to the base record', async () => {
+      const mockModel = makeMockModel({ fieldNames: ['email'] });
+      const agentPort = makeMockAgentPort();
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({
+          preRecordedArgs: { selectedRecordStepId: WORKFLOW_START_STEP_ID },
+        }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'customers', id: [42] }),
+        expect.objectContaining({ id: 1 }),
+      );
+    });
+
+    it('returns error when selectedRecordStepId matches no source step', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({ preRecordedArgs: { selectedRecordStepId: 'nope' } }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
     });
   });
 
