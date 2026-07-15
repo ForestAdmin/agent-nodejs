@@ -515,7 +515,12 @@ describe('action execute', () => {
       .send({ recordIds: ['42'] });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ type: 'error', status: 400, message: 'Refund failed', html: null });
+    expect(response.body).toEqual({
+      type: 'error',
+      status: 400,
+      message: 'Refund failed',
+      html: null,
+    });
   });
 
   it('rejects an unknown submitted field as 400 invalid_request', async () => {
