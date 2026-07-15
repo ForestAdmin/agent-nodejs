@@ -10,7 +10,12 @@ describe('mapActionExecuteResult', () => {
       }),
     ).toEqual({
       status: 200,
-      body: { type: 'success', message: 'Done', invalidated: ['orders', 'items'], html: '<b>ok</b>' },
+      body: {
+        type: 'success',
+        message: 'Done',
+        invalidated: ['orders', 'items'],
+        html: '<b>ok</b>',
+      },
     });
   });
 

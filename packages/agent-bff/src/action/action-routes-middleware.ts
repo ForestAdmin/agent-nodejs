@@ -70,7 +70,10 @@ async function handleForm(
   // Each agent-hitting call is wrapped on its own; getFields/extractRawLayout/mapping stay outside
   // callAgent so a local BFF bug surfaces as a 500, not a mislabelled agent error. Fields and
   // layout are read AFTER tryToSetFields because a change hook rebuilds them in place.
-  const action = await callAgent(() => client.loadAction(collection, actionName, recordIds), logger);
+  const action = await callAgent(
+    () => client.loadAction(collection, actionName, recordIds),
+    logger,
+  );
   const skippedFields = await callAgent(() => action.tryToSetFields(values), logger);
 
   ctx.status = 200;
@@ -86,7 +89,10 @@ async function handleExecute(
   values: Record<string, unknown>,
   logger: Logger,
 ): Promise<void> {
-  const action = await callAgent(() => client.loadAction(collection, actionName, recordIds), logger);
+  const action = await callAgent(
+    () => client.loadAction(collection, actionName, recordIds),
+    logger,
+  );
 
   // setFields is strict: an unknown submitted field is a client error (400), not a 500. A transport
   // failure from the change-hook it triggers is a genuine agent error, so it goes to the mapper.
