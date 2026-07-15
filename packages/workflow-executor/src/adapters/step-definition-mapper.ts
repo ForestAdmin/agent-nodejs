@@ -36,7 +36,11 @@ function mapTask(task: ServerWorkflowTask): StepDefinition {
     case ServerTaskTypeEnum.GetData:
       return ReadRecordStepDefinitionSchema.parse({ ...base, type: StepType.ReadRecord });
     case ServerTaskTypeEnum.UpdateData:
-      return UpdateRecordStepDefinitionSchema.parse({ ...base, type: StepType.UpdateRecord });
+      return UpdateRecordStepDefinitionSchema.parse({
+        ...base,
+        type: StepType.UpdateRecord,
+        preRecordedArgs: task.preRecordedArgs,
+      });
     case ServerTaskTypeEnum.TriggerAction:
       return TriggerActionStepDefinitionSchema.parse({
         ...base,

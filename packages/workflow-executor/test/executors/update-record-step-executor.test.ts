@@ -19,7 +19,11 @@ import AgentWithLog from '../../src/executors/agent-with-log';
 import UpdateRecordStepExecutor from '../../src/executors/update-record-step-executor';
 import SchemaCache from '../../src/schema-cache';
 import SchemaResolver from '../../src/schema-resolver';
-import { StepExecutionMode, StepType } from '../../src/types/validated/step-definition';
+import {
+  StepExecutionMode,
+  StepType,
+  WORKFLOW_START_STEP_ID,
+} from '../../src/types/validated/step-definition';
 
 function makeStep(overrides: Partial<UpdateRecordStepDefinition> = {}): UpdateRecordStepDefinition {
   return {
@@ -1464,6 +1468,103 @@ describe('UpdateRecordStepExecutor', () => {
       await executor.execute();
 
       expect(mockModel.bindTools).toHaveBeenCalledTimes(1);
+    });
+
+    it('resolves the source record deterministically from selectedRecordStepId (no select-record AI)', async () => {
+      const relatedRecord = makeRecordRef({
+        stepIndex: 2,
+        recordId: [99],
+        collectionName: 'orders',
+      });
+      const ordersSchema = makeCollectionSchema({
+        collectionName: 'orders',
+        collectionId: 'col-orders',
+        collectionDisplayName: 'Orders',
+        fields: [
+          { fieldName: 'total', displayName: 'Total', isRelationship: false, type: 'Number' },
+        ],
+      });
+      const mockModel = makeMockModel();
+      const agentPort = makeMockAgentPort({ total: 150 });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 2,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRecord,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: ordersSchema,
+        }),
+        previousSteps: [makeLoadRelatedPreviousStep(2)],
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: 'load-2', fieldName: 'total', value: 150 },
+        }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // No AI at all: source came from selectedRecordStepId, field/value pre-recorded.
+      expect(mockModel.bindTools).not.toHaveBeenCalled();
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99], values: { total: 150 } }),
+        context.user,
+      );
+    });
+
+    it('resolves WORKFLOW_START_STEP_ID to the base record', async () => {
+      const mockModel = makeMockModel();
+      const agentPort = makeMockAgentPort({ status: 'active' });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: WORKFLOW_START_STEP_ID,
+            fieldName: 'status',
+            value: 'active',
+          },
+        }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'customers',
+          id: [42],
+          values: { status: 'active' },
+        }),
+        context.user,
+      );
+    });
+
+    it('returns error when selectedRecordStepId matches no source step', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { selectedRecordStepId: 'nope', fieldName: 'status', value: 'x' },
+        }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
     });
 
     it('returns error when fieldName is provided without value', async () => {

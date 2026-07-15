@@ -186,13 +186,14 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
-    const records = await this.getAvailableRecordRefs();
 
-    const selectedRecordRef = await this.resolveRecordRef(
-      records,
-      step.prompt,
-      preRecordedArgs?.selectedRecordStepIndex,
-    );
+    const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
+      ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+      : await this.resolveRecordRef(
+          await this.getAvailableRecordRefs(),
+          step.prompt,
+          preRecordedArgs?.selectedRecordStepIndex,
+        );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
 
     if (preRecordedArgs?.fieldName !== undefined && preRecordedArgs?.value === undefined) {

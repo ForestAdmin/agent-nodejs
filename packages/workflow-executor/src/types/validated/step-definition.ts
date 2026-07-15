@@ -63,6 +63,13 @@ export const UpdateRecordStepDefinitionSchema = z.object({
     .catch(AutomatedWithConfirmation),
   preRecordedArgs: z
     .object({
+      /**
+       * "From record" — the source record to update, referenced by the stable BPMN step id of the
+       * previous Load Related Record step that loaded it, or WORKFLOW_START_STEP_ID for the trigger
+       * record. Stable across revisions, unlike the runtime stepIndex.
+       */
+      selectedRecordStepId: z.string().optional(),
+      // Legacy runtime index; superseded by selectedRecordStepId. Kept for back-compat.
       selectedRecordStepIndex: z.number().int().optional(),
       /** Technical name of the field to update */
       fieldName: z.string().optional(),
