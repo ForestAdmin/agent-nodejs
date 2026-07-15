@@ -1,3 +1,12 @@
+# @forestadmin/agent-bff [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.6.0...@forestadmin/agent-bff@1.7.0) (2026-07-15)
+
+
+### Features
+
+* **agent-bff:** expose collection list and count with flat mapping ([#1742](https://github.com/ForestAdmin/agent-nodejs/issues/1742)) ([4721a26](https://github.com/ForestAdmin/agent-nodejs/commit/4721a2601f72b028f82db1a6c1dd43398a662dab))
+* **agent-bff:** expose relation list and count with foreign-collection validation ([#1746](https://github.com/ForestAdmin/agent-nodejs/issues/1746)) ([b325303](https://github.com/ForestAdmin/agent-nodejs/commit/b32530332b1cb76528130098b86bf889413bc87c))
+* **agent-bff:** map agent errors to the BFF error contract ([#1738](https://github.com/ForestAdmin/agent-nodejs/issues/1738)) ([b4e7fcd](https://github.com/ForestAdmin/agent-nodejs/commit/b4e7fcd25f79397ea2da36ae2f5c1f10f9242b1c))
+
 # @forestadmin/agent-bff [1.6.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.5.0...@forestadmin/agent-bff@1.6.0) (2026-07-08)
 
 
