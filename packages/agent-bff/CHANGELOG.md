@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.8.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.7.0...@forestadmin/agent-bff@1.8.0) (2026-07-15)
+
+
+### Features
+
+* **agent-bff:** expose the action form endpoint ([#1748](https://github.com/ForestAdmin/agent-nodejs/issues/1748)) ([0bb3e48](https://github.com/ForestAdmin/agent-nodejs/commit/0bb3e48da796a176b6f699ba48636202e7daf954))
+
 # @forestadmin/agent-bff [1.7.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.6.0...@forestadmin/agent-bff@1.7.0) (2026-07-15)
 
 
