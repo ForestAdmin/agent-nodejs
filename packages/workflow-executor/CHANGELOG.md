@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.16.0...@forestadmin/workflow-executor@1.17.0) (2026-07-15)
+
+
+### Features
+
+* **workflow-executor:** propagate run triggerType for observability ([#1705](https://github.com/ForestAdmin/agent-nodejs/issues/1705)) ([8365a2e](https://github.com/ForestAdmin/agent-nodejs/commit/8365a2e96ea7241db411dd0709f281b59e7a05a4))
+
 # @forestadmin/workflow-executor [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.15.0...@forestadmin/workflow-executor@1.16.0) (2026-07-15)
 
 
