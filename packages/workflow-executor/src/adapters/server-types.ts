@@ -185,6 +185,11 @@ export interface ServerStepHistory {
 /** Mirror of the server's `WorkflowRunState` enum (workflow-run-model.ts). */
 export type ServerWorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
 
+export enum ServerWorkflowTriggerType {
+  manual = 'manual',
+  webhook = 'webhook',
+}
+
 export interface ServerHydratedWorkflowRun {
   id: number;
   workflowId: string;
@@ -193,6 +198,7 @@ export interface ServerHydratedWorkflowRun {
   selectedRecordId: string;
   bpmnVersion: string;
   runState: ServerWorkflowRunState;
+  triggerType?: ServerWorkflowTriggerType;
   workflowHistory: ServerStepHistory[];
   /** Server types declare `Date`; Express serializes to ISO 8601 string on the wire. */
   createdAt: string;
