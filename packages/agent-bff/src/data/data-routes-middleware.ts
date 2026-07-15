@@ -23,15 +23,13 @@ import {
   parseRelationListRequest,
 } from './agent-query';
 import { mapCountResponse, mapListResponse } from './response-mappers';
-import { mapAgentError } from '../http/agent-error-mapper';
-import { unauthorized } from '../http/bff-http-error';
 import {
-  invalidRequest,
-  schemaUnavailable,
-  unknownCollection,
-  unknownRelation,
-} from '../http/bff-local-errors';
-import SchemaUnavailableError from '../read-model/errors';
+  callAgent,
+  decodeSegment,
+  requireAgentToken,
+  resolveReadModel,
+} from '../http/agent-route-helpers';
+import { unknownCollection, unknownRelation } from '../http/bff-local-errors';
 import assertNoRelationFieldPaths from '../validation/relation-field-guard';
 
 const DATA_ROUTE = /^\/agent\/v1\/([^/]+)\/(list|count)$/;
@@ -61,33 +59,6 @@ interface RequestHandlerDeps {
 }
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
-
-function decodeSegment(raw: string, label: string): string {
-  try {
-    return decodeURIComponent(raw);
-  } catch {
-    throw invalidRequest(`Malformed ${label} in path`);
-  }
-}
-
-async function resolveReadModel(store: ReadModelStore): Promise<ReadModel> {
-  try {
-    return await store.getReadModel();
-  } catch (error) {
-    if (error instanceof SchemaUnavailableError) throw schemaUnavailable();
-    throw error;
-  }
-}
-
-// Only the agent call is wrapped: guard, query-building and mapping errors are BFF-origin and must
-// keep their own type, not be recategorized as agent errors.
-async function callAgent<T>(fn: () => Promise<T>, logger: Logger): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    throw mapAgentError(error, { logger });
-  }
-}
 
 async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
@@ -213,13 +184,7 @@ export default function createDataRoutesMiddleware({
     }
 
     const collection = decodeSegment(match[1], 'collection name');
-
-    // The agent token is minted only on the API-key path; the OAuth path sets a principal but no
-    // agent token yet. Fail closed instead of calling the agent with `Bearer undefined`.
-    // TODO(PRD-637): mint an agent token from the OAuth principal so data routes work in OAuth mode.
-    const token = ctx.state.agentToken as string | undefined;
-    if (!token) throw unauthorized('No agent credentials for this request');
-
+    const token = requireAgentToken(ctx);
     const readModel = await resolveReadModel(store);
 
     if (!readModel.isCollectionAllowed(collection)) {
