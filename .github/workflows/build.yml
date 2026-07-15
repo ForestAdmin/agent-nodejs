@@ -225,7 +225,7 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('yarn.lock') }}-${{ hashFiles('packages/*/package.json') }}
           fail-on-cache-miss: true
       - name: Install npm >= 11.15.0
-        run: npm install -g npm@latest
+        run: npm install -g 'npm@^11'
       - name: Restore build from cache
         uses: actions/cache/restore@v4
         with:
