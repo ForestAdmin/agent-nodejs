@@ -23,7 +23,6 @@ import {
   RelatedRecordNotFoundError,
   RelationNotFoundError,
   StepStateError,
-  extractErrorMessage,
 } from '../errors';
 import RecordStepExecutor from './record-step-executor';
 import { StepExecutionMode } from '../types/validated/step-definition';
@@ -172,14 +171,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
 
       throw error;
     }
-  }
-
-  private logAiDegrade(reason: unknown): void {
-    this.context.logger(
-      'Warn',
-      'load-related-record: AI unavailable, degrading to manual selection',
-      { ...this.logCtx, error: extractErrorMessage(reason) },
-    );
   }
 
   // The re-run is AI-free (first eligible relation, no-AI list), so it can't re-trigger the failure.
@@ -602,17 +593,6 @@ export default class LoadRelatedRecordStepExecutor extends RecordStepExecutor<Lo
     );
 
     return { relatedData, bestIndex, confident, suggestedFields, relatedSchema };
-  }
-
-  // Tags failures raised in an AI call as AiAssistUnavailableError; passing an already-tagged error
-  // through avoids double-wrapping when calls nest.
-  private async withAiAssist<T>(call: () => Promise<T>): Promise<T> {
-    try {
-      return await call();
-    } catch (error) {
-      if (error instanceof AiAssistUnavailableError) throw error;
-      throw new AiAssistUnavailableError(error);
-    }
   }
 
   private async fetchRelatedData(

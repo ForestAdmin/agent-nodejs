@@ -81,9 +81,13 @@ export default class StepExecutionFormatters {
   }
 
   private static formatGuidance(execution: GuidanceStepExecutionData): string | null {
-    if (!execution.executionResult?.userInput) return null;
+    const { userInput, generatedByAi } = execution.executionResult ?? {};
+    if (!userInput) return null;
 
-    return `  The user provided the following input: "${execution.executionResult.userInput}"`;
+    // Don't attribute a Full AI response to the operator — a later AI step reads this summary.
+    return generatedByAi
+      ? `  The AI generated the following response: "${userInput}"`
+      : `  The user provided the following input: "${userInput}"`;
   }
 
   private static formatLoadRelatedRecord(

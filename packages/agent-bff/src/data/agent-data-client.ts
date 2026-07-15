@@ -8,6 +8,18 @@ export interface AgentDataClientOptions {
 export interface AgentDataClient {
   list(collection: string, query: Record<string, unknown>): Promise<Record<string, unknown>[]>;
   countRaw(collection: string, query: Record<string, unknown>): Promise<unknown>;
+  listRelation(
+    collection: string,
+    parentId: string,
+    relation: string,
+    query: Record<string, unknown>,
+  ): Promise<Record<string, unknown>[]>;
+  countRelationRaw(
+    collection: string,
+    parentId: string,
+    relation: string,
+    query: Record<string, unknown>,
+  ): Promise<unknown>;
 }
 
 /**
@@ -21,6 +33,11 @@ export default function createAgentDataClient({
 }: AgentDataClientOptions): AgentDataClient {
   const requester = new HttpRequester(token, { url: agentUrl });
 
+  // Segments are passed raw: HttpRequester.buildUrl already runs the whole path through
+  // escapeUrlSlug/encodeURI, so pre-encoding here would double-encode (`|` -> `%257C`).
+  const relationPath = (collection: string, parentId: string, relation: string) =>
+    `/forest/${collection}/${parentId}/relationships/${relation}`;
+
   return {
     list: (collection, query) =>
       requester.query({ method: 'get', path: `/forest/${collection}`, query }),
@@ -28,6 +45,15 @@ export default function createAgentDataClient({
       requester.query({
         method: 'get',
         path: `/forest/${collection}/count`,
+        query,
+        skipDeserialization: true,
+      }),
+    listRelation: (collection, parentId, relation, query) =>
+      requester.query({ method: 'get', path: relationPath(collection, parentId, relation), query }),
+    countRelationRaw: (collection, parentId, relation, query) =>
+      requester.query({
+        method: 'get',
+        path: `${relationPath(collection, parentId, relation)}/count`,
         query,
         skipDeserialization: true,
       }),

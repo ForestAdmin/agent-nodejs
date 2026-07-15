@@ -21,6 +21,10 @@ export interface CountRequestBody {
   filter?: unknown;
 }
 
+export type RelationListRequestBody = ListRequestBody & { parentId: string };
+
+export type RelationCountRequestBody = CountRequestBody & { parentId: string };
+
 export type AgentQuery = Record<string, unknown> & { timezone: string };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -164,6 +168,35 @@ export function collectListFieldPaths(body: ListRequestBody): string[] {
   (body.sort ?? []).forEach(({ field }) => paths.push(field));
 
   return paths;
+}
+
+// The parent record id is opaque: a packed/composite id must survive unchanged, so its content is
+// never inspected — only presence and primitive type. A finite number (single numeric pk) is
+// coerced to string; anything else is a BFF-local 400 with no agent call.
+export function parseParentId(parentId: unknown): string {
+  if (typeof parentId === 'string') {
+    if (parentId.trim() === '') throw invalidRequest('parentId must not be empty');
+
+    return parentId;
+  }
+
+  if (typeof parentId === 'number' && Number.isFinite(parentId)) {
+    return String(parentId);
+  }
+
+  throw invalidRequest('parentId is required and must be a non-empty string or a number');
+}
+
+export function parseRelationListRequest(body: unknown): RelationListRequestBody {
+  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
+
+  return { ...parseListRequest(body), parentId };
+}
+
+export function parseRelationCountRequest(body: unknown): RelationCountRequestBody {
+  const parentId = parseParentId((body as { parentId?: unknown } | null)?.parentId);
+
+  return { ...parseCountRequest(body), parentId };
 }
 
 export function collectCountFieldPaths(body: CountRequestBody): string[] {

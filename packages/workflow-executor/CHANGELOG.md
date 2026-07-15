@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.15.0...@forestadmin/workflow-executor@1.16.0) (2026-07-15)
+
+
+### Features
+
+* **workflow-executor:** add AI-assisted and Full AI execution to the guidance step (PRD-148 pattern, PRD-18) ([#1741](https://github.com/ForestAdmin/agent-nodejs/issues/1741)) ([7a5dc1c](https://github.com/ForestAdmin/agent-nodejs/commit/7a5dc1c0c8c838f86b1632aa509420849c812e06))
+
 # @forestadmin/workflow-executor [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.14.0...@forestadmin/workflow-executor@1.15.0) (2026-07-07)
 
 

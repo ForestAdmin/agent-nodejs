@@ -159,6 +159,18 @@ describe('StepExecutionFormatters', () => {
         );
       });
 
+      it('attributes a Full AI response to the AI, not the operator', () => {
+        const execution: StepExecutionData = {
+          type: 'guidance',
+          stepIndex: 0,
+          executionResult: { userInput: 'Summary written by the AI.', generatedByAi: true },
+        };
+
+        expect(StepExecutionFormatters.format(execution)).toBe(
+          '  The AI generated the following response: "Summary written by the AI."',
+        );
+      });
+
       it('returns null when executionResult is absent', () => {
         const execution: StepExecutionData = {
           type: 'guidance',
