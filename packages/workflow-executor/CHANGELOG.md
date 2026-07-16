@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.17.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.17.0...@forestadmin/workflow-executor@1.17.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **workflow-executor:** accept null title/prompt/aiConfigName in step definitions ([#1753](https://github.com/ForestAdmin/agent-nodejs/issues/1753)) ([7988452](https://github.com/ForestAdmin/agent-nodejs/commit/798845273ad64671f58650c38bc5196e7fbe3f84))
+
 # @forestadmin/workflow-executor [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.16.0...@forestadmin/workflow-executor@1.17.0) (2026-07-15)
 
 
