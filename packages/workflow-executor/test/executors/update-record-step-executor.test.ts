@@ -1567,18 +1567,138 @@ describe('UpdateRecordStepExecutor', () => {
       expect(result.stepOutcome.status).toBe('error');
     });
 
-    it('returns error when fieldName is provided without value', async () => {
+    it('keeps the pre-recorded field and AI-resolves only the value when value is omitted', async () => {
+      // AI is asked for the value only, via the field-scoped tool.
+      const mockModel = makeMockModel({ value: 'active', reasoning: 'r' }, 'set-record-field-value');
+      const agentPort = makeMockAgentPort({ status: 'active' });
+      const runStore = makeMockRunStore();
       const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore,
         stepDefinition: makeStep({
           executionType: StepExecutionMode.FullyAutomated,
           preRecordedArgs: { fieldName: 'status' },
         }),
       });
-      const executor = new UpdateRecordStepExecutor(context);
 
-      const result = await executor.execute();
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      // The value tool was offered (field pinned, value AI-chosen), not the field+value picker.
+      const tool = mockModel.bindTools.mock.calls[0][0][0] as { name: string };
+      expect(tool.name).toBe('set-record-field-value');
+      // The pinned technical field name is written with the AI value.
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ values: { status: 'active' } }),
+        context.user,
+      );
+    });
+
+    // The pinned-field value tool offers the field's exact type to the AI (here: a Number → the
+    // schema's value slot parses 5 but rejects a bare word).
+    it('offers the pinned field’s exact type to the AI (Number accepts a number, rejects text)', async () => {
+      const mockModel = makeMockModel({ value: 5, reasoning: 'r' }, 'set-record-field-value');
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort: makeMockAgentPort({ count: 5 }),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            fields: [
+              { fieldName: 'count', displayName: 'Count', isRelationship: false, type: 'Number' },
+            ],
+          }),
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'count' },
+        }),
+      });
+
+      await new UpdateRecordStepExecutor(context).execute();
+
+      const tool = mockModel.bindTools.mock.calls[0][0][0] as {
+        schema: { shape: { value: unknown } };
+      };
+      const valueSchema = tool.schema.shape.value as {
+        safeParse: (v: unknown) => { success: boolean };
+      };
+      expect(valueSchema.safeParse(5).success).toBe(true);
+      expect(valueSchema.safeParse(null).success).toBe(true);
+      expect(valueSchema.safeParse('not a number').success).toBe(false);
+    });
+
+    it('coerces a stringified AI value to the field type before writing (Number from "42")', async () => {
+      // Safety net: real LLMs sometimes return "42" even when asked for a number. coerceFieldValue
+      // (not the tool schema, which the mock bypasses) normalizes it before the datasource write.
+      const mockModel = makeMockModel({ value: '42', reasoning: 'r' }, 'set-record-field-value');
+      const agentPort = makeMockAgentPort({ count: 42 });
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            fields: [
+              { fieldName: 'count', displayName: 'Count', isRelationship: false, type: 'Number' },
+            ],
+          }),
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'count' },
+        }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(agentPort.updateRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ values: { count: 42 } }),
+        context.user,
+      );
+    });
+
+    it('returns error when a pre-recorded (value-less) fieldName does not resolve', async () => {
+      const context = makeContext({
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'does_not_exist' },
+        }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
 
       expect(result.stepOutcome.status).toBe('error');
+    });
+
+    // Regression: a Boolean field's coercion schema (z.preprocess) crashed langchain's real
+    // tool→JSON-Schema conversion ("Transforms cannot be represented in JSON Schema") for the
+    // pinned-field tool. Convert the actual bound tool schema through langchain's converter — the
+    // exact operation that ran at bind time — to prove it no longer throws.
+    it('binds a Boolean pinned-field tool that langchain can convert to JSON Schema', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+      const { toJsonSchema } = require('@langchain/core/utils/json_schema');
+      const mockModel = makeMockModel({ value: true, reasoning: 'r' }, 'set-record-field-value');
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort: makeMockAgentPort({ active: true }),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            fields: [
+              { fieldName: 'active', displayName: 'Active', isRelationship: false, type: 'Boolean' },
+            ],
+          }),
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'active' },
+        }),
+      });
+
+      await new UpdateRecordStepExecutor(context).execute();
+
+      const boundTool = mockModel.bindTools.mock.calls[0][0][0] as { schema: unknown };
+      expect(() => toJsonSchema(boundTool.schema)).not.toThrow();
     });
 
     it('returns error when value is provided without fieldName', async () => {
@@ -1685,7 +1805,9 @@ describe('UpdateRecordStepExecutor', () => {
       return lastCall[0][0].schema;
     }
 
-    it('Boolean: accepts true/false and coerces string "true"/"false"', async () => {
+    it('Boolean: accepts native true/false, rejects strings (AI tool uses a JSON-Schema-safe schema)', async () => {
+      // The AI tool schema is plain z.boolean() (no z.preprocess) so langchain can serialize it to
+      // JSON Schema across dual zod copies. String→boolean coercion happens later in coerceFieldValue.
       const schema = await getToolSchema([
         { fieldName: 'active', displayName: 'Active', isRelationship: false, type: 'Boolean' },
       ]);
@@ -1694,13 +1816,10 @@ describe('UpdateRecordStepExecutor', () => {
         schema.parse({ input: { fieldName: 'Active', value: true, reasoning: 'r' } }).input.value,
       ).toBe(true);
       expect(
-        schema.parse({ input: { fieldName: 'Active', value: 'true', reasoning: 'r' } }).input.value,
-      ).toBe(true);
-      expect(
         schema.parse({ input: { fieldName: 'Active', value: false, reasoning: 'r' } }).input.value,
       ).toBe(false);
       expect(() =>
-        schema.parse({ input: { fieldName: 'Active', value: 'maybe', reasoning: 'r' } }),
+        schema.parse({ input: { fieldName: 'Active', value: 'true', reasoning: 'r' } }),
       ).toThrow();
     });
 
