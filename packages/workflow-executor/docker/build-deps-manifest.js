@@ -32,6 +32,14 @@ const OTEL_DEPENDENCIES = {
   '@opentelemetry/exporter-trace-otlp-http': '0.219.0',
 };
 
+// Security pins for transitive deps whose parents never ship a patched range.
+// sequelize@6 pins uuid ^8.3.2 (GHSA-w5hq-g745-h8pq, patched in 11.1.1); the
+// monorepo root already forces uuid ^11.1.1 under sequelize, so this mirrors a
+// combination CI exercises.
+const RESOLUTIONS = {
+  '**/sequelize/uuid': '^11.1.1',
+};
+
 function generate(packagesDir, outFile) {
   // Collect every declared range per external dependency, tracking which packages
   // ask for it — a flat install can hold only one version, so we must resolve
@@ -90,6 +98,7 @@ function generate(packagesDir, outFile) {
   if (packageManager) manifest.packageManager = packageManager;
 
   manifest.dependencies = sorted;
+  manifest.resolutions = RESOLUTIONS;
 
   fs.writeFileSync(outFile, `${JSON.stringify(manifest, null, 2)}\n`);
 }
