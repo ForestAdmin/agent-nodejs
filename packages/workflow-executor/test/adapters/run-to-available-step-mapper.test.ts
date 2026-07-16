@@ -13,8 +13,10 @@ import {
   ServerStepExecutionTypeEnum,
   ServerStepTypeEnum,
   ServerTaskTypeEnum,
+  ServerWorkflowTriggerType,
 } from '../../src/adapters/server-types';
 import { DomainValidationError, InvalidStepDefinitionError } from '../../src/errors';
+import { TriggerType } from '../../src/types/validated/execution';
 import { StepType } from '../../src/types/validated/step-definition';
 
 const logger = jest.fn();
@@ -108,6 +110,7 @@ describe('toAvailableStepExecution', () => {
       stepId: 'step-a',
       stepIndex: 0,
       collectionId: '11',
+      triggerType: TriggerType.Manual,
       baseRecordRef: {
         collectionName: 'customers',
         recordId: ['123'],
@@ -122,6 +125,23 @@ describe('toAvailableStepExecution', () => {
       previousSteps: [],
       user: expect.objectContaining({ id: 7, email: 'alban@forestadmin.com' }),
     });
+  });
+
+  it('should forward the run triggerType', () => {
+    const run = makeRun({ triggerType: ServerWorkflowTriggerType.webhook });
+
+    const result = toAvailableStepExecution(run);
+
+    expect(result?.triggerType).toBe(TriggerType.Webhook);
+  });
+
+  it('should default triggerType to manual when the orchestrator omits it', () => {
+    const run = makeRun();
+    delete run.triggerType;
+
+    const result = toAvailableStepExecution(run);
+
+    expect(result?.triggerType).toBe(TriggerType.Manual);
   });
 
   it('should stringify the numeric run id', () => {

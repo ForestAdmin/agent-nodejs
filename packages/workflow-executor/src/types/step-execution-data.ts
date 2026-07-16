@@ -197,8 +197,10 @@ export interface LoadRelatedRecordStepExecutionData
 
 export interface GuidanceStepExecutionData extends BaseStepExecutionData {
   type: 'guidance';
-  pendingData?: { userInput?: string };
-  executionResult?: { userInput?: string };
+  // aiGenerated → front shows the "AI" badge until first edit. Empty {} marks an AI degrade: field
+  // opens empty, no badge, AI not retried on re-dispatch.
+  pendingData?: { userInput?: string; aiGenerated?: boolean };
+  executionResult?: { userInput?: string; generatedByAi?: boolean };
 }
 
 export type ConfirmableStepExecutionData =

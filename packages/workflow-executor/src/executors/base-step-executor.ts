@@ -16,6 +16,7 @@ import type {
 import { SystemMessage } from '@forestadmin/ai-proxy';
 
 import {
+  AiAssistUnavailableError,
   AiInvokeTimeoutError,
   InvalidAiRequestError,
   MalformedToolCallError,
@@ -363,6 +364,25 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
     tool: DynamicStructuredTool,
   ): Promise<T> {
     return (await this.invokeWithTools<T>(messages, [tool])).args;
+  }
+
+  // Tags any AI-call failure as AiAssistUnavailableError so callers can degrade to Manual;
+  // an already-tagged error passes through (no double-wrapping when calls nest).
+  protected async withAiAssist<T>(call: () => Promise<T>): Promise<T> {
+    try {
+      return await call();
+    } catch (error) {
+      if (error instanceof AiAssistUnavailableError) throw error;
+      throw new AiAssistUnavailableError(error);
+    }
+  }
+
+  protected logAiDegrade(reason: unknown): void {
+    this.context.logger(
+      'Warn',
+      `${this.context.stepDefinition.type}: AI unavailable, degrading to manual`,
+      { ...this.logCtx, error: extractErrorMessage(reason) },
+    );
   }
 
   // Overridden by executors that carry type-specific log identifiers (e.g. McpStepExecutor).

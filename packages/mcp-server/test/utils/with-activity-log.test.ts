@@ -298,7 +298,7 @@ describe('withActivityLog', () => {
         }),
       ).rejects.toThrow('Context: Invalid field value');
 
-      expect(errorEnhancer).toHaveBeenCalledWith('Invalid field value', agentError);
+      expect(errorEnhancer).toHaveBeenCalledWith('Invalid field value (HTTP 400)', agentError);
     });
   });
 });

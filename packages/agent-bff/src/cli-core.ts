@@ -4,6 +4,7 @@ import type { Middleware } from 'koa';
 
 import { bodyParser } from '@koa/bodyparser';
 
+import createActionRoutesMiddleware from './action/action-routes-middleware';
 import createConsoleLogger from './adapters/console-logger';
 import createAgentStubMiddleware from './agent/agent-stub';
 import createApiKeyAuthenticator from './api-key/api-key-authenticator';
@@ -14,6 +15,7 @@ import createAuthModeMiddleware from './auth/auth-mode-middleware';
 import { parseConfig } from './config/env-config';
 import createCorsMiddleware from './cors/cors-middleware';
 import createPerKeyOriginMiddleware from './cors/per-key-origin';
+import createDataRoutesMiddleware from './data/data-routes-middleware';
 import { extractErrorMessage } from './errors';
 import { unauthorized } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
@@ -22,6 +24,7 @@ import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
 import createTokenCipher from './oauth/token-cipher';
+import createReadModel from './read-model/create-read-model';
 import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
 
@@ -152,6 +155,30 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
   return createApiKeyMiddleware({ authenticator, logger });
 }
 
+// Data and action routes share one read-model store (a single cache, a single schema fetch). The
+// data middleware falls through to the action middleware on a non-data path.
+function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
+  const apiKeyConfig = resolveApiKeyConfig(config);
+
+  if (!apiKeyConfig || !config.agentUrl) {
+    logger('Warn', 'Data endpoints disabled: AGENT_URL or read-model configuration is missing');
+
+    return [createAgentStubMiddleware()];
+  }
+
+  const { store } = createReadModel({
+    forestServerUrl: apiKeyConfig.forestServerUrl,
+    envSecret: apiKeyConfig.forestEnvSecret,
+    logger,
+  });
+  const { agentUrl } = config;
+
+  return [
+    createDataRoutesMiddleware({ store, agentUrl, logger }),
+    createActionRoutesMiddleware({ store, agentUrl, logger }),
+  ];
+}
+
 function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
   const { forestAuthSecret, defaultTimezone } = config;
 
@@ -168,7 +195,7 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
     apiKeyStep,
     createPerKeyOriginMiddleware(),
     createTimezoneMiddleware({ defaultTimezone }),
-    createAgentStubMiddleware(),
+    ...buildAgentRouteMiddlewares(config, logger),
   ];
 
   return chain.map(agentScoped);

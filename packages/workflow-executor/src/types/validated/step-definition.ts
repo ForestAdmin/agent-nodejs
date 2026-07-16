@@ -21,11 +21,19 @@ export enum StepExecutionMode {
 }
 
 // Shared fields across all step types. executionType is intentionally excluded —
-// each schema declares its own valid modes with .default().catch() for normalization.
+// each schema declares its own valid modes (most with .default().catch() for normalization;
+// guidance deliberately omits .catch to fail loud on an unknown mode).
+// The orchestrator serializes missing BPMN attributes as JSON null (DOM getAttribute), not as
+// absent keys — accept both and normalize to undefined.
+const optionalString = z
+  .string()
+  .nullish()
+  .transform(value => value ?? undefined);
+
 const sharedFields = {
-  prompt: z.string().optional(),
-  aiConfigName: z.string().optional(),
-  title: z.string().optional(),
+  prompt: optionalString,
+  aiConfigName: optionalString,
+  title: optionalString,
 };
 
 // Use z.enum(EnumObject), not z.nativeEnum — the latter is deprecated in zod 4.
@@ -137,7 +145,9 @@ export type McpStepDefinition = z.infer<typeof McpStepDefinitionSchema>;
 export const GuidanceStepDefinitionSchema = z.object({
   ...sharedFields,
   type: z.literal(StepType.Guidance),
-  executionType: z.literal(Manual).default(Manual).catch(Manual),
+  // No `.catch`; default Manual (not AWC) — the orchestrator owns the legacy default, so the
+  // executor fallback only fires on a missing field, where "never call AI" is the safe direction.
+  executionType: z.enum([Manual, AutomatedWithConfirmation, FullyAutomated]).default(Manual),
 });
 export type GuidanceStepDefinition = z.infer<typeof GuidanceStepDefinitionSchema>;
 

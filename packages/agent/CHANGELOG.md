@@ -1,3 +1,60 @@
+## @forestadmin/agent [1.86.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.5...@forestadmin/agent@1.86.6) (2026-07-16)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.40.5
+* **@forestadmin/mcp-server:** upgraded to 1.17.3
+* **@forestadmin/workflow-executor:** upgraded to 1.17.2
+
+## @forestadmin/agent [1.86.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.4...@forestadmin/agent@1.86.5) (2026-07-16)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.17.1
+
+## @forestadmin/agent [1.86.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.3...@forestadmin/agent@1.86.4) (2026-07-15)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.17.0
+
+## @forestadmin/agent [1.86.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.2...@forestadmin/agent@1.86.3) (2026-07-15)
+
+
+### Bug Fixes
+
+* **agent:** exempt direct loopback callers from the IP whitelist ([#1744](https://github.com/ForestAdmin/agent-nodejs/issues/1744)) ([f1e45d2](https://github.com/ForestAdmin/agent-nodejs/commit/f1e45d2b86519523cbd3d56a36bc8b02edb6743c))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.16.0
+
+## @forestadmin/agent [1.86.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.1...@forestadmin/agent@1.86.2) (2026-07-08)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.17.2
+
 ## @forestadmin/agent [1.86.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.0...@forestadmin/agent@1.86.1) (2026-07-07)
 
 

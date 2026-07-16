@@ -28,6 +28,7 @@ import TriggerRecordActionStepExecutor from '../src/executors/trigger-record-act
 import UpdateRecordStepExecutor from '../src/executors/update-record-step-executor';
 import Runner from '../src/runner';
 import SchemaCache from '../src/schema-cache';
+import { TriggerType } from '../src/types/validated/execution';
 import { StepExecutionMode, StepType } from '../src/types/validated/step-definition';
 
 // ---------------------------------------------------------------------------
@@ -167,6 +168,7 @@ function makePendingStep(
     stepId: 'step-1',
     stepIndex: 0,
     collectionId: 'col-1',
+    triggerType: TriggerType.Manual,
     baseRecordRef: { collectionName: 'customers', recordId: ['1'], stepIndex: 0 },
     stepDefinition: makeStepDefinition(stepType),
     previousSteps: [],

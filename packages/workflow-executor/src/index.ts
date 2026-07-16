@@ -58,6 +58,8 @@ export type {
   ExecutionContext,
 } from './types/execution-context';
 
+export { TriggerType } from './types/validated/execution';
+
 export type {
   AgentPort,
   ExecuteActionQuery,

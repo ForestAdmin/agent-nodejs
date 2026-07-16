@@ -138,6 +138,27 @@ describe('toStepDefinition', () => {
       });
     });
 
+    it.each([
+      ServerStepExecutionTypeEnum.Manual,
+      ServerStepExecutionTypeEnum.AutomatedWithConfirmation,
+      ServerStepExecutionTypeEnum.FullyAutomated,
+    ])('maps a guideline task with executionType=%s through verbatim', executionType => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.Guideline,
+        prompt: 'guide',
+        executionType,
+      });
+
+      expect(toStepDefinition(task)).toMatchObject({ type: StepType.Guidance, executionType });
+    });
+
+    it('defaults a guideline task without executionType to manual', () => {
+      const task = makeTask({ taskType: ServerTaskTypeEnum.Guideline, prompt: 'guide' });
+      delete (task as { executionType?: unknown }).executionType;
+
+      expect(toStepDefinition(task)).toMatchObject({ executionType: StepExecutionMode.Manual });
+    });
+
     it('should preserve executionType=fully-automated', () => {
       const task = makeTask({
         taskType: ServerTaskTypeEnum.GetData,
@@ -286,6 +307,38 @@ describe('toStepDefinition', () => {
 
       expect(toStepDefinition(condition)).toMatchObject({
         options: ['Valid', 'AlsoValid'],
+      });
+    });
+
+    it('accepts a condition whose title and prompt are null (unnamed BPMN gateway)', () => {
+      const condition = makeCondition(
+        [
+          { stepId: 's1', buttonText: 'Option A' },
+          { stepId: 's2', buttonText: 'Option B' },
+        ],
+        { title: null, prompt: null },
+      );
+
+      expect(toStepDefinition(condition)).toMatchObject({
+        type: 'condition',
+        title: undefined,
+        prompt: undefined,
+        options: ['Option A', 'Option B'],
+      });
+    });
+  });
+
+  describe('null shared fields', () => {
+    it('accepts a task whose title and prompt are null (serialized missing BPMN attributes)', () => {
+      const task = makeTask({
+        title: null,
+        prompt: null,
+      });
+
+      expect(toStepDefinition(task)).toMatchObject({
+        type: 'read-record',
+        title: undefined,
+        prompt: undefined,
       });
     });
   });

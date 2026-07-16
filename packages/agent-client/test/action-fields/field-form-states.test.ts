@@ -213,7 +213,14 @@ describe('FieldFormStates', () => {
     beforeEach(async () => {
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'initial' },
+          {
+            field: 'name',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: 'initial',
+            hook: 'changeHook',
+          },
         ],
         layout: [],
       });
@@ -400,19 +407,26 @@ describe('FieldFormStates', () => {
       expect(httpRequester.query).not.toHaveBeenCalled();
     });
 
-    it('should call change hook when hooks.change is non-empty', async () => {
+    it('should call change hook when the changed field has a hook', async () => {
       const formStates = new FieldFormStates(
         'testAction',
         '/forest/actions/test-action',
         'users',
         httpRequester,
         ['1'],
-        { load: true, change: ['name'] },
+        { load: true, change: ['changeHook'] },
       );
 
       httpRequester.query.mockResolvedValue({
         fields: [
-          { field: 'name', type: 'String', isRequired: false, isReadOnly: false, value: 'initial' },
+          {
+            field: 'name',
+            type: 'String',
+            isRequired: false,
+            isReadOnly: false,
+            value: 'initial',
+            hook: 'changeHook',
+          },
         ],
         layout: [],
       });
@@ -431,6 +445,38 @@ describe('FieldFormStates', () => {
       expect(httpRequester.query).toHaveBeenCalledWith(
         expect.objectContaining({ path: '/forest/actions/test-action/hooks/change' }),
       );
+    });
+
+    it('should skip change hook when the changed field has no hook, even with change hooks', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: ['changeHook'] },
+      );
+
+      httpRequester.query.mockResolvedValue({
+        fields: [
+          { field: 'code', type: 'String', isRequired: false, isReadOnly: false, value: null },
+          {
+            field: 'voucher_type',
+            type: 'Enum',
+            isRequired: true,
+            isReadOnly: false,
+            value: null,
+            hook: 'changeHook',
+          },
+        ],
+        layout: [],
+      });
+      await formStates.loadInitialState();
+
+      httpRequester.query.mockClear();
+      await formStates.setFieldValue('code', 'ABC');
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
     });
   });
 });

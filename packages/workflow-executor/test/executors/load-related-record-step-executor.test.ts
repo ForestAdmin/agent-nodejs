@@ -1368,7 +1368,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
       // an impossible request returns a weak match instead of -1.
       const recordSelectionMessages = invoke.mock.calls[1][0] as Array<{ content: unknown }>;
       const content = recordSelectionMessages.map(m => String(m.content)).join('\n');
-      expect(content).toContain('-1');
+      // Anchor on the distinctive decline phrasing, not bare "-1" (the context date contains "-1").
+      expect(content).toContain('return -1');
     });
   });
 
@@ -3177,7 +3178,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       await new LoadRelatedRecordStepExecutor(context).execute();
 
-      expect(selectRecordPrompt(invoke)).not.toContain('-1');
+      // Anchor on the "return -1" decline guidance, not the bare "-1" substring — the context
+      // message carries today's date (e.g. 2026-07-10) which contains "-1".
+      expect(selectRecordPrompt(invoke)).not.toContain('return -1');
     });
 
     // The AI sees only the budgeted prefix, but its index maps back into the FULL list — so a

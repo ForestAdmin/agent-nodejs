@@ -1,3 +1,35 @@
+## @forestadmin/workflow-executor [1.17.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.17.1...@forestadmin/workflow-executor@1.17.2) (2026-07-16)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.10.2
+* **@forestadmin/forestadmin-client:** upgraded to 1.40.5
+
+## @forestadmin/workflow-executor [1.17.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.17.0...@forestadmin/workflow-executor@1.17.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **workflow-executor:** accept null title/prompt/aiConfigName in step definitions ([#1753](https://github.com/ForestAdmin/agent-nodejs/issues/1753)) ([7988452](https://github.com/ForestAdmin/agent-nodejs/commit/798845273ad64671f58650c38bc5196e7fbe3f84))
+
+# @forestadmin/workflow-executor [1.17.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.16.0...@forestadmin/workflow-executor@1.17.0) (2026-07-15)
+
+
+### Features
+
+* **workflow-executor:** propagate run triggerType for observability ([#1705](https://github.com/ForestAdmin/agent-nodejs/issues/1705)) ([8365a2e](https://github.com/ForestAdmin/agent-nodejs/commit/8365a2e96ea7241db411dd0709f281b59e7a05a4))
+
+# @forestadmin/workflow-executor [1.16.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.15.0...@forestadmin/workflow-executor@1.16.0) (2026-07-15)
+
+
+### Features
+
+* **workflow-executor:** add AI-assisted and Full AI execution to the guidance step (PRD-148 pattern, PRD-18) ([#1741](https://github.com/ForestAdmin/agent-nodejs/issues/1741)) ([7a5dc1c](https://github.com/ForestAdmin/agent-nodejs/commit/7a5dc1c0c8c838f86b1632aa509420849c812e06))
+
 # @forestadmin/workflow-executor [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.14.0...@forestadmin/workflow-executor@1.15.0) (2026-07-07)
 
 

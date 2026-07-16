@@ -39,8 +39,9 @@ export enum ServerStepExecutionTypeEnum {
 
 interface ServerWorkflowStepBase {
   type: ServerStepTypeEnum;
-  title: string;
-  prompt?: string;
+  // The orchestrator serializes missing BPMN attributes as null (DOM getAttribute), never omits.
+  title: string | null;
+  prompt?: string | null;
   executionType: ServerStepExecutionTypeEnum;
   automaticCompletion: boolean;
   outgoing: ServerWorkflowTransition[];
@@ -50,13 +51,14 @@ export interface ServerWorkflowTaskBase extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Task;
   taskType: ServerTaskTypeEnum;
   isSubTask?: boolean;
-  prompt: string;
+  prompt: string | null;
   outgoing: [ServerWorkflowTransition];
 }
 
 export interface ServerWorkflowTaskGuideline extends ServerWorkflowTaskBase {
   taskType: ServerTaskTypeEnum.Guideline;
-  executionType: ServerStepExecutionTypeEnum.Manual;
+  // AI modes only for a user-input guidance; simple-completion is always Manual (parser-enforced).
+  executionType: ServerStepExecutionTypeEnum;
   completionType: 'simple' | 'user-input';
   inputType?: 'free-text';
   automaticCompletion: false;
@@ -119,13 +121,13 @@ export interface ServerWorkflowEnd extends ServerWorkflowStepBase {
 export interface ServerWorkflowCondition extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Condition;
   executionType: ServerStepExecutionTypeEnum.Manual | ServerStepExecutionTypeEnum.FullyAutomated;
-  prompt: string;
+  prompt: string | null;
   automaticCompletion: false;
 }
 
 export interface ServerWorkflowEscalation extends ServerWorkflowStepBase {
   type: ServerStepTypeEnum.Escalation;
-  prompt: string;
+  prompt: string | null;
   outgoing: [ServerWorkflowTransition];
   inboxId: string | null;
 }
@@ -184,6 +186,11 @@ export interface ServerStepHistory {
 /** Mirror of the server's `WorkflowRunState` enum (workflow-run-model.ts). */
 export type ServerWorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
 
+export enum ServerWorkflowTriggerType {
+  manual = 'manual',
+  webhook = 'webhook',
+}
+
 export interface ServerHydratedWorkflowRun {
   id: number;
   workflowId: string;
@@ -192,6 +199,7 @@ export interface ServerHydratedWorkflowRun {
   selectedRecordId: string;
   bpmnVersion: string;
   runState: ServerWorkflowRunState;
+  triggerType?: ServerWorkflowTriggerType;
   workflowHistory: ServerStepHistory[];
   /** Server types declare `Date`; Express serializes to ISO 8601 string on the wire. */
   createdAt: string;
