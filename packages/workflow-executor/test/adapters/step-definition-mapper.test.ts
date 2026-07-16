@@ -309,6 +309,38 @@ describe('toStepDefinition', () => {
         options: ['Valid', 'AlsoValid'],
       });
     });
+
+    it('accepts a condition whose title and prompt are null (unnamed BPMN gateway)', () => {
+      const condition = makeCondition(
+        [
+          { stepId: 's1', buttonText: 'Option A' },
+          { stepId: 's2', buttonText: 'Option B' },
+        ],
+        { title: null, prompt: null },
+      );
+
+      expect(toStepDefinition(condition)).toMatchObject({
+        type: 'condition',
+        title: undefined,
+        prompt: undefined,
+        options: ['Option A', 'Option B'],
+      });
+    });
+  });
+
+  describe('null shared fields', () => {
+    it('accepts a task whose title and prompt are null (serialized missing BPMN attributes)', () => {
+      const task = makeTask({
+        title: null,
+        prompt: null,
+      });
+
+      expect(toStepDefinition(task)).toMatchObject({
+        type: 'read-record',
+        title: undefined,
+        prompt: undefined,
+      });
+    });
   });
 
   describe('unsupported step types', () => {
