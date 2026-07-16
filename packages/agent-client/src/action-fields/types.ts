@@ -17,6 +17,7 @@ export type PlainField = {
   value?: unknown;
   isRequired: boolean;
   isReadOnly: boolean;
+  hook?: string;
   widgetEdit?: {
     parameters: {
       static: {

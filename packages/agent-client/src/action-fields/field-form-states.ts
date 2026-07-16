@@ -69,7 +69,10 @@ export default class FieldFormStates {
 
     field.getPlainField().value = value;
 
-    if (!this.hooks || this.hooks.change.length > 0) {
+    const fieldHasHook = field.getPlainField().hook;
+
+    // Only fields that declare a change hook trigger a /hooks/change request.
+    if (fieldHasHook) {
       await this.loadChanges(name);
     }
   }
@@ -122,6 +125,7 @@ export default class FieldFormStates {
               isRequired: f.isRequired ?? false,
               isReadOnly: false,
               value: f.defaultValue,
+              hook: f.hook,
             })),
           );
         }

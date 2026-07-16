@@ -198,6 +198,7 @@ export interface ForestSchemaAction {
     isRequired?: boolean;
     defaultValue?: unknown;
     label?: string;
+    hook?: string;
   }[];
   hooks: {
     load: boolean;
