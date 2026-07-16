@@ -69,11 +69,10 @@ export default class FieldFormStates {
 
     field.getPlainField().value = value;
 
-    // Only fields that declare a change hook trigger a /hooks/change request. This mirrors the
-    // admin UI, which never fires a change for a hookless field. Firing it for every field breaks
-    // agents that resolve the change hook by the changed field's own hook name: forest_liana does
-    // `hooks[:change][field.hook].call` and raises `undefined method 'call' for nil` when nil.
-    if (field.getPlainField().hook) {
+    const fieldHasHook = field.getPlainField().hook;
+
+    // Only fields that declare a change hook trigger a /hooks/change request.
+    if (fieldHasHook) {
       await this.loadChanges(name);
     }
   }
