@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.40.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.40.4...@forestadmin/forestadmin-client@1.40.5) (2026-07-16)
+
+
+### Bug Fixes
+
+* **agent-client:** only fire change hook for fields that declare one ([#1762](https://github.com/ForestAdmin/agent-nodejs/issues/1762)) ([157a6f8](https://github.com/ForestAdmin/agent-nodejs/commit/157a6f81b6e9a8c9e08f95c315de2929846fb893))
+
 ## @forestadmin/forestadmin-client [1.40.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.40.3...@forestadmin/forestadmin-client@1.40.4) (2026-07-07)
 
 
