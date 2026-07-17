@@ -1569,7 +1569,10 @@ describe('UpdateRecordStepExecutor', () => {
 
     it('keeps the pre-recorded field and AI-resolves only the value when value is omitted', async () => {
       // AI is asked for the value only, via the field-scoped tool.
-      const mockModel = makeMockModel({ value: 'active', reasoning: 'r' }, 'set-record-field-value');
+      const mockModel = makeMockModel(
+        { value: 'active', reasoning: 'r' },
+        'set-record-field-value',
+      );
       const agentPort = makeMockAgentPort({ status: 'active' });
       const runStore = makeMockRunStore();
       const context = makeContext({
@@ -1676,7 +1679,7 @@ describe('UpdateRecordStepExecutor', () => {
     // pinned-field tool. Convert the actual bound tool schema through langchain's converter — the
     // exact operation that ran at bind time — to prove it no longer throws.
     it('binds a Boolean pinned-field tool that langchain can convert to JSON Schema', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require, import/no-extraneous-dependencies
       const { toJsonSchema } = require('@langchain/core/utils/json_schema');
       const mockModel = makeMockModel({ value: true, reasoning: 'r' }, 'set-record-field-value');
       const context = makeContext({
@@ -1685,7 +1688,12 @@ describe('UpdateRecordStepExecutor', () => {
         workflowPort: makeMockWorkflowPort({
           customers: makeCollectionSchema({
             fields: [
-              { fieldName: 'active', displayName: 'Active', isRelationship: false, type: 'Boolean' },
+              {
+                fieldName: 'active',
+                displayName: 'Active',
+                isRelationship: false,
+                type: 'Boolean',
+              },
             ],
           }),
         }),
