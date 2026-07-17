@@ -510,6 +510,7 @@ describe('LoadRelatedRecordStepExecutor', () => {
       const addressSchema = makeCollectionSchema({
         collectionName: 'addresses',
         collectionDisplayName: 'Addresses',
+        referenceField: 'city',
         fields: [
           { fieldName: 'city', displayName: 'City', isRelationship: false },
           { fieldName: 'zip', displayName: 'Zip', isRelationship: false },
@@ -572,6 +573,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
         expect.objectContaining({
           executionResult: expect.objectContaining({
             record: expect.objectContaining({ collectionName: 'addresses', recordId: [2] }),
+          }),
+          // The candidates are persisted as pendingData so the front's record dropdown can show each
+          // one's referenceFieldValue label instead of falling back to the raw recordId (PRD-751).
+          pendingData: expect.objectContaining({
+            availableRecordIds: expect.arrayContaining([
+              expect.objectContaining({ recordId: [1], referenceFieldValue: 'Paris' }),
+              expect.objectContaining({ recordId: [2], referenceFieldValue: 'Lyon' }),
+            ]),
           }),
         }),
       );
@@ -1054,8 +1063,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
       );
     });
 
-    // Empty list: Full AI hands off with "No X to load" pre-checked rather than auto-skipping.
-    it('falls back to awaiting-input (No X to load) when getRelatedData returns an empty array (Branch B)', async () => {
+    // Empty list: Full AI has nothing to load and nothing a human could pick either, so it continues
+    // without a record (skip) instead of handing off to AI-assisted (PRD-751).
+    it('continues without a record (skip) when getRelatedData returns an empty array (Branch B)', async () => {
       const belongsToManySchema = makeCollectionSchema({
         fields: [
           {
@@ -1081,11 +1091,14 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(result.stepOutcome.status).toBe('success');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-      expect(saved.pendingData.availableRecordIds).toEqual([]);
-      expect(saved.pendingData.suggestedRecord).toBeUndefined();
-      expect(saved.pendingData.suggestNoRecord).toBe(true);
+      expect(saved.executionResult).toEqual({ skipped: true });
+      // The skip still records the relation and the source record for downstream steps.
+      expect(saved.executionParams).toEqual({ name: 'tags', displayName: 'Tags' });
+      expect(saved.selectedRecordRef).toEqual(
+        expect.objectContaining({ collectionName: 'customers', recordId: [42] }),
+      );
     });
   });
 
@@ -3359,8 +3372,8 @@ describe('LoadRelatedRecordStepExecutor', () => {
     });
   });
 
-  describe('empty candidate list → awaiting-input (No X to load)', () => {
-    it('falls back to awaiting-input when BelongsTo has no linked record (Branch B)', async () => {
+  describe('empty candidate list → skip (Full AI continues without a record)', () => {
+    it('skips when BelongsTo has no linked record (Branch B)', async () => {
       const agentPort = makeMockAgentPort([]);
       const mockModel = makeMockModel({
         relation: relationOption({
@@ -3381,13 +3394,12 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(result.stepOutcome.status).toBe('success');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-      expect(saved.pendingData.availableRecordIds).toEqual([]);
-      expect(saved.pendingData.suggestNoRecord).toBe(true);
+      expect(saved.executionResult).toEqual({ skipped: true });
     });
 
-    it('falls back to awaiting-input when HasMany returns an empty array (Branch B)', async () => {
+    it('skips when HasMany returns an empty array (Branch B)', async () => {
       const hasManySchema = makeCollectionSchema({
         fields: [
           {
@@ -3413,10 +3425,9 @@ describe('LoadRelatedRecordStepExecutor', () => {
 
       const result = await executor.execute();
 
-      expect(result.stepOutcome.status).toBe('awaiting-input');
+      expect(result.stepOutcome.status).toBe('success');
       const saved = (runStore.saveStepExecution as jest.Mock).mock.calls.at(-1)?.[1];
-      expect(saved.pendingData.availableRecordIds).toEqual([]);
-      expect(saved.pendingData.suggestNoRecord).toBe(true);
+      expect(saved.executionResult).toEqual({ skipped: true });
     });
   });
 
