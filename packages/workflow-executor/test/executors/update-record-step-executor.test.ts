@@ -1661,6 +1661,30 @@ describe('UpdateRecordStepExecutor', () => {
       );
     });
 
+    it('fails the step when the pinned (value-less) field has no type', async () => {
+      const context = makeContext({
+        model: makeMockModel({ value: 'x', reasoning: 'r' }, 'set-record-field-value').model,
+        agentPort: makeMockAgentPort(),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema({
+            fields: [{ fieldName: 'age', displayName: 'Age', isRelationship: false }],
+          }),
+        }),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: { fieldName: 'age' },
+        }),
+      });
+
+      const result = await new UpdateRecordStepExecutor(context).execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "This field can't be updated because its type is missing from the schema. " +
+          'Contact your administrator if the problem persists.',
+      );
+    });
+
     it('returns error when a pre-recorded (value-less) fieldName does not resolve', async () => {
       const context = makeContext({
         stepDefinition: makeStep({
@@ -2429,6 +2453,21 @@ describe('UpdateRecordStepExecutor', () => {
         { collection: 'customers', id: [42], values: { orders: opaque } },
         expect.objectContaining({ id: 1 }),
       );
+    });
+
+    it('fails on a non-boolean string override to a Boolean field (preprocess passes it through, z.boolean rejects)', async () => {
+      const { executor, agentPort } = makeCoercionContext(booleanField, null, {
+        userConfirmed: true,
+        value: 'yes',
+      });
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        'An unexpected error occurred while processing this step.',
+      );
+      expect(agentPort.updateRecord).not.toHaveBeenCalled();
     });
 
     it('fails the step when overriding a non-relationship field that has no type', async () => {
