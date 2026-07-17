@@ -65,6 +65,19 @@ describe('toStepDefinition', () => {
       });
     });
 
+    it('should forward preRecordedArgs.selectedRecordStepId on a get-data task', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.GetData,
+        prompt: 'read it',
+        preRecordedArgs: { selectedRecordStepId: 'load-1' },
+      } as Partial<ServerWorkflowTask>);
+
+      expect(toStepDefinition(task)).toMatchObject({
+        type: StepType.ReadRecord,
+        preRecordedArgs: { selectedRecordStepId: 'load-1' },
+      });
+    });
+
     it('should map task with update-data taskType to update-record', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.UpdateData, prompt: 'update it' });
 
