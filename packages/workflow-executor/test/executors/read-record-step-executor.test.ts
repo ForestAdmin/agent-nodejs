@@ -1220,6 +1220,76 @@ describe('ReadRecordStepExecutor', () => {
       const result = await executor.execute();
 
       expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe('The pre-configured step parameters are invalid');
+    });
+
+    it('returns SourceRecordMissingError when the pinned source step loaded no record', async () => {
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest
+          .fn()
+          .mockResolvedValue([
+            { type: 'load-related-record', stepIndex: 1, executionResult: undefined },
+          ]),
+      });
+      const context = makeContext({
+        runStore,
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
+        stepDefinition: makeStep({ preRecordedArgs: { selectedRecordStepId: 'load-1' } }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('error');
+      expect(result.stepOutcome.error).toBe(
+        "This step uses its source step as its source, but that step didn't load any record.",
+      );
+    });
+
+    it('runs zero AI rounds when both selectedRecordStepId and fieldNames are pre-recorded', async () => {
+      const relatedRef = makeRecordRef({ collectionName: 'orders', recordId: [99], stepIndex: 1 });
+      const mockModel = makeMockModel({ fieldNames: [] });
+      const agentPort = makeMockAgentPort({ orders: { values: { total: 100 } } });
+      const runStore = makeMockRunStore({
+        getStepExecutions: jest.fn().mockResolvedValue([
+          {
+            type: 'load-related-record',
+            stepIndex: 1,
+            executionResult: {
+              relation: { name: 'order', displayName: 'Order' },
+              record: relatedRef,
+            },
+            selectedRecordRef: makeRecordRef(),
+          },
+        ]),
+      });
+      const context = makeContext({
+        model: mockModel.model,
+        runStore,
+        agentPort,
+        previousSteps: [makeLoadRelatedPreviousStep(1)],
+        stepDefinition: makeStep({
+          preRecordedArgs: { selectedRecordStepId: 'load-1', fieldNames: ['total'] },
+        }),
+        workflowPort: makeMockWorkflowPort({
+          customers: makeCollectionSchema(),
+          orders: makeCollectionSchema({
+            collectionName: 'orders',
+            collectionDisplayName: 'Orders',
+            fields: [{ fieldName: 'total', displayName: 'Total', isRelationship: false }],
+          }),
+        }),
+      });
+      const executor = new ReadRecordStepExecutor(context);
+
+      const result = await executor.execute();
+
+      expect(result.stepOutcome.status).toBe('success');
+      expect(mockModel.bindTools).toHaveBeenCalledTimes(0);
+      expect(agentPort.getRecord).toHaveBeenCalledWith(
+        expect.objectContaining({ collection: 'orders', id: [99], fields: ['total'] }),
+        expect.objectContaining({ id: 1 }),
+      );
     });
   });
 
