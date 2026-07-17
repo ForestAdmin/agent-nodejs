@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.17.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.17.2...@forestadmin/workflow-executor@1.17.3) (2026-07-17)
+
+
+### Bug Fixes
+
+* **workflow-executor:** Full AI load-related — reference field + empty-list skip (PRD-751) ([#1751](https://github.com/ForestAdmin/agent-nodejs/issues/1751)) ([646a058](https://github.com/ForestAdmin/agent-nodejs/commit/646a058307f9825b3e5a75d1b539afa106cf9265))
+
 ## @forestadmin/workflow-executor [1.17.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.17.1...@forestadmin/workflow-executor@1.17.2) (2026-07-16)
 
 
