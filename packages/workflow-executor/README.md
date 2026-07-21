@@ -144,6 +144,12 @@ GRANT USAGE, CREATE ON SCHEMA analytics TO "<user>";
 
 (Note: Postgres checks the database-level `CREATE` privilege for `CREATE SCHEMA IF NOT EXISTS` even when the schema exists, so the executor gates the statement on an existence probe rather than relying on `IF NOT EXISTS`.)
 
+Using `DATABASE_SCHEMA=public` on a dedicated database is the simplest setup — `public` always exists, so no `CREATE` on the database is needed. On Postgres 15+, though, `public` no longer grants `CREATE` to non-owner roles by default, so the executor still needs it to create its tables there:
+
+```sql
+GRANT USAGE, CREATE ON SCHEMA public TO "<user>";
+```
+
 ---
 
 ## OAuth-protected MCP connectors
