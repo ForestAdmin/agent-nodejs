@@ -33,6 +33,7 @@ import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareUpdateTool from './tools/update';
+import normalizeAgentUrl from './utils/normalize-agent-url';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import { NAME, VERSION } from './version';
@@ -126,6 +127,11 @@ export interface ForestMCPServerOptions {
    * domain root.
    */
   basePath?: string;
+  /**
+   * Standalone MCP server only (set via FOREST_AGENT_URL). Internal URL the tools use to reach
+   * the agent's data layer, defaulting to the environment's public `api_endpoint`.
+   */
+  agentUrl?: string;
 }
 
 /**
@@ -148,6 +154,7 @@ export default class ForestMCPServer {
   private collectionNames: string[] = [];
   private enabledTools: Set<ToolName>;
   private basePath: string;
+  private agentUrl?: string;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -157,6 +164,7 @@ export default class ForestMCPServer {
     this.logger = options?.logger || defaultLogger;
     this.enabledTools = this.resolveEnabledTools(options);
     this.basePath = normalizeMountPath(options?.basePath);
+    this.agentUrl = normalizeAgentUrl(options?.agentUrl);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -475,6 +483,7 @@ export default class ForestMCPServer {
       envSecret,
       authSecret,
       logger: this.logger,
+      agentUrl: this.agentUrl,
     });
     await oauthProvider.initialize();
 

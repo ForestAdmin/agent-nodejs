@@ -2704,6 +2704,127 @@ describe('basePath prefix', () => {
   });
 });
 
+describe('agentUrl option', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('does not affect the advertised OAuth metadata URLs', async () => {
+    const mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '1', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get(/\/oauth\/register\//, { error: 'Client not found' }, 404);
+    global.fetch = mockFetchServer.fetch;
+
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: createMockForestServerClient(),
+      agentUrl: 'http://forest-agent.internal:3310',
+    });
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).get('/.well-known/oauth-authorization-server');
+
+    expect(response.status).toBe(200);
+    expect(response.body.issuer).toBe('http://localhost:3000/');
+    expect(response.body.authorization_endpoint).toBe('http://localhost:3000/oauth/authorize');
+    expect(response.body.token_endpoint).toBe('http://localhost:3000/oauth/token');
+  });
+
+  it('routes tool calls to agentUrl instead of the public api_endpoint', async () => {
+    clearSchemaCache();
+    process.env.FOREST_ENV_SECRET = 'test-env-secret';
+    process.env.FOREST_AUTH_SECRET = 'test-auth-secret';
+    process.env.MCP_SERVER_PORT = (await getAvailablePort()).toString();
+
+    let capturedForestUrl: string | undefined;
+    const mockServer = new MockServer();
+    mockServer
+      // Public endpoint Forest has on file — the tool must NOT use this one.
+      .get('/liana/environment', {
+        data: { id: '1', attributes: { api_endpoint: 'https://public.example.com' } },
+      })
+      .get('/liana/forest-schema', {
+        data: [
+          {
+            id: 'users',
+            type: 'collections',
+            attributes: {
+              name: 'users',
+              fields: [{ field: 'id', type: 'Number', isSortable: true }],
+            },
+          },
+        ],
+        meta: { liana: 'forest-express-sequelize', liana_version: '9.0.0', liana_features: null },
+      })
+      .post('/api/activity-logs-requests', {
+        data: { id: 'log-1', attributes: { index: 'logs' } },
+      })
+      .get(/\/forest\/\w+/, url => {
+        capturedForestUrl = url;
+
+        return { data: [] };
+      });
+    global.fetch = mockServer.fetch;
+    mockServer.setupSuperagentMock();
+
+    const server = new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      forestServerUrl: 'https://test.forestadmin.com',
+      forestServerClient: createMockForestServerClient({
+        fetchSchema: jest
+          .fn()
+          .mockResolvedValue([
+            { name: 'users', fields: [{ field: 'id', type: 'Number', isSortable: true }] },
+          ]),
+      }),
+      agentUrl: 'http://internal-agent:9999',
+    });
+    server.run();
+    await new Promise(resolve => {
+      setTimeout(resolve, 500);
+    });
+
+    try {
+      const token = jsonwebtoken.sign(
+        {
+          id: 123,
+          email: 'user@example.com',
+          renderingId: 456,
+          serverToken: 'forest-server-token',
+        },
+        'test-auth-secret',
+        { expiresIn: '1h' },
+      );
+
+      const response = await request(server.httpServer as http.Server)
+        .post('/mcp')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', 'application/json')
+        .set('Accept', 'application/json, text/event-stream')
+        .send({
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 1,
+          params: { name: 'list', arguments: { collectionName: 'users' } },
+        });
+
+      expect(response.status).toBe(200);
+      expect(capturedForestUrl).toContain('http://internal-agent:9999/forest/');
+      expect(capturedForestUrl).not.toContain('public.example.com');
+    } finally {
+      mockServer.restoreSuperagent();
+      await shutDownHttpServer(server.httpServer as http.Server);
+    }
+  });
+});
+
 describe('handleMcpRequest cleanup', () => {
   const originalFetch = global.fetch;
   let cleanupServer: ForestMCPServer;
