@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.18.0...@forestadmin/workflow-executor@1.19.0) (2026-07-21)
+
+
+### Features
+
+* **workflow-executor:** allow custom DB schema via DATABASE_SCHEMA env var ([#1754](https://github.com/ForestAdmin/agent-nodejs/issues/1754)) ([5114744](https://github.com/ForestAdmin/agent-nodejs/commit/511474465984d7a575db9ecfe19432410c46f959))
+
 # @forestadmin/workflow-executor [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.17.3...@forestadmin/workflow-executor@1.18.0) (2026-07-17)
 
 
