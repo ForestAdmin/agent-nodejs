@@ -1,3 +1,5 @@
+## @forestadmin/workflow-executor [1.20.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.20.0...@forestadmin/workflow-executor@1.20.1) (2026-07-21)
+
 # @forestadmin/workflow-executor [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.19.0...@forestadmin/workflow-executor@1.20.0) (2026-07-21)
 
 
