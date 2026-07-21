@@ -95,13 +95,9 @@ export default class SchemaGeneratorFields {
       return [this.convertColumnType(type[0])];
     }
 
-    // Defensive: a nested enum is only expected inside a sub-document (handled below), never as a
-    // top-level column type. Keep it from falling into the sub-document branch just in case.
-    if (TypeGetter.isEnumColumnType(type)) return 'Enum';
-
     return {
       fields: Object.entries(type).map(([key, subType]) =>
-        TypeGetter.isEnumColumnType(subType)
+        TypeGetter.isEnumField(subType)
           ? { field: key, type: 'Enum', enums: subType.enumValues }
           : { field: key, type: this.convertColumnType(subType) },
       ),

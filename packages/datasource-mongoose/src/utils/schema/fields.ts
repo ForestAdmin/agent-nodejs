@@ -7,11 +7,10 @@ import type {
   ColumnSchema,
   ColumnType,
   ManyToOneSchema,
+  NestedEnumColumnType,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
 import type { Model, SchemaType } from 'mongoose';
-
-import { TypeGetter } from '@forestadmin/datasource-toolkit';
 
 import FilterOperatorsGenerator from './filter-operators';
 import isSchemaType from './is-schema-type';
@@ -82,7 +81,7 @@ export default class FieldsGenerator {
 
   /** Build ColumnSchema from CleanSchema */
   private static buildColumnSchema(field: SchemaNode): ColumnSchema {
-    const { columnType, enumValues } = this.normalizeRootEnum(this.getColumnTypeRec(field));
+    const columnType = this.getColumnType(field);
     const schema: ColumnSchema = {
       columnType,
       filterOperators: FilterOperatorsGenerator.getSupportedOperators(columnType as PrimitiveTypes),
@@ -94,29 +93,28 @@ export default class FieldsGenerator {
       validation: field.isRequired ? [{ operator: 'Present' }] : null,
     };
 
-    if (enumValues) schema.enumValues = enumValues;
+    if (columnType === 'Enum') {
+      schema.enumValues = this.getEnumValues(field as SchemaType);
+    }
 
     return schema;
   }
 
-  /**
-   * At the root of the record (or a root-level array), an enum is exposed as a flat 'Enum' whose
-   * values live on the ColumnSchema. The inline `{ type: 'Enum', enumValues }` form produced by
-   * getColumnTypeRec is only kept for enums nested inside sub-documents.
-   */
-  private static normalizeRootEnum(columnType: ColumnType): {
-    columnType: ColumnType;
-    enumValues?: string[];
-  } {
-    if (TypeGetter.isEnumColumnType(columnType)) {
-      return { columnType: 'Enum', enumValues: columnType.enumValues };
+  /** Compute column type from CleanSchema */
+  private static getColumnType(field: SchemaNode): ColumnType {
+    const columnType = this.getColumnTypeRec(field);
+
+    // Enum fields are promoted to enum instead of string _only_ if they are at the root of the
+    // record.
+    if (columnType === 'String') {
+      const enumValues = this.getEnumValues(field as SchemaType);
+
+      if (enumValues && enumValues.every(v => typeof v === 'string')) {
+        return 'Enum';
+      }
     }
 
-    if (TypeGetter.isArrayOfEnumColumnType(columnType)) {
-      return { columnType: ['Enum'], enumValues: columnType[0].enumValues };
-    }
-
-    return { columnType };
+    return columnType;
   }
 
   /** Build ColumnType from CleanSchema recursively */
@@ -126,19 +124,7 @@ export default class FieldsGenerator {
         return 'Binary';
       }
 
-      if (field.instance === 'String') {
-        // A string enum keeps its values inline so they survive down to schema serialization,
-        // even when nested. normalizeRootEnum flattens it back to 'Enum' at the root.
-        const enumValues = this.getEnumValues(field as SchemaType);
-
-        if (enumValues && enumValues.every(v => typeof v === 'string')) {
-          return { type: 'Enum', enumValues };
-        }
-
-        return 'String';
-      }
-
-      if (['Number', 'Date', 'Boolean'].includes(field.instance)) {
+      if (['String', 'Number', 'Date', 'Boolean'].includes(field.instance)) {
         return field.instance as PrimitiveTypes;
       }
 
@@ -154,9 +140,21 @@ export default class FieldsGenerator {
     }
 
     return Object.entries(field).reduce(
-      (memo, [name, subSchema]) => ({ ...memo, [name]: this.getColumnTypeRec(subSchema) }),
+      (memo, [name, subSchema]) => ({ ...memo, [name]: this.getCompositeFieldType(subSchema) }),
       {},
     );
+  }
+
+  private static getCompositeFieldType(field: SchemaNode): ColumnType | NestedEnumColumnType {
+    if (isSchemaType(field) && field.instance === 'String') {
+      const enumValues = this.getEnumValues(field as SchemaType);
+
+      if (enumValues && enumValues.every(v => typeof v === 'string')) {
+        return { type: 'Enum', enumValues };
+      }
+    }
+
+    return this.getColumnTypeRec(field);
   }
 
   /** Get enum validator from field definition */

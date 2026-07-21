@@ -168,9 +168,9 @@ describe('TypeGetter', () => {
     });
   });
 
-  describe('isEnumColumnType', () => {
-    it('should return true for a nested enum column type', () => {
-      expect(TypeGetter.isEnumColumnType({ type: 'Enum', enumValues: ['a', 'b'] })).toEqual(true);
+  describe('isEnumField', () => {
+    it('should return true for a composite enum field', () => {
+      expect(TypeGetter.isEnumField({ type: 'Enum', enumValues: ['a', 'b'] })).toEqual(true);
     });
 
     it.each([
@@ -179,7 +179,7 @@ describe('TypeGetter', () => {
       ['an array', ['Enum']],
       ['a sub-document with a type field holding an object', { type: { nested: 'String' } }],
     ])('should return false for %s', (_, type) => {
-      expect(TypeGetter.isEnumColumnType(type as ColumnType)).toEqual(false);
+      expect(TypeGetter.isEnumField(type as ColumnType)).toEqual(false);
     });
   });
 });

@@ -222,10 +222,6 @@ export default class TypingGenerator {
       })}>`;
     }
 
-    if (TypeGetter.isEnumColumnType(field.columnType)) {
-      return this.getType({ columnType: 'Enum', enumValues: field.columnType.enumValues });
-    }
-
     if (field.columnType === 'Enum') {
       if (field.enumValues === undefined) return 'string';
 
@@ -253,7 +249,11 @@ export default class TypingGenerator {
     }
 
     return `{${TypingGenerator.sortedEntries(field.columnType)
-      .map(([key, subType]) => `'${key}': ${this.getType({ columnType: subType })}`)
+      .map(([key, subType]) =>
+        TypeGetter.isEnumField(subType)
+          ? `'${key}': ${this.getType({ columnType: 'Enum', enumValues: subType.enumValues })}`
+          : `'${key}': ${this.getType({ columnType: subType })}`,
+      )
       .join('; ')}}`;
   }
 }

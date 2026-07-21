@@ -45,23 +45,15 @@ export default class TypeGetter {
     return Array.isArray(columnType) && this.isPrimitiveType(columnType[0]);
   }
 
-  // A nested enum is carried inline as `{ type: 'Enum', enumValues: [...] }` so the enum values
-  // survive down to schema serialization. `type === 'Enum'` is a safe discriminant vs a
-  // `{[key]:ColumnType}` sub-document: nested enums are never promoted, so a real sub-field named
-  // `type` is never 'Enum'.
-  static isEnumColumnType(columnType: ColumnType): columnType is NestedEnumColumnType {
-    const candidate = columnType as NestedEnumColumnType;
+  static isEnumField(field: ColumnType | NestedEnumColumnType): field is NestedEnumColumnType {
+    const candidate = field as NestedEnumColumnType;
 
     return (
-      typeof columnType === 'object' &&
-      !Array.isArray(columnType) &&
+      typeof field === 'object' &&
+      !Array.isArray(field) &&
       candidate.type === 'Enum' &&
       Array.isArray(candidate.enumValues)
     );
-  }
-
-  static isArrayOfEnumColumnType(columnType: ColumnType): columnType is [NestedEnumColumnType] {
-    return Array.isArray(columnType) && this.isEnumColumnType(columnType[0]);
   }
 
   private static getDateType(value: string): PrimitiveTypes {

@@ -222,13 +222,12 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
         return Promise.all(newValues);
       }
 
-      // A nested enum is a scalar string, never binary: leave its value untouched.
-      if (TypeGetter.isEnumColumnType(columnType)) return value;
-
       if (typeof columnType !== 'string') {
         const entries = Object.entries(columnType).map(async ([key, type]) => [
           key,
-          await this.convertValueHelper(toBackend, type, useHex, value[key]),
+          TypeGetter.isEnumField(type)
+            ? value[key]
+            : await this.convertValueHelper(toBackend, type, useHex, value[key]),
         ]);
 
         return Object.fromEntries(await Promise.all(entries));
@@ -267,12 +266,9 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       return [this.replaceColumnType(columnType[0])];
     }
 
-    // A nested enum holds no binary: keep it as-is.
-    if (TypeGetter.isEnumColumnType(columnType)) return columnType;
-
     const entries = Object.entries(columnType).map(([key, type]) => [
       key,
-      this.replaceColumnType(type),
+      TypeGetter.isEnumField(type) ? type : this.replaceColumnType(type),
     ]);
 
     return Object.fromEntries(entries);

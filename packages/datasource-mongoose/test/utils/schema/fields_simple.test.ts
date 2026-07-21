@@ -109,19 +109,6 @@ describe('SchemaFieldsGenerator', () => {
         });
       });
 
-      describe('when the enum is a root-level array of strings', () => {
-        it('should build a flat Enum array column type with enum values', () => {
-          const enumValues = ['enum1', 'enum2'];
-          const schema = new Schema({ aField: [{ type: String, enum: enumValues }] });
-
-          const fieldsSchema = FieldsGenerator.buildFieldsSchema(buildModel(schema));
-
-          expect(fieldsSchema).toMatchObject({
-            aField: { columnType: ['Enum'], enumValues },
-          });
-        });
-      });
-
       describe('when the enum is nested inside a sub-document', () => {
         it('should keep the nested enum as an inline enum column type', () => {
           const enumValues = ['enum1', 'enum2'];

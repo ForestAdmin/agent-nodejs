@@ -4,7 +4,7 @@ import type {
   HookBeforeUpdateContext,
   TConditionTree,
 } from '@forestadmin/datasource-customizer';
-import type { ColumnType, RecordData } from '@forestadmin/datasource-toolkit';
+import type { ColumnType, NestedEnumColumnType, RecordData } from '@forestadmin/datasource-toolkit';
 
 import { ConditionTreeFactory, SchemaUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
 import hashRecord from 'object-hash';
@@ -12,7 +12,9 @@ import hashRecord from 'object-hash';
 import { deepUpdateInPlace, getValue, unflattenPathsInPlace } from './helpers';
 
 export function makeField(columnName: string, path: string, baseColumnType: ColumnType) {
-  const columnType = getValue({ [columnName]: baseColumnType }, path) as ColumnType;
+  const columnType = getValue({ [columnName]: baseColumnType }, path) as
+    | ColumnType
+    | NestedEnumColumnType;
   if (!columnType) throw new Error(`Cannot add field '${path}' (dependency not found).`);
 
   const base = {
@@ -20,9 +22,7 @@ export function makeField(columnName: string, path: string, baseColumnType: Colu
     getValues: (records: RecordData[]) => records.map(r => getValue(r, path)),
   };
 
-  // A flattened nested enum becomes a top-level column: expose it as a plain Enum carrying its
-  // values, rather than the inline `{ type: 'Enum', enumValues }` shape used for nesting.
-  if (TypeGetter.isEnumColumnType(columnType)) {
+  if (TypeGetter.isEnumField(columnType)) {
     return { ...base, columnType: 'Enum' as ColumnType, enumValues: columnType.enumValues };
   }
 
