@@ -4,9 +4,9 @@ import type {
   HookBeforeUpdateContext,
   TConditionTree,
 } from '@forestadmin/datasource-customizer';
-import type { ColumnType } from '@forestadmin/datasource-toolkit';
+import type { ColumnType, RecordData } from '@forestadmin/datasource-toolkit';
 
-import { ConditionTreeFactory, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { ConditionTreeFactory, SchemaUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
 import hashRecord from 'object-hash';
 
 import { deepUpdateInPlace, getValue, unflattenPathsInPlace } from './helpers';
@@ -15,11 +15,18 @@ export function makeField(columnName: string, path: string, baseColumnType: Colu
   const columnType = getValue({ [columnName]: baseColumnType }, path) as ColumnType;
   if (!columnType) throw new Error(`Cannot add field '${path}' (dependency not found).`);
 
-  return {
-    columnType,
+  const base = {
     dependencies: [columnName],
-    getValues: records => records.map(r => getValue(r, path)),
+    getValues: (records: RecordData[]) => records.map(r => getValue(r, path)),
   };
+
+  // A flattened nested enum becomes a top-level column: expose it as a plain Enum carrying its
+  // values, rather than the inline `{ type: 'Enum', enumValues }` shape used for nesting.
+  if (TypeGetter.isEnumColumnType(columnType)) {
+    return { ...base, columnType: 'Enum' as ColumnType, enumValues: columnType.enumValues };
+  }
+
+  return { ...base, columnType };
 }
 
 export function makeWriteHandler(path: string) {

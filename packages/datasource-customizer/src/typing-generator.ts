@@ -8,7 +8,7 @@ import type {
   OneToOneSchema,
 } from '@forestadmin/datasource-toolkit';
 
-import { CollectionUtils } from '@forestadmin/datasource-toolkit';
+import { CollectionUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
 import { readFile, writeFile } from 'fs/promises';
 
 export default class TypingGenerator {
@@ -220,6 +220,10 @@ export default class TypingGenerator {
         columnType: field.columnType[0],
         enumValues: field.enumValues,
       })}>`;
+    }
+
+    if (TypeGetter.isEnumColumnType(field.columnType)) {
+      return this.getType({ columnType: 'Enum', enumValues: field.columnType.enumValues });
     }
 
     if (field.columnType === 'Enum') {

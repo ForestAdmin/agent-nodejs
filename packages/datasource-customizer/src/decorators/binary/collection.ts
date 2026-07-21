@@ -16,7 +16,7 @@ import type {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { CollectionDecorator, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { CollectionDecorator, SchemaUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
 import { filetypemime } from 'magic-bytes.js';
 
 /**
@@ -222,6 +222,9 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
         return Promise.all(newValues);
       }
 
+      // A nested enum is a scalar string, never binary: leave its value untouched.
+      if (TypeGetter.isEnumColumnType(columnType)) return value;
+
       if (typeof columnType !== 'string') {
         const entries = Object.entries(columnType).map(async ([key, type]) => [
           key,
@@ -263,6 +266,9 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
     if (Array.isArray(columnType)) {
       return [this.replaceColumnType(columnType[0])];
     }
+
+    // A nested enum holds no binary: keep it as-is.
+    if (TypeGetter.isEnumColumnType(columnType)) return columnType;
 
     const entries = Object.entries(columnType).map(([key, type]) => [
       key,

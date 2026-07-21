@@ -81,6 +81,9 @@ describe('SchemaGeneratorFields > Column', () => {
           arrayOfComposite: factories.columnSchema.build({
             columnType: [{ firstname: 'String', lastname: 'String' }],
           }),
+          compositeWithEnum: factories.columnSchema.build({
+            columnType: { name: 'String', kind: { type: 'Enum', enumValues: ['A', 'B'] } },
+          }),
         },
       }),
     });
@@ -123,6 +126,19 @@ describe('SchemaGeneratorFields > Column', () => {
           fields: [
             { field: 'firstname', type: 'String' },
             { field: 'lastname', type: 'String' },
+          ],
+        },
+      });
+    });
+
+    test('is should carry enum values for nested enum sub-fields', () => {
+      const schema = SchemaGeneratorFields.buildSchema(collection, 'compositeWithEnum');
+
+      expect(schema).toMatchObject({
+        type: {
+          fields: [
+            { field: 'name', type: 'String' },
+            { field: 'kind', type: 'Enum', enums: ['A', 'B'] },
           ],
         },
       });

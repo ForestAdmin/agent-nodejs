@@ -167,4 +167,19 @@ describe('TypeGetter', () => {
       expect(TypeGetter.isArrayOfPrimitiveType(type as ColumnType)).toEqual(false);
     });
   });
+
+  describe('isEnumColumnType', () => {
+    it('should return true for a nested enum column type', () => {
+      expect(TypeGetter.isEnumColumnType({ type: 'Enum', enumValues: ['a', 'b'] })).toEqual(true);
+    });
+
+    it.each([
+      ['a plain enum primitive', 'Enum'],
+      ['a sub-document', { type: 'String', name: 'String' }],
+      ['an array', ['Enum']],
+      ['a sub-document with a type field holding an object', { type: { nested: 'String' } }],
+    ])('should return false for %s', (_, type) => {
+      expect(TypeGetter.isEnumColumnType(type as ColumnType)).toEqual(false);
+    });
+  });
 });

@@ -11,7 +11,12 @@ import type {
 } from '@forestadmin/datasource-toolkit';
 import type { ForestServerColumnType, ForestServerField } from '@forestadmin/forestadmin-client';
 
-import { CollectionUtils, SchemaUtils, ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionUtils,
+  SchemaUtils,
+  TypeGetter,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 
 import ColumnSchemaValidator from './column-schema-validator';
 import FrontendFilterableUtils from './filterable';
@@ -90,11 +95,16 @@ export default class SchemaGeneratorFields {
       return [this.convertColumnType(type[0])];
     }
 
+    // Defensive: a nested enum is only expected inside a sub-document (handled below), never as a
+    // top-level column type. Keep it from falling into the sub-document branch just in case.
+    if (TypeGetter.isEnumColumnType(type)) return 'Enum';
+
     return {
-      fields: Object.entries(type).map(([key, subType]) => ({
-        field: key,
-        type: this.convertColumnType(subType),
-      })),
+      fields: Object.entries(type).map(([key, subType]) =>
+        TypeGetter.isEnumColumnType(subType)
+          ? { field: key, type: 'Enum', enums: subType.enumValues }
+          : { field: key, type: this.convertColumnType(subType) },
+      ),
     };
   }
 

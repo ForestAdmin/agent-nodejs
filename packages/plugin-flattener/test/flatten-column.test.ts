@@ -40,6 +40,12 @@ describe('flattenColumn', () => {
                 address: { city: 'String' },
               },
             }),
+            editor: factories.columnSchema.build({
+              columnType: {
+                name: 'String',
+                kind: { type: 'Enum', enumValues: ['writer', 'illustrator'] },
+              },
+            }),
             meta: factories.columnSchema.build({ columnType: 'Json' }),
           },
         }),
@@ -154,6 +160,22 @@ describe('flattenColumn', () => {
     ).rejects.toThrow(
       "'book.meta' cannot be flattened using flattenColumn please use flattenJsonColumn.",
     );
+  });
+
+  describe('when flattening a column holding a nested enum', () => {
+    it('should expose the nested enum as a plain Enum field carrying its values', async () => {
+      const decorated = await customizer
+        .customizeCollection('book', book => book.use(flattenColumn, { columnName: 'editor' }))
+        .getDataSource(logger);
+
+      const { fields } = decorated.getCollection('book').schema;
+
+      expect(fields['editor@@@name']).toMatchObject({ columnType: 'String' });
+      expect(fields['editor@@@kind']).toMatchObject({
+        columnType: 'Enum',
+        enumValues: ['writer', 'illustrator'],
+      });
+    });
   });
 
   describe('when flattening a single level', () => {

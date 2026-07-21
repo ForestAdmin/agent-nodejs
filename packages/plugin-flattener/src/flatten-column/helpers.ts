@@ -1,5 +1,7 @@
 import type { ColumnType, RecordData } from '@forestadmin/datasource-toolkit';
 
+import { TypeGetter } from '@forestadmin/datasource-toolkit';
+
 /**
  * Given the name of a column, its type and the maximum allowed depth, compute the list of paths
  * that can be flattened.
@@ -9,7 +11,8 @@ import type { ColumnType, RecordData } from '@forestadmin/datasource-toolkit';
  * // => ['address@@@streetName']
  */
 export function listPaths(columnName: string, type: ColumnType, level: number): string[] {
-  return level <= 0 || typeof type !== 'object'
+  // A nested enum is a leaf (its `enumValues`/`type` keys are not sub-fields to flatten).
+  return level <= 0 || typeof type !== 'object' || TypeGetter.isEnumColumnType(type)
     ? [columnName]
     : Object.keys(type)
         .map(key => listPaths(`${columnName}@@@${key}`, type[key], level - 1))
