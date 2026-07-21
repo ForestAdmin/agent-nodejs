@@ -1,3 +1,10 @@
+# @forestadmin/workflow-executor [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.19.0...@forestadmin/workflow-executor@1.20.0) (2026-07-21)
+
+
+### Features
+
+* **workflow-executor:** deterministic source record for Update Data steps (PRD-777) ([#1761](https://github.com/ForestAdmin/agent-nodejs/issues/1761)) ([2589956](https://github.com/ForestAdmin/agent-nodejs/commit/258995666b16806dc9a1372bf020ec0e85da5e4a))
+
 # @forestadmin/workflow-executor [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.18.0...@forestadmin/workflow-executor@1.19.0) (2026-07-21)
 
 
