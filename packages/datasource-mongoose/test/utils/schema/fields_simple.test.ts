@@ -132,7 +132,7 @@ describe('SchemaFieldsGenerator', () => {
           const fieldsSchema = FieldsGenerator.buildFieldsSchema(buildModel(schema));
 
           expect(fieldsSchema).toMatchObject({
-            nested: { columnType: { subEnum: { type: 'Enum', enumValues: enumValues } } },
+            nested: { columnType: { subEnum: { type: 'Enum', enumValues } } },
           });
         });
 
