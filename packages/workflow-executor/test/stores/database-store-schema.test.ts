@@ -77,6 +77,37 @@ describe('DatabaseStore — schema namespacing', () => {
       );
     });
 
+    it('probes pg_namespace for the schema before creating it', async () => {
+      const sequelize = makeSequelize('postgres');
+
+      await new DatabaseStore({ sequelize, schema: 'analytics' }).init();
+
+      expect(sequelize.query).toHaveBeenCalledWith(
+        'SELECT 1 FROM pg_namespace WHERE nspname = $1',
+        expect.objectContaining({ bind: ['analytics'], transaction: expect.anything() }),
+      );
+    });
+
+    it('skips CREATE SCHEMA when the schema already exists', async () => {
+      const sequelize = makeSequelize('postgres');
+      (sequelize.query as jest.Mock).mockImplementation((sql: string) =>
+        sql.includes('pg_namespace')
+          ? Promise.resolve([[{ '?column?': 1 }], {}])
+          : Promise.resolve([[], {}]),
+      );
+
+      await new DatabaseStore({ sequelize, schema: 'analytics' }).init();
+
+      expect(sequelize.query).toHaveBeenCalledWith(
+        'SELECT 1 FROM pg_namespace WHERE nspname = $1',
+        expect.objectContaining({ bind: ['analytics'] }),
+      );
+      expect(sequelize.query).not.toHaveBeenCalledWith(
+        expect.stringContaining('CREATE SCHEMA'),
+        expect.anything(),
+      );
+    });
+
     it('points the umzug migration registry (SequelizeMeta) at the "forest" schema', async () => {
       const sequelize = makeSequelize('postgres');
 
@@ -169,10 +200,40 @@ describe('DatabaseStore — schema namespacing', () => {
         expect.not.objectContaining({ schema: expect.anything() }),
       );
     });
+
+    it('accepts an invalid schema without erroring (schemas are ignored)', async () => {
+      const sequelize = makeSequelize('sqlite');
+
+      await expect(
+        new DatabaseStore({ sequelize, schema: 'evil"; --' }).init(),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('schema validation (programmatic API)', () => {
+    it.each(['evil"; drop schema x; --', 'my-schema', 'sch.ema', '1analytics'])(
+      'rejects an invalid schema (%p) before it reaches raw DDL',
+      async value => {
+        const sequelize = makeSequelize('postgres');
+
+        await expect(new DatabaseStore({ sequelize, schema: value }).init()).rejects.toThrow(
+          /valid Postgres identifier/,
+        );
+      },
+    );
+
+    it('rejects a schema longer than 63 characters', async () => {
+      const sequelize = makeSequelize('postgres');
+
+      await expect(new DatabaseStore({ sequelize, schema: 'a'.repeat(64) }).init()).rejects.toThrow(
+        /valid Postgres identifier/,
+      );
+    });
   });
 
   describe('migration advisory lock', () => {
-    // Records the order of locked operations into `calls`: 'lock', 'schema', 'migrate'.
+    // Records the order of locked operations into `calls`: 'guard', 'lock', 'probe', 'schema',
+    // 'migrate'.
     function setup(dialect: 'postgres' | 'sqlite', migrate?: () => Promise<void>) {
       const calls: string[] = [];
 
@@ -190,6 +251,7 @@ describe('DatabaseStore — schema namespacing', () => {
       const query = jest.fn((sql: string) => {
         if (sql.includes('idle_in_transaction_session_timeout')) calls.push('guard');
         else if (sql.includes('pg_advisory_xact_lock')) calls.push('lock');
+        else if (sql.includes('pg_namespace')) calls.push('probe');
         else if (sql.includes('CREATE SCHEMA')) calls.push('schema');
 
         return Promise.resolve([[], {}]);
@@ -211,7 +273,7 @@ describe('DatabaseStore — schema namespacing', () => {
 
       await new DatabaseStore({ sequelize }).init();
 
-      expect(calls).toEqual(['guard', 'lock', 'schema', 'guard', 'lock', 'migrate']);
+      expect(calls).toEqual(['guard', 'lock', 'probe', 'schema', 'guard', 'lock', 'migrate']);
       expect(sequelize.transaction).toHaveBeenCalledTimes(2);
       expect(query).toHaveBeenCalledWith(
         'SET LOCAL idle_in_transaction_session_timeout = 0',
