@@ -24,7 +24,11 @@ import {
   DEFAULT_STOP_TIMEOUT_S,
 } from './defaults';
 import { ConfigurationError, extractErrorMessage } from './errors';
-import { DEFAULT_SCHEMA } from './stores/schema-migrations';
+import {
+  DEFAULT_SCHEMA,
+  MAX_IDENTIFIER_LENGTH,
+  isValidPostgresIdentifier,
+} from './stores/schema-migrations';
 
 const POSITIVE_INT = z.coerce.number().int().positive();
 const LOGGER_LEVEL_SCHEMA = z.enum(['Debug', 'Info', 'Warn', 'Error']);
@@ -59,17 +63,13 @@ function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
 const TRUTHY = ['true', '1', 'yes', 'on'];
 const FALSY = ['false', '0', 'no', 'off'];
 
-// The schema flows unescaped into raw DDL (`CREATE SCHEMA "${schema}"`), so reject anything that
-// isn't a plain Postgres identifier at the boundary — a clear boot error beats a cryptic SQL one.
-// Postgres truncates identifiers past 63 bytes, which would silently target a different schema.
-const POSTGRES_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_$]*$/;
-const MAX_IDENTIFIER_LENGTH = 63;
-
+// Reject a bad DATABASE_SCHEMA at the boundary so boot fails with a clear message instead of a
+// cryptic SQL error later (see `isValidPostgresIdentifier` for why the value is constrained).
 function parseSchemaEnv(raw: string | undefined): string | undefined {
   const schema = raw?.trim();
   if (!schema) return undefined;
 
-  if (schema.length > MAX_IDENTIFIER_LENGTH || !POSTGRES_IDENTIFIER.test(schema)) {
+  if (!isValidPostgresIdentifier(schema)) {
     throw new ConfigurationError(
       `DATABASE_SCHEMA must be a valid Postgres identifier ` +
         `(letters, digits, _ or $; starting with a letter or _; max ${MAX_IDENTIFIER_LENGTH} chars); got "${raw}"`,

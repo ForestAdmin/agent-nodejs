@@ -224,6 +224,13 @@ describe('readEnvConfig', () => {
     );
   });
 
+  it('accepts a DATABASE_SCHEMA of exactly 63 characters', () => {
+    const schema = 'a'.repeat(63);
+    expect(readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: schema }, args).databaseSchema).toBe(
+      schema,
+    );
+  });
+
   it('parses numeric env vars as numbers', () => {
     const config = readEnvConfig(
       {
