@@ -36,6 +36,12 @@ docker run -d --name "$NAME" \
 # or published port needed). A missing module or boot crash never reaches 200.
 i=0
 until docker exec "$NAME" node -e "require('http').get('http://localhost:$PORT/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))" 2>/dev/null; do
+  # A boot crash exits the container: report that immediately instead of waiting
+  # the full timeout and mislabelling an instant crash as a slow boot.
+  if [ "$(docker inspect -f '{{.State.Running}}' "$NAME" 2>/dev/null)" != "true" ]; then
+    echo "::error::container exited during boot — see logs below"
+    exit 1
+  fi
   i=$((i + 1))
   if [ "$i" -ge 30 ]; then
     echo "::error::mcp-server did not answer /health within 30s — boot/module failure"
