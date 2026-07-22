@@ -31,7 +31,12 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
-// No default key by design: a hardcoded one would ship publicly in this open-source package.
+// At-rest encryption for secrets the executor stores. The HKDF key is injected at build time (see
+// cli-core / embedded options) and used lazily — an executor that stores no such secrets boots
+// without it (the secret may be undefined) — and fails closed: a missing key throws rather than
+// persisting or returning an unprotected value. There is deliberately no default key — a hardcoded
+// one would be public in this open-source package and defeat the at-rest encryption (a DB dump
+// would be decryptable with the shipped key).
 export default class CredentialEncryption {
   constructor(private readonly secret: string | undefined) {}
 

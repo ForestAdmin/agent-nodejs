@@ -90,6 +90,11 @@ export type WorkflowExecutorEmbedOptions = {
   pollingIntervalS?: number;
   /** Per-step execution timeout in seconds. */
   stepTimeoutS?: number;
+  /**
+   * HKDF secret used to encrypt OAuth-protected MCP connector credentials at rest. Required only
+   * if you use such connectors; omit it if you don't. Passing it here avoids relying on a global
+   * `process.env` read inside the executor.
+   */
   encryptionKey?: string;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;

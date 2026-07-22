@@ -59,6 +59,9 @@ export interface ExecutorOptions {
   schemaCacheTtlS?: number;
   // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
   forceAiError?: boolean;
+  // HKDF secret used to encrypt OAuth-protected MCP connector credentials at rest. Parsed from
+  // FOREST_EXECUTOR_ENCRYPTION_KEY at the boundary (cli-core / embedded options), never read from
+  // process.env here. Optional: an executor that stores no such credentials boots without it.
   executorEncryptionKey?: string;
   // When true (default), the executor installs its own SIGTERM/SIGINT handlers that drain and
   // call process.exit() — correct for the standalone CLI which owns the process. Set false when
