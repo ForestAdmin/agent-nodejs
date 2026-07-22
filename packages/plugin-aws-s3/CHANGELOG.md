@@ -1,3 +1,14 @@
+## @forestadmin/plugin-aws-s3 [1.5.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.5.12...@forestadmin/plugin-aws-s3@1.5.13) (2026-07-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.54.0
+* **@forestadmin/datasource-customizer:** upgraded to 1.70.0
+
 ## @forestadmin/plugin-aws-s3 [1.5.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.5.12...@forestadmin/plugin-aws-s3@1.5.13) (2026-04-15)
 
 
