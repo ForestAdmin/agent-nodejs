@@ -1,3 +1,13 @@
+## @forestadmin/ai-proxy [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.0...@forestadmin/ai-proxy@1.12.1) (2026-07-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/datasource-toolkit:** upgraded to 1.54.0
+
 # @forestadmin/ai-proxy [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.11.3...@forestadmin/ai-proxy@1.12.0) (2026-07-07)
 
 
