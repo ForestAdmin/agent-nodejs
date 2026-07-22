@@ -256,6 +256,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
     schemaCacheTtlS: parsePositiveIntEnv('SCHEMA_CACHE_TTL_S', env.SCHEMA_CACHE_TTL_S),
     loggerLevel: parseLoggerLevelEnv(env.LOG_LEVEL) ?? DEFAULT_LOGGER_LEVEL,
+    executorEncryptionKey: env.FOREST_EXECUTOR_ENCRYPTION_KEY,
     ...(aiConfigurations && { aiConfigurations }),
     ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
   };
@@ -297,6 +298,7 @@ Database connection (use DATABASE_URL, or build it from parts when it is unset):
   DATABASE_PORT         Database port (default: ${DEFAULT_DATABASE_PORT})
 
 Optional environment variables:
+  FOREST_EXECUTOR_ENCRYPTION_KEY  HKDF secret encrypting OAuth-protected MCP connector credentials at rest (required only if you use them)
   DATABASE_SSL          Connect to the database over TLS (default: true; set "false" for a local DB without TLS)
   DATABASE_SCHEMA       Postgres schema for the executor's tables (default: forest)
   HTTP_PORT              Default: ${DEFAULT_HTTP_PORT}

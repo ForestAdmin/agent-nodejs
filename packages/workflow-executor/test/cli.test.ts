@@ -166,6 +166,19 @@ describe('readEnvConfig', () => {
     );
   });
 
+  it('parses FOREST_EXECUTOR_ENCRYPTION_KEY into the executor options', () => {
+    const config = readEnvConfig(
+      { ...baseEnv, FOREST_EXECUTOR_ENCRYPTION_KEY: 'a'.repeat(64) },
+      args,
+    );
+
+    expect(config.executorOptions.executorEncryptionKey).toBe('a'.repeat(64));
+  });
+
+  it('leaves the encryption key undefined when FOREST_EXECUTOR_ENCRYPTION_KEY is unset', () => {
+    expect(readEnvConfig(baseEnv, args).executorOptions.executorEncryptionKey).toBeUndefined();
+  });
+
   it.each(['true', 'TRUE', 'True', '1', 'yes', 'on'])(
     'parses DATABASE_SSL=%s as enabled',
     value => {

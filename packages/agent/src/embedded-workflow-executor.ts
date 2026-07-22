@@ -100,6 +100,7 @@ export default class EmbeddedWorkflowExecutor {
       httpPort: config.port,
       pollingIntervalS: config.pollingIntervalS,
       stepTimeoutS: config.stepTimeoutS,
+      executorEncryptionKey: config.encryptionKey,
       logger: (level, message, context) => this.options.logger(level, formatLog(message, context)),
       // Embedded: the host process owns SIGTERM/SIGINT; the executor must not exit it. agent.stop()
       // drains the executor explicitly.

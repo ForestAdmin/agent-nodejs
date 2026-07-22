@@ -551,20 +551,11 @@ describe('WorkflowExecutor lifecycle', () => {
   });
 });
 
-describe('FOREST_EXECUTOR_ENCRYPTION_KEY startup warning', () => {
-  const ENV_KEY = 'FOREST_EXECUTOR_ENCRYPTION_KEY';
-  const original = process.env[ENV_KEY];
-
-  afterEach(() => {
-    if (original === undefined) delete process.env[ENV_KEY];
-    else process.env[ENV_KEY] = original;
-  });
-
+describe('encryption key startup warning', () => {
   it('warns at startup when the encryption key is unset (no default key — fail closed)', () => {
-    delete process.env[ENV_KEY];
     const logger = jest.fn();
 
-    buildInMemoryExecutor({ ...BASE_OPTIONS, logger });
+    buildInMemoryExecutor({ ...BASE_OPTIONS, executorEncryptionKey: undefined, logger });
 
     expect(logger).toHaveBeenCalledWith(
       'Warn',
@@ -573,10 +564,9 @@ describe('FOREST_EXECUTOR_ENCRYPTION_KEY startup warning', () => {
   });
 
   it('does not warn when the encryption key is set', () => {
-    process.env[ENV_KEY] = 'a'.repeat(64);
     const logger = jest.fn();
 
-    buildInMemoryExecutor({ ...BASE_OPTIONS, logger });
+    buildInMemoryExecutor({ ...BASE_OPTIONS, executorEncryptionKey: 'a'.repeat(64), logger });
 
     expect(logger).not.toHaveBeenCalledWith(
       'Warn',
