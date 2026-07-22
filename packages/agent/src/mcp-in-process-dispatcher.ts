@@ -8,11 +8,10 @@ import type { RequestListener } from 'http';
 
 import inject, { type InjectOptions, type InjectPayload } from 'light-my-request';
 
-// Single-sourced from mcp-server (the dispatcher contract) — no re-declaration to drift.
 export type InProcessRequest = InProcessDispatchRequest;
 export type InProcessResponse = InProcessDispatchResponse;
 
-// Matches superagent's HTTP path, which times out after 10s (HttpRequester.query).
+// Matches the HTTP path's 10s bound (HttpRequester.query).
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 function toStringQuery(query: Record<string, unknown>): Record<string, string> {
@@ -28,7 +27,6 @@ function toStringQuery(query: Record<string, unknown>): Record<string, string> {
 /**
  * Dispatches an agent-client request into the agent's own Koa stack in-memory (no socket), so a
  * mounted MCP server's tool calls run through the real auth/permission/logging middleware.
- * `setHandler` is refreshed on every (re)mount, so a captured reference never goes stale.
  */
 export default class InProcessDispatcher implements InProcessAgentDispatcher {
   private handler: RequestListener | null = null;

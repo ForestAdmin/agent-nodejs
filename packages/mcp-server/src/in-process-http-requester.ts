@@ -3,22 +3,19 @@ import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
 import { HttpRequester } from '@forestadmin/agent-client';
 
 /**
- * HttpRequester that reaches the agent in-process (via the dispatcher) instead of over the network.
- * Reuses agent-client's shared parse helpers so the deserialized results and AgentHttpError shape
- * are identical to the HTTP path — keeping approval-gate detection and error handling unchanged.
+ * HttpRequester that reaches the agent in-process (via the dispatcher) instead of over the network,
+ * reusing HttpRequester's parse helpers so results and error shape stay identical to the HTTP path.
  */
 export default class InProcessHttpRequester extends HttpRequester {
   constructor(
     private readonly bearerToken: string,
     private readonly dispatcher: InProcessAgentDispatcher,
   ) {
-    // Sentinel base url that never reaches the network: query() dispatches in-process and stream()
-    // throws below, so nothing ever resolves this host.
+    // Sentinel host that never reaches the network: query() dispatches in-process, stream() throws.
     super(bearerToken, { url: 'http://in-process.agent' });
   }
 
-  // CSV export is not supported in-process; throw eagerly rather than let the inherited stream()
-  // fire a doomed request at the sentinel host (a ~10s hang). No MCP tool streams today.
+  // CSV export is not supported in-process; throw rather than fire a doomed request at the sentinel.
   override async stream(): Promise<void> {
     throw new Error('CSV streaming is not supported over the in-process MCP transport');
   }

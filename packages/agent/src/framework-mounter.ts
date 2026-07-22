@@ -50,8 +50,7 @@ export default class FrameworkMounter {
 
   /**
    * Dispatcher that runs agent-client requests against the agent's own `/forest` stack in-memory.
-   * Its handler is rebuilt on every (re)mount; the `/forest` prefix is fixed (not the external
-   * mount prefix) because agent-client hardcodes `/forest/...` paths.
+   * The handler is rebuilt on every (re)mount so a captured reference never goes stale.
    */
   protected getInProcessDispatcher(): InProcessDispatcher {
     if (!this.inProcessHookRegistered) {
