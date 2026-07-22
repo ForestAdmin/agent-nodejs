@@ -28,8 +28,11 @@ export {
   ActivityLogType,
   CreateActivityLogParams,
   UpdateActivityLogStatusParams,
+  McpWorkflow,
+  ListMcpWorkflowsParams,
   // Service interfaces for MCP
   ActivityLogsServiceInterface,
+  WorkflowsServiceInterface,
   SchemaServiceInterface,
 } from './types';
 export { IpWhitelistConfiguration } from './ip-whitelist/types';
@@ -94,6 +97,7 @@ export { default as ServerUtils } from './utils/server';
 // export is necessary for the agent-generator package
 export { default as SchemaService, SchemaServiceOptions } from './schema';
 export { default as ActivityLogsService, ActivityLogsOptions } from './activity-logs';
+export { default as WorkflowsService, WorkflowsServiceOptions } from './workflows';
 
 export * from './auth/errors';
 export * from './utils/errors';

@@ -206,4 +206,43 @@ describe('ForestHttpApi', () => {
       });
     });
   });
+
+  describe('listMcpEnabledWorkflows', () => {
+    it('should GET the workflows endpoint with the rendering id header', async () => {
+      const workflows = [{ workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' }];
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue(workflows);
+
+      const result = await new ForestHttpApi().listMcpEnabledWorkflows(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+      );
+
+      expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith({
+        forestServerUrl: options.forestServerUrl,
+        method: 'get',
+        path: '/api/workflow-orchestrator/workflows',
+        bearerToken: 'bearer-token',
+        headers: { 'forest-rendering-id': '12345' },
+      });
+      expect(result).toEqual(workflows);
+    });
+
+    it('should append the collectionName filter as a url-encoded query param', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue([]);
+
+      await new ForestHttpApi().listMcpEnabledWorkflows(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        'sales orders',
+      );
+
+      expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'get',
+          path: '/api/workflow-orchestrator/workflows?collectionName=sales%20orders',
+          headers: { 'forest-rendering-id': '12345' },
+        }),
+      );
+    });
+  });
 });

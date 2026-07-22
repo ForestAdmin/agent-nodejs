@@ -268,6 +268,28 @@ export interface ActivityLogsServiceInterface {
 }
 
 /**
+ * An MCP-enabled workflow, as returned by the Forest server's workflow listing endpoint.
+ */
+export interface McpWorkflow {
+  workflowId: string;
+  name: string;
+  collectionName: string | null;
+}
+
+export interface ListMcpWorkflowsParams {
+  forestServerToken: string;
+  renderingId: string;
+  collectionName?: string;
+}
+
+/**
+ * Service interface for workflow operations (MCP-related).
+ */
+export interface WorkflowsServiceInterface {
+  listMcpEnabledWorkflows: (params: ListMcpWorkflowsParams) => Promise<McpWorkflow[]>;
+}
+
+/**
  * Service interface for schema operations (extended for MCP).
  */
 export interface SchemaServiceInterface {
@@ -305,6 +327,13 @@ export interface ForestAdminServerInterface {
     id: string,
     body: object,
   ) => Promise<void>;
+
+  // Workflow operations
+  listMcpEnabledWorkflows?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    collectionName?: string,
+  ) => Promise<McpWorkflow[]>;
 }
 
 export type ActivityLogHttpOptions = {
