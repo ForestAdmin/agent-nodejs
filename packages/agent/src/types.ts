@@ -62,7 +62,7 @@ export type AgentOptions = {
  * Options for an embedded workflow executor, started in the same process as the agent
  * through `agent.addWorkflowExecutor()`.
  */
-export type WorkflowExecutorEmbedOptions = WorkflowExecutorTuningOptions & {
+export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, 'loggerLevel'> & {
   /**
    * Use an in-memory run store instead of a database. No database is required, but runs are lost
    * when the process restarts, so it is not meant for production. Mutually exclusive with

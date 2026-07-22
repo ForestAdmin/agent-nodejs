@@ -139,7 +139,6 @@ describe('Agent.addWorkflowExecutor', () => {
         stopTimeoutS: 78,
         maxChainDepth: 9,
         schemaCacheTtlS: 100,
-        loggerLevel: 'Debug',
       });
 
       await agent.start();
@@ -152,7 +151,6 @@ describe('Agent.addWorkflowExecutor', () => {
           stopTimeoutS: 78,
           maxChainDepth: 9,
           schemaCacheTtlS: 100,
-          loggerLevel: 'Debug',
         }),
       );
     });
@@ -224,7 +222,6 @@ describe('Agent.addWorkflowExecutor', () => {
       expect(forwarded.stopTimeoutS).toBeUndefined();
       expect(forwarded.maxChainDepth).toBeUndefined();
       expect(forwarded.schemaCacheTtlS).toBeUndefined();
-      expect(forwarded.loggerLevel).toBeUndefined();
       expect(forwarded.executorEncryptionKey).toBeUndefined();
     });
 
@@ -241,7 +238,6 @@ describe('Agent.addWorkflowExecutor', () => {
         stopTimeoutS: 78,
         maxChainDepth: 9,
         schemaCacheTtlS: 100,
-        loggerLevel: 'Debug',
         ai: { provider: 'anthropic', model: 'claude-sonnet-4-6', apiKey: 'sk-test' },
         encryptionKey: 'a'.repeat(64),
       });
@@ -260,7 +256,6 @@ describe('Agent.addWorkflowExecutor', () => {
         stopTimeoutS: 78,
         maxChainDepth: 9,
         schemaCacheTtlS: 100,
-        loggerLevel: 'Debug',
         executorEncryptionKey: 'a'.repeat(64),
         aiConfigurations: [
           { name: 'default', provider: 'anthropic', model: 'claude-sonnet-4-6', apiKey: 'sk-test' },
