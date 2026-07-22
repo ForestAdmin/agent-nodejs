@@ -266,25 +266,44 @@ describe('Agent.addWorkflowExecutor', () => {
       });
     });
 
-    test('forwards tuning knobs and encryptionKey to the in-memory builder with mapped keys', async () => {
-      const agent = new Agent(buildOptions());
+    test('forwards exactly the mapped commonOptions shape to the in-memory builder', async () => {
+      const options = buildOptions();
+      const agent = new Agent(options);
       agent.addWorkflowExecutor({
-        agentUrl: 'http://my-agent',
         inMemory: true,
+        agentUrl: 'http://my-agent/prefix',
+        port: 4400,
+        pollingIntervalS: 12,
+        stepTimeoutS: 34,
+        aiInvokeTimeoutS: 56,
+        stopTimeoutS: 78,
         maxChainDepth: 9,
         schemaCacheTtlS: 100,
+        ai: { provider: 'anthropic', model: 'claude-sonnet-4-6', apiKey: 'sk-test' },
         encryptionKey: 'a'.repeat(64),
       });
 
       await agent.start();
 
-      expect(mockBuildInMemoryExecutor).toHaveBeenCalledWith(
-        expect.objectContaining({
-          maxChainDepth: 9,
-          schemaCacheTtlS: 100,
-          executorEncryptionKey: 'a'.repeat(64),
-        }),
-      );
+      expect(mockBuildInMemoryExecutor.mock.calls[0][0]).toEqual({
+        envSecret: options.envSecret,
+        authSecret: options.authSecret,
+        forestServerUrl: options.forestServerUrl,
+        agentUrl: 'http://my-agent/prefix',
+        httpPort: 4400,
+        pollingIntervalS: 12,
+        stepTimeoutS: 34,
+        aiInvokeTimeoutS: 56,
+        stopTimeoutS: 78,
+        maxChainDepth: 9,
+        schemaCacheTtlS: 100,
+        executorEncryptionKey: 'a'.repeat(64),
+        aiConfigurations: [
+          { name: 'default', provider: 'anthropic', model: 'claude-sonnet-4-6', apiKey: 'sk-test' },
+        ],
+        manageProcessSignals: false,
+        logger: expect.any(Function),
+      });
     });
 
     test('fails the agent start when the embedded executor fails to start', async () => {
