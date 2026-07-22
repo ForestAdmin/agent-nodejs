@@ -1,3 +1,19 @@
+# @forestadmin/forestadmin-client [1.41.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.40.5...@forestadmin/forestadmin-client@1.41.0) (2026-07-22)
+
+
+### Features
+
+* **datasource mongoose:** handle nested enums ([#1765](https://github.com/ForestAdmin/agent-nodejs/issues/1765)) ([7114afd](https://github.com/ForestAdmin/agent-nodejs/commit/7114afda4d448ed5fac0e27fe300f1407f4b8c2e))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.12.1
+* **@forestadmin/datasource-toolkit:** upgraded to 1.54.0
+
 ## @forestadmin/forestadmin-client [1.40.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.40.4...@forestadmin/forestadmin-client@1.40.5) (2026-07-16)
 
 
