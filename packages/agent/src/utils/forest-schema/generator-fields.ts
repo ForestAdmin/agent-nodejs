@@ -98,7 +98,7 @@ export default class SchemaGeneratorFields {
     return {
       fields: Object.entries(type).map(([key, subType]) =>
         TypeGetter.isEnumField(subType)
-          ? { field: key, type: 'Enum', enums: subType.enumValues }
+          ? { field: key, type: 'Enum', enums: [...subType.enumValues].sort() }
           : { field: key, type: this.convertColumnType(subType) },
       ),
     };
