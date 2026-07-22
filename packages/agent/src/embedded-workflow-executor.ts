@@ -62,6 +62,15 @@ export default class EmbeddedWorkflowExecutor {
       );
     }
 
+    const { ai } = embedOptions;
+
+    if (ai && (!ai.provider || !ai.model || !ai.apiKey)) {
+      throw new Error(
+        'addWorkflowExecutor: `ai` requires `provider`, `model` and `apiKey` together. ' +
+          'Omit `ai` entirely to use Forest’s AI server.',
+      );
+    }
+
     const port = embedOptions.port ?? DEFAULT_EMBEDDED_EXECUTOR_PORT;
     this.config = { ...embedOptions, port };
 

@@ -152,7 +152,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiModelPort,
     activityLogPortFactory,
     logger,
-    pollingIntervalS: options.pollingIntervalS ?? DEFAULT_POLLING_INTERVAL_S,
+    pollingIntervalS: positiveOrDefault(options.pollingIntervalS, DEFAULT_POLLING_INTERVAL_S),
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutS: options.stopTimeoutS,

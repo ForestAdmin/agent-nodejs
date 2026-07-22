@@ -99,6 +99,17 @@ describe('Agent.addWorkflowExecutor', () => {
         agent.addWorkflowExecutor({ inMemory: true, database: { uri: 'postgres://localhost/db' } }),
       ).toThrow('`inMemory` and `database` are mutually exclusive');
     });
+
+    test('throws when the ai option is partial (bypassing the type)', () => {
+      const agent = new Agent(buildOptions());
+
+      expect(() =>
+        agent.addWorkflowExecutor({
+          inMemory: true,
+          ai: { provider: 'anthropic' },
+        } as Parameters<typeof agent.addWorkflowExecutor>[0]),
+      ).toThrow('`ai` requires `provider`, `model` and `apiKey` together');
+    });
   });
 
   describe('boot on start()', () => {
