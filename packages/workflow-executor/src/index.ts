@@ -145,6 +145,7 @@ export { runCli } from './cli-core';
 export { default as PrettyLogger } from './adapters/pretty-logger';
 export type {
   WorkflowExecutor,
+  WorkflowExecutorTuningOptions,
   ExecutorOptions,
   DatabaseExecutorOptions,
 } from './build-workflow-executor';

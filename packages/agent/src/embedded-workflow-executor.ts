@@ -79,8 +79,18 @@ export default class EmbeddedWorkflowExecutor {
     const { config } = this;
     if (!config) return;
 
+    const {
+      inMemory,
+      database,
+      agentUrl: configAgentUrl,
+      port,
+      ai,
+      encryptionKey,
+      ...tuning
+    } = config;
+
     const agentUrl =
-      config.agentUrl ?? this.deriveAgentUrl(standaloneServerHost, standaloneServerPort);
+      configAgentUrl ?? this.deriveAgentUrl(standaloneServerHost, standaloneServerPort);
 
     if (!agentUrl) {
       throw new Error(
@@ -93,27 +103,21 @@ export default class EmbeddedWorkflowExecutor {
     const { buildDatabaseExecutor, buildInMemoryExecutor } = await this.importPackage();
 
     const commonOptions = {
+      ...tuning,
       envSecret: this.options.envSecret,
       authSecret: this.options.authSecret,
       forestServerUrl: this.options.forestServerUrl,
       agentUrl,
-      httpPort: config.port,
-      pollingIntervalS: config.pollingIntervalS,
-      stepTimeoutS: config.stepTimeoutS,
-      aiInvokeTimeoutS: config.aiInvokeTimeoutS,
-      stopTimeoutS: config.stopTimeoutS,
-      maxChainDepth: config.maxChainDepth,
-      schemaCacheTtlS: config.schemaCacheTtlS,
-      loggerLevel: config.loggerLevel,
-      executorEncryptionKey: config.encryptionKey,
-      ...(config.ai && { aiConfigurations: [{ name: 'default', ...config.ai }] }),
+      httpPort: port,
+      executorEncryptionKey: encryptionKey,
+      ...(ai && { aiConfigurations: [{ name: 'default', ...ai }] }),
       logger: (level, message, context) => this.options.logger(level, formatLog(message, context)),
       // Embedded: the host process owns SIGTERM/SIGINT; the executor must not exit it. agent.stop()
       // drains the executor explicitly.
       manageProcessSignals: false,
     };
 
-    if (config.inMemory) {
+    if (inMemory) {
       this.options.logger(
         'Warn',
         formatLog(
@@ -123,8 +127,6 @@ export default class EmbeddedWorkflowExecutor {
       );
       this.executor = buildInMemoryExecutor(commonOptions);
     } else {
-      const { database } = config;
-
       if (!database) {
         throw new Error(
           'Embedded workflow executor requires a database to persist run state. Pass `database` ' +
@@ -139,10 +141,7 @@ export default class EmbeddedWorkflowExecutor {
     }
 
     await this.executor.start();
-    this.options.logger(
-      'Info',
-      `Embedded workflow executor started (loopback port ${config.port})`,
-    );
+    this.options.logger('Info', `Embedded workflow executor started (loopback port ${port})`);
   }
 
   async stop(): Promise<void> {

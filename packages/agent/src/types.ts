@@ -1,5 +1,6 @@
 import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import type { WorkflowExecutorTuningOptions } from '@forestadmin/workflow-executor';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 /** Options to configure behavior of an agent's forestadmin driver */
@@ -61,7 +62,7 @@ export type AgentOptions = {
  * Options for an embedded workflow executor, started in the same process as the agent
  * through `agent.addWorkflowExecutor()`.
  */
-export type WorkflowExecutorEmbedOptions = {
+export type WorkflowExecutorEmbedOptions = WorkflowExecutorTuningOptions & {
   /**
    * Use an in-memory run store instead of a database. No database is required, but runs are lost
    * when the process restarts, so it is not meant for production. Mutually exclusive with
@@ -86,20 +87,6 @@ export type WorkflowExecutorEmbedOptions = {
    * Defaults to `3400`.
    */
   port?: number;
-  /** Interval in seconds at which the executor polls the orchestrator for pending steps. */
-  pollingIntervalS?: number;
-  /** Per-step execution timeout in seconds. */
-  stepTimeoutS?: number;
-  /** Max duration in seconds of a single AI provider invocation. */
-  aiInvokeTimeoutS?: number;
-  /** Timeout in seconds for draining in-flight steps when the executor stops. */
-  stopTimeoutS?: number;
-  /** Max steps auto-chained per run before yielding to the next poll. `0` disables chaining. */
-  maxChainDepth?: number;
-  /** Collection schema cache TTL in seconds. Lower it to pick up orchestrator schema changes sooner. */
-  schemaCacheTtlS?: number;
-  /** Minimum level of the executor's logs. Defaults to `Info`. */
-  loggerLevel?: LoggerLevel;
   /**
    * Bring your own AI provider instead of Forest's AI server. All three fields are required
    * together; omit `ai` entirely to keep using Forest's server.
