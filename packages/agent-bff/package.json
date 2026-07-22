@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@forestadmin/agent-client": "1.11.0",
-    "@forestadmin/forestadmin-client": "1.40.5",
+    "@forestadmin/forestadmin-client": "1.41.0",
     "@koa/bodyparser": "^6.1.0",
     "jsonwebtoken": "^9.0.3",
     "koa": "^3.0.1",

@@ -27,9 +27,9 @@
   },
   "dependencies": {
     "@forestadmin/agent-client": "1.11.0",
-    "@forestadmin/datasource-customizer": "1.69.3",
-    "@forestadmin/datasource-toolkit": "1.53.1",
-    "@forestadmin/forestadmin-client": "1.40.5",
+    "@forestadmin/datasource-customizer": "1.70.0",
+    "@forestadmin/datasource-toolkit": "1.54.0",
+    "@forestadmin/forestadmin-client": "1.41.0",
     "jsonapi-serializer": "^3.6.9",
     "jsonwebtoken": "^9.0.3",
     "superagent": "^10.3.0"
@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@forestadmin/agent": "1.87.1",
-    "@forestadmin/datasource-sql": "1.17.10",
+    "@forestadmin/datasource-sql": "1.17.11",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/superagent": "^8.1.9",
     "sequelize": "^6.37.8"

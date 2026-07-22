@@ -14,9 +14,9 @@
   "dependencies": {
     "@fast-csv/format": "^4.3.5",
     "@forestadmin/agent-toolkit": "1.2.0",
-    "@forestadmin/datasource-customizer": "1.69.3",
-    "@forestadmin/datasource-toolkit": "1.53.1",
-    "@forestadmin/forestadmin-client": "1.40.5",
+    "@forestadmin/datasource-customizer": "1.70.0",
+    "@forestadmin/datasource-toolkit": "1.54.0",
+    "@forestadmin/forestadmin-client": "1.41.0",
     "@forestadmin/mcp-server": "1.18.0",
     "@koa/bodyparser": "^6.0.0",
     "@koa/cors": "^5.0.0",
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@fastify/express": "^1.1.0",
-    "@forestadmin/datasource-sql": "1.17.10",
+    "@forestadmin/datasource-sql": "1.17.11",
     "@forestadmin/workflow-executor": "1.20.3",
     "@nestjs/common": "^11.1.24",
     "@nestjs/core": "^11.1.24",

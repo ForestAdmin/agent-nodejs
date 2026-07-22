@@ -30,8 +30,8 @@
   },
   "dependencies": {
     "@forestadmin/agent-client": "1.11.0",
-    "@forestadmin/ai-proxy": "1.12.0",
-    "@forestadmin/forestadmin-client": "1.40.5",
+    "@forestadmin/ai-proxy": "1.12.1",
+    "@forestadmin/forestadmin-client": "1.41.0",
     "@koa/bodyparser": "^6.1.0",
     "@koa/router": "^15.6.0",
     "jsonwebtoken": "^9.0.3",
