@@ -100,7 +100,13 @@ export default class EmbeddedWorkflowExecutor {
       httpPort: config.port,
       pollingIntervalS: config.pollingIntervalS,
       stepTimeoutS: config.stepTimeoutS,
+      aiInvokeTimeoutS: config.aiInvokeTimeoutS,
+      stopTimeoutS: config.stopTimeoutS,
+      maxChainDepth: config.maxChainDepth,
+      schemaCacheTtlS: config.schemaCacheTtlS,
+      loggerLevel: config.loggerLevel,
       executorEncryptionKey: config.encryptionKey,
+      ...(config.ai && { aiConfigurations: [{ name: 'default', ...config.ai }] }),
       logger: (level, message, context) => this.options.logger(level, formatLog(message, context)),
       // Embedded: the host process owns SIGTERM/SIGINT; the executor must not exit it. agent.stop()
       // drains the executor explicitly.

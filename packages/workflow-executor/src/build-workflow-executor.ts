@@ -85,7 +85,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
   if (!options.executorEncryptionKey) {
     logger(
       'Warn',
-      'FOREST_EXECUTOR_ENCRYPTION_KEY is not set — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is configured.',
+      'No encryption key configured — set FOREST_EXECUTOR_ENCRYPTION_KEY (standalone) or pass encryptionKey to addWorkflowExecutor() (embedded) — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is.',
     );
   }
 

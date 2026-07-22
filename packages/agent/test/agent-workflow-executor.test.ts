@@ -128,6 +128,104 @@ describe('Agent.addWorkflowExecutor', () => {
       expect(mockExecutorStart).toHaveBeenCalledTimes(1);
     });
 
+    test('forwards the executor tuning options verbatim to the builder', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+        pollingIntervalS: 12,
+        stepTimeoutS: 34,
+        aiInvokeTimeoutS: 56,
+        stopTimeoutS: 78,
+        maxChainDepth: 9,
+        schemaCacheTtlS: 100,
+        loggerLevel: 'Debug',
+      });
+
+      await agent.start();
+
+      expect(mockBuildDatabaseExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pollingIntervalS: 12,
+          stepTimeoutS: 34,
+          aiInvokeTimeoutS: 56,
+          stopTimeoutS: 78,
+          maxChainDepth: 9,
+          schemaCacheTtlS: 100,
+          loggerLevel: 'Debug',
+        }),
+      );
+    });
+
+    test('maps encryptionKey to executorEncryptionKey', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+        encryptionKey: 'a'.repeat(64),
+      });
+
+      await agent.start();
+
+      expect(mockBuildDatabaseExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({ executorEncryptionKey: 'a'.repeat(64) }),
+      );
+    });
+
+    test('maps the ai option to a single default aiConfigurations entry', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+        ai: { provider: 'anthropic', model: 'claude-sonnet-4-6', apiKey: 'sk-test' },
+      });
+
+      await agent.start();
+
+      expect(mockBuildDatabaseExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aiConfigurations: [
+            {
+              name: 'default',
+              provider: 'anthropic',
+              model: 'claude-sonnet-4-6',
+              apiKey: 'sk-test',
+            },
+          ],
+        }),
+      );
+    });
+
+    test('does not inject aiConfigurations when no ai option is given', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+      });
+
+      await agent.start();
+
+      expect(mockBuildDatabaseExecutor.mock.calls[0][0]).not.toHaveProperty('aiConfigurations');
+    });
+
+    test('does not inject tuning defaults when those options are omitted', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        database: { uri: 'postgres://localhost/db' },
+      });
+
+      await agent.start();
+
+      const forwarded = mockBuildDatabaseExecutor.mock.calls[0][0];
+      expect(forwarded.aiInvokeTimeoutS).toBeUndefined();
+      expect(forwarded.stopTimeoutS).toBeUndefined();
+      expect(forwarded.maxChainDepth).toBeUndefined();
+      expect(forwarded.schemaCacheTtlS).toBeUndefined();
+      expect(forwarded.loggerLevel).toBeUndefined();
+      expect(forwarded.executorEncryptionKey).toBeUndefined();
+    });
+
     test('fails the agent start when the embedded executor fails to start', async () => {
       // No graceful degradation: a failing executor (e.g. failed agent probe / unreachable DB)
       // must crash agent.start() rather than leave the agent serving a dead executor.

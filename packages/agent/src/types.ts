@@ -90,6 +90,26 @@ export type WorkflowExecutorEmbedOptions = {
   pollingIntervalS?: number;
   /** Per-step execution timeout in seconds. */
   stepTimeoutS?: number;
+  /** Max duration in seconds of a single AI provider invocation. */
+  aiInvokeTimeoutS?: number;
+  /** Timeout in seconds for draining in-flight steps when the executor stops. */
+  stopTimeoutS?: number;
+  /** Max steps auto-chained per run before yielding to the next poll. `0` disables chaining. */
+  maxChainDepth?: number;
+  /** Collection schema cache TTL in seconds. Lower it to pick up orchestrator schema changes sooner. */
+  schemaCacheTtlS?: number;
+  /** Minimum level of the executor's logs. Defaults to `Info`. */
+  loggerLevel?: LoggerLevel;
+  /**
+   * Bring your own AI provider instead of Forest's AI server. All three fields are required
+   * together; omit `ai` entirely to keep using Forest's server.
+   */
+  ai?: { provider: 'anthropic' | 'openai'; model: string; apiKey: string };
+  /**
+   * HKDF secret encrypting OAuth-protected MCP connector credentials at rest. Only needed if you
+   * use OAuth-protected MCP connectors; without it their credential deposits return 503. Embed-time
+   * equivalent of the standalone `FOREST_EXECUTOR_ENCRYPTION_KEY` env var.
+   */
   encryptionKey?: string;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;

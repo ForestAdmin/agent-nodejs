@@ -175,5 +175,24 @@ describe('CredentialEncryption', () => {
 
       expect(() => cold.decrypt(ciphertext)).toThrow(ExecutorEncryptionKeyMissingError);
     });
+
+    it('treats an empty-string key as missing and throws on encrypt', () => {
+      const enc = new CredentialEncryption('');
+
+      expect(() => enc.encrypt('secret')).toThrow(ExecutorEncryptionKeyMissingError);
+    });
+  });
+
+  describe('backward compatibility (golden vector)', () => {
+    it('decrypts a ciphertext produced by the original scheme', () => {
+      const GOLDEN_KEY = 'a'.repeat(64);
+      const GOLDEN_CIPHERTEXT_HEX =
+        '55aafd0be57e7764fd3082ab79d38ec55eebc8033161309246ce504a986c6b89caded2e1e7d003de8eae2eae2b66f0045e47ebc7efa0';
+      const enc = new CredentialEncryption(GOLDEN_KEY);
+
+      const plaintext = enc.decrypt(Buffer.from(GOLDEN_CIPHERTEXT_HEX, 'hex'));
+
+      expect(plaintext).toBe('golden-vector-plaintext-v1');
+    });
   });
 });
