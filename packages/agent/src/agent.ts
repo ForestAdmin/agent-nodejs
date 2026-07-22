@@ -244,6 +244,10 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * Enable MCP (Model Context Protocol) server support.
    * This allows AI assistants to interact with your Forest Admin data.
    *
+   * Tool calls reach your data in-process (no socket), so they skip any host-app middleware you
+   * mounted in front of the agent (rate limiting, request logging, WAF). The agent's own JWT auth
+   * and permission checks still run on them, and the inbound MCP request itself is unaffected.
+   *
    * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/ai/mcp-server}
    * @example
    * agent.mountAiMcpServer();
@@ -425,12 +429,17 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         forestServerClient,
         enabledTools: this.mcpEnabledTools,
         basePath: this.mcpBasePath,
+        agentDispatcher: this.getInProcessDispatcher(),
       });
 
       const httpCallback = await mcpServer.getHttpCallback();
       const isMcpRoute = makeIsMcpRoute(this.mcpBasePath);
 
       mcpLogger('Info', 'Server initialized successfully');
+      mcpLogger(
+        'Info',
+        'Tool calls dispatch in-process and skip any middleware mounted in front of the agent',
+      );
 
       return { httpCallback, isMcpRoute };
     } catch (error) {

@@ -594,6 +594,38 @@ describe('Agent Integration Tests', () => {
           lastName: 'Wilson',
         });
       });
+
+      it('dispatches the tool call to the agent in-process, not over a socket', async () => {
+        const dispatcher = (
+          testContext.agent as unknown as {
+            getInProcessDispatcher: () => { request: (...args: unknown[]) => Promise<unknown> };
+          }
+        ).getInProcessDispatcher();
+        const requestSpy = jest.spyOn(dispatcher, 'request');
+
+        try {
+          const token = createTestToken({ scopes: ['mcp:read'], renderingId: 1 });
+
+          const response = await superagent
+            .post(`${testContext.baseUrl}/mcp`)
+            .set('Authorization', `Bearer ${token}`)
+            .set('Content-Type', 'application/json')
+            .set('Accept', 'text/event-stream, application/json')
+            .send({
+              jsonrpc: '2.0',
+              method: 'tools/call',
+              id: 3,
+              params: { name: 'list', arguments: { collectionName: 'users' } },
+            });
+
+          expect(response.status).toBe(200);
+          expect(requestSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ method: 'get', path: '/forest/users' }),
+          );
+        } finally {
+          requestSpy.mockRestore();
+        }
+      });
     });
 
     describe('Routes coexistence', () => {

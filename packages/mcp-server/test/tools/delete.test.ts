@@ -42,7 +42,11 @@ describe('declareDeleteTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "delete"', () => {
-      declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDeleteTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'delete',
@@ -52,7 +56,11 @@ describe('declareDeleteTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDeleteTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.title).toBe('Delete records');
       expect(registeredToolConfig.description).toBe(
@@ -61,20 +69,32 @@ describe('declareDeleteTool', () => {
     });
 
     it('should not be annotated as read-only', () => {
-      declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDeleteTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {
-      declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDeleteTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('recordIds');
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDeleteTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -85,7 +105,11 @@ describe('declareDeleteTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareDeleteTool(mcpServer, mockForestServerClient, mockLogger, ['users', 'products']);
+      declareDeleteTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'products'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -97,7 +121,11 @@ describe('declareDeleteTool', () => {
     });
 
     it('should accept array of strings or numbers for recordIds', () => {
-      declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDeleteTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -121,7 +149,11 @@ describe('declareDeleteTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareDeleteTool(mcpServer, mockForestServerClient, mockLogger);
+      declareDeleteTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
     });
 
     it('should call buildClient with the extra parameter', async () => {
@@ -134,7 +166,7 @@ describe('declareDeleteTool', () => {
 
       await registeredToolHandler({ collectionName: 'users', recordIds: [1, 2] }, mockExtra);
 
-      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra);
+      expect(mockBuildClient).toHaveBeenCalledWith(mockExtra, undefined);
     });
 
     it('should call rpcClient.collection with the collection name', async () => {
