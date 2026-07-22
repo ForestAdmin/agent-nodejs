@@ -462,6 +462,12 @@ export default class ForestMCPServer {
     // This is required for express-rate-limit to correctly identify clients
     app.set('trust proxy', 1);
 
+    // Unauthenticated liveness probe (Docker HEALTHCHECK, k8s). Registered before
+    // allowedMethods(['POST']) so the GET isn't rejected.
+    app.get('/health', (_req, res) => {
+      res.status(200).json({ status: 'ok' });
+    });
+
     app.use(
       cors({
         origin: '*',

@@ -236,6 +236,8 @@ jobs:
         run: npm config set workspaces-update false
       - name: Snapshot workflow-executor tags (pre-release)
         run: git tag --list '@forestadmin/workflow-executor@*' | sort > /tmp/we-tags-before.txt
+      - name: Snapshot mcp-server tags (pre-release)
+        run: git tag --list '@forestadmin/mcp-server@*' | sort > /tmp/mcp-tags-before.txt
       - name: "Run multi-semantic-release"
         run: "$(yarn bin)/multi-semantic-release --deps.bump=override"
         env:
@@ -273,6 +275,28 @@ jobs:
             | sort -V | tail -n1)
           echo "workflow-executor@${VERSION} released — dispatching docker-publish.yml."
           gh workflow run docker-publish.yml --ref "$GITHUB_REF_NAME" -f version="$VERSION"
+
+      - name: Trigger mcp-server Docker image publish (if released)
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          if [ ! -f /tmp/mcp-tags-before.txt ]; then
+            echo "Pre-release snapshot missing — release step never ran; nothing to publish."
+            exit 0
+          fi
+          git tag --list '@forestadmin/mcp-server@*' | sort > /tmp/mcp-tags-after.txt
+          NEW_TAGS=$(comm -13 /tmp/mcp-tags-before.txt /tmp/mcp-tags-after.txt)
+          if [ -z "$NEW_TAGS" ]; then
+            echo "No new @forestadmin/mcp-server tag in this run — nothing to publish."
+            exit 0
+          fi
+          # If more than one appears, pick the highest so :latest never regresses.
+          VERSION=$(echo "$NEW_TAGS" \
+            | sed 's|^@forestadmin/mcp-server@||' \
+            | sort -V | tail -n1)
+          echo "mcp-server@${VERSION} released — dispatching docker-publish-mcp-server.yml."
+          gh workflow run docker-publish-mcp-server.yml --ref "$GITHUB_REF_NAME" -f version="$VERSION"
 
   publish-api-reference:
     name: Publish API Reference

@@ -1,0 +1,19 @@
+# Minimal single-instance setup for the Forest Admin MCP server.
+#
+# 1. Create a .env file with your secrets (FOREST_ENV_SECRET, FOREST_AUTH_SECRET
+#    at minimum — see the README for the full list).
+# 2. docker compose up
+#
+# The MCP endpoint is then reachable at: http://localhost:3931/mcp
+
+services:
+  mcp-server:
+    image: ghcr.io/forestadmin/mcp-server:latest
+    restart: unless-stopped
+    # Forward the whole .env into the container. Unset optional vars fall back to
+    # the image's built-in defaults — no whitelist to keep in sync.
+    env_file:
+      - .env
+    ports:
+      - "${MCP_SERVER_PORT:-3931}:${MCP_SERVER_PORT:-3931}"
+    # Healthcheck is inherited from the image's HEALTHCHECK (see Dockerfile).
