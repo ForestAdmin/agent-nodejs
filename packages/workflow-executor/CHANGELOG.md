@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.20.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.20.2...@forestadmin/workflow-executor@1.20.3) (2026-07-22)
+
+
+### Bug Fixes
+
+* **workflow-executor:** inject encryption key instead of reading process.env ([#1769](https://github.com/ForestAdmin/agent-nodejs/issues/1769)) ([5f84c40](https://github.com/ForestAdmin/agent-nodejs/commit/5f84c40c8d1aa4540f970a641e3dd12ba9f521bd))
+
 ## @forestadmin/workflow-executor [1.20.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.20.1...@forestadmin/workflow-executor@1.20.2) (2026-07-22)
 
 
