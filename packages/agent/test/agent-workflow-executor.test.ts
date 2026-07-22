@@ -218,12 +218,78 @@ describe('Agent.addWorkflowExecutor', () => {
       await agent.start();
 
       const forwarded = mockBuildDatabaseExecutor.mock.calls[0][0];
+      expect(forwarded.pollingIntervalS).toBeUndefined();
+      expect(forwarded.stepTimeoutS).toBeUndefined();
       expect(forwarded.aiInvokeTimeoutS).toBeUndefined();
       expect(forwarded.stopTimeoutS).toBeUndefined();
       expect(forwarded.maxChainDepth).toBeUndefined();
       expect(forwarded.schemaCacheTtlS).toBeUndefined();
       expect(forwarded.loggerLevel).toBeUndefined();
       expect(forwarded.executorEncryptionKey).toBeUndefined();
+    });
+
+    test('forwards exactly the mapped commonOptions shape to the database builder', async () => {
+      const options = buildOptions();
+      const agent = new Agent(options);
+      agent.addWorkflowExecutor({
+        database: { uri: 'postgres://localhost/db' },
+        agentUrl: 'http://my-agent/prefix',
+        port: 4400,
+        pollingIntervalS: 12,
+        stepTimeoutS: 34,
+        aiInvokeTimeoutS: 56,
+        stopTimeoutS: 78,
+        maxChainDepth: 9,
+        schemaCacheTtlS: 100,
+        loggerLevel: 'Debug',
+        ai: { provider: 'anthropic', model: 'claude-sonnet-4-6', apiKey: 'sk-test' },
+        encryptionKey: 'a'.repeat(64),
+      });
+
+      await agent.start();
+
+      expect(mockBuildDatabaseExecutor.mock.calls[0][0]).toEqual({
+        envSecret: options.envSecret,
+        authSecret: options.authSecret,
+        forestServerUrl: options.forestServerUrl,
+        agentUrl: 'http://my-agent/prefix',
+        httpPort: 4400,
+        pollingIntervalS: 12,
+        stepTimeoutS: 34,
+        aiInvokeTimeoutS: 56,
+        stopTimeoutS: 78,
+        maxChainDepth: 9,
+        schemaCacheTtlS: 100,
+        loggerLevel: 'Debug',
+        executorEncryptionKey: 'a'.repeat(64),
+        aiConfigurations: [
+          { name: 'default', provider: 'anthropic', model: 'claude-sonnet-4-6', apiKey: 'sk-test' },
+        ],
+        database: { uri: 'postgres://localhost/db' },
+        manageProcessSignals: false,
+        logger: expect.any(Function),
+      });
+    });
+
+    test('forwards tuning knobs and encryptionKey to the in-memory builder with mapped keys', async () => {
+      const agent = new Agent(buildOptions());
+      agent.addWorkflowExecutor({
+        agentUrl: 'http://my-agent',
+        inMemory: true,
+        maxChainDepth: 9,
+        schemaCacheTtlS: 100,
+        encryptionKey: 'a'.repeat(64),
+      });
+
+      await agent.start();
+
+      expect(mockBuildInMemoryExecutor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxChainDepth: 9,
+          schemaCacheTtlS: 100,
+          executorEncryptionKey: 'a'.repeat(64),
+        }),
+      );
     });
 
     test('fails the agent start when the embedded executor fails to start', async () => {
