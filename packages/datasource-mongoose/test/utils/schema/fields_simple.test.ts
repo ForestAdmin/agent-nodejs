@@ -108,6 +108,33 @@ describe('SchemaFieldsGenerator', () => {
           expect(fieldsSchema).toMatchObject({ aField: { columnType: 'Number' } });
         });
       });
+
+      describe('when the enum is nested inside a sub-document', () => {
+        it('should keep the nested enum as an inline enum column type', () => {
+          const enumValues = ['enum1', 'enum2'];
+          const schema = new Schema({
+            nested: { subEnum: { type: String, enum: enumValues } },
+          });
+
+          const fieldsSchema = FieldsGenerator.buildFieldsSchema(buildModel(schema));
+
+          expect(fieldsSchema).toMatchObject({
+            nested: { columnType: { subEnum: { type: 'Enum', enumValues } } },
+          });
+        });
+
+        it('should keep a nested non-string enum as a plain string type', () => {
+          const schema = new Schema({
+            nested: { subEnum: { type: Number, enum: [1, 2] } },
+          });
+
+          const fieldsSchema = FieldsGenerator.buildFieldsSchema(buildModel(schema));
+
+          expect(fieldsSchema).toMatchObject({
+            nested: { columnType: { subEnum: 'Number' } },
+          });
+        });
+      });
     });
 
     describe('with array fields', () => {

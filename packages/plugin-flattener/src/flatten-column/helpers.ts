@@ -1,5 +1,7 @@
 import type { ColumnType, RecordData } from '@forestadmin/datasource-toolkit';
 
+import { TypeGetter } from '@forestadmin/datasource-toolkit';
+
 /**
  * Given the name of a column, its type and the maximum allowed depth, compute the list of paths
  * that can be flattened.
@@ -11,8 +13,12 @@ import type { ColumnType, RecordData } from '@forestadmin/datasource-toolkit';
 export function listPaths(columnName: string, type: ColumnType, level: number): string[] {
   return level <= 0 || typeof type !== 'object'
     ? [columnName]
-    : Object.keys(type)
-        .map(key => listPaths(`${columnName}@@@${key}`, type[key], level - 1))
+    : Object.entries(type)
+        .map(([key, subType]) =>
+          TypeGetter.isEnumField(subType)
+            ? [`${columnName}@@@${key}`]
+            : listPaths(`${columnName}@@@${key}`, subType, level - 1),
+        )
         .flat();
 }
 

@@ -17,7 +17,7 @@ export type ForestSchema = {
 export type ForestServerColumnType =
   | PrimitiveTypes
   | [ForestServerColumnType]
-  | { fields: Array<{ field: string; type: ForestServerColumnType }> };
+  | { fields: Array<{ field: string; type: ForestServerColumnType; enums?: string[] }> };
 
 export type ForestServerCollection = {
   name: string;

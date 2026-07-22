@@ -8,7 +8,7 @@ import type {
   OneToOneSchema,
 } from '@forestadmin/datasource-toolkit';
 
-import { CollectionUtils } from '@forestadmin/datasource-toolkit';
+import { CollectionUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
 import { readFile, writeFile } from 'fs/promises';
 
 export default class TypingGenerator {
@@ -249,7 +249,11 @@ export default class TypingGenerator {
     }
 
     return `{${TypingGenerator.sortedEntries(field.columnType)
-      .map(([key, subType]) => `'${key}': ${this.getType({ columnType: subType })}`)
+      .map(([key, subType]) =>
+        TypeGetter.isEnumField(subType)
+          ? `'${key}': ${this.getType({ columnType: 'Enum', enumValues: subType.enumValues })}`
+          : `'${key}': ${this.getType({ columnType: subType })}`,
+      )
       .join('; ')}}`;
   }
 }

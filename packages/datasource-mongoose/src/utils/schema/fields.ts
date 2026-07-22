@@ -7,6 +7,7 @@ import type {
   ColumnSchema,
   ColumnType,
   ManyToOneSchema,
+  NestedEnumColumnType,
   PrimitiveTypes,
 } from '@forestadmin/datasource-toolkit';
 import type { Model, SchemaType } from 'mongoose';
@@ -139,9 +140,21 @@ export default class FieldsGenerator {
     }
 
     return Object.entries(field).reduce(
-      (memo, [name, subSchema]) => ({ ...memo, [name]: this.getColumnTypeRec(subSchema) }),
+      (memo, [name, subSchema]) => ({ ...memo, [name]: this.getCompositeFieldType(subSchema) }),
       {},
     );
+  }
+
+  private static getCompositeFieldType(field: SchemaNode): ColumnType | NestedEnumColumnType {
+    if (isSchemaType(field) && field.instance === 'String') {
+      const enumValues = this.getEnumValues(field as SchemaType);
+
+      if (enumValues && enumValues.every(v => typeof v === 'string')) {
+        return { type: 'Enum', enumValues };
+      }
+    }
+
+    return this.getColumnTypeRec(field);
   }
 
   /** Get enum validator from field definition */
