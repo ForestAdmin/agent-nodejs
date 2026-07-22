@@ -1,3 +1,18 @@
+# @forestadmin/mcp-server [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.17.3...@forestadmin/mcp-server@1.18.0) (2026-07-22)
+
+
+### Features
+
+* **mcp-server:** dispatch mounted tool calls to the agent in-process ([#1743](https://github.com/ForestAdmin/agent-nodejs/issues/1743)) ([7c5efaa](https://github.com/ForestAdmin/agent-nodejs/commit/7c5efaaabc5e14c0182d84eed83e9e4994c77633))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.11.0
+
 ## @forestadmin/mcp-server [1.17.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.17.2...@forestadmin/mcp-server@1.17.3) (2026-07-16)
 
 
