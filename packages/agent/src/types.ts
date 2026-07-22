@@ -90,6 +90,7 @@ export type WorkflowExecutorEmbedOptions = {
   pollingIntervalS?: number;
   /** Per-step execution timeout in seconds. */
   stepTimeoutS?: number;
+  encryptionKey?: string;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;
 

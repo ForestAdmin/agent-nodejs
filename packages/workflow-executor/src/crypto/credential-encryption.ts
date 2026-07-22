@@ -2,7 +2,6 @@ import { createCipheriv, createDecipheriv, hkdfSync, randomFillSync } from 'cryp
 
 import { ExecutorEncryptionKeyMissingError } from '../errors';
 
-const ENV_KEY = 'FOREST_EXECUTOR_ENCRYPTION_KEY';
 // Fixed context label bound into the HKDF derivation — domain-separates this key from any other
 // use of the same secret. Changing it would make every existing row undecryptable.
 const HKDF_INFO = 'forest-executor:mcp-oauth-credentials';
@@ -11,14 +10,6 @@ const KEY_BYTES = 32; // AES-256
 const IV_BYTES = 12; // GCM standard nonce length
 const AUTH_TAG_BYTES = 16;
 const ALGORITHM = 'aes-256-gcm';
-
-// Boot-time check (no derivation, no throw): is the at-rest key configured? Lets startup emit a
-// warning that OAuth-protected MCP servers are unavailable until it is set. There is deliberately no
-// default key — a hardcoded one would be public in this open-source package and defeat the at-rest
-// encryption (a DB dump would be decryptable with the shipped key).
-export function isExecutorEncryptionKeyConfigured(): boolean {
-  return Boolean(process.env[ENV_KEY]);
-}
 
 export interface EncryptedValue {
   // Packed layout: iv | authTag | ciphertext — stored as a single BLOB column.
@@ -40,11 +31,10 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
-// At-rest encryption for secrets the executor stores. The HKDF key (from
-// FOREST_EXECUTOR_ENCRYPTION_KEY) is read lazily — an executor that stores no such secrets boots
-// without it — and fails closed: a missing key throws rather than persisting or returning an
-// unprotected value.
+// No default key by design: a hardcoded one would ship publicly in this open-source package.
 export default class CredentialEncryption {
+  constructor(private readonly secret: string | undefined) {}
+
   encrypt(plaintext: string): EncryptedValue {
     const iv = randomFillSync(new Uint8Array(IV_BYTES));
     const cipher = createCipheriv(ALGORITHM, this.deriveKey(), iv);
@@ -77,7 +67,7 @@ export default class CredentialEncryption {
   }
 
   private deriveKey(): Uint8Array {
-    const secret = process.env[ENV_KEY];
+    const { secret } = this;
 
     if (!secret) throw new ExecutorEncryptionKeyMissingError();
 

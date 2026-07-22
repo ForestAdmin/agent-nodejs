@@ -38,6 +38,8 @@ const OTEL_DEPENDENCIES = {
 // combination CI exercises.
 const RESOLUTIONS = {
   '**/sequelize/uuid': '^11.1.1',
+  // auto-instrumentations-node pins propagator-jaeger 2.8.0 (CVE-2026-59892, fixed in 2.9.0).
+  '**/@opentelemetry/propagator-jaeger': '2.9.0',
 };
 
 function generate(packagesDir, outFile) {
