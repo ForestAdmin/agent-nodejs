@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@faker-js/faker": "^9.0.0",
-    "@forestadmin/datasource-customizer": "1.69.3",
-    "@forestadmin/datasource-sql": "1.17.10",
-    "@forestadmin/datasource-toolkit": "1.53.1",
+    "@forestadmin/datasource-customizer": "1.70.0",
+    "@forestadmin/datasource-sql": "1.17.11",
+    "@forestadmin/datasource-toolkit": "1.54.0",
     "knex": "^3.1.0",
     "sqlite3": "^5.1.7"
   },
