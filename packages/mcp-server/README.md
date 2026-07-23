@@ -85,6 +85,27 @@ Or set the variables inline:
 FOREST_ENV_SECRET="your-env-secret" FOREST_AUTH_SECRET="your-auth-secret" npx forest-mcp-server
 ```
 
+### With Docker
+
+A prebuilt image is published to GitHub Container Registry, so you can run the
+server without installing Node — handy when your stack is not Node-based (e.g. a
+Ruby or Python agent). Configuration is entirely via environment variables (same
+as the standalone CLI).
+
+```bash
+docker run --rm -p 3931:3931 \
+  -e FOREST_ENV_SECRET="your-env-secret" \
+  -e FOREST_AUTH_SECRET="your-auth-secret" \
+  ghcr.io/forestadmin/mcp-server:latest
+```
+
+The MCP endpoint is then at `http://localhost:3931/mcp`, and `GET /health`
+answers `200` for liveness/readiness probes. Tags: `:latest`, `:<major>`,
+`:<minor>`, and the immutable `:<version>`.
+
+A [`docker-compose.yml`](./docker-compose.yml) is provided for a minimal
+single-instance setup (`env_file: .env`).
+
 ## Restrict Tools
 
 You can restrict which tools the MCP server exposes using `enabledTools`. Only the listed tools will be available. **New tools added in future releases will NOT be automatically enabled** — you must explicitly add them.
@@ -114,6 +135,7 @@ Once running, the MCP server exposes the following endpoints:
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | `/health` | Liveness probe (no auth), returns `200 {"status":"ok"}` |
 | POST | `/mcp` | Main MCP protocol endpoint (requires Bearer token) |
 | POST | `/oauth/authorize` | OAuth 2.0 authorization |
 | POST | `/oauth/token` | OAuth 2.0 token exchange |
