@@ -1073,8 +1073,10 @@ describe('AgentClientAgentPort', () => {
       );
     });
 
-    it('falls back to neutral hooks/fields when the schema omits them', async () => {
-      // Default schema in beforeEach has no hooks/fields on actions.
+    it('forwards omitted hooks/fields as-is so agent-client keeps probing /hooks/load', async () => {
+      // Default schema in beforeEach has no hooks/fields on actions. They must NOT be coerced to
+      // {load: false} / []: agent-client would then skip the probe and render an empty static
+      // form where a legacy agent could have answered with the real one.
       await port.executeAction({ collection: 'users', action: 'sendEmail', id: [1] }, { user });
 
       expect(mockedCreateRemoteAgentClient).toHaveBeenCalledWith(
@@ -1082,8 +1084,8 @@ describe('AgentClientAgentPort', () => {
           actionEndpoints: expect.objectContaining({
             users: expect.objectContaining({
               sendEmail: expect.objectContaining({
-                hooks: { load: false, change: [] },
-                fields: [],
+                hooks: undefined,
+                fields: undefined,
               }),
             }),
           }),

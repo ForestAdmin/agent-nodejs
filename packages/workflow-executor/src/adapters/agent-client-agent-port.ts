@@ -408,16 +408,17 @@ export default class AgentClientAgentPort implements AgentPort {
       for (const action of schema.actions) {
         // agent-client only POSTs /hooks/load when `hooks.load` is true (dynamic form); for static
         // forms it builds the form from `fields`/`layout` directly, so no 404 probe reaches agents
-        // that don't expose the route. Both `hooks` and `fields` must mirror the agent's real
-        // schema for that decision to be correct.
+        // that don't expose the route. `hooks` and `fields` are forwarded WITHOUT defaults: a
+        // legacy schema omitting them must keep probing — coercing to {load: false} / [] would
+        // silently render dynamic or unknown forms as empty static ones.
         endpoints[collectionName][action.name] = {
           id: action.name,
           name: action.name,
           endpoint: action.endpoint,
-          hooks: action.hooks ?? { load: false, change: [] },
+          hooks: action.hooks,
           // Zod envelope-validates `fields`/`layout` as arrays of opaque objects. Inner shape is
           // owned by @forestadmin/forestadmin-client and consumed by agent-client below.
-          fields: (action.fields ?? []) as ActionEndpointsByCollection[string][string]['fields'],
+          fields: action.fields as ActionEndpointsByCollection[string][string]['fields'],
           layout: action.layout as ActionEndpointsByCollection[string][string]['layout'],
         };
       }

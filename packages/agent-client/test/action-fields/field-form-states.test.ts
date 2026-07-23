@@ -364,6 +364,42 @@ describe('FieldFormStates', () => {
       expect(formStates.getFields()).toHaveLength(0);
     });
 
+    it('should probe and swallow the 404 when the schema has no hooks at all', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+      );
+
+      const error404 = new AgentHttpError(404, null, 'Not Found');
+      httpRequester.query.mockRejectedValue(error404);
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/actions/test-action/hooks/load' }),
+      );
+      expect(formStates.getFields()).toHaveLength(0);
+    });
+
+    it('should rethrow the 404 when the schema declares a load hook', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: [] },
+      );
+
+      const error404 = new AgentHttpError(404, null, 'Not Found');
+      httpRequester.query.mockRejectedValue(error404);
+
+      await expect(formStates.loadInitialState()).rejects.toThrow();
+    });
+
     it('should throw when hooks.load is false but server returns 500', async () => {
       const formStates = new FieldFormStates(
         'testAction',

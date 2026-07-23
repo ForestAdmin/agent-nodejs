@@ -195,7 +195,8 @@ export default class Collection extends CollectionChart {
     actionEndpoints: ActionEndpointsByCollection,
     collectionName: string,
     actionName: string,
-  ): Pick<ForestSchemaAction, 'id' | 'endpoint' | 'hooks' | 'fields' | 'layout'> {
+  ): Pick<ForestSchemaAction, 'id' | 'endpoint' | 'layout'> &
+    Partial<Pick<ForestSchemaAction, 'hooks' | 'fields'>> {
     const collection = actionEndpoints[collectionName];
     if (!collection) throw new Error(`Collection ${collectionName} not found in schema`);
 

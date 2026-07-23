@@ -113,10 +113,11 @@ export default class FieldFormStates {
       this.layout.push(...(queryResults.layout ?? []));
       this.addFields(queryResults.fields);
     } catch (error) {
-      // Reached only when the schema provided no fallback fields for a static form: probe the
-      // agent anyway (Node agents answer with the form), and swallow the forest_liana < 9.20.1
-      // 404 as "no dynamic fields to load". Other errors (401, 500, network) surface properly.
-      if (this.hooks && !this.hooks.load && HttpRequester.is404Error(error)) {
+      // Reached when the schema provided no fallback fields, or no hooks at all (legacy schemas):
+      // probe the agent anyway (Node agents answer with the form), and swallow the 404 of agents
+      // that don't expose the route as "no dynamic fields to load" — unless the schema explicitly
+      // declares a load hook, in which case a 404 is a real error. 401/500/network still surface.
+      if (!this.hooks?.load && HttpRequester.is404Error(error)) {
         this.applyFallbackForm();
 
         return;
