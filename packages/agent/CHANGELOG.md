@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.89.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.88.0...@forestadmin/agent@1.89.0) (2026-07-23)
+
+
+### Features
+
+* **agent:** full embedded workflow-executor option parity with standalone ([#1770](https://github.com/ForestAdmin/agent-nodejs/issues/1770)) ([d7480b2](https://github.com/ForestAdmin/agent-nodejs/commit/d7480b2f06c3a5704767e7dacef201c37292fbfe))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.21.0
+
 # @forestadmin/agent [1.88.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.87.1...@forestadmin/agent@1.88.0) (2026-07-23)
 
 
