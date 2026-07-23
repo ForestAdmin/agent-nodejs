@@ -237,7 +237,8 @@ export type ActivityLogAction =
   | 'update'
   | 'delete'
   | 'listRelatedData'
-  | 'describeCollection';
+  | 'describeCollection'
+  | 'triggerWorkflow';
 
 export type ActivityLogType = 'read' | 'write';
 
@@ -283,10 +284,31 @@ export interface ListMcpWorkflowsParams {
 }
 
 /**
+ * The lifecycle state of a workflow run, as persisted by the orchestrator.
+ */
+export type WorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
+
+/**
+ * The outcome of starting a workflow run: the run continues asynchronously server-side.
+ */
+export interface WorkflowRunTriggerResult {
+  runId: number;
+  runState: WorkflowRunState;
+}
+
+export interface TriggerMcpWorkflowParams {
+  forestServerToken: string;
+  renderingId: string;
+  workflowId: string;
+  recordId: string;
+}
+
+/**
  * Service interface for workflow operations (MCP-related).
  */
 export interface WorkflowsServiceInterface {
   listMcpEnabledWorkflows: (params: ListMcpWorkflowsParams) => Promise<McpWorkflow[]>;
+  triggerMcpWorkflow: (params: TriggerMcpWorkflowParams) => Promise<WorkflowRunTriggerResult>;
 }
 
 /**
@@ -334,6 +356,12 @@ export interface ForestAdminServerInterface {
     renderingId: string,
     collectionName?: string,
   ) => Promise<McpWorkflow[]>;
+  triggerMcpWorkflow?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+    recordId: string,
+  ) => Promise<WorkflowRunTriggerResult>;
 }
 
 export type ActivityLogHttpOptions = {

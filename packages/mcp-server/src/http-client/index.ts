@@ -55,6 +55,8 @@ export type {
   ForestServerClient,
   ListMcpWorkflowsParams,
   McpWorkflow,
+  TriggerMcpWorkflowParams,
+  WorkflowRunTriggerResult,
   UpdateActivityLogStatusParams,
   ForestSchemaCollection,
   ForestSchemaField,

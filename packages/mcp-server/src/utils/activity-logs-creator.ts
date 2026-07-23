@@ -24,6 +24,7 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   delete: 'write',
   listRelatedData: 'read',
   describeCollection: 'read',
+  triggerWorkflow: 'write',
 };
 
 export default async function createPendingActivityLog(

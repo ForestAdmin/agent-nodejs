@@ -7,7 +7,9 @@ import type {
   ListMcpWorkflowsParams,
   McpWorkflow,
   SchemaServiceInterface,
+  TriggerMcpWorkflowParams,
   UpdateActivityLogStatusParams,
+  WorkflowRunTriggerResult,
   WorkflowsServiceInterface,
 } from './types';
 
@@ -41,5 +43,9 @@ export default class ForestServerClientImpl implements ForestServerClient {
 
   async listMcpWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]> {
     return this.workflowsService.listMcpEnabledWorkflows(params);
+  }
+
+  async triggerWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult> {
+    return this.workflowsService.triggerMcpWorkflow(params);
   }
 }

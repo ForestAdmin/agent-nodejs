@@ -30,6 +30,9 @@ export {
   UpdateActivityLogStatusParams,
   McpWorkflow,
   ListMcpWorkflowsParams,
+  TriggerMcpWorkflowParams,
+  WorkflowRunState,
+  WorkflowRunTriggerResult,
   // Service interfaces for MCP
   ActivityLogsServiceInterface,
   WorkflowsServiceInterface,
