@@ -323,6 +323,39 @@ describe('FieldFormStates', () => {
       expect(formStates.getFields()[1].getValue()).toBeUndefined();
     });
 
+    it('should preserve enums, description and widget props on the skip path', async () => {
+      const fallbackFields = [
+        {
+          field: 'voucher_type',
+          type: 'Enum',
+          enums: ['credit', 'monthly_amount'],
+          isRequired: true,
+          defaultValue: 'credit',
+          description: 'Type of voucher',
+          hook: 'onFieldChanged',
+        },
+      ];
+
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: ['onFieldChanged'] },
+        fallbackFields,
+      );
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+      const plainField = formStates.getFields()[0].getPlainField();
+      expect(plainField.enums).toEqual(['credit', 'monthly_amount']);
+      expect(plainField.description).toBe('Type of voucher');
+      expect(plainField.hook).toBe('onFieldChanged');
+      expect(plainField.value).toBe('credit');
+    });
+
     it('should use the schema layout when hooks.load is false', async () => {
       const fallbackFields = [{ field: 'note', type: 'String' }];
       const fallbackLayout = [

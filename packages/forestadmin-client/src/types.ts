@@ -196,8 +196,11 @@ export interface ForestSchemaAction {
     field: string;
     type: string;
     isRequired?: boolean;
+    isReadOnly?: boolean;
     defaultValue?: unknown;
     label?: string;
+    description?: string;
+    enums?: string[];
     hook?: string;
   }[];
   hooks: {

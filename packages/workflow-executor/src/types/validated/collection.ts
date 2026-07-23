@@ -60,7 +60,7 @@ export type FieldSchema = z.infer<typeof FieldSchemaSchema>;
 // ActionSchema.fields / hooks content is a discriminated union owned by the upstream
 // `@forestadmin/forestadmin-client` lib and consumed downstream by `@forestadmin/agent-client`.
 // We validate the envelope shape only — detail re-validation would duplicate the lib's job.
-const ActionFieldsSchema = z.array(z.looseObject({})).optional();
+const LooseObjectArraySchema = z.array(z.looseObject({})).optional();
 const ActionHooksSchema = z
   .object({
     load: z.boolean(),
@@ -74,9 +74,9 @@ export const ActionSchemaSchema = z.object({
   endpoint: z.string().min(1),
   type: z.enum(['single', 'bulk', 'global']).optional(),
   /** Static form fields. Lets agent-client skip the /hooks/load probe on static forms. */
-  fields: ActionFieldsSchema,
+  fields: LooseObjectArraySchema,
   /** Static form layout, when the schema carries one. Envelope-validated like `fields`. */
-  layout: ActionFieldsSchema,
+  layout: LooseObjectArraySchema,
   /** Action lifecycle hooks. Drives agent-client's dynamic form loading. */
   hooks: ActionHooksSchema,
 });

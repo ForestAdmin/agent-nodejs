@@ -132,14 +132,15 @@ export default class FieldFormStates {
     this.layout.push(...(this.fallbackLayout ?? []));
 
     if (this.fallbackFields?.length) {
+      // Spread first: the schema is now the ONLY source for static forms, so every field prop
+      // (enums, description, widgetEdit, ...) must survive — dropping one starves consumers
+      // like ActionFieldEnum.getOptions() that the probe used to feed.
       this.addFields(
         this.fallbackFields.map(f => ({
-          field: f.field,
-          type: f.type,
+          ...f,
           isRequired: f.isRequired ?? false,
-          isReadOnly: false,
+          isReadOnly: f.isReadOnly ?? false,
           value: f.defaultValue,
-          hook: f.hook,
         })),
       );
     }
