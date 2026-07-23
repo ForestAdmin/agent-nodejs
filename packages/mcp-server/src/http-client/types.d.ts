@@ -10,7 +10,9 @@ import type {
   ListMcpWorkflowsParams,
   McpWorkflow,
   SchemaServiceInterface,
+  TriggerMcpWorkflowParams,
   UpdateActivityLogStatusParams,
+  WorkflowRunTriggerResult,
   WorkflowsServiceInterface,
 } from '@forestadmin/forestadmin-client';
 
@@ -27,7 +29,9 @@ export type {
   ListMcpWorkflowsParams,
   McpWorkflow,
   SchemaServiceInterface,
+  TriggerMcpWorkflowParams,
   UpdateActivityLogStatusParams,
+  WorkflowRunTriggerResult,
   WorkflowsServiceInterface,
 };
 
@@ -65,4 +69,9 @@ export interface ForestServerClient {
    * Lists the MCP-enabled workflows the caller can access in a rendering.
    */
   listMcpWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]>;
+
+  /**
+   * Starts a run of an MCP-enabled workflow on a record and returns its runId (async).
+   */
+  triggerWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult>;
 }

@@ -76,4 +76,57 @@ describe('WorkflowsService', () => {
       );
     });
   });
+
+  describe('triggerMcpWorkflow', () => {
+    it('should forward the identity, workflowId and recordId to the transport and return the run', async () => {
+      mockForestAdminServerInterface.triggerMcpWorkflow.mockResolvedValue({
+        runId: 7,
+        runState: 'loading',
+      });
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, options);
+      const result = await service.triggerMcpWorkflow({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        workflowId: 'wf-1',
+        recordId: '42',
+      });
+
+      expect(result).toEqual({ runId: 7, runState: 'loading' });
+      expect(mockForestAdminServerInterface.triggerMcpWorkflow).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        '12345',
+        'wf-1',
+        '42',
+      );
+    });
+
+    it('should pass custom headers when provided', async () => {
+      mockForestAdminServerInterface.triggerMcpWorkflow.mockResolvedValue({
+        runId: 7,
+        runState: 'loading',
+      });
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, {
+        ...options,
+        headers: { 'Forest-Application-Source': 'MCP' },
+      });
+      await service.triggerMcpWorkflow({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        workflowId: 'wf-1',
+        recordId: '42',
+      });
+
+      expect(mockForestAdminServerInterface.triggerMcpWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bearerToken: 'test-token',
+          headers: { 'Forest-Application-Source': 'MCP' },
+        }),
+        '12345',
+        'wf-1',
+        '42',
+      );
+    });
+  });
 });
