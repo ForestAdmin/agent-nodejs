@@ -1,3 +1,19 @@
+## @forestadmin/workflow-executor [1.21.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.21.0...@forestadmin/workflow-executor@1.21.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **agent-client:** build static forms from the schema instead of probing /hooks/load [PRD-802] ([#1775](https://github.com/ForestAdmin/agent-nodejs/issues/1775)) ([b1aacea](https://github.com/ForestAdmin/agent-nodejs/commit/b1aacea9374a7670c16fe9bef70257d40b425d49))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.11.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.41.1
+
 # @forestadmin/workflow-executor [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.20.3...@forestadmin/workflow-executor@1.21.0) (2026-07-23)
 
 
