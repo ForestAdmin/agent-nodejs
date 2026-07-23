@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.88.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.87.1...@forestadmin/agent@1.88.0) (2026-07-23)
+
+
+### Features
+
+* **datasource mongoose:** handle nested enums ([#1765](https://github.com/ForestAdmin/agent-nodejs/issues/1765)) ([7114afd](https://github.com/ForestAdmin/agent-nodejs/commit/7114afda4d448ed5fac0e27fe300f1407f4b8c2e))
+
 ## @forestadmin/agent [1.87.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.87.0...@forestadmin/agent@1.87.1) (2026-07-22)
 
 
