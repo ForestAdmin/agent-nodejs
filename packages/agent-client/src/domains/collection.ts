@@ -45,6 +45,7 @@ export default class Collection extends CollectionChart {
       ids,
       actionInfo.hooks,
       actionInfo.fields,
+      actionInfo.layout,
     );
 
     const action = new Action(
@@ -194,7 +195,7 @@ export default class Collection extends CollectionChart {
     actionEndpoints: ActionEndpointsByCollection,
     collectionName: string,
     actionName: string,
-  ): Pick<ForestSchemaAction, 'id' | 'endpoint' | 'hooks' | 'fields'> {
+  ): Pick<ForestSchemaAction, 'id' | 'endpoint' | 'hooks' | 'fields' | 'layout'> {
     const collection = actionEndpoints[collectionName];
     if (!collection) throw new Error(`Collection ${collectionName} not found in schema`);
 
@@ -208,6 +209,12 @@ export default class Collection extends CollectionChart {
       throw new Error(`Action ${actionName} not found in collection ${collectionName}`);
     }
 
-    return { id: action.id, endpoint: action.endpoint, hooks: action.hooks, fields: action.fields };
+    return {
+      id: action.id,
+      endpoint: action.endpoint,
+      hooks: action.hooks,
+      fields: action.fields,
+      layout: action.layout,
+    };
   }
 }

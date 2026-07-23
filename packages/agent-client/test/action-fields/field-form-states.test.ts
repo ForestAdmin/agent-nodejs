@@ -297,7 +297,7 @@ describe('FieldFormStates', () => {
       expect(formStates.getFields()).toHaveLength(0);
     });
 
-    it('should use fallback fields when hooks.load is false and server returns 404', async () => {
+    it('should build the form from the schema without any request when hooks.load is false', async () => {
       const fallbackFields = [
         { field: 'percentage', type: 'Number', isRequired: true, defaultValue: 10 },
         { field: 'note', type: 'String' },
@@ -313,16 +313,55 @@ describe('FieldFormStates', () => {
         fallbackFields,
       );
 
-      const error404 = new AgentHttpError(404, null, 'Not Found');
-      httpRequester.query.mockRejectedValue(error404);
-
       await formStates.loadInitialState();
 
+      expect(httpRequester.query).not.toHaveBeenCalled();
       expect(formStates.getFields()).toHaveLength(2);
       expect(formStates.getFields()[0].getName()).toBe('percentage');
       expect(formStates.getFields()[0].getValue()).toBe(10);
       expect(formStates.getFields()[1].getName()).toBe('note');
       expect(formStates.getFields()[1].getValue()).toBeUndefined();
+    });
+
+    it('should use the schema layout when hooks.load is false', async () => {
+      const fallbackFields = [{ field: 'note', type: 'String' }];
+      const fallbackLayout = [
+        { component: 'Separator' },
+        { component: 'Input', fieldId: 'note' },
+      ] as never[];
+
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+        fallbackFields,
+        fallbackLayout,
+      );
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+      expect(formStates.getLayout()).toEqual(fallbackLayout);
+    });
+
+    it('should skip the request when hooks.load is false and the static form is empty', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+        [],
+      );
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+      expect(formStates.getFields()).toHaveLength(0);
     });
 
     it('should throw when hooks.load is false but server returns 500', async () => {

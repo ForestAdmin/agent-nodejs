@@ -406,18 +406,19 @@ export default class AgentClientAgentPort implements AgentPort {
       endpoints[collectionName] = {};
 
       for (const action of schema.actions) {
-        // agent-client POSTs /hooks/load unconditionally; `hooks.load` tells it whether a 404
-        // there is expected (Ruby agent, swallowed → fallback to the static `fields` below) or
-        // a real error. Both `hooks` and `fields` must mirror the agent's real schema for form
-        // detection to work on Ruby agents.
+        // agent-client only POSTs /hooks/load when `hooks.load` is true (dynamic form); for static
+        // forms it builds the form from `fields`/`layout` directly, so no 404 probe reaches agents
+        // that don't expose the route. Both `hooks` and `fields` must mirror the agent's real
+        // schema for that decision to be correct.
         endpoints[collectionName][action.name] = {
           id: action.name,
           name: action.name,
           endpoint: action.endpoint,
           hooks: action.hooks ?? { load: false, change: [] },
-          // Zod envelope-validates `fields` as an array of opaque objects. Inner widget/parameters
-          // shape is owned by @forestadmin/forestadmin-client and consumed by agent-client below.
+          // Zod envelope-validates `fields`/`layout` as arrays of opaque objects. Inner shape is
+          // owned by @forestadmin/forestadmin-client and consumed by agent-client below.
           fields: (action.fields ?? []) as ActionEndpointsByCollection[string][string]['fields'],
+          layout: action.layout as ActionEndpointsByCollection[string][string]['layout'],
         };
       }
     }

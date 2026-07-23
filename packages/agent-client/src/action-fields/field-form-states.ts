@@ -18,6 +18,7 @@ export default class FieldFormStates {
   private readonly layout: ForestServerActionFormLayoutElement[];
   private readonly hooks?: ForestSchemaAction['hooks'];
   private readonly fallbackFields?: ForestSchemaAction['fields'];
+  private readonly fallbackLayout?: ForestSchemaAction['layout'];
 
   constructor(
     actionName: string,
@@ -27,6 +28,7 @@ export default class FieldFormStates {
     ids: string[],
     hooks?: ForestSchemaAction['hooks'],
     fallbackFields?: ForestSchemaAction['fields'],
+    fallbackLayout?: ForestSchemaAction['layout'],
   ) {
     this.fields = [];
     this.actionName = actionName;
@@ -37,6 +39,7 @@ export default class FieldFormStates {
     this.layout = [];
     this.hooks = hooks;
     this.fallbackFields = fallbackFields;
+    this.fallbackLayout = fallbackLayout;
   }
 
   getFieldValues(): Record<string, unknown> {
@@ -78,6 +81,16 @@ export default class FieldFormStates {
   }
 
   async loadInitialState(): Promise<void> {
+    // hooks.load: false means the form is static: the schema already carries the complete form
+    // (fields with materialized defaults, and layout when any), so the request could only return
+    // the same data — and forest_liana agents < 9.20.1 don't even expose the route (404 noise in
+    // customers' metrics). Only probe when the schema gave us no fields to fall back on.
+    if (this.hooks && !this.hooks.load && this.fallbackFields) {
+      this.applyFallbackForm();
+
+      return;
+    }
+
     const requestBody = {
       data: {
         attributes: {
@@ -100,40 +113,34 @@ export default class FieldFormStates {
       this.layout.push(...(queryResults.layout ?? []));
       this.addFields(queryResults.fields);
     } catch (error) {
-      // When hooks.load is false, the behavior differs between backends:
-      //
-      // - Node agent (@forestadmin/agent): always responds to POST /hooks/load
-      //   with the form fields, even when hooks.load is false in the schema.
-      //   In this case the call above succeeds and fields are loaded normally.
-      //
-      // - Ruby agent (forest_liana): does NOT register a route for /hooks/load
-      //   when hooks.load is false. The POST returns a 404.
-      //   In this case we catch the 404 and continue with an empty form,
-      //   which matches the expected behavior (no dynamic fields to load).
-      //
-      // We always attempt the call so Node users get their fields,
-      // and only swallow 404 errors for Ruby users. Other errors (401, 500,
-      // network failures) are rethrown so they surface properly.
+      // Reached only when the schema provided no fallback fields for a static form: probe the
+      // agent anyway (Node agents answer with the form), and swallow the forest_liana < 9.20.1
+      // 404 as "no dynamic fields to load". Other errors (401, 500, network) surface properly.
       if (this.hooks && !this.hooks.load && HttpRequester.is404Error(error)) {
-        this.clearFieldsAndLayout();
-
-        if (this.fallbackFields?.length) {
-          this.addFields(
-            this.fallbackFields.map(f => ({
-              field: f.field,
-              type: f.type,
-              isRequired: f.isRequired ?? false,
-              isReadOnly: false,
-              value: f.defaultValue,
-              hook: f.hook,
-            })),
-          );
-        }
+        this.applyFallbackForm();
 
         return;
       }
 
       throw error;
+    }
+  }
+
+  private applyFallbackForm(): void {
+    this.clearFieldsAndLayout();
+    this.layout.push(...(this.fallbackLayout ?? []));
+
+    if (this.fallbackFields?.length) {
+      this.addFields(
+        this.fallbackFields.map(f => ({
+          field: f.field,
+          type: f.type,
+          isRequired: f.isRequired ?? false,
+          isReadOnly: false,
+          value: f.defaultValue,
+          hook: f.hook,
+        })),
+      );
     }
   }
 

@@ -12,7 +12,7 @@ import type {
   RenderingPermissionV4,
   UserPermissionV4,
 } from './permissions/types';
-import type { ForestSchema } from './schema/types';
+import type { ForestSchema, ForestServerActionFormLayoutElement } from './schema/types';
 import type { RequestContextVariables } from './utils/context-variables';
 import type ContextVariables from './utils/context-variables';
 import type { HttpOptions } from './utils/http-options';
@@ -204,6 +204,8 @@ export interface ForestSchemaAction {
     load: boolean;
     change: unknown[];
   };
+  // Only emitted for static forms (hooks.load: false): the schema then carries the full form.
+  layout?: ForestServerActionFormLayoutElement[];
 }
 
 /**

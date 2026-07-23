@@ -95,7 +95,10 @@ export type ActionExecuteResult =
 
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
-    [actionName: string]: Pick<ForestSchemaAction, 'id' | 'name' | 'endpoint' | 'hooks' | 'fields'>;
+    [actionName: string]: Pick<
+      ForestSchemaAction,
+      'id' | 'name' | 'endpoint' | 'hooks' | 'fields' | 'layout'
+    >;
   };
 };
 export default class Action {
