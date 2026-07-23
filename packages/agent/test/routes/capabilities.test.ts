@@ -77,6 +77,7 @@ describe('Capabilities', () => {
           nativeQueryConnections: [{ name: 'main' }, { name: 'replica' }],
           agentCapabilities: {
             canUseProjectionOnGetOne: true,
+            canUseMultipleFieldsProjectionOnRelation: true,
           },
           collections: [],
         });
@@ -98,6 +99,7 @@ describe('Capabilities', () => {
           nativeQueryConnections: [],
           agentCapabilities: {
             canUseProjectionOnGetOne: true,
+            canUseMultipleFieldsProjectionOnRelation: true,
           },
           collections: [],
         });
@@ -117,6 +119,7 @@ describe('Capabilities', () => {
           nativeQueryConnections: [],
           agentCapabilities: {
             canUseProjectionOnGetOne: true,
+            canUseMultipleFieldsProjectionOnRelation: true,
           },
           collections: [],
         });
@@ -138,6 +141,7 @@ describe('Capabilities', () => {
           nativeQueryConnections: [],
           agentCapabilities: {
             canUseProjectionOnGetOne: true,
+            canUseMultipleFieldsProjectionOnRelation: true,
           },
           collections: [
             {

@@ -39,6 +39,7 @@ export default class Capabilities extends BaseRoute {
       ),
       agentCapabilities: {
         canUseProjectionOnGetOne: true,
+        canUseMultipleFieldsProjectionOnRelation: true,
       },
       collections:
         collections?.map(collection => {
