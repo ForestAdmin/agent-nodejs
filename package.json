@@ -66,7 +66,6 @@
     "**/@aws-sdk/xml-builder/fast-xml-parser": "^5.7.0",
     "**/@fastify/ajv-compiler/fast-uri": "^3.1.2",
     "**/fast-json-stringify/fast-uri": "^3.1.2",
-    "**/node-gyp/undici": "^6.27.0",
     "**/@actions/http-client/undici": "^6.27.0",
     "**/@semantic-release/github/undici": "^7.28.0",
     "**/subscriptions-transport-ws/ws": "^7.5.11",
