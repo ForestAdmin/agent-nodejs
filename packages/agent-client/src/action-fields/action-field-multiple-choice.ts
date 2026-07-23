@@ -4,7 +4,8 @@ import FieldGetter from './field-getter';
 
 export default class ActionFieldMultipleChoice extends FieldGetter {
   getOptions(): PlainFieldOption[] | undefined {
-    return this.getPlainField().widgetEdit?.parameters.static.options;
+    // Non-choice widgets emit `parameters` without a `static` key — guard the whole path.
+    return this.getPlainField().widgetEdit?.parameters?.static?.options;
   }
 
   getOption(label: string): PlainFieldOption | undefined {

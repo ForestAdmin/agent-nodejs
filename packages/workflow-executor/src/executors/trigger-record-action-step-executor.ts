@@ -306,7 +306,16 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
     const fieldLines = form.fields
       .map(field => {
         const parts = [`- ${field.name} (${field.type}${field.isRequired ? ', required' : ''})`];
+        if (field.description) parts.push(`hint: ${field.description}`);
         if (field.enumValues?.length) parts.push(`allowed: ${field.enumValues.join(', ')}`);
+
+        if (field.allowedValues?.length) {
+          parts.push(
+            `allowed: ${field.allowedValues
+              .map(o => (String(o.value) === o.label ? String(o.value) : `${o.value} (${o.label})`))
+              .join(', ')}`,
+          );
+        }
 
         if (field.value !== undefined && field.value !== null) {
           parts.push(`current: ${JSON.stringify(field.value)}`);
@@ -321,7 +330,9 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
       description:
         'Provide values for the action form fields you have enough context to fill. ' +
         'Return a `values` object keyed by field name. Leave a field OUT entirely if you are ' +
-        'not sure — never guess or assume. For Enum fields use exactly one of the allowed values.',
+        'not sure — never guess or assume. For single-choice fields (Enum/dropdown/radio) submit ' +
+        'exactly one of the allowed values; for multi-select fields (checkboxes / list types) ' +
+        'submit an array of allowed values. Submit the value, not the label.',
       schema: z.object({
         values: z
           .record(z.string(), z.unknown())
@@ -351,6 +362,8 @@ export default class TriggerRecordActionStepExecutor extends RecordStepExecutor<
         required: field.isRequired,
         current: field.value,
         ...(field.enumValues?.length ? { allowed: field.enumValues } : {}),
+        ...(field.allowedValues?.length ? { allowed: field.allowedValues } : {}),
+        ...(field.description ? { hint: field.description } : {}),
       })),
       workflowContext: [contextMessage, ...previousStepsMessages].map(message => message.content),
     });

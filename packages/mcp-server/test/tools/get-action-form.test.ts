@@ -305,12 +305,16 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
         {
           getName: () => 'message',
           getType: () => 'String',
           getValue: () => 'Default message',
           isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -352,12 +356,16 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
         {
           getName: () => 'message',
           getType: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -390,12 +398,16 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
         {
           getName: () => 'message',
           getType: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -428,6 +440,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'Number',
           getValue: () => 0,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -460,6 +474,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'Boolean',
           getValue: () => false,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -492,6 +508,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => '',
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -524,6 +542,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => null,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -556,6 +576,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -588,12 +610,16 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'Enum',
           getValue: () => undefined,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
         {
           getName: () => 'message',
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -629,6 +655,73 @@ describe('declareGetActionFormTool', () => {
         { name: 'message', type: 'String', value: undefined, isRequired: false },
       ]);
       expect(mockGetEnumField).toHaveBeenCalledWith('status');
+    });
+
+    it('should return description and allowedValues for choice widget fields', async () => {
+      const mockFields = [
+        {
+          getName: () => 'plan',
+          getType: () => 'String',
+          getValue: () => undefined,
+          isRequired: () => true,
+          getPlainField: () => ({ description: 'Subscription plan' }),
+          getMultipleChoiceField: () => ({
+            getOptions: () => [
+              { label: 'Basic', value: 'basic' },
+              { label: 'Premium', value: 'premium' },
+            ],
+          }),
+        },
+        {
+          getName: () => 'priority',
+          getType: () => 'String',
+          getValue: () => undefined,
+          isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => ['low', 'high'] }),
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        tryToSetFields: mockTryToSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'subscribe', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.fields).toEqual([
+        {
+          name: 'plan',
+          type: 'String',
+          value: undefined,
+          isRequired: true,
+          description: 'Subscription plan',
+          allowedValues: [
+            { value: 'basic', label: 'Basic' },
+            { value: 'premium', label: 'Premium' },
+          ],
+        },
+        {
+          name: 'priority',
+          type: 'String',
+          value: undefined,
+          isRequired: false,
+          allowedValues: [
+            { value: 'low', label: 'low' },
+            { value: 'high', label: 'high' },
+          ],
+        },
+      ]);
     });
 
     it('should handle empty fields array', async () => {
@@ -668,6 +761,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -707,6 +802,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);

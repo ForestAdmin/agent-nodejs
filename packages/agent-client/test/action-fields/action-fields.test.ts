@@ -80,6 +80,32 @@ describe('ActionField implementations', () => {
     });
   });
 
+  describe('getPlainField', () => {
+    it('returns the underlying plain field', async () => {
+      await setupFields([
+        {
+          field: 'plan',
+          type: 'String',
+          isRequired: true,
+          isReadOnly: false,
+          description: 'Plan',
+          value: undefined,
+        },
+      ]);
+      const field = new ActionFieldString('plan', fieldFormStates);
+
+      expect(field.getPlainField()).toEqual(
+        expect.objectContaining({ field: 'plan', description: 'Plan' }),
+      );
+    });
+
+    it('returns undefined when the field is absent from the form', () => {
+      const field = new ActionFieldString('missing', fieldFormStates);
+
+      expect(field.getPlainField()).toBeUndefined();
+    });
+  });
+
   describe('ActionFieldCheckboxGroup', () => {
     const options = [
       { label: 'Option A', value: 'a' },

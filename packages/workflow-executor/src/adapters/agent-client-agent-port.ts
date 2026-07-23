@@ -78,6 +78,17 @@ function restoreFieldNames(
   return Object.fromEntries(Object.entries(values).map(([k, v]) => [camelToOriginal[k] ?? k, v]));
 }
 
+// Options may be {value,label} objects or bare primitives — normalize to a consistent shape.
+function toAllowedValue(option: unknown): { value: string | number | null; label: string } {
+  if (option !== null && typeof option === 'object') {
+    const { value, label } = option as { value: string | number | null; label: string };
+
+    return { value, label };
+  }
+
+  return { value: option as string | number, label: String(option) };
+}
+
 export default class AgentClientAgentPort implements AgentPort {
   private readonly agentUrl: string;
   private readonly authSecret: string;
@@ -293,16 +304,26 @@ export default class AgentClientAgentPort implements AgentPort {
       const skippedFields = values ? await act.tryToSetFields(values) : [];
 
       const fields = act.getFields().map((field): ActionFormField => {
-        const base = {
+        const description = field.getPlainField()?.description;
+
+        const base: ActionFormField = {
           name: field.getName(),
           type: field.getType(),
           value: field.getValue(),
           isRequired: field.isRequired() ?? false,
+          ...(description ? { description } : {}),
         };
 
-        return field.getType() === 'Enum'
-          ? { ...base, enumValues: act.getEnumField(field.getName()).getOptions() ?? undefined }
-          : base;
+        if (field.getType() === 'Enum') {
+          return {
+            ...base,
+            enumValues: act.getEnumField(field.getName()).getOptions() ?? undefined,
+          };
+        }
+
+        const options = field.getMultipleChoiceField().getOptions();
+
+        return options?.length ? { ...base, allowedValues: options.map(toAllowedValue) } : base;
       });
 
       const requiredFields = fields
