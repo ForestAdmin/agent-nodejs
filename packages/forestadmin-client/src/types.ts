@@ -237,7 +237,8 @@ export type ActivityLogAction =
   | 'update'
   | 'delete'
   | 'listRelatedData'
-  | 'describeCollection';
+  | 'describeCollection'
+  | 'triggerWorkflow';
 
 export type ActivityLogType = 'read' | 'write';
 
@@ -265,6 +266,49 @@ export interface ActivityLogsServiceInterface {
   createActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
   createMcpActivityLog: (params: CreateActivityLogParams) => Promise<ActivityLogResponse>;
   updateActivityLogStatus: (params: UpdateActivityLogStatusParams) => Promise<void>;
+}
+
+/**
+ * An MCP-enabled workflow, as returned by the Forest server's workflow listing endpoint.
+ */
+export interface McpWorkflow {
+  workflowId: string;
+  name: string;
+  collectionName: string | null;
+}
+
+export interface ListMcpWorkflowsParams {
+  forestServerToken: string;
+  renderingId: string;
+  collectionName?: string;
+}
+
+/**
+ * The lifecycle state of a workflow run, as persisted by the orchestrator.
+ */
+export type WorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
+
+/**
+ * The outcome of starting a workflow run: the run continues asynchronously server-side.
+ */
+export interface WorkflowRunTriggerResult {
+  runId: number;
+  runState: WorkflowRunState;
+}
+
+export interface TriggerMcpWorkflowParams {
+  forestServerToken: string;
+  renderingId: string;
+  workflowId: string;
+  recordId: string;
+}
+
+/**
+ * Service interface for workflow operations (MCP-related).
+ */
+export interface WorkflowsServiceInterface {
+  listMcpEnabledWorkflows: (params: ListMcpWorkflowsParams) => Promise<McpWorkflow[]>;
+  triggerMcpWorkflow: (params: TriggerMcpWorkflowParams) => Promise<WorkflowRunTriggerResult>;
 }
 
 /**
@@ -305,6 +349,19 @@ export interface ForestAdminServerInterface {
     id: string,
     body: object,
   ) => Promise<void>;
+
+  // Workflow operations
+  listMcpEnabledWorkflows?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    collectionName?: string,
+  ) => Promise<McpWorkflow[]>;
+  triggerMcpWorkflow?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+    recordId: string,
+  ) => Promise<WorkflowRunTriggerResult>;
 }
 
 export type ActivityLogHttpOptions = {

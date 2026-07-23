@@ -10,6 +10,8 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import { NotFoundError } from '@forestadmin/forestadmin-client';
 
+import getAuthContext from './auth-context';
+
 export type { ActivityLogAction, ActivityLogResponse };
 
 const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
@@ -22,26 +24,8 @@ const ACTION_TO_TYPE: Record<ActivityLogAction, ActivityLogType> = {
   delete: 'write',
   listRelatedData: 'read',
   describeCollection: 'read',
+  triggerWorkflow: 'write',
 };
-
-function getAuthContext(request: RequestHandlerExtra<ServerRequest, ServerNotification>): {
-  forestServerToken: string;
-  renderingId: string;
-} {
-  const forestServerToken = request.authInfo?.extra?.forestServerToken;
-  const renderingId = request.authInfo?.extra?.renderingId;
-
-  if (!forestServerToken || typeof forestServerToken !== 'string') {
-    throw new Error('Invalid or missing forestServerToken in authentication context');
-  }
-
-  // renderingId can be number (from JWT) or string - convert to string for API calls
-  if (renderingId === undefined || renderingId === null) {
-    throw new Error('Invalid or missing renderingId in authentication context');
-  }
-
-  return { forestServerToken, renderingId: String(renderingId) };
-}
 
 export default async function createPendingActivityLog(
   forestServerClient: ForestServerClient,

@@ -4,18 +4,24 @@ import type {
   CreateActivityLogParams,
   ForestSchemaCollection,
   ForestServerClient,
+  ListMcpWorkflowsParams,
+  McpWorkflow,
   SchemaServiceInterface,
+  TriggerMcpWorkflowParams,
   UpdateActivityLogStatusParams,
+  WorkflowRunTriggerResult,
+  WorkflowsServiceInterface,
 } from './types';
 
 /**
- * Default implementation of ForestServerClient that uses SchemaService and ActivityLogsService.
- * This provides a convenient API for MCP server operations.
+ * Default implementation of ForestServerClient that uses SchemaService, ActivityLogsService
+ * and WorkflowsService. This provides a convenient API for MCP server operations.
  */
 export default class ForestServerClientImpl implements ForestServerClient {
   constructor(
     private readonly schemaService: SchemaServiceInterface,
     private readonly activityLogsService: ActivityLogsServiceInterface,
+    private readonly workflowsService: WorkflowsServiceInterface,
     public readonly forestServerUrl: string,
   ) {}
 
@@ -33,5 +39,13 @@ export default class ForestServerClientImpl implements ForestServerClient {
 
   async updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void> {
     return this.activityLogsService.updateActivityLogStatus(params);
+  }
+
+  async listMcpWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]> {
+    return this.workflowsService.listMcpEnabledWorkflows(params);
+  }
+
+  async triggerWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult> {
+    return this.workflowsService.triggerMcpWorkflow(params);
   }
 }

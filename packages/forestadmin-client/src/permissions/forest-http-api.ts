@@ -8,6 +8,8 @@ import type {
   ForestAdminServerInterface,
   ForestSchemaCollection,
   IpWhitelistRulesResponse,
+  McpWorkflow,
+  WorkflowRunTriggerResult,
 } from '../types';
 import type { HttpOptions } from '../utils/http-options';
 import type { ToolConfig } from '@forestadmin/ai-proxy';
@@ -149,6 +151,38 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       bearerToken: options.bearerToken,
       body,
       headers: options.headers,
+    });
+  }
+
+  async listMcpEnabledWorkflows(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    collectionName?: string,
+  ): Promise<McpWorkflow[]> {
+    const query = collectionName ? `?collectionName=${encodeURIComponent(collectionName)}` : '';
+
+    return ServerUtils.queryWithBearerToken<McpWorkflow[]>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'get',
+      path: `/api/workflow-orchestrator/workflows${query}`,
+      bearerToken: options.bearerToken,
+      headers: { 'forest-rendering-id': renderingId, ...options.headers },
+    });
+  }
+
+  async triggerMcpWorkflow(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+    recordId: string,
+  ): Promise<WorkflowRunTriggerResult> {
+    return ServerUtils.queryWithBearerToken<WorkflowRunTriggerResult>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'post',
+      path: `/api/workflow-orchestrator/workflows/${encodeURIComponent(workflowId)}/start`,
+      bearerToken: options.bearerToken,
+      body: { recordId },
+      headers: { 'forest-rendering-id': renderingId, ...options.headers },
     });
   }
 }

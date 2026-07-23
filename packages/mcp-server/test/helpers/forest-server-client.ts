@@ -14,6 +14,8 @@ export default function createMockForestServerClient(
       attributes: { index: 'mock-index' },
     }),
     updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
+    listMcpWorkflows: jest.fn().mockResolvedValue([]),
+    triggerWorkflow: jest.fn().mockResolvedValue({ runId: 1, runState: 'loading' }),
     ...overrides,
   } as jest.Mocked<ForestServerClient>;
 }
