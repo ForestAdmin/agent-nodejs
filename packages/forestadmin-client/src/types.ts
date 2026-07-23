@@ -202,6 +202,17 @@ export interface ForestSchemaAction {
     description?: string;
     enums?: string[];
     hook?: string;
+    // Widget options (dropdown/radio/checkbox/color values...) — the static form's only source
+    // for consumers like getMultipleChoiceField() once the /hooks/load probe is skipped.
+    widgetEdit?: {
+      parameters: {
+        static: {
+          options?: { label: string; value: string }[];
+          enableOpacity?: boolean;
+          quickPalette?: string[];
+        };
+      };
+    };
   }[];
   hooks: {
     load: boolean;

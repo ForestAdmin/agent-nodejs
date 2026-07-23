@@ -334,6 +334,21 @@ describe('FieldFormStates', () => {
           description: 'Type of voucher',
           hook: 'onFieldChanged',
         },
+        {
+          field: 'plan',
+          type: 'String',
+          isRequired: true,
+          widgetEdit: {
+            parameters: {
+              static: {
+                options: [
+                  { label: 'Basic', value: 'basic' },
+                  { label: 'Premium', value: 'premium' },
+                ],
+              },
+            },
+          },
+        },
       ];
 
       const formStates = new FieldFormStates(
@@ -354,6 +369,11 @@ describe('FieldFormStates', () => {
       expect(plainField.description).toBe('Type of voucher');
       expect(plainField.hook).toBe('onFieldChanged');
       expect(plainField.value).toBe('credit');
+
+      expect(formStates.getMultipleChoiceField('plan').getOptions()).toEqual([
+        { label: 'Basic', value: 'basic' },
+        { label: 'Premium', value: 'premium' },
+      ]);
     });
 
     it('should use the schema layout when hooks.load is false', async () => {
