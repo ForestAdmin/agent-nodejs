@@ -67,7 +67,6 @@
     "**/@fastify/ajv-compiler/fast-uri": "^3.1.2",
     "**/fast-json-stringify/fast-uri": "^3.1.2",
     "**/@actions/http-client/undici": "^6.27.0",
-    "**/subscriptions-transport-ws/ws": "^7.5.11",
     "**/concurrently/shell-quote": "^1.8.4",
     "**/forest-cli/joi": "^17.13.4"
   }
