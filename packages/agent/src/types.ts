@@ -1,5 +1,6 @@
 import type { CompositeId, Logger, LoggerLevel } from '@forestadmin/datasource-toolkit';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
+import type { WorkflowExecutorTuningOptions } from '@forestadmin/workflow-executor';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 /** Options to configure behavior of an agent's forestadmin driver */
@@ -61,7 +62,7 @@ export type AgentOptions = {
  * Options for an embedded workflow executor, started in the same process as the agent
  * through `agent.addWorkflowExecutor()`.
  */
-export type WorkflowExecutorEmbedOptions = {
+export type WorkflowExecutorEmbedOptions = Omit<WorkflowExecutorTuningOptions, 'loggerLevel'> & {
   /**
    * Use an in-memory run store instead of a database. No database is required, but runs are lost
    * when the process restarts, so it is not meant for production. Mutually exclusive with
@@ -86,10 +87,16 @@ export type WorkflowExecutorEmbedOptions = {
    * Defaults to `3400`.
    */
   port?: number;
-  /** Interval in seconds at which the executor polls the orchestrator for pending steps. */
-  pollingIntervalS?: number;
-  /** Per-step execution timeout in seconds. */
-  stepTimeoutS?: number;
+  /**
+   * Bring your own AI provider instead of Forest's AI server. All three fields are required
+   * together; omit `ai` entirely to keep using Forest's server.
+   */
+  ai?: { provider: 'anthropic' | 'openai'; model: string; apiKey: string };
+  /**
+   * HKDF secret encrypting OAuth-protected MCP connector credentials at rest. Only needed if you
+   * use OAuth-protected MCP connectors; without it their credential deposits return 503. Embed-time
+   * equivalent of the standalone `FOREST_EXECUTOR_ENCRYPTION_KEY` env var.
+   */
   encryptionKey?: string;
 };
 export type AgentOptionsWithDefaults = Readonly<Required<AgentOptions>>;

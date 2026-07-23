@@ -40,23 +40,31 @@ export interface WorkflowExecutor {
   readonly state: RunnerState;
 }
 
-export interface ExecutorOptions {
+export interface WorkflowExecutorTuningOptions {
+  /** Interval in seconds at which the executor polls the orchestrator for pending steps. */
+  pollingIntervalS?: number;
+  /** Per-step execution timeout in seconds. */
+  stepTimeoutS?: number;
+  /** Max duration in seconds of a single AI provider invocation. */
+  aiInvokeTimeoutS?: number;
+  /** Timeout in seconds for draining in-flight steps when the executor stops. */
+  stopTimeoutS?: number;
+  /** Max steps auto-chained per run before yielding to the next poll. `0` disables chaining. */
+  maxChainDepth?: number;
+  /** Collection schema cache TTL in seconds. Lower it to pick up orchestrator schema changes sooner. */
+  schemaCacheTtlS?: number;
+  /** Minimum level of the executor's logs. Defaults to `Info`. */
+  loggerLevel?: LoggerLevel;
+}
+
+export interface ExecutorOptions extends WorkflowExecutorTuningOptions {
   envSecret: string;
   authSecret: string;
   agentUrl: string;
   httpPort: number;
   forestServerUrl?: string;
   aiConfigurations?: AiConfiguration[];
-  pollingIntervalS?: number;
   logger?: Logger;
-  loggerLevel?: LoggerLevel;
-  stopTimeoutS?: number;
-  stepTimeoutS?: number;
-  aiInvokeTimeoutS?: number;
-  // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
-  maxChainDepth?: number;
-  // Collection schema cache TTL in seconds. Lower it to pick up orchestrator schema changes sooner.
-  schemaCacheTtlS?: number;
   // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
   forceAiError?: boolean;
   executorEncryptionKey?: string;
@@ -85,7 +93,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
   if (!options.executorEncryptionKey) {
     logger(
       'Warn',
-      'FOREST_EXECUTOR_ENCRYPTION_KEY is not set — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is configured.',
+      'No encryption key configured — set FOREST_EXECUTOR_ENCRYPTION_KEY (standalone) or pass encryptionKey to addWorkflowExecutor() (embedded) — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is.',
     );
   }
 
@@ -144,7 +152,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiModelPort,
     activityLogPortFactory,
     logger,
-    pollingIntervalS: options.pollingIntervalS ?? DEFAULT_POLLING_INTERVAL_S,
+    pollingIntervalS: positiveOrDefault(options.pollingIntervalS, DEFAULT_POLLING_INTERVAL_S),
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutS: options.stopTimeoutS,
