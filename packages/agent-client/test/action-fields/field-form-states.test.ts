@@ -297,7 +297,7 @@ describe('FieldFormStates', () => {
       expect(formStates.getFields()).toHaveLength(0);
     });
 
-    it('should use fallback fields when hooks.load is false and server returns 404', async () => {
+    it('should build the form from the schema without any request when hooks.load is false', async () => {
       const fallbackFields = [
         { field: 'percentage', type: 'Number', isRequired: true, defaultValue: 10 },
         { field: 'note', type: 'String' },
@@ -313,16 +313,144 @@ describe('FieldFormStates', () => {
         fallbackFields,
       );
 
-      const error404 = new AgentHttpError(404, null, 'Not Found');
-      httpRequester.query.mockRejectedValue(error404);
-
       await formStates.loadInitialState();
 
+      expect(httpRequester.query).not.toHaveBeenCalled();
       expect(formStates.getFields()).toHaveLength(2);
       expect(formStates.getFields()[0].getName()).toBe('percentage');
       expect(formStates.getFields()[0].getValue()).toBe(10);
       expect(formStates.getFields()[1].getName()).toBe('note');
       expect(formStates.getFields()[1].getValue()).toBeUndefined();
+    });
+
+    it('should preserve enums, description and widget props on the skip path', async () => {
+      const fallbackFields = [
+        {
+          field: 'voucher_type',
+          type: 'Enum',
+          enums: ['credit', 'monthly_amount'],
+          isRequired: true,
+          defaultValue: 'credit',
+          description: 'Type of voucher',
+          hook: 'onFieldChanged',
+        },
+        {
+          field: 'plan',
+          type: 'String',
+          isRequired: true,
+          widgetEdit: {
+            parameters: {
+              static: {
+                options: [
+                  { label: 'Basic', value: 'basic' },
+                  { label: 'Premium', value: 'premium' },
+                ],
+              },
+            },
+          },
+        },
+      ];
+
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: ['onFieldChanged'] },
+        fallbackFields,
+      );
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+      const plainField = formStates.getFields()[0].getPlainField();
+      expect(plainField.enums).toEqual(['credit', 'monthly_amount']);
+      expect(plainField.description).toBe('Type of voucher');
+      expect(plainField.hook).toBe('onFieldChanged');
+      expect(plainField.value).toBe('credit');
+
+      expect(formStates.getMultipleChoiceField('plan').getOptions()).toEqual([
+        { label: 'Basic', value: 'basic' },
+        { label: 'Premium', value: 'premium' },
+      ]);
+    });
+
+    it('should use the schema layout when hooks.load is false', async () => {
+      const fallbackFields = [{ field: 'note', type: 'String' }];
+      const fallbackLayout = [
+        { component: 'Separator' },
+        { component: 'Input', fieldId: 'note' },
+      ] as never[];
+
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+        fallbackFields,
+        fallbackLayout,
+      );
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+      expect(formStates.getLayout()).toEqual(fallbackLayout);
+    });
+
+    it('should skip the request when hooks.load is false and the static form is empty', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: false, change: [] },
+        [],
+      );
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).not.toHaveBeenCalled();
+      expect(formStates.getFields()).toHaveLength(0);
+    });
+
+    it('should probe and swallow the 404 when the schema has no hooks at all', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+      );
+
+      const error404 = new AgentHttpError(404, null, 'Not Found');
+      httpRequester.query.mockRejectedValue(error404);
+
+      await formStates.loadInitialState();
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/forest/actions/test-action/hooks/load' }),
+      );
+      expect(formStates.getFields()).toHaveLength(0);
+    });
+
+    it('should rethrow the 404 when the schema declares a load hook', async () => {
+      const formStates = new FieldFormStates(
+        'testAction',
+        '/forest/actions/test-action',
+        'users',
+        httpRequester,
+        ['1'],
+        { load: true, change: [] },
+      );
+
+      const error404 = new AgentHttpError(404, null, 'Not Found');
+      httpRequester.query.mockRejectedValue(error404);
+
+      await expect(formStates.loadInitialState()).rejects.toThrow();
     });
 
     it('should throw when hooks.load is false but server returns 500', async () => {

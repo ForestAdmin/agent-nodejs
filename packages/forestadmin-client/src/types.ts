@@ -12,7 +12,7 @@ import type {
   RenderingPermissionV4,
   UserPermissionV4,
 } from './permissions/types';
-import type { ForestSchema } from './schema/types';
+import type { ForestSchema, ForestServerActionFormLayoutElement } from './schema/types';
 import type { RequestContextVariables } from './utils/context-variables';
 import type ContextVariables from './utils/context-variables';
 import type { HttpOptions } from './utils/http-options';
@@ -196,14 +196,30 @@ export interface ForestSchemaAction {
     field: string;
     type: string;
     isRequired?: boolean;
+    isReadOnly?: boolean;
     defaultValue?: unknown;
     label?: string;
+    description?: string;
+    enums?: string[];
     hook?: string;
+    // Widget options (dropdown/radio/checkbox/color values...) — the static form's only source
+    // for consumers like getMultipleChoiceField() once the /hooks/load probe is skipped.
+    widgetEdit?: {
+      parameters: {
+        static: {
+          options?: { label: string; value: string }[];
+          enableOpacity?: boolean;
+          quickPalette?: string[];
+        };
+      };
+    };
   }[];
   hooks: {
     load: boolean;
     change: unknown[];
   };
+  // Only emitted for static forms (hooks.load: false): the schema then carries the full form.
+  layout?: ForestServerActionFormLayoutElement[];
 }
 
 /**
