@@ -18,6 +18,8 @@ const forestAdminServerInterface = {
     createActivityLog: jest.fn(),
     createMcpActivityLog: jest.fn(),
     updateActivityLogStatus: jest.fn(),
+    // Workflow operations
+    listMcpEnabledWorkflows: jest.fn(),
   }),
 };
 
