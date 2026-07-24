@@ -37,7 +37,6 @@ describe('SchemaGenerator', () => {
 
       expect(schema).toStrictEqual({
         meta: {
-          ai_llms: null,
           liana: 'forest-nodejs-agent',
           liana_version: expect.any(String),
           liana_features: null,
@@ -57,38 +56,12 @@ describe('SchemaGenerator', () => {
 
       expect(schema).toStrictEqual({
         meta: {
-          ai_llms: null,
           liana: 'forest-nodejs-agent',
           liana_version: expect.any(String),
           liana_features: {
             'webhook-custom-actions': '1.0.0',
             'awesome-feature': '3.0.0',
           },
-          stack: {
-            engine: 'nodejs',
-            engine_version: expect.any(String),
-          },
-        },
-      });
-    });
-
-    test('it should serialize ai_llms when AI providers are provided', async () => {
-      const aiProviders = [
-        { name: 'gpt4', provider: 'openai', model: 'gpt-4o' },
-        { name: 'claude', provider: 'anthropic', model: 'claude-sonnet-4-5-20250929' },
-      ];
-
-      const schema = await SchemaGenerator.buildMetadata(null, aiProviders);
-
-      expect(schema).toStrictEqual({
-        meta: {
-          ai_llms: [
-            { name: 'gpt4', provider: 'openai', model: 'gpt-4o' },
-            { name: 'claude', provider: 'anthropic', model: 'claude-sonnet-4-5-20250929' },
-          ],
-          liana: 'forest-nodejs-agent',
-          liana_version: expect.any(String),
-          liana_features: null,
           stack: {
             engine: 'nodejs',
             engine_version: expect.any(String),

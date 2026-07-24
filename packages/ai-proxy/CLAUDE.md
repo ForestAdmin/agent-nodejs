@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-`@forestadmin/ai-proxy` is the AI/LLM integration layer of the monorepo. It implements the AI-provider contract owned by `@forestadmin/agent-toolkit` (`AiProviderDefinition` / `AiRouter` from `interfaces/ai.ts`) and is consumed by `@forestadmin/agent` (which mounts it on its `ai-proxy` route), plus `forestadmin-client` and `workflow-executor`. It is a thin pass-through proxy in front of LangChain: it speaks the OpenAI Chat Completions wire format to the frontend, dispatches to OpenAI or Anthropic, and exposes "remote tools" (MCP servers + first-party Forest integrations) for tool-calling. There are two distinct entry surfaces: the **`Router` proxy** (HTTP/wire-format path) and the **`AiClient`** class (in-process path used by `workflow-executor` via `AiClientAdapter`) — see Architecture.
+`@forestadmin/ai-proxy` is the AI/LLM integration layer of the monorepo. It is consumed by `forestadmin-client` and `workflow-executor`. It is a thin pass-through proxy in front of LangChain: it speaks the OpenAI Chat Completions wire format, dispatches to OpenAI or Anthropic, and exposes "remote tools" (MCP servers + first-party Forest integrations) for tool-calling. There are two distinct entry surfaces: the **`Router` proxy** (HTTP/wire-format path) and the **`AiClient`** class (in-process path used by `workflow-executor` via `AiClientAdapter`) — see Architecture.
 
 ## Architecture
 
-`createAiProvider(config)` (`create-ai-provider.ts`) is the public entry point: it returns an `AiProviderDefinition` whose `init(logger)` builds a `Router` and exposes a single `route(args)`. Everything funnels through **`Router.route`** (`router.ts`), which Zod-validates the request against a discriminated union on `route` (`schemas/route.ts`) — three routes:
+**`Router.route`** (`router.ts`) Zod-validates the request against a discriminated union on `route` (`schemas/route.ts`) — three routes:
 
 - **`ai-query`** — pick an `AiConfiguration` (by `ai-name`, falling back to the first config with a warning), build a `ProviderDispatcher`, and dispatch the chat completion.
 - **`invoke-remote-tool`** — execute one tool by sanitized name (+ optional `source-id` to disambiguate).

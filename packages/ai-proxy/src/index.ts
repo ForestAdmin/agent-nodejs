@@ -3,7 +3,6 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import ToolSourceChecker from './tool-source-checker';
 
-export { createAiProvider } from './create-ai-provider';
 export { createBaseChatModel } from './create-base-chat-model';
 export { default as ProviderDispatcher } from './provider-dispatcher';
 
