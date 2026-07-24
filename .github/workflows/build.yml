@@ -198,6 +198,14 @@ jobs:
   release:
     name: Release packages
     runs-on: ubuntu-latest
+    # Serialize releases per branch so concurrent merges can't run multi-semantic-release
+    # in parallel: an overlapping run sees the branch as "behind remote" and silently skips
+    # publishing. cancel-in-progress must stay false — a release must never be interrupted
+    # mid-publish. The tip run (github.sha == branch head, matching the sha-keyed dist cache)
+    # then drains the whole pending backlog.
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
     needs: [build-api-reference, send-coverage, lint]
     if: |
       github.event_name == 'push'
