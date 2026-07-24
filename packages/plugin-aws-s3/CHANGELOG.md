@@ -1,3 +1,10 @@
+## @forestadmin/plugin-aws-s3 [1.5.14](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.5.13...@forestadmin/plugin-aws-s3@1.5.14) (2026-07-24)
+
+
+### Bug Fixes
+
+* all failled packages release ([#1783](https://github.com/ForestAdmin/agent-nodejs/issues/1783)) ([a89c379](https://github.com/ForestAdmin/agent-nodejs/commit/a89c379bc29fd8a59f5cdaf100c3bb8d3e61a4ec))
+
 ## @forestadmin/plugin-aws-s3 [1.5.13](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/plugin-aws-s3@1.5.12...@forestadmin/plugin-aws-s3@1.5.13) (2026-07-22)
 
 
