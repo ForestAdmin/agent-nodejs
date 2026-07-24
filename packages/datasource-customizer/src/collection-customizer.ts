@@ -271,6 +271,22 @@ export default class CollectionCustomizer<
   }
 
   /**
+   * Like {@link addHook} but also fires for writes initiated from inside a smart action
+   * (`context.collection.update`/`create`/`delete`). Used by the audit-trail plugin.
+   */
+  addInternalHook<P extends HookPosition, T extends HookType>(
+    position: P,
+    type: T,
+    handler: HookHandler<HooksContext<S, N>[P][T]>,
+  ): this {
+    return this.pushCustomization(async () => {
+      this.stack.internalHook
+        .getCollection(this.name)
+        .addHook(position, type, handler as unknown as HookHandler<HooksContext[P][T]>);
+    });
+  }
+
+  /**
    * Add a many to one relation to the collection
    * @param name name of the new relation
    * @param foreignCollection name of the targeted collection
