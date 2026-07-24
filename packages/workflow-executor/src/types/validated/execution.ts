@@ -34,6 +34,9 @@ export type Step = z.infer<typeof StepSchema>;
 export enum TriggerType {
   Manual = 'manual',
   Webhook = 'webhook',
+  // Server-side triggered from the MCP channel (PRD-49). Non-interactive, like Webhook, but kept
+  // distinct for audit ("via MCP") and downstream distinction — never collapse it into Webhook.
+  Mcp = 'mcp',
 }
 export const TriggerTypeSchema = z.nativeEnum(TriggerType);
 

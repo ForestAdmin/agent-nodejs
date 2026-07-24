@@ -191,6 +191,7 @@ export type ServerWorkflowRunState = 'started' | 'pending' | 'loading' | 'aborte
 export enum ServerWorkflowTriggerType {
   manual = 'manual',
   webhook = 'webhook',
+  mcp = 'mcp',
 }
 
 export interface ServerHydratedWorkflowRun {
