@@ -17,7 +17,6 @@ import Get from '../../src/routes/access/get';
 import List from '../../src/routes/access/list';
 import ListRelated from '../../src/routes/access/list-related';
 import DataSourceNativeQueryRoute from '../../src/routes/access/native-query-datasource';
-import AiProxyRoute from '../../src/routes/ai/ai-proxy';
 import Capabilities from '../../src/routes/capabilities';
 import AssociateRelated from '../../src/routes/modification/associate-related';
 import Create from '../../src/routes/modification/create';
@@ -297,43 +296,6 @@ describe('Route index', () => {
         const lqRoute = routes.find(route => route instanceof DataSourceNativeQueryRoute);
 
         expect(lqRoute).toBeTruthy();
-      });
-    });
-
-    describe('with AI router', () => {
-      test('should not include AI routes when aiRouter is null', () => {
-        const dataSource = factories.dataSource.buildWithCollections([
-          factories.collection.build({ name: 'books' }),
-        ]);
-
-        const routes = makeRoutes(
-          dataSource,
-          factories.forestAdminHttpDriverOptions.build(),
-          factories.forestAdminHttpDriverServices.build(),
-          null,
-        );
-
-        const aiRoute = routes.find(route => route instanceof AiProxyRoute);
-        expect(aiRoute).toBeUndefined();
-      });
-
-      test('should include AiProxyRoute when an AI router is provided', () => {
-        const dataSource = factories.dataSource.buildWithCollections([
-          factories.collection.build({ name: 'books' }),
-        ]);
-
-        const aiRouter = { route: jest.fn() };
-
-        const routes = makeRoutes(
-          dataSource,
-          factories.forestAdminHttpDriverOptions.build(),
-          factories.forestAdminHttpDriverServices.build(),
-          aiRouter,
-        );
-
-        const aiRoute = routes.find(route => route instanceof AiProxyRoute);
-        expect(aiRoute).toBeTruthy();
-        expect(aiRoute).toBeInstanceOf(AiProxyRoute);
       });
     });
   });
