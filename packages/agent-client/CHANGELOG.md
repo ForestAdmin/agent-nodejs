@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.12.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.11.1...@forestadmin/agent-client@1.12.0) (2026-07-24)
+
+
+### Features
+
+* **workflow-executor:** surface widget options and field descriptions to the AI form-fill [PRD-809] ([#1778](https://github.com/ForestAdmin/agent-nodejs/issues/1778)) ([d6d9371](https://github.com/ForestAdmin/agent-nodejs/commit/d6d937103e702d5b59e770a65b716a8963039dcd))
+
 ## @forestadmin/agent-client [1.11.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.11.0...@forestadmin/agent-client@1.11.1) (2026-07-23)
 
 
