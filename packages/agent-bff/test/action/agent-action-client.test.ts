@@ -7,7 +7,7 @@ jest.mock('@forestadmin/agent-client', () => ({ createRemoteAgentClient: jest.fn
 const createRemoteAgentClientMock = createRemoteAgentClient as jest.Mock;
 
 describe('createAgentActionClient', () => {
-  it('loads the form via createRemoteAgentClient().collection(name).action(name, { recordIds })', async () => {
+  it('loads the action via createRemoteAgentClient().collection(name).action(name, { recordIds })', async () => {
     const loadedAction = { tag: 'action' };
     const actionFn = jest.fn(async () => loadedAction);
     const collectionFn = jest.fn(() => ({ action: actionFn }));
@@ -19,7 +19,7 @@ describe('createAgentActionClient', () => {
       token: 'agent-jwt',
       actionEndpoints,
     });
-    const result = await client.loadActionForm('users', 'approve', ['1', '2']);
+    const result = await client.loadAction('users', 'approve', ['1', '2']);
 
     expect(createRemoteAgentClientMock).toHaveBeenCalledWith({
       url: 'https://agent.example.com',
