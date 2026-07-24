@@ -928,12 +928,21 @@ describe('AgentClientAgentPort', () => {
   });
 
   describe('getActionForm', () => {
-    function makeField(over: { name: string; type?: string; value?: unknown; required?: boolean }) {
+    function makeField(over: {
+      name: string;
+      type?: string;
+      value?: unknown;
+      required?: boolean;
+      description?: string;
+      options?: unknown[];
+    }) {
       return {
         getName: () => over.name,
         getType: () => over.type ?? 'String',
         getValue: () => over.value,
         isRequired: () => over.required ?? false,
+        getPlainField: () => ({ description: over.description }),
+        getMultipleChoiceField: () => ({ getOptions: () => over.options }),
       };
     }
 
@@ -982,6 +991,51 @@ describe('AgentClientAgentPort', () => {
       expect(form.canExecute).toBe(true);
       expect(form.requiredFields).toEqual([]);
       expect(mockAction.tryToSetFields).not.toHaveBeenCalled();
+    });
+
+    it('surfaces widget options and descriptions, normalizing primitive options', async () => {
+      mockAction.getFields.mockReturnValue([
+        makeField({
+          name: 'plan',
+          type: 'String',
+          required: true,
+          description: 'Subscription plan',
+          options: [
+            { label: 'Basic', value: 'basic' },
+            { label: 'Premium', value: 'premium' },
+          ],
+        }),
+        makeField({ name: 'priority', type: 'String', options: ['low', 'high'] }),
+      ]);
+
+      const form = await port.getActionForm(
+        { collection: 'users', action: 'subscribe', id: [1] },
+        user,
+      );
+
+      expect(form.fields).toEqual([
+        {
+          name: 'plan',
+          type: 'String',
+          value: undefined,
+          isRequired: true,
+          description: 'Subscription plan',
+          allowedValues: [
+            { value: 'basic', label: 'Basic' },
+            { value: 'premium', label: 'Premium' },
+          ],
+        },
+        {
+          name: 'priority',
+          type: 'String',
+          value: undefined,
+          isRequired: false,
+          allowedValues: [
+            { value: 'low', label: 'low' },
+            { value: 'high', label: 'high' },
+          ],
+        },
+      ]);
     });
 
     it('builds the form against no record when the id is omitted (global action)', async () => {

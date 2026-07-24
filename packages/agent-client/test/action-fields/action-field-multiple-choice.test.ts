@@ -40,6 +40,19 @@ describe('ActionFieldMultipleChoice', () => {
 
       expect(field.getOptions()).toBeUndefined();
     });
+
+    it('should return undefined (not throw) for a non-choice widget whose parameters have no static', () => {
+      const plainField = {
+        field: 'testField',
+        type: 'String',
+        isRequired: false,
+        isReadOnly: false,
+        widgetEdit: { parameters: { placeholder: 'Type here' } },
+      } as unknown as PlainField;
+      const field = new ActionFieldMultipleChoice(plainField);
+
+      expect(field.getOptions()).toBeUndefined();
+    });
   });
 
   describe('getOption', () => {

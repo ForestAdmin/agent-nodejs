@@ -64,8 +64,10 @@ export type ActionFormField = {
   type: string;
   value?: unknown;
   isRequired: boolean;
-  // Allowed values for an Enum field — the AI must pick one of these or leave the field empty.
   enumValues?: string[];
+  // Choice-widget values (dropdown/radio/checkboxes); the AI submits `value`, `label` is for humans.
+  allowedValues?: { value: string | number | null; label: string }[];
+  description?: string;
 };
 
 export type ActionForm = {
