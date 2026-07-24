@@ -3191,6 +3191,7 @@ describe('enabledTools', () => {
         'dissociate',
         'getActionForm',
         'executeAction',
+        'listWorkflows',
       ],
     });
 

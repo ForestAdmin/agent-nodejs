@@ -7,8 +7,11 @@ import type {
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
+  ListMcpWorkflowsParams,
+  McpWorkflow,
   SchemaServiceInterface,
   UpdateActivityLogStatusParams,
+  WorkflowsServiceInterface,
 } from '@forestadmin/forestadmin-client';
 
 // Re-export types from forestadmin-client for convenience
@@ -21,8 +24,11 @@ export type {
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
+  ListMcpWorkflowsParams,
+  McpWorkflow,
   SchemaServiceInterface,
   UpdateActivityLogStatusParams,
+  WorkflowsServiceInterface,
 };
 
 /**
@@ -54,4 +60,9 @@ export interface ForestServerClient {
    * Updates an activity log status.
    */
   updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void>;
+
+  /**
+   * Lists the MCP-enabled workflows the caller can access in a rendering.
+   */
+  listMcpWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]>;
 }
