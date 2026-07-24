@@ -125,6 +125,30 @@ describe('patchBodySchemas', () => {
       expect(parsed).toEqual({ userConfirmed: false });
     });
 
+    it('accepts a pending-approval submit carrying the approval request id', () => {
+      const parsed = schema.parse({
+        userConfirmed: true,
+        submissionOutcome: 'pending-approval',
+        approvalRequest: { id: 'appr-1' },
+      });
+
+      expect(parsed).toEqual({
+        userConfirmed: true,
+        submissionOutcome: 'pending-approval',
+        approvalRequest: { id: 'appr-1' },
+      });
+    });
+
+    it('rejects an approvalRequest with an empty id', () => {
+      expect(() => schema.parse({ userConfirmed: true, approvalRequest: { id: '' } })).toThrow();
+    });
+
+    it('rejects extra keys inside approvalRequest (strict)', () => {
+      expect(() =>
+        schema.parse({ userConfirmed: true, approvalRequest: { id: 'a', extra: 'leak' } }),
+      ).toThrow();
+    });
+
     it('rejects unknown fields (strict schema)', () => {
       expect(() =>
         schema.parse({ userConfirmed: true, actionResult: {}, extra: 'leak' }),

@@ -26,6 +26,12 @@ const triggerActionPatchSchema = z
     // Whether the native submit actually executed the action, or only created an approval request
     // (non-blocking): downstream AI steps must be told an awaiting-approval action did NOT run.
     submissionOutcome: z.enum(['executed', 'pending-approval']).optional(),
+    // The approval request the native submit filed, when submissionOutcome is 'pending-approval'.
+    // Persisted so the run panel can deep-link to it (parity with the Full-AI path).
+    approvalRequest: z
+      .object({ id: z.string().min(1) })
+      .strict()
+      .optional(),
   })
   .strict();
 
