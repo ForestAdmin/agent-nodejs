@@ -1758,6 +1758,20 @@
     "@fastify/forwarded" "^3.0.0"
     ipaddr.js "^2.1.0"
 
+"@forestadmin/ai-proxy@1.12.1":
+  version "1.12.1"
+  resolved "https://registry.yarnpkg.com/@forestadmin/ai-proxy/-/ai-proxy-1.12.1.tgz#84db6328e29b505c5bbd4b3afec0b9f420107cf2"
+  integrity sha512-CHZ+XIZTDxThFL0zTf14yusREW5sYJscgvBgBbdayTYYE4w6q2mxT3nwCx9zkS/VkrkV+JD0FEuA+VW4o0J6AQ==
+  dependencies:
+    "@forestadmin/agent-toolkit" "1.2.0"
+    "@forestadmin/datasource-toolkit" "1.54.0"
+    "@langchain/anthropic" "1.4.0"
+    "@langchain/core" "1.1.48"
+    "@langchain/langgraph" "1.3.7"
+    "@langchain/mcp-adapters" "1.1.3"
+    "@langchain/openai" "1.4.7"
+    zod "^4.3.5"
+
 "@forestadmin/context@1.37.1":
   version "1.37.1"
   resolved "https://registry.yarnpkg.com/@forestadmin/context/-/context-1.37.1.tgz#301486c456061d43cb653b3e8be60644edb3f71a"

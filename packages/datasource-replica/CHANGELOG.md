@@ -3,7 +3,6 @@
 
 
 
-
 ### Dependencies
 
 * **@forestadmin/datasource-customizer:** upgraded to 1.69.3

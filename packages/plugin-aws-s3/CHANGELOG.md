@@ -3,7 +3,6 @@
 
 
 
-
 ### Dependencies
 
 * **@forestadmin/datasource-toolkit:** upgraded to 1.54.0

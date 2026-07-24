@@ -10,7 +10,6 @@
 
 
 
-
 ### Dependencies
 
 * **@forestadmin/datasource-mongoose:** upgraded to 1.13.4
