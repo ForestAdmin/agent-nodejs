@@ -1,3 +1,10 @@
+## @forestadmin/datasource-replica [1.8.9](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.8.8...@forestadmin/datasource-replica@1.8.9) (2026-07-24)
+
+
+### Bug Fixes
+
+* all failled packages release ([#1783](https://github.com/ForestAdmin/agent-nodejs/issues/1783)) ([a89c379](https://github.com/ForestAdmin/agent-nodejs/commit/a89c379bc29fd8a59f5cdaf100c3bb8d3e61a4ec))
+
 ## @forestadmin/datasource-replica [1.8.8](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/datasource-replica@1.8.7...@forestadmin/datasource-replica@1.8.8) (2026-04-15)
 
 
