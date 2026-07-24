@@ -4,6 +4,7 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
+import InProcessHttpRequester from '../../src/in-process-http-requester';
 import buildClient, { buildClientWithActions } from '../../src/utils/agent-caller';
 import { fetchForestSchema, getActionEndpoints } from '../../src/utils/schema-fetcher';
 import createMockForestServerClient from '../helpers/forest-server-client';
@@ -128,6 +129,49 @@ describe('buildClient', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     expect(() => buildClient(request)).toThrow('Environment API endpoint is missing or invalid');
+  });
+
+  describe('when an agentDispatcher is provided', () => {
+    const agentDispatcher = { request: jest.fn() };
+
+    beforeEach(() => mockCreateRemoteAgentClient.mockClear());
+
+    it('builds an in-process httpRequester instead of reaching a url', () => {
+      const request = {
+        authInfo: { token: 'test-token', extra: { environmentApiEndpoint: 'http://public:3310' } },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      buildClient(request, agentDispatcher);
+
+      expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
+        expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester) }),
+      );
+    });
+
+    it('wires the in-process requester with an empty url when environmentApiEndpoint is absent', () => {
+      const request = {
+        authInfo: { token: 'test-token', extra: {} },
+      } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+      buildClient(request, agentDispatcher);
+
+      expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
+        expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester), url: '' }),
+      );
+    });
+  });
+
+  it('does not build an httpRequester when no agentDispatcher is provided', () => {
+    mockCreateRemoteAgentClient.mockClear();
+    const request = {
+      authInfo: { token: 'test-token', extra: { environmentApiEndpoint: 'http://localhost:3310' } },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    buildClient(request);
+
+    expect(mockCreateRemoteAgentClient).toHaveBeenCalledWith(
+      expect.objectContaining({ httpRequester: undefined }),
+    );
   });
 });
 
@@ -328,6 +372,22 @@ describe('buildClientWithActions', () => {
 
     expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
       expect.objectContaining({ forestServer: undefined }),
+    );
+  });
+
+  it('builds an in-process httpRequester when an agentDispatcher is provided', async () => {
+    mockFetchForestSchema.mockResolvedValue({ collections: [] } as never);
+    mockGetActionEndpoints.mockReturnValue({});
+    const agentDispatcher = { request: jest.fn() };
+
+    const request = {
+      authInfo: { token: 'test-token', extra: { environmentApiEndpoint: 'http://public:3310' } },
+    } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+    await buildClientWithActions(request, mockForestServerClient, agentDispatcher);
+
+    expect(mockCreateRemoteAgentClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({ httpRequester: expect.any(InProcessHttpRequester) }),
     );
   });
 });

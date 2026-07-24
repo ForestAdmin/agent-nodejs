@@ -29,6 +29,10 @@ export default abstract class ActionField {
     return this.field?.getPlainField().isRequired;
   }
 
+  getPlainField() {
+    return this.field?.getPlainField();
+  }
+
   getMultipleChoiceField() {
     return this.fieldsFormStates.getMultipleChoiceField(this.name);
   }

@@ -1013,6 +1013,67 @@ describe('TriggerRecordActionStepExecutor', () => {
       );
     });
 
+    it('renders field descriptions and choice options in the AI fill prompt', async () => {
+      const agentPort = makeMockAgentPort();
+      (agentPort.getActionForm as jest.Mock)
+        .mockResolvedValueOnce({
+          fields: [
+            {
+              name: 'plan',
+              type: 'String',
+              isRequired: true,
+              description: 'Subscription plan',
+              allowedValues: [
+                { value: 'basic', label: 'Basic' },
+                { value: 'premium', label: 'Premium' },
+              ],
+            },
+            {
+              name: 'priority',
+              type: 'String',
+              isRequired: false,
+              allowedValues: [
+                { value: 'low', label: 'low' },
+                { value: 'high', label: 'high' },
+              ],
+            },
+          ],
+          canExecute: false,
+          requiredFields: ['plan'],
+          skippedFields: [],
+        })
+        .mockResolvedValueOnce({
+          fields: [{ name: 'plan', type: 'String', isRequired: true, value: 'basic' }],
+          canExecute: true,
+          requiredFields: [],
+          skippedFields: [],
+        });
+      const mockModel = makeMockModel({ values: { plan: 'basic' } }, 'fill_action_form');
+      const context = makeContext({
+        model: mockModel.model,
+        agentPort,
+        runStore: makeMockRunStore(),
+        stepDefinition: makeStep({
+          executionType: StepExecutionMode.FullyAutomated,
+          preRecordedArgs: {
+            selectedRecordStepId: 'workflow-start',
+            actionName: 'send-welcome-email',
+          },
+        }),
+      });
+
+      await new TriggerRecordActionStepExecutor(context).execute();
+
+      const prompt = (mockModel.invoke.mock.calls[0][0] as { content: unknown }[])
+        .map(m => m.content)
+        .filter((c): c is string => typeof c === 'string')
+        .join('\n');
+      // object option → "value (label)"; primitive option (value === label) → bare value.
+      expect(prompt).toContain('hint: Subscription plan');
+      expect(prompt).toContain('allowed: basic (Basic), premium (Premium)');
+      expect(prompt).toContain('allowed: low, high');
+    });
+
     it('falls back to the AI-assisted review state when a required field stays empty', async () => {
       const agentPort = makeMockAgentPort();
       (agentPort.getActionForm as jest.Mock).mockResolvedValue({

@@ -73,7 +73,8 @@ function createServer(
     logger: overrides.logger,
     mcpOAuthCredentialsStore:
       overrides.mcpOAuthCredentialsStore ?? new InMemoryMcpOAuthCredentialsStore(),
-    credentialEncryption: overrides.credentialEncryption ?? new CredentialEncryption(),
+    credentialEncryption:
+      overrides.credentialEncryption ?? new CredentialEncryption('a'.repeat(64)),
     remoteToolFetcher: overrides.remoteToolFetcher ?? createMockFetcher(),
   });
 }

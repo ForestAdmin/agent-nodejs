@@ -48,7 +48,11 @@ describe('declareExecuteActionTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "executeAction"', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'executeAction',
@@ -58,7 +62,11 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.title).toBe('Execute an action');
       expect(registeredToolConfig.description).toContain(
@@ -68,13 +76,21 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should not be annotated as read-only', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
     });
 
     it('should define correct input schema', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('actionName');
@@ -83,7 +99,11 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -94,10 +114,11 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger, [
-        'users',
-        'products',
-      ]);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'products'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -109,7 +130,11 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should accept array of strings or numbers for recordIds', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -121,7 +146,11 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should accept null for recordIds (global actions)', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -131,7 +160,11 @@ describe('declareExecuteActionTool', () => {
     });
 
     it('should accept optional values parameter', () => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -154,7 +187,11 @@ describe('declareExecuteActionTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareExecuteActionTool(mcpServer, mockForestServerClient, mockLogger);
+      declareExecuteActionTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
     });
 
     it('should call buildClientWithActions with the extra parameter and forestServerUrl', async () => {
@@ -175,7 +212,11 @@ describe('declareExecuteActionTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClientWithActions).toHaveBeenCalledWith(mockExtra, mockForestServerClient);
+      expect(mockBuildClientWithActions).toHaveBeenCalledWith(
+        mockExtra,
+        mockForestServerClient,
+        undefined,
+      );
     });
 
     it('should call rpcClient.collection with the collection name', async () => {

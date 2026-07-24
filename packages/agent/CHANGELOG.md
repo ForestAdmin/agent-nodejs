@@ -1,3 +1,85 @@
+# @forestadmin/agent [1.90.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.89.1...@forestadmin/agent@1.90.0) (2026-07-24)
+
+
+### Features
+
+* handle multiple projection on relation fields ([#1776](https://github.com/ForestAdmin/agent-nodejs/issues/1776)) ([5800c21](https://github.com/ForestAdmin/agent-nodejs/commit/5800c2174957e480e5e4cd8bb17a05ceb461672b))
+
+## @forestadmin/agent [1.89.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.89.0...@forestadmin/agent@1.89.1) (2026-07-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.41.1
+* **@forestadmin/mcp-server:** upgraded to 1.18.1
+* **@forestadmin/workflow-executor:** upgraded to 1.21.1
+
+# @forestadmin/agent [1.89.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.88.0...@forestadmin/agent@1.89.0) (2026-07-23)
+
+
+### Features
+
+* **agent:** full embedded workflow-executor option parity with standalone ([#1770](https://github.com/ForestAdmin/agent-nodejs/issues/1770)) ([d7480b2](https://github.com/ForestAdmin/agent-nodejs/commit/d7480b2f06c3a5704767e7dacef201c37292fbfe))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.21.0
+
+# @forestadmin/agent [1.88.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.87.1...@forestadmin/agent@1.88.0) (2026-07-23)
+
+
+### Features
+
+* **datasource mongoose:** handle nested enums ([#1765](https://github.com/ForestAdmin/agent-nodejs/issues/1765)) ([7114afd](https://github.com/ForestAdmin/agent-nodejs/commit/7114afda4d448ed5fac0e27fe300f1407f4b8c2e))
+
+## @forestadmin/agent [1.87.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.87.0...@forestadmin/agent@1.87.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **workflow-executor:** inject encryption key instead of reading process.env ([#1769](https://github.com/ForestAdmin/agent-nodejs/issues/1769)) ([5f84c40](https://github.com/ForestAdmin/agent-nodejs/commit/5f84c40c8d1aa4540f970a641e3dd12ba9f521bd))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.20.3
+
+# @forestadmin/agent [1.87.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.7...@forestadmin/agent@1.87.0) (2026-07-22)
+
+
+### Features
+
+* **mcp-server:** dispatch mounted tool calls to the agent in-process ([#1743](https://github.com/ForestAdmin/agent-nodejs/issues/1743)) ([7c5efaa](https://github.com/ForestAdmin/agent-nodejs/commit/7c5efaaabc5e14c0182d84eed83e9e4994c77633))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.18.0
+* **@forestadmin/workflow-executor:** upgraded to 1.20.2
+
+## @forestadmin/agent [1.86.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.6...@forestadmin/agent@1.86.7) (2026-07-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/workflow-executor:** upgraded to 1.20.1
+
 ## @forestadmin/agent [1.86.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.86.5...@forestadmin/agent@1.86.6) (2026-07-16)
 
 

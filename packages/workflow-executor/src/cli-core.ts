@@ -24,6 +24,11 @@ import {
   DEFAULT_STOP_TIMEOUT_S,
 } from './defaults';
 import { ConfigurationError, extractErrorMessage } from './errors';
+import {
+  DEFAULT_SCHEMA,
+  MAX_IDENTIFIER_LENGTH,
+  isValidPostgresIdentifier,
+} from './stores/schema-migrations';
 
 const POSITIVE_INT = z.coerce.number().int().positive();
 const LOGGER_LEVEL_SCHEMA = z.enum(['Debug', 'Info', 'Warn', 'Error']);
@@ -58,6 +63,22 @@ function parseLoggerLevelEnv(raw: string | undefined): LoggerLevel | undefined {
 const TRUTHY = ['true', '1', 'yes', 'on'];
 const FALSY = ['false', '0', 'no', 'off'];
 
+// Reject a bad DATABASE_SCHEMA at the boundary so boot fails with a clear message instead of a
+// cryptic SQL error later (see `isValidPostgresIdentifier` for why the value is constrained).
+function parseSchemaEnv(raw: string | undefined): string | undefined {
+  const schema = raw?.trim();
+  if (!schema) return undefined;
+
+  if (!isValidPostgresIdentifier(schema)) {
+    throw new ConfigurationError(
+      `DATABASE_SCHEMA must be a valid Postgres identifier ` +
+        `(letters, digits, _ or $; starting with a letter or _; max ${MAX_IDENTIFIER_LENGTH} chars); got "${raw}"`,
+    );
+  }
+
+  return schema;
+}
+
 function parseBooleanEnv(name: string, raw: string | undefined, defaultValue = false): boolean {
   if (!raw) return defaultValue;
 
@@ -85,6 +106,7 @@ export interface CliConfig {
   executorOptions: ExecutorOptions;
   databaseUrl?: string;
   databaseSsl: boolean;
+  databaseSchema?: string;
   mode: 'in-memory' | 'database';
 }
 
@@ -234,6 +256,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     maxChainDepth: parsePositiveIntEnv('MAX_CHAIN_DEPTH', env.MAX_CHAIN_DEPTH),
     schemaCacheTtlS: parsePositiveIntEnv('SCHEMA_CACHE_TTL_S', env.SCHEMA_CACHE_TTL_S),
     loggerLevel: parseLoggerLevelEnv(env.LOG_LEVEL) ?? DEFAULT_LOGGER_LEVEL,
+    executorEncryptionKey: env.FOREST_EXECUTOR_ENCRYPTION_KEY,
     ...(aiConfigurations && { aiConfigurations }),
     ...(env.FORCE_AI_ERROR === 'true' && { forceAiError: true }),
   };
@@ -244,6 +267,7 @@ export function readEnvConfig(env: NodeJS.ProcessEnv, args: CliArgs): CliConfig 
     // Defaults to true: managed Postgres (RDS, Supabase, Railway…) requires TLS.
     // Set DATABASE_SSL=false for a local/dev database without TLS.
     databaseSsl: parseBooleanEnv('DATABASE_SSL', env.DATABASE_SSL, true),
+    databaseSchema: parseSchemaEnv(env.DATABASE_SCHEMA),
     mode: args.inMemory ? 'in-memory' : 'database',
   };
 }
@@ -274,7 +298,9 @@ Database connection (use DATABASE_URL, or build it from parts when it is unset):
   DATABASE_PORT         Database port (default: ${DEFAULT_DATABASE_PORT})
 
 Optional environment variables:
+  FOREST_EXECUTOR_ENCRYPTION_KEY  HKDF secret encrypting OAuth-protected MCP connector credentials at rest (required only if you use them)
   DATABASE_SSL          Connect to the database over TLS (default: true; set "false" for a local DB without TLS)
+  DATABASE_SCHEMA       Postgres schema for the executor's tables (default: forest)
   HTTP_PORT              Default: ${DEFAULT_HTTP_PORT}
   FOREST_SERVER_URL      Default: ${DEFAULT_FOREST_SERVER_URL}
   POLLING_INTERVAL_S    Default: ${DEFAULT_POLLING_INTERVAL_S}
@@ -301,7 +327,7 @@ export function printVersion(): void {
 }
 
 export function logStartup(logger: Logger, config: CliConfig): void {
-  const { executorOptions: opts, mode, databaseSsl } = config;
+  const { executorOptions: opts, mode, databaseSsl, databaseSchema } = config;
   let aiLabel: string;
 
   if (opts.forceAiError) {
@@ -315,6 +341,7 @@ export function logStartup(logger: Logger, config: CliConfig): void {
   logger('Info', 'Workflow executor starting', {
     mode,
     databaseSsl: mode === 'database' ? databaseSsl : undefined,
+    databaseSchema: mode === 'database' ? databaseSchema ?? DEFAULT_SCHEMA : undefined,
     forestServerUrl: opts.forestServerUrl ?? DEFAULT_FOREST_SERVER_URL,
     agentUrl: opts.agentUrl,
     httpPort: opts.httpPort,
@@ -359,6 +386,7 @@ export async function runCli(
         ...config.executorOptions,
         database: {
           uri: config.databaseUrl as string,
+          ...(config.databaseSchema && { schema: config.databaseSchema }),
           ...(config.databaseSsl && {
             dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
           }),

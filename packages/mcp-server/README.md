@@ -63,6 +63,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
 | `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
+| `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
 
 #### Example Configuration
 

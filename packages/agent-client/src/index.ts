@@ -46,8 +46,10 @@ export function createRemoteAgentClient(params: {
    * agent (e.g. tests). `serverUrl` is the Forest server, distinct from the agent `url` above.
    */
   forestServer?: { serverUrl: string; serverToken: string; renderingId: number | string };
+  httpRequester?: HttpRequester;
 }) {
-  const httpRequester = new HttpRequester(params.token, { url: params.url });
+  const httpRequester =
+    params.httpRequester ?? new HttpRequester(params.token, { url: params.url });
 
   return new RemoteAgentClient({
     actionEndpoints: params.actionEndpoints,

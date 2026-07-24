@@ -20,13 +20,14 @@ const TEST_ENV_SECRET = 'test-env-secret';
 const TEST_AUTH_SECRET = 'test-auth-secret';
 const TEST_FOREST_APP_URL = 'https://app.forestadmin.com';
 
-function createProvider(forestServerUrl = 'https://api.forestadmin.com') {
+function createProvider(forestServerUrl = 'https://api.forestadmin.com', agentUrl?: string) {
   return new ForestOAuthProvider({
     forestServerUrl,
     forestAppUrl: TEST_FOREST_APP_URL,
     envSecret: TEST_ENV_SECRET,
     authSecret: TEST_AUTH_SECRET,
     logger: console.info,
+    agentUrl,
   });
 }
 
@@ -833,6 +834,51 @@ describe('ForestOAuthProvider', () => {
         environmentApiEndpoint: undefined,
         forestServerToken: 'forest-server-token',
       });
+    });
+
+    it('uses agentUrl as the tool callback endpoint when configured', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        id: 1,
+        email: 'user@example.com',
+        renderingId: 2,
+        serverToken: 'forest-server-token',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000),
+      });
+
+      const provider = createProvider(
+        'https://api.forestadmin.com',
+        'http://forest-agent.internal:3310',
+      );
+      const result = await provider.verifyAccessToken('valid-access-token');
+
+      expect((result.extra as { environmentApiEndpoint: string }).environmentApiEndpoint).toBe(
+        'http://forest-agent.internal:3310',
+      );
+    });
+
+    it('falls back to the environment api_endpoint when no agentUrl is set', async () => {
+      mockServer.get('/liana/environment', {
+        data: { id: '1', attributes: { api_endpoint: 'https://public.example.com' } },
+      });
+      global.fetch = mockServer.fetch;
+
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        id: 1,
+        email: 'user@example.com',
+        renderingId: 2,
+        serverToken: 'forest-server-token',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000),
+      });
+
+      const provider = createProvider();
+      await provider.initialize();
+      const result = await provider.verifyAccessToken('valid-access-token');
+
+      expect((result.extra as { environmentApiEndpoint: string }).environmentApiEndpoint).toBe(
+        'https://public.example.com',
+      );
     });
 
     it('should throw error for expired access token', async () => {

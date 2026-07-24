@@ -146,6 +146,54 @@ describe('BinaryCollectionDecorator', () => {
     });
   });
 
+  describe('with a nested enum sibling of a binary field', () => {
+    let items: Collection;
+    let decoratedItems: BinaryCollectionDecorator;
+
+    beforeEach(() => {
+      items = factories.collection.build({
+        name: 'items',
+        schema: factories.collectionSchema.build({
+          fields: {
+            id: factories.columnSchema.numericPrimaryKey().build(),
+            data: factories.columnSchema.build({
+              columnType: { pic: 'Binary', kind: { type: 'Enum', enumValues: ['a', 'b'] } },
+            }),
+          },
+        }),
+      });
+
+      const dataSource = factories.dataSource.buildWithCollections([items]);
+      decoratedItems = new DataSourceDecorator(dataSource, BinaryCollectionDecorator).getCollection(
+        'items',
+      );
+    });
+
+    test('schema should rewrite the binary but leave the nested enum untouched', () => {
+      expect(decoratedItems.schema.fields.data).toEqual(
+        expect.objectContaining({
+          columnType: { pic: 'String', kind: { type: 'Enum', enumValues: ['a', 'b'] } },
+        }),
+      );
+    });
+
+    test('list should preserve the enum value while converting the binary', async () => {
+      (items.list as jest.Mock).mockResolvedValue([
+        { id: 1, data: { pic: Buffer.from('0000', 'ascii'), kind: 'a' } },
+      ]);
+
+      const records = await decoratedItems.list(
+        factories.caller.build(),
+        new PaginatedFilter({}),
+        new Projection('id', 'data:pic', 'data:kind'),
+      );
+
+      expect(records).toEqual([
+        { id: 1, data: { pic: 'data:application/octet-stream;base64,MDAwMA==', kind: 'a' } },
+      ]);
+    });
+  });
+
   describe('list with a simple filter', () => {
     // Build params (30303030 is the hex representation of 0000)
     const conditionTree = new ConditionTreeLeaf('id', 'Equal', '30303030');

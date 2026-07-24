@@ -40,6 +40,9 @@ describe('TypingGenerator', () => {
             complex: factories.columnSchema.build({
               columnType: { firstname: 'String', lastname: 'String' },
             }),
+            complexWithEnum: factories.columnSchema.build({
+              columnType: { name: 'String', kind: { type: 'Enum', enumValues: ['x', 'y'] } },
+            }),
             array: factories.columnSchema.build({ columnType: ['String'] }),
           },
         },
@@ -64,6 +67,7 @@ describe('TypingGenerator', () => {
             'array': Array<string> | null;
             'boolean': boolean | null;
             'complex': { 'firstname': string; 'lastname': string } | null;
+            'complexWithEnum': { 'kind': 'x' | 'y'; 'name': string } | null;
             'enumWithoutValues': string | null;
             'enumWithValues': 'a' | 'b' | 'c' | null;
             'id': number | null;

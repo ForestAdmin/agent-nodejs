@@ -95,7 +95,10 @@ export type ActionExecuteResult =
 
 export type ActionEndpointsByCollection = {
   [collectionName: string]: {
-    [actionName: string]: Pick<ForestSchemaAction, 'id' | 'name' | 'endpoint' | 'hooks' | 'fields'>;
+    // hooks/fields stay optional so legacy schemas that omit them keep probing /hooks/load:
+    // an absent value must stay distinguishable from an explicitly empty static form.
+    [actionName: string]: Pick<ForestSchemaAction, 'id' | 'name' | 'endpoint' | 'layout'> &
+      Partial<Pick<ForestSchemaAction, 'hooks' | 'fields'>>;
   };
 };
 export default class Action {

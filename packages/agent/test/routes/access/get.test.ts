@@ -206,6 +206,33 @@ describe('GetRoute', () => {
             ['name', 'author:id', 'id'],
           );
         });
+
+        test('it should handle multiple projected fields on a belongsTo relation', async () => {
+          jest
+            .spyOn(dataSource.getCollection('books'), 'list')
+            .mockResolvedValue([{ title: 'test ' }]);
+          services.serializer.serialize = jest.fn().mockReturnValue('test');
+          const get = new Get(services, options, dataSource, 'books');
+          const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
+            customProperties: {
+              query: {
+                timezone: 'Europe/Paris',
+                'fields[books]': 'name,author',
+                'fields[author]': 'id,bookId',
+              },
+              params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+            },
+          });
+
+          await get.handleGet(context);
+
+          expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            ['name', 'author:id', 'author:bookId', 'id'],
+          );
+        });
       });
 
       describe('when an error happens', () => {

@@ -199,7 +199,7 @@ function createIntegrationSetup(overrides?: {
   const runStore = new InMemoryStore();
   const schemaCache = new SchemaCache();
   const mcpOAuthCredentialsStore = new InMemoryMcpOAuthCredentialsStore();
-  const credentialEncryption = new CredentialEncryption();
+  const credentialEncryption = new CredentialEncryption('a'.repeat(64));
   const mcpOAuthTokenService = new OAuthTokenService({
     store: mcpOAuthCredentialsStore,
     encryption: credentialEncryption,

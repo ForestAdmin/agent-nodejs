@@ -3,8 +3,8 @@ import type { Sequelize, Transaction } from 'sequelize';
 
 import { extractErrorMessage } from '../errors';
 
-// The schema both executor tables live under, so a shared customer database stays safe: the executor
-// never touches `public`, and its umzug `SequelizeMeta` registries can't collide with the
+// The default schema both executor tables live under, so a shared customer database stays safe: the
+// executor never touches `public`, and its umzug `SequelizeMeta` registries can't collide with the
 // agent/server's own. Skipped on SQLite (test suite), which has no schema support.
 export const DEFAULT_SCHEMA = 'forest';
 
@@ -12,8 +12,25 @@ export const DEFAULT_SCHEMA = 'forest';
 // by every executor migration runner so all of them serialize against one another on cold start.
 const MIGRATION_ADVISORY_LOCK_KEY = 6_438_071_259_157;
 
+// A schema name flows unescaped into raw DDL (`CREATE SCHEMA "${schema}"`), so anything that isn't a
+// plain Postgres identifier must be rejected before it reaches there. Postgres also truncates
+// identifiers past 63 bytes, which would silently target a different schema.
+const POSTGRES_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_$]*$/;
+export const MAX_IDENTIFIER_LENGTH = 63;
+
+export function isValidPostgresIdentifier(value: string): boolean {
+  return value.length <= MAX_IDENTIFIER_LENGTH && POSTGRES_IDENTIFIER.test(value);
+}
+
 export function resolveSchema(sequelize: Sequelize, configured?: string): string | undefined {
   if (sequelize.getDialect() === 'sqlite') return undefined;
+
+  if (configured && !isValidPostgresIdentifier(configured)) {
+    throw new Error(
+      `Invalid schema "${configured}": must be a valid Postgres identifier ` +
+        `(letters, digits, _ or $; starting with a letter or _; max ${MAX_IDENTIFIER_LENGTH} chars)`,
+    );
+  }
 
   return configured || DEFAULT_SCHEMA;
 }
@@ -27,6 +44,20 @@ export function tableId(
 
 export function tableReference(schema: string | undefined, tableName: string): string {
   return schema ? `"${schema}"."${tableName}"` : `"${tableName}"`;
+}
+
+// pg_namespace is world-readable, so this probe needs no special privilege — unlike CREATE SCHEMA.
+async function schemaExists(
+  sequelize: Sequelize,
+  schema: string,
+  transaction: Transaction,
+): Promise<boolean> {
+  const [rows] = (await sequelize.query('SELECT 1 FROM pg_namespace WHERE nspname = $1', {
+    bind: [schema],
+    transaction,
+  })) as [unknown[], unknown];
+
+  return rows.length > 0;
 }
 
 // Serializes booting instances via a transaction-scoped advisory lock: auto-releases at commit and
@@ -48,8 +79,9 @@ async function withMigrationLock(
 }
 
 // Runs an umzug migration set under the executor's shared-database safety rules: on Postgres the
-// `forest` schema is created and migrations run behind the advisory lock (one writer across booting
-// replicas); on other dialects (SQLite) it just runs. Logs `failMessage` and rethrows on failure.
+// configured schema (default `forest`) is created and migrations run behind the advisory lock (one
+// writer across booting replicas); on other dialects (SQLite) it just runs. Logs `failMessage` and
+// rethrows on failure.
 export async function runMigrations({
   sequelize,
   umzug,
@@ -84,11 +116,17 @@ export async function runMigrations({
       );
     }
 
-    // Schema in its own committed transaction so umzug (on other connections) sees it.
+    // Schema in its own committed transaction so umzug (on other connections) sees it. Probe first
+    // and skip CREATE when it already exists: Postgres checks the database-level CREATE privilege
+    // even for CREATE SCHEMA IF NOT EXISTS, so an operator can pre-create the schema and grant only
+    // schema-level rights, avoiding database-level CREATE. The probe runs inside the lock so the
+    // create stays serialized across booting replicas.
     if (schema) {
-      await withMigrationLock(sequelize, transaction =>
-        sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`, { transaction }),
-      );
+      await withMigrationLock(sequelize, async transaction => {
+        if (!(await schemaExists(sequelize, schema, transaction))) {
+          await sequelize.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`, { transaction });
+        }
+      });
     }
 
     await withMigrationLock(sequelize, () => umzug.up());

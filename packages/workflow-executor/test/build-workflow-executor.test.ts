@@ -1,6 +1,5 @@
 import ForestServerWorkflowPort from '../src/adapters/forest-server-workflow-port';
 import { buildDatabaseExecutor, buildInMemoryExecutor } from '../src/build-workflow-executor';
-import CredentialEncryption from '../src/crypto/credential-encryption';
 import { DEFAULT_SCHEMA_CACHE_TTL_S } from '../src/defaults';
 import ExecutorHttpServer from '../src/http/executor-http-server';
 import OAuthTokenService from '../src/oauth/token-service';
@@ -61,15 +60,22 @@ describe('buildInMemoryExecutor', () => {
     );
   });
 
-  it('wires the in-memory OAuth credentials store and encryption into the HTTP server', () => {
+  it('wires the in-memory OAuth credentials store into the HTTP server', () => {
     buildInMemoryExecutor(BASE_OPTIONS);
 
     expect(ExecutorHttpServer).toHaveBeenCalledWith(
       expect.objectContaining({
         mcpOAuthCredentialsStore: expect.any(InMemoryMcpOAuthCredentialsStore),
-        credentialEncryption: expect.any(CredentialEncryption),
       }),
     );
+  });
+
+  it('threads executorEncryptionKey into the CredentialEncryption given to the HTTP server', () => {
+    buildInMemoryExecutor({ ...BASE_OPTIONS, executorEncryptionKey: 'a'.repeat(64) });
+
+    const { credentialEncryption } = jest.mocked(ExecutorHttpServer).mock.calls[0][0];
+
+    expect(credentialEncryption.decrypt(credentialEncryption.encrypt('x').ciphertext)).toBe('x');
   });
 
   it('wires an OAuth token service into the in-memory runner', () => {
@@ -282,15 +288,22 @@ describe('buildDatabaseExecutor', () => {
     );
   });
 
-  it('wires the database OAuth credentials store and encryption into the HTTP server', () => {
+  it('wires the database OAuth credentials store into the HTTP server', () => {
     buildDatabaseExecutor(DB_OPTIONS);
 
     expect(ExecutorHttpServer).toHaveBeenCalledWith(
       expect.objectContaining({
         mcpOAuthCredentialsStore: expect.any(DatabaseMcpOAuthCredentialsStore),
-        credentialEncryption: expect.any(CredentialEncryption),
       }),
     );
+  });
+
+  it('threads executorEncryptionKey into the CredentialEncryption given to the HTTP server', () => {
+    buildDatabaseExecutor({ ...DB_OPTIONS, executorEncryptionKey: 'a'.repeat(64) });
+
+    const { credentialEncryption } = jest.mocked(ExecutorHttpServer).mock.calls[0][0];
+
+    expect(credentialEncryption.decrypt(credentialEncryption.encrypt('x').ciphertext)).toBe('x');
   });
 
   it('creates Sequelize with uri and passes remaining options through', () => {
@@ -551,20 +564,11 @@ describe('WorkflowExecutor lifecycle', () => {
   });
 });
 
-describe('FOREST_EXECUTOR_ENCRYPTION_KEY startup warning', () => {
-  const ENV_KEY = 'FOREST_EXECUTOR_ENCRYPTION_KEY';
-  const original = process.env[ENV_KEY];
-
-  afterEach(() => {
-    if (original === undefined) delete process.env[ENV_KEY];
-    else process.env[ENV_KEY] = original;
-  });
-
+describe('encryption key startup warning', () => {
   it('warns at startup when the encryption key is unset (no default key — fail closed)', () => {
-    delete process.env[ENV_KEY];
     const logger = jest.fn();
 
-    buildInMemoryExecutor({ ...BASE_OPTIONS, logger });
+    buildInMemoryExecutor({ ...BASE_OPTIONS, executorEncryptionKey: undefined, logger });
 
     expect(logger).toHaveBeenCalledWith(
       'Warn',
@@ -573,10 +577,9 @@ describe('FOREST_EXECUTOR_ENCRYPTION_KEY startup warning', () => {
   });
 
   it('does not warn when the encryption key is set', () => {
-    process.env[ENV_KEY] = 'a'.repeat(64);
     const logger = jest.fn();
 
-    buildInMemoryExecutor({ ...BASE_OPTIONS, logger });
+    buildInMemoryExecutor({ ...BASE_OPTIONS, executorEncryptionKey: 'a'.repeat(64), logger });
 
     expect(logger).not.toHaveBeenCalledWith(
       'Warn',

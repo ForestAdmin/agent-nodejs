@@ -11,7 +11,12 @@ import type {
 } from '@forestadmin/datasource-toolkit';
 import type { ForestServerColumnType, ForestServerField } from '@forestadmin/forestadmin-client';
 
-import { CollectionUtils, SchemaUtils, ValidationError } from '@forestadmin/datasource-toolkit';
+import {
+  CollectionUtils,
+  SchemaUtils,
+  TypeGetter,
+  ValidationError,
+} from '@forestadmin/datasource-toolkit';
 
 import ColumnSchemaValidator from './column-schema-validator';
 import FrontendFilterableUtils from './filterable';
@@ -91,10 +96,11 @@ export default class SchemaGeneratorFields {
     }
 
     return {
-      fields: Object.entries(type).map(([key, subType]) => ({
-        field: key,
-        type: this.convertColumnType(subType),
-      })),
+      fields: Object.entries(type).map(([key, subType]) =>
+        TypeGetter.isEnumField(subType)
+          ? { field: key, type: 'Enum', enums: [...subType.enumValues].sort() }
+          : { field: key, type: this.convertColumnType(subType) },
+      ),
     };
   }
 

@@ -16,7 +16,7 @@ import type {
   RecordData,
 } from '@forestadmin/datasource-toolkit';
 
-import { CollectionDecorator, SchemaUtils } from '@forestadmin/datasource-toolkit';
+import { CollectionDecorator, SchemaUtils, TypeGetter } from '@forestadmin/datasource-toolkit';
 import { filetypemime } from 'magic-bytes.js';
 
 /**
@@ -225,7 +225,9 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
       if (typeof columnType !== 'string') {
         const entries = Object.entries(columnType).map(async ([key, type]) => [
           key,
-          await this.convertValueHelper(toBackend, type, useHex, value[key]),
+          TypeGetter.isEnumField(type)
+            ? value[key]
+            : await this.convertValueHelper(toBackend, type, useHex, value[key]),
         ]);
 
         return Object.fromEntries(await Promise.all(entries));
@@ -266,7 +268,7 @@ export default class BinaryCollectionDecorator extends CollectionDecorator {
 
     const entries = Object.entries(columnType).map(([key, type]) => [
       key,
-      this.replaceColumnType(type),
+      TypeGetter.isEnumField(type) ? type : this.replaceColumnType(type),
     ]);
 
     return Object.fromEntries(entries);

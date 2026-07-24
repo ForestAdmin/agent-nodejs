@@ -42,7 +42,11 @@ describe('declareGetActionFormTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "getActionForm"', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'getActionForm',
@@ -52,7 +56,11 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.title).toBe('Retrieve action form');
       expect(registeredToolConfig.description).toContain(
@@ -62,13 +70,21 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should be annotated as read-only', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
     });
 
     it('should define correct input schema', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.inputSchema).toHaveProperty('collectionName');
       expect(registeredToolConfig.inputSchema).toHaveProperty('actionName');
@@ -77,7 +93,11 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should use string type for collectionName when no collection names provided', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -88,10 +108,11 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should use enum type for collectionName when collection names provided', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger, [
-        'users',
-        'products',
-      ]);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['users', 'products'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -103,7 +124,11 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should accept array of strings or numbers for recordIds', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -115,7 +140,11 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should accept null for recordIds (global actions)', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -125,7 +154,11 @@ describe('declareGetActionFormTool', () => {
     });
 
     it('should accept optional values parameter', () => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -148,7 +181,11 @@ describe('declareGetActionFormTool', () => {
     } as unknown as RequestHandlerExtra<ServerRequest, ServerNotification>;
 
     beforeEach(() => {
-      declareGetActionFormTool(mcpServer, mockForestServerClient, mockLogger);
+      declareGetActionFormTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
     });
 
     it('should call buildClientWithActions with the extra parameter and forestServerUrl', async () => {
@@ -169,7 +206,11 @@ describe('declareGetActionFormTool', () => {
         mockExtra,
       );
 
-      expect(mockBuildClientWithActions).toHaveBeenCalledWith(mockExtra, mockForestServerClient);
+      expect(mockBuildClientWithActions).toHaveBeenCalledWith(
+        mockExtra,
+        mockForestServerClient,
+        undefined,
+      );
     });
 
     it('should call rpcClient.collection with the collection name', async () => {
@@ -265,12 +306,16 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
         {
           getName: () => 'message',
           getType: () => 'String',
           getValue: () => 'Default message',
           isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -312,12 +357,16 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
         {
           getName: () => 'message',
           getType: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -350,12 +399,16 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
         {
           getName: () => 'message',
           getType: () => 'String',
           getValue: () => 'Test Message',
           isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -388,6 +441,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'Number',
           getValue: () => 0,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -420,6 +475,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'Boolean',
           getValue: () => false,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -452,6 +509,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => '',
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -484,6 +543,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => null,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -516,6 +577,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -548,12 +611,16 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'Enum',
           getValue: () => undefined,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
         {
           getName: () => 'message',
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -589,6 +656,73 @@ describe('declareGetActionFormTool', () => {
         { name: 'message', type: 'String', value: undefined, isRequired: false },
       ]);
       expect(mockGetEnumField).toHaveBeenCalledWith('status');
+    });
+
+    it('should return description and allowedValues for choice widget fields', async () => {
+      const mockFields = [
+        {
+          getName: () => 'plan',
+          getType: () => 'String',
+          getValue: () => undefined,
+          isRequired: () => true,
+          getPlainField: () => ({ description: 'Subscription plan' }),
+          getMultipleChoiceField: () => ({
+            getOptions: () => [
+              { label: 'Basic', value: 'basic' },
+              { label: 'Premium', value: 'premium' },
+            ],
+          }),
+        },
+        {
+          getName: () => 'priority',
+          getType: () => 'String',
+          getValue: () => undefined,
+          isRequired: () => false,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => ['low', 'high'] }),
+        },
+      ];
+      const mockGetFields = jest.fn().mockReturnValue(mockFields);
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: mockGetFields,
+        tryToSetFields: mockTryToSetFields,
+      });
+      const mockCollection = jest.fn().mockReturnValue({ action: mockAction });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: mockCollection },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const result = await registeredToolHandler(
+        { collectionName: 'users', actionName: 'subscribe', recordIds: [1] },
+        mockExtra,
+      );
+
+      const parsedResult = JSON.parse((result as { content: { text: string }[] }).content[0].text);
+      expect(parsedResult.fields).toEqual([
+        {
+          name: 'plan',
+          type: 'String',
+          value: undefined,
+          isRequired: true,
+          description: 'Subscription plan',
+          allowedValues: [
+            { value: 'basic', label: 'Basic' },
+            { value: 'premium', label: 'Premium' },
+          ],
+        },
+        {
+          name: 'priority',
+          type: 'String',
+          value: undefined,
+          isRequired: false,
+          allowedValues: [
+            { value: 'low', label: 'low' },
+            { value: 'high', label: 'high' },
+          ],
+        },
+      ]);
     });
 
     it('should handle empty fields array', async () => {
@@ -628,6 +762,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => 'Test Subject',
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);
@@ -667,6 +803,8 @@ describe('declareGetActionFormTool', () => {
           getType: () => 'String',
           getValue: () => undefined,
           isRequired: () => true,
+          getPlainField: () => ({}),
+          getMultipleChoiceField: () => ({ getOptions: () => undefined }),
         },
       ];
       const mockGetFields = jest.fn().mockReturnValue(mockFields);

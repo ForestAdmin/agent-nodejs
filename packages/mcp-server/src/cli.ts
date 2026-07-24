@@ -10,6 +10,7 @@ const server = new ForestMCPServer({
   envSecret: process.env.FOREST_ENV_SECRET,
   authSecret: process.env.FOREST_AUTH_SECRET,
   enabledTools: parseToolList(process.env.FOREST_MCP_ENABLED_TOOLS),
+  agentUrl: process.env.FOREST_AGENT_URL,
 });
 
 server.run().catch(error => {

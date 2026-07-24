@@ -80,7 +80,12 @@ export type ManyToManySchema = {
   type: 'ManyToMany';
 };
 
-export type ColumnType = PrimitiveTypes | { [key: string]: ColumnType } | [ColumnType];
+export type NestedEnumColumnType = { type: 'Enum'; enumValues: string[] };
+
+export type ColumnType =
+  | PrimitiveTypes
+  | { [key: string]: ColumnType | NestedEnumColumnType }
+  | [ColumnType];
 
 export type PrimitiveTypes =
   | 'Boolean'

@@ -89,6 +89,19 @@ describe('toStepDefinition', () => {
       });
     });
 
+    it('should forward preRecordedArgs on an update-data task', () => {
+      const task = makeTask({
+        taskType: ServerTaskTypeEnum.UpdateData,
+        prompt: 'update it',
+        preRecordedArgs: { selectedRecordStepId: 'load-1', fieldName: 'status', value: 'active' },
+      } as Partial<ServerWorkflowTask>);
+
+      expect(toStepDefinition(task)).toMatchObject({
+        type: StepType.UpdateRecord,
+        preRecordedArgs: { selectedRecordStepId: 'load-1', fieldName: 'status', value: 'active' },
+      });
+    });
+
     it('should map task with trigger-action taskType to trigger-action', () => {
       const task = makeTask({ taskType: ServerTaskTypeEnum.TriggerAction, prompt: 'trigger it' });
 

@@ -1,4 +1,4 @@
-import type { ColumnType, PrimitiveTypes } from '../interfaces/schema';
+import type { ColumnType, NestedEnumColumnType, PrimitiveTypes } from '../interfaces/schema';
 
 import { DateTime } from 'luxon';
 import { validate as uuidValidate } from 'uuid';
@@ -43,6 +43,17 @@ export default class TypeGetter {
 
   static isArrayOfPrimitiveType(columnType: ColumnType): columnType is [PrimitiveTypes] {
     return Array.isArray(columnType) && this.isPrimitiveType(columnType[0]);
+  }
+
+  static isEnumField(field: ColumnType | NestedEnumColumnType): field is NestedEnumColumnType {
+    const candidate = field as NestedEnumColumnType;
+
+    return (
+      typeof field === 'object' &&
+      !Array.isArray(field) &&
+      candidate.type === 'Enum' &&
+      Array.isArray(candidate.enumValues)
+    );
   }
 
   private static getDateType(value: string): PrimitiveTypes {

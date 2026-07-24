@@ -1,5 +1,4 @@
-import type { ForestServerClient } from '../http-client';
-import type { Logger } from '../server';
+import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { z } from 'zod';
@@ -23,12 +22,8 @@ function createArgumentShape(collectionNames: string[]) {
   };
 }
 
-export default function declareDeleteTool(
-  mcpServer: McpServer,
-  forestServerClient: ForestServerClient,
-  logger: Logger,
-  collectionNames: string[] = [],
-): string {
+export default function declareDeleteTool(mcpServer: McpServer, ctx: ToolContext): string {
+  const { forestServerClient, logger, collectionNames } = ctx;
   const argumentShape = createArgumentShape(collectionNames);
 
   return registerToolWithLogging(
@@ -40,7 +35,7 @@ export default function declareDeleteTool(
       inputSchema: argumentShape,
     },
     async (options: DeleteArgument, extra) => {
-      const { rpcClient } = buildClient(extra);
+      const { rpcClient } = buildClient(extra, ctx.agentDispatcher);
 
       // Cast to satisfy the type system - the API accepts both string[] and number[]
       const recordIds = options.recordIds as string[] | number[];

@@ -1,3 +1,25 @@
+## @forestadmin/agent-client [1.11.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.11.0...@forestadmin/agent-client@1.11.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **agent-client:** build static forms from the schema instead of probing /hooks/load [PRD-802] ([#1775](https://github.com/ForestAdmin/agent-nodejs/issues/1775)) ([b1aacea](https://github.com/ForestAdmin/agent-nodejs/commit/b1aacea9374a7670c16fe9bef70257d40b425d49))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/forestadmin-client:** upgraded to 1.41.1
+
+# @forestadmin/agent-client [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.10.2...@forestadmin/agent-client@1.11.0) (2026-07-22)
+
+
+### Features
+
+* **mcp-server:** dispatch mounted tool calls to the agent in-process ([#1743](https://github.com/ForestAdmin/agent-nodejs/issues/1743)) ([7c5efaa](https://github.com/ForestAdmin/agent-nodejs/commit/7c5efaaabc5e14c0182d84eed83e9e4994c77633))
+
 ## @forestadmin/agent-client [1.10.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.10.1...@forestadmin/agent-client@1.10.2) (2026-07-16)
 
 

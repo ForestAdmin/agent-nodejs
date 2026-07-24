@@ -166,6 +166,19 @@ describe('readEnvConfig', () => {
     );
   });
 
+  it('parses FOREST_EXECUTOR_ENCRYPTION_KEY into the executor options', () => {
+    const config = readEnvConfig(
+      { ...baseEnv, FOREST_EXECUTOR_ENCRYPTION_KEY: 'a'.repeat(64) },
+      args,
+    );
+
+    expect(config.executorOptions.executorEncryptionKey).toBe('a'.repeat(64));
+  });
+
+  it('leaves the encryption key undefined when FOREST_EXECUTOR_ENCRYPTION_KEY is unset', () => {
+    expect(readEnvConfig(baseEnv, args).executorOptions.executorEncryptionKey).toBeUndefined();
+  });
+
   it.each(['true', 'TRUE', 'True', '1', 'yes', 'on'])(
     'parses DATABASE_SSL=%s as enabled',
     value => {
@@ -184,6 +197,50 @@ describe('readEnvConfig', () => {
   it('throws ConfigurationError on a non-boolean DATABASE_SSL', () => {
     expect(() => readEnvConfig({ ...baseEnv, DATABASE_SSL: 'enabled' }, args)).toThrow(
       'DATABASE_SSL must be a boolean (true/false); got "enabled"',
+    );
+  });
+
+  it('reads DATABASE_SCHEMA into databaseSchema', () => {
+    expect(readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: 'analytics' }, args).databaseSchema).toBe(
+      'analytics',
+    );
+  });
+
+  it('leaves databaseSchema undefined when DATABASE_SCHEMA is unset', () => {
+    expect(readEnvConfig(baseEnv, args).databaseSchema).toBeUndefined();
+  });
+
+  it.each(['', '   '])('treats a blank DATABASE_SCHEMA (%p) as unset', value => {
+    expect(
+      readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: value }, args).databaseSchema,
+    ).toBeUndefined();
+  });
+
+  it('trims surrounding whitespace from DATABASE_SCHEMA', () => {
+    expect(
+      readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: '  analytics  ' }, args).databaseSchema,
+    ).toBe('analytics');
+  });
+
+  it.each(['1analytics', 'my-schema', 'a b', 'evil"; drop schema x; --', 'sch.ema'])(
+    'rejects an invalid DATABASE_SCHEMA identifier (%p)',
+    value => {
+      expect(() => readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: value }, args)).toThrow(
+        ConfigurationError,
+      );
+    },
+  );
+
+  it('rejects a DATABASE_SCHEMA longer than 63 characters', () => {
+    expect(() => readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: 'a'.repeat(64) }, args)).toThrow(
+      /valid Postgres identifier/,
+    );
+  });
+
+  it('accepts a DATABASE_SCHEMA of exactly 63 characters', () => {
+    const schema = 'a'.repeat(63);
+    expect(readEnvConfig({ ...baseEnv, DATABASE_SCHEMA: schema }, args).databaseSchema).toBe(
+      schema,
     );
   });
 
@@ -652,6 +709,49 @@ describe('logStartup', () => {
       expect.objectContaining({ databaseSsl: true }),
     );
   });
+
+  it('reports the resolved schema in database mode, defaulting to forest', () => {
+    const logger = makeLogger();
+
+    logStartup(logger as never, {
+      mode: 'database',
+      databaseSsl: true,
+      executorOptions: {
+        envSecret: 'e',
+        authSecret: 'a',
+        agentUrl: 'http://agent',
+        httpPort: DEFAULT_HTTP_PORT,
+      },
+    });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      'Workflow executor starting',
+      expect.objectContaining({ databaseSchema: 'forest' }),
+    );
+  });
+
+  it('reports a custom schema in database mode', () => {
+    const logger = makeLogger();
+
+    logStartup(logger as never, {
+      mode: 'database',
+      databaseSsl: true,
+      databaseSchema: 'analytics',
+      executorOptions: {
+        envSecret: 'e',
+        authSecret: 'a',
+        agentUrl: 'http://agent',
+        httpPort: DEFAULT_HTTP_PORT,
+      },
+    });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      'Workflow executor starting',
+      expect.objectContaining({ databaseSchema: 'analytics' }),
+    );
+  });
 });
 
 describe('runCli', () => {
@@ -772,6 +872,29 @@ describe('runCli', () => {
 
     const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
     expect(call.database).toEqual({ uri: 'postgres://u:p@localhost:5432/wfe' });
+  });
+
+  it('forwards DATABASE_SCHEMA to the database options', async () => {
+    const { factories } = makeFactories();
+    await runCli(
+      [],
+      { ...baseEnv, DATABASE_SCHEMA: 'analytics', DATABASE_SSL: 'false' },
+      factories,
+    );
+
+    const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
+    expect(call.database).toEqual({
+      uri: 'postgres://u:p@localhost:5432/wfe',
+      schema: 'analytics',
+    });
+  });
+
+  it('omits schema from the database options when DATABASE_SCHEMA is unset', async () => {
+    const { factories } = makeFactories();
+    await runCli([], { ...baseEnv, DATABASE_SSL: 'false' }, factories);
+
+    const call = (factories.buildDatabase as jest.Mock).mock.calls[0][0];
+    expect(call.database.schema).toBeUndefined();
   });
 
   it('injects a JSON logger into executorOptions when --json is set', async () => {

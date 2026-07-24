@@ -13,9 +13,7 @@ import createConsoleLogger from './adapters/console-logger';
 import ForestServerWorkflowPort from './adapters/forest-server-workflow-port';
 import ForestadminClientActivityLogPortFactory from './adapters/forestadmin-client-activity-log-port-factory';
 import ServerAiAdapter from './adapters/server-ai-adapter';
-import CredentialEncryption, {
-  isExecutorEncryptionKeyConfigured,
-} from './crypto/credential-encryption';
+import CredentialEncryption from './crypto/credential-encryption';
 import {
   DEFAULT_AI_INVOKE_TIMEOUT_S,
   DEFAULT_FOREST_SERVER_URL,
@@ -42,25 +40,34 @@ export interface WorkflowExecutor {
   readonly state: RunnerState;
 }
 
-export interface ExecutorOptions {
+export interface WorkflowExecutorTuningOptions {
+  /** Interval in seconds at which the executor polls the orchestrator for pending steps. */
+  pollingIntervalS?: number;
+  /** Per-step execution timeout in seconds. */
+  stepTimeoutS?: number;
+  /** Max duration in seconds of a single AI provider invocation. */
+  aiInvokeTimeoutS?: number;
+  /** Timeout in seconds for draining in-flight steps when the executor stops. */
+  stopTimeoutS?: number;
+  /** Max steps auto-chained per run before yielding to the next poll. `0` disables chaining. */
+  maxChainDepth?: number;
+  /** Collection schema cache TTL in seconds. Lower it to pick up orchestrator schema changes sooner. */
+  schemaCacheTtlS?: number;
+  /** Minimum level of the executor's logs. Defaults to `Info`. */
+  loggerLevel?: LoggerLevel;
+}
+
+export interface ExecutorOptions extends WorkflowExecutorTuningOptions {
   envSecret: string;
   authSecret: string;
   agentUrl: string;
   httpPort: number;
   forestServerUrl?: string;
   aiConfigurations?: AiConfiguration[];
-  pollingIntervalS?: number;
   logger?: Logger;
-  loggerLevel?: LoggerLevel;
-  stopTimeoutS?: number;
-  stepTimeoutS?: number;
-  aiInvokeTimeoutS?: number;
-  // Max auto-chained steps per entry (see RunnerConfig.maxChainDepth). 0 disables chaining.
-  maxChainDepth?: number;
-  // Collection schema cache TTL in seconds. Lower it to pick up orchestrator schema changes sooner.
-  schemaCacheTtlS?: number;
   // Dev only: makes every AI call fail immediately so error paths can be exercised locally.
   forceAiError?: boolean;
+  executorEncryptionKey?: string;
   // When true (default), the executor installs its own SIGTERM/SIGINT handlers that drain and
   // call process.exit() — correct for the standalone CLI which owns the process. Set false when
   // embedding in a host process (e.g. @forestadmin/agent): the executor must never touch the
@@ -83,10 +90,10 @@ function buildCommonDependencies(options: ExecutorOptions) {
 
   // Lazy key by design (OAuth-less executors boot without it), but surface a security-relevant
   // heads-up so a missing key isn't discovered only when a deposit 503s.
-  if (!isExecutorEncryptionKeyConfigured()) {
+  if (!options.executorEncryptionKey) {
     logger(
       'Warn',
-      'FOREST_EXECUTOR_ENCRYPTION_KEY is not set — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is configured.',
+      'No encryption key configured — set FOREST_EXECUTOR_ENCRYPTION_KEY (standalone) or pass encryptionKey to addWorkflowExecutor() (embedded) — OAuth-protected MCP servers are unavailable (credential deposits return 503) until it is.',
     );
   }
 
@@ -145,7 +152,7 @@ function buildCommonDependencies(options: ExecutorOptions) {
     aiModelPort,
     activityLogPortFactory,
     logger,
-    pollingIntervalS: options.pollingIntervalS ?? DEFAULT_POLLING_INTERVAL_S,
+    pollingIntervalS: positiveOrDefault(options.pollingIntervalS, DEFAULT_POLLING_INTERVAL_S),
     envSecret: options.envSecret,
     authSecret: options.authSecret,
     stopTimeoutS: options.stopTimeoutS,
@@ -238,7 +245,7 @@ export function buildInMemoryExecutor(options: ExecutorOptions): WorkflowExecuto
   const deps = buildCommonDependencies(options);
 
   const mcpOAuthCredentialsStore = new InMemoryMcpOAuthCredentialsStore();
-  const credentialEncryption = new CredentialEncryption();
+  const credentialEncryption = new CredentialEncryption(options.executorEncryptionKey);
   // Shares the store + encryption with the deposit endpoint so runtime reads and writes (rotation)
   // go through the same instance the HTTP server exposes. In-memory is dev-only: credentials live
   // only for the process lifetime, but oauth2 steps work end-to-end just like the database executor.
@@ -292,7 +299,7 @@ export function buildDatabaseExecutor(options: DatabaseExecutorOptions): Workflo
     sequelize,
     schema: mergedOptions.schema,
   });
-  const credentialEncryption = new CredentialEncryption();
+  const credentialEncryption = new CredentialEncryption(options.executorEncryptionKey);
   // Shares the store + encryption with the deposit endpoint so runtime reads and writes (rotation)
   // go through the same instance the HTTP server migrates on start.
   const mcpOAuthTokenService = new OAuthTokenService({

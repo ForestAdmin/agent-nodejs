@@ -33,7 +33,11 @@ describe('declareListWorkflowsTool', () => {
 
   describe('tool registration', () => {
     it('should register a tool named "listWorkflows"', () => {
-      declareListWorkflowsTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListWorkflowsTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(mcpServer.registerTool).toHaveBeenCalledWith(
         'listWorkflows',
@@ -43,20 +47,32 @@ describe('declareListWorkflowsTool', () => {
     });
 
     it('should register tool with correct title and description', () => {
-      declareListWorkflowsTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListWorkflowsTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.title).toBe('List MCP-enabled workflows');
       expect(registeredToolConfig.description).toContain('MCP triggering');
     });
 
     it('should be annotated as read-only', () => {
-      declareListWorkflowsTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListWorkflowsTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       expect(registeredToolConfig.annotations).toEqual({ readOnlyHint: true });
     });
 
     it('should expose an optional collectionName argument', () => {
-      declareListWorkflowsTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListWorkflowsTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -67,7 +83,11 @@ describe('declareListWorkflowsTool', () => {
     });
 
     it('should accept any string for collectionName when no collection names provided', () => {
-      declareListWorkflowsTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListWorkflowsTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -79,7 +99,11 @@ describe('declareListWorkflowsTool', () => {
     });
 
     it('should restrict collectionName to the known collections when provided', () => {
-      declareListWorkflowsTool(mcpServer, mockForestServerClient, mockLogger, ['orders', 'users']);
+      declareListWorkflowsTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: ['orders', 'users'],
+      });
 
       const schema = registeredToolConfig.inputSchema as Record<
         string,
@@ -109,7 +133,11 @@ describe('declareListWorkflowsTool', () => {
     ];
 
     beforeEach(() => {
-      declareListWorkflowsTool(mcpServer, mockForestServerClient, mockLogger);
+      declareListWorkflowsTool(mcpServer, {
+        forestServerClient: mockForestServerClient,
+        logger: mockLogger,
+        collectionNames: [],
+      });
       mockForestServerClient.listMcpWorkflows.mockResolvedValue(workflows);
     });
 

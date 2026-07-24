@@ -42,6 +42,8 @@ const OPENAI_UNSUPPORTED_PATTERNS = [
   // Models that only support v1/responses, not v1/chat/completions
   '-pro',
   '-deep-research',
+  // Deprecated by OpenAI (return 404 on invocation): gpt-5-chat-latest, gpt-5.1-chat-latest
+  '-chat-latest',
 ];
 
 const OPENAI_UNSUPPORTED_MODELS = [

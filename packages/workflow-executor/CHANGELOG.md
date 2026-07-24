@@ -1,3 +1,59 @@
+## @forestadmin/workflow-executor [1.21.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.21.0...@forestadmin/workflow-executor@1.21.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* **agent-client:** build static forms from the schema instead of probing /hooks/load [PRD-802] ([#1775](https://github.com/ForestAdmin/agent-nodejs/issues/1775)) ([b1aacea](https://github.com/ForestAdmin/agent-nodejs/commit/b1aacea9374a7670c16fe9bef70257d40b425d49))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.11.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.41.1
+
+# @forestadmin/workflow-executor [1.21.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.20.3...@forestadmin/workflow-executor@1.21.0) (2026-07-23)
+
+
+### Features
+
+* **agent:** full embedded workflow-executor option parity with standalone ([#1770](https://github.com/ForestAdmin/agent-nodejs/issues/1770)) ([d7480b2](https://github.com/ForestAdmin/agent-nodejs/commit/d7480b2f06c3a5704767e7dacef201c37292fbfe))
+
+## @forestadmin/workflow-executor [1.20.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.20.2...@forestadmin/workflow-executor@1.20.3) (2026-07-22)
+
+
+### Bug Fixes
+
+* **workflow-executor:** inject encryption key instead of reading process.env ([#1769](https://github.com/ForestAdmin/agent-nodejs/issues/1769)) ([5f84c40](https://github.com/ForestAdmin/agent-nodejs/commit/5f84c40c8d1aa4540f970a641e3dd12ba9f521bd))
+
+## @forestadmin/workflow-executor [1.20.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.20.1...@forestadmin/workflow-executor@1.20.2) (2026-07-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.11.0
+
+## @forestadmin/workflow-executor [1.20.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.20.0...@forestadmin/workflow-executor@1.20.1) (2026-07-21)
+
+# @forestadmin/workflow-executor [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.19.0...@forestadmin/workflow-executor@1.20.0) (2026-07-21)
+
+
+### Features
+
+* **workflow-executor:** deterministic source record for Update Data steps (PRD-777) ([#1761](https://github.com/ForestAdmin/agent-nodejs/issues/1761)) ([2589956](https://github.com/ForestAdmin/agent-nodejs/commit/258995666b16806dc9a1372bf020ec0e85da5e4a))
+
+# @forestadmin/workflow-executor [1.19.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.18.0...@forestadmin/workflow-executor@1.19.0) (2026-07-21)
+
+
+### Features
+
+* **workflow-executor:** allow custom DB schema via DATABASE_SCHEMA env var ([#1754](https://github.com/ForestAdmin/agent-nodejs/issues/1754)) ([5114744](https://github.com/ForestAdmin/agent-nodejs/commit/511474465984d7a575db9ecfe19432410c46f959))
+
 # @forestadmin/workflow-executor [1.18.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.17.3...@forestadmin/workflow-executor@1.18.0) (2026-07-17)
 
 

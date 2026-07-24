@@ -1,3 +1,76 @@
+## @forestadmin/agent-testing [1.1.55](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.54...@forestadmin/agent-testing@1.1.55) (2026-07-24)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.90.0
+
+## @forestadmin/agent-testing [1.1.54](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.53...@forestadmin/agent-testing@1.1.54) (2026-07-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.11.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.41.1
+* **@forestadmin/agent:** upgraded to 1.89.1
+
+## @forestadmin/agent-testing [1.1.53](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.52...@forestadmin/agent-testing@1.1.53) (2026-07-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.89.0
+
+## @forestadmin/agent-testing [1.1.52](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.51...@forestadmin/agent-testing@1.1.52) (2026-07-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.88.0
+
+## @forestadmin/agent-testing [1.1.51](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.50...@forestadmin/agent-testing@1.1.51) (2026-07-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.87.1
+
+## @forestadmin/agent-testing [1.1.50](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.49...@forestadmin/agent-testing@1.1.50) (2026-07-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.11.0
+* **@forestadmin/agent:** upgraded to 1.87.0
+
+## @forestadmin/agent-testing [1.1.49](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.48...@forestadmin/agent-testing@1.1.49) (2026-07-21)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent:** upgraded to 1.86.7
+
 ## @forestadmin/agent-testing [1.1.48](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-testing@1.1.47...@forestadmin/agent-testing@1.1.48) (2026-07-16)
 
 

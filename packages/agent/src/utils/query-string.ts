@@ -53,12 +53,14 @@ export default class QueryStringParser {
 
       const { schema } = collection;
       const rootFields = fields.toString().split(',');
-      const explicitRequest = rootFields.map(field => {
+      const explicitRequest = rootFields.flatMap(field => {
         const columnOrRelation = SchemaUtils.getField(schema, field, collection.name);
 
-        return columnOrRelation.type === 'Column'
-          ? field
-          : `${field}:${context.request.query[`fields[${field}]`]}`;
+        if (columnOrRelation.type === 'Column') return field;
+
+        const relationFields = String(context.request.query[`fields[${field}]`]);
+
+        return relationFields.split(',').map(subField => `${field}:${subField}`);
       });
 
       ProjectionValidator.validate(collection, explicitRequest);

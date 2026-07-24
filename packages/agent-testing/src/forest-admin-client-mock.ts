@@ -62,6 +62,10 @@ export default class ForestAdminClientMock implements ForestAdminClient {
     updateActivityLogStatus: () => Promise.resolve(),
   };
 
+  readonly workflowsService: ForestAdminClient['workflowsService'] = {
+    listMcpEnabledWorkflows: () => Promise.resolve([]),
+  };
+
   readonly permissionService: any;
   readonly authService: any;
 

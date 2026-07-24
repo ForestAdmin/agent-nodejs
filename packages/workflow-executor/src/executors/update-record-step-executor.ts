@@ -40,16 +40,27 @@ const jsonStringSchema = z
   )
   .describe('JSON content as a valid JSON string');
 
-function buildZodSchemaForPrimitive(type: string, enumValues?: string[]): z.ZodTypeAny {
+// `forAiTool` = the schema is bound into an AI tool (langchain converts it to JSON Schema). The
+// Boolean coercion uses `z.preprocess`, which langchain's cross-package transform-stripping misses
+// when the workspace resolves two zod copies (root vs nested) → "Transforms cannot be represented
+// in JSON Schema". For the AI tool we hand it a plain z.boolean(); coerceFieldValue (which builds
+// with forAiTool=false) still normalizes any stray "true"/"false" string afterwards.
+function buildZodSchemaForPrimitive(
+  type: string,
+  enumValues?: string[],
+  forAiTool = false,
+): z.ZodTypeAny {
   switch (type) {
     case 'Boolean':
-      return z.preprocess(val => {
-        if (typeof val !== 'string') return val;
-        if (val === 'true') return true;
-        if (val === 'false') return false;
+      return forAiTool
+        ? z.boolean()
+        : z.preprocess(val => {
+            if (typeof val !== 'string') return val;
+            if (val === 'true') return true;
+            if (val === 'false') return false;
 
-        return val;
-      }, z.boolean());
+            return val;
+          }, z.boolean());
     case 'Date':
       return z.iso.datetime().describe('ISO 8601 datetime, e.g. 2024-06-01T00:00:00Z');
     case 'Dateonly':
@@ -74,7 +85,11 @@ function buildZodSchemaForPrimitive(type: string, enumValues?: string[]): z.ZodT
   }
 }
 
-function buildZodSchemaForField(field: FieldSchema, collectionName: string): z.ZodTypeAny {
+function buildZodSchemaForField(
+  field: FieldSchema,
+  collectionName: string,
+  forAiTool = false,
+): z.ZodTypeAny {
   const { type, enumValues } = field;
 
   // A writable (non-relationship) field with no column type is a malformed schema for this update:
@@ -87,14 +102,14 @@ function buildZodSchemaForField(field: FieldSchema, collectionName: string): z.Z
     // Nested array (e.g. [['String']]) → treat as opaque JSON.
     if (Array.isArray(type[0])) return z.array(jsonStringSchema);
 
-    return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues));
+    return z.array(buildZodSchemaForPrimitive(type[0] as string, enumValues, forAiTool));
   }
 
   if (typeof type === 'object' && type !== null) {
     return jsonStringSchema;
   }
 
-  return buildZodSchemaForPrimitive(type as string, enumValues);
+  return buildZodSchemaForPrimitive(type as string, enumValues, forAiTool);
 }
 
 // Coerce a user-overridden value to the field's native type before updating the record.
@@ -186,32 +201,41 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
   private async handleFirstCall(): Promise<StepExecutionResult> {
     const { stepDefinition: step } = this.context;
     const { preRecordedArgs } = step;
-    const records = await this.getAvailableRecordRefs();
 
-    const selectedRecordRef = await this.resolveRecordRef(
-      records,
-      step.prompt,
-      preRecordedArgs?.selectedRecordStepIndex,
-    );
+    const selectedRecordRef = preRecordedArgs?.selectedRecordStepId
+      ? await this.resolveSourceRecordRef(preRecordedArgs.selectedRecordStepId)
+      : await this.resolveRecordRef(
+          await this.getAvailableRecordRefs(),
+          step.prompt,
+          preRecordedArgs?.selectedRecordStepIndex,
+        );
     const schema = await this.getCollectionSchema(selectedRecordRef.collectionName);
 
-    if (preRecordedArgs?.fieldName !== undefined && preRecordedArgs?.value === undefined) {
-      throw new InvalidPreRecordedArgsError(
-        'fieldName and value must both be provided or both omitted',
-      );
-    }
-
+    // A value without a field is meaningless (nothing to write it to).
     if (preRecordedArgs?.value !== undefined && preRecordedArgs?.fieldName === undefined) {
-      throw new InvalidPreRecordedArgsError(
-        'fieldName and value must both be provided or both omitted',
-      );
+      throw new InvalidPreRecordedArgsError('value was provided without a fieldName');
     }
 
+    // Three build-time configurations, in order of determinism:
+    // - fieldName + value → fully deterministic, no AI.
+    // - fieldName only     → field is pinned; the AI resolves just the value from the prompt.
+    // - neither            → the AI picks both field and value.
     const recordedField = preRecordedArgs?.fieldName;
-    const { fieldName, value } =
-      recordedField !== undefined
-        ? { fieldName: recordedField, value: preRecordedArgs?.value }
-        : await this.selectFieldAndValue(schema, step.prompt);
+    let fieldName: string;
+    let value: unknown;
+
+    if (recordedField !== undefined && preRecordedArgs?.value !== undefined) {
+      fieldName = recordedField;
+      value = preRecordedArgs.value;
+    } else if (recordedField !== undefined) {
+      const field = this.findFieldByTechnicalName(schema, recordedField);
+      if (!field) throw new FieldNotFoundError(recordedField, schema.collectionName);
+      fieldName = recordedField;
+      value = await this.selectValueForField(schema, field, step.prompt);
+    } else {
+      ({ fieldName, value } = await this.selectFieldAndValue(schema, step.prompt));
+    }
+
     const field = this.findFieldByTechnicalName(schema, fieldName);
 
     if (!field) {
@@ -302,10 +326,56 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
       input: { fieldName: string; value: unknown; reasoning: string };
     }>(messages, tool);
 
+    const fieldName = this.resolveAiFieldName(schema, input.fieldName);
+
+    // The AI tool schema is JSON-Schema-safe (plain z.boolean() for Boolean), so it does not coerce
+    // a stray string — normalize to the field's native type, matching the pinned-field path.
     return {
-      fieldName: this.resolveAiFieldName(schema, input.fieldName),
-      value: input.value,
+      fieldName,
+      value: coerceFieldValue(
+        this.findFieldByTechnicalName(schema, fieldName),
+        input.value,
+        schema.collectionName,
+      ),
     };
+  }
+
+  // Field is pinned at build time; only the value is AI-resolved from the prompt/workflow context.
+  private async selectValueForField(
+    schema: CollectionSchema,
+    field: FieldSchema,
+    prompt: string | undefined,
+  ): Promise<unknown> {
+    if (field.type == null) {
+      throw new FieldTypeMissingError(field.fieldName, schema.collectionName);
+    }
+
+    const tool = new DynamicStructuredTool({
+      name: 'set-record-field-value',
+      description: `Provide the new value for the "${field.displayName}" field.`,
+      schema: z.object({
+        reasoning: z.string().describe('Why this value was chosen'),
+        value: buildZodSchemaForField(field, schema.collectionName, true).nullable(),
+      }),
+      func: undefined,
+    });
+
+    const messages = [
+      this.buildContextMessage(),
+      ...(await this.buildPreviousStepsMessages()),
+      new SystemMessage(UPDATE_RECORD_SYSTEM_PROMPT),
+      new SystemMessage(
+        `The selected record belongs to the "${schema.collectionDisplayName}" collection. ` +
+          `Set the value of the "${field.displayName}" field.`,
+      ),
+      new HumanMessage(`**Request**: ${prompt ?? `Set the "${field.displayName}" field.`}`),
+    ];
+
+    const { value } = await this.invokeWithTool<{ value: unknown }>(messages, tool);
+
+    // The AI tool schema is JSON-Schema-safe (plain z.boolean() for Boolean), so it does not coerce
+    // a stray "true"/"42" string — coerceFieldValue normalizes the value to the field's native type.
+    return coerceFieldValue(field, value, schema.collectionName);
   }
 
   private buildUpdateFieldTool(schema: CollectionSchema): DynamicStructuredTool {
@@ -327,7 +397,7 @@ export default class UpdateRecordStepExecutor extends RecordStepExecutor<UpdateR
     const fieldObjects = nonRelationFields.map(f =>
       z.object({
         fieldName: z.literal(f.displayName),
-        value: buildZodSchemaForField(f, schema.collectionName).nullable(),
+        value: buildZodSchemaForField(f, schema.collectionName, true).nullable(),
         reasoning: z.string().describe('Why this field and value were chosen'),
       }),
     ) as FieldObject[];

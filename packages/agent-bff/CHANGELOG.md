@@ -1,3 +1,24 @@
+## @forestadmin/agent-bff [1.8.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.8.2...@forestadmin/agent-bff@1.8.3) (2026-07-23)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.11.1
+* **@forestadmin/forestadmin-client:** upgraded to 1.41.1
+
+## @forestadmin/agent-bff [1.8.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.8.1...@forestadmin/agent-bff@1.8.2) (2026-07-22)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/agent-client:** upgraded to 1.11.0
+
 ## @forestadmin/agent-bff [1.8.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.8.0...@forestadmin/agent-bff@1.8.1) (2026-07-16)
 
 
