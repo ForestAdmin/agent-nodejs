@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.1...@forestadmin/ai-proxy@1.12.2) (2026-07-24)
+
+
+### Bug Fixes
+
+* **ai-proxy:** exclude deprecated *-chat-latest OpenAI models ([#1779](https://github.com/ForestAdmin/agent-nodejs/issues/1779)) ([ff6589f](https://github.com/ForestAdmin/agent-nodejs/commit/ff6589fcf738351459b84d8aaee5a0432e25a2f2))
+
 ## @forestadmin/ai-proxy [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.0...@forestadmin/ai-proxy@1.12.1) (2026-07-22)
 
 
