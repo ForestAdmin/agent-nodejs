@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.2...@forestadmin/ai-proxy@1.12.3) (2026-07-24)
+
+
+### Bug Fixes
+
+* all failled packages release ([#1783](https://github.com/ForestAdmin/agent-nodejs/issues/1783)) ([a89c379](https://github.com/ForestAdmin/agent-nodejs/commit/a89c379bc29fd8a59f5cdaf100c3bb8d3e61a4ec))
+
 ## @forestadmin/ai-proxy [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.1...@forestadmin/ai-proxy@1.12.2) (2026-07-24)
 
 ### Bug Fixes
