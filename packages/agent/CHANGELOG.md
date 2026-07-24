@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.90.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.89.1...@forestadmin/agent@1.90.0) (2026-07-24)
+
+
+### Features
+
+* handle multiple projection on relation fields ([#1776](https://github.com/ForestAdmin/agent-nodejs/issues/1776)) ([5800c21](https://github.com/ForestAdmin/agent-nodejs/commit/5800c2174957e480e5e4cd8bb17a05ceb461672b))
+
 ## @forestadmin/agent [1.89.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.89.0...@forestadmin/agent@1.89.1) (2026-07-23)
 
 
