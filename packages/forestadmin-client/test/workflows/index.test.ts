@@ -75,6 +75,17 @@ describe('WorkflowsService', () => {
         undefined,
       );
     });
+
+    it('should throw when the transport does not implement listMcpEnabledWorkflows', async () => {
+      delete (mockForestAdminServerInterface as Partial<ForestAdminServerInterface>)
+        .listMcpEnabledWorkflows;
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, options);
+
+      await expect(
+        service.listMcpEnabledWorkflows({ forestServerToken: 'test-token', renderingId: '12345' }),
+      ).rejects.toThrow('does not support listMcpEnabledWorkflows');
+    });
   });
 
   describe('triggerMcpWorkflow', () => {
@@ -127,6 +138,22 @@ describe('WorkflowsService', () => {
         'wf-1',
         '42',
       );
+    });
+
+    it('should throw when the transport does not implement triggerMcpWorkflow', async () => {
+      delete (mockForestAdminServerInterface as Partial<ForestAdminServerInterface>)
+        .triggerMcpWorkflow;
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, options);
+
+      await expect(
+        service.triggerMcpWorkflow({
+          forestServerToken: 'test-token',
+          renderingId: '12345',
+          workflowId: 'wf-1',
+          recordId: '42',
+        }),
+      ).rejects.toThrow('does not support triggerMcpWorkflow');
     });
   });
 });

@@ -41,12 +41,20 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
     async (args: TriggerWorkflowArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
+      // We list workflows first to resolve the name/collection needed for the activity-log label
+      // (the trigger endpoint returns neither). The server also validates access at trigger time,
+      // so this lookup is primarily for enrichment; targeting the workflow by id directly would
+      // save a round-trip — tracked in PRD-831.
       const workflows = await forestServerClient.listMcpWorkflows({
         forestServerToken,
         renderingId,
       });
       const workflow = workflows.find(candidate => candidate.workflowId === args.workflowId);
 
+      // Rejected before withActivityLog: with no resolved workflow there is no collection to
+      // attach, and the server drops MCP activity logs that carry no resource (see PRD-49), so a
+      // pre-trigger rejection cannot be audited. Only real triggers are logged (incl. server-side
+      // 403/409, which fail inside withActivityLog below).
       if (!workflow) {
         throw new Error(
           `Workflow "${args.workflowId}" is not an MCP-enabled workflow you can access. ` +
