@@ -36,6 +36,7 @@ import declareGetActionFormTool from './tools/get-action-form';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareListWorkflowsTool from './tools/list-workflows';
+import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
@@ -93,6 +94,7 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
   listWorkflows: ['collectionName'],
+  triggerWorkflow: ['workflowId', 'recordId'],
 };
 
 export type ToolName =
@@ -106,7 +108,8 @@ export type ToolName =
   | 'dissociate'
   | 'getActionForm'
   | 'executeAction'
-  | 'listWorkflows';
+  | 'listWorkflows'
+  | 'triggerWorkflow';
 
 /**
  * Options for configuring the Forest Admin MCP Server
@@ -238,6 +241,7 @@ export default class ForestMCPServer {
       { name: 'getActionForm', register: () => declareGetActionFormTool(mcpServer, ctx) },
       { name: 'executeAction', register: () => declareExecuteActionTool(mcpServer, ctx) },
       { name: 'listWorkflows', register: () => declareListWorkflowsTool(mcpServer, ctx) },
+      { name: 'triggerWorkflow', register: () => declareTriggerWorkflowTool(mcpServer, ctx) },
     ];
 
     const enabledToolEntries = allTools.filter(tool => this.enabledTools.has(tool.name));
@@ -276,6 +280,7 @@ export default class ForestMCPServer {
       'getActionForm',
       'executeAction',
       'listWorkflows',
+      'triggerWorkflow',
     ];
 
     const enabled = new Set(options?.enabledTools ?? allToolNames);

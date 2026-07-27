@@ -1,4 +1,10 @@
-import type { ForestAdminServerInterface, ListMcpWorkflowsParams, McpWorkflow } from '../types';
+import type {
+  ForestAdminServerInterface,
+  ListMcpWorkflowsParams,
+  McpWorkflow,
+  TriggerMcpWorkflowParams,
+  WorkflowRunTriggerResult,
+} from '../types';
 
 export type WorkflowsServiceOptions = {
   forestServerUrl: string;
@@ -14,6 +20,12 @@ export default class WorkflowsService {
   async listMcpEnabledWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]> {
     const { forestServerToken, renderingId, collectionName } = params;
 
+    if (!this.forestAdminServerInterface.listMcpEnabledWorkflows) {
+      throw new Error(
+        'The configured Forest server transport does not support listMcpEnabledWorkflows.',
+      );
+    }
+
     return this.forestAdminServerInterface.listMcpEnabledWorkflows(
       {
         forestServerUrl: this.options.forestServerUrl,
@@ -22,6 +34,27 @@ export default class WorkflowsService {
       },
       renderingId,
       collectionName,
+    );
+  }
+
+  async triggerMcpWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult> {
+    const { forestServerToken, renderingId, workflowId, recordId } = params;
+
+    if (!this.forestAdminServerInterface.triggerMcpWorkflow) {
+      throw new Error(
+        'The configured Forest server transport does not support triggerMcpWorkflow.',
+      );
+    }
+
+    return this.forestAdminServerInterface.triggerMcpWorkflow(
+      {
+        forestServerUrl: this.options.forestServerUrl,
+        bearerToken: forestServerToken,
+        headers: this.options.headers,
+      },
+      renderingId,
+      workflowId,
+      recordId,
     );
   }
 }
