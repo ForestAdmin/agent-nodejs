@@ -41,13 +41,27 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
     async (args: TriggerWorkflowArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
+      const workflows = await forestServerClient.listMcpWorkflows({
+        forestServerToken,
+        renderingId,
+      });
+      const workflow = workflows.find(candidate => candidate.workflowId === args.workflowId);
+
+      if (!workflow) {
+        throw new Error(
+          `Workflow "${args.workflowId}" is not an MCP-enabled workflow you can access. ` +
+            'Use listWorkflows to discover triggerable workflows.',
+        );
+      }
+
       return withActivityLog({
         forestServerClient,
         request: extra,
         action: 'triggerWorkflow',
         context: {
+          collectionName: workflow.collectionName ?? undefined,
           recordId: args.recordId,
-          label: `triggered the workflow "${args.workflowId}"`,
+          label: `triggered the workflow "${workflow.name}"`,
         },
         logger,
         operation: async () => {

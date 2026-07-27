@@ -220,7 +220,7 @@ describe('ForestHttpApi', () => {
       expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith({
         forestServerUrl: options.forestServerUrl,
         method: 'get',
-        path: '/api/workflow-orchestrator/workflows',
+        path: '/api/workflow-orchestrator/mcp-workflows',
         bearerToken: 'bearer-token',
         headers: { 'forest-rendering-id': '12345' },
       });
@@ -239,7 +239,7 @@ describe('ForestHttpApi', () => {
       expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'get',
-          path: '/api/workflow-orchestrator/workflows?collectionName=sales%20orders',
+          path: '/api/workflow-orchestrator/mcp-workflows?collectionName=sales%20orders',
           headers: { 'forest-rendering-id': '12345' },
         }),
       );
@@ -261,7 +261,7 @@ describe('ForestHttpApi', () => {
       expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith({
         forestServerUrl: options.forestServerUrl,
         method: 'post',
-        path: '/api/workflow-orchestrator/workflows/wf-1/start',
+        path: '/api/workflow-orchestrator/mcp-workflows/wf-1/start',
         bearerToken: 'bearer-token',
         body: { recordId: '42' },
         headers: { 'forest-rendering-id': '12345' },
@@ -285,7 +285,7 @@ describe('ForestHttpApi', () => {
       expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'post',
-          path: '/api/workflow-orchestrator/workflows/wf%2Fwith%20space/start',
+          path: '/api/workflow-orchestrator/mcp-workflows/wf%2Fwith%20space/start',
         }),
       );
     });

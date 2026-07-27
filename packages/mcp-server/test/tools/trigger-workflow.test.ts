@@ -111,6 +111,9 @@ describe('declareTriggerWorkflowTool', () => {
         logger: mockLogger,
         collectionNames: [],
       });
+      mockForestServerClient.listMcpWorkflows.mockResolvedValue([
+        { workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' },
+      ]);
       mockForestServerClient.triggerWorkflow.mockResolvedValue({ runId: 7, runState: 'loading' });
     });
 
@@ -133,7 +136,7 @@ describe('declareTriggerWorkflowTool', () => {
       });
     });
 
-    it('should wrap the trigger in an activity log for the triggerWorkflow action', async () => {
+    it('should wrap the trigger in an activity log carrying the resolved collection and record', async () => {
       await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
       expect(mockWithActivityLog).toHaveBeenCalledWith({
@@ -141,12 +144,30 @@ describe('declareTriggerWorkflowTool', () => {
         request: mockExtra,
         action: 'triggerWorkflow',
         context: {
+          collectionName: 'orders',
           recordId: '42',
-          label: 'triggered the workflow "wf-1"',
+          label: 'triggered the workflow "Refund order"',
         },
         logger: mockLogger,
         operation: expect.any(Function),
       });
+    });
+
+    it('should error without triggering when the workflow is not among accessible workflows', async () => {
+      mockForestServerClient.listMcpWorkflows.mockResolvedValue([
+        { workflowId: 'other-wf', name: 'Other', collectionName: 'orders' },
+      ]);
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(result).toEqual({
+        content: [
+          { type: 'text', text: expect.stringContaining('is not an MCP-enabled workflow') },
+        ],
+        isError: true,
+      });
+      expect(mockForestServerClient.triggerWorkflow).not.toHaveBeenCalled();
+      expect(mockWithActivityLog).not.toHaveBeenCalled();
     });
 
     it('should return an error result when the auth context is missing the token', async () => {

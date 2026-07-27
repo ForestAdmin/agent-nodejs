@@ -164,7 +164,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     return ServerUtils.queryWithBearerToken<McpWorkflow[]>({
       forestServerUrl: options.forestServerUrl,
       method: 'get',
-      path: `/api/workflow-orchestrator/workflows${query}`,
+      path: `/api/workflow-orchestrator/mcp-workflows${query}`,
       bearerToken: options.bearerToken,
       headers: { 'forest-rendering-id': renderingId, ...options.headers },
     });
@@ -179,7 +179,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     return ServerUtils.queryWithBearerToken<WorkflowRunTriggerResult>({
       forestServerUrl: options.forestServerUrl,
       method: 'post',
-      path: `/api/workflow-orchestrator/workflows/${encodeURIComponent(workflowId)}/start`,
+      path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}/start`,
       bearerToken: options.bearerToken,
       body: { recordId },
       headers: { 'forest-rendering-id': renderingId, ...options.headers },
