@@ -25,6 +25,7 @@ describe('ForestServerClientImpl', () => {
     };
     mockWorkflowsService = {
       listMcpEnabledWorkflows: jest.fn(),
+      triggerMcpWorkflow: jest.fn(),
     };
     client = new ForestServerClientImpl(
       mockSchemaService,
@@ -126,6 +127,25 @@ describe('ForestServerClientImpl', () => {
       expect(result).toBe(workflows);
     });
   });
+
+  describe('triggerWorkflow', () => {
+    it('should delegate to workflowsService.triggerMcpWorkflow()', async () => {
+      const run = { runId: 7, runState: 'loading' as const };
+      mockWorkflowsService.triggerMcpWorkflow.mockResolvedValue(run);
+
+      const params = {
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        workflowId: 'wf-1',
+        recordId: '42',
+      };
+
+      const result = await client.triggerWorkflow(params);
+
+      expect(mockWorkflowsService.triggerMcpWorkflow).toHaveBeenCalledWith(params);
+      expect(result).toBe(run);
+    });
+  });
 });
 
 describe('createForestServerClient', () => {
@@ -158,5 +178,6 @@ describe('createForestServerClient', () => {
     expect(client.createMcpActivityLog).toBeDefined();
     expect(client.updateActivityLogStatus).toBeDefined();
     expect(client.listMcpWorkflows).toBeDefined();
+    expect(client.triggerWorkflow).toBeDefined();
   });
 });
