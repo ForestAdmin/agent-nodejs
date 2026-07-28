@@ -16,6 +16,11 @@ export default function createMockForestServerClient(
     updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
     listMcpWorkflows: jest.fn().mockResolvedValue([]),
     triggerWorkflow: jest.fn().mockResolvedValue({ runId: 1, runState: 'loading' }),
+    getWorkflowRun: jest.fn().mockResolvedValue({
+      runState: 'started',
+      currentStep: null,
+      waitingForHumanInput: false,
+    }),
     ...overrides,
   } as jest.Mocked<ForestServerClient>;
 }

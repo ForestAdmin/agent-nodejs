@@ -31,7 +31,10 @@ export {
   McpWorkflow,
   ListMcpWorkflowsParams,
   TriggerMcpWorkflowParams,
+  GetMcpWorkflowRunParams,
   WorkflowRunState,
+  WorkflowRunStep,
+  WorkflowRunStatus,
   WorkflowRunTriggerResult,
   // Service interfaces for MCP
   ActivityLogsServiceInterface,

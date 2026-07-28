@@ -290,4 +290,52 @@ describe('ForestHttpApi', () => {
       );
     });
   });
+
+  describe('getMcpWorkflowRun', () => {
+    it('should GET the workflow run endpoint with the rendering id header', async () => {
+      const runStatus = {
+        runState: 'finished',
+        currentStep: null,
+        waitingForHumanInput: false,
+        result: { ok: true },
+      };
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue(runStatus);
+
+      const result = await new ForestHttpApi().getMcpWorkflowRun(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        '7',
+      );
+
+      expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith({
+        forestServerUrl: options.forestServerUrl,
+        method: 'get',
+        path: '/api/workflow-orchestrator/mcp-workflows/runs/7',
+        bearerToken: 'bearer-token',
+        headers: { 'forest-rendering-id': '12345' },
+      });
+      expect(result).toEqual(runStatus);
+    });
+
+    it('should url-encode the run id in the path', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        runState: 'started',
+        currentStep: null,
+        waitingForHumanInput: false,
+      });
+
+      await new ForestHttpApi().getMcpWorkflowRun(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        'run/with space',
+      );
+
+      expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'get',
+          path: '/api/workflow-orchestrator/mcp-workflows/runs/run%2Fwith%20space',
+        }),
+      );
+    });
+  });
 });

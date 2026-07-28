@@ -156,4 +156,69 @@ describe('WorkflowsService', () => {
       ).rejects.toThrow('does not support triggerMcpWorkflow');
     });
   });
+
+  describe('getMcpWorkflowRun', () => {
+    const runStatus = {
+      runState: 'finished' as const,
+      currentStep: null,
+      waitingForHumanInput: false,
+      result: { ok: true },
+    };
+
+    it('should forward the identity and runId to the transport and return the status', async () => {
+      mockForestAdminServerInterface.getMcpWorkflowRun.mockResolvedValue(runStatus);
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, options);
+      const result = await service.getMcpWorkflowRun({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        runId: '7',
+      });
+
+      expect(result).toEqual(runStatus);
+      expect(mockForestAdminServerInterface.getMcpWorkflowRun).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        '12345',
+        '7',
+      );
+    });
+
+    it('should pass custom headers when provided', async () => {
+      mockForestAdminServerInterface.getMcpWorkflowRun.mockResolvedValue(runStatus);
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, {
+        ...options,
+        headers: { 'Forest-Application-Source': 'MCP' },
+      });
+      await service.getMcpWorkflowRun({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        runId: '7',
+      });
+
+      expect(mockForestAdminServerInterface.getMcpWorkflowRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bearerToken: 'test-token',
+          headers: { 'Forest-Application-Source': 'MCP' },
+        }),
+        '12345',
+        '7',
+      );
+    });
+
+    it('should throw when the transport does not implement getMcpWorkflowRun', async () => {
+      delete (mockForestAdminServerInterface as Partial<ForestAdminServerInterface>)
+        .getMcpWorkflowRun;
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, options);
+
+      await expect(
+        service.getMcpWorkflowRun({
+          forestServerToken: 'test-token',
+          renderingId: '12345',
+          runId: '7',
+        }),
+      ).rejects.toThrow('does not support getMcpWorkflowRun');
+    });
+  });
 });
