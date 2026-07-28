@@ -742,9 +742,6 @@ describe('ForestMCPServer Instance', () => {
           .post('/oauth/token', errorResponse, statusCode);
       };
 
-      // Note: The implementation wraps all OAuth errors in InvalidRequestError,
-      // so the error code is always 'invalid_request' with the original error in the description
-
       it('should return error when authorization code is invalid', async () => {
         setupErrorMock(
           {

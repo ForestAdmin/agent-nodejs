@@ -56,9 +56,20 @@ describe('normalizeTokenTtl', () => {
     });
     expect(logger).toHaveBeenCalledWith(
       'Warn',
-      `[ForestOAuthProvider] raising tokenTtl.accessTokenSeconds from 30 to the ` +
-        `${MIN_TOKEN_TTL_SECONDS}s minimum`,
+      `raising tokenTtl.accessTokenSeconds from 30 to the ${MIN_TOKEN_TTL_SECONDS}s minimum`,
     );
+  });
+
+  it('warns when the session is shorter than one access token, the classic swap', () => {
+    expect(
+      normalizeTokenTtl({ accessTokenSeconds: 3600, refreshTokenSeconds: 60 }, logger),
+    ).toEqual({ accessTokenSeconds: 3600, refreshTokenSeconds: 60 });
+    expect(logger).toHaveBeenCalledWith('Warn', expect.stringContaining('Did you swap the two'));
+  });
+
+  it('stays silent when the session is longer than the access token', () => {
+    normalizeTokenTtl({ accessTokenSeconds: 900, refreshTokenSeconds: 86400 }, logger);
+    expect(logger).not.toHaveBeenCalled();
   });
 
   it('clamps at the boundary but leaves the minimum itself alone', () => {

@@ -28,17 +28,24 @@ import jsonwebtoken from 'jsonwebtoken';
 
 import { capTtl, sessionRemainingSeconds } from './utils/token-ttl';
 
-// Used by both the sign() payload and the verify() cast, so renaming a claim on one side is a
-// compile error rather than a silent fallback to `iat` — which is re-stamped on every rotation and
-// would slide the session window forever.
+// Shape of the refresh token this server signs. Required on the write side so that dropping or
+// renaming `sessionStartedAt` is a compile error rather than a silent fallback to `iat` — which is
+// re-stamped on every rotation and would slide the session window forever.
 interface RefreshTokenClaims {
   type: 'refresh';
   clientId: string;
   userId: number;
   renderingId: number;
   serverRefreshToken: string;
-  sessionStartedAt?: number;
+  sessionStartedAt: number;
 }
+
+// Tokens minted before the claim existed carry no `sessionStartedAt`, so the read side accepts it
+// missing and falls back to `iat`.
+type DecodedRefreshToken = Omit<RefreshTokenClaims, 'sessionStartedAt'> & {
+  sessionStartedAt?: number;
+  iat?: number;
+};
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
@@ -253,7 +260,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     scopes?: string[],
   ): Promise<OAuthTokens> {
     // Verify and decode the refresh token
-    let decoded: RefreshTokenClaims & { iat?: number };
+    let decoded: DecodedRefreshToken;
 
     try {
       decoded = jsonwebtoken.verify(refreshToken, this.authSecret) as typeof decoded;
@@ -355,6 +362,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     tokenPayload: Record<string, unknown>,
     sessionStartedAt: number,
   ): Promise<OAuthTokens> {
+    const requestStartedAt = Math.floor(Date.now() / 1000);
     const response = await fetch(`${this.forestServerUrl}/oauth/token`, {
       method: 'POST',
       headers: {
@@ -432,14 +440,13 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     });
 
     if (sessionRemaining <= 0) {
-      // Unlike the caller's pre-flight check, reaching here means the round trips themselves
-      // outlasted the session — the elapsed time is the only way to tell that from a plain expiry.
+      // The caller's pre-flight check passed, so the round trips above are what consumed the last
+      // of the window — their duration is the only way to tell this from a plain expiry.
       this.logger(
         'Warn',
         `[ForestOAuthProvider] Session lapsed while calling Forest: ` +
-          `sessionStartedAt=${sessionStartedAt}, roundTripSeconds=${
-            nowInSeconds - sessionStartedAt
-          }`,
+          `sessionStartedAt=${sessionStartedAt}, ` +
+          `roundTripSeconds=${nowInSeconds - requestStartedAt}`,
       );
       throw new InvalidGrantError('Refresh token has expired');
     }
@@ -479,6 +486,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     return {
       access_token: accessToken,
       token_type: 'Bearer',
+      // Only reachable when the Forest token is already expired; a cap cannot reach zero.
       expires_in: expiresIn > 0 ? expiresIn : 3600,
       refresh_token: refreshToken,
       scope: scope || client.scope,

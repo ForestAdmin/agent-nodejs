@@ -27,8 +27,7 @@ function normalizeSeconds(
   if (value < MIN_TOKEN_TTL_SECONDS) {
     logger(
       'Warn',
-      `[ForestOAuthProvider] raising tokenTtl.${field} from ${value} to the ` +
-        `${MIN_TOKEN_TTL_SECONDS}s minimum`,
+      `raising tokenTtl.${field} from ${value} to the ${MIN_TOKEN_TTL_SECONDS}s minimum`,
     );
 
     return MIN_TOKEN_TTL_SECONDS;
@@ -53,6 +52,21 @@ export default function normalizeTokenTtl(
   );
 
   if (accessTokenSeconds === undefined && refreshTokenSeconds === undefined) return undefined;
+
+  // Legal, and the session bound rightly wins — but a session shorter than one access token is
+  // almost always the two values swapped, which forces a browser login on the access-token cadence.
+  if (
+    accessTokenSeconds !== undefined &&
+    refreshTokenSeconds !== undefined &&
+    refreshTokenSeconds < accessTokenSeconds
+  ) {
+    logger(
+      'Warn',
+      `tokenTtl.refreshTokenSeconds=${refreshTokenSeconds} is shorter than ` +
+        `tokenTtl.accessTokenSeconds=${accessTokenSeconds}: users will re-authenticate every ` +
+        `${refreshTokenSeconds}s. Did you swap the two values?`,
+    );
+  }
 
   return { accessTokenSeconds, refreshTokenSeconds };
 }
