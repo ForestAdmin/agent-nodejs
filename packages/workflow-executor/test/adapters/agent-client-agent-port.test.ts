@@ -425,6 +425,44 @@ describe('AgentClientAgentPort', () => {
       ]);
     });
 
+    // A PascalCase PK that isn't restored yields recordId [undefined] — a corrupt id that later
+    // steps resolve against, unlike the null an unresolved xToOne relation returns.
+    it('restores PascalCase field names, keeping the single PK resolvable', async () => {
+      const pascalSchema = {
+        ...postsSchema,
+        primaryKeyFields: ['Id'],
+        fields: [
+          { fieldName: 'Id', displayName: 'Id', isRelationship: false, type: 'Number' as const },
+          {
+            fieldName: 'CreatedAt',
+            displayName: 'Created at',
+            isRelationship: false,
+            type: 'Date' as const,
+          },
+        ],
+      };
+      mockRelation.list.mockResolvedValue([{ id: 99, createdAt: '2024-01-01' }]);
+
+      const result = await port.getRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'posts',
+          relatedSchema: pascalSchema,
+          limit: null,
+        },
+        user,
+      );
+
+      expect(result).toEqual([
+        {
+          collectionName: 'posts',
+          recordId: [99],
+          values: { Id: 99, CreatedAt: '2024-01-01' },
+        },
+      ]);
+    });
+
     it('uses the agent opaque record id for composite PKs (no schema-order assumption)', async () => {
       const compositeSchema = {
         ...postsSchema,
@@ -630,7 +668,7 @@ describe('AgentClientAgentPort', () => {
     // Regression: jsonapi-serializer emits the nested linkage with camelCased attribute
     // keys (full_name → fullName). The adapter must restore those keys before returning
     // values, otherwise snake_case referenceFields silently resolve to undefined upstream.
-    it('restores camelCased keys on the linkage when fields are snake_case', async () => {
+    it('projects the raw snake_case field name and restores it on the linkage', async () => {
       const snakeSchema = {
         ...ordersSchema,
         fields: [
@@ -656,6 +694,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['order@@@full_name'] });
       expect(result?.values).toEqual({ id: '99', full_name: 'John Doe' });
     });
 
@@ -683,6 +722,85 @@ describe('AgentClientAgentPort', () => {
         recordId: ['7', '2'],
         values: { id: '7|2' },
       });
+    });
+
+    it('finds the linkage when the relation name is PascalCase', async () => {
+      mockCollection.getOne.mockResolvedValue({ legalEntity: { id: 'le-1' } });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'LegalEntity',
+          relatedSchema: { ...ordersSchema, collectionName: 'LegalEntity' },
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['LegalEntity@@@id'] });
+      expect(result).toEqual({
+        collectionName: 'LegalEntity',
+        recordId: ['le-1'],
+        values: { id: 'le-1' },
+      });
+    });
+
+    it('finds the linkage when the relation name starts with an acronym (KYCEvent → kycEvent)', async () => {
+      mockCollection.getOne.mockResolvedValue({ kycEvent: { id: 'kyc-1' } });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'KYCEvent',
+          relatedSchema: { ...ordersSchema, collectionName: 'KYCEvent' },
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['KYCEvent@@@id'] });
+      expect(result).toEqual({
+        collectionName: 'KYCEvent',
+        recordId: ['kyc-1'],
+        values: { id: 'kyc-1' },
+      });
+    });
+
+    it('finds the linkage when the relation name is kebab-case', async () => {
+      mockCollection.getOne.mockResolvedValue({ billingAddress: { id: 'ba-1' } });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'billing-address',
+          relatedSchema: { ...ordersSchema, collectionName: 'addresses' },
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], {
+        fields: ['billing-address@@@id'],
+      });
+      expect(result?.recordId).toEqual(['ba-1']);
+    });
+
+    it('projects the raw PascalCase field name and restores it on the linkage', async () => {
+      mockCollection.getOne.mockResolvedValue({ order: { id: '99', fullName: 'John Doe' } });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: ordersSchema,
+          fields: ['FullName'],
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['order@@@FullName'] });
+      expect(result?.values).toEqual({ id: '99', FullName: 'John Doe' });
     });
 
     it('splits composite PKs from the packed "id" linkage', async () => {
