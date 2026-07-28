@@ -685,8 +685,6 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    // Regression: jsonapi-serializer lowercases the initial letter, so `LegalEntity` arrives as
-    // `legalEntity` — looking it up by the raw name found nothing and the step reported "no record".
     it('finds the linkage when the relation name is PascalCase', async () => {
       mockCollection.getOne.mockResolvedValue({ legalEntity: { id: 'le-1' } });
 
@@ -708,8 +706,7 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    // An acronym prefix inflects as a whole word (KYCEvent → kycEvent), not letter by letter.
-    it('finds the linkage when the relation name starts with an acronym', async () => {
+    it('finds the linkage when the relation name starts with an acronym (KYCEvent → kycEvent)', async () => {
       mockCollection.getOne.mockResolvedValue({ kycEvent: { id: 'kyc-1' } });
 
       const result = await port.getSingleRelatedData(
