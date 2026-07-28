@@ -5,9 +5,9 @@ import type { Logger } from '../server';
 export const MIN_TOKEN_TTL_SECONDS = 60;
 
 export type TokenTtlOptions = {
-  /** Caps the access token lifetime. Forest Admin grants 3600s (1 hour). */
+  /** Caps the access token lifetime. Forest grants 3600s (1 hour). */
   accessTokenSeconds?: number;
-  /** Caps the time between two interactive logins. Forest Admin grants 691200s (8 days). */
+  /** Caps the time between two interactive logins. Forest grants 691200s (8 days). */
   refreshTokenSeconds?: number;
 };
 

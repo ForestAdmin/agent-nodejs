@@ -113,12 +113,12 @@ See [Available Tools](#available-tools) for the full list. `describeCollection` 
 
 ## Shorten Token Lifetimes
 
-Forest Admin grants **1 hour** (3600s) for an access token and **8 days** (691200s) for a refresh token — but it re-grants those 8 days on *every* refresh, so without `refreshTokenSeconds` a client that keeps working is never asked to sign in again.
+Forest grants **1 hour** (3600s) for an access token and **8 days** (691200s) for a refresh token — but it re-grants those 8 days on *every* refresh, so without `refreshTokenSeconds` a client that keeps working is never asked to sign in again.
 
-**Both values are upper bounds: they can only shorten that, never extend it.** For `accessTokenSeconds` a value above 3600 therefore has no effect. `refreshTokenSeconds` bounds the whole session, which Forest Admin otherwise re-extends on every refresh, so any value shortens it however large it is.
+**Both values are upper bounds: they can only shorten that, never extend it.** For `accessTokenSeconds` a value above 3600 therefore has no effect. `refreshTokenSeconds` bounds the whole session, which Forest otherwise re-extends on every refresh, so any value shortens it however large it is.
 
 ```typescript
-// With Forest Admin Agent
+// With Forest Agent
 agent.mountAiMcpServer({
   tokenTtl: { accessTokenSeconds: 900, refreshTokenSeconds: 86400 },
 });

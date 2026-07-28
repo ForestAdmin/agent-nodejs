@@ -142,7 +142,7 @@ export interface ForestMCPServerOptions {
    */
   agentDispatcher?: InProcessAgentDispatcher;
   /**
-   * Upper bounds on the OAuth token lifetimes this server issues. Forest Admin grants 1 hour
+   * Upper bounds on the OAuth token lifetimes this server issues. Forest grants 1 hour
    * (3600s) for an access token and 8 days (691200s) for a refresh token; each value can only
    * shorten that, never extend it. `refreshTokenSeconds` bounds the time between two interactive
    * logins. Minimum 60s for either.

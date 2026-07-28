@@ -796,7 +796,7 @@ describe('ForestOAuthProvider', () => {
 
     // Forest revoking the session (removed user, revoked token) must reach the client as
     // invalid_grant, the only code that makes it re-run the interactive login.
-    it('propagates the OAuth code when Forest Admin rejects the refresh', async () => {
+    it('propagates the OAuth code when Forest rejects the refresh', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
         clientId: 'test-client-id',
@@ -1051,7 +1051,7 @@ describe('ForestOAuthProvider', () => {
       expect(result.expires_in).toBe(900);
     });
 
-    it('never extends beyond the lifetimes Forest Admin granted', async () => {
+    it('never extends beyond the lifetimes Forest granted', async () => {
       const provider = createProvider(undefined, undefined, {
         accessTokenSeconds: 7200,
         refreshTokenSeconds: 30 * 24 * 3600,
@@ -1064,7 +1064,7 @@ describe('ForestOAuthProvider', () => {
       expect(result.expires_in).toBe(FOREST_ACCESS_TTL);
     });
 
-    it('warns when the access cap exceeds the lifetime Forest Admin granted', async () => {
+    it('warns when the access cap exceeds the lifetime Forest granted', async () => {
       const logger = jest.fn();
       const provider = createProvider(undefined, undefined, { accessTokenSeconds: 7200 }, logger);
 
@@ -1194,7 +1194,7 @@ describe('ForestOAuthProvider', () => {
       expect(result.expires_in).toBe(60);
     });
 
-    it('rejects when the session elapses while talking to Forest Admin', async () => {
+    it('rejects when the session elapses while talking to Forest', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
         clientId: 'test-client-id',
@@ -1214,7 +1214,7 @@ describe('ForestOAuthProvider', () => {
       expect(mockJwtSign).not.toHaveBeenCalled();
     });
 
-    it('rejects a refresh once the session window has elapsed, without calling Forest Admin', async () => {
+    it('rejects a refresh once the session window has elapsed, without calling Forest', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
         clientId: 'test-client-id',

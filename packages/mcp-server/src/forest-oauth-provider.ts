@@ -345,7 +345,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     this.logger(
       'Warn',
       `[ForestOAuthProvider] tokenTtl.${field}=${capSeconds} exceeds the ${upstreamTtlSeconds}s ` +
-        `lifetime granted by Forest Admin and has no effect: this option can only shorten a token ` +
+        `lifetime granted by Forest and has no effect: this option can only shorten a token ` +
         `lifetime, never extend it.`,
     );
   }
@@ -436,7 +436,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       // outlasted the session — the elapsed time is the only way to tell that from a plain expiry.
       this.logger(
         'Warn',
-        `[ForestOAuthProvider] Session lapsed while calling Forest Admin: ` +
+        `[ForestOAuthProvider] Session lapsed while calling Forest: ` +
           `sessionStartedAt=${sessionStartedAt}, roundTripSeconds=${
             nowInSeconds - sessionStartedAt
           }`,
