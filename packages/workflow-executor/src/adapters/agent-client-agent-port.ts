@@ -56,22 +56,22 @@ function mapActionExecutionError(action: string, cause: unknown): unknown {
   return cause;
 }
 
-// Must stay equivalent to jsonapi-serializer's `keyForAttribute: 'camelCase'` inflection, which
-// produces every key agent-client returns — any divergence makes a lookup silently miss.
+// Transcribes inflected's `underscore` + `camelize(_, false)` — the inflection agent-client's
+// jsonapi-serializer deserializer applies to every response key. Divergence = silent lookup miss.
 function toCamelCase(name: string): string {
   const underscored = name
     .replace(/([A-Z\d]+)([A-Z][a-z])/g, '$1_$2')
     .replace(/([a-z\d])([A-Z])/g, '$1_$2')
+    .replace(/-/g, '_')
     .toLowerCase();
 
-  return underscored
-    .replace(/_+([a-zA-Z0-9])/g, (_, c: string) => c.toUpperCase())
-    .replace(/_+$/, '');
+  return underscored.replace(
+    /(?:_|(\/))([a-z\d]*)/gi,
+    (_, slash: string | undefined, word: string) =>
+      (slash ?? '') + (word && word.charAt(0).toUpperCase() + word.slice(1)),
+  );
 }
 
-// The agent-client HTTP layer deserializes JSON:API responses with camelCase keys.
-// Field names in the schema and in GetRecordQuery.fields use the original format (e.g. snake_case).
-// This function restores the original field names so callers can look up values by schema fieldName.
 function restoreFieldNames(
   values: Record<string, unknown>,
   originalFieldNames: string[] | undefined,
@@ -230,7 +230,6 @@ export default class AgentClientAgentPort implements AgentPort {
         user,
       );
 
-      // agent-client camelCases relation keys; look the linkage up under the camelCased name.
       const linkage = parent.values[toCamelCase(relation)] as
         | Record<string, unknown>
         | null
