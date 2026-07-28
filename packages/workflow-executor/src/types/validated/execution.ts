@@ -34,6 +34,7 @@ export type Step = z.infer<typeof StepSchema>;
 export enum TriggerType {
   Manual = 'manual',
   Webhook = 'webhook',
+  Mcp = 'mcp',
 }
 export const TriggerTypeSchema = z.nativeEnum(TriggerType);
 
