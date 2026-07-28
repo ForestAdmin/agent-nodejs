@@ -56,10 +56,8 @@ function mapActionExecutionError(action: string, cause: unknown): unknown {
   return cause;
 }
 
-// Mirrors jsonapi-serializer's `keyForAttribute: 'camelCase'` inflection (underscore, then
-// camelize without an initial capital) — the exact transform agent-client applies to every
-// response key. Naively handling snake_case only left PascalCase names untouched, so xToOne
-// relations named e.g. `LegalEntity` were looked up under the wrong key and never resolved.
+// Must stay equivalent to jsonapi-serializer's `keyForAttribute: 'camelCase'` inflection, which
+// produces every key agent-client returns — any divergence makes a lookup silently miss.
 function toCamelCase(name: string): string {
   const underscored = name
     .replace(/([A-Z\d]+)([A-Z][a-z])/g, '$1_$2')

@@ -685,9 +685,8 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
-    // Regression: the relation name can be PascalCase (Sequelize/Prisma models often are).
-    // jsonapi-serializer lowercases the first letter, so the raw name found no linkage and the
-    // step reported "no record" even though the related record existed.
+    // Regression: jsonapi-serializer lowercases the initial letter, so `LegalEntity` arrives as
+    // `legalEntity` — looking it up by the raw name found nothing and the step reported "no record".
     it('finds the linkage when the relation name is PascalCase', async () => {
       mockCollection.getOne.mockResolvedValue({ legalEntity: { id: 'le-1' } });
 
