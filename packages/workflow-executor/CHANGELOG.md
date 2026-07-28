@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.23.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.1...@forestadmin/workflow-executor@1.23.2) (2026-07-28)
+
+
+### Bug Fixes
+
+* **workflow-executor:** resolve xToOne relations with PascalCase names ([#1787](https://github.com/ForestAdmin/agent-nodejs/issues/1787)) ([0497deb](https://github.com/ForestAdmin/agent-nodejs/commit/0497deb1ce8427ca33d494cab641a0c9fe8c9a7f))
+
 ## @forestadmin/workflow-executor [1.23.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.0...@forestadmin/workflow-executor@1.23.1) (2026-07-24)
 
 
