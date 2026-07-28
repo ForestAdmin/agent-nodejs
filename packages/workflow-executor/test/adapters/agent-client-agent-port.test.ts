@@ -685,6 +685,79 @@ describe('AgentClientAgentPort', () => {
       });
     });
 
+    // Regression: the relation name can be PascalCase (Sequelize/Prisma models often are).
+    // jsonapi-serializer lowercases the first letter, so the raw name found no linkage and the
+    // step reported "no record" even though the related record existed.
+    it('finds the linkage when the relation name is PascalCase', async () => {
+      mockCollection.getOne.mockResolvedValue({ legalEntity: { id: 'le-1' } });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'LegalEntity',
+          relatedSchema: { ...ordersSchema, collectionName: 'LegalEntity' },
+        },
+        user,
+      );
+
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['LegalEntity@@@id'] });
+      expect(result).toEqual({
+        collectionName: 'LegalEntity',
+        recordId: ['le-1'],
+        values: { id: 'le-1' },
+      });
+    });
+
+    // An acronym prefix inflects as a whole word (KYCEvent → kycEvent), not letter by letter.
+    it('finds the linkage when the relation name starts with an acronym', async () => {
+      mockCollection.getOne.mockResolvedValue({ kycEvent: { id: 'kyc-1' } });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'KYCEvent',
+          relatedSchema: { ...ordersSchema, collectionName: 'KYCEvent' },
+        },
+        user,
+      );
+
+      expect(result).toEqual({
+        collectionName: 'KYCEvent',
+        recordId: ['kyc-1'],
+        values: { id: 'kyc-1' },
+      });
+    });
+
+    it('restores PascalCase field names on the linkage', async () => {
+      const pascalSchema = {
+        ...ordersSchema,
+        fields: [
+          {
+            fieldName: 'FullName',
+            displayName: 'Full name',
+            isRelationship: false,
+            type: 'String' as const,
+          },
+        ],
+      };
+      mockCollection.getOne.mockResolvedValue({ order: { id: '99', fullName: 'John Doe' } });
+
+      const result = await port.getSingleRelatedData(
+        {
+          collection: 'users',
+          id: [42],
+          relation: 'order',
+          relatedSchema: pascalSchema,
+          fields: ['FullName'],
+        },
+        user,
+      );
+
+      expect(result?.values).toEqual({ id: '99', FullName: 'John Doe' });
+    });
+
     it('splits composite PKs from the packed "id" linkage', async () => {
       const compositeSchema = {
         ...ordersSchema,
