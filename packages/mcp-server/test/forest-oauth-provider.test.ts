@@ -1,3 +1,4 @@
+import type { Logger } from '../src/server';
 import type { TokenTtlOptions } from '../src/utils/token-ttl';
 import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth';
 import type { Response } from 'express';
@@ -25,13 +26,14 @@ function createProvider(
   forestServerUrl = 'https://api.forestadmin.com',
   agentUrl?: string,
   tokenTtl?: TokenTtlOptions,
+  logger: Logger = console.info,
 ) {
   return new ForestOAuthProvider({
     forestServerUrl,
     forestAppUrl: TEST_FOREST_APP_URL,
     envSecret: TEST_ENV_SECRET,
     authSecret: TEST_AUTH_SECRET,
-    logger: console.info,
+    logger,
     agentUrl,
     tokenTtl,
   });
@@ -1060,6 +1062,70 @@ describe('ForestOAuthProvider', () => {
       expect(result.expires_in).toBe(FOREST_ACCESS_TTL);
     });
 
+    it('warns for each cap that exceeds the lifetime Forest Admin granted', async () => {
+      const logger = jest.fn();
+      const provider = createProvider(
+        undefined,
+        undefined,
+        { accessTokenSeconds: 7200, refreshTokenSeconds: 30 * 24 * 3600 },
+        logger,
+      );
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining(`tokenTtl.accessTokenSeconds=7200 exceeds the 3600s`),
+      );
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining(`tokenTtl.refreshTokenSeconds=2592000 exceeds the 604800s`),
+      );
+    });
+
+    it('warns once per field instead of on every token issuance', async () => {
+      const logger = jest.fn();
+      const provider = createProvider(undefined, undefined, { accessTokenSeconds: 7200 }, logger);
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+      primeForestTokens();
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-456');
+
+      expect(logger).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays silent when the caps are effective', async () => {
+      const logger = jest.fn();
+      const provider = createProvider(
+        undefined,
+        undefined,
+        { accessTokenSeconds: 900, refreshTokenSeconds: 86400 },
+        logger,
+      );
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('stays silent when the Forest token is already expired', async () => {
+      const logger = jest.fn();
+      mockJwtDecode.mockReset();
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: 456 },
+          exp: nowInSeconds - 10,
+          iat: nowInSeconds - 3610,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({ exp: nowInSeconds + FOREST_REFRESH_TTL, iat: nowInSeconds });
+      const provider = createProvider(undefined, undefined, { accessTokenSeconds: 7200 }, logger);
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
     it('leaves both lifetimes untouched when no cap is configured', async () => {
       const provider = createProvider();
 
@@ -1080,8 +1146,6 @@ describe('ForestOAuthProvider', () => {
       );
     });
 
-    // Forest Admin grants a full refresh lifetime on every refresh, so without the anchor the
-    // window would slide forever and never force a re-login.
     it('does not slide the refresh window when refreshing', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
@@ -1099,6 +1163,41 @@ describe('ForestOAuthProvider', () => {
       expect(signedPayload(2)).toEqual(
         expect.objectContaining({ sessionStartedAt: nowInSeconds - 80000 }),
       );
+    });
+
+    it('keeps the access token inside the session window', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+        sessionStartedAt: nowInSeconds - 86340,
+      });
+      const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
+
+      const result = await provider.exchangeRefreshToken(mockClient, 'our-refresh-token');
+
+      expect(signedTtl(1)).toBe(60);
+      expect(result.expires_in).toBe(60);
+    });
+
+    it('rejects when the session elapses while talking to Forest Admin', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+        sessionStartedAt: nowInSeconds - 86399,
+      });
+      const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
+
+      const pending = provider.exchangeRefreshToken(mockClient, 'our-refresh-token');
+      jest.setSystemTime(NOW_MS + 5000);
+
+      await expect(pending).rejects.toThrow('Refresh token has expired');
+      expect(mockJwtSign).not.toHaveBeenCalled();
     });
 
     it('rejects a refresh once the session window has elapsed, without calling Forest Admin', async () => {
@@ -1137,8 +1236,6 @@ describe('ForestOAuthProvider', () => {
       expect(signedTtl(2)).toBe(85400);
     });
 
-    // Pre-existing behaviour, deliberately untouched: a cap shortens a positive lifetime but can
-    // never drive it to zero, so it cannot make this branch reachable.
     it('still advertises the 3600 fallback when the Forest token is already expired', async () => {
       mockJwtDecode.mockReset();
       mockJwtDecode

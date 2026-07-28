@@ -25,7 +25,7 @@ import {
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
-import { capAccessTokenTtl, capRefreshTokenTtl } from './utils/token-ttl';
+import { capTtl, sessionRemainingSeconds } from './utils/token-ttl';
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
@@ -51,6 +51,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private environmentApiEndpoint?: string;
   private agentUrl?: string;
   private tokenTtl?: TokenTtlOptions;
+  private readonly fieldsWarnedAsInert = new Set<string>();
   private logger: Logger;
 
   constructor({
@@ -211,6 +212,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     codeVerifier?: string,
     redirectUri?: string,
   ): Promise<OAuthTokens> {
+    const sessionStartedAt = Math.floor(Date.now() / 1000);
+
     try {
       return await this.generateAccessToken(
         client,
@@ -221,8 +224,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
           client_id: client.client_id,
           code_verifier: codeVerifier,
         },
-        // The only interactive entry point, so this is when the session starts.
-        Math.floor(Date.now() / 1000),
+        sessionStartedAt,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -277,8 +279,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       throw new InvalidClientError('Token was not issued to this client');
     }
 
-    // Carried over from the interactive login, never re-stamped. Tokens issued before this claim
-    // existed fall back to their issue date, which closes their window one refresh later.
+    // Carried over from the interactive login, never re-stamped.
     const nowInSeconds = Math.floor(Date.now() / 1000);
     const sessionStartedAt = decoded.sessionStartedAt ?? decoded.iat ?? nowInSeconds;
     const { refreshTokenSeconds } = this.tokenTtl ?? {};
@@ -317,6 +318,23 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       );
       throw new InvalidRequestError(`Failed to refresh token: ${message}`);
     }
+  }
+
+  private warnIfCapIsInert(
+    field: string,
+    capSeconds: number | undefined,
+    upstreamTtlSeconds: number,
+  ): void {
+    if (capSeconds === undefined || upstreamTtlSeconds <= 0) return;
+    if (capSeconds <= upstreamTtlSeconds || this.fieldsWarnedAsInert.has(field)) return;
+
+    this.fieldsWarnedAsInert.add(field);
+    this.logger(
+      'Warn',
+      `[ForestOAuthProvider] tokenTtl.${field}=${capSeconds} exceeds the ${upstreamTtlSeconds}s ` +
+        `lifetime granted by Forest Admin and has no effect: this option can only shorten a token ` +
+        `lifetime, never extend it.`,
+    );
   }
 
   private async generateAccessToken(
@@ -383,11 +401,33 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       forestServerAccessToken,
     );
 
-    // Create new access token. Capping here rather than in the sign() options keeps the advertised
-    // `expires_in` below in step with the lifetime actually signed into the JWT.
     const nowInSeconds = Math.floor(Date.now() / 1000);
-    const expiresIn = capAccessTokenTtl(
+    this.warnIfCapIsInert(
+      'accessTokenSeconds',
+      this.tokenTtl?.accessTokenSeconds,
       expirationDate - nowInSeconds,
+    );
+    this.warnIfCapIsInert(
+      'refreshTokenSeconds',
+      this.tokenTtl?.refreshTokenSeconds,
+      refreshTokenExpirationDate - nowInSeconds,
+    );
+
+    // Re-measured after the Forest round trips, which can themselves outlast the session. Bounds
+    // both tokens: an access token outliving the session would extend it by its own lifetime.
+    const sessionRemaining = sessionRemainingSeconds({
+      refreshTokenSeconds: this.tokenTtl?.refreshTokenSeconds,
+      sessionStartedAt,
+      nowInSeconds,
+    });
+
+    if (sessionRemaining <= 0) {
+      throw new InvalidGrantError('Refresh token has expired');
+    }
+
+    // Capped here, not in the sign() options, so the `expires_in` returned below cannot drift.
+    const expiresIn = capTtl(
+      Math.min(expirationDate - nowInSeconds, sessionRemaining),
       this.tokenTtl?.accessTokenSeconds,
     );
     const tokenScopes = scope ? scope.split(' ') : ['mcp:read', 'mcp:write', 'mcp:action'];
@@ -415,21 +455,13 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         sessionStartedAt,
       },
       this.authSecret,
-      {
-        expiresIn: capRefreshTokenTtl({
-          upstreamTtlSeconds: refreshTokenExpirationDate - nowInSeconds,
-          capSeconds: this.tokenTtl?.refreshTokenSeconds,
-          sessionStartedAt,
-          nowInSeconds,
-        }),
-      },
+      { expiresIn: Math.min(refreshTokenExpirationDate - nowInSeconds, sessionRemaining) },
     );
 
     return {
       access_token: accessToken,
       token_type: 'Bearer',
-      // Only reachable when the Forest token is already expired: a cap can shorten a positive
-      // lifetime but never drive it to zero.
+      // Only reachable when the Forest token is already expired; a cap cannot reach zero.
       expires_in: expiresIn > 0 ? expiresIn : 3600,
       refresh_token: refreshToken,
       scope: scope || client.scope,

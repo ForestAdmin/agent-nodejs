@@ -1,7 +1,7 @@
 import normalizeTokenTtl, {
   MIN_TOKEN_TTL_SECONDS,
-  capAccessTokenTtl,
-  capRefreshTokenTtl,
+  capTtl,
+  sessionRemainingSeconds,
 } from '../../src/utils/token-ttl';
 
 describe('normalizeTokenTtl', () => {
@@ -67,42 +67,37 @@ describe('normalizeTokenTtl', () => {
   });
 });
 
-describe('capAccessTokenTtl', () => {
+describe('capTtl', () => {
   it('returns the Forest lifetime when no cap is configured', () => {
-    expect(capAccessTokenTtl(3600)).toBe(3600);
+    expect(capTtl(3600)).toBe(3600);
   });
 
   it('shortens the lifetime to the cap', () => {
-    expect(capAccessTokenTtl(3600, 900)).toBe(900);
+    expect(capTtl(3600, 900)).toBe(900);
   });
 
   it('never extends beyond the Forest lifetime', () => {
-    expect(capAccessTokenTtl(900, 3600)).toBe(900);
+    expect(capTtl(900, 3600)).toBe(900);
   });
 
   it.each([0, -5])('does not rescue an already-expired Forest lifetime of %p', upstream => {
-    expect(capAccessTokenTtl(upstream, 900)).toBe(upstream);
+    expect(capTtl(upstream, 900)).toBe(upstream);
   });
 });
 
-describe('capRefreshTokenTtl', () => {
+describe('sessionRemainingSeconds', () => {
   const nowInSeconds = 1_000_000;
 
-  it('returns the Forest lifetime when no cap is configured', () => {
-    expect(
-      capRefreshTokenTtl({
-        upstreamTtlSeconds: 604800,
-        sessionStartedAt: nowInSeconds,
-        nowInSeconds,
-      }),
-    ).toBe(604800);
+  it('is unbounded when no refresh cap is configured', () => {
+    expect(sessionRemainingSeconds({ sessionStartedAt: nowInSeconds, nowInSeconds })).toBe(
+      Infinity,
+    );
   });
 
-  it('grants the full cap at the start of the session', () => {
+  it('is the full cap at the start of the session', () => {
     expect(
-      capRefreshTokenTtl({
-        upstreamTtlSeconds: 604800,
-        capSeconds: 86400,
+      sessionRemainingSeconds({
+        refreshTokenSeconds: 86400,
         sessionStartedAt: nowInSeconds,
         nowInSeconds,
       }),
@@ -111,23 +106,21 @@ describe('capRefreshTokenTtl', () => {
 
   it('shrinks as the session ages instead of sliding', () => {
     expect(
-      capRefreshTokenTtl({
-        upstreamTtlSeconds: 604800,
-        capSeconds: 86400,
+      sessionRemainingSeconds({
+        refreshTokenSeconds: 86400,
         sessionStartedAt: nowInSeconds - 80000,
         nowInSeconds,
       }),
     ).toBe(6400);
   });
 
-  it('never extends beyond the Forest lifetime', () => {
+  it('goes non-positive once the session is over', () => {
     expect(
-      capRefreshTokenTtl({
-        upstreamTtlSeconds: 3600,
-        capSeconds: 86400,
-        sessionStartedAt: nowInSeconds,
+      sessionRemainingSeconds({
+        refreshTokenSeconds: 86400,
+        sessionStartedAt: nowInSeconds - 90000,
         nowInSeconds,
       }),
-    ).toBe(3600);
+    ).toBe(-3600);
   });
 });

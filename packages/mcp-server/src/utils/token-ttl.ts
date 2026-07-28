@@ -1,9 +1,7 @@
 import type { Logger } from '../server';
 
-// The MCP SDK rate-limits /oauth/token to 50 requests per 15 minutes and server.ts does not
-// override it, so a lifetime under ~18s makes a client exhaust its own token quota and get 429s.
-// 60s also stays clear of clock drift between agent instances: verifyAccessToken and the SDK's
-// bearer middleware both compare timestamps with a zero clock tolerance.
+// The MCP SDK rate-limits /oauth/token to 50 requests per 15 minutes (one per 18s) and server.ts
+// does not override it, so a shorter lifetime makes a client exhaust its own quota and take 429s.
 export const MIN_TOKEN_TTL_SECONDS = 60;
 
 export type TokenTtlOptions = {
@@ -18,8 +16,6 @@ function normalizeSeconds(
 ): number | undefined {
   if (value === undefined) return undefined;
 
-  // Fail closed rather than falling back to a default: a silently ignored cap would leave the
-  // customer believing their tokens are short-lived when they are not.
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(
       `Invalid tokenTtl.${field} "${value}": it must be a positive integer number of seconds.`,
@@ -55,25 +51,22 @@ export default function normalizeTokenTtl(
   return { accessTokenSeconds, refreshTokenSeconds };
 }
 
-export function capAccessTokenTtl(upstreamTtlSeconds: number, capSeconds?: number): number {
+export function capTtl(upstreamTtlSeconds: number, capSeconds?: number): number {
   return capSeconds === undefined ? upstreamTtlSeconds : Math.min(upstreamTtlSeconds, capSeconds);
 }
 
-// Anchored on the interactive login rather than on the current refresh: the Forest server grants a
-// full refresh lifetime on every refresh, so a per-refresh cap would slide forever and never force
-// a re-login.
-export function capRefreshTokenTtl({
-  upstreamTtlSeconds,
-  capSeconds,
+// Anchored on the interactive login, not on the current refresh: Forest grants a full refresh
+// lifetime on every refresh, so a per-refresh bound would slide forever and never force a re-login.
+export function sessionRemainingSeconds({
+  refreshTokenSeconds,
   sessionStartedAt,
   nowInSeconds,
 }: {
-  upstreamTtlSeconds: number;
-  capSeconds?: number;
+  refreshTokenSeconds?: number;
   sessionStartedAt: number;
   nowInSeconds: number;
 }): number {
-  if (capSeconds === undefined) return upstreamTtlSeconds;
+  if (refreshTokenSeconds === undefined) return Number.POSITIVE_INFINITY;
 
-  return Math.min(upstreamTtlSeconds, sessionStartedAt + capSeconds - nowInSeconds);
+  return sessionStartedAt + refreshTokenSeconds - nowInSeconds;
 }

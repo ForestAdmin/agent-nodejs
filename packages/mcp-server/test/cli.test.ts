@@ -43,8 +43,6 @@ describe('parseTokenTtl', () => {
     expect(parseTokenTtl(access, refresh)).toEqual(expected);
   });
 
-  // Validation is deliberately deferred to normalizeTokenTtl, so an env var and an embedded option
-  // fail with the same message.
   it('leaves a non-numeric value as NaN for the normalizer to reject', () => {
     expect(parseTokenTtl('abc')?.accessTokenSeconds).toBeNaN();
   });
