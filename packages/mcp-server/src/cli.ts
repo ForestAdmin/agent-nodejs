@@ -12,10 +12,10 @@ const server = new ForestMCPServer({
   authSecret: process.env.FOREST_AUTH_SECRET,
   enabledTools: parseToolList(process.env.FOREST_MCP_ENABLED_TOOLS),
   agentUrl: process.env.FOREST_AGENT_URL,
-  tokenTtl: parseTokenTtl(
-    process.env.FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS,
-    process.env.FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS,
-  ),
+  tokenTtl: parseTokenTtl({
+    accessTokenSeconds: process.env.FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS,
+    refreshTokenSeconds: process.env.FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS,
+  }),
 });
 
 server.run().catch(error => {

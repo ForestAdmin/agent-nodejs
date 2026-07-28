@@ -763,8 +763,10 @@ describe('ForestMCPServer Instance', () => {
         });
 
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe('invalid_request');
-        expect(response.body.error_description).toContain('Failed to exchange authorization code');
+        expect(response.body.error).toBe('invalid_grant');
+        expect(response.body.error_description).toContain(
+          'The authorization code has expired or is invalid',
+        );
       });
 
       it('should return error when client authentication fails', async () => {
@@ -785,8 +787,8 @@ describe('ForestMCPServer Instance', () => {
         });
 
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe('invalid_request');
-        expect(response.body.error_description).toContain('Failed to exchange authorization code');
+        expect(response.body.error).toBe('invalid_client');
+        expect(response.body.error_description).toContain('Client authentication failed');
       });
 
       it('should return error when requested scope is invalid', async () => {
@@ -807,8 +809,10 @@ describe('ForestMCPServer Instance', () => {
         });
 
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe('invalid_request');
-        expect(response.body.error_description).toContain('Failed to exchange authorization code');
+        expect(response.body.error).toBe('invalid_scope');
+        expect(response.body.error_description).toContain(
+          'The requested scope is invalid or unknown',
+        );
       });
 
       it('should return error when client is not authorized', async () => {
@@ -829,8 +833,10 @@ describe('ForestMCPServer Instance', () => {
         });
 
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe('invalid_request');
-        expect(response.body.error_description).toContain('Failed to exchange authorization code');
+        expect(response.body.error).toBe('unauthorized_client');
+        expect(response.body.error_description).toContain(
+          'The client is not authorized to use this grant type',
+        );
       });
 
       it('should return error when Forest Admin server has internal error', async () => {
@@ -851,8 +857,10 @@ describe('ForestMCPServer Instance', () => {
         });
 
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe('invalid_request');
-        expect(response.body.error_description).toContain('Failed to exchange authorization code');
+        expect(response.body.error).toBe('server_error');
+        expect(response.body.error_description).toContain(
+          'An unexpected error occurred on the server',
+        );
       });
 
       it('should use default error description when not provided by Forest server', async () => {
@@ -883,7 +891,7 @@ describe('ForestMCPServer Instance', () => {
         });
 
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe('invalid_request');
+        expect(response.body.error).toBe('server_error');
         expect(response.body.error_description).toContain('Failed to exchange authorization code');
       });
     });

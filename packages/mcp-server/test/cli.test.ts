@@ -28,22 +28,34 @@ describe('parseToolList', () => {
 });
 
 describe('parseTokenTtl', () => {
-  it.each([
-    [undefined, undefined],
-    ['', ''],
-  ])('returns undefined for (%p, %p) so nothing is capped', (access, refresh) => {
-    expect(parseTokenTtl(access, refresh)).toBeUndefined();
+  it('returns undefined when neither variable is set, so nothing is capped', () => {
+    expect(parseTokenTtl({})).toBeUndefined();
   });
 
   it.each([
-    ['900', undefined, { accessTokenSeconds: 900, refreshTokenSeconds: undefined }],
-    [undefined, '86400', { accessTokenSeconds: undefined, refreshTokenSeconds: 86400 }],
-    ['900', '86400', { accessTokenSeconds: 900, refreshTokenSeconds: 86400 }],
-  ])('parses (%p, %p) to seconds', (access, refresh, expected) => {
-    expect(parseTokenTtl(access, refresh)).toEqual(expected);
+    [{ accessTokenSeconds: '900' }, { accessTokenSeconds: 900, refreshTokenSeconds: undefined }],
+    [
+      { refreshTokenSeconds: '86400' },
+      { accessTokenSeconds: undefined, refreshTokenSeconds: 86400 },
+    ],
+    [
+      { accessTokenSeconds: '900', refreshTokenSeconds: '86400' },
+      { accessTokenSeconds: 900, refreshTokenSeconds: 86400 },
+    ],
+    [{ accessTokenSeconds: ' 900 ' }, { accessTokenSeconds: 900, refreshTokenSeconds: undefined }],
+  ])('parses %p to seconds', (env, expected) => {
+    expect(parseTokenTtl(env)).toEqual(expected);
   });
 
-  it('leaves a non-numeric value as NaN for the normalizer to reject', () => {
-    expect(parseTokenTtl('abc')?.accessTokenSeconds).toBeNaN();
+  // An unrendered template or a missing ConfigMap key must not silently leave a token uncapped.
+  it.each(['', '   ', 'abc', '15m'])('yields NaN for %p so the normalizer rejects it', value => {
+    expect(parseTokenTtl({ accessTokenSeconds: value })?.accessTokenSeconds).toBeNaN();
+  });
+
+  it('rejects an empty variable even when the other one is valid', () => {
+    expect(parseTokenTtl({ accessTokenSeconds: '900', refreshTokenSeconds: '' })).toEqual({
+      accessTokenSeconds: 900,
+      refreshTokenSeconds: NaN,
+    });
   });
 });

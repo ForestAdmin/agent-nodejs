@@ -12,7 +12,7 @@ export type TokenTtlOptions = {
 };
 
 function normalizeSeconds(
-  field: string,
+  field: keyof TokenTtlOptions,
   value: number | undefined,
   logger: Logger,
 ): number | undefined {

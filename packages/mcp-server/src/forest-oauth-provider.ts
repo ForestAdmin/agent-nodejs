@@ -21,11 +21,24 @@ import {
   InvalidGrantError,
   InvalidRequestError,
   InvalidTokenError,
+  OAuthError,
   UnsupportedTokenTypeError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
 import { capTtl, sessionRemainingSeconds } from './utils/token-ttl';
+
+// Used by both the sign() payload and the verify() cast, so renaming a claim on one side is a
+// compile error rather than a silent fallback to `iat` — which is re-stamped on every rotation and
+// would slide the session window forever.
+interface RefreshTokenClaims {
+  type: 'refresh';
+  clientId: string;
+  userId: number;
+  renderingId: number;
+  serverRefreshToken: string;
+  sessionStartedAt?: number;
+}
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
@@ -227,7 +240,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         sessionStartedAt,
       );
     } catch (error) {
-      if (error instanceof InvalidGrantError) throw error;
+      if (error instanceof OAuthError) throw error;
 
       const message = error instanceof Error ? error.message : String(error);
       throw new InvalidRequestError(`Failed to exchange authorization code: ${message}`);
@@ -240,15 +253,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     scopes?: string[],
   ): Promise<OAuthTokens> {
     // Verify and decode the refresh token
-    let decoded: {
-      type: string;
-      clientId: string;
-      userId: number;
-      renderingId: number;
-      serverRefreshToken: string;
-      sessionStartedAt?: number;
-      iat?: number;
-    };
+    let decoded: RefreshTokenClaims & { iat?: number };
 
     try {
       decoded = jsonwebtoken.verify(refreshToken, this.authSecret) as typeof decoded;
@@ -289,10 +294,13 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
 
     // Checked again after the Forest round trips; this one only spares them when already expired.
     if (sessionRemainingSeconds({ refreshTokenSeconds, sessionStartedAt, nowInSeconds }) <= 0) {
+      // Info, not Error: the session reaching its configured limit is this option working. With the
+      // documented 86400 it fires once per user per day.
       this.logger(
-        'Error',
-        `[ForestOAuthProvider] Session exceeded tokenTtl.refreshTokenSeconds=${refreshTokenSeconds}: ` +
-          `sessionStartedAt=${sessionStartedAt}, clientId=${client.client_id}, userId=${decoded.userId}`,
+        'Info',
+        `[ForestOAuthProvider] Session reached tokenTtl.refreshTokenSeconds=${refreshTokenSeconds}, ` +
+          `re-authentication required: sessionStartedAt=${sessionStartedAt}, ` +
+          `clientId=${client.client_id}, userId=${decoded.userId}`,
       );
       throw new InvalidGrantError('Refresh token has expired');
     }
@@ -310,9 +318,9 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         sessionStartedAt,
       );
     } catch (error) {
-      // Only `invalid_grant` tells the client to drop its refresh token and re-run the interactive
-      // login, so a session that lapsed mid-flight must keep its own error code.
-      if (error instanceof InvalidGrantError) throw error;
+      // Preserve the OAuth code: the client only re-authenticates on invalid_grant (and
+      // invalid_client), and invalid_request is the one code it treats as unrecoverable.
+      if (error instanceof OAuthError) throw error;
 
       const message = error instanceof Error ? error.message : String(error);
       const errorName = error instanceof Error ? error.name : 'Unknown';
@@ -326,7 +334,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   }
 
   private warnIfCapIsInert(
-    field: string,
+    field: keyof TokenTtlOptions,
     capSeconds: number | undefined,
     upstreamTtlSeconds: number,
   ): void {
@@ -424,10 +432,19 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     });
 
     if (sessionRemaining <= 0) {
+      // Unlike the caller's pre-flight check, reaching here means the round trips themselves
+      // outlasted the session — the elapsed time is the only way to tell that from a plain expiry.
+      this.logger(
+        'Warn',
+        `[ForestOAuthProvider] Session lapsed while calling Forest Admin: ` +
+          `sessionStartedAt=${sessionStartedAt}, roundTripSeconds=${
+            nowInSeconds - sessionStartedAt
+          }`,
+      );
       throw new InvalidGrantError('Refresh token has expired');
     }
 
-    // Capped here rather than in the sign() options, so `expires_in` below reports the same value.
+    // Computed before signing so the `expires_in` returned below reports the same value.
     const expiresIn = capTtl(
       Math.min(expirationDate - nowInSeconds, sessionRemaining),
       this.tokenTtl?.accessTokenSeconds,
@@ -447,18 +464,17 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     );
 
     // Create new refresh token (token rotation for security)
-    const refreshToken = jsonwebtoken.sign(
-      {
-        type: 'refresh',
-        clientId: client.client_id,
-        userId: user.id,
-        renderingId,
-        serverRefreshToken: forestServerRefreshToken,
-        sessionStartedAt,
-      },
-      this.authSecret,
-      { expiresIn: Math.min(refreshTokenExpirationDate - nowInSeconds, sessionRemaining) },
-    );
+    const refreshClaims: RefreshTokenClaims = {
+      type: 'refresh',
+      clientId: client.client_id,
+      userId: user.id,
+      renderingId,
+      serverRefreshToken: forestServerRefreshToken,
+      sessionStartedAt,
+    };
+    const refreshToken = jsonwebtoken.sign(refreshClaims, this.authSecret, {
+      expiresIn: Math.min(refreshTokenExpirationDate - nowInSeconds, sessionRemaining),
+    });
 
     return {
       access_token: accessToken,

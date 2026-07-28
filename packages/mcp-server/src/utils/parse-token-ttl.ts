@@ -1,13 +1,25 @@
 import type { TokenTtlOptions } from './token-ttl';
 
-export default function parseTokenTtl(
-  accessTokenSeconds?: string,
-  refreshTokenSeconds?: string,
-): TokenTtlOptions | undefined {
-  if (!accessTokenSeconds && !refreshTokenSeconds) return undefined;
+// An env var set to an empty string is a misconfiguration, not an opt-out: the operator meant to
+// cap something. Coercing it to NaN makes normalizeTokenTtl reject it instead of leaving that token
+// silently uncapped — which matters most when only one of the two is empty.
+function toSeconds(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+
+  return Number(value.trim() === '' ? NaN : value.trim());
+}
+
+export default function parseTokenTtl({
+  accessTokenSeconds,
+  refreshTokenSeconds,
+}: {
+  accessTokenSeconds?: string;
+  refreshTokenSeconds?: string;
+}): TokenTtlOptions | undefined {
+  if (accessTokenSeconds === undefined && refreshTokenSeconds === undefined) return undefined;
 
   return {
-    accessTokenSeconds: accessTokenSeconds ? Number(accessTokenSeconds) : undefined,
-    refreshTokenSeconds: refreshTokenSeconds ? Number(refreshTokenSeconds) : undefined,
+    accessTokenSeconds: toSeconds(accessTokenSeconds),
+    refreshTokenSeconds: toSeconds(refreshTokenSeconds),
   };
 }

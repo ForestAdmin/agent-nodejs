@@ -65,7 +65,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
 | `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
-| `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | `691200` (8 days) | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Minimum `60` |
+| `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
 
 #### Example Configuration
 
@@ -113,7 +113,7 @@ See [Available Tools](#available-tools) for the full list. `describeCollection` 
 
 ## Shorten Token Lifetimes
 
-Forest Admin grants **1 hour** (3600s) for an access token and **8 days** (691200s) for a refresh token.
+Forest Admin grants **1 hour** (3600s) for an access token and **8 days** (691200s) for a refresh token — but it re-grants those 8 days on *every* refresh, so without `refreshTokenSeconds` a client that keeps working is never asked to sign in again.
 
 **Both values are upper bounds: they can only shorten that, never extend it.** For `accessTokenSeconds` a value above 3600 therefore has no effect. `refreshTokenSeconds` bounds the whole session, which Forest Admin otherwise re-extends on every refresh, so any value shortens it however large it is.
 
@@ -134,7 +134,7 @@ npx forest-mcp-server
 The two settings differ in what the user notices:
 
 - `accessTokenSeconds` shortens how long a leaked access token stays usable. It is transparent — the AI assistant silently obtains a new one.
-- `refreshTokenSeconds` bounds the time between two **interactive logins**: once it elapses, the assistant can no longer refresh and the user signs in through the browser again. It is measured from the login itself, so an active assistant cannot keep extending its session.
+- `refreshTokenSeconds` bounds the time between two **interactive logins**: once it elapses, the assistant can no longer refresh and the user signs in through the browser again. It is measured from the login itself, so an active assistant cannot keep extending its session. Refresh tokens issued before you enabled the option carry no login timestamp, so their window is measured from their last refresh instead — one longer session each, then bounded.
 
 The minimum for either value is 60 seconds; anything lower is raised to it. An invalid value (zero, negative, fractional) fails at startup rather than silently leaving the tokens uncapped.
 

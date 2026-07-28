@@ -4,7 +4,6 @@ import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/share
 import type { Response } from 'express';
 
 import createForestAdminClient from '@forestadmin/forestadmin-client';
-import { InvalidGrantError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
 import MockServer from './test-utils/mock-server';
@@ -795,7 +794,9 @@ describe('ForestOAuthProvider', () => {
       ).rejects.toThrow('Token was not issued to this client');
     });
 
-    it('should throw error when Forest Admin refresh fails', async () => {
+    // Forest revoking the session (removed user, revoked token) must reach the client as
+    // invalid_grant, the only code that makes it re-run the interactive login.
+    it('propagates the OAuth code when Forest Admin rejects the refresh', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
         clientId: 'test-client-id',
@@ -811,7 +812,7 @@ describe('ForestOAuthProvider', () => {
 
       await expect(
         provider.exchangeRefreshToken(mockClient, 'valid-refresh-token'),
-      ).rejects.toThrow('Failed to refresh token');
+      ).rejects.toMatchObject({ errorCode: 'invalid_grant' });
     });
   });
 
@@ -1209,7 +1210,7 @@ describe('ForestOAuthProvider', () => {
       jest.setSystemTime(NOW_MS + 5000);
 
       // Only invalid_grant makes the client re-run the interactive login.
-      await expect(pending).rejects.toBeInstanceOf(InvalidGrantError);
+      await expect(pending).rejects.toMatchObject({ errorCode: 'invalid_grant' });
       expect(mockJwtSign).not.toHaveBeenCalled();
     });
 
@@ -1226,7 +1227,7 @@ describe('ForestOAuthProvider', () => {
 
       await expect(
         provider.exchangeRefreshToken(mockClient, 'our-refresh-token'),
-      ).rejects.toBeInstanceOf(InvalidGrantError);
+      ).rejects.toMatchObject({ errorCode: 'invalid_grant' });
       expect(mockServer.fetch).not.toHaveBeenCalledWith(
         expect.stringContaining('/oauth/token'),
         expect.anything(),
