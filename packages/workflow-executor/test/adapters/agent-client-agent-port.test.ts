@@ -668,7 +668,7 @@ describe('AgentClientAgentPort', () => {
     // Regression: jsonapi-serializer emits the nested linkage with camelCased attribute
     // keys (full_name → fullName). The adapter must restore those keys before returning
     // values, otherwise snake_case referenceFields silently resolve to undefined upstream.
-    it('restores camelCased keys on the linkage when fields are snake_case', async () => {
+    it('projects the raw snake_case field name and restores it on the linkage', async () => {
       const snakeSchema = {
         ...ordersSchema,
         fields: [
@@ -694,6 +694,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['order@@@full_name'] });
       expect(result?.values).toEqual({ id: '99', full_name: 'John Doe' });
     });
 
@@ -784,7 +785,7 @@ describe('AgentClientAgentPort', () => {
       expect(result?.recordId).toEqual(['ba-1']);
     });
 
-    it('restores PascalCase field names on the linkage', async () => {
+    it('projects the raw PascalCase field name and restores it on the linkage', async () => {
       mockCollection.getOne.mockResolvedValue({ order: { id: '99', fullName: 'John Doe' } });
 
       const result = await port.getSingleRelatedData(
@@ -798,6 +799,7 @@ describe('AgentClientAgentPort', () => {
         user,
       );
 
+      expect(mockCollection.getOne).toHaveBeenCalledWith([42], { fields: ['order@@@FullName'] });
       expect(result?.values).toEqual({ id: '99', FullName: 'John Doe' });
     });
 
