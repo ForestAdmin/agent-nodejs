@@ -258,8 +258,9 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * // OAuth discovery metadata stays at the origin root (prefix-suffixed), so root `.well-known`
    * // traffic must still reach the agent.
    * agent.mountAiMcpServer({ basePath: '/ai' });
-   * // Example: shorten the OAuth token lifetimes. Both values can only shorten what Forest Admin
-   * // granted; `refreshTokenSeconds` bounds the time between two interactive logins.
+   * // Example: shorten the OAuth token lifetimes. Forest Admin grants 1h for an access token and
+   * // 8 days for a refresh token; these only shorten that. `refreshTokenSeconds` bounds the time
+   * // between two interactive logins.
    * agent.mountAiMcpServer({ tokenTtl: { accessTokenSeconds: 900, refreshTokenSeconds: 86400 } });
    */
   mountAiMcpServer(options?: {

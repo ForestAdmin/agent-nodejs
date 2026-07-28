@@ -64,8 +64,8 @@ yarn start:dev       # Development (loads .env file automatically)
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
 | `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
-| `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | Forest Admin's own lifetime | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
-| `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | Forest Admin's own lifetime | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Minimum `60` |
+| `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
+| `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | `691200` (8 days) | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Minimum `60` |
 
 #### Example Configuration
 
@@ -113,7 +113,9 @@ See [Available Tools](#available-tools) for the full list. `describeCollection` 
 
 ## Shorten Token Lifetimes
 
-**Both values are upper bounds: they can only shorten what Forest Admin granted, never extend it.** For `accessTokenSeconds` that means a value above Forest Admin's own token lifetime has no effect. `refreshTokenSeconds` bounds the whole session, which Forest Admin otherwise re-extends on every refresh, so any value shortens it however large it is.
+Forest Admin grants **1 hour** (3600s) for an access token and **8 days** (691200s) for a refresh token.
+
+**Both values are upper bounds: they can only shorten that, never extend it.** For `accessTokenSeconds` a value above 3600 therefore has no effect. `refreshTokenSeconds` bounds the whole session, which Forest Admin otherwise re-extends on every refresh, so any value shortens it however large it is.
 
 ```typescript
 // With Forest Admin Agent
