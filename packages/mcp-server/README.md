@@ -64,6 +64,8 @@ yarn start:dev       # Development (loads .env file automatically)
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
 | `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
+| `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | Forest Admin's own lifetime | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
+| `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | Forest Admin's own lifetime | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Minimum `60` |
 
 #### Example Configuration
 
@@ -108,6 +110,31 @@ npx forest-mcp-server
 When `enabledTools` is not set, all tools are enabled by default.
 
 See [Available Tools](#available-tools) for the full list. `describeCollection` is always enabled as it is required for the MCP server to function properly.
+
+## Shorten Token Lifetimes
+
+**Both values are upper bounds: they can only shorten the lifetime Forest Admin granted, never extend it.** A value above Forest Admin's own lifetime therefore has no effect.
+
+```typescript
+// With Forest Admin Agent
+agent.mountAiMcpServer({
+  tokenTtl: { accessTokenSeconds: 900, refreshTokenSeconds: 86400 },
+});
+```
+
+```bash
+# Standalone
+export FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS=900
+export FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS=86400
+npx forest-mcp-server
+```
+
+The two settings differ in what the user notices:
+
+- `accessTokenSeconds` shortens how long a leaked access token stays usable. It is transparent — the AI assistant silently obtains a new one.
+- `refreshTokenSeconds` bounds the time between two **interactive logins**: once it elapses, the assistant can no longer refresh and the user signs in through the browser again. It is measured from the login itself, so an active assistant cannot keep extending its session.
+
+The minimum for either value is 60 seconds; anything lower is raised to it. An invalid value (zero, negative, fractional) fails at startup rather than silently leaving the tokens uncapped.
 
 ## API Endpoints
 

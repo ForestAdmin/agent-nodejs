@@ -1,3 +1,4 @@
+import parseTokenTtl from '../src/utils/parse-token-ttl';
 import parseToolList from '../src/utils/parse-tool-list';
 
 describe('parseToolList', () => {
@@ -23,5 +24,28 @@ describe('parseToolList', () => {
 
   it('should handle a single tool name', () => {
     expect(parseToolList('delete')).toEqual(['delete']);
+  });
+});
+
+describe('parseTokenTtl', () => {
+  it.each([
+    [undefined, undefined],
+    ['', ''],
+  ])('returns undefined for (%p, %p) so nothing is capped', (access, refresh) => {
+    expect(parseTokenTtl(access, refresh)).toBeUndefined();
+  });
+
+  it.each([
+    ['900', undefined, { accessTokenSeconds: 900, refreshTokenSeconds: undefined }],
+    [undefined, '86400', { accessTokenSeconds: undefined, refreshTokenSeconds: 86400 }],
+    ['900', '86400', { accessTokenSeconds: 900, refreshTokenSeconds: 86400 }],
+  ])('parses (%p, %p) to seconds', (access, refresh, expected) => {
+    expect(parseTokenTtl(access, refresh)).toEqual(expected);
+  });
+
+  // Validation is deliberately deferred to normalizeTokenTtl, so an env var and an embedded option
+  // fail with the same message.
+  it('leaves a non-numeric value as NaN for the normalizer to reject', () => {
+    expect(parseTokenTtl('abc')?.accessTokenSeconds).toBeNaN();
   });
 });

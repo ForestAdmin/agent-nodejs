@@ -2825,6 +2825,95 @@ describe('agentUrl option', () => {
   });
 });
 
+describe('tokenTtl option', () => {
+  const originalFetch = global.fetch;
+  const FOREST_SECRET = 'forest-signing-secret';
+  let mockFetchServer: MockServer;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    mockFetchServer?.restoreSuperagent();
+  });
+
+  function stubForestServer() {
+    mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '1', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get(/\/oauth\/register\//, {
+        client_id: 'test-client',
+        redirect_uris: ['https://example.com/callback'],
+      })
+      .post('/oauth/token', {
+        access_token: jsonwebtoken.sign(
+          { meta: { renderingId: 456 }, scope: 'mcp:read' },
+          FOREST_SECRET,
+          { expiresIn: 3600 },
+        ),
+        refresh_token: jsonwebtoken.sign({}, FOREST_SECRET, { expiresIn: '7d' }),
+        expires_in: 3600,
+        token_type: 'Bearer',
+        scope: 'mcp:read',
+      })
+      .get(/\/liana\/v2\/renderings\/\d+\/authorization/, {
+        data: {
+          id: '123',
+          attributes: {
+            email: 'user@example.com',
+            first_name: 'Test',
+            last_name: 'User',
+            teams: ['Operations'],
+            role: 'Admin',
+            permission_level: 'admin',
+            tags: [],
+          },
+        },
+      });
+    global.fetch = mockFetchServer.fetch;
+    mockFetchServer.setupSuperagentMock();
+  }
+
+  it('shortens the issued access token down to the configured cap', async () => {
+    stubForestServer();
+    const server = new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: createMockForestServerClient(),
+      tokenTtl: { accessTokenSeconds: 120 },
+    });
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'authorization_code',
+      code: 'auth-code',
+      code_verifier: 'code-verifier',
+      client_id: 'test-client',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.expires_in).toBe(120);
+
+    const { exp, iat } = jsonwebtoken.decode(response.body.access_token) as {
+      exp: number;
+      iat: number;
+    };
+    expect(exp - iat).toBe(120);
+  });
+
+  it('rejects an invalid value at construction rather than issuing uncapped tokens', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          tokenTtl: { accessTokenSeconds: 0 },
+        }),
+    ).toThrow(/Invalid tokenTtl\.accessTokenSeconds/);
+  });
+});
+
 describe('handleMcpRequest cleanup', () => {
   const originalFetch = global.fetch;
   let cleanupServer: ForestMCPServer;

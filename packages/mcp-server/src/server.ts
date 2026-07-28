@@ -5,6 +5,7 @@ import './polyfills';
 import type { ForestServerClient } from './http-client';
 import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
 import type { ToolContext } from './tool-context';
+import type { TokenTtlOptions } from './utils/token-ttl';
 import type { Express } from 'express';
 
 import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
@@ -38,6 +39,7 @@ import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
+import normalizeTokenTtl from './utils/token-ttl';
 import { NAME, VERSION } from './version';
 
 export const LOGO_URL = 'https://forest-assets.s3.us-east-1.amazonaws.com/logo-green.png';
@@ -139,6 +141,12 @@ export interface ForestMCPServerOptions {
    * instead of reaching its public `api_endpoint` over HTTP.
    */
   agentDispatcher?: InProcessAgentDispatcher;
+  /**
+   * Upper bounds on the OAuth token lifetimes this server issues. Each value can only shorten the
+   * lifetime Forest Admin granted, never extend it, so a value above Forest Admin's own TTL has no
+   * effect. `refreshTokenSeconds` bounds the time between two interactive logins.
+   */
+  tokenTtl?: TokenTtlOptions;
 }
 
 /**
@@ -163,6 +171,7 @@ export default class ForestMCPServer {
   private basePath: string;
   private agentUrl?: string;
   private agentDispatcher?: InProcessAgentDispatcher;
+  private tokenTtl?: TokenTtlOptions;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -174,6 +183,7 @@ export default class ForestMCPServer {
     this.basePath = normalizeMountPath(options?.basePath);
     this.agentUrl = normalizeAgentUrl(options?.agentUrl);
     this.agentDispatcher = options?.agentDispatcher;
+    this.tokenTtl = normalizeTokenTtl(options?.tokenTtl, this.logger);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -430,6 +440,7 @@ export default class ForestMCPServer {
       authSecret,
       logger: this.logger,
       agentUrl: this.agentUrl,
+      tokenTtl: this.tokenTtl,
     });
     await oauthProvider.initialize();
 
