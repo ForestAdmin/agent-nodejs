@@ -56,7 +56,8 @@ describe('normalizeTokenTtl', () => {
     });
     expect(logger).toHaveBeenCalledWith(
       'Warn',
-      `ignoring tokenTtl.accessTokenSeconds: minimum value is ${MIN_TOKEN_TTL_SECONDS} seconds`,
+      `[ForestOAuthProvider] raising tokenTtl.accessTokenSeconds from 30 to the ` +
+        `${MIN_TOKEN_TTL_SECONDS}s minimum`,
     );
   });
 

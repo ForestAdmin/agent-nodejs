@@ -1,7 +1,7 @@
 import type { Logger } from '../server';
 
-// The MCP SDK rate-limits /oauth/token to 50 requests per 15 minutes (one per 18s) and server.ts
-// does not override it, so a shorter lifetime makes a client exhaust its own quota and take 429s.
+// The MCP SDK rate-limits /oauth/token to 50 requests per 15 minutes (one per 18s) per IP and
+// server.ts does not override it. 60s leaves margin for clients sharing an egress IP.
 export const MIN_TOKEN_TTL_SECONDS = 60;
 
 export type TokenTtlOptions = {
@@ -23,7 +23,11 @@ function normalizeSeconds(
   }
 
   if (value < MIN_TOKEN_TTL_SECONDS) {
-    logger('Warn', `ignoring tokenTtl.${field}: minimum value is ${MIN_TOKEN_TTL_SECONDS} seconds`);
+    logger(
+      'Warn',
+      `[ForestOAuthProvider] raising tokenTtl.${field} from ${value} to the ` +
+        `${MIN_TOKEN_TTL_SECONDS}s minimum`,
+    );
 
     return MIN_TOKEN_TTL_SECONDS;
   }

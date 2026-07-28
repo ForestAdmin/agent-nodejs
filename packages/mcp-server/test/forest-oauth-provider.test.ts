@@ -4,6 +4,7 @@ import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/share
 import type { Response } from 'express';
 
 import createForestAdminClient from '@forestadmin/forestadmin-client';
+import { InvalidGrantError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
 
 import MockServer from './test-utils/mock-server';
@@ -1062,14 +1063,9 @@ describe('ForestOAuthProvider', () => {
       expect(result.expires_in).toBe(FOREST_ACCESS_TTL);
     });
 
-    it('warns for each cap that exceeds the lifetime Forest Admin granted', async () => {
+    it('warns when the access cap exceeds the lifetime Forest Admin granted', async () => {
       const logger = jest.fn();
-      const provider = createProvider(
-        undefined,
-        undefined,
-        { accessTokenSeconds: 7200, refreshTokenSeconds: 30 * 24 * 3600 },
-        logger,
-      );
+      const provider = createProvider(undefined, undefined, { accessTokenSeconds: 7200 }, logger);
 
       await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
 
@@ -1077,10 +1073,22 @@ describe('ForestOAuthProvider', () => {
         'Warn',
         expect.stringContaining(`tokenTtl.accessTokenSeconds=7200 exceeds the 3600s`),
       );
-      expect(logger).toHaveBeenCalledWith(
-        'Warn',
-        expect.stringContaining(`tokenTtl.refreshTokenSeconds=2592000 exceeds the 604800s`),
+    });
+
+    // A refresh cap bounds the whole session, which Forest re-extends on every refresh, so a value
+    // above one token's lifetime still forces a re-login and must not be reported as inert.
+    it('stays silent when the refresh cap exceeds one Forest refresh lifetime', async () => {
+      const logger = jest.fn();
+      const provider = createProvider(
+        undefined,
+        undefined,
+        { refreshTokenSeconds: 30 * 24 * 3600 },
+        logger,
       );
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(logger).not.toHaveBeenCalled();
     });
 
     it('warns once per field instead of on every token issuance', async () => {
@@ -1146,7 +1154,9 @@ describe('ForestOAuthProvider', () => {
       );
     });
 
-    it('does not slide the refresh window when refreshing', async () => {
+    // Every real refresh token carries both claims, `iat` being the mint time of that refresh. The
+    // anchor must be the stamped session start, or the window slides on every refresh.
+    it('anchors on the stamped session start, not on the refresh token issue date', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
         clientId: 'test-client-id',
@@ -1154,6 +1164,7 @@ describe('ForestOAuthProvider', () => {
         renderingId: 456,
         serverRefreshToken: 'forest-refresh-token',
         sessionStartedAt: nowInSeconds - 80000,
+        iat: nowInSeconds - 300,
       });
       const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
 
@@ -1193,10 +1204,12 @@ describe('ForestOAuthProvider', () => {
       });
       const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
 
+      // The pre-flight check passes with 1s left, then the round trips outlast the session.
       const pending = provider.exchangeRefreshToken(mockClient, 'our-refresh-token');
       jest.setSystemTime(NOW_MS + 5000);
 
-      await expect(pending).rejects.toThrow('Refresh token has expired');
+      // Only invalid_grant makes the client re-run the interactive login.
+      await expect(pending).rejects.toBeInstanceOf(InvalidGrantError);
       expect(mockJwtSign).not.toHaveBeenCalled();
     });
 
@@ -1211,9 +1224,9 @@ describe('ForestOAuthProvider', () => {
       });
       const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
 
-      await expect(provider.exchangeRefreshToken(mockClient, 'our-refresh-token')).rejects.toThrow(
-        'Refresh token has expired',
-      );
+      await expect(
+        provider.exchangeRefreshToken(mockClient, 'our-refresh-token'),
+      ).rejects.toBeInstanceOf(InvalidGrantError);
       expect(mockServer.fetch).not.toHaveBeenCalledWith(
         expect.stringContaining('/oauth/token'),
         expect.anything(),

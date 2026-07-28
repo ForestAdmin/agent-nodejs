@@ -227,6 +227,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         sessionStartedAt,
       );
     } catch (error) {
+      if (error instanceof InvalidGrantError) throw error;
+
       const message = error instanceof Error ? error.message : String(error);
       throw new InvalidRequestError(`Failed to exchange authorization code: ${message}`);
     }
@@ -279,15 +281,14 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       throw new InvalidClientError('Token was not issued to this client');
     }
 
-    // Carried over from the interactive login, never re-stamped.
     const nowInSeconds = Math.floor(Date.now() / 1000);
+    // `sessionStartedAt` is stamped at the interactive login; a token predating the claim falls back
+    // to its own issue date. Never re-stamped, or the window would slide and never force a re-login.
     const sessionStartedAt = decoded.sessionStartedAt ?? decoded.iat ?? nowInSeconds;
     const { refreshTokenSeconds } = this.tokenTtl ?? {};
 
-    if (
-      refreshTokenSeconds !== undefined &&
-      sessionStartedAt + refreshTokenSeconds <= nowInSeconds
-    ) {
+    // Checked again after the Forest round trips; this one only spares them when already expired.
+    if (sessionRemainingSeconds({ refreshTokenSeconds, sessionStartedAt, nowInSeconds }) <= 0) {
       this.logger(
         'Error',
         `[ForestOAuthProvider] Session exceeded tokenTtl.refreshTokenSeconds=${refreshTokenSeconds}: ` +
@@ -309,6 +310,10 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
         sessionStartedAt,
       );
     } catch (error) {
+      // Only `invalid_grant` tells the client to drop its refresh token and re-run the interactive
+      // login, so a session that lapsed mid-flight must keep its own error code.
+      if (error instanceof InvalidGrantError) throw error;
+
       const message = error instanceof Error ? error.message : String(error);
       const errorName = error instanceof Error ? error.name : 'Unknown';
       this.logger(
@@ -402,19 +407,16 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     );
 
     const nowInSeconds = Math.floor(Date.now() / 1000);
+    // Only the access cap can be inert. `refreshTokenSeconds` bounds the whole session, which Forest
+    // otherwise re-extends on every refresh, so any value binds however large it is.
     this.warnIfCapIsInert(
       'accessTokenSeconds',
       this.tokenTtl?.accessTokenSeconds,
       expirationDate - nowInSeconds,
     );
-    this.warnIfCapIsInert(
-      'refreshTokenSeconds',
-      this.tokenTtl?.refreshTokenSeconds,
-      refreshTokenExpirationDate - nowInSeconds,
-    );
 
-    // Re-measured after the Forest round trips, which can themselves outlast the session. Bounds
-    // both tokens: an access token outliving the session would extend it by its own lifetime.
+    // Re-read after the Forest round trips: they can outlast what is left of the session. Bounds the
+    // access token too, which would otherwise extend the session by its own lifetime.
     const sessionRemaining = sessionRemainingSeconds({
       refreshTokenSeconds: this.tokenTtl?.refreshTokenSeconds,
       sessionStartedAt,
@@ -425,7 +427,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       throw new InvalidGrantError('Refresh token has expired');
     }
 
-    // Capped here, not in the sign() options, so the `expires_in` returned below cannot drift.
+    // Capped here rather than in the sign() options, so `expires_in` below reports the same value.
     const expiresIn = capTtl(
       Math.min(expirationDate - nowInSeconds, sessionRemaining),
       this.tokenTtl?.accessTokenSeconds,
@@ -461,7 +463,6 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     return {
       access_token: accessToken,
       token_type: 'Bearer',
-      // Only reachable when the Forest token is already expired; a cap cannot reach zero.
       expires_in: expiresIn > 0 ? expiresIn : 3600,
       refresh_token: refreshToken,
       scope: scope || client.scope,

@@ -113,7 +113,7 @@ See [Available Tools](#available-tools) for the full list. `describeCollection` 
 
 ## Shorten Token Lifetimes
 
-**Both values are upper bounds: they can only shorten the lifetime Forest Admin granted, never extend it.** A value above Forest Admin's own lifetime therefore has no effect.
+**Both values are upper bounds: they can only shorten what Forest Admin granted, never extend it.** For `accessTokenSeconds` that means a value above Forest Admin's own token lifetime has no effect. `refreshTokenSeconds` bounds the whole session, which Forest Admin otherwise re-extends on every refresh, so any value shortens it however large it is.
 
 ```typescript
 // With Forest Admin Agent
