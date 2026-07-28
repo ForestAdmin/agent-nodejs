@@ -133,7 +133,7 @@ npx forest-mcp-server
 
 The two settings differ in what the user notices:
 
-- `accessTokenSeconds` shortens how long a leaked access token stays usable. It is transparent — the AI assistant silently obtains a new one.
+- `accessTokenSeconds` shortens how long a leaked access token can drive **this server**: the MCP path closes, its scopes stop applying and its calls stop being audited. It does **not** shorten the Forest token carried inside that JWT — the JWT is signed, not encrypted, so treat a leak as a Forest token leak and revoke at the source. It is transparent to users — the assistant silently obtains a new one.
 - `refreshTokenSeconds` bounds the time between two **interactive logins**: once it elapses, the assistant can no longer refresh and the user signs in through the browser again. It is measured from the login itself, so an active assistant cannot keep extending its session. Refresh tokens issued before you enabled the option carry no login timestamp, so their window is measured from their last refresh instead — one longer session each, then bounded.
 
 The minimum for either value is 60 seconds; anything lower is raised to it. An invalid value (zero, negative, fractional) fails at startup rather than silently leaving the tokens uncapped.
