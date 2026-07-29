@@ -153,6 +153,146 @@ describe('IpWhitelist', () => {
           expect(next).toHaveBeenCalled();
         });
       });
+
+      describe('with IPv6 rules', () => {
+        test.each([
+          [{ type: 0, ip: '2001:db8::ff00:42:8329' }, '2001:0db8:0000:0000:0000:ff00:0042:8329'],
+          [{ type: 0, ip: '2001:0db8:0000:0000:0000:ff00:0042:8329' }, '2001:db8::ff00:42:8329'],
+          [{ type: 1, ipMinimum: '2001::1', ipMaximum: '2001:1::1' }, '2001::2'],
+          [{ type: 2, range: '2001:db8::/32' }, '2001:db8::1'],
+        ])('should let pass an ip matching %j whatever its notation', async (rule, ip) => {
+          const ipWhitelistService = await setupIpWhitelistService({
+            isFeatureEnabled: true,
+            ipRules: [rule],
+          });
+
+          const context = createMockContext({ headers: { 'x-forwarded-for': ip } });
+          const next = jest.fn() as Next;
+
+          await ipWhitelistService.checkIp(context, next);
+
+          expect(next).toHaveBeenCalled();
+          expect(context.throw).not.toHaveBeenCalled();
+        });
+
+        test('should reject an ipv6 caller that is outside the rule', async () => {
+          const ipWhitelistService = await setupIpWhitelistService({
+            isFeatureEnabled: true,
+            ipRules: [{ type: 2, range: '2001:db8::/32' }],
+          });
+
+          const context = createMockContext({ headers: { 'x-forwarded-for': '2001:db9::1' } });
+          const next = jest.fn() as Next;
+
+          await ipWhitelistService.checkIp(context, next);
+
+          expect(next).not.toHaveBeenCalled();
+          expect(context.throw).toHaveBeenCalledWith(
+            HttpCode.Forbidden,
+            'IP address rejected (2001:db9::1)',
+          );
+        });
+
+        // An IPv4 caller reaching an IPv6 socket is seen as ::ffff:a.b.c.d and must still match the
+        // IPv4 rule it comes from.
+        test('should let pass an ipv4-mapped caller matching an ipv4 rule', async () => {
+          const ipWhitelistService = await setupIpWhitelistService({
+            isFeatureEnabled: true,
+            ipRules: [{ type: 2, range: '10.20.15.0/24' }],
+          });
+
+          const context = createMockContext({
+            headers: { 'x-forwarded-for': '::ffff:10.20.15.10' },
+          });
+          const next = jest.fn() as Next;
+
+          await ipWhitelistService.checkIp(context, next);
+
+          expect(next).toHaveBeenCalled();
+          expect(context.throw).not.toHaveBeenCalled();
+        });
+      });
+
+      describe('when a rule is malformed', () => {
+        test.each([
+          { type: 0, ip: 'not-an-ip' },
+          { type: 1, ipMinimum: '10.20.15.11', ipMaximum: '10.20.15.10' },
+          { type: 1, ipMinimum: '10.20.15.10', ipMaximum: '2001::2' },
+          { type: 2, range: '10.20.15.0/33' },
+          { type: 2, range: '10.20.15.0' },
+          { type: 9, ip: '10.20.15.10' },
+        ])('should ignore %j instead of crashing the bootstrap', async rule => {
+          const ipWhitelistService = await setupIpWhitelistService({
+            isFeatureEnabled: true,
+            ipRules: [rule],
+          });
+
+          const context = createMockContext({ headers: { 'x-forwarded-for': '10.20.15.10' } });
+          const next = jest.fn() as Next;
+
+          await ipWhitelistService.checkIp(context, next);
+
+          expect(next).not.toHaveBeenCalled();
+          expect(context.throw).toHaveBeenCalledWith(
+            HttpCode.Forbidden,
+            'IP address rejected (10.20.15.10)',
+          );
+        });
+
+        test('should warn about the ignored rule and keep the valid ones', async () => {
+          const services = factories.forestAdminHttpDriverServices.build();
+          const logger = jest.fn();
+          const options = factories.forestAdminHttpDriverOptions.build({
+            logger,
+            forestAdminClient: factories.forestAdminClient.build({
+              getIpWhitelistConfiguration: jest.fn().mockResolvedValue({
+                isFeatureEnabled: true,
+                ipRules: [
+                  { type: 0, ip: 'not-an-ip' },
+                  { type: 0, ip: '10.20.15.10' },
+                ],
+              }),
+            }),
+          });
+
+          const ipWhitelistService = new IpWhitelist(services, options);
+          await ipWhitelistService.bootstrap();
+
+          expect(logger).toHaveBeenCalledWith(
+            'Warn',
+            'IP whitelist: ignoring invalid rule {"type":0,"ip":"not-an-ip"}',
+          );
+
+          const context = createMockContext({ headers: { 'x-forwarded-for': '10.20.15.10' } });
+          const next = jest.fn() as Next;
+
+          await ipWhitelistService.checkIp(context, next);
+
+          expect(next).toHaveBeenCalled();
+        });
+      });
+
+      describe('when the ip cannot be read', () => {
+        test.each(['', 'not-an-ip', '10.20.15.10, 10.20.15.11'])(
+          'should reject the caller sending %s',
+          async forwardedFor => {
+            const ipWhitelistService = await setupIpWhitelistService({
+              isFeatureEnabled: true,
+              ipRules: [{ type: 0, ip: '10.20.15.10' }],
+            });
+
+            const context = createMockContext({
+              headers: { 'x-forwarded-for': forwardedFor },
+            });
+            const next = jest.fn() as Next;
+
+            await ipWhitelistService.checkIp(context, next);
+
+            expect(next).not.toHaveBeenCalled();
+            expect(context.throw).toHaveBeenCalledWith(HttpCode.Forbidden, expect.any(String));
+          },
+        );
+      });
     });
 
     describe('when the caller is a trusted internal caller (feature enabled, restrictive rules)', () => {
