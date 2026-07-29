@@ -320,11 +320,38 @@ export interface TriggerMcpWorkflowParams {
 }
 
 /**
+ * The step a run is currently on, as derived server-side from the workflow history.
+ */
+export interface WorkflowRunStep {
+  name: string;
+  type: string;
+}
+
+/**
+ * The normalized status of a workflow run, as exposed for external (MCP) consumption.
+ * `result` is the terminal output when finished; `error` the failure detail otherwise.
+ */
+export interface WorkflowRunStatus {
+  runState: WorkflowRunState;
+  currentStep: WorkflowRunStep | null;
+  waitingForHumanInput: boolean;
+  result?: unknown;
+  error?: unknown;
+}
+
+export interface GetMcpWorkflowRunParams {
+  forestServerToken: string;
+  renderingId: string;
+  runId: string;
+}
+
+/**
  * Service interface for workflow operations (MCP-related).
  */
 export interface WorkflowsServiceInterface {
   listMcpEnabledWorkflows: (params: ListMcpWorkflowsParams) => Promise<McpWorkflow[]>;
   triggerMcpWorkflow: (params: TriggerMcpWorkflowParams) => Promise<WorkflowRunTriggerResult>;
+  getMcpWorkflowRun: (params: GetMcpWorkflowRunParams) => Promise<WorkflowRunStatus>;
 }
 
 /**
@@ -378,6 +405,11 @@ export interface ForestAdminServerInterface {
     workflowId: string,
     recordId: string,
   ) => Promise<WorkflowRunTriggerResult>;
+  getMcpWorkflowRun?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    runId: string,
+  ) => Promise<WorkflowRunStatus>;
 }
 
 export type ActivityLogHttpOptions = {

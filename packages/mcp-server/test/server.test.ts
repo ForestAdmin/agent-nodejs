@@ -3287,6 +3287,7 @@ describe('enabledTools', () => {
         'executeAction',
         'listWorkflows',
         'triggerWorkflow',
+        'getWorkflowRun',
       ],
     });
 

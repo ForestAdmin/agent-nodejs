@@ -1,8 +1,10 @@
 import type {
   ForestAdminServerInterface,
+  GetMcpWorkflowRunParams,
   ListMcpWorkflowsParams,
   McpWorkflow,
   TriggerMcpWorkflowParams,
+  WorkflowRunStatus,
   WorkflowRunTriggerResult,
 } from '../types';
 
@@ -55,6 +57,24 @@ export default class WorkflowsService {
       renderingId,
       workflowId,
       recordId,
+    );
+  }
+
+  async getMcpWorkflowRun(params: GetMcpWorkflowRunParams): Promise<WorkflowRunStatus> {
+    const { forestServerToken, renderingId, runId } = params;
+
+    if (!this.forestAdminServerInterface.getMcpWorkflowRun) {
+      throw new Error('The configured Forest server transport does not support getMcpWorkflowRun.');
+    }
+
+    return this.forestAdminServerInterface.getMcpWorkflowRun(
+      {
+        forestServerUrl: this.options.forestServerUrl,
+        bearerToken: forestServerToken,
+        headers: this.options.headers,
+      },
+      renderingId,
+      runId,
     );
   }
 }

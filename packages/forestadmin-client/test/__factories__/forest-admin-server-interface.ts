@@ -21,6 +21,7 @@ const forestAdminServerInterface = {
     // Workflow operations
     listMcpEnabledWorkflows: jest.fn(),
     triggerMcpWorkflow: jest.fn(),
+    getMcpWorkflowRun: jest.fn(),
   }),
 };
 
