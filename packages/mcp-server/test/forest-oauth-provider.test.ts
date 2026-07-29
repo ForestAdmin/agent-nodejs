@@ -1259,6 +1259,26 @@ describe('ForestOAuthProvider', () => {
       expect(signedPayload(1)).toEqual(expect.objectContaining({ rendering_id: '456' }));
     });
 
+    it.each([
+      ['access', [null, { exp: 1_000_000 }], /Failed to decode access token from Forest/],
+      [
+        'refresh',
+        [{ meta: { renderingId: 456 }, exp: 1_000_000, scope: 'mcp:read' }, null],
+        /Failed to decode refresh token from Forest/,
+      ],
+    ])(
+      'throws when the Forest %s token is not a decodable JWT',
+      async (_label, decoded, message) => {
+        mockJwtDecode.mockReset();
+        mockJwtDecode.mockReturnValueOnce(decoded[0]).mockReturnValueOnce(decoded[1]);
+        const provider = createProvider();
+
+        await expect(
+          provider.exchangeAuthorizationCode(mockClient, 'auth-code-123'),
+        ).rejects.toThrow(message);
+      },
+    );
+
     it('rejects our refresh token when the payload shape is unusable', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
