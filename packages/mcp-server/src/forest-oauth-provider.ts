@@ -39,16 +39,11 @@ const DecodedRefreshTokenSchema = z.object({
   iat: z.number().optional(),
 });
 
-// `sessionStartedAt` is required here so dropping or renaming it is a compile error, not a silent
-// fallback to `iat` — which is re-stamped on every rotation and would slide the window forever.
-interface RefreshTokenClaims {
-  type: 'refresh';
-  clientId: string;
-  userId: number;
-  renderingId: number;
-  serverRefreshToken: string;
-  sessionStartedAt: number;
-}
+// `sessionStartedAt` is required on the write side so dropping or renaming it — in the schema or in
+// the signed payload — is a compile error, not a silent fallback to `iat`, which is re-stamped on
+// every rotation and would slide the window forever.
+type RefreshTokenClaims = Omit<z.infer<typeof DecodedRefreshTokenSchema>, 'iat'> &
+  Required<Pick<z.infer<typeof DecodedRefreshTokenSchema>, 'sessionStartedAt'>>;
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
@@ -74,7 +69,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private environmentApiEndpoint?: string;
   private agentUrl?: string;
   private tokenTtl?: TokenTtlOptions;
-  private readonly fieldsWarnedAsInert = new Set<string>();
+  private warnedAccessCapInert = false;
   private logger: Logger;
 
   constructor({
@@ -347,20 +342,16 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     }
   }
 
-  private warnIfCapIsInert(
-    field: keyof TokenTtlOptions,
-    capSeconds: number | undefined,
-    upstreamTtlSeconds: number,
-  ): void {
+  private warnIfAccessCapIsInert(capSeconds: number | undefined, upstreamTtlSeconds: number): void {
     if (capSeconds === undefined || upstreamTtlSeconds <= 0) return;
-    if (capSeconds <= upstreamTtlSeconds || this.fieldsWarnedAsInert.has(field)) return;
+    if (capSeconds <= upstreamTtlSeconds || this.warnedAccessCapInert) return;
 
-    this.fieldsWarnedAsInert.add(field);
+    this.warnedAccessCapInert = true;
     this.logger(
       'Warn',
-      `[ForestOAuthProvider] tokenTtl.${field}=${capSeconds} exceeds the ${upstreamTtlSeconds}s ` +
-        `lifetime granted by Forest and has no effect: this option can only shorten a token ` +
-        `lifetime, never extend it.`,
+      `[ForestOAuthProvider] tokenTtl.accessTokenSeconds=${capSeconds} exceeds the ` +
+        `${upstreamTtlSeconds}s lifetime granted by Forest and has no effect: this option can ` +
+        `only shorten a token lifetime, never extend it.`,
     );
   }
 
@@ -432,11 +423,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     const nowInSeconds = Math.floor(Date.now() / 1000);
     // Only the access cap can be inert. `refreshTokenSeconds` bounds the whole session, which Forest
     // otherwise re-extends on every refresh, so any value binds however large it is.
-    this.warnIfCapIsInert(
-      'accessTokenSeconds',
-      this.tokenTtl?.accessTokenSeconds,
-      expirationDate - nowInSeconds,
-    );
+    this.warnIfAccessCapIsInert(this.tokenTtl?.accessTokenSeconds, expirationDate - nowInSeconds);
 
     // Re-read after the Forest round trips, which can outlast the session. Bounds the access token
     // too, which would otherwise extend the session by its own lifetime.
