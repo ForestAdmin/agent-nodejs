@@ -57,6 +57,7 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(() => ({
   workflowsService: {
     listMcpEnabledWorkflows: jest.fn(),
     triggerMcpWorkflow: jest.fn(),
+    getMcpWorkflowRun: jest.fn(),
   },
   subscribeToServerEvents: jest.fn(),
   close: jest.fn(),

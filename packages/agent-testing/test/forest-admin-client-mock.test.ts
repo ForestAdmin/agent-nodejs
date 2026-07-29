@@ -25,5 +25,21 @@ describe('ForestAdminClientMock', () => {
         }),
       ).resolves.toEqual({ runId: 1, runState: 'loading' });
     });
+
+    it('should resolve a loading run status when fetching a workflow run', async () => {
+      const client = new ForestAdminClientMock();
+
+      await expect(
+        client.workflowsService.getMcpWorkflowRun({
+          forestServerToken: 'token',
+          renderingId: '1',
+          runId: '1',
+        }),
+      ).resolves.toEqual({
+        runState: 'loading',
+        currentStep: null,
+        waitingForHumanInput: false,
+      });
+    });
   });
 });
