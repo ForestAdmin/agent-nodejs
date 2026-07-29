@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.91.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.0...@forestadmin/agent@1.91.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* ip-address vulnerabilities ([#1789](https://github.com/ForestAdmin/agent-nodejs/issues/1789)) ([77bbdda](https://github.com/ForestAdmin/agent-nodejs/commit/77bbdda1325f3da35fcf1c04a520aaffaa968960))
+
 # @forestadmin/agent [1.91.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.90.4...@forestadmin/agent@1.91.0) (2026-07-29)
 
 
