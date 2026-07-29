@@ -1,3 +1,10 @@
+# @forestadmin/mcp-server [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.19.1...@forestadmin/mcp-server@1.20.0) (2026-07-29)
+
+
+### Features
+
+* **mcp-server:** let clients shorten the OAuth token lifetimes ([#1788](https://github.com/ForestAdmin/agent-nodejs/issues/1788)) ([6174cc2](https://github.com/ForestAdmin/agent-nodejs/commit/6174cc29747f1ca4599c982d261c046523e8e35c))
+
 ## @forestadmin/mcp-server [1.19.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.19.0...@forestadmin/mcp-server@1.19.1) (2026-07-24)
 
 
