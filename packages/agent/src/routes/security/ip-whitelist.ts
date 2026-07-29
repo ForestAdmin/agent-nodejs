@@ -2,17 +2,23 @@ import type { IpWhitelistConfiguration } from '@forestadmin/forestadmin-client';
 import type Router from '@koa/router';
 import type { Context, Next } from 'koa';
 
-import IpUtil from 'forest-ip-utils';
+import { BlockList, isIPv6 } from 'net';
 
 import { HttpCode, RouteType } from '../../types';
 import BaseRoute from '../base-route';
 
+type IpRule = IpWhitelistConfiguration['ipRules'][number];
+
 const LOOPBACK_IPS = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
+
+const ipVersion = (ip: string): 'ipv4' | 'ipv6' => (isIPv6(ip) ? 'ipv6' : 'ipv4');
 
 export default class IpWhitelist extends BaseRoute {
   type = RouteType.Authentication;
 
   private configuration: IpWhitelistConfiguration;
+
+  private allowedIps: BlockList;
 
   setupRoutes(router: Router): void {
     router.use(this.checkIp.bind(this));
@@ -21,6 +27,27 @@ export default class IpWhitelist extends BaseRoute {
   /** Load whitelist */
   override async bootstrap(): Promise<void> {
     this.configuration = await this.options.forestAdminClient.getIpWhitelistConfiguration();
+    this.allowedIps = new BlockList();
+
+    this.configuration.ipRules.forEach(rule => {
+      try {
+        IpWhitelist.allowRule(this.allowedIps, rule);
+      } catch (error) {
+        this.options.logger('Warn', `IP whitelist: ignoring invalid rule ${JSON.stringify(rule)}`);
+      }
+    });
+  }
+
+  private static allowRule(allowedIps: BlockList, rule: IpRule): void {
+    if (rule.type === 0) {
+      allowedIps.addAddress(rule.ip, ipVersion(rule.ip));
+    } else if (rule.type === 1) {
+      allowedIps.addRange(rule.ipMinimum, rule.ipMaximum, ipVersion(rule.ipMinimum));
+    } else {
+      const [ip, prefix] = rule.range.split('/');
+
+      allowedIps.addSubnet(ip, Number(prefix), ipVersion(ip));
+    }
   }
 
   async checkIp(context: Context, next: Next): Promise<boolean> {
@@ -31,11 +58,9 @@ export default class IpWhitelist extends BaseRoute {
         return next();
       }
 
-      const { ipRules } = this.configuration;
-      const currentIp = context.request.headers['x-forwarded-for'] ?? context.request.ip;
-      const allowed = ipRules.some(ipRule => IpUtil.isIpMatchesRule(currentIp, ipRule));
+      const currentIp = `${context.request.headers['x-forwarded-for'] ?? context.request.ip}`;
 
-      if (!allowed) {
+      if (!this.allowedIps.check(currentIp, ipVersion(currentIp))) {
         return context.throw(HttpCode.Forbidden, `IP address rejected (${currentIp})`);
       }
     }
