@@ -1,6 +1,5 @@
 import normalizeTokenTtl, {
   MIN_TOKEN_TTL_SECONDS,
-  capTtl,
   sessionRemainingSeconds,
 } from '../../src/utils/token-ttl';
 
@@ -76,24 +75,6 @@ describe('normalizeTokenTtl', () => {
     expect(normalizeTokenTtl({ accessTokenSeconds: 59 }, logger)?.accessTokenSeconds).toBe(60);
     expect(normalizeTokenTtl({ accessTokenSeconds: 60 }, logger)?.accessTokenSeconds).toBe(60);
     expect(logger).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('capTtl', () => {
-  it('returns the Forest lifetime when no cap is configured', () => {
-    expect(capTtl(3600)).toBe(3600);
-  });
-
-  it('shortens the lifetime to the cap', () => {
-    expect(capTtl(3600, 900)).toBe(900);
-  });
-
-  it('never extends beyond the Forest lifetime', () => {
-    expect(capTtl(900, 3600)).toBe(900);
-  });
-
-  it.each([0, -5])('does not rescue an already-expired Forest lifetime of %p', upstream => {
-    expect(capTtl(upstream, 900)).toBe(upstream);
   });
 });
 

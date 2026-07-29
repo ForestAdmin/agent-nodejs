@@ -71,10 +71,6 @@ export default function normalizeTokenTtl(
   return { accessTokenSeconds, refreshTokenSeconds };
 }
 
-export function capTtl(upstreamTtlSeconds: number, capSeconds?: number): number {
-  return capSeconds === undefined ? upstreamTtlSeconds : Math.min(upstreamTtlSeconds, capSeconds);
-}
-
 // Anchored on the interactive login, not on the current refresh: Forest grants a full refresh
 // lifetime on every refresh, so a per-refresh bound would slide forever and never force a re-login.
 export function sessionRemainingSeconds({

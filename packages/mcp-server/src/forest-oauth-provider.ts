@@ -27,7 +27,7 @@ import {
 import jsonwebtoken from 'jsonwebtoken';
 import { z } from 'zod';
 
-import { capTtl, sessionRemainingSeconds } from './utils/token-ttl';
+import { sessionRemainingSeconds } from './utils/token-ttl';
 
 // The SaaS tokens are only `decode`d — we hold no key to verify them — so their shape is entirely
 // unchecked. A missing or non-numeric `exp` would put NaN into the TTL arithmetic and then into
@@ -478,9 +478,10 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     }
 
     // Computed before signing so the `expires_in` returned below reports the same value.
-    const expiresIn = capTtl(
-      Math.min(expirationDate - nowInSeconds, sessionRemaining),
-      this.tokenTtl?.accessTokenSeconds,
+    const expiresIn = Math.min(
+      expirationDate - nowInSeconds,
+      sessionRemaining,
+      this.tokenTtl?.accessTokenSeconds ?? Infinity,
     );
     const tokenScopes = scope ? scope.split(' ') : ['mcp:read', 'mcp:write', 'mcp:action'];
     const accessToken = jsonwebtoken.sign(

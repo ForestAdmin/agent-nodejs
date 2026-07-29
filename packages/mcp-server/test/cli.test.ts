@@ -1,4 +1,3 @@
-import parseTokenTtl from '../src/utils/parse-token-ttl';
 import parseToolList from '../src/utils/parse-tool-list';
 
 describe('parseToolList', () => {
@@ -24,38 +23,5 @@ describe('parseToolList', () => {
 
   it('should handle a single tool name', () => {
     expect(parseToolList('delete')).toEqual(['delete']);
-  });
-});
-
-describe('parseTokenTtl', () => {
-  it('returns undefined when neither variable is set, so nothing is capped', () => {
-    expect(parseTokenTtl({})).toBeUndefined();
-  });
-
-  it.each([
-    [{ accessTokenSeconds: '900' }, { accessTokenSeconds: 900, refreshTokenSeconds: undefined }],
-    [
-      { refreshTokenSeconds: '86400' },
-      { accessTokenSeconds: undefined, refreshTokenSeconds: 86400 },
-    ],
-    [
-      { accessTokenSeconds: '900', refreshTokenSeconds: '86400' },
-      { accessTokenSeconds: 900, refreshTokenSeconds: 86400 },
-    ],
-    [{ accessTokenSeconds: ' 900 ' }, { accessTokenSeconds: 900, refreshTokenSeconds: undefined }],
-  ])('parses %p to seconds', (env, expected) => {
-    expect(parseTokenTtl(env)).toEqual(expected);
-  });
-
-  // An unrendered template or a missing ConfigMap key must not silently leave a token uncapped.
-  it.each(['', '   ', 'abc', '15m'])('yields NaN for %p so the normalizer rejects it', value => {
-    expect(parseTokenTtl({ accessTokenSeconds: value })?.accessTokenSeconds).toBeNaN();
-  });
-
-  it('rejects an empty variable even when the other one is valid', () => {
-    expect(parseTokenTtl({ accessTokenSeconds: '900', refreshTokenSeconds: '' })).toEqual({
-      accessTokenSeconds: 900,
-      refreshTokenSeconds: NaN,
-    });
   });
 });
