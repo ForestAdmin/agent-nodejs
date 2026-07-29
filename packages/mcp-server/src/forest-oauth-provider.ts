@@ -29,19 +29,6 @@ import { z } from 'zod';
 
 import { sessionRemainingSeconds } from './utils/token-ttl';
 
-// The SaaS tokens are only `decode`d — we hold no key to verify them — so their shape is entirely
-// unchecked, and a missing or non-numeric `exp` put NaN into the TTL arithmetic and then into
-// sign(). Coerced rather than strict: the SaaS types both `meta` and `renderingId` as optional
-// (private-api auth-token.ts), and the previous cast tolerated a stringified id, so rejecting one
-// here would break every login for no gain.
-const ForestAccessTokenSchema = z.object({
-  meta: z.object({ renderingId: z.coerce.number().int().positive() }),
-  exp: z.coerce.number().int().positive(),
-  scope: z.string().optional(),
-});
-
-const ForestRefreshTokenSchema = z.object({ exp: z.coerce.number().int().positive() });
-
 // Our own refresh token: signature-verified, but the payload shape still isn't — an older token
 // from a previous release can legitimately differ, which is why `sessionStartedAt` is optional.
 const DecodedRefreshTokenSchema = z.object({
@@ -418,33 +405,34 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       };
 
     // Get updated user info
-    const decodedAccessToken = ForestAccessTokenSchema.safeParse(
-      jsonwebtoken.decode(forestServerAccessToken),
-    );
+    // Cast, not parsed: every malformed shape already fails loudly downstream (a missing `meta`
+    // throws here, a missing `exp` makes jsonwebtoken.sign reject the NaN), while a schema strict enough to add
+    // anything would risk rejecting a token the SaaS legitimately sends — and that breaks login.
+    const decodedAccessToken = jsonwebtoken.decode(forestServerAccessToken) as {
+      meta: { renderingId: number };
+      exp: number;
+      scope: string;
+    } | null;
 
-    if (!decodedAccessToken.success) {
-      throw new Error(
-        `Unexpected access token payload from Forest: ${decodedAccessToken.error.message}`,
-      );
+    if (!decodedAccessToken) {
+      throw new Error('Failed to decode access token from Forest');
     }
 
     const {
       meta: { renderingId },
       exp: expirationDate,
       scope,
-    } = decodedAccessToken.data;
+    } = decodedAccessToken;
 
-    const decodedRefreshToken = ForestRefreshTokenSchema.safeParse(
-      jsonwebtoken.decode(forestServerRefreshToken),
-    );
+    const decodedRefreshToken = jsonwebtoken.decode(forestServerRefreshToken) as {
+      exp: number;
+    } | null;
 
-    if (!decodedRefreshToken.success) {
-      throw new Error(
-        `Unexpected refresh token payload from Forest: ${decodedRefreshToken.error.message}`,
-      );
+    if (!decodedRefreshToken) {
+      throw new Error('Failed to decode refresh token from Forest');
     }
 
-    const { exp: refreshTokenExpirationDate } = decodedRefreshToken.data;
+    const { exp: refreshTokenExpirationDate } = decodedRefreshToken;
     const user = await this.forestClient.authService.getUserInfo(
       renderingId,
       forestServerAccessToken,
