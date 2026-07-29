@@ -794,8 +794,6 @@ describe('ForestOAuthProvider', () => {
       ).rejects.toThrow('Token was not issued to this client');
     });
 
-    // Forest revoking the session (removed user, revoked token) must reach the client as
-    // invalid_grant, the only code that makes it re-run the interactive login.
     it('propagates the OAuth code when Forest rejects the refresh', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
@@ -1076,8 +1074,6 @@ describe('ForestOAuthProvider', () => {
       );
     });
 
-    // A refresh cap bounds the whole session, which Forest re-extends on every refresh, so a value
-    // above one token's lifetime still forces a re-login and must not be reported as inert.
     it('stays silent when the refresh cap exceeds one Forest refresh lifetime', async () => {
       const logger = jest.fn();
       const provider = createProvider(
@@ -1155,8 +1151,6 @@ describe('ForestOAuthProvider', () => {
       );
     });
 
-    // Every real refresh token carries both claims, `iat` being the mint time of that refresh. The
-    // anchor must be the stamped session start, or the window slides on every refresh.
     it('anchors on the stamped session start, not on the refresh token issue date', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
@@ -1205,11 +1199,9 @@ describe('ForestOAuthProvider', () => {
       });
       const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
 
-      // The pre-flight check passes with 1s left, then the round trips outlast the session.
       const pending = provider.exchangeRefreshToken(mockClient, 'our-refresh-token');
       jest.setSystemTime(NOW_MS + 5000);
 
-      // Only invalid_grant makes the client re-run the interactive login.
       await expect(pending).rejects.toMatchObject({ errorCode: 'invalid_grant' });
       expect(mockJwtSign).not.toHaveBeenCalled();
     });
@@ -1250,8 +1242,6 @@ describe('ForestOAuthProvider', () => {
       expect(signedTtl(2)).toBe(85400);
     });
 
-    // The SaaS types meta and renderingId as optional and the previous cast tolerated a stringified
-    // id, so the parse must not reject a token the old code accepted.
     it('accepts a Forest access token whose renderingId is a string', async () => {
       mockJwtDecode.mockReset();
       mockJwtDecode
@@ -1269,7 +1259,6 @@ describe('ForestOAuthProvider', () => {
       expect(signedPayload(1)).toEqual(expect.objectContaining({ rendering_id: '456' }));
     });
 
-    // Our own refresh token is signature-verified, but its payload shape is not.
     it('rejects our refresh token when the payload shape is unusable', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',

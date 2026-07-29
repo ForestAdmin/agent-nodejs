@@ -53,8 +53,7 @@ export default function normalizeTokenTtl(
 
   if (accessTokenSeconds === undefined && refreshTokenSeconds === undefined) return undefined;
 
-  // Legal, and the session bound rightly wins — but a session shorter than one access token is
-  // almost always the two values swapped, which forces a browser login on the access-token cadence.
+  // Legal — the session bound wins — but almost always the two values swapped.
   if (
     accessTokenSeconds !== undefined &&
     refreshTokenSeconds !== undefined &&

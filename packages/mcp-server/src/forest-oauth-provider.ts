@@ -29,8 +29,6 @@ import { z } from 'zod';
 
 import { sessionRemainingSeconds } from './utils/token-ttl';
 
-// Our own refresh token: signature-verified, but the payload shape still isn't — an older token
-// from a previous release can legitimately differ, which is why `sessionStartedAt` is optional.
 const DecodedRefreshTokenSchema = z.object({
   type: z.literal('refresh'),
   clientId: z.string(),
@@ -41,9 +39,8 @@ const DecodedRefreshTokenSchema = z.object({
   iat: z.number().optional(),
 });
 
-// Shape of the refresh token this server signs. Required on the write side so that dropping or
-// renaming `sessionStartedAt` is a compile error rather than a silent fallback to `iat` — which is
-// re-stamped on every rotation and would slide the session window forever.
+// `sessionStartedAt` is required here so dropping or renaming it is a compile error, not a silent
+// fallback to `iat` — which is re-stamped on every rotation and would slide the window forever.
 interface RefreshTokenClaims {
   type: 'refresh';
   clientId: string;
@@ -291,8 +288,6 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
 
     const parsed = DecodedRefreshTokenSchema.safeParse(verified);
 
-    // A signature-valid token whose payload we cannot read is not usable as a refresh token, and
-    // `type` is part of that shape — so the parse subsumes the old type check.
     if (!parsed.success) {
       this.logger(
         'Error',
@@ -309,15 +304,12 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     }
 
     const nowInSeconds = Math.floor(Date.now() / 1000);
-    // `sessionStartedAt` is stamped at the interactive login; a token predating the claim falls back
-    // to its own issue date. Never re-stamped, or the window would slide and never force a re-login.
     const sessionStartedAt = decoded.sessionStartedAt ?? decoded.iat ?? nowInSeconds;
     const { refreshTokenSeconds } = this.tokenTtl ?? {};
 
     // Checked again after the Forest round trips; this one only spares them when already expired.
     if (sessionRemainingSeconds({ refreshTokenSeconds, sessionStartedAt, nowInSeconds }) <= 0) {
-      // Info, not Error: the session reaching its configured limit is this option working. With the
-      // documented 86400 it fires once per user per day.
+      // Info, not Error: a session reaching its limit is this option working.
       this.logger(
         'Info',
         `[ForestOAuthProvider] Session reached tokenTtl.refreshTokenSeconds=${refreshTokenSeconds}, ` +
@@ -405,9 +397,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       };
 
     // Get updated user info
-    // Cast, not parsed: every malformed shape already fails loudly downstream (a missing `meta`
-    // throws here, a missing `exp` makes jsonwebtoken.sign reject the NaN), while a schema strict enough to add
-    // anything would risk rejecting a token the SaaS legitimately sends — and that breaks login.
+    // Cast, not parsed: malformed shapes already fail loudly (missing `meta` throws here, missing
+    // `exp` makes sign() reject the NaN), and a stricter schema risks refusing a valid token.
     const decodedAccessToken = jsonwebtoken.decode(forestServerAccessToken) as {
       meta: { renderingId: number };
       exp: number;
@@ -447,8 +438,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       expirationDate - nowInSeconds,
     );
 
-    // Re-read after the Forest round trips: they can outlast what is left of the session. Bounds the
-    // access token too, which would otherwise extend the session by its own lifetime.
+    // Re-read after the Forest round trips, which can outlast the session. Bounds the access token
+    // too, which would otherwise extend the session by its own lifetime.
     const sessionRemaining = sessionRemainingSeconds({
       refreshTokenSeconds: this.tokenTtl?.refreshTokenSeconds,
       sessionStartedAt,
@@ -456,8 +447,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     });
 
     if (sessionRemaining <= 0) {
-      // The caller's pre-flight check passed, so the round trips above are what consumed the last
-      // of the window — their duration is the only way to tell this from a plain expiry.
+      // The pre-flight check passed, so the round trips consumed the last of the window.
       this.logger(
         'Warn',
         `[ForestOAuthProvider] Session lapsed while calling Forest: ` +
