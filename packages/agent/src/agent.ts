@@ -17,7 +17,7 @@ import type {
 } from '@forestadmin/datasource-customizer';
 import type { DataSource, DataSourceFactory } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
-import type { ToolName } from '@forestadmin/mcp-server';
+import type { TokenTtlOptions, ToolName } from '@forestadmin/mcp-server';
 
 import { DataSourceCustomizer } from '@forestadmin/datasource-customizer';
 import bodyParser from '@koa/bodyparser';
@@ -55,6 +55,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private mcpEnabled = false;
   private mcpEnabledTools?: ToolName[];
   private mcpBasePath?: string;
+  private mcpTokenTtl?: TokenTtlOptions;
 
   /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
   private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
@@ -255,11 +256,20 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * // OAuth discovery metadata stays at the origin root (prefix-suffixed), so root `.well-known`
    * // traffic must still reach the agent.
    * agent.mountAiMcpServer({ basePath: '/ai' });
+   * // Example: shorten the OAuth token lifetimes. `accessTokenSeconds` cannot exceed the 1h Forest
+   * // grants; `refreshTokenSeconds` bounds the time between two interactive logins, which is
+   * // otherwise unbounded since Forest re-grants its refresh lifetime on every refresh.
+   * agent.mountAiMcpServer({ tokenTtl: { accessTokenSeconds: 900, refreshTokenSeconds: 86400 } });
    */
-  mountAiMcpServer(options?: { enabledTools?: ToolName[]; basePath?: string }): this {
+  mountAiMcpServer(options?: {
+    enabledTools?: ToolName[];
+    basePath?: string;
+    tokenTtl?: TokenTtlOptions;
+  }): this {
     this.mcpEnabled = true;
     this.mcpEnabledTools = options?.enabledTools;
     this.mcpBasePath = options?.basePath;
+    this.mcpTokenTtl = options?.tokenTtl;
 
     return this;
   }
@@ -378,6 +388,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         forestServerClient,
         enabledTools: this.mcpEnabledTools,
         basePath: this.mcpBasePath,
+        tokenTtl: this.mcpTokenTtl,
         agentDispatcher: this.getInProcessDispatcher(),
       });
 

@@ -580,6 +580,20 @@ describe('Agent', () => {
       expect(mcpServerSpy).toHaveBeenCalledWith(expect.objectContaining({ basePath: '/mcp' }));
     });
 
+    test('should pass tokenTtl to ForestMCPServer', async () => {
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const agent = new Agent(options);
+
+      agent.mountAiMcpServer({ tokenTtl: { accessTokenSeconds: 900, refreshTokenSeconds: 86400 } });
+      await agent.start();
+
+      expect(mcpServerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tokenTtl: { accessTokenSeconds: 900, refreshTokenSeconds: 86400 },
+        }),
+      );
+    });
+
     test('passes an in-process agentDispatcher to ForestMCPServer', async () => {
       const options = factories.forestAdminHttpDriverOptions.build();
       const agent = new Agent(options);

@@ -1,4 +1,5 @@
 import type { Logger } from './server';
+import type { TokenTtlOptions } from './utils/token-ttl';
 import type { ForestAdminClient } from '@forestadmin/forestadmin-client';
 import type { OAuthRegisteredClientsStore } from '@modelcontextprotocol/sdk/server/auth/clients.js';
 import type {
@@ -20,9 +21,29 @@ import {
   InvalidGrantError,
   InvalidRequestError,
   InvalidTokenError,
+  OAuthError,
   UnsupportedTokenTypeError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
+import { z } from 'zod';
+
+import { sessionRemainingSeconds } from './utils/token-ttl';
+
+const DecodedRefreshTokenSchema = z.object({
+  type: z.literal('refresh'),
+  clientId: z.string(),
+  userId: z.number(),
+  renderingId: z.number(),
+  serverRefreshToken: z.string(),
+  sessionStartedAt: z.number().optional(),
+  iat: z.number().optional(),
+});
+
+// `sessionStartedAt` is required on the write side so dropping or renaming it — in the schema or in
+// the signed payload — is a compile error, not a silent fallback to `iat`, which is re-stamped on
+// every rotation and would slide the window forever.
+type RefreshTokenClaims = Omit<z.infer<typeof DecodedRefreshTokenSchema>, 'iat'> &
+  Required<Pick<z.infer<typeof DecodedRefreshTokenSchema>, 'sessionStartedAt'>>;
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
@@ -32,6 +53,7 @@ export interface ForestOAuthProviderOptions {
   logger: Logger;
   // Pre-normalized by the caller (ForestMCPServer); not re-validated here.
   agentUrl?: string;
+  tokenTtl?: TokenTtlOptions;
 }
 
 /**
@@ -46,6 +68,8 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private environmentId?: number;
   private environmentApiEndpoint?: string;
   private agentUrl?: string;
+  private tokenTtl?: TokenTtlOptions;
+  private warnedAccessCapInert = false;
   private logger: Logger;
 
   constructor({
@@ -55,6 +79,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     authSecret,
     logger,
     agentUrl,
+    tokenTtl,
   }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
     this.forestAppUrl = forestAppUrl;
@@ -62,6 +87,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     this.authSecret = authSecret;
     this.logger = logger;
     this.agentUrl = agentUrl;
+    this.tokenTtl = tokenTtl;
     this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
@@ -204,15 +230,23 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     codeVerifier?: string,
     redirectUri?: string,
   ): Promise<OAuthTokens> {
+    const sessionStartedAt = Math.floor(Date.now() / 1000);
+
     try {
-      return await this.generateAccessToken(client, {
-        grant_type: 'authorization_code',
-        code: authorizationCode,
-        redirect_uri: redirectUri,
-        client_id: client.client_id,
-        code_verifier: codeVerifier,
-      });
+      return await this.generateAccessToken(
+        client,
+        {
+          grant_type: 'authorization_code',
+          code: authorizationCode,
+          redirect_uri: redirectUri,
+          client_id: client.client_id,
+          code_verifier: codeVerifier,
+        },
+        sessionStartedAt,
+      );
     } catch (error) {
+      if (error instanceof OAuthError) throw error;
+
       const message = error instanceof Error ? error.message : String(error);
       throw new InvalidRequestError(`Failed to exchange authorization code: ${message}`);
     }
@@ -224,16 +258,10 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     scopes?: string[],
   ): Promise<OAuthTokens> {
     // Verify and decode the refresh token
-    let decoded: {
-      type: string;
-      clientId: string;
-      userId: number;
-      renderingId: number;
-      serverRefreshToken: string;
-    };
+    let verified: unknown;
 
     try {
-      decoded = jsonwebtoken.verify(refreshToken, this.authSecret) as typeof decoded;
+      verified = jsonwebtoken.verify(refreshToken, this.authSecret);
     } catch (error) {
       if (error instanceof jsonwebtoken.TokenExpiredError) {
         this.logger(
@@ -253,25 +281,56 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       throw new InvalidGrantError('Invalid refresh token');
     }
 
-    // Validate token type
-    if (decoded.type !== 'refresh') {
+    const parsed = DecodedRefreshTokenSchema.safeParse(verified);
+
+    if (!parsed.success) {
+      this.logger(
+        'Error',
+        `[ForestOAuthProvider] Unexpected refresh token payload: ${parsed.error.message}`,
+      );
       throw new UnsupportedTokenTypeError('Invalid token type');
     }
+
+    const decoded = parsed.data;
 
     // Validate client_id matches
     if (decoded.clientId !== client.client_id) {
       throw new InvalidClientError('Token was not issued to this client');
     }
 
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const sessionStartedAt = decoded.sessionStartedAt ?? decoded.iat ?? nowInSeconds;
+    const { refreshTokenSeconds } = this.tokenTtl ?? {};
+
+    // Checked again after the Forest round trips; this one only spares them when already expired.
+    if (sessionRemainingSeconds({ refreshTokenSeconds, sessionStartedAt, nowInSeconds }) <= 0) {
+      // Info, not Error: a session reaching its limit is this option working.
+      this.logger(
+        'Info',
+        `[ForestOAuthProvider] Session reached tokenTtl.refreshTokenSeconds=${refreshTokenSeconds}, ` +
+          `re-authentication required: sessionStartedAt=${sessionStartedAt}, ` +
+          `clientId=${client.client_id}, userId=${decoded.userId}`,
+      );
+      throw new InvalidGrantError('Refresh token has expired');
+    }
+
     // Exchange the Forest refresh token for new tokens
     try {
-      return await this.generateAccessToken(client, {
-        grant_type: 'refresh_token',
-        refresh_token: decoded.serverRefreshToken,
-        client_id: client.client_id,
-        scopes,
-      });
+      return await this.generateAccessToken(
+        client,
+        {
+          grant_type: 'refresh_token',
+          refresh_token: decoded.serverRefreshToken,
+          client_id: client.client_id,
+          scopes,
+        },
+        sessionStartedAt,
+      );
     } catch (error) {
+      // Preserve the OAuth code: the client only re-authenticates on invalid_grant (and
+      // invalid_client), and invalid_request is the one code it treats as unrecoverable.
+      if (error instanceof OAuthError) throw error;
+
       const message = error instanceof Error ? error.message : String(error);
       const errorName = error instanceof Error ? error.name : 'Unknown';
       this.logger(
@@ -283,10 +342,25 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     }
   }
 
+  private warnIfAccessCapIsInert(capSeconds: number | undefined, upstreamTtlSeconds: number): void {
+    if (capSeconds === undefined || upstreamTtlSeconds <= 0) return;
+    if (capSeconds <= upstreamTtlSeconds || this.warnedAccessCapInert) return;
+
+    this.warnedAccessCapInert = true;
+    this.logger(
+      'Warn',
+      `[ForestOAuthProvider] tokenTtl.accessTokenSeconds=${capSeconds} exceeds the ` +
+        `${upstreamTtlSeconds}s lifetime granted by Forest and has no effect: this option can ` +
+        `only shorten a token lifetime, never extend it.`,
+    );
+  }
+
   private async generateAccessToken(
     client: OAuthClientInformationFull,
     tokenPayload: Record<string, unknown>,
+    sessionStartedAt: number,
   ): Promise<OAuthTokens> {
+    const requestStartedAt = Math.floor(Date.now() / 1000);
     const response = await fetch(`${this.forestServerUrl}/oauth/token`, {
       method: 'POST',
       headers: {
@@ -314,15 +388,16 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       };
 
     // Get updated user info
+    // Cast, not parsed: malformed shapes already fail loudly (missing `meta` throws here, missing
+    // `exp` makes sign() reject the NaN), and a stricter schema risks refusing a valid token.
     const decodedAccessToken = jsonwebtoken.decode(forestServerAccessToken) as {
       meta: { renderingId: number };
       exp: number;
-      iat: number;
       scope: string;
     } | null;
 
     if (!decodedAccessToken) {
-      throw new Error('Failed to decode access token from Forest Admin server');
+      throw new Error('Failed to decode access token from Forest');
     }
 
     const {
@@ -333,11 +408,10 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
 
     const decodedRefreshToken = jsonwebtoken.decode(forestServerRefreshToken) as {
       exp: number;
-      iat: number;
     } | null;
 
     if (!decodedRefreshToken) {
-      throw new Error('Failed to decode refresh token from Forest Admin server');
+      throw new Error('Failed to decode refresh token from Forest');
     }
 
     const { exp: refreshTokenExpirationDate } = decodedRefreshToken;
@@ -346,8 +420,36 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       forestServerAccessToken,
     );
 
-    // Create new access token
-    const expiresIn = expirationDate - Math.floor(Date.now() / 1000);
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    // Only the access cap can be inert. `refreshTokenSeconds` bounds the whole session, which Forest
+    // otherwise re-extends on every refresh, so any value binds however large it is.
+    this.warnIfAccessCapIsInert(this.tokenTtl?.accessTokenSeconds, expirationDate - nowInSeconds);
+
+    // Re-read after the Forest round trips, which can outlast the session. Bounds the access token
+    // too, which would otherwise extend the session by its own lifetime.
+    const sessionRemaining = sessionRemainingSeconds({
+      refreshTokenSeconds: this.tokenTtl?.refreshTokenSeconds,
+      sessionStartedAt,
+      nowInSeconds,
+    });
+
+    if (sessionRemaining <= 0) {
+      // The pre-flight check passed, so the round trips consumed the last of the window.
+      this.logger(
+        'Warn',
+        `[ForestOAuthProvider] Session lapsed while calling Forest: ` +
+          `sessionStartedAt=${sessionStartedAt}, ` +
+          `roundTripSeconds=${nowInSeconds - requestStartedAt}`,
+      );
+      throw new InvalidGrantError('Refresh token has expired');
+    }
+
+    // Computed before signing so the `expires_in` returned below reports the same value.
+    const expiresIn = Math.min(
+      expirationDate - nowInSeconds,
+      sessionRemaining,
+      this.tokenTtl?.accessTokenSeconds ?? Infinity,
+    );
     const tokenScopes = scope ? scope.split(' ') : ['mcp:read', 'mcp:write', 'mcp:action'];
     const accessToken = jsonwebtoken.sign(
       {
@@ -363,21 +465,22 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     );
 
     // Create new refresh token (token rotation for security)
-    const refreshToken = jsonwebtoken.sign(
-      {
-        type: 'refresh',
-        clientId: client.client_id,
-        userId: user.id,
-        renderingId,
-        serverRefreshToken: forestServerRefreshToken,
-      },
-      this.authSecret,
-      { expiresIn: refreshTokenExpirationDate - Math.floor(Date.now() / 1000) },
-    );
+    const refreshClaims: RefreshTokenClaims = {
+      type: 'refresh',
+      clientId: client.client_id,
+      userId: user.id,
+      renderingId,
+      serverRefreshToken: forestServerRefreshToken,
+      sessionStartedAt,
+    };
+    const refreshToken = jsonwebtoken.sign(refreshClaims, this.authSecret, {
+      expiresIn: Math.min(refreshTokenExpirationDate - nowInSeconds, sessionRemaining),
+    });
 
     return {
       access_token: accessToken,
       token_type: 'Bearer',
+      // Only reachable when the Forest token is already expired; a cap cannot reach zero.
       expires_in: expiresIn > 0 ? expiresIn : 3600,
       refresh_token: refreshToken,
       scope: scope || client.scope,

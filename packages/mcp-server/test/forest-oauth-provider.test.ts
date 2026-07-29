@@ -1,3 +1,5 @@
+import type { Logger } from '../src/server';
+import type { TokenTtlOptions } from '../src/utils/token-ttl';
 import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth';
 import type { Response } from 'express';
 
@@ -20,14 +22,20 @@ const TEST_ENV_SECRET = 'test-env-secret';
 const TEST_AUTH_SECRET = 'test-auth-secret';
 const TEST_FOREST_APP_URL = 'https://app.forestadmin.com';
 
-function createProvider(forestServerUrl = 'https://api.forestadmin.com', agentUrl?: string) {
+function createProvider(
+  forestServerUrl = 'https://api.forestadmin.com',
+  agentUrl?: string,
+  tokenTtl?: TokenTtlOptions,
+  logger: Logger = console.info,
+) {
   return new ForestOAuthProvider({
     forestServerUrl,
     forestAppUrl: TEST_FOREST_APP_URL,
     envSecret: TEST_ENV_SECRET,
     authSecret: TEST_AUTH_SECRET,
-    logger: console.info,
+    logger,
     agentUrl,
+    tokenTtl,
   });
 }
 
@@ -786,7 +794,7 @@ describe('ForestOAuthProvider', () => {
       ).rejects.toThrow('Token was not issued to this client');
     });
 
-    it('should throw error when Forest Admin refresh fails', async () => {
+    it('propagates the OAuth code when Forest rejects the refresh', async () => {
       (jsonwebtoken.verify as jest.Mock).mockReturnValue({
         type: 'refresh',
         clientId: 'test-client-id',
@@ -802,7 +810,7 @@ describe('ForestOAuthProvider', () => {
 
       await expect(
         provider.exchangeRefreshToken(mockClient, 'valid-refresh-token'),
-      ).rejects.toThrow('Failed to refresh token');
+      ).rejects.toMatchObject({ errorCode: 'invalid_grant' });
     });
   });
 
@@ -953,6 +961,359 @@ describe('ForestOAuthProvider', () => {
         environmentApiEndpoint: 'https://api.example.com',
         forestServerToken: 'forest-server-token',
       });
+    });
+  });
+
+  describe('tokenTtl', () => {
+    const NOW_MS = Date.UTC(2026, 0, 1);
+    const nowInSeconds = Math.floor(NOW_MS / 1000);
+    const FOREST_ACCESS_TTL = 3600;
+    const FOREST_REFRESH_TTL = 604800;
+
+    let mockClient: OAuthClientInformationFull;
+
+    function primeForestTokens() {
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: 456 },
+          exp: nowInSeconds + FOREST_ACCESS_TTL,
+          iat: nowInSeconds,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({
+          exp: nowInSeconds + FOREST_REFRESH_TTL,
+          iat: nowInSeconds,
+        });
+      mockJwtSign.mockReturnValue('mocked-jwt-token');
+
+      mockServer
+        .get('/liana/environment', {
+          data: { id: '12345', attributes: { api_endpoint: 'https://api.example.com' } },
+        })
+        .post('/oauth/token', {
+          access_token: 'forest-access-token',
+          refresh_token: 'forest-refresh-token',
+          expires_in: FOREST_ACCESS_TTL,
+          token_type: 'Bearer',
+          scope: 'mcp:read',
+        });
+      global.fetch = mockServer.fetch;
+    }
+
+    const signedTtl = (nthCall: number) => mockJwtSign.mock.calls[nthCall - 1][2].expiresIn;
+    const signedPayload = (nthCall: number) => mockJwtSign.mock.calls[nthCall - 1][0];
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(NOW_MS);
+
+      mockClient = {
+        client_id: 'test-client-id',
+        redirect_uris: ['https://example.com/callback'],
+        scope: 'mcp:read mcp:write',
+      } as OAuthClientInformationFull;
+
+      mockCreateForestAdminClient.mockReturnValue({
+        authService: {
+          getUserInfo: jest.fn().mockResolvedValue({
+            id: 123,
+            email: 'user@example.com',
+            firstName: 'Test',
+            lastName: 'User',
+            team: 'Operations',
+            role: 'Admin',
+            tags: {},
+            renderingId: 456,
+            permissionLevel: 'admin',
+          }),
+        },
+      } as unknown as ReturnType<typeof createForestAdminClient>);
+
+      primeForestTokens();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      jest.clearAllMocks();
+    });
+
+    it('shortens both token lifetimes to the configured caps', async () => {
+      const provider = createProvider(undefined, undefined, {
+        accessTokenSeconds: 900,
+        refreshTokenSeconds: 86400,
+      });
+
+      const result = await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(signedTtl(1)).toBe(900);
+      expect(signedTtl(2)).toBe(86400);
+      expect(result.expires_in).toBe(900);
+    });
+
+    it('never extends beyond the lifetimes Forest granted', async () => {
+      const provider = createProvider(undefined, undefined, {
+        accessTokenSeconds: 7200,
+        refreshTokenSeconds: 30 * 24 * 3600,
+      });
+
+      const result = await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(signedTtl(1)).toBe(FOREST_ACCESS_TTL);
+      expect(signedTtl(2)).toBe(FOREST_REFRESH_TTL);
+      expect(result.expires_in).toBe(FOREST_ACCESS_TTL);
+    });
+
+    it('warns when the access cap exceeds the lifetime Forest granted', async () => {
+      const logger = jest.fn();
+      const provider = createProvider(undefined, undefined, { accessTokenSeconds: 7200 }, logger);
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        expect.stringContaining(`tokenTtl.accessTokenSeconds=7200 exceeds the 3600s`),
+      );
+    });
+
+    it('stays silent when the refresh cap exceeds one Forest refresh lifetime', async () => {
+      const logger = jest.fn();
+      const provider = createProvider(
+        undefined,
+        undefined,
+        { refreshTokenSeconds: 30 * 24 * 3600 },
+        logger,
+      );
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('warns once per field instead of on every token issuance', async () => {
+      const logger = jest.fn();
+      const provider = createProvider(undefined, undefined, { accessTokenSeconds: 7200 }, logger);
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+      primeForestTokens();
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-456');
+
+      expect(logger).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays silent when the caps are effective', async () => {
+      const logger = jest.fn();
+      const provider = createProvider(
+        undefined,
+        undefined,
+        { accessTokenSeconds: 900, refreshTokenSeconds: 86400 },
+        logger,
+      );
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('stays silent when the Forest token is already expired', async () => {
+      const logger = jest.fn();
+      mockJwtDecode.mockReset();
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: 456 },
+          exp: nowInSeconds - 10,
+          iat: nowInSeconds - 3610,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({ exp: nowInSeconds + FOREST_REFRESH_TTL, iat: nowInSeconds });
+      const provider = createProvider(undefined, undefined, { accessTokenSeconds: 7200 }, logger);
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(logger).not.toHaveBeenCalled();
+    });
+
+    it('leaves both lifetimes untouched when no cap is configured', async () => {
+      const provider = createProvider();
+
+      const result = await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(signedTtl(1)).toBe(FOREST_ACCESS_TTL);
+      expect(signedTtl(2)).toBe(FOREST_REFRESH_TTL);
+      expect(result.expires_in).toBe(FOREST_ACCESS_TTL);
+    });
+
+    it('stamps the session start on the refresh token issued at login', async () => {
+      const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
+
+      await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(signedPayload(2)).toEqual(
+        expect.objectContaining({ type: 'refresh', sessionStartedAt: nowInSeconds }),
+      );
+    });
+
+    it('anchors on the stamped session start, not on the refresh token issue date', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+        sessionStartedAt: nowInSeconds - 80000,
+        iat: nowInSeconds - 300,
+      });
+      const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
+
+      await provider.exchangeRefreshToken(mockClient, 'our-refresh-token');
+
+      expect(signedTtl(2)).toBe(6400);
+      expect(signedPayload(2)).toEqual(
+        expect.objectContaining({ sessionStartedAt: nowInSeconds - 80000 }),
+      );
+    });
+
+    it('keeps the access token inside the session window', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+        sessionStartedAt: nowInSeconds - 86340,
+      });
+      const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
+
+      const result = await provider.exchangeRefreshToken(mockClient, 'our-refresh-token');
+
+      expect(signedTtl(1)).toBe(60);
+      expect(result.expires_in).toBe(60);
+    });
+
+    it('rejects when the session elapses while talking to Forest', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+        sessionStartedAt: nowInSeconds - 86399,
+      });
+      const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
+
+      const pending = provider.exchangeRefreshToken(mockClient, 'our-refresh-token');
+      jest.setSystemTime(NOW_MS + 5000);
+
+      await expect(pending).rejects.toMatchObject({ errorCode: 'invalid_grant' });
+      expect(mockJwtSign).not.toHaveBeenCalled();
+    });
+
+    it('rejects a refresh once the session window has elapsed, without calling Forest', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+        sessionStartedAt: nowInSeconds - 90000,
+      });
+      const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
+
+      await expect(
+        provider.exchangeRefreshToken(mockClient, 'our-refresh-token'),
+      ).rejects.toMatchObject({ errorCode: 'invalid_grant' });
+      expect(mockServer.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining('/oauth/token'),
+        expect.anything(),
+      );
+    });
+
+    it('falls back to the issue date for a refresh token minted before the anchor existed', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 123,
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+        iat: nowInSeconds - 1000,
+      });
+      const provider = createProvider(undefined, undefined, { refreshTokenSeconds: 86400 });
+
+      await provider.exchangeRefreshToken(mockClient, 'our-refresh-token');
+
+      expect(signedTtl(2)).toBe(85400);
+    });
+
+    it('accepts a Forest access token whose renderingId is a string', async () => {
+      mockJwtDecode.mockReset();
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: '456' },
+          exp: nowInSeconds + FOREST_ACCESS_TTL,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({ exp: nowInSeconds + FOREST_REFRESH_TTL });
+      const provider = createProvider();
+
+      const result = await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(result.expires_in).toBe(FOREST_ACCESS_TTL);
+      expect(signedPayload(1)).toEqual(expect.objectContaining({ rendering_id: '456' }));
+    });
+
+    it.each([
+      ['access', [null, { exp: 1_000_000 }], /Failed to decode access token from Forest/],
+      [
+        'refresh',
+        [{ meta: { renderingId: 456 }, exp: 1_000_000, scope: 'mcp:read' }, null],
+        /Failed to decode refresh token from Forest/,
+      ],
+    ])(
+      'throws when the Forest %s token is not a decodable JWT',
+      async (_label, decoded, message) => {
+        mockJwtDecode.mockReset();
+        mockJwtDecode.mockReturnValueOnce(decoded[0]).mockReturnValueOnce(decoded[1]);
+        const provider = createProvider();
+
+        await expect(
+          provider.exchangeAuthorizationCode(mockClient, 'auth-code-123'),
+        ).rejects.toThrow(message);
+      },
+    );
+
+    it('rejects our refresh token when the payload shape is unusable', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 'not-a-number',
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+      });
+      const provider = createProvider();
+
+      await expect(provider.exchangeRefreshToken(mockClient, 'our-refresh-token')).rejects.toThrow(
+        'Invalid token type',
+      );
+      expect(mockServer.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining('/oauth/token'),
+        expect.anything(),
+      );
+    });
+
+    it('still advertises the 3600 fallback when the Forest token is already expired', async () => {
+      mockJwtDecode.mockReset();
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: 456 },
+          exp: nowInSeconds - 10,
+          iat: nowInSeconds - 3610,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({ exp: nowInSeconds + FOREST_REFRESH_TTL, iat: nowInSeconds });
+      const provider = createProvider();
+
+      const result = await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(signedTtl(1)).toBe(-10);
+      expect(result.expires_in).toBe(3600);
     });
   });
 });
