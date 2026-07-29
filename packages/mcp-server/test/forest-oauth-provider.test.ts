@@ -1250,6 +1250,25 @@ describe('ForestOAuthProvider', () => {
       expect(signedTtl(2)).toBe(85400);
     });
 
+    // The SaaS types meta and renderingId as optional and the previous cast tolerated a stringified
+    // id, so the parse must not reject a token the old code accepted.
+    it('accepts a Forest access token whose renderingId is a string', async () => {
+      mockJwtDecode.mockReset();
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: '456' },
+          exp: nowInSeconds + FOREST_ACCESS_TTL,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({ exp: nowInSeconds + FOREST_REFRESH_TTL });
+      const provider = createProvider();
+
+      const result = await provider.exchangeAuthorizationCode(mockClient, 'auth-code-123');
+
+      expect(result.expires_in).toBe(FOREST_ACCESS_TTL);
+      expect(signedPayload(1)).toEqual(expect.objectContaining({ rendering_id: '456' }));
+    });
+
     // The Forest tokens are only decoded, never verified, so their shape is unchecked. A missing or
     // non-numeric `exp` used to put NaN straight into the TTL arithmetic and then into sign().
     it.each([
