@@ -7,7 +7,6 @@ import type {
   McpRouteMatcher,
   WorkflowExecutorEmbedOptions,
 } from './types';
-import type { AiProviderDefinition } from '@forestadmin/agent-toolkit';
 import type {
   CollectionCustomizer,
   DataSourceChartDefinition,
@@ -51,7 +50,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   protected nocodeCustomizer: DataSourceCustomizer<S>;
   protected customizationService: CustomizationService;
   protected schemaGenerator: SchemaGenerator;
-  protected aiProvider: AiProviderDefinition | null = null;
 
   /** Whether MCP server should be mounted */
   private mcpEnabled = false;
@@ -267,52 +265,6 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   /**
-   * Enable AI features for your Forest Admin panel.
-   *
-   * All AI requests from Forest Admin are forwarded to your agent and processed locally.
-   * Your data and API keys never transit through Forest Admin servers, ensuring full privacy.
-   *
-   * Requires the `@forestadmin/ai-proxy` package to be installed:
-   * ```bash
-   * npm install @forestadmin/ai-proxy
-   * ```
-   *
-   * @see {@link https://docs.forestadmin.com/developer-guide-agents-nodejs/agent-customization/ai/self-hosted-ai}
-   * @param provider - An AI provider definition created via `createAiProvider` from `@forestadmin/ai-proxy`
-   * @returns The agent instance for chaining
-   * @throws Error if addAi is called more than once
-   *
-   * @example
-   * import { createAiProvider } from '@forestadmin/ai-proxy';
-   *
-   * agent.addAi(createAiProvider({
-   *   name: 'assistant',
-   *   provider: 'openai',
-   *   apiKey: process.env.OPENAI_API_KEY,
-   *   model: 'gpt-4o',
-   * }));
-   */
-  addAi(provider: AiProviderDefinition): this {
-    if (this.aiProvider) {
-      throw new Error(
-        'addAi can only be called once. Multiple AI configurations are not supported yet.',
-      );
-    }
-
-    this.aiProvider = provider;
-
-    for (const p of provider.providers) {
-      this.options.logger(
-        'Warn',
-        `AI configuration added with model '${p.model}'. ` +
-          'Make sure to test Forest Admin AI features thoroughly to ensure compatibility.',
-      );
-    }
-
-    return this;
-  }
-
-  /**
    * Run a workflow executor in-process, alongside the agent. The agent boots it on start(),
    * stops it on stop(), and proxies `/_internal/executor/*` to it — no separate deployment.
    *
@@ -351,10 +303,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   protected getRoutes(dataSource: DataSource, services: ForestAdminHttpDriverServices) {
-    // init() is called on every start/restart to recreate routing state with a fresh Router.
-    const aiRouter = this.aiProvider?.init(this.options.logger) ?? null;
-
-    return makeRoutes(dataSource, this.options, services, aiRouter);
+    return makeRoutes(dataSource, this.options, services);
   }
 
   /**
@@ -462,9 +411,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   }
 
   private buildSchemaMeta(): ForestSchema['meta'] {
-    const aiMeta = this.aiProvider?.providers ?? [];
-
-    return SchemaGenerator.buildMetadata(this.customizationService.buildFeatures(), aiMeta).meta;
+    return SchemaGenerator.buildMetadata(this.customizationService.buildFeatures()).meta;
   }
 
   private async buildRouterAndSendSchema(): Promise<{

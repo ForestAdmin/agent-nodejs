@@ -1,7 +1,6 @@
 import type { ForestAdminHttpDriverServices as Services } from '../services';
 import type { AgentOptionsWithDefaults as Options } from '../types';
 import type BaseRoute from './base-route';
-import type { AiRouter } from '@forestadmin/agent-toolkit';
 import type { DataSource } from '@forestadmin/datasource-toolkit';
 
 import CollectionApiChartRoute from './access/api-chart-collection';
@@ -15,7 +14,6 @@ import Get from './access/get';
 import List from './access/list';
 import ListRelated from './access/list-related';
 import NativeQueryDatasource from './access/native-query-datasource';
-import AiProxyRoute from './ai/ai-proxy';
 import Capabilities from './capabilities';
 import ActionRoute from './modification/action/action';
 import AssociateRelated from './modification/associate-related';
@@ -167,12 +165,6 @@ function getActionRoutes(
   return routes;
 }
 
-function getAiRoutes(options: Options, services: Services, aiRouter: AiRouter | null): BaseRoute[] {
-  if (!aiRouter) return [];
-
-  return [new AiProxyRoute(services, options, aiRouter)];
-}
-
 function getWorkflowExecutorRoutes(options: Options, services: Services): BaseRoute[] {
   if (!options.workflowExecutorUrl) return [];
 
@@ -183,7 +175,6 @@ export default function makeRoutes(
   dataSource: DataSource,
   options: Options,
   services: Services,
-  aiRouter: AiRouter | null = null,
 ): BaseRoute[] {
   const routes = [
     ...getRootRoutes(options, services),
@@ -193,7 +184,6 @@ export default function makeRoutes(
     ...getApiChartRoutes(dataSource, options, services),
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
-    ...getAiRoutes(options, services, aiRouter),
     ...getWorkflowExecutorRoutes(options, services),
   ];
 

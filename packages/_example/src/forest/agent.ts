@@ -2,7 +2,6 @@ import type { Schema } from './typings';
 import type { AgentOptions } from '@forestadmin/agent';
 
 import { createAgent } from '@forestadmin/agent';
-import { createAiProvider } from '@forestadmin/ai-proxy';
 import { createMongoDataSource } from '@forestadmin/datasource-mongo';
 import { createMongooseDataSource } from '@forestadmin/datasource-mongoose';
 import { createSequelizeDataSource } from '@forestadmin/datasource-sequelize';
@@ -96,13 +95,5 @@ export default function makeAgent() {
     .customizeCollection('post', customizePost)
     .customizeCollection('comment', customizeComment)
     .customizeCollection('review', customizeReview)
-    .customizeCollection('sales', customizeSales)
-    .addAi(
-      createAiProvider({
-        model: 'gpt-4o',
-        provider: 'openai',
-        name: 'test',
-        apiKey: process.env.OPENAI_API_KEY,
-      }),
-    );
+    .customizeCollection('sales', customizeSales);
 }

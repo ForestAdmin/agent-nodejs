@@ -1,5 +1,4 @@
 import type { AgentOptionsWithDefaults } from '../../types';
-import type { AiProviderMeta } from '@forestadmin/agent-toolkit';
 import type { DataSource } from '@forestadmin/datasource-toolkit';
 import type { ForestSchema } from '@forestadmin/forestadmin-client';
 
@@ -22,10 +21,7 @@ export default class SchemaGenerator {
     };
   }
 
-  static buildMetadata(
-    features: Record<string, string> | null,
-    aiProviders: AiProviderMeta[] = [],
-  ): Pick<ForestSchema, 'meta'> {
+  static buildMetadata(features: Record<string, string> | null): Pick<ForestSchema, 'meta'> {
     const { version } = require('../../../package.json'); // eslint-disable-line @typescript-eslint/no-var-requires,global-require
 
     return {
@@ -33,10 +29,6 @@ export default class SchemaGenerator {
         liana: 'forest-nodejs-agent',
         liana_version: version,
         liana_features: features,
-        ai_llms:
-          aiProviders.length > 0
-            ? aiProviders.map(p => ({ name: p.name, provider: p.provider, model: p.model }))
-            : null,
         stack: {
           engine: 'nodejs',
           engine_version: process.versions && process.versions.node,
