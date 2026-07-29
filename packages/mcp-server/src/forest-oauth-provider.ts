@@ -25,8 +25,32 @@ import {
   UnsupportedTokenTypeError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import jsonwebtoken from 'jsonwebtoken';
+import { z } from 'zod';
 
 import { capTtl, sessionRemainingSeconds } from './utils/token-ttl';
+
+// The SaaS tokens are only `decode`d — we hold no key to verify them — so their shape is entirely
+// unchecked. A missing or non-numeric `exp` would put NaN into the TTL arithmetic and then into
+// sign(), so parse rather than cast.
+const ForestAccessTokenSchema = z.object({
+  meta: z.object({ renderingId: z.number() }),
+  exp: z.number(),
+  scope: z.string().optional(),
+});
+
+const ForestRefreshTokenSchema = z.object({ exp: z.number() });
+
+// Our own refresh token: signature-verified, but the payload shape still isn't — an older token
+// from a previous release can legitimately differ, which is why `sessionStartedAt` is optional.
+const DecodedRefreshTokenSchema = z.object({
+  type: z.literal('refresh'),
+  clientId: z.string(),
+  userId: z.number(),
+  renderingId: z.number(),
+  serverRefreshToken: z.string(),
+  sessionStartedAt: z.number().optional(),
+  iat: z.number().optional(),
+});
 
 // Shape of the refresh token this server signs. Required on the write side so that dropping or
 // renaming `sessionStartedAt` is a compile error rather than a silent fallback to `iat` — which is
@@ -39,13 +63,6 @@ interface RefreshTokenClaims {
   serverRefreshToken: string;
   sessionStartedAt: number;
 }
-
-// Tokens minted before the claim existed carry no `sessionStartedAt`, so the read side accepts it
-// missing and falls back to `iat`.
-type DecodedRefreshToken = Omit<RefreshTokenClaims, 'sessionStartedAt'> & {
-  sessionStartedAt?: number;
-  iat?: number;
-};
 
 export interface ForestOAuthProviderOptions {
   forestServerUrl: string;
@@ -260,10 +277,10 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     scopes?: string[],
   ): Promise<OAuthTokens> {
     // Verify and decode the refresh token
-    let decoded: DecodedRefreshToken;
+    let verified: unknown;
 
     try {
-      decoded = jsonwebtoken.verify(refreshToken, this.authSecret) as typeof decoded;
+      verified = jsonwebtoken.verify(refreshToken, this.authSecret);
     } catch (error) {
       if (error instanceof jsonwebtoken.TokenExpiredError) {
         this.logger(
@@ -283,10 +300,19 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       throw new InvalidGrantError('Invalid refresh token');
     }
 
-    // Validate token type
-    if (decoded.type !== 'refresh') {
+    const parsed = DecodedRefreshTokenSchema.safeParse(verified);
+
+    // A signature-valid token whose payload we cannot read is not usable as a refresh token, and
+    // `type` is part of that shape — so the parse subsumes the old type check.
+    if (!parsed.success) {
+      this.logger(
+        'Error',
+        `[ForestOAuthProvider] Unexpected refresh token payload: ${parsed.error.message}`,
+      );
       throw new UnsupportedTokenTypeError('Invalid token type');
     }
+
+    const decoded = parsed.data;
 
     // Validate client_id matches
     if (decoded.clientId !== client.client_id) {
@@ -390,33 +416,33 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
       };
 
     // Get updated user info
-    const decodedAccessToken = jsonwebtoken.decode(forestServerAccessToken) as {
-      meta: { renderingId: number };
-      exp: number;
-      iat: number;
-      scope: string;
-    } | null;
+    const decodedAccessToken = ForestAccessTokenSchema.safeParse(
+      jsonwebtoken.decode(forestServerAccessToken),
+    );
 
-    if (!decodedAccessToken) {
-      throw new Error('Failed to decode access token from Forest Admin server');
+    if (!decodedAccessToken.success) {
+      throw new Error(
+        `Unexpected access token payload from Forest: ${decodedAccessToken.error.message}`,
+      );
     }
 
     const {
       meta: { renderingId },
       exp: expirationDate,
       scope,
-    } = decodedAccessToken;
+    } = decodedAccessToken.data;
 
-    const decodedRefreshToken = jsonwebtoken.decode(forestServerRefreshToken) as {
-      exp: number;
-      iat: number;
-    } | null;
+    const decodedRefreshToken = ForestRefreshTokenSchema.safeParse(
+      jsonwebtoken.decode(forestServerRefreshToken),
+    );
 
-    if (!decodedRefreshToken) {
-      throw new Error('Failed to decode refresh token from Forest Admin server');
+    if (!decodedRefreshToken.success) {
+      throw new Error(
+        `Unexpected refresh token payload from Forest: ${decodedRefreshToken.error.message}`,
+      );
     }
 
-    const { exp: refreshTokenExpirationDate } = decodedRefreshToken;
+    const { exp: refreshTokenExpirationDate } = decodedRefreshToken.data;
     const user = await this.forestClient.authService.getUserInfo(
       renderingId,
       forestServerAccessToken,

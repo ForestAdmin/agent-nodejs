@@ -1250,6 +1250,62 @@ describe('ForestOAuthProvider', () => {
       expect(signedTtl(2)).toBe(85400);
     });
 
+    // The Forest tokens are only decoded, never verified, so their shape is unchecked. A missing or
+    // non-numeric `exp` used to put NaN straight into the TTL arithmetic and then into sign().
+    it.each([
+      ['a missing exp', { meta: { renderingId: 456 }, scope: 'mcp:read' }],
+      ['a non-numeric exp', { meta: { renderingId: 456 }, exp: 'soon', scope: 'mcp:read' }],
+      ['a missing renderingId', { meta: {}, exp: 1_000_000 }],
+    ])('rejects a Forest access token with %s', async (_label, payload) => {
+      mockJwtDecode.mockReset();
+      mockJwtDecode
+        .mockReturnValueOnce(payload)
+        .mockReturnValueOnce({ exp: nowInSeconds + FOREST_REFRESH_TTL });
+      const provider = createProvider();
+
+      await expect(provider.exchangeAuthorizationCode(mockClient, 'auth-code-123')).rejects.toThrow(
+        /Unexpected access token payload from Forest/,
+      );
+      expect(mockJwtSign).not.toHaveBeenCalled();
+    });
+
+    it('rejects a Forest refresh token with a non-numeric exp', async () => {
+      mockJwtDecode.mockReset();
+      mockJwtDecode
+        .mockReturnValueOnce({
+          meta: { renderingId: 456 },
+          exp: nowInSeconds + FOREST_ACCESS_TTL,
+          scope: 'mcp:read',
+        })
+        .mockReturnValueOnce({ exp: null });
+      const provider = createProvider();
+
+      await expect(provider.exchangeAuthorizationCode(mockClient, 'auth-code-123')).rejects.toThrow(
+        /Unexpected refresh token payload from Forest/,
+      );
+      expect(mockJwtSign).not.toHaveBeenCalled();
+    });
+
+    // Our own refresh token is signature-verified, but its payload shape is not.
+    it('rejects our refresh token when the payload shape is unusable', async () => {
+      (jsonwebtoken.verify as jest.Mock).mockReturnValue({
+        type: 'refresh',
+        clientId: 'test-client-id',
+        userId: 'not-a-number',
+        renderingId: 456,
+        serverRefreshToken: 'forest-refresh-token',
+      });
+      const provider = createProvider();
+
+      await expect(provider.exchangeRefreshToken(mockClient, 'our-refresh-token')).rejects.toThrow(
+        'Invalid token type',
+      );
+      expect(mockServer.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining('/oauth/token'),
+        expect.anything(),
+      );
+    });
+
     it('still advertises the 3600 fallback when the Forest token is already expired', async () => {
       mockJwtDecode.mockReset();
       mockJwtDecode
