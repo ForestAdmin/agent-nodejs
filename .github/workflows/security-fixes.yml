@@ -6,7 +6,8 @@
 #
 # Required secrets (org-level, shared by the 5 ForestAdmin repos running this):
 #   SECURITY_GH_PAT    fine-grained PAT: Dependabot alerts RO, Contents RW,
-#                      Pull requests RW, Issues RW, Actions RW, Commit statuses RO
+#                      Workflows RW, Pull requests RW, Issues RW, Actions RW,
+#                      Commit statuses RO
 #   ANTHROPIC_API_KEY  Claude API key
 name: Security fixes
 
@@ -28,6 +29,10 @@ jobs:
     timeout-minutes: 240
     env:
       GH_PAT: ${{ secrets.SECURITY_GH_PAT }}
+      # claude-code-action's Bash tool defaults to a 10-min hard cap; monorepo
+      # installs and lint runs can exceed it.
+      BASH_DEFAULT_TIMEOUT_MS: "900000"
+      BASH_MAX_TIMEOUT_MS: "3600000"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,9 +41,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-
-      - name: Enable corepack (yarn)
-        run: corepack enable
 
       - name: Configure git identity
         run: |
