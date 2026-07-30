@@ -43,7 +43,13 @@ If no reasonable parent bump closes the alert — no ancestor pulls in the patch
 
 Record each resolution in the PR under "Resolutions added" with: the parent chain tried, why the bump wasn't viable, and which form (scoped / unconditional) was used. Always update `yarn.lock` by running `yarn install --ignore-scripts`, never by hand (the resulting lockfile matches a full install). In a monorepo, apply each `package.json` change in the correct workspace.
 
-For **github-actions-ecosystem** alerts: bump the `uses:` version reference in the affected `.github/workflows/*.yml` file (the alert's `manifest_path` names it). `SECURITY_GH_PAT` carries the `workflows:write` permission this push requires. If the push is nevertheless rejected citing workflow permissions, unstage the workflow-file changes, move those alerts to "Could not auto-fix (token lacks Workflows permission)", and ship the rest.
+For **github-actions-ecosystem** alerts: bump the `uses:` version reference in the affected `.github/workflows/*.yml` file (the alert's `manifest_path` names it). `SECURITY_GH_PAT` carries the `workflows:write` permission this push requires. If the push is nevertheless rejected citing workflow permissions, the workflow files are already **inside the commit** — unstaging alone changes nothing. Rewrite the commit without them, then push again:
+```
+git reset --soft HEAD~1
+git restore --staged --worktree .github/workflows/
+git commit -m "chore(security): patch <N> Dependabot alerts"
+```
+Then move those alerts to "Could not auto-fix (token lacks Workflows permission)", adjust the Summary counts, and ship the rest.
 
 **5. Audit existing resolutions in the root `package.json`.** After applying the bumps above, check each entry under `resolutions` (if you encounter stray `overrides`/`pnpm.overrides` blocks, treat them the same way — they are dead weight under Yarn 1):
 - **Stale** — the pinned package no longer appears in the resolved dependency tree. Verify with `yarn why <pkg>`. Remove the entry.
