@@ -36,11 +36,11 @@ jobs:
       BASH_DEFAULT_TIMEOUT_MS: "900000"
       BASH_MAX_TIMEOUT_MS: "3600000"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.SECURITY_GH_PAT }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
 
