@@ -1,3 +1,10 @@
+## @forestadmin/workflow-executor [1.23.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.2...@forestadmin/workflow-executor@1.23.3) (2026-07-30)
+
+
+### Bug Fixes
+
+* **workflow-executor:** carry the collection name on step error logs ([#1791](https://github.com/ForestAdmin/agent-nodejs/issues/1791)) ([8942c75](https://github.com/ForestAdmin/agent-nodejs/commit/8942c75c84f2323ed5d9a09f7b54182d34f8800a))
+
 ## @forestadmin/workflow-executor [1.23.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.1...@forestadmin/workflow-executor@1.23.2) (2026-07-28)
 
 
