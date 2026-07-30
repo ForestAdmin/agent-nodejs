@@ -25,15 +25,15 @@ Paginate by following the `rel="next"` URL in the `Link` header. For each alert 
 - The advisory is disputed or withdrawn upstream.
 - No upstream patch exists yet (`first_patched_version` is null).
 - It duplicates another open alert on the same root cause (reference which).
-- The vulnerable package is only pulled in by `_example/` and is not shipped to production. `_example/` intentionally pins older versions to demonstrate backward compatibility, so bumping them defeats the purpose. To qualify: the alert's `dependency.manifest_path` must be under `_example/`, AND no manifest outside `_example/` pulls in the same package (verify with `grep -r "<pkg>" --include=package.json .` or a workspace-wide `npm ls <pkg>` / `yarn why <pkg>`). If the package appears in any non-`_example` manifest, this reason does not apply — treat as FIX.
+- The vulnerable package is only pulled in by `_example/` and is not shipped to production. `_example/` intentionally pins older versions to demonstrate backward compatibility, so bumping them defeats the purpose. To qualify: the alert's `dependency.manifest_path` must be under `_example/`, AND no workspace outside `_example/` resolves the same package **even transitively** — verify with a workspace-aware resolved-tree query from the repo root (`npm ls <pkg> --all` / `yarn why <pkg>` / `pnpm why <pkg>`); a manifest grep only sees direct dependencies and is NOT sufficient evidence. If any non-`_example` workspace resolves the package, this reason does not apply — treat as FIX.
 
 Everything else is FIX.
 
 **3. Skip alerts opened less than 7 days ago.** These are deferred to the next run — list them in the PR description but don't touch them.
 
-**4. For each remaining FIX, prefer a parent bump.** Find the dependency chain with `npm ls <pkg> --all` (or `yarn why` / `pnpm why`). If direct, bump to `>= first_patched_version`. If transitive, bump the nearest ancestor in `package.json` to the lowest version whose resolved tree pulls in the patched sub-dep. Verify with a fresh install + `npm ls <pkg>`.
+**4. For each remaining FIX, prefer a parent bump.** Find the dependency chain with `npm ls <pkg> --all` (or `yarn why` / `pnpm why`). If direct, bump to the smallest patched version that stays within the currently used major (if the patch only exists in a later major, treat it as the breaking-major case below). If transitive, bump the nearest ancestor in `package.json` to the lowest version whose resolved tree pulls in the patched sub-dep. Verify with a fresh install + `npm ls <pkg>`.
 
-If no reasonable parent bump closes the alert — no ancestor pulls in the patched sub-dep, or the required bump is a breaking major touching APIs we use — add a `resolutions` (Yarn) / `overrides` (npm, pnpm) entry pinning the vulnerable package to `>= first_patched_version`. Do this without asking.
+If no reasonable parent bump closes the alert — no ancestor pulls in the patched sub-dep, or the required bump is a breaking major touching APIs we use — add a `resolutions` (Yarn) / `overrides` (npm, pnpm) entry pinning the vulnerable package to the smallest patched version compatible with the major its parents expect — an exact version or a `^` range within that major, never an unbounded `>=`, which could silently resolve to a later breaking major. Do this without asking.
 
 **Narrow the blast radius.** Prefer in this order:
 1. **Workspace-level placement.** If only one workspace's dependency graph contains the vulnerable chain AND your package manager honors workspace-level resolutions/overrides, place the entry in that workspace's `package.json`, not the root. Verify it took effect after install with `npm ls <pkg>` from the root.
