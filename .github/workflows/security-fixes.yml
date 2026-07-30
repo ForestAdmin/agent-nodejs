@@ -13,7 +13,9 @@ name: Security fixes
 
 on:
   schedule:
-    - cron: "0 11 * * 4" # Thursdays 11:00 UTC — same slot as the former routine
+    # Staggered per repo: 5 concurrent Opus sessions on one API key
+    # tripped a rate limit on 2026-07-30 (first request never billed).
+    - cron: "0 12 * * 4" # Thursdays 12:00 UTC
   workflow_dispatch: {}
 
 permissions:
@@ -34,11 +36,11 @@ jobs:
       BASH_DEFAULT_TIMEOUT_MS: "900000"
       BASH_MAX_TIMEOUT_MS: "3600000"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.SECURITY_GH_PAT }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
 
@@ -58,3 +60,18 @@ jobs:
             --max-turns 250
             --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch"
             --append-system-prompt "This is an unattended scheduled maintenance workflow. You are explicitly authorized to create and switch to the security/<date> branch, commit, push it to origin, and create, update and label the pull request yourself via the GitHub REST API with the token in the GH_PAT environment variable, exactly as the instructions file specifies. Never defer pushing or PR creation to a human, never stop to ask for confirmation, and do not use any built-in branch or PR helper that would override these instructions."
+
+      # The action redacts the agent transcript on purpose (it can contain
+      # secrets read from files or command output). Instead of enabling
+      # show_full_output, surface only the terminal error fields on failure —
+      # enough to tell an API/auth error from an application one.
+      - name: Surface the agent's terminal error (no transcript)
+        if: failure()
+        run: |
+          F=/home/runner/work/_temp/claude-execution-output.json
+          [ -f "$F" ] || { echo "No execution log at $F"; exit 0; }
+          jq -r '[.. | objects | select(.type == "result")] | last
+                 | {subtype, is_error, terminal_reason, api_error_status,
+                    num_turns, total_cost_usd,
+                    result: ((.result // "") | tostring | .[0:400])}' "$F" \
+            || echo "Could not parse the execution log"
