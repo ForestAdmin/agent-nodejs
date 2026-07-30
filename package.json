@@ -64,10 +64,21 @@
     "tmp": ">=0.2.6",
     "**/express-rate-limit/ip-address": "^10.1.1",
     "**/@aws-sdk/xml-builder/fast-xml-parser": "^5.7.0",
-    "**/@fastify/ajv-compiler/fast-uri": "^3.1.2",
-    "**/fast-json-stringify/fast-uri": "^3.1.2",
+    "**/@fastify/ajv-compiler/fast-uri": "^3.1.4",
+    "**/fast-json-stringify/fast-uri": "^3.1.4",
+    "**/ajv/fast-uri": "^3.1.4",
     "**/@actions/http-client/undici": "^6.27.0",
     "**/concurrently/shell-quote": "^1.8.4",
-    "**/forest-cli/joi": "^17.13.4"
+    "**/forest-cli/joi": "^17.13.4",
+    "axios": "^1.18.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "**/@hono/node-server": "^2.0.5",
+    "**/@forestadmin/agent/express/body-parser": "^1.20.6",
+    "**/@fastify/express/express/body-parser": "^1.20.6",
+    "**/example/express/body-parser": "^1.20.6",
+    "**/@forestadmin/mcp-server/express/body-parser": "^2.3.0",
+    "**/@forestadmin/ai-proxy/express/body-parser": "^2.3.0",
+    "**/@modelcontextprotocol/sdk/express/body-parser": "^2.3.0",
+    "**/@nestjs/platform-express/express/body-parser": "^2.3.0"
   }
 }
