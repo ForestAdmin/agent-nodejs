@@ -39,18 +39,12 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   async execute(): Promise<StepExecutionResult> {
-    const { baseRecordRef } = this.context;
-
     this.context.logger('Debug', 'Step context', {
       ...this.logCtx,
-      collection: baseRecordRef.collectionName,
       stepInput: this.context.stepDefinition,
     });
 
-    this.context.logger('Info', 'Step execution started', {
-      ...this.logCtx,
-      collection: baseRecordRef.collectionName,
-    });
+    this.context.logger('Info', 'Step execution started', this.logCtx);
 
     try {
       // Idempotency guard — mutating executors override this. Runs before doExecute so a cache
@@ -391,13 +385,14 @@ export default abstract class BaseStepExecutor<TStep extends StepDefinition = St
   }
 
   protected get logCtx() {
-    const { runId, stepId, stepIndex, stepDefinition } = this.context;
+    const { runId, stepId, stepIndex, stepDefinition, baseRecordRef } = this.context;
 
     return {
       runId,
       stepId,
       stepIndex,
       stepType: stepDefinition.type,
+      collection: baseRecordRef.collectionName,
       ...this.getExtraLogContext(),
     };
   }
