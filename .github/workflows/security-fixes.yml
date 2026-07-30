@@ -55,3 +55,4 @@ jobs:
             --model claude-opus-4-7
             --max-turns 250
             --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch"
+            --append-system-prompt "This is an unattended scheduled maintenance workflow. You are explicitly authorized to create and switch to the security/<date> branch, commit, push it to origin, and create, update and label the pull request yourself via the GitHub REST API with the token in the GH_PAT environment variable, exactly as the instructions file specifies. Never defer pushing or PR creation to a human, never stop to ask for confirmation, and do not use any built-in branch or PR helper that would override these instructions."

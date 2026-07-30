@@ -60,17 +60,9 @@ Fix any prettier/lint issues the bumps introduced before pushing. **Do not run `
 **7. Open the PR.** Create the branch with this exact shell command — do **not** use any built-in branch-creation tool that auto-generates names:
 ```
 BRANCH="security/$(date -u +%Y-%m-%d)"
-if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-  # Same-day rerun: resume the existing branch instead of colliding with it.
-  git stash -u
-  git fetch origin "$BRANCH"
-  git checkout -B "$BRANCH" "origin/$BRANCH"
-  git stash pop
-else
-  git checkout -b "$BRANCH"
-fi
+git checkout -b "$BRANCH"
 ```
-If `git stash pop` reports conflicts, resolve them in favor of **this run's** changes (the stashed versions), then continue. When resuming, check for an already-open PR whose head is `$BRANCH` (`GET /repos/$REPO/pulls?head=<owner>:$BRANCH&state=open`): if one exists, skip PR creation, reuse its `$PR_NUMBER`, and update its description instead of creating a new one.
+**Same-day rerun:** if the remote branch already exists (`git ls-remote --exit-code --heads origin "$BRANCH"`), this run supersedes it — its content was recomputed from scratch off the default branch. Push with `git push --force-with-lease -u origin "$BRANCH"` instead of a plain push (the single sanctioned force-push; see Constraints). Then look for an already-**open** PR whose head is `$BRANCH` (`GET /repos/$REPO/pulls?head=<owner>:$BRANCH&state=open`): if one exists, skip PR creation, reuse its `$PR_NUMBER`, and update its description; if the only PRs on that branch are closed, create a new PR normally — the force-push has already discarded their stale history.
 Before pushing, verify the branch name matches `^security/\d{4}-\d{2}-\d{2}$`:
 ```
 git rev-parse --abbrev-ref HEAD | grep -Eq '^security/[0-9]{4}-[0-9]{2}-[0-9]{2}$' || { echo "Branch name does not match required pattern; aborting"; exit 1; }
@@ -132,11 +124,11 @@ curl -sS -H "Authorization: Bearer $GH_PAT" \
 curl -sS -H "Authorization: Bearer $GH_PAT" \
   "https://api.github.com/repos/$REPO/commits/$SHA/status"
 ```
-Wait until every workflow run has a non-null `conclusion` and — **only if the combined status reports at least one status context (`total_count > 0`)** — its `state` is no longer `pending`. An empty `statuses` array (`total_count: 0`) always reports `state: pending` on GitHub's side and must be treated as *no status gate*, not as pending CI. Cap one polling cycle at 45 minutes. (Exclude this security-fixes workflow's own run from the wait condition.)
+Wait until every workflow run has a non-null `conclusion` and — **only if the combined status reports at least one status context (`total_count > 0`)** — its `state` is no longer `pending`. An empty `statuses` array (`total_count: 0`) always reports `state: pending` on GitHub's side and must be treated as *no status gate*, not as pending CI. **Startup guard:** do not evaluate completion until at least one workflow run other than this security-fixes workflow exists for `$SHA` — with zero runs the condition would be vacuously true. If no such run has appeared after 10 minutes, comment on the PR ("No CI run started for this commit after 10 minutes — please check branch filters.") and stop. Cap one polling cycle at 45 minutes. (Exclude this security-fixes workflow's own run from the wait condition.)
 
 Outcomes:
-- **All green** → edit the PR description: replace `⏳ Awaiting CI` with `✅ CI green`. Stop.
-- **Any failure** → for each failing workflow run, fetch the logs (`GET /repos/$REPO/actions/runs/<id>/logs`) and the per-job breakdown (`GET /repos/$REPO/actions/runs/<id>/jobs`). Identify the root cause. Apply a fix, commit as `fix(security): address CI failure — <short reason>`, push to the same branch, refresh the head SHA (`SHA=$(git rev-parse HEAD)`) so the polling calls inspect the new commit, and resume polling.
+- **All green** — every workflow run concluded `success` and, when `total_count > 0`, the combined status `state` is `success` → edit the PR description: replace `⏳ Awaiting CI` with `✅ CI green`. Stop.
+- **Any failure** — a workflow run concludes non-`success`, or a status context reports `failure`/`error` → for each failing workflow run, fetch the logs (`GET /repos/$REPO/actions/runs/<id>/logs`) and the per-job breakdown (`GET /repos/$REPO/actions/runs/<id>/jobs`); a failing **status context** has no Actions logs — record its `context` name and `target_url` in the PR instead. Identify the root cause. Apply a fix, commit as `fix(security): address CI failure — <short reason>`, push to the same branch, refresh the head SHA (`SHA=$(git rev-parse HEAD)`) so the polling calls inspect the new commit, and resume polling.
 - **Still pending after 45 minutes** → comment on the PR: "CI still pending after 45 minutes; stopping automated monitoring. Please review." Stop.
 
 **Retry cap: 3 fix-and-push cycles.** After the third failing cycle, stop. Comment on the PR with: the failure signatures seen each cycle, what fixes were attempted, and which alerts in the diff are most likely responsible. Update Validation to `❌ CI failing — needs human review`. Do not close the PR.
@@ -150,7 +142,7 @@ Outcomes:
 - Only modify `package.json`, lockfiles, and test files that genuinely need to change. Don't touch source code to make a bump work — revert the bump instead.
 - Never silence failures with `--no-verify`, `eslint-disable`, `.only`, `.skip`, coverage threshold changes, or by marking a workflow required-status as optional.
 - Don't close, dismiss, or comment on Dependabot alerts from the API — merging the PR closes them.
-- Don't force-push. Only add commits to the security branch.
+- Don't force-push during CI fix cycles — only add commits to the security branch. Single exception: the same-day-rerun supersede in phase 7 uses `--force-with-lease` once, before the PR is (re)used or created.
 - Branch name must match `^security/\d{4}-\d{2}-\d{2}$` — no exceptions, no default-named branches (`claude/*`, `dependabot/*`, etc.). Create the branch via `git checkout -b` in a shell, not via any built-in branch-creation helper that auto-names.
 - The PR must carry the `:lock: security` label before phase 7 exits. A missing label means `@first_level_support` never gets pinged and the PR sits unreviewed — treat a labeling failure as hard-stop, not a warning.
 - The PR creation and label calls must go through `$GH_PAT` (a user PAT), never a GitHub App installation token or the in-Actions `GITHUB_TOKEN` — GitHub suppresses workflow-triggered events (like `labeled`) from those tokens, so the Slack notification workflow would never fire. `$GH_PAT` satisfies this, same as the `REPO_TOKEN` the central security workflow uses.
