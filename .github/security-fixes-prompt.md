@@ -113,11 +113,18 @@ The PR description must include the sections listed below. Mark the **Validation
 
 **Alert references in the body must be full Markdown links, never bare `#<number>`.** GitHub auto-links `#<number>` to issues/PRs in the same repo, which sends readers to the wrong page (`#214` would resolve to PR/issue 214, not Dependabot alert 214). Format every alert reference as `[#<number>](https://github.com/$REPO/security/dependabot/<number>)` — in every table AND in any inline mentions ("duplicate of #X", "also closes #Y", etc.).
 
-**Tables that require human action must start with a checkbox column** so first-level support can tick off each alert as they handle it. Use cell content `- [ ]` (GitHub renders it as an interactive checkbox in PR bodies, even inside table cells). Apply this to:
-- **Fixed** table: add a leading `Done` column (ticked once the reviewer has verified the fix landed)
-- **Ignored** table: add a leading `Dismissed` column (ticked once the reviewer has dismissed the alert in the repo's Security tab)
+**Actionable checkboxes go in a task list, never in table cells.** GitHub renders `- [ ]` as an interactive checkbox only when it starts a list item; inside a table cell it stays literal text, and a raw `<input type="checkbox">` is stripped by GitHub's sanitizer. So the tables carry **no** checkbox column, and the body ends with a **Review checklist** section built from real task lists:
 
-Deferred / Resolutions added / Resolutions removed / Could not auto-fix are informational — no checkbox column.
+```
+## Review checklist
+
+**Fixes to verify** — tick once you have confirmed the bump landed:
+- [ ] [#<number>](https://github.com/$REPO/security/dependabot/<number>) — `<package>`
+
+**Alerts to dismiss** — tick once dismissed in the repo's Security tab (reason in the Ignored section):
+- [ ] [#<number>](https://github.com/$REPO/security/dependabot/<number>) — `<package>`
+```
+Omit either list if it would be empty. Deferred / Resolutions added / Resolutions removed / Could not auto-fix need no checkboxes — they are informational.
 
 The very first line of the PR description must be the following blockquote so first-level support knows how to review it:
 
@@ -135,6 +142,7 @@ The very first line of the PR description must be the following blockquote so fi
 - **Risks**: per bump, from the upstream CHANGELOG — breaking changes touching APIs we use, peer-dep bumps affecting neighbors, tests likely to need updating. If no behavior change beyond the patched vuln, say so.
 - **Manual testing**: only if automated CI doesn't cover the affected paths — give concrete reproduction steps. Otherwise write "Covered by CI."
 - **Validation**: `⏳ Awaiting CI` for now.
+- **Review checklist**: the task lists described above (this is where the checkboxes live).
 
 **8. Monitor CI and fix failures.** Poll **inside a single Bash loop per tool call** (about 10 minutes of `sleep 60` iterations per call — do NOT spend one tool call per poll, that would exhaust the turn budget). Each iteration fetches the workflow runs and the combined commit status for the PR head SHA (Actions + Commit statuses APIs only — the Checks API is not accessible to fine-grained PATs; check runs posted by GitHub Apps such as coverage or preview bots are therefore a blind spot of this monitoring):
 ```
