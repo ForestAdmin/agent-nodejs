@@ -1,3 +1,10 @@
+## @forestadmin/mcp-server [1.20.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.20.0...@forestadmin/mcp-server@1.20.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* mcp serveur ts build ([#1793](https://github.com/ForestAdmin/agent-nodejs/issues/1793)) ([f69e150](https://github.com/ForestAdmin/agent-nodejs/commit/f69e15038bdfacec5c370eaa83df877bf4bf5846))
+
 # @forestadmin/mcp-server [1.20.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/mcp-server@1.19.1...@forestadmin/mcp-server@1.20.0) (2026-07-29)
 
 
