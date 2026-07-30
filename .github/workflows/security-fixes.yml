@@ -1,0 +1,60 @@
+# Weekly automated Dependabot vulnerability fixes.
+#
+# Replaces the claude.ai cloud routine (the cloud GitHub proxy substitutes its own
+# app token on api.github.com, which cannot read Dependabot alerts — see PR body).
+# The agent instructions live in .github/security-fixes-prompt.md.
+#
+# Required secrets (org-level, shared by the 5 ForestAdmin repos running this):
+#   SECURITY_GH_PAT    fine-grained PAT: Dependabot alerts RO, Contents RW,
+#                      Workflows RW, Pull requests RW, Issues RW, Actions RW,
+#                      Commit statuses RO
+#   ANTHROPIC_API_KEY  Claude API key
+name: Security fixes
+
+on:
+  schedule:
+    - cron: "0 11 * * 4" # Thursdays 11:00 UTC — same slot as the former routine
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-fixes
+  cancel-in-progress: false
+
+jobs:
+  security-fixes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      GH_PAT: ${{ secrets.SECURITY_GH_PAT }}
+      # claude-code-action's Bash tool defaults to a 10-min hard cap; monorepo
+      # installs and lint runs can exceed it.
+      BASH_DEFAULT_TIMEOUT_MS: "900000"
+      BASH_MAX_TIMEOUT_MS: "3600000"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SECURITY_GH_PAT }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Configure git identity
+        run: |
+          git config user.name "forest-security-routine"
+          git config user.email "security-routines@forestadmin.com"
+
+      - name: Run the security-fix agent
+        uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.SECURITY_GH_PAT }}
+          prompt: "Read the file .github/security-fixes-prompt.md in this repository and execute its instructions exactly, from Preflight through the end."
+          claude_args: |
+            --model claude-opus-4-7
+            --max-turns 250
+            --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch"
+            --append-system-prompt "This is an unattended scheduled maintenance workflow. You are explicitly authorized to create and switch to the security/<date> branch, commit, push it to origin, and create, update and label the pull request yourself via the GitHub REST API with the token in the GH_PAT environment variable, exactly as the instructions file specifies. Never defer pushing or PR creation to a human, never stop to ask for confirmation, and do not use any built-in branch or PR helper that would override these instructions."
