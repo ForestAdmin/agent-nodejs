@@ -25,7 +25,9 @@ concurrency:
 jobs:
   security-fixes:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
+    env:
+      GH_PAT: ${{ secrets.SECURITY_GH_PAT }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,8 +47,6 @@ jobs:
 
       - name: Run the security-fix agent
         uses: anthropics/claude-code-action@v1
-        env:
-          GH_PAT: ${{ secrets.SECURITY_GH_PAT }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.SECURITY_GH_PAT }}
