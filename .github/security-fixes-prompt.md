@@ -62,14 +62,14 @@ Fix any prettier/lint issues the bumps introduced before pushing. **Do not run `
 BRANCH="security/$(date -u +%Y-%m-%d)"
 git checkout -b "$BRANCH"
 ```
-**Same-day rerun:** if the remote branch already exists (`git ls-remote --exit-code --heads origin "$BRANCH"`), this run supersedes it — its content was recomputed from scratch off the default branch. Push with `git push --force-with-lease -u origin "$BRANCH"` instead of a plain push (the single sanctioned force-push; see Constraints). Then look for an already-**open** PR whose head is `$BRANCH` (`GET /repos/$REPO/pulls?head=<owner>:$BRANCH&state=open`): if one exists, skip PR creation, reuse its `$PR_NUMBER`, and update its description; if the only PRs on that branch are closed, create a new PR normally — the force-push has already discarded their stale history.
+**Same-day rerun:** if the remote branch already exists (`git ls-remote --exit-code --heads origin "$BRANCH"`), this run supersedes it — its content was recomputed from scratch off the default branch. The checkout only fetched the default branch, so first give the lease something to compare against: `git fetch origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"`. Then push with `git push --force-with-lease -u origin "$BRANCH"` instead of a plain push (the single sanctioned force-push; see Constraints). Then look for an already-**open** PR whose head is `$BRANCH` (`GET /repos/$REPO/pulls?head=<owner>:$BRANCH&state=open`): if one exists, skip PR creation, reuse its `number` as `$PR_NUMBER`, and update its description; if the only PRs on that branch are closed, create a new PR normally — the force-push has already discarded their stale history.
 Before pushing, verify the branch name matches `^security/\d{4}-\d{2}-\d{2}$`:
 ```
 git rev-parse --abbrev-ref HEAD | grep -Eq '^security/[0-9]{4}-[0-9]{2}-[0-9]{2}$' || { echo "Branch name does not match required pattern; aborting"; exit 1; }
 ```
 If the check fails, stop. Do not rename after the fact by auto-generating a name elsewhere — investigate why the branch got a different name and fix it at the source.
 
-Then commit as `chore(security): patch <N> Dependabot alerts`, push with `git push -u origin "$BRANCH"`, and open a PR against the default branch via `POST /repos/$REPO/pulls`. Capture `$PR_NUMBER` and the head SHA from the response.
+Then commit as `chore(security): patch <N> Dependabot alerts`, push with `git push -u origin "$BRANCH"`, and open a PR against the default branch via `POST /repos/$REPO/pulls`. Capture `$PR_NUMBER` (from the creation response, or from the reused open PR on the same-day-rerun path) and set the monitoring commit explicitly on **every** path — create or reuse: `SHA=$(git rev-parse HEAD)`. After any later push, refresh it the same way.
 
 **Label the PR `:lock: security`.** This triggers the Slack notification workflow that pings `@first_level_support` — do not skip. Call:
 ```

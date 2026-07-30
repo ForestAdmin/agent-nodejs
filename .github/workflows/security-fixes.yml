@@ -46,7 +46,7 @@ jobs:
           git config user.email "security-routines@forestadmin.com"
 
       - name: Run the security-fix agent
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.SECURITY_GH_PAT }}
