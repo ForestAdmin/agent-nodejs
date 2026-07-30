@@ -13,7 +13,9 @@ name: Security fixes
 
 on:
   schedule:
-    - cron: "0 11 * * 4" # Thursdays 11:00 UTC — same slot as the former routine
+    # Staggered per repo: 5 concurrent Opus sessions on one API key
+    # tripped a rate limit on 2026-07-30 (first request never billed).
+    - cron: "0 12 * * 4" # Thursdays 12:00 UTC
   workflow_dispatch: {}
 
 permissions:
@@ -51,6 +53,10 @@ jobs:
         uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Without this the action hides all agent output, so a failing or
+          # slow run is indistinguishable from a hung one (GitHub still masks
+          # secrets in logs).
+          show_full_output: true
           github_token: ${{ secrets.SECURITY_GH_PAT }}
           prompt: "Read the file .github/security-fixes-prompt.md in this repository and execute its instructions exactly, from Preflight through the end."
           claude_args: |
