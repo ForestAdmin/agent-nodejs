@@ -16,7 +16,12 @@ on:
     # Staggered per repo: 5 concurrent Opus sessions on one API key
     # tripped a rate limit on 2026-07-30 (first request never billed).
     - cron: "0 12 * * 4" # Thursdays 12:00 UTC
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: "Show full agent output in logs (may surface secrets — debugging only)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,10 +58,11 @@ jobs:
         uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Without this the action hides all agent output, so a failing or
-          # slow run is indistinguishable from a hung one (GitHub still masks
-          # secrets in logs).
-          show_full_output: true
+          # Off for scheduled runs so agent output can't leak derived secrets
+          # into the repo's Actions logs (GitHub only masks registered secret
+          # values). Enable per-run via the workflow_dispatch "debug" input
+          # when diagnosing a hung or failing run.
+          show_full_output: ${{ inputs.debug || false }}
           github_token: ${{ secrets.SECURITY_GH_PAT }}
           prompt: "Read the file .github/security-fixes-prompt.md in this repository and execute its instructions exactly, from Preflight through the end."
           claude_args: |
