@@ -5,7 +5,7 @@ Triage and fix open Dependabot vulnerability alerts in this repository, open a P
 **Context & token rule:** this routine runs inside GitHub Actions on a checkout of the repository's default branch. `$GH_PAT` is provided by the workflow from the `SECURITY_GH_PAT` secret (a user fine-grained PAT) — use it for **every** `curl`/REST call to `api.github.com`. Git is already authenticated with the same PAT via the checkout step, so plain `git push` works and its pushes trigger CI. Never use the Actions-provided `$GITHUB_TOKEN` for REST calls or the label POST: events it creates do not trigger other workflows, so the Slack notification would never fire.
 
 - `$GH_PAT` is set and non-empty (`[ -n "$GH_PAT" ]`) with `security_events:read` (Dependabot alerts), `contents:write`, `workflows:write` (needed to push `uses:` bumps for `github-actions`-ecosystem alerts), `pull_requests:write`, `issues:write`, `actions:read` + `actions:write` (re-running flaky jobs), and `statuses:read` on this repo. Note: fine-grained PATs cannot carry the `Checks` permission (it is GitHub App-only), so CI monitoring below uses the Actions and Commit statuses APIs — never call the Checks API (`/check-runs`), it would 403. Probe with `curl -sS -o /tmp/preflight-body.json -w "%{http_code}" -H "Authorization: Bearer $GH_PAT" "https://api.github.com/repos/$(git remote get-url origin | sed -E 's|.*github\.com[:/]([^.]+)(\.git)?$|\1|')/dependabot/alerts?per_page=1"` — expect `200`. On any non-200, `cat /tmp/preflight-body.json` — the GitHub error body says why (missing fine-grained permission vs org restriction/pending approval vs expired token).
-- Package manager is detected — this repo uses **Yarn 1** (`yarn.lock` at the root). Prefer `yarn` commands throughout (`yarn install`, `yarn why <pkg>`).
+- Package manager is detected — this repo uses **Yarn 1** (`yarn.lock` at the root). Prefer `yarn` commands throughout (`yarn install --ignore-scripts`, `yarn why <pkg>`).
 
 If `$GH_PAT` is missing, stop and print exactly: `Preflight failed: GH_PAT must be set (from the SECURITY_GH_PAT repository/organization secret). Probe not attempted. Aborting — not falling back to npm audit (it ignores dismissals and the 7-day gate).` If the probe fails, stop and print exactly: `Preflight failed: GH_PAT (SECURITY_GH_PAT secret) lacks the required scopes on <repo>. Probe returned <http_code>, GitHub said: <first 300 chars of /tmp/preflight-body.json>. Aborting — not falling back to npm audit (it ignores dismissals and the 7-day gate).` Do not proceed.
 
@@ -33,7 +33,7 @@ Everything else is FIX.
 
 **4. For each remaining FIX, prefer a parent bump.**
 
-For **npm-ecosystem** alerts: find the dependency chain with `yarn why <pkg>` (this repo uses Yarn 1). If direct, bump to the smallest patched version that stays within the currently used major (if the patch only exists in a later major, treat it as the breaking-major case below). If transitive, bump the nearest ancestor in `package.json` to the lowest version whose resolved tree pulls in the patched sub-dep. Verify with a fresh `yarn install` + `yarn why <pkg>`.
+For **npm-ecosystem** alerts: find the dependency chain with `yarn why <pkg>` (this repo uses Yarn 1). If direct, bump to the smallest patched version that stays within the currently used major (if the patch only exists in a later major, treat it as the breaking-major case below). If transitive, bump the nearest ancestor in `package.json` to the lowest version whose resolved tree pulls in the patched sub-dep. Verify with a fresh `yarn install --ignore-scripts` + `yarn why <pkg>` (`--ignore-scripts` skips native rebuilds — node-gyp compiles cost minutes on this repo and dependency resolution is identical without them).
 
 If no reasonable parent bump closes the alert — no ancestor pulls in the patched sub-dep, or the required bump is a breaking major touching APIs we use — add a `resolutions` entry pinning the vulnerable package to the smallest patched version compatible with the major its parents expect — an exact version or a `^` range within that major, never an unbounded `>=`, which could silently resolve to a later breaking major. Do this without asking.
 
@@ -41,23 +41,26 @@ If no reasonable parent bump closes the alert — no ancestor pulls in the patch
 1. **Scoped root entry keyed by parent**, so the pin only applies within the specific dependency chain: `"some-parent/vulnerable-pkg": "X"`.
 2. **Unconditional root entry** (`"vulnerable-pkg": "X"`) only when multiple unrelated dependency chains share the vulnerability.
 
-Record each resolution in the PR under "Resolutions added" with: the parent chain tried, why the bump wasn't viable, and which form (scoped / unconditional) was used. Always update `yarn.lock` by running `yarn install`, never by hand. In a monorepo, apply each `package.json` change in the correct workspace.
+Record each resolution in the PR under "Resolutions added" with: the parent chain tried, why the bump wasn't viable, and which form (scoped / unconditional) was used. Always update `yarn.lock` by running `yarn install --ignore-scripts`, never by hand (the resulting lockfile matches a full install). In a monorepo, apply each `package.json` change in the correct workspace.
 
 For **github-actions-ecosystem** alerts: bump the `uses:` version reference in the affected `.github/workflows/*.yml` file (the alert's `manifest_path` names it). `SECURITY_GH_PAT` carries the `workflows:write` permission this push requires. If the push is nevertheless rejected citing workflow permissions, unstage the workflow-file changes, move those alerts to "Could not auto-fix (token lacks Workflows permission)", and ship the rest.
 
 **5. Audit existing resolutions in the root `package.json`.** After applying the bumps above, check each entry under `resolutions` (if you encounter stray `overrides`/`pnpm.overrides` blocks, treat them the same way — they are dead weight under Yarn 1):
 - **Stale** — the pinned package no longer appears in the resolved dependency tree. Verify with `yarn why <pkg>`. Remove the entry.
-- **Redundant** — removing the entry leaves the natural resolution at a version that still satisfies the original pin (parent packages have since been upgraded upstream to pull in the patched sub-dep on their own). ⚠ A plain `yarn install` after removing the entry is NOT a valid test: Yarn 1 conservatively keeps the existing `yarn.lock` entry, so every pin would look redundant. Instead: remove the entry, **delete the vulnerable package's blocks from `yarn.lock`**, run `yarn install` to force re-resolution, then check `yarn why <pkg>`. If the re-resolved version still satisfies the original pin, keep the removal; if not, restore the entry (and restore the lockfile state via `git checkout -- yarn.lock` + `yarn install`).
+- **Redundant** — removing the entry leaves the natural resolution at a version that still satisfies the original pin (parent packages have since been upgraded upstream to pull in the patched sub-dep on their own). ⚠ A plain `yarn install` after removing the entry is NOT a valid test: Yarn 1 conservatively keeps the existing `yarn.lock` entry, so every pin would look redundant. Instead: remove the entry, **delete the vulnerable package's blocks from `yarn.lock`**, run `yarn install --ignore-scripts` to force re-resolution, then check `yarn why <pkg>`. If the re-resolved version still satisfies the original pin, keep the removal; if not, restore the entry (and restore the lockfile state via `git checkout -- yarn.lock` + `yarn install --ignore-scripts`).
 
-Process one entry at a time, re-running the install between each to avoid compounding changes. Keep removals in the working tree — everything is committed once, in phase 7. On this large monorepo, if disk gets tight across repeated installs (`df -h`), run `yarn cache clean` between iterations. Record every removal in a "Resolutions removed" section of the PR with: the pinned package + version, and why removal is safe (stale or redundant).
+Process one entry at a time, re-running `yarn install --ignore-scripts` between each to avoid compounding changes. Keep removals in the working tree — everything is committed once, in phase 7. On this large monorepo, if disk gets tight across repeated installs (`df -h`), run `yarn cache clean` between iterations. Record every removal in a "Resolutions removed" section of the PR with: the pinned package + version, and why removal is safe (stale or redundant).
 
-**6. Pre-push checks (cheap, local only).** Run only what's fast and doesn't need the full test dependency graph:
+**6. Pre-push checks — scoped to what this run changed.** This is a large monorepo and the run normally only edits manifests, lockfiles and the occasional script. Do **not** check or lint the whole repo: the root `lint` script runs eslint in parallel across every package, which dominates the runtime, risks exhausting the runner, and surfaces pre-existing issues you must not touch anyway. Check only the changed files:
 ```
-yarn install
-yarn prettier --check .
-yarn lint
+CHANGED=$(git diff --name-only)
+echo "$CHANGED"
+# formatting: only changed files prettier handles
+echo "$CHANGED" | grep -E '\.(js|jsx|ts|tsx|json|md|ya?ml)$' | xargs -r yarn prettier --check
+# lint: only if a source file changed — manifest/lockfile-only changes need no lint
+echo "$CHANGED" | grep -E '\.(js|jsx|ts|tsx)$' | xargs -r yarn eslint
 ```
-Fix any prettier/lint issues the bumps introduced before pushing. If a check fails on files this run did not touch, leave those pre-existing issues alone. **Do not run the test suite locally** — CI is the source of truth for tests.
+Fix only what your own changes broke; leave pre-existing issues in untouched files alone. If the eslint invocation fails for a configuration reason rather than a code issue, note it in the PR under Risks and continue — CI runs the full lint anyway. **Do not run the test suite locally** — CI is the source of truth for tests.
 
 **7. Open the PR.**
 
