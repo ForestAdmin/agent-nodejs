@@ -32,7 +32,10 @@ import {
 } from '../http/agent-route-helpers';
 import { unknownCollection, unknownRelation } from '../http/bff-local-errors';
 import createAgentCapabilitiesFetcher from '../read-model/agent-capabilities-fetcher';
-import { assertValidAgainstCapabilities } from '../validation/capabilities-validator';
+import {
+  assertValidAgainstCapabilities,
+  hasCapabilityConstrainedInput,
+} from '../validation/capabilities-validator';
 import assertNoRelationFieldPaths from '../validation/relation-field-guard';
 
 const DATA_ROUTE = /^\/agent\/v1\/([^/]+)\/(list|count)$/;
@@ -80,14 +83,15 @@ function resolveCapabilities(deps: RequestHandlerDeps): Promise<CapabilitiesResu
 async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
-  assertValidAgainstCapabilities(
-    {
-      filter: body.filter,
-      sortFields: body.sort?.map(clause => clause.field),
-      projectionFields: body.projection,
-    },
-    await resolveCapabilities(deps),
-  );
+  const validationInput = {
+    filter: body.filter,
+    sortFields: body.sort?.map(clause => clause.field),
+    projectionFields: body.projection,
+  };
+
+  if (hasCapabilityConstrainedInput(validationInput)) {
+    assertValidAgainstCapabilities(validationInput, await resolveCapabilities(deps));
+  }
 
   const query = buildListAgentQuery(deps.collection, deps.timezone, body);
   const records = await callAgent(() => deps.client.list(deps.collection, query), deps.logger);
@@ -100,7 +104,9 @@ async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHa
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
 
   // Count carries only a filter (no sort/projection), so that is all there is to validate.
-  assertValidAgainstCapabilities({ filter: body.filter }, await resolveCapabilities(deps));
+  if (body.filter !== undefined) {
+    assertValidAgainstCapabilities({ filter: body.filter }, await resolveCapabilities(deps));
+  }
 
   const query = buildCountAgentQuery(deps.timezone, body);
   const raw = await callAgent(() => deps.client.countRaw(deps.collection, query), deps.logger);

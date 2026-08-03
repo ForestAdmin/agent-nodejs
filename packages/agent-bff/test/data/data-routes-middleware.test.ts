@@ -403,6 +403,34 @@ describe('data routes middleware', () => {
       expect(list).not.toHaveBeenCalled();
     });
 
+    it('should skip the capabilities fetch when the list carries nothing to validate', async () => {
+      const list = jest.fn(async () => []);
+      const getCapabilities = jest.fn(async () => {
+        throw new AgentHttpError(503, {}, 'Service Unavailable');
+      });
+      const app = buildApp(storeOf(usersReadModel, getCapabilities), { list });
+
+      const response = await request(app.callback()).post('/agent/v1/users/list').send({});
+
+      expect(response.status).toBe(200);
+      expect(getCapabilities).not.toHaveBeenCalled();
+      expect(list).toHaveBeenCalled();
+    });
+
+    it('should skip the capabilities fetch when the count carries no filter', async () => {
+      const countRaw = jest.fn(async () => ({ count: 3 }));
+      const getCapabilities = jest.fn(async () => {
+        throw new AgentHttpError(503, {}, 'Service Unavailable');
+      });
+      const app = buildApp(storeOf(usersReadModel, getCapabilities), { countRaw });
+
+      const response = await request(app.callback()).post('/agent/v1/users/count').send({});
+
+      expect(response.status).toBe(200);
+      expect(getCapabilities).not.toHaveBeenCalled();
+      expect(countRaw).toHaveBeenCalled();
+    });
+
     it('should proceed to the agent when the list filter, sort, and projection are all valid', async () => {
       const list = jest.fn(async () => []);
       const getCapabilities = jest.fn(defaultCapabilities);

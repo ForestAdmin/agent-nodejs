@@ -117,6 +117,18 @@ function dedupe(errors: BffHttpError[]): BffHttpError[] {
 }
 
 /**
+ * True when the request carries something capabilities can invalidate. Callers use it to skip the
+ * capabilities fetch entirely, so a plain list/count still succeeds while that fetch is unavailable.
+ */
+export function hasCapabilityConstrainedInput(params: ValidateParams): boolean {
+  return (
+    params.filter !== undefined ||
+    (params.sortFields?.length ?? 0) > 0 ||
+    (params.projectionFields?.length ?? 0) > 0
+  );
+}
+
+/**
  * Validates a request's filter, sort, and projection fields against the target collection's
  * capabilities. Returns every offending field as a structured error (empty = valid); the caller
  * surfaces the whole list or just the first. Throws a 500 mapping_error when a capabilities
