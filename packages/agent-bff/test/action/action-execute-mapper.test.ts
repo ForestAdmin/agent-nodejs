@@ -73,6 +73,17 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  it.each([
+    ['an array', { refresh: [] }],
+    ['an object without relationships', { refresh: {} }],
+    ['relationships not an array', { refresh: { relationships: 'x' } }],
+  ])('falls through to 501 when the only marker is a refresh that is %s', (_label, payload) => {
+    expect(mapActionExecuteResult(payload)).toEqual({
+      status: 501,
+      body: { error: { type: 'unsupported_action_result', status: 501 } },
+    });
+  });
+
   it('drops non-string entries from invalidated', () => {
     expect(
       mapActionExecuteResult({ success: 'ok', refresh: { relationships: ['orders', 42, null] } }),
