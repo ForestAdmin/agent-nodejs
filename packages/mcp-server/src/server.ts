@@ -148,6 +148,13 @@ export interface ForestMCPServerOptions {
    * logins. Minimum 60s for either.
    */
   tokenTtl?: TokenTtlOptions;
+  /**
+   * Domains of the OAuth client applications allowed to use this server, e.g. ['dust.tt'].
+   * A client is allowed only when every redirect URI it registered is on one of these domains
+   * or a subdomain of one. Omit to accept any dynamically registered client. Native desktop
+   * clients register loopback redirect URIs, so they are always rejected when this is set.
+   */
+  allowedOAuthClients?: string[];
 }
 
 /**
@@ -173,6 +180,7 @@ export default class ForestMCPServer {
   private agentUrl?: string;
   private agentDispatcher?: InProcessAgentDispatcher;
   private tokenTtl?: TokenTtlOptions;
+  private allowedOAuthClients?: string[];
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -185,6 +193,15 @@ export default class ForestMCPServer {
     this.agentUrl = normalizeAgentUrl(options?.agentUrl);
     this.agentDispatcher = options?.agentDispatcher;
     this.tokenTtl = normalizeTokenTtl(options?.tokenTtl, this.logger);
+
+    if (options?.allowedOAuthClients && options.allowedOAuthClients.length === 0) {
+      throw new Error(
+        'Invalid allowedOAuthClients: an empty list would reject every OAuth client. ' +
+          'List at least one domain, or omit the option to accept any registered client.',
+      );
+    }
+
+    this.allowedOAuthClients = options?.allowedOAuthClients;
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -442,6 +459,7 @@ export default class ForestMCPServer {
       logger: this.logger,
       agentUrl: this.agentUrl,
       tokenTtl: this.tokenTtl,
+      allowedOAuthClients: this.allowedOAuthClients,
     });
     await oauthProvider.initialize();
 

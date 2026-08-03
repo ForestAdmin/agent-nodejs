@@ -8,18 +8,18 @@ This MCP server provides HTTP REST API access to Forest Admin operations, enabli
 
 ### Available Tools
 
-| Tool | Description |
-|------|-------------|
+| Tool                 | Description                                               |
+| -------------------- | --------------------------------------------------------- |
 | `describeCollection` | Get the schema of a collection (fields, types, relations) |
-| `list` | Retrieve records from a collection |
-| `listRelated` | Retrieve related records |
-| `create` | Create a new record |
-| `update` | Update an existing record |
-| `delete` | Delete records |
-| `associate` | Associate records in a relation |
-| `dissociate` | Dissociate records from a relation |
-| `getActionForm` | Get the form fields for a custom action |
-| `executeAction` | Execute a custom action |
+| `list`               | Retrieve records from a collection                        |
+| `listRelated`        | Retrieve related records                                  |
+| `create`             | Create a new record                                       |
+| `update`             | Update an existing record                                 |
+| `delete`             | Delete records                                            |
+| `associate`          | Associate records in a relation                           |
+| `dissociate`         | Dissociate records from a relation                        |
+| `getActionForm`      | Get the form fields for a custom action                   |
+| `executeAction`      | Execute a custom action                                   |
 
 ## Usage
 
@@ -30,9 +30,7 @@ The MCP server is included with the Forest Admin agent. Simply call `mountAiMcpS
 ```typescript
 import { createAgent } from '@forestadmin/agent';
 
-const agent = createAgent(options)
-  .addDataSource(myDataSource)
-  .mountAiMcpServer();
+const agent = createAgent(options).addDataSource(myDataSource).mountAiMcpServer();
 
 agent.mountOnExpress(app);
 agent.start();
@@ -57,15 +55,16 @@ yarn start:dev       # Development (loads .env file automatically)
 
 #### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `FOREST_ENV_SECRET` | **Yes** | - | Your Forest Admin environment secret |
-| `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
-| `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
-| `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
-| `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
-| `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
-| `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
+| Variable                               | Required | Default                         | Description                                                                                                                                                                                                                  |
+| -------------------------------------- | -------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FOREST_ENV_SECRET`                    | **Yes**  | -                               | Your Forest Admin environment secret                                                                                                                                                                                         |
+| `FOREST_AUTH_SECRET`                   | **Yes**  | -                               | Your Forest Admin authentication secret (must match your agent)                                                                                                                                                              |
+| `MCP_SERVER_PORT`                      | No       | `3931`                          | Port for the HTTP server                                                                                                                                                                                                     |
+| `FOREST_MCP_ENABLED_TOOLS`             | No       | -                               | Comma-separated list of tools to enable (allowlist)                                                                                                                                                                          |
+| `FOREST_MCP_ALLOWED_OAUTH_CLIENTS`     | No       | -                               | Comma-separated domains of the OAuth client applications allowed to connect (`allowedOAuthClients`). Unset, any registered client is accepted                                                                                |
+| `FOREST_AGENT_URL`                     | No       | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
+| `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS`  | No       | `3600` (1 hour)                 | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60`                                                                                                                  |
+| `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No       | unbounded                       | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60`                                                                       |
 
 #### Example Configuration
 
@@ -111,9 +110,32 @@ When `enabledTools` is not set, all tools are enabled by default.
 
 See [Available Tools](#available-tools) for the full list. `describeCollection` is always enabled as it is required for the MCP server to function properly.
 
+## Restrict OAuth Clients
+
+Any OAuth client can register against the MCP server through Dynamic Client Registration and, once one of your users signs in, obtain tokens. Use `allowedOAuthClients` to accept only approved client applications:
+
+```typescript
+// With Forest Admin Agent
+agent.mountAiMcpServer({
+  allowedOAuthClients: ['dust.tt'],
+});
+```
+
+```bash
+# Standalone
+export FOREST_MCP_ALLOWED_OAUTH_CLIENTS="dust.tt"
+npx forest-mcp-server
+```
+
+A client is allowed only when **every** redirect URI it registered is on a listed domain or one of its subdomains (`dust.tt` matches `eu.dust.tt`). Matching uses redirect URIs because they are the one piece of registration metadata an impostor cannot benefit from — the authorization code is only ever delivered there. Self-declared fields such as the client name are ignored.
+
+Every other client is rejected with a standard `invalid_client` error telling the user to contact their administrator; the response does not reveal the allowed domains. Registration itself still succeeds — it happens on the Forest Admin server — the client just cannot use it against this server. Access tokens issued before you enabled the option stay valid until they expire (1 hour at most); refreshes are blocked immediately.
+
+Native desktop clients (Claude Desktop, MCP Inspector, ...) register loopback (`localhost`) redirect URIs, so they are always rejected when the allowlist is set. There is deliberately no loopback exemption: allowing `localhost` would allow every local application. Omit the option in environments that need native clients (e.g. development).
+
 ## Shorten Token Lifetimes
 
-Forest grants **1 hour** (3600s) for an access token and **8 days** (691200s) for a refresh token — but it re-grants those 8 days on *every* refresh, so without `refreshTokenSeconds` a client that keeps working is never asked to sign in again.
+Forest grants **1 hour** (3600s) for an access token and **8 days** (691200s) for a refresh token — but it re-grants those 8 days on _every_ refresh, so without `refreshTokenSeconds` a client that keeps working is never asked to sign in again.
 
 **Both values are upper bounds: they can only shorten that, never extend it.** For `accessTokenSeconds` a value above 3600 therefore has no effect. `refreshTokenSeconds` bounds the whole session, which Forest otherwise re-extends on every refresh, so any value shortens it however large it is.
 
@@ -142,12 +164,12 @@ The minimum for either value is 60 seconds; anything lower is raised to it. An i
 
 Once running, the MCP server exposes the following endpoints:
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/mcp` | Main MCP protocol endpoint (requires Bearer token) |
-| POST | `/oauth/authorize` | OAuth 2.0 authorization |
-| POST | `/oauth/token` | OAuth 2.0 token exchange |
-| GET | `/.well-known/oauth-protected-resource/mcp` | OAuth metadata discovery |
+| Method | Path                                        | Description                                        |
+| ------ | ------------------------------------------- | -------------------------------------------------- |
+| POST   | `/mcp`                                      | Main MCP protocol endpoint (requires Bearer token) |
+| POST   | `/oauth/authorize`                          | OAuth 2.0 authorization                            |
+| POST   | `/oauth/token`                              | OAuth 2.0 token exchange                           |
+| GET    | `/.well-known/oauth-protected-resource/mcp` | OAuth metadata discovery                           |
 
 The `/mcp` endpoint expects MCP protocol messages (JSON-RPC 2.0) and requires a valid OAuth Bearer token with at least the `mcp:read` scope.
 
@@ -194,10 +216,10 @@ yarn clean
 
 These are only needed by Forest Admin developers (e.g. to point to a local or staging server):
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `FOREST_SERVER_URL` | `https://api.forestadmin.com` | Forest Admin API URL |
-| `FOREST_APP_URL` | `https://app.forestadmin.com` | Forest Admin application URL |
+| Variable            | Default                       | Description                  |
+| ------------------- | ----------------------------- | ---------------------------- |
+| `FOREST_SERVER_URL` | `https://api.forestadmin.com` | Forest Admin API URL         |
+| `FOREST_APP_URL`    | `https://app.forestadmin.com` | Forest Admin application URL |
 
 ## Architecture
 

@@ -54,6 +54,7 @@ export interface ForestOAuthProviderOptions {
   // Pre-normalized by the caller (ForestMCPServer); not re-validated here.
   agentUrl?: string;
   tokenTtl?: TokenTtlOptions;
+  allowedOAuthClients?: string[];
 }
 
 /**
@@ -69,6 +70,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
   private environmentApiEndpoint?: string;
   private agentUrl?: string;
   private tokenTtl?: TokenTtlOptions;
+  private allowedOAuthClients?: string[];
   private warnedAccessCapInert = false;
   private logger: Logger;
 
@@ -80,6 +82,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     logger,
     agentUrl,
     tokenTtl,
+    allowedOAuthClients,
   }: ForestOAuthProviderOptions) {
     this.forestServerUrl = forestServerUrl;
     this.forestAppUrl = forestAppUrl;
@@ -88,6 +91,7 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
     this.logger = logger;
     this.agentUrl = agentUrl;
     this.tokenTtl = tokenTtl;
+    this.allowedOAuthClients = allowedOAuthClients;
     this.forestClient = createForestAdminClient({
       forestServerUrl: this.forestServerUrl,
       envSecret: this.envSecret,
@@ -165,10 +169,56 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
           return undefined;
         }
 
-        // Return registered client if exists
-        return response.json();
+        const client = (await response.json()) as OAuthClientInformationFull;
+        this.assertClientIsAllowed(client);
+
+        return client;
       },
     };
+  }
+
+  private assertClientIsAllowed(client: OAuthClientInformationFull): void {
+    const allowedDomains = this.allowedOAuthClients;
+
+    if (!allowedDomains) return;
+
+    // every() over an empty list is vacuously true, so a registration without
+    // redirect URIs must be rejected explicitly rather than slip through.
+    const redirectUris = client.redirect_uris ?? [];
+    const isAllowed =
+      redirectUris.length > 0 &&
+      redirectUris.every(uri => ForestOAuthProvider.isUriOnAllowedDomain(uri, allowedDomains));
+
+    if (isAllowed) return;
+
+    this.logger(
+      'Info',
+      `[ForestOAuthProvider] Rejected OAuth client ${client.client_id}: ` +
+        `redirect URIs [${redirectUris.join(', ')}] are not all on an allowed domain`,
+    );
+
+    // The description names no allowed domain on purpose; it is served to arbitrary clients.
+    throw new InvalidClientError(
+      'This MCP server only accepts approved client applications. ' +
+        'Contact your Forest Admin administrator.',
+    );
+  }
+
+  private static isUriOnAllowedDomain(redirectUri: string, allowedDomains: string[]): boolean {
+    let hostname: string;
+
+    try {
+      // URL normalizes the host to lowercase punycode, closing case and homograph tricks.
+      ({ hostname } = new URL(redirectUri));
+    } catch {
+      return false;
+    }
+
+    return allowedDomains.some(domain => {
+      const allowedDomain = domain.toLowerCase();
+
+      return hostname === allowedDomain || hostname.endsWith(`.${allowedDomain}`);
+    });
   }
 
   async authorize(

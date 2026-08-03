@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import ForestMCPServer from './server';
+import parseDomainList from './utils/parse-domain-list';
 import parseToolList from './utils/parse-tool-list';
 
 const toSeconds = (value?: string) => (value === undefined ? undefined : Number(value));
@@ -12,6 +13,7 @@ const server = new ForestMCPServer({
   envSecret: process.env.FOREST_ENV_SECRET,
   authSecret: process.env.FOREST_AUTH_SECRET,
   enabledTools: parseToolList(process.env.FOREST_MCP_ENABLED_TOOLS),
+  allowedOAuthClients: parseDomainList(process.env.FOREST_MCP_ALLOWED_OAUTH_CLIENTS),
   agentUrl: process.env.FOREST_AGENT_URL,
   // normalizeTokenTtl rejects NaN and non-positive values, so a bad variable fails at startup.
   tokenTtl: {

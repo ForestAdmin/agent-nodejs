@@ -56,6 +56,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
   private mcpEnabledTools?: ToolName[];
   private mcpBasePath?: string;
   private mcpTokenTtl?: TokenTtlOptions;
+  private mcpAllowedOAuthClients?: string[];
 
   /** In-process workflow executor, created only when addWorkflowExecutor() is called. */
   private embeddedExecutor: EmbeddedWorkflowExecutor | null = null;
@@ -260,16 +261,21 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
    * // grants; `refreshTokenSeconds` bounds the time between two interactive logins, which is
    * // otherwise unbounded since Forest re-grants its refresh lifetime on every refresh.
    * agent.mountAiMcpServer({ tokenTtl: { accessTokenSeconds: 900, refreshTokenSeconds: 86400 } });
+   * // Example: only accept approved OAuth client applications, matched by the domain of their
+   * // registered redirect URIs (subdomains included). Other clients get invalid_client.
+   * agent.mountAiMcpServer({ allowedOAuthClients: ['dust.tt'] });
    */
   mountAiMcpServer(options?: {
     enabledTools?: ToolName[];
     basePath?: string;
     tokenTtl?: TokenTtlOptions;
+    allowedOAuthClients?: string[];
   }): this {
     this.mcpEnabled = true;
     this.mcpEnabledTools = options?.enabledTools;
     this.mcpBasePath = options?.basePath;
     this.mcpTokenTtl = options?.tokenTtl;
+    this.mcpAllowedOAuthClients = options?.allowedOAuthClients;
 
     return this;
   }
@@ -389,6 +395,7 @@ export default class Agent<S extends TSchema = TSchema> extends FrameworkMounter
         enabledTools: this.mcpEnabledTools,
         basePath: this.mcpBasePath,
         tokenTtl: this.mcpTokenTtl,
+        allowedOAuthClients: this.mcpAllowedOAuthClients,
         agentDispatcher: this.getInProcessDispatcher(),
       });
 
