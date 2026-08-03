@@ -1,5 +1,3 @@
-import type { McpServerConfig } from '@forestadmin/ai-proxy';
-
 import McpServerConfigFromApiService from '../../src/mcp-server-config';
 import * as factories from '../__factories__';
 
@@ -93,8 +91,8 @@ describe('McpServerConfigFromApiService', () => {
       const result = await service.getConfiguration();
 
       expect(result).toEqual(mcpConfig);
-      expect((result.remoteServer as McpServerConfig).transport).toBe('sse');
-      expect((result.localServer as McpServerConfig).transport).toBe('stdio');
+      expect(result.remoteServer.transport).toBe('sse');
+      expect(result.localServer.transport).toBe('stdio');
     });
   });
 });
