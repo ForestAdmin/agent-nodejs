@@ -1,6 +1,5 @@
-import type { McpServerConfigService } from './types';
+import type { McpServerConfigService, ToolConfig } from './types';
 import type { ForestAdminClientOptionsWithDefaults, ForestAdminServerInterface } from '../types';
-import type { ToolConfig } from '@forestadmin/ai-proxy';
 
 export default class McpServerConfigFromApiService implements McpServerConfigService {
   constructor(

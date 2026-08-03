@@ -31,7 +31,6 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@forestadmin/ai-proxy": "1.12.3",
     "@forestadmin/datasource-toolkit": "1.54.0",
     "@types/json-api-serializer": "^2.6.3",
     "@types/jsonwebtoken": "^9.0.1",

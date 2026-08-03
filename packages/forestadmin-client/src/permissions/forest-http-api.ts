@@ -1,4 +1,5 @@
 import type { EnvironmentPermissionsV4, RenderingPermissionV4, UserPermissionV4 } from './types';
+import type { ToolConfig } from '../mcp-server-config/types';
 import type { ModelCustomization } from '../model-customizations/types';
 import type {
   ActivityLogHttpOptions,
@@ -10,7 +11,6 @@ import type {
   IpWhitelistRulesResponse,
 } from '../types';
 import type { HttpOptions } from '../utils/http-options';
-import type { ToolConfig } from '@forestadmin/ai-proxy';
 
 import JSONAPISerializer from 'json-api-serializer';
 
