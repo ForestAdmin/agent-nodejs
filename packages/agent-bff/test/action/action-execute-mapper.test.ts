@@ -60,6 +60,28 @@ describe('mapActionExecuteResult', () => {
     });
   });
 
+  it.each([
+    ['an empty object', { webhook: {} }],
+    ['an array', { webhook: [] }],
+    ['url missing', { webhook: { method: 'POST' } }],
+    ['method missing', { webhook: { url: 'https://x.test' } }],
+    ['url not a string', { webhook: { url: 42, method: 'POST' } }],
+  ])('falls through to 501 when the webhook payload is %s', (_label, payload) => {
+    expect(mapActionExecuteResult(payload)).toEqual({
+      status: 501,
+      body: { error: { type: 'unsupported_action_result', status: 501 } },
+    });
+  });
+
+  it('drops non-string entries from invalidated', () => {
+    expect(
+      mapActionExecuteResult({ success: 'ok', refresh: { relationships: ['orders', 42, null] } }),
+    ).toEqual({
+      status: 200,
+      body: { type: 'success', message: 'ok', invalidated: ['orders'], html: null },
+    });
+  });
+
   it('maps a Redirect payload to the path', () => {
     expect(mapActionExecuteResult({ redirectTo: '/orders/1' })).toEqual({
       status: 200,

@@ -33,6 +33,24 @@ export interface ActionExecuteMapped {
   body: ActionExecuteMappedBody;
 }
 
+interface AgentWebhookPayload {
+  url: string;
+  method: string;
+  headers: unknown;
+  body: unknown;
+}
+
+// The agent always serializes the four webhook fields together
+// (`agent/src/routes/modification/action/action.ts`), so a payload missing url/method is malformed
+// and must reach the 501 path rather than surface as a 200 the client cannot act on.
+function isWebhook(value: unknown): value is AgentWebhookPayload {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+
+  const { url, method } = value as Record<string, unknown>;
+
+  return typeof url === 'string' && typeof method === 'string';
+}
+
 // Normalizes the agent's 200 execute payload into the flat BFF wrapper. The execute result is
 // untyped at the BFF boundary (`Action.execute(): Promise<unknown>`), so we discriminate on the
 // agent HTTP payload shape. A File result streams a binary with no JSON marker, so any unrecognized
@@ -43,19 +61,10 @@ export function mapActionExecuteResult(raw: unknown): ActionExecuteMapped {
   // Each branch validates the value shape, not just key presence: a malformed payload
   // (`{ webhook: null }`, `{ redirectTo: {} }`, `{ success: {} }`) must fall through to the 501
   // path rather than be surfaced as a 200 with null fields the client cannot tell from a real one.
-  if (typeof body.webhook === 'object' && body.webhook !== null) {
-    const hook = body.webhook as Record<string, unknown>;
+  if (isWebhook(body.webhook)) {
+    const { url, method, headers, body: hookBody } = body.webhook;
 
-    return {
-      status: 200,
-      body: {
-        type: 'webhook',
-        url: hook.url,
-        method: hook.method,
-        headers: hook.headers,
-        body: hook.body,
-      },
-    };
+    return { status: 200, body: { type: 'webhook', url, method, headers, body: hookBody } };
   }
 
   if (typeof body.redirectTo === 'string') {
@@ -74,7 +83,9 @@ export function mapActionExecuteResult(raw: unknown): ActionExecuteMapped {
       body: {
         type: 'success',
         message: typeof body.success === 'string' ? body.success : null,
-        invalidated: Array.isArray(relationships) ? (relationships as string[]) : [],
+        invalidated: Array.isArray(relationships)
+          ? relationships.filter((name): name is string => typeof name === 'string')
+          : [],
         html: typeof body.html === 'string' ? body.html : null,
       },
     };

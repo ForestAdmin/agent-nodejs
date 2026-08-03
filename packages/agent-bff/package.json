@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@forestadmin/agent-client": "1.12.2",
+    "@forestadmin/datasource-toolkit": "1.54.0",
     "@forestadmin/forestadmin-client": "1.41.3",
     "@koa/bodyparser": "^6.1.0",
     "jsonwebtoken": "^9.0.3",
