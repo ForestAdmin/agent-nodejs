@@ -1,3 +1,10 @@
+## @forestadmin/forestadmin-client [1.41.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.41.2...@forestadmin/forestadmin-client@1.41.3) (2026-08-03)
+
+
+### Bug Fixes
+
+* **fa client:** ts build ([#1796](https://github.com/ForestAdmin/agent-nodejs/issues/1796)) ([fc6d7bb](https://github.com/ForestAdmin/agent-nodejs/commit/fc6d7bbfc37955dc3517ac18ddbc358bcfa33959))
+
 ## @forestadmin/forestadmin-client [1.41.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/forestadmin-client@1.41.1...@forestadmin/forestadmin-client@1.41.2) (2026-07-24)
 
 
