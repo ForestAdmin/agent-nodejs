@@ -35,7 +35,11 @@ describe('validateAgainstCapabilities', () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0]).toEqual(
-        expect.objectContaining({ type: 'unknown_field', status: 422, details: { field: 'missing' } }),
+        expect.objectContaining({
+          type: 'unknown_field',
+          status: 422,
+          details: { field: 'missing' },
+        }),
       );
     });
 
@@ -118,7 +122,10 @@ describe('validateAgainstCapabilities', () => {
       );
 
       expect(errors[0]).toEqual(
-        expect.objectContaining({ type: 'invalid_filter_operator', details: { field: 'title', validOperators: ['Equal', 'Contains', 'IContains'] } }),
+        expect.objectContaining({
+          type: 'invalid_filter_operator',
+          details: { field: 'title', validOperators: ['Equal', 'Contains', 'IContains'] },
+        }),
       );
     });
 
@@ -148,7 +155,11 @@ describe('validateAgainstCapabilities', () => {
       const errors = validateAgainstCapabilities({ sortFields: ['ghost'] }, capabilities);
 
       expect(errors[0]).toEqual(
-        expect.objectContaining({ type: 'unknown_field', status: 422, details: { field: 'ghost' } }),
+        expect.objectContaining({
+          type: 'unknown_field',
+          status: 422,
+          details: { field: 'ghost' },
+        }),
       );
     });
 
@@ -156,7 +167,11 @@ describe('validateAgainstCapabilities', () => {
       const errors = validateAgainstCapabilities({ projectionFields: ['ghost'] }, capabilities);
 
       expect(errors[0]).toEqual(
-        expect.objectContaining({ type: 'unknown_field', status: 422, details: { field: 'ghost' } }),
+        expect.objectContaining({
+          type: 'unknown_field',
+          status: 422,
+          details: { field: 'ghost' },
+        }),
       );
     });
 
@@ -208,16 +223,21 @@ describe('validateAgainstCapabilities', () => {
     const [error] = validateAgainstCapabilities({ sortFields: ['ghost'] }, capabilities);
 
     expect(toErrorBody(error)).toEqual({
-      error: { type: 'unknown_field', status: 422, message: 'Unknown field: ghost', details: { field: 'ghost' } },
+      error: {
+        type: 'unknown_field',
+        status: 422,
+        message: 'Unknown field: ghost',
+        details: { field: 'ghost' },
+      },
     });
   });
 });
 
 describe('assertValidAgainstCapabilities', () => {
   it('throws the first error', () => {
-    expect(() =>
-      assertValidAgainstCapabilities({ sortFields: ['ghost'] }, capabilities),
-    ).toThrow(expect.objectContaining({ type: 'unknown_field', details: { field: 'ghost' } }));
+    expect(() => assertValidAgainstCapabilities({ sortFields: ['ghost'] }, capabilities)).toThrow(
+      expect.objectContaining({ type: 'unknown_field', details: { field: 'ghost' } }),
+    );
   });
 
   it('does not throw for a valid request', () => {

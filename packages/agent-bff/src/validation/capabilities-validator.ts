@@ -1,9 +1,9 @@
 import type { BffHttpError } from '../http/bff-http-error';
 import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 
-import { mappingError } from '../http/bff-local-errors';
 import { normalizeOperator } from './operator-normalizer';
 import { fieldNotFilterable, invalidFilterOperator, unknownField } from './validation-errors';
+import { mappingError } from '../http/bff-local-errors';
 
 export interface ValidateParams {
   filter?: unknown;
