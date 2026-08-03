@@ -2,6 +2,7 @@ import type { CapabilitiesResult } from '../../src/read-model/capabilities-cache
 
 import { toErrorBody } from '../../src/http/bff-http-error';
 import {
+  MAX_FILTER_DEPTH,
   assertValidAgainstCapabilities,
   validateAgainstCapabilities,
 } from '../../src/validation/capabilities-validator';
@@ -14,6 +15,14 @@ const capabilities: CapabilitiesResult = {
     { name: 'author', type: 'ManyToOne' },
   ],
 };
+
+function nestFilter(depth: number): unknown {
+  let node: unknown = { field: 'title', operator: 'Equal', value: 'x' };
+
+  for (let i = 0; i < depth; i += 1) node = { aggregator: 'And', conditions: [node] };
+
+  return node;
+}
 
 function captureError(fn: () => void): unknown {
   try {
@@ -147,6 +156,34 @@ describe('validateAgainstCapabilities', () => {
       );
 
       expect(error).toEqual(expect.objectContaining({ type: 'mapping_error', status: 500 }));
+    });
+
+    it('accepts a filter nested up to the maximum depth', () => {
+      expect(
+        validateAgainstCapabilities({ filter: nestFilter(MAX_FILTER_DEPTH) }, capabilities),
+      ).toEqual([]);
+    });
+
+    it('rejects a filter nested beyond the maximum depth with a 400 instead of overflowing', () => {
+      const error = captureError(() =>
+        validateAgainstCapabilities({ filter: nestFilter(MAX_FILTER_DEPTH + 1) }, capabilities),
+      );
+
+      expect(error).toEqual(
+        expect.objectContaining({
+          type: 'filter_too_deep',
+          status: 400,
+          details: { maxDepth: MAX_FILTER_DEPTH },
+        }),
+      );
+    });
+
+    it('rejects a filter deep enough to blow the call stack without the guard', () => {
+      const error = captureError(() =>
+        validateAgainstCapabilities({ filter: nestFilter(20000) }, capabilities),
+      );
+
+      expect(error).toEqual(expect.objectContaining({ type: 'filter_too_deep', status: 400 }));
     });
   });
 

@@ -2,7 +2,12 @@ import type { BffHttpError } from '../http/bff-http-error';
 import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 
 import { normalizeOperator } from './operator-normalizer';
-import { fieldNotFilterable, invalidFilterOperator, unknownField } from './validation-errors';
+import {
+  fieldNotFilterable,
+  filterTooDeep,
+  invalidFilterOperator,
+  unknownField,
+} from './validation-errors';
 import { mappingError } from '../http/bff-local-errors';
 
 export interface ValidateParams {
@@ -32,9 +37,13 @@ function isLeaf(node: unknown): node is FilterLeaf {
   );
 }
 
-function collectLeaves(node: unknown, acc: FilterLeaf[]): void {
+export const MAX_FILTER_DEPTH = 100;
+
+function collectLeaves(node: unknown, acc: FilterLeaf[], depth = 0): void {
+  if (depth > MAX_FILTER_DEPTH) throw filterTooDeep(MAX_FILTER_DEPTH);
+
   if (isBranch(node)) {
-    node.conditions.forEach(condition => collectLeaves(condition, acc));
+    node.conditions.forEach(condition => collectLeaves(condition, acc, depth + 1));
   } else if (isLeaf(node)) {
     const { operator } = node as { operator?: unknown };
     acc.push({ field: node.field, operator: typeof operator === 'string' ? operator : undefined });
@@ -105,6 +114,18 @@ function dedupe(errors: BffHttpError[]): BffHttpError[] {
   }
 
   return result;
+}
+
+/**
+ * True when the request carries something capabilities can invalidate. Callers use it to skip the
+ * capabilities fetch entirely, so a plain list/count still succeeds while that fetch is unavailable.
+ */
+export function hasCapabilityConstrainedInput(params: ValidateParams): boolean {
+  return (
+    params.filter !== undefined ||
+    (params.sortFields?.length ?? 0) > 0 ||
+    (params.projectionFields?.length ?? 0) > 0
+  );
 }
 
 /**
