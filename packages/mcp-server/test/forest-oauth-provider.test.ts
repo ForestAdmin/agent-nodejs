@@ -1418,6 +1418,15 @@ describe('ForestOAuthProvider', () => {
       expect(error.errorCode).toBe('invalid_client');
     });
 
+    it('rejects a custom-scheme redirect URI even when its hostname is on an allowed domain', async () => {
+      registerClient(['attacker-app://dust.tt/callback']);
+      const provider = createRestrictedProvider(['dust.tt']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
     it('rejects a client registered with an empty redirect URI list', async () => {
       registerClient([]);
       const provider = createRestrictedProvider(['dust.tt']);

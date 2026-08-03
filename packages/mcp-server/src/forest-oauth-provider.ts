@@ -206,13 +206,18 @@ export default class ForestOAuthProvider implements OAuthServerProvider {
 
   private static isUriOnAllowedDomain(redirectUri: string, allowedDomains: string[]): boolean {
     let hostname: string;
+    let protocol: string;
 
     try {
       // URL normalizes the host to lowercase punycode, closing case and homograph tricks.
-      ({ hostname } = new URL(redirectUri));
+      ({ hostname, protocol } = new URL(redirectUri));
     } catch {
       return false;
     }
+
+    // A custom scheme (attacker-app://dust.tt/cb) dispatches the callback to whatever
+    // application registered it, so its hostname says nothing about where the code lands.
+    if (protocol !== 'https:' && protocol !== 'http:') return false;
 
     return allowedDomains.some(domain => {
       const allowedDomain = domain.toLowerCase();
