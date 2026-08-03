@@ -385,6 +385,24 @@ describe('data routes middleware', () => {
       expect(list).not.toHaveBeenCalled();
     });
 
+    it('should map a capabilities fetch failure to agent_unavailable instead of internal_error', async () => {
+      const list = jest.fn(async () => []);
+      const getCapabilities = jest.fn(async () => {
+        throw new AgentHttpError(503, {}, 'Service Unavailable');
+      });
+      const app = buildApp(storeOf(usersReadModel, getCapabilities), { list });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/list')
+        .send({ projection: ['id'] });
+
+      expect(response.status).toBe(503);
+      expect(response.body.error).toEqual(
+        expect.objectContaining({ type: 'agent_unavailable', status: 503 }),
+      );
+      expect(list).not.toHaveBeenCalled();
+    });
+
     it('should proceed to the agent when the list filter, sort, and projection are all valid', async () => {
       const list = jest.fn(async () => []);
       const getCapabilities = jest.fn(defaultCapabilities);

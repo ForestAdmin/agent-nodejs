@@ -14,7 +14,7 @@ export function toSnakeCaseOperator(operator: string): string {
     .toLowerCase();
 }
 
-const SNAKE_TO_PASCAL: Record<string, Operator> = Object.fromEntries(
+const SNAKE_TO_PASCAL = new Map<string, Operator>(
   allOperators.map(operator => [toSnakeCaseOperator(operator), operator]),
 );
 
@@ -24,5 +24,5 @@ const SNAKE_TO_PASCAL: Record<string, Operator> = Object.fromEntries(
  * only happens when the agent runs a newer operator set than this package (a version skew).
  */
 export function normalizeOperator(snakeCaseOperator: string): Operator | undefined {
-  return SNAKE_TO_PASCAL[snakeCaseOperator];
+  return SNAKE_TO_PASCAL.get(snakeCaseOperator);
 }

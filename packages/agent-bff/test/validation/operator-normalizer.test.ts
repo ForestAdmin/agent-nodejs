@@ -32,5 +32,12 @@ describe('operator-normalizer', () => {
     it('returns undefined for an operator absent from the canonical set', () => {
       expect(normalizeOperator('made_up_operator')).toBeUndefined();
     });
+
+    it.each(['constructor', 'toString', '__proto__', 'valueOf', 'hasOwnProperty'])(
+      'returns undefined for the inherited object key %s',
+      key => {
+        expect(normalizeOperator(key)).toBeUndefined();
+      },
+    );
   });
 });

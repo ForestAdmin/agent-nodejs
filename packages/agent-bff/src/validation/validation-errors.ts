@@ -10,6 +10,15 @@ export function fieldNotFilterable(field: string): BffHttpError {
   });
 }
 
+export function filterTooDeep(maxDepth: number): BffHttpError {
+  return new BffHttpError(
+    400,
+    'filter_too_deep',
+    `Filter nesting exceeds the maximum depth of ${maxDepth}`,
+    { maxDepth },
+  );
+}
+
 export function invalidFilterOperator(field: string, validOperators: string[]): BffHttpError {
   return new BffHttpError(
     400,

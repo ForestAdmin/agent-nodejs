@@ -67,9 +67,13 @@ interface RequestHandlerDeps {
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
 
 function resolveCapabilities(deps: RequestHandlerDeps): Promise<CapabilitiesResult> {
-  return deps.store.getCapabilities(
-    deps.collection,
-    createAgentCapabilitiesFetcher({ agentUrl: deps.agentUrl, token: deps.token }),
+  return callAgent(
+    () =>
+      deps.store.getCapabilities(
+        deps.collection,
+        createAgentCapabilitiesFetcher({ agentUrl: deps.agentUrl, token: deps.token }),
+      ),
+    deps.logger,
   );
 }
 
