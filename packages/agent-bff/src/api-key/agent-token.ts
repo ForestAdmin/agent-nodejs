@@ -1,4 +1,5 @@
 import type { ResolvedApiKeyIdentity } from './api-key-client';
+import type { BffAccessTokenPayload } from '../oauth/bff-token';
 
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -6,6 +7,11 @@ export const AGENT_TOKEN_EXPIRES_IN = '5m';
 
 export interface IssueAgentTokenParams {
   identity: ResolvedApiKeyIdentity;
+  authSecret: string;
+}
+
+export interface IssueAgentTokenFromPrincipalParams {
+  principal: BffAccessTokenPayload;
   authSecret: string;
 }
 
@@ -34,6 +40,34 @@ export function issueAgentToken({ identity, authSecret }: IssueAgentTokenParams)
       last_name: lastName,
       rendering_id: renderingId,
       permission_level: user.permissionLevel,
+    },
+    authSecret,
+    { algorithm: 'HS256', expiresIn: AGENT_TOKEN_EXPIRES_IN },
+  );
+}
+
+export function issueAgentTokenFromPrincipal({
+  principal,
+  authSecret,
+}: IssueAgentTokenFromPrincipalParams): string {
+  const renderingId = Number(principal.rendering_id);
+  const firstName = principal.first_name ?? '';
+  const lastName = principal.last_name ?? '';
+
+  return jsonwebtoken.sign(
+    {
+      id: principal.id,
+      email: principal.email,
+      firstName,
+      lastName,
+      team: principal.team,
+      renderingId,
+      tags: principal.tags ?? {},
+      permissionLevel: principal.permission_level,
+      first_name: firstName,
+      last_name: lastName,
+      rendering_id: renderingId,
+      permission_level: principal.permission_level,
     },
     authSecret,
     { algorithm: 'HS256', expiresIn: AGENT_TOKEN_EXPIRES_IN },
