@@ -95,7 +95,10 @@ function clientOf(
 function buildApp(
   store: ReadModelStore,
   client: AgentActionClient,
-  { agentToken = 'agent-jwt' }: { agentToken?: string | null } = {},
+  {
+    agentToken = 'agent-jwt',
+    logger = noopLogger,
+  }: { agentToken?: string | null; logger?: Logger } = {},
 ) {
   const app = new Koa();
   app.silent = true;
@@ -110,7 +113,7 @@ function buildApp(
     createActionRoutesMiddleware({
       store,
       agentUrl: 'https://agent.example.com',
-      logger: noopLogger,
+      logger,
       createClient: () => client,
     }),
   );
@@ -397,8 +400,8 @@ describe('action routes middleware', () => {
 });
 
 describe('action execute', () => {
-  function execApp(client: AgentActionClient) {
-    return buildApp(storeOf(readModel), client);
+  function execApp(client: AgentActionClient, logger?: Logger) {
+    return buildApp(storeOf(readModel), client, logger ? { logger } : {});
   }
 
   it('sets the submitted values then executes the action', async () => {
@@ -481,6 +484,37 @@ describe('action execute', () => {
     expect(response.body).toEqual({
       error: { type: 'unsupported_action_result', status: 501 },
     });
+  });
+
+  it('logs a bounded shape hint instead of enumerating a binary payload byte by byte', async () => {
+    const logger = jest.fn();
+    const form = makeAction({ execute: jest.fn(async () => Buffer.alloc(4096, 1)) });
+
+    const response = await request(execApp(clientOf(form), logger).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(501);
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Unrecognized action execute result mapped to 501',
+      { shape: 'Buffer(4096)' },
+    );
+  });
+
+  it('logs the key names for an unrecognized plain-object payload', async () => {
+    const logger = jest.fn();
+    const form = makeAction({ execute: jest.fn(async () => ({ mystery: 1, other: 2 })) });
+
+    await request(execApp(clientOf(form), logger).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(logger).toHaveBeenCalledWith(
+      'Warn',
+      'Unrecognized action execute result mapped to 501',
+      { shape: 'object{mystery,other}' },
+    );
   });
 
   it('renders a native action Error as HTTP 400 with the forwarded html', async () => {

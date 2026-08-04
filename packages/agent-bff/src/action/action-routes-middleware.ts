@@ -51,6 +51,19 @@ function parseValues(raw: unknown): Record<string, unknown> {
   return raw as Record<string, unknown>;
 }
 
+// Only plain objects are enumerated: a File result arrives as a Buffer/stream whose every byte
+// index is an enumerable key, so `Object.keys` on it would build a multi-million entry log.
+function describePayloadShape(raw: unknown): string {
+  if (raw === null) return 'null';
+  if (typeof raw !== 'object') return typeof raw;
+  if (Buffer.isBuffer(raw)) return `Buffer(${raw.length})`;
+  if (ArrayBuffer.isView(raw)) return `${raw.constructor.name}(${raw.byteLength})`;
+  if (Array.isArray(raw)) return `array(${raw.length})`;
+  if (Object.getPrototypeOf(raw) !== Object.prototype) return raw.constructor?.name ?? 'object';
+
+  return `object{${Object.keys(raw).join(',')}}`;
+}
+
 export interface ActionRoutesMiddlewareOptions {
   store: ReadModelStore;
   agentUrl: string;
@@ -133,10 +146,10 @@ async function handleExecute(
   const { status, body } = mapActionExecuteResult(raw);
 
   // An unrecognized payload (a File stream, or a new agent result type) maps to a generic 501 with
-  // no trace of what it was; log the payload keys so the case can be diagnosed without the body.
+  // no trace of what it was; log a short shape hint so the case can be diagnosed without the body.
   if (status === 501) {
     logger('Warn', 'Unrecognized action execute result mapped to 501', {
-      keys: typeof raw === 'object' && raw !== null ? Object.keys(raw) : typeof raw,
+      shape: describePayloadShape(raw),
     });
   }
 
