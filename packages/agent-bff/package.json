@@ -1,6 +1,6 @@
 {
   "name": "@forestadmin/agent-bff",
-  "version": "1.8.6",
+  "version": "1.9.0",
   "main": "dist/index.js",
   "bin": {
     "forest-bff": "dist/cli.js"
@@ -31,7 +31,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forestadmin/agent-client": "1.12.2",
+    "@forestadmin/agent-client": "1.13.0",
     "@forestadmin/datasource-toolkit": "1.54.0",
     "@forestadmin/forestadmin-client": "1.41.3",
     "@koa/bodyparser": "^6.1.0",
