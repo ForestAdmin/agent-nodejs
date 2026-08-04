@@ -5,6 +5,8 @@ import superagent from 'superagent';
 
 import AgentHttpError from './errors';
 
+export const DEFAULT_TIMEOUT_MS = 10_000;
+
 function parseJson(text: string | undefined): unknown {
   if (text === undefined) return undefined;
 
@@ -26,7 +28,7 @@ export default class HttpRequester {
 
   constructor(
     private readonly token: string,
-    private readonly options: { prefix?: string; url: string },
+    private readonly options: { prefix?: string; url: string; timeoutMs?: number },
   ) {
     this.deserializer = new Deserializer({ keyForAttribute: 'camelCase' });
   }
@@ -74,7 +76,7 @@ export default class HttpRequester {
       const url = this.buildUrl(path);
 
       const req = superagent[method](url)
-        .timeout(maxTimeAllowed ?? 10_000)
+        .timeout(maxTimeAllowed ?? this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
         .set('Authorization', `Bearer ${this.token}`)
         .set('Content-Type', contentType ?? 'application/json')
         .set('Accept', contentType ?? 'application/json')
@@ -114,7 +116,7 @@ export default class HttpRequester {
     return new Promise<void>((resolve, reject) => {
       superagent
         .get(url)
-        .timeout(maxTimeAllowed ?? 10_000)
+        .timeout(maxTimeAllowed ?? this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
         .set('Authorization', `Bearer ${this.token}`)
         .set('Accept', contentType)
         .query({ timezone: 'Europe/Paris', ...query })

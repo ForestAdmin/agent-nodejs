@@ -53,6 +53,7 @@ function resolveForeignCollection(target: RelationTarget | undefined): string | 
 export interface DataRoutesMiddlewareOptions {
   store: ReadModelStore;
   agentUrl: string;
+  agentTimeoutMs?: number;
   logger: Logger;
   createClient?: (options: AgentDataClientOptions) => AgentDataClient;
 }
@@ -62,6 +63,7 @@ interface RequestHandlerDeps {
   client: AgentDataClient;
   store: ReadModelStore;
   agentUrl: string;
+  agentTimeoutMs?: number;
   token: string;
   timezone: string;
   logger: Logger;
@@ -84,7 +86,11 @@ function resolveCapabilities(
     () =>
       deps.store.getCapabilities(
         deps.collection,
-        createAgentCapabilitiesFetcher({ agentUrl: deps.agentUrl, token: deps.token }),
+        createAgentCapabilitiesFetcher({
+          agentUrl: deps.agentUrl,
+          token: deps.token,
+          timeoutMs: deps.agentTimeoutMs,
+        }),
       ),
     deps.logger,
   );
@@ -224,6 +230,7 @@ async function handleRelation(
 export default function createDataRoutesMiddleware({
   store,
   agentUrl,
+  agentTimeoutMs,
   logger,
   createClient = defaultCreateAgentDataClient,
 }: DataRoutesMiddlewareOptions): Middleware {
@@ -252,9 +259,10 @@ export default function createDataRoutesMiddleware({
 
     const deps: RequestHandlerDeps = {
       collection,
-      client: createClient({ agentUrl, token }),
+      client: createClient({ agentUrl, token, timeoutMs: agentTimeoutMs }),
       store,
       agentUrl,
+      agentTimeoutMs,
       token,
       timezone: ctx.state.timezone as string,
       logger,

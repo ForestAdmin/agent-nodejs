@@ -137,7 +137,37 @@ describe('data routes middleware', () => {
 
       await request(app.callback()).post('/agent/v1/users/list').send({});
 
-      expect(createClient).toHaveBeenCalledWith({ agentUrl: AGENT_URL, token: 'jwt-123' });
+      expect(createClient).toHaveBeenCalledWith({
+        agentUrl: AGENT_URL,
+        token: 'jwt-123',
+        timeoutMs: undefined,
+      });
+    });
+
+    it('should forward the configured agent timeout to the data client', async () => {
+      const createClient = jest.fn(() => ({ list: async () => [] } as unknown as AgentDataClient));
+      const app = new Koa();
+      app.silent = true;
+      app.use(createErrorMiddleware({ logger: noopLogger }));
+      app.use(bodyParser());
+      app.use(async (ctx, next) => {
+        ctx.state.timezone = TIMEZONE;
+        ctx.state.agentToken = 'agent-jwt';
+        await next();
+      });
+      app.use(
+        createDataRoutesMiddleware({
+          store: storeOf(usersReadModel),
+          agentUrl: AGENT_URL,
+          agentTimeoutMs: 2500,
+          logger: noopLogger,
+          createClient,
+        }),
+      );
+
+      await request(app.callback()).post('/agent/v1/users/list').send({});
+
+      expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 2500 }));
     });
   });
 

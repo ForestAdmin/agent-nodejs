@@ -29,12 +29,14 @@ export interface BFFConfig {
   allowedOrigins: string[];
   invalidAllowedOrigins: string[];
   defaultTimezone?: string;
+  agentTimeoutMs: number;
   httpPort: number;
   presence: PresenceMap;
   hasAllRequired: boolean;
 }
 
 const DECIMAL_INTEGER = /^\d+$/;
+export const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 const MAX_PORT = 65535;
 const ENCRYPTION_KEY_BYTES = 32;
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -77,6 +79,21 @@ function parseEncryptionKey(raw: string | undefined): string | undefined {
   }
 
   return value;
+}
+
+function parseAgentTimeoutMs(raw: string | undefined): number {
+  const value = normalize(raw);
+  if (value === undefined) return DEFAULT_AGENT_TIMEOUT_MS;
+
+  const timeout = DECIMAL_INTEGER.test(value.trim()) ? Number(value.trim()) : NaN;
+
+  if (Number.isNaN(timeout) || timeout === 0) {
+    throw new ConfigurationError(
+      'Invalid configuration: BFF_AGENT_TIMEOUT_MS must be a positive integer number of milliseconds.',
+    );
+  }
+
+  return timeout;
 }
 
 function parseDefaultTimezone(raw: string | undefined): string | undefined {
@@ -124,6 +141,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     allowedOrigins,
     invalidAllowedOrigins,
     defaultTimezone,
+    agentTimeoutMs: parseAgentTimeoutMs(env.BFF_AGENT_TIMEOUT_MS),
     httpPort: parsePort(env.HTTP_PORT),
     presence,
     hasAllRequired: REQUIRED_KEYS.every(key => presence[key]) && tokenEncryptionKey !== undefined,

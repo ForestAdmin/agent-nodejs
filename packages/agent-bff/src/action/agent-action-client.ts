@@ -34,6 +34,7 @@ export interface AgentActionClientOptions {
   agentUrl: string;
   token: string;
   actionEndpoints: ActionEndpointsByCollection;
+  timeoutMs?: number;
 }
 
 // The raw layout must be read AFTER tryToSetFields: a change hook rebuilds fields+layout in place.
@@ -56,8 +57,9 @@ export default function createAgentActionClient({
   agentUrl,
   token,
   actionEndpoints,
+  timeoutMs,
 }: AgentActionClientOptions): AgentActionClient {
-  const client = createRemoteAgentClient({ url: agentUrl, token, actionEndpoints });
+  const client = createRemoteAgentClient({ url: agentUrl, token, actionEndpoints, timeoutMs });
 
   return {
     loadAction: (collection, action, recordIds) =>

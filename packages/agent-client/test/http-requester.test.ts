@@ -151,6 +151,28 @@ describe('HttpRequester', () => {
       expect(mockRequest.timeout).toHaveBeenCalledWith(5000);
     });
 
+    it('should use the constructor timeout when no per-call timeout is given', async () => {
+      mockRequest.then = jest.fn((onFulfilled: any) => {
+        return Promise.resolve(onFulfilled({ body: {} }));
+      });
+      const configured = new HttpRequester('token', { url: 'https://agent', timeoutMs: 2500 });
+
+      await configured.query({ method: 'get', path: '/forest/users' });
+
+      expect(mockRequest.timeout).toHaveBeenCalledWith(2500);
+    });
+
+    it('should let a per-call timeout win over the constructor timeout', async () => {
+      mockRequest.then = jest.fn((onFulfilled: any) => {
+        return Promise.resolve(onFulfilled({ body: {} }));
+      });
+      const configured = new HttpRequester('token', { url: 'https://agent', timeoutMs: 2500 });
+
+      await configured.query({ method: 'get', path: '/forest/users', maxTimeAllowed: 400 });
+
+      expect(mockRequest.timeout).toHaveBeenCalledWith(400);
+    });
+
     it('should use custom content type if provided', async () => {
       mockRequest.then = jest.fn((onFulfilled: any) => {
         return Promise.resolve(onFulfilled({ body: {} }));
