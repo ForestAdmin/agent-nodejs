@@ -53,12 +53,16 @@ export default class ReadModelStore {
 
     // Ensure any pending schema refresh (and its capabilities invalidation) runs first.
     const readModel = await this.getReadModel();
+    const { revision } = this.schemaCache;
     const capabilities = await this.capabilitiesCache.get(collection, fetcher);
 
     // A refresh can land while the fetch is in flight: the cache drops the stale write but still
-    // resolves with it, so both reads are retried until they observe one generation. Bounded because
-    // a refresh is driven by the 24h schema TTL, not by request volume.
-    if (this.readModel !== readModel) {
+    // resolves with it, so both reads are retried until they observe one generation. The revision is
+    // the discriminator, not the read-model identity — `SchemaCache` bumps the revision inside its
+    // refresh, before an awaiting `getReadModel` caller resumes and installs the new model, so an
+    // identity comparison still sees the old object in that window. Bounded because a refresh is
+    // driven by the 24h schema TTL, not by request volume.
+    if (this.schemaCache.revision !== revision) {
       return this.getCapabilities(collection, fetcher, attemptsLeft - 1);
     }
 

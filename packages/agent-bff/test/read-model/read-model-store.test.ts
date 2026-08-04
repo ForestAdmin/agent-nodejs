@@ -86,6 +86,51 @@ describe('ReadModelStore', () => {
       expect(capsFetcher).toHaveBeenCalledTimes(2);
     });
 
+    // SchemaCache bumps `revision` inside its own refresh, before an awaiting getReadModel caller
+    // resumes and installs the rebuilt model. Detecting the refresh by read-model identity misses
+    // that window, so the retry must key on the revision instead.
+    it('should retry when the revision moves while the read-model instance is not yet replaced', async () => {
+      let releaseSchema: () => void = () => {};
+
+      const blocked = new Promise<void>(resolve => {
+        releaseSchema = resolve;
+      });
+      const fetchSchema = jest
+        .fn()
+        .mockResolvedValueOnce(makeSchema('users'))
+        .mockImplementationOnce(async () => {
+          await blocked;
+
+          return makeSchema('orders');
+        })
+        .mockResolvedValue(makeSchema('orders'));
+      const store = build(fetchSchema);
+      await store.getReadModel();
+
+      let disturbed = false;
+      const capsFetcher = jest.fn(async () => {
+        if (!disturbed) {
+          disturbed = true;
+          clock += ONE_DAY_MS;
+          // Kick off the refresh and let SchemaCache bump its revision, but deliberately do NOT
+          // await the rebuild: on return the revision has moved while the store still holds the
+          // previous read-model instance. An identity check cannot see that; the revision can.
+          void store.getReadModel();
+          releaseSchema();
+          await Promise.resolve();
+        }
+
+        return { fields: [{ name: 'tagged', type: 'String', operators: [] }] };
+      });
+
+      const { capabilities, readModel } = await store.getCapabilities('orders', capsFetcher);
+
+      expect(readModel.isCollectionAllowed('orders')).toBe(true);
+      expect(readModel.isCollectionAllowed('users')).toBe(false);
+      expect(capsFetcher.mock.calls.length).toBeGreaterThan(1);
+      expect(capabilities.fields[0].name).toBe('tagged');
+    });
+
     it('should pair capabilities and read-model from one generation when a refresh lands mid-fetch', async () => {
       const fetchSchema = jest
         .fn()
