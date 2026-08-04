@@ -3,6 +3,8 @@ import type { BffAccessTokenPayload } from '../oauth/bff-token';
 
 import jsonwebtoken from 'jsonwebtoken';
 
+import { unauthorized } from '../http/bff-http-error';
+
 export const AGENT_TOKEN_EXPIRES_IN = '5m';
 
 export interface IssueAgentTokenParams {
@@ -51,6 +53,11 @@ export function issueAgentTokenFromPrincipal({
   authSecret,
 }: IssueAgentTokenFromPrincipalParams): string {
   const renderingId = Number(principal.rendering_id);
+
+  if (!Number.isInteger(renderingId)) {
+    throw unauthorized('The session carries no usable rendering');
+  }
+
   const firstName = principal.first_name ?? '';
   const lastName = principal.last_name ?? '';
 
@@ -64,6 +71,7 @@ export function issueAgentTokenFromPrincipal({
       renderingId,
       tags: principal.tags ?? {},
       permissionLevel: principal.permission_level,
+      role: principal.role,
       first_name: firstName,
       last_name: lastName,
       rendering_id: renderingId,

@@ -17,11 +17,12 @@ const PRINCIPAL = {
   team: 'Ops',
   rendering_id: '42',
   permission_level: 'admin',
+  role: 'Support agent',
   tags: { seat: 'a1' },
 };
 
 function bffAccess(expiresIn: string | number, type = 'bff_access') {
-  return jsonwebtoken.sign({ type, ...PRINCIPAL }, AUTH_SECRET, {
+  return jsonwebtoken.sign({ ...PRINCIPAL, type }, AUTH_SECRET, {
     algorithm: 'HS256',
     expiresIn,
   } as jsonwebtoken.SignOptions);
@@ -99,11 +100,37 @@ describe('auth mode middleware', () => {
       lastName: 'Doe',
       team: 'Ops',
       permissionLevel: 'admin',
+      role: 'Support agent',
       tags: { seat: 'a1' },
       first_name: 'Jane',
       last_name: 'Doe',
       permission_level: 'admin',
     });
+  });
+
+  it('rejects a minted agent token presented back as a session bearer', async () => {
+    const minted = (
+      await request(buildApp())
+        .get('/agent/x')
+        .set('Authorization', `Bearer ${bffAccess('15m')}`)
+    ).body.agentToken;
+
+    const replay = await request(buildApp())
+      .get('/agent/x')
+      .set('Authorization', `Bearer ${minted}`);
+
+    expect(replay.status).toBe(401);
+    expect(replay.body.error.type).toBe('unauthorized');
+  });
+
+  it('expires the agent token after AGENT_TOKEN_EXPIRES_IN', async () => {
+    const response = await request(buildApp())
+      .get('/agent/x')
+      .set('Authorization', `Bearer ${bffAccess('15m')}`);
+
+    const claims = decodeAgentToken(response.body.agentToken);
+
+    expect((claims.exp as number) - (claims.iat as number)).toBe(5 * 60);
   });
 
   it('sends rendering_id to the agent as a number, matching Caller.renderingId', async () => {
@@ -125,7 +152,7 @@ describe('auth mode middleware', () => {
     expect(response.body.cacheControl).toBe('no-store');
   });
 
-  it('mints no agent token when no credential is presented', async () => {
+  it('does not mint an agent token on the api-key branch', async () => {
     const response = await request(buildApp()).get('/agent/x').set(BFF_KEY_HEADER, RAW_KEY);
 
     expect(response.body.agentToken).toBeNull();

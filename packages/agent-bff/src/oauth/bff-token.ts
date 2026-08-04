@@ -23,6 +23,7 @@ export interface BffAccessTokenPayload {
   team: string;
   rendering_id: string;
   permission_level: string;
+  role: string;
   tags: Record<string, string>;
 }
 
@@ -43,6 +44,7 @@ export function issueBffAccessToken({
     team: user.team,
     rendering_id: String(renderingId),
     permission_level: user.permissionLevel,
+    role: user.role,
     tags: user.tags ?? {},
   };
 
