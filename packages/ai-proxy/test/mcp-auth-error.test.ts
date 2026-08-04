@@ -1,3 +1,4 @@
+import { McpLoadTimeoutError } from '../src/errors';
 import { classifyMcpLoadError, isMcpAuthError } from '../src/mcp-auth-error';
 
 function withCause(message: string, cause: unknown): Error {
@@ -44,6 +45,13 @@ describe('isMcpAuthError', () => {
 });
 
 describe('classifyMcpLoadError', () => {
+  it("classifies a load timeout structurally as 'connection', even for an auth-looking server name", () => {
+    expect(classifyMcpLoadError(new McpLoadTimeoutError('slack', 15_000))).toBe('connection');
+    expect(classifyMcpLoadError(new McpLoadTimeoutError('unauthorized-api', 15_000))).toBe(
+      'connection',
+    );
+  });
+
   it("classifies a 401 as 'auth'", () => {
     expect(classifyMcpLoadError(new Error('HTTP 401 Unauthorized'))).toBe('auth');
     expect(classifyMcpLoadError({ status: 401 })).toBe('auth');

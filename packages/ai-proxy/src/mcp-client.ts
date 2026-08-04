@@ -9,16 +9,32 @@ import McpServerRemoteTool from './mcp-server-remote-tool';
 
 // A server that accepts the connection but never answers would otherwise keep getTools() pending
 // forever and hang the whole load (and the caller's request) until the infrastructure cuts it.
-const LOAD_TOOLS_TIMEOUT_MS = 15_000;
+export const LOAD_TOOLS_TIMEOUT_MS = 15_000;
 
-function loadWithTimeout<T>(loading: Promise<T>, serverName: string): Promise<T> {
+function loadWithTimeout<T>(loading: Promise<T>, serverName: string, logger?: Logger): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
+  let hasTimedOut = false;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new McpLoadTimeoutError(serverName, LOAD_TOOLS_TIMEOUT_MS)),
-      LOAD_TOOLS_TIMEOUT_MS,
-    );
+    timer = setTimeout(() => {
+      hasTimedOut = true;
+      reject(new McpLoadTimeoutError(serverName, LOAD_TOOLS_TIMEOUT_MS));
+    }, LOAD_TOOLS_TIMEOUT_MS);
   });
+
+  // The race abandons the losing promise; trace its eventual outcome so the real cause of a
+  // timed-out server stays diagnosable.
+  loading.then(
+    () => {
+      if (hasTimedOut) {
+        logger?.('Debug', `MCP server "${serverName}" returned its tools after the timeout`);
+      }
+    },
+    (error: Error) => {
+      if (hasTimedOut) {
+        logger?.('Debug', `MCP server "${serverName}" failed after the timeout`, error);
+      }
+    },
+  );
 
   return Promise.race([loading, timeout]).finally(() => clearTimeout(timer));
 }
@@ -79,7 +95,7 @@ export default class McpClient implements ToolProvider {
       Object.entries(this.mcpClients).map(async ([name, client]) => {
         try {
           const startedAt = Date.now();
-          const loadedTools = (await loadWithTimeout(client.getTools(), name)) ?? [];
+          const loadedTools = (await loadWithTimeout(client.getTools(), name, this.logger)) ?? [];
           this.logger?.(
             'Debug',
             `Loaded ${loadedTools.length} tools from MCP server "${name}" in ${

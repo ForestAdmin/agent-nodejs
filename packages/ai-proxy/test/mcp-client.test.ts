@@ -4,7 +4,7 @@ import { tool } from '@langchain/core/tools';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 import { McpConnectionError } from '../src';
-import McpClient from '../src/mcp-client';
+import McpClient, { LOAD_TOOLS_TIMEOUT_MS } from '../src/mcp-client';
 import McpServerRemoteTool from '../src/mcp-server-remote-tool';
 import { injectOauthToken, injectOauthTokens } from '../src/oauth-token-injector';
 
@@ -575,8 +575,6 @@ describe('McpClient.loadToolsWithFailures', () => {
 // not hang the whole load. Each server's getTools() is bounded by a per-server timeout; a
 // timed-out server is dropped through the failures channel while the healthy servers still load.
 describe('McpClient.loadToolsWithFailures — per-server timeout on a hung server', () => {
-  const MCP_LOAD_TIMEOUT_MS = 15_000;
-
   const makeTool = (name: string) =>
     tool(() => {}, { name, description: name, schema: undefined, responseFormat: 'content' });
 
@@ -599,6 +597,9 @@ describe('McpClient.loadToolsWithFailures — per-server timeout on a hung serve
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // clearAllMocks keeps implementations; a leftover mockImplementation/mockReturnValue from a
+    // previous test would leak a 15s delay into any later test that queues nothing.
+    getToolsMock.mockReset();
     jest.useFakeTimers();
   });
 
@@ -611,7 +612,7 @@ describe('McpClient.loadToolsWithFailures — per-server timeout on a hung serve
     const client = new McpClient(hungPlusHealthy());
 
     const loading = client.loadToolsWithFailures();
-    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS);
+    await jest.advanceTimersByTimeAsync(LOAD_TOOLS_TIMEOUT_MS);
     const result = await loading;
 
     expect(result.tools).toHaveLength(1);
@@ -643,7 +644,7 @@ describe('McpClient.loadToolsWithFailures — per-server timeout on a hung serve
     );
 
     const loading = client.loadToolsWithFailures();
-    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS);
+    await jest.advanceTimersByTimeAsync(LOAD_TOOLS_TIMEOUT_MS);
     const result = await loading;
 
     expect(result.tools).toEqual([]);
@@ -661,12 +662,12 @@ describe('McpClient.loadToolsWithFailures — per-server timeout on a hung serve
     getToolsMock.mockImplementation(
       () =>
         new Promise(resolve => {
-          setTimeout(() => resolve([makeTool('slow')]), MCP_LOAD_TIMEOUT_MS - 1);
+          setTimeout(() => resolve([makeTool('slow')]), LOAD_TOOLS_TIMEOUT_MS - 1);
         }),
     );
 
     const loading = new McpClient(singleServer()).loadToolsWithFailures();
-    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS - 1);
+    await jest.advanceTimersByTimeAsync(LOAD_TOOLS_TIMEOUT_MS - 1);
     const result = await loading;
 
     expect(result.tools).toHaveLength(1);
@@ -681,11 +682,35 @@ describe('McpClient.loadToolsWithFailures — per-server timeout on a hung serve
     const client = new McpClient(hungPlusHealthy());
 
     const loading = client.loadTools();
-    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS);
+    await jest.advanceTimersByTimeAsync(LOAD_TOOLS_TIMEOUT_MS);
     const tools = await loading;
 
     expect(tools).toHaveLength(1);
     expect(tools[0].sourceId).toBe('github');
+  });
+
+  it('traces a server that fails after the timeout through the debug log', async () => {
+    const logger = jest.fn();
+    let rejectLoading: ((error: Error) => void) | undefined;
+    getToolsMock.mockReturnValueOnce(
+      new Promise((_, reject) => {
+        rejectLoading = reject;
+      }),
+    );
+    const client = new McpClient(singleServer(), logger);
+
+    const loading = client.loadToolsWithFailures();
+    await jest.advanceTimersByTimeAsync(LOAD_TOOLS_TIMEOUT_MS);
+    const result = await loading;
+    rejectLoading?.(new Error('Request failed: 401 Unauthorized'));
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(result.failures[0].kind).toBe('connection');
+    expect(logger).toHaveBeenCalledWith(
+      'Debug',
+      'MCP server "slack" failed after the timeout',
+      expect.any(Error),
+    );
   });
 
   it('a later load on the same client succeeds after a previous load timed out', async () => {
@@ -693,7 +718,7 @@ describe('McpClient.loadToolsWithFailures — per-server timeout on a hung serve
     const client = new McpClient(singleServer());
 
     const first = client.loadToolsWithFailures();
-    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS);
+    await jest.advanceTimersByTimeAsync(LOAD_TOOLS_TIMEOUT_MS);
     const firstResult = await first;
 
     getToolsMock.mockResolvedValueOnce([makeTool('recovered')]);

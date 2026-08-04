@@ -140,9 +140,8 @@ export class McpConnectionError extends McpError {
 }
 
 export class McpLoadTimeoutError extends McpError {
+  // classifyMcpLoadError matches this class structurally, so the message is free-form.
   constructor(serverName: string, timeoutMs: number) {
-    // 'Timeout' must appear in the message so classifyMcpLoadError files this as a connection
-    // failure rather than an unknown one.
     super(`Timeout: MCP server "${serverName}" did not return its tools within ${timeoutMs}ms`);
     this.name = 'McpLoadTimeoutError';
   }
