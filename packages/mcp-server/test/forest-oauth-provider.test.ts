@@ -1419,6 +1419,24 @@ describe('ForestOAuthProvider', () => {
       expect(error.errorCode).toBe('invalid_client');
     });
 
+    it('matches subdomains under a split top-level domain', async () => {
+      const clientData = registerClient(['https://app.myvendor.co.uk/callback']);
+      const provider = createRestrictedProvider(['myvendor.co.uk']);
+
+      const client = await provider.clientsStore.getClient(CLIENT_ID);
+
+      expect(client).toEqual(clientData);
+    });
+
+    it('rejects a sibling domain that only shares a split top-level domain', async () => {
+      registerClient(['https://othervendor.co.uk/callback']);
+      const provider = createRestrictedProvider(['myvendor.co.uk']);
+
+      const error = await getClientError(provider);
+
+      expect(error.errorCode).toBe('invalid_client');
+    });
+
     it('rejects a custom-scheme redirect URI even when its hostname is on an allowed domain', async () => {
       registerClient(['attacker-app://dust.tt/callback']);
       const provider = createRestrictedProvider(['dust.tt']);
