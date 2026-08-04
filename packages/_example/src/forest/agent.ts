@@ -36,6 +36,10 @@ export default function makeAgent() {
     typingsPath: 'src/forest/typings.ts',
   };
 
+  const allowedOAuthClients = process.env.FOREST_MCP_ALLOWED_OAUTH_CLIENTS?.split(',')
+    .map(domain => domain.trim())
+    .filter(Boolean);
+
   return createAgent<Schema>(envOptions)
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
 
@@ -83,7 +87,7 @@ export default function makeAgent() {
 
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
-    .mountAiMcpServer()
+    .mountAiMcpServer(allowedOAuthClients?.length ? { allowedOAuthClients } : undefined)
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)
