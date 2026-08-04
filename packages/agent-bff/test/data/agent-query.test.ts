@@ -1,4 +1,5 @@
 import {
+  MAX_PARSED_FILTER_DEPTH,
   buildCountAgentQuery,
   buildListAgentQuery,
   collectCountFieldPaths,
@@ -128,6 +129,59 @@ describe('parseCountRequest', () => {
   ])('should reject a non-object body (%s) with 400 invalid_request', (_label, body) => {
     expect(() => parseCountRequest(body)).toThrow(
       expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+});
+
+describe('a filter node readable as both a leaf and a branch', () => {
+  const READABLE_AS_BOTH = {
+    field: 'publisher:secretRevenue',
+    operator: 'Equal',
+    value: 1,
+    conditions: [],
+  };
+
+  it.each([
+    ['parseListRequest', parseListRequest],
+    ['parseCountRequest', parseCountRequest],
+  ])('should reject it in %s with 400 invalid_request', (_label, parse) => {
+    expect(() => parse({ filter: READABLE_AS_BOTH })).toThrow(
+      expect.objectContaining({ type: 'invalid_request', status: 400 }),
+    );
+  });
+
+  it('should reject it nested inside a legitimate branch', () => {
+    expect(() =>
+      parseListRequest({ filter: { aggregator: 'And', conditions: [READABLE_AS_BOTH] } }),
+    ).toThrow(expect.objectContaining({ type: 'invalid_request', status: 400 }));
+  });
+
+  it('should be invisible to the field-path collector', () => {
+    expect(collectCountFieldPaths({ filter: READABLE_AS_BOTH })).toEqual([]);
+  });
+
+  it('should still accept a plain leaf and a plain branch', () => {
+    const leaf = { field: 'title', operator: 'Present' };
+
+    expect(() => parseCountRequest({ filter: leaf })).not.toThrow();
+    expect(() =>
+      parseListRequest({ filter: { aggregator: 'And', conditions: [leaf] } }),
+    ).not.toThrow();
+  });
+
+  it('should reject a filter nested past the depth cap with 400 rather than blowing the stack', () => {
+    let filter: unknown = { field: 'title', operator: 'Present' };
+
+    for (let i = 0; i <= MAX_PARSED_FILTER_DEPTH; i += 1) {
+      filter = { aggregator: 'And', conditions: [filter] };
+    }
+
+    expect(() => parseCountRequest({ filter })).toThrow(
+      expect.objectContaining({
+        type: 'filter_too_deep',
+        status: 400,
+        details: { maxDepth: MAX_PARSED_FILTER_DEPTH },
+      }),
     );
   });
 });

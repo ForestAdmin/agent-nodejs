@@ -151,29 +151,44 @@ interface RelationHandlerDeps extends RequestHandlerDeps {
 
 type RelationListHandlerDeps = RelationHandlerDeps & { primaryKeys: PrimaryKeyField[] };
 
-// The route resolved parent, relation and foreign collection against an earlier generation; a schema
-// refresh during the capabilities fetch can invalidate any of the three, so all three are re-checked
-// against the generation the capabilities belong to. The foreign name must come out unchanged: the
-// capabilities are cached under it, the agent query projects under it and the response is stamped
-// with it, so a re-targeted relation would validate one collection and serve another.
-async function resolveRelationCapabilities(
-  deps: RelationHandlerDeps,
-): Promise<{ capabilities: CapabilitiesResult; primaryKeys: PrimaryKeyField[] }> {
-  const { capabilities, readModel } = await resolveCapabilities(deps, deps.foreignCollection);
-
+function assertRelationStillExposed(readModel: ReadModel, deps: RelationHandlerDeps): void {
   assertCollectionStillAllowed(readModel, deps.collection);
 
-  const foreignCollection = resolveForeignCollection(
+  const stillTargets = resolveForeignCollection(
     readModel.getRelationTarget(deps.collection, deps.relation),
   );
 
-  if (foreignCollection !== deps.foreignCollection) {
+  if (stillTargets !== deps.foreignCollection) {
     throw unknownRelation(`Unknown relation: ${deps.collection}.${deps.relation}`);
   }
 
-  assertCollectionStillAllowed(readModel, foreignCollection);
+  assertCollectionStillAllowed(readModel, deps.foreignCollection);
+}
 
-  return { capabilities, primaryKeys: readModel.getPrimaryKeys(foreignCollection) };
+async function resolveForeignCapabilitiesAndReassertRelationIsStillExposed(
+  deps: RelationHandlerDeps,
+): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+  assertRelationStillExposed(await resolveReadModel(deps.store), deps);
+
+  let result: { capabilities: CapabilitiesResult; readModel: ReadModel };
+
+  try {
+    result = await resolveCapabilities(deps, deps.foreignCollection);
+  } catch (error) {
+    deps.logger('Warn', 'Foreign capabilities lookup failed; re-checking relation exposure', {
+      collection: deps.collection,
+      relation: deps.relation,
+      foreignCollection: deps.foreignCollection,
+      cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    });
+
+    assertRelationStillExposed(await resolveReadModel(deps.store), deps);
+    throw error;
+  }
+
+  assertRelationStillExposed(result.readModel, deps);
+
+  return result;
 }
 
 async function handleRelationList(
@@ -181,9 +196,6 @@ async function handleRelationList(
   body: RelationListRequestBody,
   deps: RelationListHandlerDeps,
 ) {
-  // The nested-relation guard IS wired here: the agent's list-related asserts browse only on the
-  // immediate foreign collection, so a nested `:`-path would traverse to a third collection whose
-  // browse is never checked. Plain foreign fields (no `:`) are unaffected.
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
   const validationInput = {
@@ -195,9 +207,10 @@ async function handleRelationList(
   let { primaryKeys } = deps;
 
   if (hasCapabilityConstrainedInput(validationInput)) {
-    const resolved = await resolveRelationCapabilities(deps);
-    assertValidAgainstCapabilities(validationInput, resolved.capabilities);
-    primaryKeys = resolved.primaryKeys;
+    const { capabilities, readModel } =
+      await resolveForeignCapabilitiesAndReassertRelationIsStillExposed(deps);
+    assertValidAgainstCapabilities(validationInput, capabilities);
+    primaryKeys = readModel.getPrimaryKeys(deps.foreignCollection);
   }
 
   const query = buildListAgentQuery(deps.foreignCollection, deps.timezone, body);
@@ -218,7 +231,9 @@ async function handleRelationCount(
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
 
   if (body.filter !== undefined) {
-    const { capabilities } = await resolveRelationCapabilities(deps);
+    const { capabilities } = await resolveForeignCapabilitiesAndReassertRelationIsStillExposed(
+      deps,
+    );
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 
