@@ -281,6 +281,23 @@ describe('McpClient', () => {
           expect.any(Error),
         );
       });
+
+      it('should preserve original connection error when dispose itself throws', async () => {
+        const loggerMock = jest.fn();
+        const mcpClient = new McpClient(aConfig, loggerMock);
+        const connectionError = 'Connection failed';
+        initializeConnectionsMock.mockRejectedValue(new Error(connectionError));
+        jest.spyOn(mcpClient, 'dispose').mockRejectedValue(new Error('dispose blew up'));
+
+        await expect(mcpClient.checkConnection()).rejects.toThrow(
+          new McpConnectionError(connectionError),
+        );
+        expect(loggerMock).toHaveBeenCalledWith(
+          'Error',
+          'Error during test connection cleanup',
+          expect.any(Error),
+        );
+      });
     });
   });
 
@@ -710,6 +727,29 @@ describe('McpClient.loadToolsWithFailures — per-server timeout on a hung serve
       'Debug',
       'MCP server "slack" failed after the timeout',
       expect.any(Error),
+    );
+  });
+
+  it('traces a server that returns its tools after the timeout through the debug log', async () => {
+    const logger = jest.fn();
+    let resolveLoading: ((tools: unknown[]) => void) | undefined;
+    getToolsMock.mockReturnValueOnce(
+      new Promise(resolve => {
+        resolveLoading = resolve;
+      }),
+    );
+    const client = new McpClient(singleServer(), logger);
+
+    const loading = client.loadToolsWithFailures();
+    await jest.advanceTimersByTimeAsync(LOAD_TOOLS_TIMEOUT_MS);
+    const result = await loading;
+    resolveLoading?.([makeTool('late')]);
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(result.failures[0].kind).toBe('connection');
+    expect(logger).toHaveBeenCalledWith(
+      'Debug',
+      'MCP server "slack" returned its tools after the timeout',
     );
   });
 
