@@ -40,6 +40,10 @@ export function unsupportedActionResult(message = 'Unsupported action result'): 
   return new BffHttpError(501, 'unsupported_action_result', message);
 }
 
+export function actionError(message = 'The action failed', details?: unknown): BffHttpError {
+  return new BffHttpError(400, 'action_error', message, details);
+}
+
 export function actionRequiresApproval(
   message = 'This action requires an approval before it can run',
   details?: unknown,

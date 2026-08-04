@@ -525,7 +525,7 @@ describe('action execute', () => {
     );
   });
 
-  it('renders a native action Error as HTTP 400 with the forwarded html', async () => {
+  it('wraps a native action Error in the error envelope, carrying html in details', async () => {
     const form = makeAction({
       execute: jest.fn(async () => {
         throw new ActionFormValidationError('Refund failed', '<strong>Nope</strong>');
@@ -538,14 +538,16 @@ describe('action execute', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
-      type: 'error',
-      status: 400,
-      message: 'Refund failed',
-      html: '<strong>Nope</strong>',
+      error: {
+        type: 'action_error',
+        status: 400,
+        message: 'Refund failed',
+        details: { html: '<strong>Nope</strong>' },
+      },
     });
   });
 
-  it('defaults html to null on the error body when the action Error carries none', async () => {
+  it('omits details entirely when the action Error carries no html', async () => {
     const form = makeAction({
       execute: jest.fn(async () => {
         throw new ActionFormValidationError('Refund failed');
@@ -558,11 +560,21 @@ describe('action execute', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
-      type: 'error',
-      status: 400,
-      message: 'Refund failed',
-      html: null,
+      error: { type: 'action_error', status: 400, message: 'Refund failed' },
     });
+    expect(Object.keys(response.body.error)).not.toContain('details');
+  });
+
+  it('keeps a successful action result flat, discriminated by body.type', async () => {
+    const form = makeAction({ execute: jest.fn(async () => ({ success: 'Refunded' })) });
+
+    const response = await request(execApp(clientOf(form)).callback())
+      .post('/agent/v1/users/actions/approve/execute')
+      .send({ recordIds: ['42'] });
+
+    expect(response.status).toBe(200);
+    expect(response.body.type).toBe('success');
+    expect(response.body.error).toBeUndefined();
   });
 
   it('rejects an unknown submitted field as 400 invalid_request', async () => {
