@@ -59,9 +59,11 @@ function buildApp(
   {
     agentToken = 'agent-jwt',
     createClient = () => client as AgentDataClient,
+    logger = noopLogger,
   }: {
     agentToken?: string | null;
     createClient?: (options: { agentUrl: string; token: string }) => AgentDataClient;
+    logger?: Logger;
   } = {},
 ) {
   const app = new Koa();
@@ -77,7 +79,7 @@ function buildApp(
     createDataRoutesMiddleware({
       store,
       agentUrl: AGENT_URL,
-      logger: noopLogger,
+      logger,
       createClient,
     }),
   );
@@ -993,26 +995,24 @@ describe('data routes middleware', () => {
   });
 
   describe('relation capabilities validation', () => {
-    // The parent is deliberately the permissive one: a lookup against `users` would accept every
-    // field below, so any test here that passes while the implementation reads the parent's
-    // capabilities would be proving nothing.
-    const perCollectionCapabilities: CapabilitiesStub = async collectionName => {
-      if (collectionName === 'posts') {
-        return { fields: [{ name: 'title', type: 'String', operators: ['present'] }] };
-      }
-
-      return {
-        fields: ['id', 'email', 'title', 'ghost'].map(name => ({
-          name,
-          type: 'String',
-          operators: BROAD_SNAKE_OPERATORS,
-        })),
-      };
+    const NARROW_FOREIGN_CAPABILITIES = {
+      fields: [{ name: 'title', type: 'String', operators: ['present'] }],
     };
+
+    const PERMISSIVE_PARENT_CAPABILITIES = {
+      fields: ['id', 'email', 'title'].map(name => ({
+        name,
+        type: 'String',
+        operators: BROAD_SNAKE_OPERATORS,
+      })),
+    };
+
+    const narrowOnForeignPermissiveOnParent: CapabilitiesStub = async collectionName =>
+      collectionName === 'posts' ? NARROW_FOREIGN_CAPABILITIES : PERMISSIVE_PARENT_CAPABILITIES;
 
     it('should fetch capabilities for the foreign collection, not the parent', async () => {
       const listRelation = jest.fn(async () => []);
-      const getCapabilities = jest.fn(perCollectionCapabilities);
+      const getCapabilities = jest.fn(narrowOnForeignPermissiveOnParent);
       const app = buildApp(storeOf(relationReadModel, getCapabilities), { listRelation });
 
       const response = await request(app.callback())
@@ -1024,9 +1024,32 @@ describe('data routes middleware', () => {
       expect(getCapabilities).not.toHaveBeenCalledWith('users');
     });
 
+    it('should forward a relation count filter the foreign capabilities accept', async () => {
+      const countRelationRaw = jest.fn(async () => ({ count: 4 }));
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        countRelationRaw,
+      });
+      const filter = { field: 'title', operator: 'Present' };
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({ parentId: '7', filter });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ count: 4, countStatus: 'available' });
+      expect(countRelationRaw).toHaveBeenCalledWith(
+        'users',
+        '7',
+        'posts',
+        expect.objectContaining({ filters: JSON.stringify(filter) }),
+      );
+    });
+
     it('should reject a projection field that only exists on the parent collection', async () => {
       const listRelation = jest.fn(async () => []);
-      const app = buildApp(storeOf(relationReadModel, perCollectionCapabilities), { listRelation });
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        listRelation,
+      });
 
       const response = await request(app.callback())
         .post('/agent/v1/users/relations/posts/list')
@@ -1041,26 +1064,30 @@ describe('data routes middleware', () => {
       expect(listRelation).not.toHaveBeenCalled();
     });
 
-    it('should reject a relation list sort field absent from the foreign capabilities', async () => {
+    it('should reject a relation list sort field that only exists on the parent collection', async () => {
       const listRelation = jest.fn(async () => []);
-      const app = buildApp(storeOf(relationReadModel, perCollectionCapabilities), { listRelation });
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        listRelation,
+      });
 
       const response = await request(app.callback())
         .post('/agent/v1/users/relations/posts/list')
-        .send({ parentId: '7', sort: [{ field: 'ghost', direction: 'asc' }] });
+        .send({ parentId: '7', sort: [{ field: 'email', direction: 'asc' }] });
 
       expect(response.status).toBe(422);
       expect(response.body.error).toMatchObject({
         type: 'unknown_field',
         status: 422,
-        details: { field: 'ghost' },
+        details: { field: 'email' },
       });
       expect(listRelation).not.toHaveBeenCalled();
     });
 
     it('should reject a relation list filter operator the foreign capabilities do not support', async () => {
       const listRelation = jest.fn(async () => []);
-      const app = buildApp(storeOf(relationReadModel, perCollectionCapabilities), { listRelation });
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        listRelation,
+      });
 
       const response = await request(app.callback())
         .post('/agent/v1/users/relations/posts/list')
@@ -1077,7 +1104,7 @@ describe('data routes middleware', () => {
 
     it('should reject a relation count filter operator the foreign capabilities do not support', async () => {
       const countRelationRaw = jest.fn(async () => ({ count: 0 }));
-      const app = buildApp(storeOf(relationReadModel, perCollectionCapabilities), {
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
         countRelationRaw,
       });
 
@@ -1104,7 +1131,7 @@ describe('data routes middleware', () => {
       const getCapabilities = jest.fn(async (collectionName: string) => {
         calls.push(`capabilities:${collectionName}`);
 
-        return perCollectionCapabilities(collectionName);
+        return narrowOnForeignPermissiveOnParent(collectionName);
       });
       const app = buildApp(storeOf(relationReadModel, getCapabilities), { listRelation });
 
@@ -1137,13 +1164,47 @@ describe('data routes middleware', () => {
     );
 
     it.each([['list'], ['count']])(
+      'should return 404 on a relation %s without fetching capabilities when the relation is already gone',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const getCapabilities = jest.fn(narrowOnForeignPermissiveOnParent);
+        const withoutPosts = new ReadModel([collection('users', [column('id')])]);
+        let served = relationReadModel;
+        const store = {
+          getReadModel: async () => {
+            const current = served;
+            served = withoutPosts;
+
+            return current;
+          },
+          getCapabilities: async (name: string) => ({
+            capabilities: await getCapabilities(name),
+            readModel: withoutPosts,
+          }),
+        } as unknown as ReadModelStore;
+        const app = buildApp(store, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(404);
+        expect(getCapabilities).not.toHaveBeenCalled();
+        expect(client.listRelation).not.toHaveBeenCalled();
+        expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
       'should return 404 on a relation %s when a refresh during the capabilities read drops the foreign collection',
       async operation => {
         const client = {
           listRelation: jest.fn(async () => []),
           countRelationRaw: jest.fn(async () => ({ count: 0 })),
         };
-        // The newer generation keeps users.posts as a relation but no longer exposes posts itself.
         const refreshedStore = {
           getReadModel: async () => relationReadModel,
           getCapabilities: async () => ({
@@ -1173,8 +1234,6 @@ describe('data routes middleware', () => {
           listRelation: jest.fn(async () => []),
           countRelationRaw: jest.fn(async () => ({ count: 0 })),
         };
-        // Same relation name, different target: the capabilities just fetched belong to `posts`, so
-        // serving `archived_posts` records under them would validate one collection and return another.
         const refreshedStore = {
           getReadModel: async () => relationReadModel,
           getCapabilities: async () => ({
@@ -1196,6 +1255,40 @@ describe('data routes middleware', () => {
 
         expect(response.status).toBe(404);
         expect(response.body.error).toMatchObject({ type: 'unknown_relation', status: 404 });
+        expect(client.listRelation).not.toHaveBeenCalled();
+        expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
+      'should return 404 on a relation %s when the foreign collection disappears during a failed capabilities read',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const refreshedRelationReadModel = new ReadModel([
+          collection('users', [column('id'), relation('posts', 'HasMany', 'posts.id')]),
+        ]);
+        let readModelReads = 0;
+        const refreshedStore = {
+          getReadModel: async () => {
+            readModelReads += 1;
+
+            return readModelReads < 3 ? relationReadModel : refreshedRelationReadModel;
+          },
+          getCapabilities: async () => {
+            throw new Error('foreign collection is no longer exposed');
+          },
+        } as unknown as ReadModelStore;
+        const app = buildApp(refreshedStore, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
         expect(client.listRelation).not.toHaveBeenCalled();
         expect(client.countRelationRaw).not.toHaveBeenCalled();
       },
@@ -1226,6 +1319,33 @@ describe('data routes middleware', () => {
       },
     );
 
+    it('should log the cause when a foreign capabilities fetch fails on a relation list', async () => {
+      const client = {
+        listRelation: jest.fn(async () => []),
+        countRelationRaw: jest.fn(async () => ({ count: 0 })),
+      };
+      const getCapabilities = jest.fn(async () => {
+        throw new AgentHttpError(503, {}, 'Service Unavailable');
+      });
+      const logger = jest.fn();
+      const app = buildApp(storeOf(relationReadModel, getCapabilities), client, { logger });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Foreign capabilities lookup failed; re-checking relation exposure',
+        expect.objectContaining({
+          collection: 'users',
+          relation: 'posts',
+          foreignCollection: 'posts',
+          cause: 'BffHttpError: The agent is unavailable',
+        }),
+      );
+    });
+
     it.each([['list'], ['count']])(
       'should return 404 on a relation %s when a refresh during the capabilities read drops the parent collection',
       async operation => {
@@ -1255,9 +1375,6 @@ describe('data routes middleware', () => {
 
     it('should stamp the foreign primary keys from the generation the capabilities belong to', async () => {
       const listRelation = jest.fn(async () => [{ id: 'acme|42', title: 'Hello' }]);
-      // The two generations disagree on the foreign primary key: single `id` before the fetch, the
-      // composite `(tenant, id)` after. Keeping the pre-fetch keys would unpack a two-value packed id
-      // against a one-key schema and 500 in `unpackPrimaryKey`.
       const preFetch = new ReadModel([
         collection('users', [column('id'), relation('posts', 'HasMany', 'posts.id')]),
         collection('posts', [column('id'), column('title')]),
