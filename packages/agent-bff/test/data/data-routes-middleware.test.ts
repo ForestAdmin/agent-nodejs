@@ -388,6 +388,34 @@ describe('data routes middleware', () => {
       expect(list).not.toHaveBeenCalled();
     });
 
+    it.each([['list'], ['count']])(
+      'should return 404 on %s when a refresh during the capabilities read drops the collection',
+      async operation => {
+        const client = {
+          list: jest.fn(async () => []),
+          countRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        // The store hands back a read-model from the newer generation, which no longer exposes users.
+        const refreshedStore = {
+          getReadModel: async () => usersReadModel,
+          getCapabilities: async () => ({
+            capabilities: { fields: [{ name: 'id', type: 'Number', operators: ['equal'] }] },
+            readModel: new ReadModel([collection('orders', [column('id')])]),
+          }),
+        } as unknown as ReadModelStore;
+        const app = buildApp(refreshedStore, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/${operation}`)
+          .send({ filter: { field: 'id', operator: 'Equal', value: 1 } });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
+        expect(client.list).not.toHaveBeenCalled();
+        expect(client.countRaw).not.toHaveBeenCalled();
+      },
+    );
+
     it('should map a capabilities fetch failure to agent_unavailable instead of internal_error', async () => {
       const list = jest.fn(async () => []);
       const getCapabilities = jest.fn(async () => {

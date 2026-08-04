@@ -69,6 +69,14 @@ interface RequestHandlerDeps {
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
 
+// The route's allow-list check ran against the read-model captured before this request awaited the
+// capabilities; a refresh in that window can drop the collection, so it is re-checked against the
+// generation the capabilities belong to. The agent stays the authority (it asserts canBrowse itself)
+// — this keeps the BFF from serving a collection its own current schema no longer exposes.
+function assertCollectionStillAllowed(readModel: ReadModel, collection: string): void {
+  if (!readModel.isCollectionAllowed(collection)) throw unknownCollection();
+}
+
 function resolveCapabilities(
   deps: RequestHandlerDeps,
 ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
@@ -92,11 +100,13 @@ async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandler
   };
 
   // The store hands back the read-model the capabilities belong to; using it keeps the primary keys
-  // serialized below from a different schema generation than the fields just validated.
+  // serialized below from a different schema generation than the fields just validated, and re-checks
+  // the allow-list in case that generation dropped the collection.
   let { primaryKeys } = deps;
 
   if (hasCapabilityConstrainedInput(validationInput)) {
     const { capabilities, readModel } = await resolveCapabilities(deps);
+    assertCollectionStillAllowed(readModel, deps.collection);
     assertValidAgainstCapabilities(validationInput, capabilities);
     primaryKeys = readModel.getPrimaryKeys(deps.collection);
   }
@@ -113,7 +123,8 @@ async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHa
 
   // Count carries only a filter (no sort/projection), so that is all there is to validate.
   if (body.filter !== undefined) {
-    const { capabilities } = await resolveCapabilities(deps);
+    const { capabilities, readModel } = await resolveCapabilities(deps);
+    assertCollectionStillAllowed(readModel, deps.collection);
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 
