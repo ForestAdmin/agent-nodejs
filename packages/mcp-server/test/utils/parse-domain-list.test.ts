@@ -28,4 +28,11 @@ describe('parseDomainList', () => {
   it('should handle a single domain', () => {
     expect(parseDomainList('dust.tt')).toEqual(['dust.tt']);
   });
+
+  it('should pass subdomain entries through verbatim', () => {
+    expect(parseDomainList('eu.dust.tt,mcp.front.eu.dust.tt')).toEqual([
+      'eu.dust.tt',
+      'mcp.front.eu.dust.tt',
+    ]);
+  });
 });

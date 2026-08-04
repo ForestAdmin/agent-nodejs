@@ -149,10 +149,8 @@ export interface ForestMCPServerOptions {
    */
   tokenTtl?: TokenTtlOptions;
   /**
-   * Domains of the OAuth client applications allowed to use this server, e.g. ['dust.tt'].
-   * A client is allowed only when every redirect URI it registered is on one of these domains
-   * or a subdomain of one. Omit to accept any dynamically registered client. Native desktop
-   * clients register loopback redirect URIs, so they are always rejected when this is set.
+   * Domains of the OAuth clients allowed to use this server, e.g. ['dust.tt']; subdomains match.
+   * Omit to accept any dynamically registered client.
    */
   allowedOAuthClients?: string[];
 }

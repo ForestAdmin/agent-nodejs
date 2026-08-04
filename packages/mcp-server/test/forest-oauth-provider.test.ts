@@ -1372,6 +1372,7 @@ describe('ForestOAuthProvider', () => {
       const clientData = registerClient([
         'https://eu.dust.tt/oauth/mcp_static/finalize',
         'https://app.dust.tt/oauth/mcp_static/finalize',
+        'https://mcp.front.eu.dust.tt/oauth/mcp_static/finalize',
       ]);
       const provider = createRestrictedProvider(['dust.tt']);
 
