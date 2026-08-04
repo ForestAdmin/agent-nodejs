@@ -1,3 +1,14 @@
+## @forestadmin/agent [1.91.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.4...@forestadmin/agent@1.91.5) (2026-08-04)
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.20.3
+* **@forestadmin/workflow-executor:** upgraded to 1.23.5
+
 ## @forestadmin/agent [1.91.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.3...@forestadmin/agent@1.91.4) (2026-08-03)
 
 
