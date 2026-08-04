@@ -303,6 +303,18 @@ describe('Action', () => {
       });
     });
 
+    it('forwards the html from a native action Error result', async () => {
+      httpRequester.query.mockRejectedValue(
+        new AgentHttpError(400, { error: 'Refund failed', html: '<strong>Nope</strong>' }),
+      );
+
+      await expect(action.execute()).rejects.toMatchObject({
+        name: 'ActionFormValidationError',
+        message: 'Refund failed',
+        html: '<strong>Nope</strong>',
+      });
+    });
+
     it('should propagate other HTTP errors unchanged', async () => {
       const error = new AgentHttpError(500, null);
       httpRequester.query.mockRejectedValue(error);
@@ -338,14 +350,18 @@ describe('Action', () => {
       expect(callOrder).toEqual(['first', 'second', 'third']);
     });
 
-    it('should throw when field does not exist', async () => {
+    it('should throw a typed UnknownActionFieldError when field does not exist', async () => {
       fieldsFormStates.getField.mockReturnValue(null);
 
       await expect(
         action.setFields({
           nonexistent: 'value',
         }),
-      ).rejects.toThrow('Field "nonexistent" does not exist in this form');
+      ).rejects.toMatchObject({
+        name: 'UnknownActionFieldError',
+        fieldName: 'nonexistent',
+        message: 'Field "nonexistent" does not exist in this form',
+      });
     });
   });
 

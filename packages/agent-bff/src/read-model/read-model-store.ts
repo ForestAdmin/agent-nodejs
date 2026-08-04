@@ -4,6 +4,8 @@ import type SchemaCache from './schema-cache';
 
 import ReadModel from './read-model';
 
+const MAX_GENERATION_RETRIES = 3;
+
 /**
  * Single owner of the coupled schema + capabilities lifecycle. A successful schema refresh (a bump
  * of the cache `revision`) rebuilds the read-model and clears capabilities atomically, so the
@@ -33,19 +35,38 @@ export default class ReadModelStore {
     return this.readModel;
   }
 
+  /**
+   * Returns the capabilities together with the read-model they belong to, so a caller cannot mix a
+   * read-model captured earlier (allow-list, primary keys) with capabilities from a newer schema
+   * generation. Callers must use the returned `readModel`, not the one they held before this call.
+   */
   async getCapabilities(
     collection: string,
     fetcher: CapabilitiesFetcher,
-  ): Promise<CapabilitiesResult> {
-    // Ensure any pending schema refresh (and its capabilities invalidation) runs first.
-    await this.getReadModel();
+    attemptsLeft = MAX_GENERATION_RETRIES,
+  ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+    if (attemptsLeft <= 0) {
+      throw new Error(
+        `Schema generation kept changing while reading capabilities for "${collection}"`,
+      );
+    }
 
-    // TODO(wiring): possible TOCTOU once this is called from request handling. A concurrent schema
-    // refresh can clear capabilities while this fetch is in flight, so the caller could receive
-    // capabilities from the previous schema generation alongside the new allow-list. When wiring
-    // the data endpoints, re-check `schemaCache.revision` after the fetch resolves and retry on a
-    // mismatch so capabilities and schema stay atomically coupled.
-    return this.capabilitiesCache.get(collection, fetcher);
+    // Ensure any pending schema refresh (and its capabilities invalidation) runs first.
+    const readModel = await this.getReadModel();
+    const { revision } = this.schemaCache;
+    const capabilities = await this.capabilitiesCache.get(collection, fetcher);
+
+    // A refresh can land while the fetch is in flight: the cache drops the stale write but still
+    // resolves with it, so both reads are retried until they observe one generation. The revision is
+    // the discriminator, not the read-model identity — `SchemaCache` bumps the revision inside its
+    // refresh, before an awaiting `getReadModel` caller resumes and installs the new model, so an
+    // identity comparison still sees the old object in that window. Bounded because a refresh is
+    // driven by the 24h schema TTL, not by request volume.
+    if (this.schemaCache.revision !== revision) {
+      return this.getCapabilities(collection, fetcher, attemptsLeft - 1);
+    }
+
+    return { capabilities, readModel };
   }
 
   ageSeconds(): number | undefined {

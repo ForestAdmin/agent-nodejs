@@ -6,6 +6,7 @@ import type {
   RelationListRequestBody,
 } from './agent-query';
 import type { Logger } from '../ports/logger-port';
+import type { CapabilitiesResult } from '../read-model/capabilities-cache';
 import type ReadModel from '../read-model/read-model';
 import type { PrimaryKeyField, RelationTarget } from '../read-model/read-model';
 import type ReadModelStore from '../read-model/read-model-store';
@@ -30,6 +31,11 @@ import {
   resolveReadModel,
 } from '../http/agent-route-helpers';
 import { unknownCollection, unknownRelation } from '../http/bff-local-errors';
+import createAgentCapabilitiesFetcher from '../read-model/agent-capabilities-fetcher';
+import {
+  assertValidAgainstCapabilities,
+  hasCapabilityConstrainedInput,
+} from '../validation/capabilities-validator';
 import assertNoRelationFieldPaths from '../validation/relation-field-guard';
 
 const DATA_ROUTE = /^\/agent\/v1\/([^/]+)\/(list|count)$/;
@@ -54,24 +60,73 @@ export interface DataRoutesMiddlewareOptions {
 interface RequestHandlerDeps {
   collection: string;
   client: AgentDataClient;
+  store: ReadModelStore;
+  agentUrl: string;
+  token: string;
   timezone: string;
   logger: Logger;
 }
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
 
+// The route's allow-list check ran against the read-model captured before this request awaited the
+// capabilities; a refresh in that window can drop the collection, so it is re-checked against the
+// generation the capabilities belong to. The agent stays the authority (it asserts canBrowse itself)
+// — this keeps the BFF from serving a collection its own current schema no longer exposes.
+function assertCollectionStillAllowed(readModel: ReadModel, collection: string): void {
+  if (!readModel.isCollectionAllowed(collection)) throw unknownCollection();
+}
+
+function resolveCapabilities(
+  deps: RequestHandlerDeps,
+): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+  return callAgent(
+    () =>
+      deps.store.getCapabilities(
+        deps.collection,
+        createAgentCapabilitiesFetcher({ agentUrl: deps.agentUrl, token: deps.token }),
+      ),
+    deps.logger,
+  );
+}
+
 async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
+
+  const validationInput = {
+    filter: body.filter,
+    sortFields: body.sort?.map(clause => clause.field),
+    projectionFields: body.projection,
+  };
+
+  // The store hands back the read-model the capabilities belong to; using it keeps the primary keys
+  // serialized below from a different schema generation than the fields just validated, and re-checks
+  // the allow-list in case that generation dropped the collection.
+  let { primaryKeys } = deps;
+
+  if (hasCapabilityConstrainedInput(validationInput)) {
+    const { capabilities, readModel } = await resolveCapabilities(deps);
+    assertCollectionStillAllowed(readModel, deps.collection);
+    assertValidAgainstCapabilities(validationInput, capabilities);
+    primaryKeys = readModel.getPrimaryKeys(deps.collection);
+  }
 
   const query = buildListAgentQuery(deps.collection, deps.timezone, body);
   const records = await callAgent(() => deps.client.list(deps.collection, query), deps.logger);
 
   ctx.status = 200;
-  ctx.body = mapListResponse(deps.collection, records, deps.primaryKeys);
+  ctx.body = mapListResponse(deps.collection, records, primaryKeys);
 }
 
 async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerDeps) {
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
+
+  // Count carries only a filter (no sort/projection), so that is all there is to validate.
+  if (body.filter !== undefined) {
+    const { capabilities, readModel } = await resolveCapabilities(deps);
+    assertCollectionStillAllowed(readModel, deps.collection);
+    assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
+  }
 
   const query = buildCountAgentQuery(deps.timezone, body);
   const raw = await callAgent(() => deps.client.countRaw(deps.collection, query), deps.logger);
@@ -198,6 +253,9 @@ export default function createDataRoutesMiddleware({
     const deps: RequestHandlerDeps = {
       collection,
       client: createClient({ agentUrl, token }),
+      store,
+      agentUrl,
+      token,
       timezone: ctx.state.timezone as string,
       logger,
     };

@@ -39,3 +39,10 @@ export function schemaUnavailable(message = 'The agent schema is unavailable'): 
 export function unsupportedActionResult(message = 'Unsupported action result'): BffHttpError {
   return new BffHttpError(501, 'unsupported_action_result', message);
 }
+
+export function actionRequiresApproval(
+  message = 'This action requires an approval before it can run',
+  details?: unknown,
+): BffHttpError {
+  return new BffHttpError(403, 'action_requires_approval', message, details);
+}
