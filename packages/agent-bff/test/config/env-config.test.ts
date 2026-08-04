@@ -1,4 +1,9 @@
-import { DEFAULT_AGENT_TIMEOUT_MS, REQUIRED_KEYS, parseConfig } from '../../src/config/env-config';
+import {
+  DEFAULT_AGENT_TIMEOUT_MS,
+  MAX_AGENT_TIMEOUT_MS,
+  REQUIRED_KEYS,
+  parseConfig,
+} from '../../src/config/env-config';
 import DEFAULT_BFF_PORT from '../../src/defaults';
 import { ConfigurationError } from '../../src/errors';
 
@@ -228,11 +233,19 @@ describe('parseConfig', () => {
       );
     });
 
+    it('should accept the largest value Node can hold in a timer', () => {
+      expect(
+        parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: String(MAX_AGENT_TIMEOUT_MS) })
+          .agentTimeoutMs,
+      ).toBe(MAX_AGENT_TIMEOUT_MS);
+    });
+
     it.each([
       ['zero', '0'],
       ['negative', '-1'],
       ['non-numeric', 'soon'],
       ['fractional', '1.5'],
+      ['past the Node timer ceiling', String(MAX_AGENT_TIMEOUT_MS + 1)],
     ])('should throw ConfigurationError for a %s value', (_label, value) => {
       expect(() => parseConfig({ ...VALID_ENV, BFF_AGENT_TIMEOUT_MS: value })).toThrow(
         ConfigurationError,

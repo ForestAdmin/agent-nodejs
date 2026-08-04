@@ -2,6 +2,8 @@ import type { CapabilitiesFetcher } from './capabilities-cache';
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
+import createAgentHttpRequester from '../agent/create-agent-http-requester';
+
 export interface AgentCapabilitiesFetcherOptions {
   agentUrl: string;
   token: string;
@@ -17,7 +19,11 @@ export default function createAgentCapabilitiesFetcher({
   token,
   timeoutMs,
 }: AgentCapabilitiesFetcherOptions): CapabilitiesFetcher {
-  const client = createRemoteAgentClient({ url: agentUrl, token, timeoutMs });
+  const client = createRemoteAgentClient({
+    url: agentUrl,
+    token,
+    httpRequester: createAgentHttpRequester(token, agentUrl, timeoutMs),
+  });
 
   return collection => client.collection(collection).capabilities();
 }

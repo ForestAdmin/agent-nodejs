@@ -36,6 +36,42 @@ describe('createAgentDataClient', () => {
     expect(result).toEqual([{ id: '1' }]);
   });
 
+  it('should apply the configured timeout as maxTimeAllowed on every query', async () => {
+    const client = createAgentDataClient({
+      agentUrl: 'https://agent',
+      token: 'tok',
+      timeoutMs: 2500,
+    });
+
+    await client.list('users', { timezone: 'Europe/Paris' });
+    await client.countRaw('users', { timezone: 'Europe/Paris' });
+    await client.listRelation('users', '1', 'posts', { timezone: 'Europe/Paris' });
+    await client.countRelationRaw('users', '1', 'posts', { timezone: 'Europe/Paris' });
+
+    expect(query).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ path: '/forest/users', maxTimeAllowed: 2500 }),
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ path: '/forest/users/count', maxTimeAllowed: 2500 }),
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        path: '/forest/users/1/relationships/posts',
+        maxTimeAllowed: 2500,
+      }),
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        path: '/forest/users/1/relationships/posts/count',
+        maxTimeAllowed: 2500,
+      }),
+    );
+  });
+
   it('should query the count endpoint with skipDeserialization to read the raw payload', async () => {
     query.mockResolvedValue({ meta: { count: 'deactivated' } });
     const client = createAgentDataClient({ agentUrl: 'https://agent', token: 'tok' });

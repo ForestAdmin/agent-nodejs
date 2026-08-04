@@ -49,11 +49,9 @@ export function createRemoteAgentClient(params: {
    */
   forestServer?: { serverUrl: string; serverToken: string; renderingId: number | string };
   httpRequester?: HttpRequester;
-  timeoutMs?: number;
 }) {
   const httpRequester =
-    params.httpRequester ??
-    new HttpRequester(params.token, { url: params.url, timeoutMs: params.timeoutMs });
+    params.httpRequester ?? new HttpRequester(params.token, { url: params.url });
 
   return new RemoteAgentClient({
     actionEndpoints: params.actionEndpoints,

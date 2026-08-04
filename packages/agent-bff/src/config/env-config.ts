@@ -29,7 +29,7 @@ export interface BFFConfig {
   allowedOrigins: string[];
   invalidAllowedOrigins: string[];
   defaultTimezone?: string;
-  agentTimeoutMs: number;
+  agentTimeoutMs?: number;
   httpPort: number;
   presence: PresenceMap;
   hasAllRequired: boolean;
@@ -37,6 +37,7 @@ export interface BFFConfig {
 
 const DECIMAL_INTEGER = /^\d+$/;
 export const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
+export const MAX_AGENT_TIMEOUT_MS = 2_147_483_647;
 const MAX_PORT = 65535;
 const ENCRYPTION_KEY_BYTES = 32;
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
@@ -87,9 +88,9 @@ function parseAgentTimeoutMs(raw: string | undefined): number {
 
   const timeout = DECIMAL_INTEGER.test(value.trim()) ? Number(value.trim()) : NaN;
 
-  if (Number.isNaN(timeout) || timeout === 0) {
+  if (Number.isNaN(timeout) || timeout === 0 || timeout > MAX_AGENT_TIMEOUT_MS) {
     throw new ConfigurationError(
-      'Invalid configuration: BFF_AGENT_TIMEOUT_MS must be a positive integer number of milliseconds.',
+      `Invalid configuration: BFF_AGENT_TIMEOUT_MS must be a positive integer of at most ${MAX_AGENT_TIMEOUT_MS} milliseconds.`,
     );
   }
 
