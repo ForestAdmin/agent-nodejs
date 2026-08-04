@@ -44,7 +44,10 @@ function storeOf(
 
       return readModel;
     },
-    getCapabilities: (collectionName: string) => getCapabilities(collectionName),
+    getCapabilities: async (collectionName: string) => ({
+      capabilities: await getCapabilities(collectionName),
+      readModel,
+    }),
   } as unknown as ReadModelStore;
 }
 

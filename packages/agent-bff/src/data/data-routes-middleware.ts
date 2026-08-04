@@ -69,7 +69,9 @@ interface RequestHandlerDeps {
 
 type ListHandlerDeps = RequestHandlerDeps & { primaryKeys: PrimaryKeyField[] };
 
-function resolveCapabilities(deps: RequestHandlerDeps): Promise<CapabilitiesResult> {
+function resolveCapabilities(
+  deps: RequestHandlerDeps,
+): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
   return callAgent(
     () =>
       deps.store.getCapabilities(
@@ -89,15 +91,21 @@ async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandler
     projectionFields: body.projection,
   };
 
+  // The store hands back the read-model the capabilities belong to; using it keeps the primary keys
+  // serialized below from a different schema generation than the fields just validated.
+  let { primaryKeys } = deps;
+
   if (hasCapabilityConstrainedInput(validationInput)) {
-    assertValidAgainstCapabilities(validationInput, await resolveCapabilities(deps));
+    const { capabilities, readModel } = await resolveCapabilities(deps);
+    assertValidAgainstCapabilities(validationInput, capabilities);
+    primaryKeys = readModel.getPrimaryKeys(deps.collection);
   }
 
   const query = buildListAgentQuery(deps.collection, deps.timezone, body);
   const records = await callAgent(() => deps.client.list(deps.collection, query), deps.logger);
 
   ctx.status = 200;
-  ctx.body = mapListResponse(deps.collection, records, deps.primaryKeys);
+  ctx.body = mapListResponse(deps.collection, records, primaryKeys);
 }
 
 async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHandlerDeps) {
@@ -105,7 +113,8 @@ async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHa
 
   // Count carries only a filter (no sort/projection), so that is all there is to validate.
   if (body.filter !== undefined) {
-    assertValidAgainstCapabilities({ filter: body.filter }, await resolveCapabilities(deps));
+    const { capabilities } = await resolveCapabilities(deps);
+    assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 
   const query = buildCountAgentQuery(deps.timezone, body);

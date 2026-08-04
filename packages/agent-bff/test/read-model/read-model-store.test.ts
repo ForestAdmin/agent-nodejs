@@ -86,6 +86,29 @@ describe('ReadModelStore', () => {
       expect(capsFetcher).toHaveBeenCalledTimes(2);
     });
 
+    it('should return the read-model rebuilt by a refresh that lands during the capabilities fetch', async () => {
+      const fetchSchema = jest
+        .fn()
+        .mockResolvedValueOnce(makeSchema('users'))
+        .mockResolvedValueOnce(makeSchema('orders'));
+      const store = build(fetchSchema);
+      const stale = await store.getReadModel();
+
+      // The refresh lands while the fetch is in flight — the window the re-read exists to close.
+      const capsFetcher = jest.fn(async () => {
+        clock += ONE_DAY_MS;
+        await store.getReadModel();
+
+        return { fields: [] };
+      });
+
+      const { readModel } = await store.getCapabilities('orders', capsFetcher);
+
+      expect(readModel).not.toBe(stale);
+      expect(readModel.isCollectionAllowed('orders')).toBe(true);
+      expect(readModel.isCollectionAllowed('users')).toBe(false);
+    });
+
     it('should not rebuild the read-model or clear capabilities when a refresh fails', async () => {
       const fetchSchema = jest
         .fn()

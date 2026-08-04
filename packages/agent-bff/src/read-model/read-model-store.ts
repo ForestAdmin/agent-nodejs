@@ -33,22 +33,26 @@ export default class ReadModelStore {
     return this.readModel;
   }
 
+  /**
+   * Returns the capabilities together with the read-model they belong to, so a caller cannot mix a
+   * read-model captured earlier (allow-list, primary keys) with capabilities from a newer schema
+   * generation. Callers must use the returned `readModel`, not the one they held before this call.
+   */
   async getCapabilities(
     collection: string,
     fetcher: CapabilitiesFetcher,
-  ): Promise<CapabilitiesResult> {
+  ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
     // Ensure any pending schema refresh (and its capabilities invalidation) runs first.
-    await this.getReadModel();
+    const readModel = await this.getReadModel();
+    const capabilities = await this.capabilitiesCache.get(collection, fetcher);
 
-    // TODO(wiring): known TOCTOU, deferred. Two snapshots can straddle a schema generation:
-    //   1. the data middleware captures the read-model (allow-list) once, then calls this later;
-    //   2. this capabilities fetch can be in flight when a concurrent schema refresh clear()s it.
-    // Either gap lets the caller validate against capabilities from one generation while the
-    // allow-list came from another. A full fix couples both reads to a single generation (return
-    // read-model + capabilities together, or re-check `schemaCache.revision` across both and retry);
-    // a retry here alone only closes gap 2. Low risk: the trigger is a 24h-TTL refresh landing exactly
-    // during a request, and the agent stays the final validator.
-    return this.capabilitiesCache.get(collection, fetcher);
+    // A refresh can land while the fetch is in flight; the cache already drops such a write, but the
+    // read-model must be re-read so the pair returned here always comes from one generation.
+    if (this.readModel !== readModel) {
+      return { capabilities, readModel: await this.getReadModel() };
+    }
+
+    return { capabilities, readModel };
   }
 
   ageSeconds(): number | undefined {
