@@ -1,3 +1,5 @@
+import type { EnvironmentPermissionsV4, RawTreeWithSources } from '@forestadmin/forestadmin-client';
+
 import {
   CollectionActionEvent,
   CustomActionEvent,
@@ -5,55 +7,22 @@ import {
   generateCustomActionIdentifier,
 } from './action-identifiers';
 
-export type RightDescriptionWithRolesV4 = { roles: number[] };
-export type RightDescriptionV4 = boolean | RightDescriptionWithRolesV4;
+type RightDescriptionWithRolesV4 = { roles: number[] };
+type RightDescriptionV4 = boolean | RightDescriptionWithRolesV4;
 
-export type RightConditionByRolesV4 = {
+type RightConditionByRolesV4 = {
   roleId: number;
-  filter: unknown;
+  filter: RawTreeWithSources;
 };
 
-export interface EnvironmentCollectionAccessPermissionsV4 {
-  browseEnabled: RightDescriptionV4;
-  readEnabled: RightDescriptionV4;
-  editEnabled: RightDescriptionV4;
-  addEnabled: RightDescriptionV4;
-  deleteEnabled: RightDescriptionV4;
-  exportEnabled: RightDescriptionV4;
-}
+type EnvironmentCollectionsPermissionsV4 = Exclude<EnvironmentPermissionsV4, true>['collections'];
 
-export interface EnvironmentSmartActionPermissionsV4 {
-  triggerEnabled: RightDescriptionV4;
-  triggerConditions: RightConditionByRolesV4[];
-  approvalRequired: RightDescriptionV4;
-  approvalRequiredConditions: RightConditionByRolesV4[];
-  userApprovalEnabled: RightDescriptionV4;
-  userApprovalConditions: RightConditionByRolesV4[];
-  selfApprovalEnabled: RightDescriptionV4;
-}
-
-export interface EnvironmentCollectionActionPermissionsV4 {
-  [actionName: string]: EnvironmentSmartActionPermissionsV4;
-}
-
-export interface EnvironmentCollectionPermissionsV4 {
-  collection: EnvironmentCollectionAccessPermissionsV4;
-  actions: EnvironmentCollectionActionPermissionsV4;
-}
-
-export interface EnvironmentCollectionsPermissionsV4 {
-  [collectionName: string]: EnvironmentCollectionPermissionsV4;
-}
-
-export type EnvironmentPermissionsV4Remote = {
-  collections: EnvironmentCollectionsPermissionsV4;
-};
-
-export type EnvironmentPermissionsV4 = EnvironmentPermissionsV4Remote | true;
+type EnvironmentCollectionActionPermissionsV4 =
+  EnvironmentCollectionsPermissionsV4[string]['actions'];
 
 export type ActionPermission = {
   allowedRoles: Set<number>;
-  conditionsByRole?: Map<number, unknown>;
+  conditionsByRole?: Map<number, RawTreeWithSources>;
 };
 
 export type ActionPermissions = {
@@ -190,7 +159,7 @@ export function buildActionPermissions(
   };
 }
 
-export function canRoleTriggerAction(
+export function isActionIdentifierAllowedForRole(
   permissions: ActionPermissions,
   roleId: number,
   actionName: string,
@@ -208,21 +177,29 @@ export function canRolePerformCollectionAction(
   action: CollectionActionEvent,
   collectionName: string,
 ): boolean {
-  return canRoleTriggerAction(
+  return isActionIdentifierAllowedForRole(
     permissions,
     roleId,
     generateCollectionActionIdentifier(action, collectionName),
   );
 }
 
-export function canRolePerformCustomAction(
-  permissions: ActionPermissions,
-  roleId: number,
-  event: CustomActionEvent,
-  actionName: string,
-  collectionName: string,
-): boolean {
-  return canRoleTriggerAction(
+export interface CanRolePerformCustomActionParams {
+  permissions: ActionPermissions;
+  roleId: number;
+  event: CustomActionEvent;
+  actionName: string;
+  collectionName: string;
+}
+
+export function canRolePerformCustomAction({
+  permissions,
+  roleId,
+  event,
+  actionName,
+  collectionName,
+}: CanRolePerformCustomActionParams): boolean {
+  return isActionIdentifierAllowedForRole(
     permissions,
     roleId,
     generateCustomActionIdentifier(event, actionName, collectionName),

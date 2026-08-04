@@ -1,4 +1,4 @@
-import type { EnvironmentPermissionsV4 } from '../../src/permissions/action-permissions';
+import type { EnvironmentPermissionsV4 } from '@forestadmin/forestadmin-client';
 
 import {
   CollectionActionEvent,
@@ -10,7 +10,7 @@ import {
   buildActionPermissions,
   canRolePerformCollectionAction,
   canRolePerformCustomAction,
-  canRoleTriggerAction,
+  isActionIdentifierAllowedForRole,
 } from '../../src/permissions/action-permissions';
 
 const ADMIN_ROLE = 1;
@@ -123,12 +123,12 @@ describe('buildActionPermissions', () => {
   });
 });
 
-describe('canRoleTriggerAction', () => {
+describe('isActionIdentifierAllowedForRole', () => {
   describe('when the environment is in development', () => {
     it('should allow an action no descriptor mentions', () => {
-      expect(canRoleTriggerAction(buildActionPermissions(true), VIEWER_ROLE, 'anything')).toBe(
-        true,
-      );
+      expect(
+        isActionIdentifierAllowedForRole(buildActionPermissions(true), VIEWER_ROLE, 'anything'),
+      ).toBe(true);
     });
   });
 
@@ -155,7 +155,7 @@ describe('canRoleTriggerAction', () => {
     it.each([
       ['the named role', ADMIN_ROLE, true],
       ['a role mismatch', VIEWER_ROLE, false],
-    ])('should return %s -> %s', (_label, roleId, expected) => {
+    ])('should resolve %s to %s', (_label, roleId, expected) => {
       expect(
         canRolePerformCollectionAction(
           buildActionPermissions(NORMAL_MODE),
@@ -170,7 +170,7 @@ describe('canRoleTriggerAction', () => {
   describe('when the identifier is absent from the permissions', () => {
     it('should deny rather than throw', () => {
       expect(
-        canRoleTriggerAction(
+        isActionIdentifierAllowedForRole(
           buildActionPermissions(NORMAL_MODE),
           ADMIN_ROLE,
           'collection:ghost:browse',
@@ -204,18 +204,18 @@ describe('canRoleTriggerAction', () => {
     [CustomActionEvent.RequireApproval],
   ])('should resolve the %s custom-action event for the named role', event => {
     expect(
-      canRolePerformCustomAction(
-        buildActionPermissions(NORMAL_MODE),
-        ADMIN_ROLE,
+      canRolePerformCustomAction({
+        permissions: buildActionPermissions(NORMAL_MODE),
+        roleId: ADMIN_ROLE,
         event,
-        'Block user',
-        'users',
-      ),
+        actionName: 'Block user',
+        collectionName: 'users',
+      }),
     ).toBe(true);
   });
 
   describe('when an action-event flag is missing from the payload', () => {
-    it('should throw, matching the source evaluator rather than inventing a denial', () => {
+    it('should throw rather than invent a denial', () => {
       const { selfApprovalEnabled, ...withoutSelfApproval } = smartAction();
 
       expect(selfApprovalEnabled).toBeDefined();
@@ -230,7 +230,7 @@ describe('canRoleTriggerAction', () => {
   });
 
   describe('when a CRUD descriptor is missing from the payload', () => {
-    it('should throw, matching the source evaluator', () => {
+    it('should throw rather than invent a denial', () => {
       const { deleteEnabled, ...withoutDelete } = crud();
 
       expect(deleteEnabled).toBeDefined();
