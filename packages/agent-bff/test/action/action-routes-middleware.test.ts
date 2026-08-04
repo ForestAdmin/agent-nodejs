@@ -417,6 +417,9 @@ describe('action execute', () => {
     expect(loadAction).toHaveBeenCalledWith('users', 'approve', ['42']);
     expect(setFields).toHaveBeenCalledWith({ reason: 'x' });
     expect(execute).toHaveBeenCalledTimes(1);
+    // Order is the behaviour named by this test: executing before the values are applied would run
+    // the action on an empty form.
+    expect(setFields.mock.invocationCallOrder[0]).toBeLessThan(execute.mock.invocationCallOrder[0]);
   });
 
   it('normalizes a Success result to 200 with invalidated as an array', async () => {
@@ -473,8 +476,13 @@ describe('action execute', () => {
     expect(response.body).toEqual({ type: 'redirect', path: '/orders/1' });
   });
 
-  it('returns 501 unsupported_action_result for an unrecognized (File) result', async () => {
-    const form = makeAction({ execute: jest.fn(async () => ({})) });
+  // The agent streams a File result with no JSON marker, so it reaches the BFF as a binary body,
+  // not as an object carrying a recognizable key.
+  it.each([
+    ['an unrecognized object payload', {} as unknown],
+    ['a File result streamed as a binary body', Buffer.from('%PDF-1.4 invoice')],
+  ])('returns 501 unsupported_action_result for %s', async (_label, payload) => {
+    const form = makeAction({ execute: jest.fn(async () => payload) });
 
     const response = await request(execApp(clientOf(form)).callback())
       .post('/agent/v1/users/actions/approve/execute')

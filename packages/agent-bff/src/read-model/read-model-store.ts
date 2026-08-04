@@ -4,6 +4,8 @@ import type SchemaCache from './schema-cache';
 
 import ReadModel from './read-model';
 
+const MAX_GENERATION_RETRIES = 3;
+
 /**
  * Single owner of the coupled schema + capabilities lifecycle. A successful schema refresh (a bump
  * of the cache `revision`) rebuilds the read-model and clears capabilities atomically, so the
@@ -41,15 +43,23 @@ export default class ReadModelStore {
   async getCapabilities(
     collection: string,
     fetcher: CapabilitiesFetcher,
+    attemptsLeft = MAX_GENERATION_RETRIES,
   ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
+    if (attemptsLeft <= 0) {
+      throw new Error(
+        `Schema generation kept changing while reading capabilities for "${collection}"`,
+      );
+    }
+
     // Ensure any pending schema refresh (and its capabilities invalidation) runs first.
     const readModel = await this.getReadModel();
     const capabilities = await this.capabilitiesCache.get(collection, fetcher);
 
-    // A refresh can land while the fetch is in flight; the cache already drops such a write, but the
-    // read-model must be re-read so the pair returned here always comes from one generation.
+    // A refresh can land while the fetch is in flight: the cache drops the stale write but still
+    // resolves with it, so both reads are retried until they observe one generation. Bounded because
+    // a refresh is driven by the 24h schema TTL, not by request volume.
     if (this.readModel !== readModel) {
-      return { capabilities, readModel: await this.getReadModel() };
+      return this.getCapabilities(collection, fetcher, attemptsLeft - 1);
     }
 
     return { capabilities, readModel };

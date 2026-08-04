@@ -86,27 +86,35 @@ describe('ReadModelStore', () => {
       expect(capsFetcher).toHaveBeenCalledTimes(2);
     });
 
-    it('should return the read-model rebuilt by a refresh that lands during the capabilities fetch', async () => {
+    it('should pair capabilities and read-model from one generation when a refresh lands mid-fetch', async () => {
       const fetchSchema = jest
         .fn()
         .mockResolvedValueOnce(makeSchema('users'))
-        .mockResolvedValueOnce(makeSchema('orders'));
+        .mockResolvedValueOnce(makeSchema('orders'))
+        .mockResolvedValue(makeSchema('orders'));
       const store = build(fetchSchema);
       const stale = await store.getReadModel();
 
-      // The refresh lands while the fetch is in flight — the window the re-read exists to close.
+      // Each fetch is tagged with the collection the current schema exposes, so a stale capabilities
+      // result stays distinguishable from one belonging to the rebuilt read-model.
+      let refreshed = false;
       const capsFetcher = jest.fn(async () => {
-        clock += ONE_DAY_MS;
-        await store.getReadModel();
+        if (!refreshed) {
+          refreshed = true;
+          clock += ONE_DAY_MS;
+          await store.getReadModel();
 
-        return { fields: [] };
+          return { fields: [{ name: 'from-users-generation', type: 'String', operators: [] }] };
+        }
+
+        return { fields: [{ name: 'from-orders-generation', type: 'String', operators: [] }] };
       });
 
-      const { readModel } = await store.getCapabilities('orders', capsFetcher);
+      const { capabilities, readModel } = await store.getCapabilities('orders', capsFetcher);
 
       expect(readModel).not.toBe(stale);
       expect(readModel.isCollectionAllowed('orders')).toBe(true);
-      expect(readModel.isCollectionAllowed('users')).toBe(false);
+      expect(capabilities.fields[0].name).toBe('from-orders-generation');
     });
 
     it('should not rebuild the read-model or clear capabilities when a refresh fails', async () => {
