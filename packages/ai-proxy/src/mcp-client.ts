@@ -21,8 +21,6 @@ function loadWithTimeout<T>(loading: Promise<T>, serverName: string, logger?: Lo
     }, LOAD_TOOLS_TIMEOUT_MS);
   });
 
-  // The race abandons the losing promise; trace its eventual outcome so the real cause of a
-  // timed-out server stays diagnosable.
   loading.then(
     () => {
       if (hasTimedOut) {

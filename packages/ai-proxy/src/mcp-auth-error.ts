@@ -53,8 +53,7 @@ export function isMcpAuthError(error: unknown): boolean {
 }
 
 export function classifyMcpLoadError(error: unknown): McpLoadFailureKind {
-  // Structural check first: the timeout message interpolates the user-controlled server name,
-  // which could otherwise trip the auth/connection text patterns below.
+  // Must run before the text patterns: the timeout message contains the user-controlled server name.
   if (error instanceof McpLoadTimeoutError) return 'connection';
 
   if (isMcpAuthError(error)) return 'auth';
