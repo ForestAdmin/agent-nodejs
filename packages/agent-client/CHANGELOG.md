@@ -1,3 +1,10 @@
+# @forestadmin/agent-client [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.12.2...@forestadmin/agent-client@1.13.0) (2026-08-04)
+
+
+### Features
+
+* **agent-bff:** expose the action execute endpoint with result normalization ([#1752](https://github.com/ForestAdmin/agent-nodejs/issues/1752)) ([ff8cb75](https://github.com/ForestAdmin/agent-nodejs/commit/ff8cb75d6200f24b6670bfe6cc44fd4825da6f5e))
+
 ## @forestadmin/agent-client [1.12.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-client@1.12.1...@forestadmin/agent-client@1.12.2) (2026-08-03)
 
 
