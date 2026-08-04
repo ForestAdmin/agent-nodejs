@@ -24,6 +24,7 @@ import {
   McpConflictError,
   McpConnectionError,
   McpError,
+  McpLoadTimeoutError,
 } from '../src/errors';
 
 describe('AI Error Hierarchy', () => {
@@ -66,6 +67,15 @@ describe('AI Error Hierarchy', () => {
       const error = new McpConfigError('test');
       expect(error).toBeInstanceOf(McpError);
       expect(error).toBeInstanceOf(UnprocessableError);
+    });
+
+    test('McpLoadTimeoutError extends UnprocessableError via McpError', () => {
+      const error = new McpLoadTimeoutError('slack', 15_000);
+      expect(error).toBeInstanceOf(McpError);
+      expect(error).toBeInstanceOf(UnprocessableError);
+      expect(error.message).toBe(
+        'Timeout: MCP server "slack" did not return its tools within 15000ms',
+      );
     });
   });
 

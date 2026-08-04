@@ -562,6 +562,149 @@ describe('McpClient.loadToolsWithFailures', () => {
 
     expect(tools).toHaveLength(1);
   });
+
+  it('resolves with no tools and no failures when no server is configured', async () => {
+    const result = await new McpClient({ configs: {} }).loadToolsWithFailures();
+
+    expect(result).toEqual({ tools: [], failures: [] });
+    expect(getToolsMock).not.toHaveBeenCalled();
+  });
+});
+
+// A getTools() that hangs pending (a server that accepts the connection but never answers) must
+// not hang the whole load. Each server's getTools() is bounded by a per-server timeout; a
+// timed-out server is dropped through the failures channel while the healthy servers still load.
+describe('McpClient.loadToolsWithFailures — per-server timeout on a hung server', () => {
+  const MCP_LOAD_TIMEOUT_MS = 15_000;
+
+  const makeTool = (name: string) =>
+    tool(() => {}, { name, description: name, schema: undefined, responseFormat: 'content' });
+
+  const neverSettles = () => new Promise(() => {});
+
+  const singleServer = () =>
+    ({
+      configs: {
+        slack: { transport: 'stdio', command: 'npx', args: [], env: {} },
+      },
+    } as unknown as McpConfiguration);
+
+  const hungPlusHealthy = () =>
+    ({
+      configs: {
+        hanging: { type: 'http', url: 'https://hung.example.com/mcp', id: 'srv-hung' },
+        github: { transport: 'stdio', command: 'npx', args: [], env: {} },
+      },
+    } as unknown as McpConfiguration);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("drops the hung server as a 'connection' failure and still returns the healthy server's tools", async () => {
+    getToolsMock.mockReturnValueOnce(neverSettles()).mockResolvedValueOnce([makeTool('t1')]);
+    const client = new McpClient(hungPlusHealthy());
+
+    const loading = client.loadToolsWithFailures();
+    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS);
+    const result = await loading;
+
+    expect(result.tools).toHaveLength(1);
+    expect(result.tools[0].sourceId).toBe('github');
+    expect(result.failures).toEqual([
+      expect.objectContaining({
+        server: 'hanging',
+        mcpServerId: 'srv-hung',
+        kind: 'connection',
+        error: expect.any(Error),
+      }),
+    ]);
+    // classifyMcpLoadError matches on the message text: it must say 'timeout' to land as
+    // 'connection' instead of 'unknown'.
+    expect(result.failures[0].error.message).toMatch(/timeout/i);
+  });
+
+  it('times out every hung server independently and logs the aggregated failure summary', async () => {
+    const logger = jest.fn();
+    getToolsMock.mockReturnValue(neverSettles());
+    const client = new McpClient(
+      {
+        configs: {
+          slack: { transport: 'stdio', command: 'npx', args: [], env: {} },
+          github: { transport: 'stdio', command: 'npx', args: [], env: {} },
+        },
+      } as unknown as McpConfiguration,
+      logger,
+    );
+
+    const loading = client.loadToolsWithFailures();
+    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS);
+    const result = await loading;
+
+    expect(result.tools).toEqual([]);
+    expect(result.failures).toEqual([
+      expect.objectContaining({ server: 'slack', kind: 'connection' }),
+      expect.objectContaining({ server: 'github', kind: 'connection' }),
+    ]);
+    expect(logger).toHaveBeenCalledWith(
+      'Error',
+      expect.stringContaining('Failed to load tools from 2/2'),
+    );
+  });
+
+  it('keeps a server that answers just under the timeout and leaves no timer behind', async () => {
+    getToolsMock.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          setTimeout(() => resolve([makeTool('slow')]), MCP_LOAD_TIMEOUT_MS - 1);
+        }),
+    );
+
+    const loading = new McpClient(singleServer()).loadToolsWithFailures();
+    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS - 1);
+    const result = await loading;
+
+    expect(result.tools).toHaveLength(1);
+    expect(result.failures).toEqual([]);
+    // The timeout timer must be cleared on success — a leftover timer holds the event loop
+    // open for the full 15s per request.
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('loadTools keeps its tools-only contract when a server times out', async () => {
+    getToolsMock.mockReturnValueOnce(neverSettles()).mockResolvedValueOnce([makeTool('ok')]);
+    const client = new McpClient(hungPlusHealthy());
+
+    const loading = client.loadTools();
+    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS);
+    const tools = await loading;
+
+    expect(tools).toHaveLength(1);
+    expect(tools[0].sourceId).toBe('github');
+  });
+
+  it('a later load on the same client succeeds after a previous load timed out', async () => {
+    getToolsMock.mockReturnValueOnce(neverSettles());
+    const client = new McpClient(singleServer());
+
+    const first = client.loadToolsWithFailures();
+    await jest.advanceTimersByTimeAsync(MCP_LOAD_TIMEOUT_MS);
+    const firstResult = await first;
+
+    getToolsMock.mockResolvedValueOnce([makeTool('recovered')]);
+    const secondResult = await client.loadToolsWithFailures();
+
+    expect(firstResult.failures).toEqual([
+      expect.objectContaining({ server: 'slack', kind: 'connection' }),
+    ]);
+    expect(secondResult.tools).toHaveLength(1);
+    expect(secondResult.failures).toEqual([]);
+  });
 });
 
 // authType is an executor-side routing hint; like id it must be stripped in the constructor so it

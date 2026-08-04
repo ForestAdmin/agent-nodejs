@@ -3,9 +3,25 @@ import type { Logger } from '@forestadmin/datasource-toolkit';
 
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
-import { McpConnectionError } from './errors';
+import { McpConnectionError, McpLoadTimeoutError } from './errors';
 import { type McpLoadFailureKind, classifyMcpLoadError } from './mcp-auth-error';
 import McpServerRemoteTool from './mcp-server-remote-tool';
+
+// A server that accepts the connection but never answers would otherwise keep getTools() pending
+// forever and hang the whole load (and the caller's request) until the infrastructure cuts it.
+const LOAD_TOOLS_TIMEOUT_MS = 15_000;
+
+function loadWithTimeout<T>(loading: Promise<T>, serverName: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new McpLoadTimeoutError(serverName, LOAD_TOOLS_TIMEOUT_MS)),
+      LOAD_TOOLS_TIMEOUT_MS,
+    );
+  });
+
+  return Promise.race([loading, timeout]).finally(() => clearTimeout(timer));
+}
 
 export type McpServers = MultiServerMCPClient['config']['mcpServers'];
 
@@ -62,7 +78,14 @@ export default class McpClient implements ToolProvider {
     await Promise.all(
       Object.entries(this.mcpClients).map(async ([name, client]) => {
         try {
-          const loadedTools = (await client.getTools()) ?? [];
+          const startedAt = Date.now();
+          const loadedTools = (await loadWithTimeout(client.getTools(), name)) ?? [];
+          this.logger?.(
+            'Debug',
+            `Loaded ${loadedTools.length} tools from MCP server "${name}" in ${
+              Date.now() - startedAt
+            }ms`,
+          );
           const extendedTools = loadedTools.map(
             tool =>
               new McpServerRemoteTool({
