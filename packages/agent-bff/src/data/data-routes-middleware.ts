@@ -81,11 +81,12 @@ function assertCollectionStillAllowed(readModel: ReadModel, collection: string):
 
 function resolveCapabilities(
   deps: RequestHandlerDeps,
+  collection: string,
 ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
   return callAgent(
     () =>
       deps.store.getCapabilities(
-        deps.collection,
+        collection,
         createAgentCapabilitiesFetcher({
           agentUrl: deps.agentUrl,
           token: deps.token,
@@ -111,7 +112,7 @@ async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandler
   let { primaryKeys } = deps;
 
   if (hasCapabilityConstrainedInput(validationInput)) {
-    const { capabilities, readModel } = await resolveCapabilities(deps);
+    const { capabilities, readModel } = await resolveCapabilities(deps, deps.collection);
     assertCollectionStillAllowed(readModel, deps.collection);
     assertValidAgainstCapabilities(validationInput, capabilities);
     primaryKeys = readModel.getPrimaryKeys(deps.collection);
@@ -129,7 +130,7 @@ async function handleCount(ctx: Context, body: CountRequestBody, deps: RequestHa
 
   // Count carries only a filter (no sort/projection), so that is all there is to validate.
   if (body.filter !== undefined) {
-    const { capabilities, readModel } = await resolveCapabilities(deps);
+    const { capabilities, readModel } = await resolveCapabilities(deps, deps.collection);
     assertCollectionStillAllowed(readModel, deps.collection);
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
@@ -150,6 +151,31 @@ interface RelationHandlerDeps extends RequestHandlerDeps {
 
 type RelationListHandlerDeps = RelationHandlerDeps & { primaryKeys: PrimaryKeyField[] };
 
+// The route resolved parent, relation and foreign collection against an earlier generation; a schema
+// refresh during the capabilities fetch can invalidate any of the three, so all three are re-checked
+// against the generation the capabilities belong to. The foreign name must come out unchanged: the
+// capabilities are cached under it, the agent query projects under it and the response is stamped
+// with it, so a re-targeted relation would validate one collection and serve another.
+async function resolveRelationCapabilities(
+  deps: RelationHandlerDeps,
+): Promise<{ capabilities: CapabilitiesResult; primaryKeys: PrimaryKeyField[] }> {
+  const { capabilities, readModel } = await resolveCapabilities(deps, deps.foreignCollection);
+
+  assertCollectionStillAllowed(readModel, deps.collection);
+
+  const foreignCollection = resolveForeignCollection(
+    readModel.getRelationTarget(deps.collection, deps.relation),
+  );
+
+  if (foreignCollection !== deps.foreignCollection) {
+    throw unknownRelation(`Unknown relation: ${deps.collection}.${deps.relation}`);
+  }
+
+  assertCollectionStillAllowed(readModel, foreignCollection);
+
+  return { capabilities, primaryKeys: readModel.getPrimaryKeys(foreignCollection) };
+}
+
 async function handleRelationList(
   ctx: Context,
   body: RelationListRequestBody,
@@ -160,6 +186,20 @@ async function handleRelationList(
   // browse is never checked. Plain foreign fields (no `:`) are unaffected.
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
+  const validationInput = {
+    filter: body.filter,
+    sortFields: body.sort?.map(clause => clause.field),
+    projectionFields: body.projection,
+  };
+
+  let { primaryKeys } = deps;
+
+  if (hasCapabilityConstrainedInput(validationInput)) {
+    const resolved = await resolveRelationCapabilities(deps);
+    assertValidAgainstCapabilities(validationInput, resolved.capabilities);
+    primaryKeys = resolved.primaryKeys;
+  }
+
   const query = buildListAgentQuery(deps.foreignCollection, deps.timezone, body);
   const records = await callAgent(
     () => deps.client.listRelation(deps.collection, body.parentId, deps.relation, query),
@@ -167,7 +207,7 @@ async function handleRelationList(
   );
 
   ctx.status = 200;
-  ctx.body = mapListResponse(deps.foreignCollection, records, deps.primaryKeys);
+  ctx.body = mapListResponse(deps.foreignCollection, records, primaryKeys);
 }
 
 async function handleRelationCount(
@@ -176,6 +216,11 @@ async function handleRelationCount(
   deps: RelationHandlerDeps,
 ) {
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
+
+  if (body.filter !== undefined) {
+    const { capabilities } = await resolveRelationCapabilities(deps);
+    assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
+  }
 
   const query = buildCountAgentQuery(deps.timezone, body);
   const raw = await callAgent(
