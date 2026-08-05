@@ -24,6 +24,9 @@ import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
 import createTokenCipher from './oauth/token-cipher';
+import PermissionsCache from './permissions/permissions-cache';
+import PermissionsClient from './permissions/permissions-client';
+import createPermissionsRoutesMiddleware from './permissions/permissions-routes-middleware';
 import createReadModel from './read-model/create-read-model';
 import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
@@ -172,8 +175,20 @@ function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middlewa
     logger,
   });
   const { agentUrl, agentTimeoutMs: timeoutMs } = config;
+  const permissionsCache = new PermissionsCache();
+  store.registerGenerationScopedCache(permissionsCache);
 
   return [
+    createPermissionsRoutesMiddleware({
+      store,
+      client: new PermissionsClient({
+        forestServerUrl: apiKeyConfig.forestServerUrl,
+        envSecret: apiKeyConfig.forestEnvSecret,
+      }),
+      cache: permissionsCache,
+      envSecret: apiKeyConfig.forestEnvSecret,
+      logger,
+    }),
     createDataRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
     createActionRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
   ];

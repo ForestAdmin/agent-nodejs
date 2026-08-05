@@ -2,13 +2,21 @@ export class BffHttpError extends Error {
   readonly status: number;
   readonly type: string;
   readonly details?: unknown;
+  readonly retryAfter?: number;
 
-  constructor(status: number, type: string, message: string, details?: unknown) {
+  constructor(
+    status: number,
+    type: string,
+    message: string,
+    details?: unknown,
+    retryAfter?: number,
+  ) {
     super(message);
     this.name = 'BffHttpError';
     this.status = status;
     this.type = type;
     this.details = details;
+    this.retryAfter = retryAfter;
   }
 }
 

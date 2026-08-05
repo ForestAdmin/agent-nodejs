@@ -60,6 +60,37 @@ describe('ReadModelStore', () => {
     });
   });
 
+  describe('registerGenerationScopedCache', () => {
+    it('should clear a registered cache when the schema refresh rebuilds the read-model', async () => {
+      const fetchSchema = jest
+        .fn()
+        .mockResolvedValueOnce(makeSchema('users'))
+        .mockResolvedValueOnce(makeSchema('orders'));
+      const store = build(fetchSchema);
+      const registered = { clear: jest.fn() };
+      store.registerGenerationScopedCache(registered);
+
+      await store.getReadModel();
+      const clearsAfterFirstBuild = registered.clear.mock.calls.length;
+      clock += ONE_DAY_MS;
+      await store.getReadModel();
+
+      expect(clearsAfterFirstBuild).toBe(1);
+      expect(registered.clear).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not clear a registered cache on a read-model cache hit', async () => {
+      const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
+      await store.getReadModel();
+      const registered = { clear: jest.fn() };
+      store.registerGenerationScopedCache(registered);
+
+      await store.getReadModel();
+
+      expect(registered.clear).not.toHaveBeenCalled();
+    });
+  });
+
   describe('capabilities coupling', () => {
     it('should fetch capabilities and cache them', async () => {
       const store = build(jest.fn().mockResolvedValue(makeSchema('users')));
