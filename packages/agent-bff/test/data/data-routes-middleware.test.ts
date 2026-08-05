@@ -159,7 +159,7 @@ describe('data routes middleware', () => {
         createDataRoutesMiddleware({
           store: storeOf(usersReadModel),
           agentUrl: AGENT_URL,
-          agentTimeoutMs: 2500,
+          timeoutMs: 2500,
           logger: noopLogger,
           createClient,
         }),

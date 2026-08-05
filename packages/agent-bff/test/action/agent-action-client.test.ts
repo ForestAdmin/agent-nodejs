@@ -9,12 +9,13 @@ const mockedHttpRequester = jest.mocked(HttpRequester);
 
 describe('createAgentActionClient', () => {
   const query = jest.fn();
+  const stream = jest.fn();
 
   beforeEach(() => {
     query.mockReset();
     createRemoteAgentClientMock.mockReset();
     mockedHttpRequester.mockReset();
-    mockedHttpRequester.mockImplementation(() => ({ query } as unknown as HttpRequester));
+    mockedHttpRequester.mockImplementation(() => ({ query, stream } as unknown as HttpRequester));
   });
 
   it('loads the action via createRemoteAgentClient().collection(name).action(name, { recordIds })', async () => {

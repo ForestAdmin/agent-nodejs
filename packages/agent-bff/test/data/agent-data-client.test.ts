@@ -8,12 +8,13 @@ const mockedHttpRequester = jest.mocked(HttpRequester);
 
 describe('createAgentDataClient', () => {
   const query = jest.fn();
+  const stream = jest.fn();
 
   beforeEach(() => {
     query.mockReset();
     query.mockResolvedValue([]);
     mockedHttpRequester.mockReset();
-    mockedHttpRequester.mockImplementation(() => ({ query } as unknown as HttpRequester));
+    mockedHttpRequester.mockImplementation(() => ({ query, stream } as unknown as HttpRequester));
   });
 
   it('should build the requester with the agent url and token', () => {

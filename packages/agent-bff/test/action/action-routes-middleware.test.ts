@@ -151,6 +151,65 @@ function buildAppWithTerminal(client: AgentActionClient) {
 }
 
 describe('action routes middleware', () => {
+  it('forwards the configured agent timeout to the action client', async () => {
+    const createClient = jest.fn(
+      () => clientOf(makeAction({ fields: [], layout: [], skipped: [] })) as AgentActionClient,
+    );
+    const app = new Koa();
+    app.silent = true;
+    app.use(createErrorMiddleware({ logger: noopLogger }));
+    app.use(bodyParser());
+    app.use(async (ctx, next) => {
+      ctx.state.timezone = TIMEZONE;
+      ctx.state.agentToken = 'agent-jwt';
+      await next();
+    });
+    app.use(
+      createActionRoutesMiddleware({
+        store: storeOf(readModel),
+        agentUrl: 'https://agent.example.com',
+        timeoutMs: 2500,
+        logger: noopLogger,
+        createClient,
+      }),
+    );
+
+    await request(app.callback())
+      .post('/agent/v1/users/actions/approve/form')
+      .send({ recordIds: ['42'], values: {} });
+
+    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 2500 }));
+  });
+
+  it('leaves the action client timeout undefined when none is configured', async () => {
+    const createClient = jest.fn(
+      () => clientOf(makeAction({ fields: [], layout: [], skipped: [] })) as AgentActionClient,
+    );
+    const app = new Koa();
+    app.silent = true;
+    app.use(createErrorMiddleware({ logger: noopLogger }));
+    app.use(bodyParser());
+    app.use(async (ctx, next) => {
+      ctx.state.timezone = TIMEZONE;
+      ctx.state.agentToken = 'agent-jwt';
+      await next();
+    });
+    app.use(
+      createActionRoutesMiddleware({
+        store: storeOf(readModel),
+        agentUrl: 'https://agent.example.com',
+        logger: noopLogger,
+        createClient,
+      }),
+    );
+
+    await request(app.callback())
+      .post('/agent/v1/users/actions/approve/form')
+      .send({ recordIds: ['42'], values: {} });
+
+    expect(createClient).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: undefined }));
+  });
+
   it('returns the full form shape with fields, canExecute, requiredFields, skippedFields and layout', async () => {
     const form = makeAction({
       fields: [{ name: 'reason', type: 'String', value: null, isRequired: true }],

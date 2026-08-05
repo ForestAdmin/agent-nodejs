@@ -171,11 +171,11 @@ function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middlewa
     envSecret: apiKeyConfig.forestEnvSecret,
     logger,
   });
-  const { agentUrl, agentTimeoutMs } = config;
+  const { agentUrl, agentTimeoutMs: timeoutMs } = config;
 
   return [
-    createDataRoutesMiddleware({ store, agentUrl, agentTimeoutMs, logger }),
-    createActionRoutesMiddleware({ store, agentUrl, agentTimeoutMs, logger }),
+    createDataRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
+    createActionRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
   ];
 }
 

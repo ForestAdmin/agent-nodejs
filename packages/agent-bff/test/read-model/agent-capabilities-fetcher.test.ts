@@ -9,12 +9,13 @@ const mockedHttpRequester = jest.mocked(HttpRequester);
 
 describe('createAgentCapabilitiesFetcher', () => {
   const query = jest.fn();
+  const stream = jest.fn();
 
   beforeEach(() => {
     query.mockReset();
     createRemoteAgentClientMock.mockReset();
     mockedHttpRequester.mockReset();
-    mockedHttpRequester.mockImplementation(() => ({ query } as unknown as HttpRequester));
+    mockedHttpRequester.mockImplementation(() => ({ query, stream } as unknown as HttpRequester));
   });
 
   it('should build a client for the agent url/token and fetch capabilities per collection', async () => {
