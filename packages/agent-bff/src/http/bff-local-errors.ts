@@ -48,6 +48,17 @@ export function openapiDisabled(message = 'The OpenAPI document is not served'):
   return new BffHttpError(404, 'openapi_disabled', message);
 }
 
+export function forestIdentityNotAllowed(message = 'Forest identity not allowed'): BffHttpError {
+  return new BffHttpError(403, 'forest_identity_not_allowed', message);
+}
+
+export function permissionsUnavailable(
+  retryAfter: number,
+  message = 'Permissions are unavailable',
+): BffHttpError {
+  return new BffHttpError(503, 'permissions_unavailable', message, undefined, retryAfter);
+}
+
 export function actionRequiresApproval(
   message = 'This action requires an approval before it can run',
   details?: unknown,
