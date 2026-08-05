@@ -1,4 +1,5 @@
 import type { AiModelPort, GetModelOptions } from '../ports/ai-model-port';
+import type { Logger } from '../ports/logger-port';
 import type {
   AiConfiguration,
   BaseChatModel,
@@ -10,13 +11,17 @@ import type {
 import { AiClient } from '@forestadmin/ai-proxy';
 
 import { AiModelPortError, WorkflowExecutorError } from '../errors';
+import toAiProxyLogger from './to-ai-proxy-logger';
 
 export default class AiClientAdapter implements AiModelPort {
   private readonly aiClient: AiClient;
 
-  constructor(aiConfigurations: AiConfiguration[]) {
+  constructor(aiConfigurations: AiConfiguration[], logger?: Logger) {
     const withRetries = aiConfigurations.map(c => ({ maxRetries: 2, ...c }));
-    this.aiClient = new AiClient({ aiConfigurations: withRetries as AiConfiguration[] });
+    this.aiClient = new AiClient({
+      aiConfigurations: withRetries as AiConfiguration[],
+      logger: logger ? toAiProxyLogger(logger) : undefined,
+    });
   }
 
   getModel({ aiConfigName }: GetModelOptions = {}): BaseChatModel {

@@ -1,17 +1,25 @@
+import type { AiProxyLogger } from '../../src/adapters/to-ai-proxy-logger';
+import type { Logger } from '../../src/ports/logger-port';
+
 import AiClientAdapter from '../../src/adapters/ai-client-adapter';
 
 const mockGetModel = jest.fn().mockReturnValue({ invoke: jest.fn() });
 const mockLoadRemoteTools = jest.fn().mockResolvedValue([]);
 const mockLoadRemoteToolsWithFailures = jest.fn().mockResolvedValue({ tools: [], failures: [] });
 const mockCloseConnections = jest.fn().mockResolvedValue(undefined);
+const mockAiClientConstructor = jest.fn();
 
 jest.mock('@forestadmin/ai-proxy', () => ({
-  AiClient: jest.fn().mockImplementation(() => ({
-    getModel: mockGetModel,
-    loadRemoteTools: mockLoadRemoteTools,
-    loadRemoteToolsWithFailures: mockLoadRemoteToolsWithFailures,
-    closeConnections: mockCloseConnections,
-  })),
+  AiClient: jest.fn().mockImplementation((...args: unknown[]) => {
+    mockAiClientConstructor(...args);
+
+    return {
+      getModel: mockGetModel,
+      loadRemoteTools: mockLoadRemoteTools,
+      loadRemoteToolsWithFailures: mockLoadRemoteToolsWithFailures,
+      closeConnections: mockCloseConnections,
+    };
+  }),
 }));
 
 describe('AiClientAdapter', () => {
@@ -61,5 +69,31 @@ describe('AiClientAdapter', () => {
     await adapter.closeConnections();
 
     expect(mockCloseConnections).toHaveBeenCalled();
+  });
+
+  describe('logger', () => {
+    const buildAdapter = (logger?: Logger) => new AiClientAdapter([], logger);
+
+    const aiProxyLoggerGivenToClient = () =>
+      (mockAiClientConstructor.mock.calls[0][0] as { logger?: AiProxyLogger }).logger;
+
+    it("routes ai-proxy's MCP diagnostics to the executor logger with the cause flattened", () => {
+      const executorLogger = jest.fn();
+      buildAdapter(executorLogger);
+      const cause = new Error('401 Unauthorized');
+
+      aiProxyLoggerGivenToClient()?.('Error', 'Error loading tools for notion', cause);
+
+      expect(executorLogger).toHaveBeenCalledWith('Error', 'Error loading tools for notion', {
+        error: '401 Unauthorized',
+        stack: cause.stack,
+      });
+    });
+
+    it('leaves AiClient without a logger when the adapter is built without one', () => {
+      buildAdapter();
+
+      expect(aiProxyLoggerGivenToClient()).toBeUndefined();
+    });
   });
 });

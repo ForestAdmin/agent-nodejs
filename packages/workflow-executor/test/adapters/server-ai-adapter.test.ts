@@ -1,3 +1,6 @@
+import type { AiProxyLogger } from '../../src/adapters/to-ai-proxy-logger';
+import type { Logger } from '../../src/ports/logger-port';
+
 import ServerAiAdapter from '../../src/adapters/server-ai-adapter';
 
 const mockGetModel = jest.fn().mockReturnValue({ id: 'fake-model' });
@@ -150,6 +153,56 @@ describe('ServerAiAdapter', () => {
       await adapter.closeConnections();
 
       expect(mockCloseConnections).toHaveBeenCalled();
+    });
+  });
+
+  describe('logger', () => {
+    const buildAdapterWithLogger = (logger: Logger) =>
+      new ServerAiAdapter({
+        forestServerUrl: 'https://api.forestadmin.com',
+        envSecret: ENV_SECRET,
+        logger,
+      });
+
+    const aiProxyLoggerGivenToLatestClient = () => {
+      const { calls } = mockAiClientConstructor.mock;
+
+      return (calls[calls.length - 1][0] as { logger?: AiProxyLogger }).logger;
+    };
+
+    it("routes ai-proxy's MCP diagnostics to the executor logger with the cause flattened", () => {
+      const executorLogger = jest.fn();
+      buildAdapterWithLogger(executorLogger);
+      const cause = new Error('401 Unauthorized');
+
+      aiProxyLoggerGivenToLatestClient()?.('Error', 'Error loading tools for notion', cause);
+
+      expect(executorLogger).toHaveBeenCalledWith('Error', 'Error loading tools for notion', {
+        error: '401 Unauthorized',
+        stack: cause.stack,
+      });
+    });
+
+    it('also gives the per-call AiClient built by getModel the executor logger', () => {
+      const executorLogger = jest.fn();
+      buildAdapterWithLogger(executorLogger).getModel({ userId: 42 });
+
+      aiProxyLoggerGivenToLatestClient()?.(
+        'Warn',
+        "AI configuration 'x' not found. Falling back to 'forest-server'",
+      );
+
+      expect(executorLogger).toHaveBeenCalledWith(
+        'Warn',
+        "AI configuration 'x' not found. Falling back to 'forest-server'",
+      );
+    });
+
+    // The adapter built in beforeEach carries no logger option.
+    it('leaves AiClient without a logger when none is configured', () => {
+      const params = mockAiClientConstructor.mock.calls[0][0] as { logger?: AiProxyLogger };
+
+      expect(params.logger).toBeUndefined();
     });
   });
 });
