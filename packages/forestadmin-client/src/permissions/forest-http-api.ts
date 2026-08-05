@@ -177,12 +177,12 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     workflowId: string,
     recordId: string,
   ): Promise<WorkflowRunTriggerResult> {
-    // The orchestrator returns a numeric runId; normalize it to the string form
-    // expected by getMcpWorkflowRun.
-    const result = await ServerUtils.queryWithBearerToken<{
-      runId: number | string;
-      runState: WorkflowRunTriggerResult['runState'];
-    }>({
+    // The orchestrator returns a numeric runId; normalize it to the string form expected by
+    // getMcpWorkflowRun. workflowName/collectionName are passed through when present so the
+    // caller can label the audit log without listing every workflow first.
+    const result = await ServerUtils.queryWithBearerToken<
+      Omit<WorkflowRunTriggerResult, 'runId'> & { runId: number | string }
+    >({
       forestServerUrl: options.forestServerUrl,
       method: 'post',
       path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}/start`,
@@ -191,7 +191,7 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       headers: { 'forest-rendering-id': renderingId, ...options.headers },
     });
 
-    return { runId: String(result.runId), runState: result.runState };
+    return { ...result, runId: String(result.runId) };
   }
 
   async getMcpWorkflowRun(
