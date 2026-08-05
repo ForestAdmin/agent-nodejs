@@ -135,7 +135,7 @@ List bare domains only — unicode domains are matched through their punycode fo
 
 Every other client is rejected with a standard `invalid_client` error telling the user to contact their administrator; the response does not reveal the allowed domains. Registration itself still succeeds — it happens on the Forest Admin server — the client just cannot use it against this server. Access tokens issued before you enabled the option stay valid until they expire (1 hour at most); refreshes are blocked immediately.
 
-Native desktop clients (Claude Desktop, MCP Inspector, ...) register loopback (`localhost`) redirect URIs, so they are always rejected when the allowlist is set. There is deliberately no loopback exemption: allowing `localhost` would allow every local application. Omit the option in environments that need native clients (e.g. development).
+Native desktop clients (Claude Desktop, MCP Inspector, ...) register loopback (`localhost`) redirect URIs, which a domain allowlist never matches — they are rejected unless you explicitly list `localhost`, which would admit **every** local application and defeats the restriction. Omit the option in environments that need native clients (e.g. development).
 
 ## Shorten Token Lifetimes
 

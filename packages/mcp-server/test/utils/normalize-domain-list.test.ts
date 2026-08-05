@@ -40,4 +40,12 @@ describe('normalizeDomainList', () => {
   it('should throw on an entry containing whitespace', () => {
     expect(() => normalizeDomainList(['dust tt'])).toThrow(/bare domains/);
   });
+
+  it('should throw on url-delimiter characters instead of normalizing to the wrong domain', () => {
+    expect(() => normalizeDomainList(['approved.example@attacker.example'])).toThrow(
+      /bare domains/,
+    );
+    expect(() => normalizeDomainList(['dust.tt?x'])).toThrow(/bare domains/);
+    expect(() => normalizeDomainList(['dust.tt#x'])).toThrow(/bare domains/);
+  });
 });

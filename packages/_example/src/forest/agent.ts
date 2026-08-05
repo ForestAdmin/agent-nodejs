@@ -37,7 +37,8 @@ export default function makeAgent() {
   };
 
   const rawAllowedOAuthClients = process.env.FOREST_MCP_ALLOWED_OAUTH_CLIENTS;
-  // A set-but-blank value stays an empty list so the agent fails closed at startup.
+  // Unset or '' means not configured; a set value with no domains stays an empty
+  // list so the agent fails closed at startup. Mirrors the standalone CLI parser.
   const allowedOAuthClients = rawAllowedOAuthClients
     ? rawAllowedOAuthClients
         .split(',')

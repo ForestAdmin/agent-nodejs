@@ -11,7 +11,8 @@ export default function normalizeDomainList(domains?: string[]): string[] | unde
   }
 
   return entries.map(entry => {
-    if (/[/:\s]/.test(entry)) {
+    // '@' would make URL parse everything before it as userinfo and return the wrong hostname.
+    if (/[/:@?#\s]/.test(entry)) {
       throw new Error(
         `Invalid allowedOAuthClients entry "${entry}": list bare domains (e.g. dust.tt) ` +
           'without scheme, port, path, or spaces.',
