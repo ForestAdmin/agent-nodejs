@@ -21,6 +21,10 @@ describe('normalizeDomainList', () => {
     expect(normalizeDomainList(['bücher.de'])).toEqual(['xn--bcher-kva.de']);
   });
 
+  it('should drop the root dot of an fqdn-style entry', () => {
+    expect(normalizeDomainList(['dust.tt.'])).toEqual(['dust.tt']);
+  });
+
   it('should throw on an empty list', () => {
     expect(() => normalizeDomainList([])).toThrow(/allowedOAuthClients/);
   });

@@ -23,7 +23,9 @@ export default function normalizeDomainList(domains?: string[]): string[] | unde
     try {
       // URL canonicalizes the host to lowercase punycode — the same form the provider
       // extracts from redirect URIs at enforcement time, so unicode entries match.
-      return new URL(`https://${entry}`).hostname;
+      // The root dot of an FQDN-style entry is dropped: redirect URI hostnames never
+      // carry one, so keeping it would silently reject every client for that domain.
+      return new URL(`https://${entry}`).hostname.replace(/\.$/, '');
     } catch {
       throw new Error(`Invalid allowedOAuthClients entry "${entry}": not a valid domain.`);
     }
