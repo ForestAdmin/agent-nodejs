@@ -1,3 +1,10 @@
+## @forestadmin/agent-bff [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.9.0...@forestadmin/agent-bff@1.9.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **agent-bff:** wrap action errors in the standard error envelope ([#1799](https://github.com/ForestAdmin/agent-nodejs/issues/1799)) ([e660395](https://github.com/ForestAdmin/agent-nodejs/commit/e660395b1ba3117ce2345329c9f55dd47effeef0))
+
 # @forestadmin/agent-bff [1.9.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.8.6...@forestadmin/agent-bff@1.9.0) (2026-08-04)
 
 
