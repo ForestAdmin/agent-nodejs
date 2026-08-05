@@ -114,7 +114,7 @@ describe('declareTriggerWorkflowTool', () => {
       mockForestServerClient.listMcpWorkflows.mockResolvedValue([
         { workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' },
       ]);
-      mockForestServerClient.triggerWorkflow.mockResolvedValue({ runId: 7, runState: 'loading' });
+      mockForestServerClient.triggerWorkflow.mockResolvedValue({ runId: '7', runState: 'loading' });
     });
 
     it('should call triggerWorkflow with the identity from the auth context and the args', async () => {
@@ -132,7 +132,7 @@ describe('declareTriggerWorkflowTool', () => {
       const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
       expect(result).toEqual({
-        content: [{ type: 'text', text: JSON.stringify({ runId: 7, runState: 'loading' }) }],
+        content: [{ type: 'text', text: JSON.stringify({ runId: '7', runState: 'loading' }) }],
       });
     });
 

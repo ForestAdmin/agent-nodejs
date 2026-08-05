@@ -131,7 +131,7 @@ describe('ForestServerClientImpl', () => {
 
   describe('triggerWorkflow', () => {
     it('should delegate to workflowsService.triggerMcpWorkflow()', async () => {
-      const run = { runId: 7, runState: 'loading' as const };
+      const run = { runId: '7', runState: 'loading' as const };
       mockWorkflowsService.triggerMcpWorkflow.mockResolvedValue(run);
 
       const params = {

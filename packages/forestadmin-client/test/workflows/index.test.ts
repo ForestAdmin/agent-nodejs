@@ -91,7 +91,7 @@ describe('WorkflowsService', () => {
   describe('triggerMcpWorkflow', () => {
     it('should forward the identity, workflowId and recordId to the transport and return the run', async () => {
       mockForestAdminServerInterface.triggerMcpWorkflow.mockResolvedValue({
-        runId: 7,
+        runId: '7',
         runState: 'loading',
       });
 
@@ -103,7 +103,7 @@ describe('WorkflowsService', () => {
         recordId: '42',
       });
 
-      expect(result).toEqual({ runId: 7, runState: 'loading' });
+      expect(result).toEqual({ runId: '7', runState: 'loading' });
       expect(mockForestAdminServerInterface.triggerMcpWorkflow).toHaveBeenCalledWith(
         { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
         '12345',
@@ -114,7 +114,7 @@ describe('WorkflowsService', () => {
 
     it('should pass custom headers when provided', async () => {
       mockForestAdminServerInterface.triggerMcpWorkflow.mockResolvedValue({
-        runId: 7,
+        runId: '7',
         runState: 'loading',
       });
 

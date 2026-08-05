@@ -306,9 +306,10 @@ export type WorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | '
 
 /**
  * The outcome of starting a workflow run: the run continues asynchronously server-side.
+ * `runId` is normalized to a string so it can be fed back to `getMcpWorkflowRun` as-is.
  */
 export interface WorkflowRunTriggerResult {
-  runId: number;
+  runId: string;
   runState: WorkflowRunState;
 }
 

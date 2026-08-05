@@ -248,8 +248,10 @@ describe('ForestHttpApi', () => {
 
   describe('triggerMcpWorkflow', () => {
     it('should POST the record id to the workflow start endpoint with the rendering id header', async () => {
-      const run = { runId: 7, runState: 'loading' };
-      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue(run);
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        runId: 7,
+        runState: 'loading',
+      });
 
       const result = await new ForestHttpApi().triggerMcpWorkflow(
         { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
@@ -266,7 +268,23 @@ describe('ForestHttpApi', () => {
         body: { recordId: '42' },
         headers: { 'forest-rendering-id': '12345' },
       });
-      expect(result).toEqual(run);
+      expect(result).toEqual({ runId: '7', runState: 'loading' });
+    });
+
+    it('should normalize a numeric runId returned by the server to a string', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        runId: 7,
+        runState: 'loading',
+      });
+
+      const result = await new ForestHttpApi().triggerMcpWorkflow(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        'wf-1',
+        '42',
+      );
+
+      expect(result.runId).toBe('7');
     });
 
     it('should url-encode the workflow id in the path', async () => {

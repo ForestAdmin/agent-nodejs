@@ -177,7 +177,12 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     workflowId: string,
     recordId: string,
   ): Promise<WorkflowRunTriggerResult> {
-    return ServerUtils.queryWithBearerToken<WorkflowRunTriggerResult>({
+    // The orchestrator returns a numeric runId; normalize it to the string form
+    // expected by getMcpWorkflowRun.
+    const result = await ServerUtils.queryWithBearerToken<{
+      runId: number | string;
+      runState: WorkflowRunTriggerResult['runState'];
+    }>({
       forestServerUrl: options.forestServerUrl,
       method: 'post',
       path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}/start`,
@@ -185,6 +190,8 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       body: { recordId },
       headers: { 'forest-rendering-id': renderingId, ...options.headers },
     });
+
+    return { runId: String(result.runId), runState: result.runState };
   }
 
   async getMcpWorkflowRun(

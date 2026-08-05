@@ -23,7 +23,7 @@ describe('ForestAdminClientMock', () => {
           workflowId: 'wf-1',
           recordId: '42',
         }),
-      ).resolves.toEqual({ runId: 1, runState: 'loading' });
+      ).resolves.toEqual({ runId: '1', runState: 'loading' });
     });
 
     it('should resolve a loading run status when fetching a workflow run', async () => {
