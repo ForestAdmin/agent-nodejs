@@ -9,8 +9,8 @@ describe('parseDomainList', () => {
     expect(parseDomainList('')).toBeUndefined();
   });
 
-  it('should return undefined when env value contains no domains, only separators', () => {
-    expect(parseDomainList(' , ,')).toBeUndefined();
+  it('should return an empty list for a set value with only separators, failing closed downstream', () => {
+    expect(parseDomainList(' , ,')).toEqual([]);
   });
 
   it('should parse comma-separated domains', () => {

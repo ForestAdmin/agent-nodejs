@@ -37,6 +37,7 @@ import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
+import normalizeDomainList from './utils/normalize-domain-list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import normalizeTokenTtl from './utils/token-ttl';
@@ -192,14 +193,7 @@ export default class ForestMCPServer {
     this.agentDispatcher = options?.agentDispatcher;
     this.tokenTtl = normalizeTokenTtl(options?.tokenTtl, this.logger);
 
-    if (options?.allowedOAuthClients && options.allowedOAuthClients.length === 0) {
-      throw new Error(
-        'Invalid allowedOAuthClients: an empty list would reject every OAuth client. ' +
-          'List at least one domain, or omit the option to accept any registered client.',
-      );
-    }
-
-    this.allowedOAuthClients = options?.allowedOAuthClients;
+    this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();

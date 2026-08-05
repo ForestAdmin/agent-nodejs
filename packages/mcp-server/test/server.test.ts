@@ -3085,6 +3085,46 @@ describe('allowedOAuthClients option', () => {
         }),
     ).toThrow(/allowedOAuthClients/);
   });
+
+  it('rejects a blank-only allowlist at construction rather than silently blocking every client', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          allowedOAuthClients: ['  '],
+        }),
+    ).toThrow(/allowedOAuthClients/);
+  });
+
+  it('rejects an allowlist entry carrying a scheme at construction', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          allowedOAuthClients: ['https://dust.tt'],
+        }),
+    ).toThrow(/bare domains/);
+  });
+
+  it('matches a unicode allowlist entry against its punycode hostname', async () => {
+    stubForestServer(['https://xn--bcher-kva.de/oauth/callback']);
+    const server = createRestrictedServer(['bücher.de']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'authorization_code',
+      code: 'auth-code',
+      code_verifier: 'code-verifier',
+      client_id: 'test-client',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.access_token).toBeDefined();
+  });
 });
 
 describe('handleMcpRequest cleanup', () => {

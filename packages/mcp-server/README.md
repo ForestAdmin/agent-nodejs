@@ -131,6 +131,8 @@ npx forest-mcp-server
 
 A client is allowed only when **every** redirect URI it registered is an `http(s)` URI on a listed domain or one of its subdomains (`dust.tt` matches `eu.dust.tt`); custom schemes are rejected because they deliver the callback to whatever local application registered them, regardless of hostname. Matching uses redirect URIs because they are the one piece of registration metadata an impostor cannot benefit from — the authorization code is only ever delivered there. Self-declared fields such as the client name are ignored.
 
+List bare domains only — unicode domains are matched through their punycode form. An entry with a scheme, port, path, or spaces fails at startup, as does a configured value containing no domains at all: the allowlist never silently falls back to accepting or rejecting everyone on a malformed configuration.
+
 Every other client is rejected with a standard `invalid_client` error telling the user to contact their administrator; the response does not reveal the allowed domains. Registration itself still succeeds — it happens on the Forest Admin server — the client just cannot use it against this server. Access tokens issued before you enabled the option stay valid until they expire (1 hour at most); refreshes are blocked immediately.
 
 Native desktop clients (Claude Desktop, MCP Inspector, ...) register loopback (`localhost`) redirect URIs, so they are always rejected when the allowlist is set. There is deliberately no loopback exemption: allowing `localhost` would allow every local application. Omit the option in environments that need native clients (e.g. development).
