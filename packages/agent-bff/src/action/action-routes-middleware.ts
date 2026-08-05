@@ -19,7 +19,12 @@ import {
   requireAgentToken,
   resolveReadModel,
 } from '../http/agent-route-helpers';
-import { actionRequiresApproval, invalidRequest, unknownAction } from '../http/bff-local-errors';
+import {
+  actionError,
+  actionRequiresApproval,
+  invalidRequest,
+  unknownAction,
+} from '../http/bff-local-errors';
 
 const ACTION_ROUTE = /^\/agent\/v1\/([^/]+)\/actions\/([^/]+)\/(form|execute)$/;
 
@@ -134,10 +139,7 @@ async function handleExecute(
     }
 
     if (error instanceof ActionFormValidationError) {
-      ctx.status = 400;
-      ctx.body = { type: 'error', status: 400, message: error.message, html: error.html ?? null };
-
-      return;
+      throw actionError(error.message, error.html !== undefined ? { html: error.html } : undefined);
     }
 
     throw mapAgentError(error, { logger });
