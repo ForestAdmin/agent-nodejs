@@ -47,5 +47,6 @@ describe('normalizeDomainList', () => {
     );
     expect(() => normalizeDomainList(['dust.tt?x'])).toThrow(/bare domains/);
     expect(() => normalizeDomainList(['dust.tt#x'])).toThrow(/bare domains/);
+    expect(() => normalizeDomainList(['dust.tt\\unexpected'])).toThrow(/bare domains/);
   });
 });
