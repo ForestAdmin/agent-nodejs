@@ -183,18 +183,17 @@ describe('ServerAiAdapter', () => {
       });
     });
 
-    it('also gives the per-call AiClient built by getModel the executor logger', () => {
+    // Wiring only: the captured logger is invoked directly, since a client built for a single
+    // unnamed configuration reaches none of AiClient's own emit sites.
+    it('wires the same logger into the per-call AiClient built by getModel', () => {
       const executorLogger = jest.fn();
       buildAdapterWithLogger(executorLogger).getModel({ userId: 42 });
 
-      aiProxyLoggerGivenToLatestClient()?.(
-        'Warn',
-        "AI configuration 'x' not found. Falling back to 'forest-server'",
-      );
+      aiProxyLoggerGivenToLatestClient()?.('Warn', 'Error during remote tool connection cleanup');
 
       expect(executorLogger).toHaveBeenCalledWith(
         'Warn',
-        "AI configuration 'x' not found. Falling back to 'forest-server'",
+        'Error during remote tool connection cleanup',
       );
     });
 

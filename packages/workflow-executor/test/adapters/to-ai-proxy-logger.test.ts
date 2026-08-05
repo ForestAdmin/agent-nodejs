@@ -60,6 +60,21 @@ describe('toAiProxyLogger', () => {
       spy.mockRestore();
     });
 
+    // A wrapped `TypeError: fetch failed` is the difference between "server unreachable" and "401".
+    it('reports the cause of a wrapped error alongside its own message', () => {
+      const wrapped = Object.assign(new Error('fetch failed'), {
+        cause: new Error('ECONNREFUSED 127.0.0.1:9100'),
+      });
+
+      aiProxyLogger('Error', 'Error loading tools for notion', wrapped);
+
+      expect(logger).toHaveBeenCalledWith('Error', 'Error loading tools for notion', {
+        error: 'fetch failed',
+        cause: 'ECONNREFUSED 127.0.0.1:9100',
+        stack: wrapped.stack,
+      });
+    });
+
     it('reports a stackless Error by its message alone', () => {
       const cause = new Error('boom');
       delete cause.stack;
@@ -100,6 +115,23 @@ describe('toAiProxyLogger', () => {
         ],
         ['Warn', 'Unsupported integration: stripe'],
       ]);
+    });
+  });
+
+  // ai-proxy logs from inside its catch blocks before recording the failure, so a throw here would
+  // fail a whole tool load — including the OAuth reauth path — instead of one server's load.
+  describe('when the host logger throws', () => {
+    it('keeps the throw away from ai-proxy, with and without a cause', () => {
+      const throwing = jest.fn(() => {
+        throw new Error('host logger exploded');
+      });
+      const guarded = toAiProxyLogger(throwing);
+
+      expect(() =>
+        guarded('Error', 'Error loading tools for notion', new Error('401 Unauthorized')),
+      ).not.toThrow();
+      expect(() => guarded('Warn', 'Unsupported integration: stripe')).not.toThrow();
+      expect(throwing).toHaveBeenCalledTimes(2);
     });
   });
 

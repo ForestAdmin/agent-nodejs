@@ -9,11 +9,24 @@ export type AiProxyLogger = (level: LoggerLevel, message: string, error?: Error)
 // with the cause silently stripped — flatten it the way the rest of the executor logs causes.
 export default function toAiProxyLogger(logger: Logger): AiProxyLogger {
   return (level, message, error) => {
-    if (error === undefined || error === null) return logger(level, message);
+    // ai-proxy logs from inside its catch blocks before recording the failure it caught, so a host
+    // logger that throws here would abort a whole tool load instead of one server's.
+    try {
+      if (error === undefined || error === null) {
+        logger(level, message);
 
-    return logger(level, message, {
-      error: extractErrorMessage(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+        return;
+      }
+
+      const { cause } = error as { cause?: unknown };
+
+      logger(level, message, {
+        error: extractErrorMessage(error),
+        cause: extractErrorMessage(cause),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    } catch {
+      // A broken logger must not become control flow.
+    }
   };
 }
