@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.12.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.3...@forestadmin/ai-proxy@1.12.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* **ai-proxy:** bound mcp tool loading with a per-server 15s timeout ([#1798](https://github.com/ForestAdmin/agent-nodejs/issues/1798)) ([4f1566e](https://github.com/ForestAdmin/agent-nodejs/commit/4f1566ed25e585296a451f36f25db77adb27702a))
+
 ## @forestadmin/ai-proxy [1.12.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.2...@forestadmin/ai-proxy@1.12.3) (2026-07-24)
 
 
