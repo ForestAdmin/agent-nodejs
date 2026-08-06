@@ -1,0 +1,508 @@
+import type BFFHttpServer from '../../src/http/bff-http-server';
+import type { Logger } from '../../src/ports/logger-port';
+
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'fs';
+import http from 'http';
+import { tmpdir } from 'os';
+import path from 'path';
+import request from 'supertest';
+
+import dispatchCli, {
+  DEFAULT_OUTPUT_FILE,
+  HINT,
+  USAGE,
+  printOpenApi,
+} from '../../src/cli-dispatch';
+import { issueBffAccessToken } from '../../src/oauth/bff-token';
+import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
+import version from '../../src/version';
+
+const VALID_ENV = {
+  FOREST_AUTH_SECRET: 'auth-secret',
+  FOREST_ENV_SECRET: 'env-secret',
+  FOREST_SERVER_URL: 'https://api.forestadmin.com',
+  FOREST_APP_URL: 'https://app.forestadmin.com',
+  AGENT_URL: 'https://agent.example.com',
+  HTTP_PORT: '0',
+} satisfies NodeJS.ProcessEnv;
+
+const noopLogger: Logger = () => undefined;
+
+function capture(): { write: (chunk: string) => void; text: () => string } {
+  const chunks: string[] = [];
+
+  return { write: chunk => chunks.push(chunk), text: () => chunks.join('') };
+}
+
+describe('printOpenApi', () => {
+  it('should write a parseable OpenAPI 3.1 document', () => {
+    const output = capture();
+    printOpenApi(output.write);
+
+    expect(JSON.parse(output.text()).openapi).toBe('3.1.0');
+  });
+
+  it('should end with a newline, so the output pipes cleanly', () => {
+    const output = capture();
+    printOpenApi(output.write);
+
+    expect(output.text().endsWith('\n')).toBe(true);
+  });
+});
+
+describe('dispatchCli', () => {
+  describe('when the openapi subcommand is given', () => {
+    it('should emit the document, exit 0, and never bind a socket', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const listen = jest.spyOn(http.Server.prototype, 'listen');
+
+      try {
+        const outcome = await dispatchCli(['openapi'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(JSON.parse(stdout.mock.calls[0][0] as string).openapi).toBe('3.1.0');
+        expect(listen).not.toHaveBeenCalled();
+      } finally {
+        listen.mockRestore();
+        stdout.mockRestore();
+      }
+    });
+
+    it('should emit the document with no configuration at all, since export needs none', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+      try {
+        await dispatchCli(['openapi'], {}, noopLogger);
+
+        const document = JSON.parse(stdout.mock.calls[0][0] as string);
+
+        expect(Object.keys(document.paths)).toHaveLength(6);
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+  });
+
+  describe('when the export is piped to a file or another tool', () => {
+    it('should write nothing to stdout but the document, since console.info also targets stdout', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const info = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+
+      try {
+        await dispatchCli(['openapi'], {}, noopLogger);
+
+        expect(info).not.toHaveBeenCalled();
+        expect(stdout).toHaveBeenCalledTimes(1);
+      } finally {
+        stdout.mockRestore();
+        info.mockRestore();
+      }
+    });
+  });
+
+  describe('when no subcommand is given', () => {
+    it('should boot the server, preserving the packaged bin behavior', async () => {
+      const outcome = await dispatchCli([], VALID_ENV, noopLogger);
+
+      try {
+        expect(outcome.exitCode).toBe(0);
+        expect(outcome.server).toBeDefined();
+      } finally {
+        await outcome.server?.stop();
+      }
+    });
+  });
+
+  describe.each([
+    ['--help', '--help'],
+    ['-h', '-h'],
+  ])('when %s is given', (_, flag) => {
+    it('should print usage on stdout and exit 0, as POSIX expects for a help request', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli([flag], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(stdout.mock.calls.map(call => call[0]).join('')).toBe(`${USAGE}\n`);
+        expect(stderr).not.toHaveBeenCalled();
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  describe.each([
+    ['--version', '--version'],
+    ['-v', '-v'],
+  ])('when %s is given', (_, flag) => {
+    it('should print the bare version on stdout and exit 0', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli([flag], {}, noopLogger);
+        const printed = stdout.mock.calls.map(call => call[0]).join('');
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(printed).toBe(`${version}\n`);
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+  });
+
+  describe('when a command fails', () => {
+    it('should point at --help rather than dump the whole usage on stderr', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        await dispatchCli(['bogus'], {}, noopLogger);
+        const written = stderr.mock.calls.map(call => call[0]).join('');
+
+        expect(written).toBe(`Unknown command: bogus\n${HINT}\n`);
+        expect(written.split('\n')).toHaveLength(3);
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  describe('when openapi is given extra arguments', () => {
+    it('should name the extra arguments rather than echo the whole command line', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['openapi', 'extra', 'more'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 1 });
+        expect(stderr.mock.calls.map(call => call[0]).join('')).toBe(
+          `openapi accepts only --output, got: "extra" "more"\n${HINT}\n`,
+        );
+        expect(stdout).not.toHaveBeenCalled();
+      } finally {
+        stderr.mockRestore();
+        stdout.mockRestore();
+      }
+    });
+  });
+
+  describe.each([
+    ['--help', '--help'],
+    ['--version', '--version'],
+  ])('when %s is given an extra argument', (_, flag) => {
+    it('should still answer and exit 0, since GNU tools ignore what follows a help request', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli([flag, 'extra'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(stdout).toHaveBeenCalled();
+        expect(stderr).not.toHaveBeenCalled();
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  describe('when an unknown subcommand is given', () => {
+    it('should exit non-zero with the usage line on stderr', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['bogus'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 1 });
+        expect(stderr.mock.calls.map(call => call[0]).join('')).toBe(
+          `Unknown command: bogus\n${HINT}\n`,
+        );
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+
+    it('should report it as unknown even with extra arguments, not as taking none', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['bogus', 'extra'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 1 });
+        expect(stderr.mock.calls.map(call => call[0]).join('')).toBe(
+          `Unknown command: bogus\n${HINT}\n`,
+        );
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+
+    it('should not emit a document, so a typo never looks like a successful export', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        await dispatchCli(['bogus'], {}, noopLogger);
+
+        expect(stdout).not.toHaveBeenCalled();
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+      }
+    });
+  });
+});
+
+describe('dispatchCli --output', () => {
+  let directory: string;
+  let originalCwd: string;
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    directory = realpathSync(mkdtempSync(path.join(tmpdir(), 'bff-output-')));
+    process.chdir(directory);
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  function expectedDocument(): string {
+    const output = capture();
+    printOpenApi(output.write);
+
+    return output.text();
+  }
+
+  async function exportQuietly(argv: string[]) {
+    const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    try {
+      return await dispatchCli(argv, {}, noopLogger);
+    } finally {
+      stderr.mockRestore();
+    }
+  }
+
+  describe('when --output is given with no value', () => {
+    it(`should write ${DEFAULT_OUTPUT_FILE} in the current directory and keep stdout empty`, async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['openapi', '--output'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(readFileSync(path.join(directory, DEFAULT_OUTPUT_FILE), 'utf8')).toBe(
+          expectedDocument(),
+        );
+        expect(stdout).not.toHaveBeenCalled();
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+      }
+    });
+
+    it('should confirm on stderr where the document landed, keeping stdout pipeable', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        await dispatchCli(['openapi', '--output'], {}, noopLogger);
+
+        expect(stderr.mock.calls.map(call => call[0]).join('')).toBe(
+          `Wrote the OpenAPI document to ${path.join(directory, DEFAULT_OUTPUT_FILE)}\n`,
+        );
+        expect(stdout).not.toHaveBeenCalled();
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  describe('when --output is given a path', () => {
+    it('should write the document there rather than to the default name', async () => {
+      const target = path.join(directory, 'nested-name.json');
+
+      const outcome = await dispatchCli(['openapi', '--output', target], {}, noopLogger);
+
+      expect(outcome).toEqual({ exitCode: 0 });
+      expect(readFileSync(target, 'utf8')).toBe(expectedDocument());
+    });
+
+    it(`should treat a trailing slash as a directory and write ${DEFAULT_OUTPUT_FILE} inside it`, async () => {
+      const outcome = await exportQuietly(['openapi', '--output', 'build/']);
+
+      expect(outcome).toEqual({ exitCode: 0 });
+      expect(readFileSync(path.join(directory, 'build', DEFAULT_OUTPUT_FILE), 'utf8')).toBe(
+        expectedDocument(),
+      );
+    });
+
+    it('should create a missing parent directory, so a CI path needs no mkdir first', async () => {
+      const target = path.join(directory, 'docs', 'nested', 'api.json');
+
+      const outcome = await exportQuietly(['openapi', '--output', target]);
+
+      expect(outcome).toEqual({ exitCode: 0 });
+      expect(readFileSync(target, 'utf8')).toBe(expectedDocument());
+    });
+
+    it('should resolve a relative path against the current directory', async () => {
+      const outcome = await exportQuietly(['openapi', '--output', 'relative.json']);
+
+      expect(outcome).toEqual({ exitCode: 0 });
+      expect(readFileSync(path.join(directory, 'relative.json'), 'utf8')).toBe(expectedDocument());
+    });
+  });
+
+  describe('when the destination already holds a file', () => {
+    it('should overwrite it, since an export is expected to refresh the document', async () => {
+      const target = path.join(directory, 'stale.json');
+      writeFileSync(target, '{"openapi":"stale"}');
+
+      const outcome = await exportQuietly(['openapi', '--output', target]);
+
+      expect(outcome).toEqual({ exitCode: 0 });
+      expect(readFileSync(target, 'utf8')).toBe(expectedDocument());
+    });
+  });
+
+  describe('when the token after --output starts with a dash', () => {
+    it('should reject it as an extra and write nothing, never a file named after a flag', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['openapi', '--output', '--help'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 1 });
+        expect(stderr.mock.calls.map(call => call[0]).join('')).toBe(
+          `openapi accepts only --output, got: "--help"\n${HINT}\n`,
+        );
+        expect(() => readFileSync(path.join(directory, '--help'))).toThrow();
+        expect(() => readFileSync(path.join(directory, DEFAULT_OUTPUT_FILE))).toThrow();
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  describe.each([
+    ['an equals form', ['openapi', '--output=out.json'], '--output=out.json'],
+    ['a doubled flag', ['openapi', '--output', 'a.json', '--output'], '--output'],
+    ['an empty destination', ['openapi', '--output', ''], ''],
+  ])('when %s is used', (_, argv, reported) => {
+    it('should reject it, since the parser accepts one --output with a plain value', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(argv, {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 1 });
+        expect(stderr.mock.calls.map(call => call[0]).join('')).toBe(
+          `openapi accepts only --output, got: ${JSON.stringify(reported)}\n${HINT}\n`,
+        );
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  describe('when the destination cannot be written', () => {
+    it('should name the path and exit 1 without leaking a stack trace', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['openapi', '--output', directory], {}, noopLogger);
+        const written = stderr.mock.calls.map(call => call[0]).join('');
+
+        expect(outcome).toEqual({ exitCode: 1 });
+        expect(written).toContain(`Cannot write ${directory}: `);
+        expect(written).not.toContain('at ');
+        expect(written).not.toContain(HINT);
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  describe('when --output is used as the command itself', () => {
+    it('should say it belongs to openapi rather than report an unknown command', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['--output'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 1 });
+        expect(stderr.mock.calls.map(call => call[0]).join('')).toBe(
+          `--output only applies to the openapi command\n${HINT}\n`,
+        );
+        expect(() => readFileSync(path.join(directory, DEFAULT_OUTPUT_FILE))).toThrow();
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+  });
+
+  describe('when no --output is given', () => {
+    it('should keep writing to stdout and create no file', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(['openapi'], {}, noopLogger);
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(stdout).toHaveBeenCalledTimes(1);
+        expect(() => readFileSync(path.join(directory, DEFAULT_OUTPUT_FILE))).toThrow();
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+  });
+});
+
+describe('the CLI export and the HTTP route', () => {
+  it('should produce the same document, since both use one generator', async () => {
+    const output = capture();
+    printOpenApi(output.write);
+
+    const outcome = await dispatchCli([], VALID_ENV, noopLogger);
+
+    expect(outcome.server).toBeDefined();
+
+    try {
+      const response = await request((outcome.server as BFFHttpServer).callback)
+        .get(OPENAPI_PATH)
+        .set(
+          'Authorization',
+          `Bearer ${issueBffAccessToken({
+            sid: 'session-1',
+            user: {
+              id: 1,
+              email: 'user@example.com',
+              firstName: 'Ada',
+              lastName: 'Lovelace',
+              team: 'Operations',
+              permissionLevel: 'admin',
+              role: 'admin',
+              tags: {},
+              renderingId: 1,
+            },
+            renderingId: 1,
+            authSecret: VALID_ENV.FOREST_AUTH_SECRET,
+            expiresInSeconds: 900,
+          })}`,
+        );
+
+      expect(output.text()).toBe(`${response.text}\n`);
+    } finally {
+      await outcome.server?.stop();
+    }
+  });
+});
