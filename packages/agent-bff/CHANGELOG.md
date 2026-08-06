@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.9.1...@forestadmin/agent-bff@1.10.0) (2026-08-06)
+
+
+### Features
+
+* **agent-bff:** make the agent request timeout configurable ([#1803](https://github.com/ForestAdmin/agent-nodejs/issues/1803)) ([2977b52](https://github.com/ForestAdmin/agent-nodejs/commit/2977b529cd8acbb8561e69e375787a1cb1ec22b9))
+
 ## @forestadmin/agent-bff [1.9.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.9.0...@forestadmin/agent-bff@1.9.1) (2026-08-05)
 
 
