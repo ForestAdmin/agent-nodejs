@@ -119,14 +119,14 @@ export default class RemoteToolFetcher {
     };
 
     const initial = await attemptLoad(false);
+    const hasRejectedToken = hasAuthFailure(initial.failures);
+    // The retry supersedes a rejected cached token, and reports its own partial failure.
+    const tools = hasRejectedToken ? await reloadWithFreshAuth() : initial.tools;
+    const loadFailed = hasRejectedToken
+      ? undefined
+      : this.errorOnPartialLoadFailure(initial.failures, mcpServerId, mcpServerName);
 
-    if (hasAuthFailure(initial.failures)) {
-      return { tools: await reloadWithFreshAuth(), mcpServerName, reloadWithFreshAuth };
-    }
-
-    const loadFailed = this.errorOnPartialLoadFailure(initial.failures, mcpServerId, mcpServerName);
-
-    return { tools: initial.tools, mcpServerName, reloadWithFreshAuth, loadFailed };
+    return { tools, mcpServerName, reloadWithFreshAuth, loadFailed };
   }
 
   // Distinguish "no configs at all" (deployment misconfig) from "configs exist but none match"
