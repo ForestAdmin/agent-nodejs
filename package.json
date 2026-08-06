@@ -79,6 +79,7 @@
     "**/@forestadmin/mcp-server/express/body-parser": "^2.3.0",
     "**/@forestadmin/ai-proxy/express/body-parser": "^2.3.0",
     "**/@modelcontextprotocol/sdk/express/body-parser": "^2.3.0",
-    "**/@nestjs/platform-express/express/body-parser": "^2.3.0"
+    "**/@nestjs/platform-express/express/body-parser": "^2.3.0",
+    "**/@nestjs/platform-fastify/find-my-way": "^9.7.0"
   }
 }
