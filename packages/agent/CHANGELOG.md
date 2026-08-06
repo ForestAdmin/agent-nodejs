@@ -1,3 +1,18 @@
+# @forestadmin/agent [1.92.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.6...@forestadmin/agent@1.92.0) (2026-08-06)
+
+
+### Features
+
+* **mcp-server:** restrict oauth clients to an allowlist of domains ([#1797](https://github.com/ForestAdmin/agent-nodejs/issues/1797)) ([ebaeb17](https://github.com/ForestAdmin/agent-nodejs/commit/ebaeb17fec615ad80b1e635955325490748d6fb2))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/mcp-server:** upgraded to 1.21.0
+
 ## @forestadmin/agent [1.91.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.91.5...@forestadmin/agent@1.91.6) (2026-08-05)
 
 
