@@ -163,7 +163,7 @@ function buildApiKeyMiddleware(config: BFFConfig, logger: Logger): Middleware | 
 function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middleware[] {
   const apiKeyConfig = resolveApiKeyConfig(config);
 
-  if (!apiKeyConfig || !config.agentUrl) {
+  if (!apiKeyConfig) {
     logger('Warn', 'Data endpoints disabled: AGENT_URL or read-model configuration is missing');
 
     return [createAgentStubMiddleware()];
@@ -178,17 +178,25 @@ function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middlewa
   const permissionsCache = new PermissionsCache();
   store.registerGenerationScopedCache(permissionsCache);
 
-  return [
-    createPermissionsRoutesMiddleware({
-      store,
-      client: new PermissionsClient({
-        forestServerUrl: apiKeyConfig.forestServerUrl,
-        envSecret: apiKeyConfig.forestEnvSecret,
-      }),
-      cache: permissionsCache,
+  const permissionsMiddleware = createPermissionsRoutesMiddleware({
+    store,
+    client: new PermissionsClient({
+      forestServerUrl: apiKeyConfig.forestServerUrl,
       envSecret: apiKeyConfig.forestEnvSecret,
-      logger,
     }),
+    cache: permissionsCache,
+    envSecret: apiKeyConfig.forestEnvSecret,
+    logger,
+  });
+
+  if (!agentUrl) {
+    logger('Warn', 'Data endpoints disabled: AGENT_URL or read-model configuration is missing');
+
+    return [permissionsMiddleware, createAgentStubMiddleware()];
+  }
+
+  return [
+    permissionsMiddleware,
     createDataRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
     createActionRoutesMiddleware({ store, agentUrl, timeoutMs, logger }),
   ];

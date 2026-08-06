@@ -164,6 +164,51 @@ describe('runCli', () => {
     });
   });
 
+  describe('when AGENT_URL is absent', () => {
+    it('should still serve the permissions endpoint instead of the agent stub', async () => {
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's', id: 1, rendering_id: '7' },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const server = await runCli({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .get('/agent/v1/permissions')
+          .set('Authorization', `Bearer ${token}`)
+          .set('X-Forest-Timezone', 'Europe/Paris');
+
+        expect(response.status).not.toBe(501);
+        expect(response.body.error?.type).not.toBe('not_implemented');
+      } finally {
+        await server.stop();
+      }
+    });
+
+    it('should still stub the data routes', async () => {
+      const token = jsonwebtoken.sign(
+        { type: 'bff_access', sid: 's', id: 1, rendering_id: '7' },
+        VALID_ENV.FOREST_AUTH_SECRET,
+        { algorithm: 'HS256', expiresIn: '15m' },
+      );
+      const server = await runCli({ ...VALID_ENV, AGENT_URL: undefined }, noopLogger);
+
+      try {
+        const response = await request(server.callback)
+          .post('/agent/v1/users/list')
+          .set('Authorization', `Bearer ${token}`)
+          .set('X-Forest-Timezone', 'Europe/Paris')
+          .send({});
+
+        expect(response.status).toBe(501);
+        expect(response.body.error.type).toBe('not_implemented');
+      } finally {
+        await server.stop();
+      }
+    });
+  });
+
   describe('when a request targets a non-agent path', () => {
     it('should skip the agent chain and fall through to 404', async () => {
       const server = await runCli({ ...VALID_ENV }, noopLogger);
