@@ -72,6 +72,7 @@ function describePayloadShape(raw: unknown): string {
 export interface ActionRoutesMiddlewareOptions {
   store: ReadModelStore;
   agentUrl: string;
+  timeoutMs?: number;
   logger: Logger;
   createClient?: (options: AgentActionClientOptions) => AgentActionClient;
 }
@@ -162,6 +163,7 @@ async function handleExecute(
 export default function createActionRoutesMiddleware({
   store,
   agentUrl,
+  timeoutMs,
   logger,
   createClient = defaultCreateAgentActionClient,
 }: ActionRoutesMiddlewareOptions): Middleware {
@@ -197,6 +199,7 @@ export default function createActionRoutesMiddleware({
       agentUrl,
       token,
       actionEndpoints: readModel.getActionEndpoints(),
+      timeoutMs,
     });
 
     if (verb === 'execute') {

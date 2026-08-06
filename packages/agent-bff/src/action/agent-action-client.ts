@@ -3,6 +3,8 @@ import type { ForestServerActionFormLayoutElement } from '@forestadmin/forestadm
 
 import { createRemoteAgentClient } from '@forestadmin/agent-client';
 
+import createAgentHttpRequester from '../agent/create-agent-http-requester';
+
 export interface ActionFormField {
   getName(): string;
   getType(): string;
@@ -34,6 +36,7 @@ export interface AgentActionClientOptions {
   agentUrl: string;
   token: string;
   actionEndpoints: ActionEndpointsByCollection;
+  timeoutMs?: number;
 }
 
 // The raw layout must be read AFTER tryToSetFields: a change hook rebuilds fields+layout in place.
@@ -56,8 +59,14 @@ export default function createAgentActionClient({
   agentUrl,
   token,
   actionEndpoints,
+  timeoutMs,
 }: AgentActionClientOptions): AgentActionClient {
-  const client = createRemoteAgentClient({ url: agentUrl, token, actionEndpoints });
+  const client = createRemoteAgentClient({
+    url: agentUrl,
+    token,
+    actionEndpoints,
+    httpRequester: createAgentHttpRequester(token, agentUrl, timeoutMs),
+  });
 
   return {
     loadAction: (collection, action, recordIds) =>
