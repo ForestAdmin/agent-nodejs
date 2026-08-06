@@ -36,6 +36,16 @@ export default function makeAgent() {
     typingsPath: 'src/forest/typings.ts',
   };
 
+  const rawAllowedOAuthClients = process.env.FOREST_MCP_ALLOWED_OAUTH_CLIENTS;
+  // Unset or '' means not configured; a set value with no domains stays an empty
+  // list so the agent fails closed at startup. Mirrors the standalone CLI parser.
+  const allowedOAuthClients = rawAllowedOAuthClients
+    ? rawAllowedOAuthClients
+        .split(',')
+        .map(domain => domain.trim())
+        .filter(Boolean)
+    : undefined;
+
   return createAgent<Schema>(envOptions)
     .addDataSource(createSqlDataSource({ dialect: 'sqlite', storage: './assets/db.sqlite' }))
 
@@ -83,7 +93,7 @@ export default function makeAgent() {
 
       return resultBuilder.value((rows?.[0]?.value as number) ?? 0);
     })
-    .mountAiMcpServer()
+    .mountAiMcpServer(allowedOAuthClients ? { allowedOAuthClients } : undefined)
 
     .customizeCollection('card', customizeCard)
     .customizeCollection('account', customizeAccount)

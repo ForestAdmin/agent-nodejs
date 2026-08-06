@@ -2919,6 +2919,214 @@ describe('tokenTtl option', () => {
   });
 });
 
+describe('allowedOAuthClients option', () => {
+  const originalFetch = global.fetch;
+  const FOREST_SECRET = 'forest-signing-secret';
+  let mockFetchServer: MockServer;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    mockFetchServer?.restoreSuperagent();
+  });
+
+  function stubForestServer(redirectUris: string[]) {
+    mockFetchServer = new MockServer();
+    mockFetchServer
+      .get('/liana/environment', {
+        data: { id: '1', attributes: { api_endpoint: 'https://api.example.com' } },
+      })
+      .get(/\/oauth\/register\//, {
+        client_id: 'test-client',
+        redirect_uris: redirectUris,
+      })
+      .post('/oauth/token', {
+        access_token: jsonwebtoken.sign(
+          { meta: { renderingId: 456 }, scope: 'mcp:read' },
+          FOREST_SECRET,
+          { expiresIn: 3600 },
+        ),
+        refresh_token: jsonwebtoken.sign({}, FOREST_SECRET, { expiresIn: '7d' }),
+        expires_in: 3600,
+        token_type: 'Bearer',
+        scope: 'mcp:read',
+      })
+      .get(/\/liana\/v2\/renderings\/\d+\/authorization/, {
+        data: {
+          id: '123',
+          attributes: {
+            email: 'user@example.com',
+            first_name: 'Test',
+            last_name: 'User',
+            teams: ['Operations'],
+            role: 'Admin',
+            permission_level: 'admin',
+            tags: [],
+          },
+        },
+      });
+    global.fetch = mockFetchServer.fetch;
+    mockFetchServer.setupSuperagentMock();
+  }
+
+  function createRestrictedServer(allowedOAuthClients: string[]) {
+    return new ForestMCPServer({
+      envSecret: 'ENV_SECRET',
+      authSecret: 'AUTH_SECRET',
+      forestServerClient: createMockForestServerClient(),
+      allowedOAuthClients,
+    });
+  }
+
+  it('completes the token exchange and refresh for a client on an allowed domain', async () => {
+    stubForestServer(['https://eu.dust.tt/oauth/mcp_static/finalize']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const exchangeResponse = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'authorization_code',
+      code: 'auth-code',
+      code_verifier: 'code-verifier',
+      client_id: 'test-client',
+    });
+
+    expect(exchangeResponse.status).toBe(200);
+    expect(exchangeResponse.body.access_token).toBeDefined();
+    expect(exchangeResponse.body.error).toBeUndefined();
+
+    const refreshResponse = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'refresh_token',
+      refresh_token: exchangeResponse.body.refresh_token,
+      client_id: 'test-client',
+    });
+
+    expect(refreshResponse.status).toBe(200);
+    expect(refreshResponse.body.access_token).toBeDefined();
+    expect(refreshResponse.body.error).toBeUndefined();
+  });
+
+  it('redirects an allowed client to the Forest Admin login on authorization', async () => {
+    stubForestServer(['https://eu.dust.tt/oauth/mcp_static/finalize']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).get('/oauth/authorize').query({
+      response_type: 'code',
+      client_id: 'test-client',
+      redirect_uri: 'https://eu.dust.tt/oauth/mcp_static/finalize',
+      code_challenge: 'challenge',
+      code_challenge_method: 'S256',
+      state: 'some-state',
+    });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toContain('/oauth/authorize');
+  });
+
+  it('rejects the token exchange of a disallowed client with a targeted invalid_client error', async () => {
+    stubForestServer(['https://claude.ai/api/mcp/auth_callback']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'authorization_code',
+      code: 'auth-code',
+      code_verifier: 'code-verifier',
+      client_id: 'test-client',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('invalid_client');
+    expect(response.body.error_description).toMatch(/approved client applications/i);
+    expect(response.body.error_description).not.toContain('dust.tt');
+  });
+
+  it('rejects the authorization of a disallowed client directly, without redirecting', async () => {
+    stubForestServer(['https://claude.ai/api/mcp/auth_callback']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).get('/oauth/authorize').query({
+      response_type: 'code',
+      client_id: 'test-client',
+      redirect_uri: 'https://claude.ai/api/mcp/auth_callback',
+      code_challenge: 'challenge',
+      code_challenge_method: 'S256',
+      state: 'some-state',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('invalid_client');
+    expect(response.body.error_description).toMatch(/approved client applications/i);
+  });
+
+  it('rejects the refresh grant of a disallowed client before touching the refresh token', async () => {
+    stubForestServer(['https://claude.ai/api/mcp/auth_callback']);
+    const server = createRestrictedServer(['dust.tt']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'refresh_token',
+      refresh_token: 'refresh-token-issued-before-the-allowlist-existed',
+      client_id: 'test-client',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('invalid_client');
+  });
+
+  it('rejects an empty allowlist at construction rather than silently blocking every client', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          allowedOAuthClients: [],
+        }),
+    ).toThrow(/allowedOAuthClients/);
+  });
+
+  it('rejects a blank-only allowlist at construction rather than silently blocking every client', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          allowedOAuthClients: ['  '],
+        }),
+    ).toThrow(/allowedOAuthClients/);
+  });
+
+  it('rejects an allowlist entry carrying a scheme at construction', () => {
+    expect(
+      () =>
+        new ForestMCPServer({
+          envSecret: 'ENV_SECRET',
+          authSecret: 'AUTH_SECRET',
+          forestServerClient: createMockForestServerClient(),
+          allowedOAuthClients: ['https://dust.tt'],
+        }),
+    ).toThrow(/bare domains/);
+  });
+
+  it('matches a unicode allowlist entry against its punycode hostname', async () => {
+    stubForestServer(['https://xn--bcher-kva.de/oauth/callback']);
+    const server = createRestrictedServer(['bücher.de']);
+    const app = await server.buildExpressApp(new URL('http://localhost:3000'));
+
+    const response = await request(app).post('/oauth/token').type('form').send({
+      grant_type: 'authorization_code',
+      code: 'auth-code',
+      code_verifier: 'code-verifier',
+      client_id: 'test-client',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.access_token).toBeDefined();
+  });
+});
+
 describe('handleMcpRequest cleanup', () => {
   const originalFetch = global.fetch;
   let cleanupServer: ForestMCPServer;

@@ -63,6 +63,7 @@ yarn start:dev       # Development (loads .env file automatically)
 | `FOREST_AUTH_SECRET` | **Yes** | - | Your Forest Admin authentication secret (must match your agent) |
 | `MCP_SERVER_PORT` | No | `3931` | Port for the HTTP server |
 | `FOREST_MCP_ENABLED_TOOLS` | No | - | Comma-separated list of tools to enable (allowlist) |
+| `FOREST_MCP_ALLOWED_OAUTH_CLIENTS` | No | - | Comma-separated domains of the OAuth client applications allowed to connect (`allowedOAuthClients`). Unset, any registered client is accepted |
 | `FOREST_AGENT_URL` | No | your environment's back-end URL | URL the MCP server uses to reach the back-end's data layer. Set it when the server runs next to a self-hosted back-end at an internal address (e.g. `http://localhost:3310`), instead of the public URL registered in Forest |
 | `FOREST_MCP_ACCESS_TOKEN_TTL_SECONDS` | No | `3600` (1 hour) | Maximum lifetime of the OAuth access tokens the server issues (`tokenTtl.accessTokenSeconds`). Minimum `60` |
 | `FOREST_MCP_REFRESH_TOKEN_TTL_SECONDS` | No | unbounded | Maximum time between two interactive logins (`tokenTtl.refreshTokenSeconds`). Unset, a client that keeps refreshing never signs in again. Minimum `60` |
@@ -110,6 +111,31 @@ npx forest-mcp-server
 When `enabledTools` is not set, all tools are enabled by default.
 
 See [Available Tools](#available-tools) for the full list. `describeCollection` is always enabled as it is required for the MCP server to function properly.
+
+## Restrict OAuth Clients
+
+Any OAuth client can register against the MCP server through Dynamic Client Registration and, once one of your users signs in, obtain tokens. Use `allowedOAuthClients` to accept only approved client applications:
+
+```typescript
+// With Forest Admin Agent
+agent.mountAiMcpServer({
+  allowedOAuthClients: ['dust.tt'],
+});
+```
+
+```bash
+# Standalone
+export FOREST_MCP_ALLOWED_OAUTH_CLIENTS="dust.tt"
+npx forest-mcp-server
+```
+
+A client is allowed only when **every** redirect URI it registered is an `http(s)` URI on a listed domain or one of its subdomains (`dust.tt` matches `eu.dust.tt`); custom schemes are rejected because they deliver the callback to whatever local application registered them, regardless of hostname. Matching uses redirect URIs because they are the one piece of registration metadata an impostor cannot benefit from — the authorization code is only ever delivered there. Self-declared fields such as the client name are ignored.
+
+List bare domains only — unicode domains are matched through their punycode form. An entry with a scheme, port, path, or spaces fails at startup, as does a configured value containing no domains at all: the allowlist never silently falls back to accepting or rejecting everyone on a malformed configuration.
+
+Every other client is rejected with a standard `invalid_client` error telling the user to contact their administrator; the response does not reveal the allowed domains. Registration itself still succeeds — it happens on the Forest Admin server — the client just cannot use it against this server. Access tokens issued before you enabled the option stay valid until they expire (1 hour at most); refreshes are blocked immediately.
+
+Native desktop clients (Claude Desktop, MCP Inspector, ...) register loopback (`localhost`) redirect URIs, which a domain allowlist never matches — they are rejected unless you explicitly list `localhost`, which would admit **every** local application and defeats the restriction. Omit the option in environments that need native clients (e.g. development).
 
 ## Shorten Token Lifetimes
 

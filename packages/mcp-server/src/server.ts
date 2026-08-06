@@ -37,6 +37,7 @@ import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
+import normalizeDomainList from './utils/normalize-domain-list';
 import { fetchForestSchema, getCollectionNames } from './utils/schema-fetcher';
 import interceptResponseForErrorLogging from './utils/sse-error-logger';
 import normalizeTokenTtl from './utils/token-ttl';
@@ -148,6 +149,11 @@ export interface ForestMCPServerOptions {
    * logins. Minimum 60s for either.
    */
   tokenTtl?: TokenTtlOptions;
+  /**
+   * Domains of the OAuth clients allowed to use this server, e.g. ['dust.tt']; subdomains match.
+   * Omit to accept any dynamically registered client.
+   */
+  allowedOAuthClients?: string[];
 }
 
 /**
@@ -173,6 +179,7 @@ export default class ForestMCPServer {
   private agentUrl?: string;
   private agentDispatcher?: InProcessAgentDispatcher;
   private tokenTtl?: TokenTtlOptions;
+  private allowedOAuthClients?: string[];
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -185,6 +192,8 @@ export default class ForestMCPServer {
     this.agentUrl = normalizeAgentUrl(options?.agentUrl);
     this.agentDispatcher = options?.agentDispatcher;
     this.tokenTtl = normalizeTokenTtl(options?.tokenTtl, this.logger);
+
+    this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -442,6 +451,7 @@ export default class ForestMCPServer {
       logger: this.logger,
       agentUrl: this.agentUrl,
       tokenTtl: this.tokenTtl,
+      allowedOAuthClients: this.allowedOAuthClients,
     });
     await oauthProvider.initialize();
 
