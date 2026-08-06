@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-`@forestadmin/mcp-server` is a Model Context Protocol (MCP) server that exposes Forest Admin data operations (list, CRUD, relations, custom actions) to AI assistants over an OAuth-authenticated, streamable HTTP transport. It runs either standalone (`forest-mcp-server` CLI) or embedded in a Forest Admin agent via `agent.mountAiMcpServer()`.
+`@forestadmin/mcp-server` is a Model Context Protocol (MCP) server that exposes Forest Admin data operations (list, CRUD, relations, custom actions) to AI assistants over an OAuth-authenticated, streamable HTTP transport. It runs either standalone (`forest-mcp-server` CLI) or embedded in a Forest Admin agent via `agent.mountAiMcpServer()`. It is also distributed as a Docker image (`ghcr.io/forestadmin/mcp-server`) for Node-less deployments — build assets live in `docker/` + `Dockerfile`, published by `.github/workflows/docker-publish-mcp-server.yml`.
 
 ## Architecture
 
