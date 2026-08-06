@@ -25,6 +25,23 @@ describe('buildCacheKey', () => {
     });
   });
 
+  describe('when a collection name contains the scope delimiter', () => {
+    it('should not collide with the same names split across entries', () => {
+      const joined = buildCacheKey({
+        envSecret: 'env',
+        callerId: 'oauth:1:7',
+        collections: ['a,b'],
+      });
+      const split = buildCacheKey({
+        envSecret: 'env',
+        callerId: 'oauth:1:7',
+        collections: ['a', 'b'],
+      });
+
+      expect(joined).not.toBe(split);
+    });
+  });
+
   describe('when the caller differs', () => {
     it('should produce a different key', () => {
       const first = buildCacheKey({ envSecret: 'env', callerId: 'oauth:1:7', collections: ['a'] });
@@ -74,6 +91,50 @@ describe('PermissionsCache', () => {
       clock += PERMISSIONS_CACHE_TTL_MS;
 
       expect(cache.getFresh('key')).toBeUndefined();
+    });
+  });
+
+  describe('when more distinct keys are written than the cap allows', () => {
+    it('should stay at the cap and evict the oldest entries', () => {
+      const cache = new PermissionsCache({ maxEntries: 3 });
+
+      for (let i = 0; i < 10; i += 1) cache.set(`key-${i}`, HINTS);
+
+      expect(cache.size).toBe(3);
+      expect(cache.getFresh('key-0')).toBeUndefined();
+      expect(cache.getFresh('key-6')).toBeUndefined();
+      expect(cache.getFresh('key-9')).toBe(HINTS);
+    });
+  });
+
+  describe('when an existing key is written again', () => {
+    it('should refresh it rather than grow the cache or evict it', () => {
+      const cache = new PermissionsCache({ maxEntries: 3 });
+
+      cache.set('a', HINTS);
+      cache.set('b', HINTS);
+      cache.set('a', HINTS);
+      cache.set('c', HINTS);
+
+      expect(cache.size).toBe(3);
+      expect(cache.getFresh('a')).toBe(HINTS);
+      expect(cache.getFresh('b')).toBe(HINTS);
+      expect(cache.getFresh('c')).toBe(HINTS);
+    });
+  });
+
+  describe('when the cap is reached and an older key is re-written', () => {
+    it('should evict the least recently written key, not the re-written one', () => {
+      const cache = new PermissionsCache({ maxEntries: 2 });
+
+      cache.set('a', HINTS);
+      cache.set('b', HINTS);
+      cache.set('a', HINTS);
+      cache.set('c', HINTS);
+
+      expect(cache.getFresh('b')).toBeUndefined();
+      expect(cache.getFresh('a')).toBe(HINTS);
+      expect(cache.getFresh('c')).toBe(HINTS);
     });
   });
 

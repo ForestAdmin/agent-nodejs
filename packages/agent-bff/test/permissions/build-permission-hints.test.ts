@@ -40,16 +40,17 @@ const NORMAL_MODE = {
 } as unknown as EnvironmentPermissionsV4;
 
 function readModelStub(actionsByCollection: Record<string, string[]>): ReadModel {
-  const endpoints: Record<string, Record<string, unknown>> = {};
+  const endpoints: Record<string, Record<string, unknown>> = Object.create(null);
 
   for (const [collection, actions] of Object.entries(actionsByCollection)) {
-    endpoints[collection] = {};
+    endpoints[collection] = Object.create(null);
     for (const action of actions) endpoints[collection][action] = { name: action };
   }
 
   return {
     getActionEndpoints: () => endpoints,
-    isCollectionAllowed: (collection: string) => collection in actionsByCollection,
+    isCollectionAllowed: (collection: string) =>
+      Object.keys(actionsByCollection).includes(collection),
     getAllowedCollections: () => Object.keys(actionsByCollection),
   } as unknown as ReadModel;
 }
@@ -72,7 +73,7 @@ describe('buildPermissionHints', () => {
         delete: true,
         export: true,
       });
-      expect(hints.collections.users.actions['users.Block user']).toEqual({
+      expect(hints.collections.users.actions['Block user']).toEqual({
         collection: 'users',
         name: 'Block user',
         qualifiedName: 'users.Block user',
@@ -102,7 +103,7 @@ describe('buildPermissionHints', () => {
         delete: true,
         export: true,
       });
-      expect(hints.collections.users.actions['users.Block user']).toMatchObject({
+      expect(hints.collections.users.actions['Block user']).toMatchObject({
         visible: true,
         requiresApprovalHint: true,
         canApproveHint: true,
@@ -129,7 +130,7 @@ describe('buildPermissionHints', () => {
         delete: false,
         export: false,
       });
-      expect(hints.collections.users.actions['users.Block user']).toMatchObject({
+      expect(hints.collections.users.actions['Block user']).toMatchObject({
         visible: false,
         requiresApprovalHint: false,
         canApproveHint: false,
@@ -197,7 +198,7 @@ describe('buildPermissionHints', () => {
         collections: ['users'],
       });
 
-      expect(hints.collections.users.actions['users.Ghost action']).toMatchObject({
+      expect(hints.collections.users.actions['Ghost action']).toMatchObject({
         visible: false,
         requiresApprovalHint: false,
         canApproveHint: false,
@@ -218,6 +219,44 @@ describe('buildPermissionHints', () => {
       });
 
       expect(hints.collections.users.actions).toEqual({});
+    });
+  });
+
+  describe('when a collection is named after an Object prototype property', () => {
+    it('should still expose it as an own property of the collections map', () => {
+      const prototypeName = '__proto__';
+      const actionsByCollection: Record<string, string[]> = Object.create(null);
+      actionsByCollection[prototypeName] = ['Block user'];
+
+      const hints = buildPermissionHints({
+        environmentPermissions: true,
+        roleId: ADMIN_ROLE,
+        readModel: readModelStub(actionsByCollection),
+        collections: [prototypeName],
+      });
+
+      expect(Object.keys(hints.collections)).toEqual([prototypeName]);
+      expect(hints.collections[prototypeName].crud.browse).toBe(true);
+    });
+  });
+
+  describe('when a dotted collection name could collide with another qualified action', () => {
+    it('should keep each action addressable under its own collection', () => {
+      const hints = buildPermissionHints({
+        environmentPermissions: true,
+        roleId: ADMIN_ROLE,
+        readModel: readModelStub({ User: ['address.reset'], 'User.address': ['reset'] }),
+        collections: ['User', 'User.address'],
+      });
+
+      expect(hints.collections.User.actions['address.reset'].qualifiedName).toBe(
+        'User.address.reset',
+      );
+      expect(hints.collections['User.address'].actions.reset.qualifiedName).toBe(
+        'User.address.reset',
+      );
+      expect(hints.collections.User.actions['address.reset'].collection).toBe('User');
+      expect(hints.collections['User.address'].actions.reset.collection).toBe('User.address');
     });
   });
 

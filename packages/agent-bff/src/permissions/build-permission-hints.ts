@@ -123,7 +123,7 @@ function buildCollectionHints(
   const { isDevelopment } = permissions;
   const schemaExposedActionNames = Object.keys(readModel.getActionEndpoints()[collection] ?? {});
 
-  const actions: Record<string, ActionHints> = {};
+  const actions: Record<string, ActionHints> = Object.create(null);
   const visibleActions: string[] = [];
 
   for (const name of schemaExposedActionNames) {
@@ -131,7 +131,7 @@ function buildCollectionHints(
       ? devModeAction(collection, name)
       : normalModeAction(permissions, roleId, collection, name);
 
-    actions[hints.qualifiedName] = hints;
+    actions[name] = hints;
     if (hints.visible) visibleActions.push(hints.qualifiedName);
   }
 
@@ -144,7 +144,7 @@ function buildCollectionHints(
 
 export default function buildPermissionHints(params: BuildPermissionHintsParams): PermissionHints {
   const permissions = buildActionPermissions(params.environmentPermissions);
-  const collections: Record<string, CollectionHints> = {};
+  const collections: Record<string, CollectionHints> = Object.create(null);
   const visibleActions: string[] = [];
 
   for (const collection of params.collections) {

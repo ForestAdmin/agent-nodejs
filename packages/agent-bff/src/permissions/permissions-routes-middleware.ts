@@ -82,6 +82,7 @@ export default function createPermissionsRoutesMiddleware({
     }
 
     const caller = resolveCaller(ctx);
+    const generationBeforeRead = cache.currentGeneration;
     const readModel = await resolveReadModel(store);
     const collections = resolveRequestedCollections(ctx, readModel);
     const cacheKey = buildCacheKey({ envSecret, callerId: caller.cacheId, collections });
@@ -95,7 +96,6 @@ export default function createPermissionsRoutesMiddleware({
       return;
     }
 
-    const generationAtRead = cache.currentGeneration;
     let resolved: EnvironmentAndUserPermissions;
 
     try {
@@ -118,14 +118,24 @@ export default function createPermissionsRoutesMiddleware({
     }
 
     const roleId = findCallerRoleId(resolved.users, caller.userId);
+    const refreshedDuringFetch = cache.currentGeneration !== generationBeforeRead;
+    const generationToStore = refreshedDuringFetch ? cache.currentGeneration : generationBeforeRead;
+    const currentReadModel = refreshedDuringFetch ? await resolveReadModel(store) : readModel;
+    const currentCollections = refreshedDuringFetch
+      ? resolveRequestedCollections(ctx, currentReadModel)
+      : collections;
     const hints = buildPermissionHints({
       environmentPermissions: resolved.environmentPermissions,
       roleId,
-      readModel,
-      collections,
+      readModel: currentReadModel,
+      collections: currentCollections,
     });
 
-    cache.set(cacheKey, hints, generationAtRead);
+    cache.set(
+      buildCacheKey({ envSecret, callerId: caller.cacheId, collections: currentCollections }),
+      hints,
+      generationToStore,
+    );
 
     ctx.status = 200;
     ctx.body = hints;

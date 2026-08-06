@@ -374,6 +374,54 @@ describe('createPermissionsRoutesMiddleware', () => {
     });
   });
 
+  describe('when the read model is refreshed while the request awaits it', () => {
+    it('should not cache hints built from the superseded generation', async () => {
+      const cache = new PermissionsCache();
+      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
+      const store = {
+        getReadModel: async () => {
+          cache.clear();
+
+          return readModel();
+        },
+      } as unknown as ReadModelStore;
+
+      const response = await request(appOf({ client, cache, store }).callback())
+        .get(ROUTE)
+        .query({ collections: 'users' });
+
+      expect(response.status).toBe(200);
+      expect(cache.size).toBe(0);
+    });
+  });
+
+  describe('when the schema is refreshed while the permissions are being fetched', () => {
+    it('should answer from the refreshed read model, not the superseded one', async () => {
+      const cache = new PermissionsCache();
+      const refreshed = new ReadModel([
+        collection('orders', [column('id')], [action('Refund order', '/refund')]),
+      ]);
+      let current = readModel();
+      const store = {
+        getReadModel: async () => current,
+      } as unknown as ReadModelStore;
+      const client: PermissionsFetcher = {
+        fetchPermissions: jest.fn(async () => {
+          current = refreshed;
+          cache.clear();
+
+          return { environmentPermissions: NORMAL_MODE, users: USERS };
+        }),
+      };
+
+      const response = await request(appOf({ client, cache, store }).callback()).get(ROUTE);
+
+      expect(response.status).toBe(200);
+      expect(Object.keys(response.body.collections)).toEqual(['orders']);
+      expect(cache.size).toBe(1);
+    });
+  });
+
   describe('when the path or the method does not match', () => {
     it('should fall through to the next middleware', async () => {
       const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
