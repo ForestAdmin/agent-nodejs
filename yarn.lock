@@ -43,6 +43,13 @@
     json-schema-to-ts "^3.1.1"
     standardwebhooks "^1.0.0"
 
+"@asteasolutions/zod-to-openapi@8.5.0":
+  version "8.5.0"
+  resolved "https://registry.yarnpkg.com/@asteasolutions/zod-to-openapi/-/zod-to-openapi-8.5.0.tgz#f073822daad87c4ab2ae991ee86b1a5070ac9942"
+  integrity sha512-SABbKiObg5dLRiTFnqiW1WWwGcg1BJfmHtT2asIBnBHg6Smy/Ms2KHc650+JI4Hw7lSkdiNebEGXpwoxfben8Q==
+  dependencies:
+    openapi3-ts "^4.1.2"
+
 "@aws-crypto/crc32@5.2.0":
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/@aws-crypto/crc32/-/crc32-5.2.0.tgz#cfcc22570949c98c6689cfcbd2d693d36cdae2e1"
@@ -3406,6 +3413,11 @@
     semver "^7.5.3"
     signale "^1.4.0"
     stream-buffers "^3.0.2"
+
+"@redocly/cli@2.35.1":
+  version "2.35.1"
+  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-2.35.1.tgz#391392a0857ce009990c5ff2eebe9066460f0795"
+  integrity sha512-8XcUIR6bCI4KmVg6RJyzL3peZhld/tu7oO8WGVaHp43byhcds6ProHlfqEFa+dZA+qA+dUMebgRELVOe5AW4Lg==
 
 "@rtsao/scc@^1.1.0":
   version "1.1.0"
@@ -13643,6 +13655,13 @@ openai@^6.37.0:
   resolved "https://registry.yarnpkg.com/openai/-/openai-6.42.0.tgz#497bb98294a2aadcc90a655736c1d43c32ffd5d9"
   integrity sha512-1WFEt/uXMXOLhYRNkgJWo08Y2YNvNwpVU72K7ibrWgWpNOXd4VojXLbe6SQ4bLiUQ3Y8jz4IiyVkylJCL1DtZg==
 
+openapi3-ts@4.6.1, openapi3-ts@^4.1.2:
+  version "4.6.1"
+  resolved "https://registry.yarnpkg.com/openapi3-ts/-/openapi3-ts-4.6.1.tgz#aaabcab1cf1d17cf754fb49f3041f3cf808e1f38"
+  integrity sha512-XW9MOldkhoICNeXVzzmXzmOW5G73ppOEGmh7fLCqHjgfdEYCGGN+00MlVCeUZgovjjfC56j9tvtDt1zGabNjjA==
+  dependencies:
+    yaml "^2.9.0"
+
 openid-client@^5.7.1:
   version "5.7.1"
   resolved "https://registry.yarnpkg.com/openid-client/-/openid-client-5.7.1.tgz#34cace862a3e6472ed7d0a8616ef73b7fb85a9c3"
@@ -17781,7 +17800,7 @@ yallist@^5.0.0:
   resolved "https://registry.yarnpkg.com/yallist/-/yallist-5.0.0.tgz#00e2de443639ed0d78fd87de0d27469fbcffb533"
   integrity sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==
 
-yaml@2.9.0:
+yaml@2.9.0, yaml@^2.9.0:
   version "2.9.0"
   resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.9.0.tgz#78274afd93598a1dfdd6130df6a566defcbf9aa4"
   integrity sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==
