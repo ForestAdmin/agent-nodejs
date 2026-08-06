@@ -26,6 +26,23 @@ const { OPENAI_API_KEY, ANTHROPIC_API_KEY } = process.env;
 const describeWithOpenAI = OPENAI_API_KEY ? describe : describe.skip;
 const describeWithAnthropic = ANTHROPIC_API_KEY ? describe : describe.skip;
 
+const HARD_INFRA_ERROR_PATTERN = /401|403|Authentication|invalid x-api-key|ECONNREFUSED|getaddrinfo/i;
+const TRANSIENT_ERROR_PATTERN =
+  /429|500|502|503|504|529|rate limit|overloaded|ETIMEDOUT|ECONNRESET|ECONNABORTED|socket hang up/i;
+const MAX_MODEL_QUERY_ATTEMPTS = 3;
+
+function classifyProviderError(message: string): 'hard' | 'transient' | 'capability' {
+  if (HARD_INFRA_ERROR_PATTERN.test(message)) return 'hard';
+  if (TRANSIENT_ERROR_PATTERN.test(message)) return 'transient';
+
+  return 'capability';
+}
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+
 async function fetchChatModelsFromOpenAI(): Promise<string[]> {
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
@@ -410,18 +427,16 @@ providers.forEach(
           console.log(`Testing ${modelsToTest.length} ${label} models:`, modelsToTest);
         });
 
-        it('all models should support tool calls', async () => {
-          const results: { model: string; success: boolean; error?: string }[] = [];
+        const queryModelToolSupport = async (model: string): Promise<ChatCompletionResponse> => {
+          const modelRouter = new Router({
+            aiConfigurations: [
+              { name: 'test', provider: aiConfig.provider, model, apiKey: aiConfig.apiKey },
+            ],
+          });
 
-          for (const model of modelsToTest) {
-            const modelRouter = new Router({
-              aiConfigurations: [
-                { name: 'test', provider: aiConfig.provider, model, apiKey: aiConfig.apiKey },
-              ],
-            });
-
+          for (let attempt = 1; ; attempt += 1) {
             try {
-              const response = (await modelRouter.route({
+              return (await modelRouter.route({
                 route: 'ai-query',
                 body: {
                   messages: [{ role: 'user', content: 'What is 2+2?' }],
@@ -442,6 +457,23 @@ providers.forEach(
                   parallel_tool_calls: false,
                 },
               })) as ChatCompletionResponse;
+            } catch (error) {
+              const isTransient = classifyProviderError(String(error)) === 'transient';
+
+              if (!isTransient || attempt >= MAX_MODEL_QUERY_ATTEMPTS) throw error;
+
+              await sleep(2000 * attempt);
+            }
+          }
+        };
+
+        it('all models should support tool calls', async () => {
+          const results: { model: string; success: boolean; error?: string }[] = [];
+          const skipped: { model: string; error: string }[] = [];
+
+          for (const model of modelsToTest) {
+            try {
+              const response = await queryModelToolSupport(model);
 
               const success =
                 response.choices[0].finish_reason === 'tool_calls' &&
@@ -451,21 +483,25 @@ providers.forEach(
             } catch (error) {
               const errorMessage = String(error);
 
-              const isInfrastructureError =
-                errorMessage.includes('rate limit') ||
-                errorMessage.includes('429') ||
-                errorMessage.includes('401') ||
-                errorMessage.includes('Authentication') ||
-                errorMessage.includes('ECONNREFUSED') ||
-                errorMessage.includes('ETIMEDOUT') ||
-                errorMessage.includes('getaddrinfo');
-
-              if (isInfrastructureError) {
-                throw new Error(`Infrastructure error testing model ${model}: ${errorMessage}`);
+              switch (classifyProviderError(errorMessage)) {
+                case 'hard':
+                  throw new Error(`Infrastructure error testing model ${model}: ${errorMessage}`);
+                case 'transient':
+                  skipped.push({ model, error: errorMessage });
+                  break;
+                default:
+                  results.push({ model, success: false, error: errorMessage });
               }
-
-              results.push({ model, success: false, error: errorMessage });
             }
+          }
+
+          if (skipped.length > 0) {
+            const skippedModelNames = skipped.map(s => s.model).join(', ');
+            // eslint-disable-next-line no-console
+            console.warn(
+              `\n⚠️ ${skipped.length} ${label} model(s) skipped after transient provider errors: ${skippedModelNames}\n`,
+              skipped,
+            );
           }
 
           const failures = results.filter(r => !r.success);
