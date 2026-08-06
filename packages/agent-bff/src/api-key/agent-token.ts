@@ -17,34 +17,61 @@ export interface IssueAgentTokenFromPrincipalParams {
   authSecret: string;
 }
 
+const POSITIVE_INTEGER = /^[1-9]\d*$/;
+
 function tagsToRecord(tags: { key: string; value: string }[]): Record<string, string> {
   return tags.reduce((memo, { key, value }) => ({ ...memo, [key]: value }), {});
 }
 
-export function issueAgentToken({ identity, authSecret }: IssueAgentTokenParams): string {
-  const { user, renderingId } = identity;
-  const firstName = user.firstName ?? '';
-  const lastName = user.lastName ?? '';
-  const tags = tagsToRecord(user.tags);
+interface AgentCallerClaims {
+  id: number;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  team: string;
+  renderingId: number;
+  tags: Record<string, string>;
+  permissionLevel: string;
+  role?: string;
+}
 
-  // snake_case aliases: Ruby/Python agents splat JWT claims into Caller (snake_case kwargs).
+function signWithSnakeCaseAliasesForRubyAndPythonAgents(
+  claims: AgentCallerClaims,
+  authSecret: string,
+): string {
+  const firstName = claims.firstName ?? '';
+  const lastName = claims.lastName ?? '';
+
   return jsonwebtoken.sign(
     {
-      id: user.id,
-      email: user.email,
+      ...claims,
       firstName,
       lastName,
-      team: user.team,
-      renderingId,
-      tags,
-      permissionLevel: user.permissionLevel,
       first_name: firstName,
       last_name: lastName,
-      rendering_id: renderingId,
-      permission_level: user.permissionLevel,
+      rendering_id: claims.renderingId,
+      permission_level: claims.permissionLevel,
     },
     authSecret,
     { algorithm: 'HS256', expiresIn: AGENT_TOKEN_EXPIRES_IN },
+  );
+}
+
+export function issueAgentToken({ identity, authSecret }: IssueAgentTokenParams): string {
+  const { user, renderingId } = identity;
+
+  return signWithSnakeCaseAliasesForRubyAndPythonAgents(
+    {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      team: user.team,
+      renderingId,
+      tags: tagsToRecord(user.tags),
+      permissionLevel: user.permissionLevel,
+    },
+    authSecret,
   );
 }
 
@@ -52,32 +79,22 @@ export function issueAgentTokenFromPrincipal({
   principal,
   authSecret,
 }: IssueAgentTokenFromPrincipalParams): string {
-  const renderingId = Number(principal.rendering_id);
-
-  if (!Number.isInteger(renderingId)) {
+  if (!POSITIVE_INTEGER.test(String(principal.rendering_id))) {
     throw unauthorized('The session carries no usable rendering');
   }
 
-  const firstName = principal.first_name ?? '';
-  const lastName = principal.last_name ?? '';
-
-  return jsonwebtoken.sign(
+  return signWithSnakeCaseAliasesForRubyAndPythonAgents(
     {
       id: principal.id,
       email: principal.email,
-      firstName,
-      lastName,
+      firstName: principal.first_name,
+      lastName: principal.last_name,
       team: principal.team,
-      renderingId,
+      renderingId: Number(principal.rendering_id),
       tags: principal.tags ?? {},
       permissionLevel: principal.permission_level,
       role: principal.role,
-      first_name: firstName,
-      last_name: lastName,
-      rendering_id: renderingId,
-      permission_level: principal.permission_level,
     },
     authSecret,
-    { algorithm: 'HS256', expiresIn: AGENT_TOKEN_EXPIRES_IN },
   );
 }

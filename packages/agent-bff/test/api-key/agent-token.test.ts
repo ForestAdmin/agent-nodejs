@@ -136,13 +136,26 @@ describe('issueAgentTokenFromPrincipal', () => {
     expect(claims.sid).toBeUndefined();
   });
 
-  it('should fail closed when rendering_id is not a usable integer', () => {
-    expect(() =>
-      issueAgentTokenFromPrincipal({
-        principal: { ...PRINCIPAL, rendering_id: 'not-a-number' },
-        authSecret: AUTH_SECRET,
-      }),
-    ).toThrow(expect.objectContaining({ status: 401, type: 'unauthorized' }));
+  it.each([['not-a-number'], [''], ['0'], ['-1'], ['0x11'], ['1e3'], ['1.5'], [' 17 ']])(
+    'should fail closed when rendering_id is %p',
+    raw => {
+      expect(() =>
+        issueAgentTokenFromPrincipal({
+          principal: { ...PRINCIPAL, rendering_id: raw },
+          authSecret: AUTH_SECRET,
+        }),
+      ).toThrow(expect.objectContaining({ status: 401, type: 'unauthorized' }));
+    },
+  );
+
+  it('should omit the role claim entirely when the session predates it', () => {
+    const { role, ...withoutRole } = PRINCIPAL;
+    const token = issueAgentTokenFromPrincipal({
+      principal: withoutRole as typeof PRINCIPAL,
+      authSecret: AUTH_SECRET,
+    });
+
+    expect(jsonwebtoken.verify(token, AUTH_SECRET)).not.toHaveProperty('role');
   });
 
   it('should coerce missing names and tags rather than emitting undefined', () => {

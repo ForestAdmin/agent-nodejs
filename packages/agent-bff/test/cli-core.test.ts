@@ -190,7 +190,10 @@ describe('runCli', () => {
           .set('X-Forest-Timezone', 'Europe/Paris')
           .send({});
 
-        expect(response.body.error?.type).not.toBe('unauthorized');
+        expect(response.status).toBe(503);
+        expect(response.body.error).toEqual(
+          expect.objectContaining({ type: 'schema_unavailable', status: 503 }),
+        );
       } finally {
         await server.stop();
       }

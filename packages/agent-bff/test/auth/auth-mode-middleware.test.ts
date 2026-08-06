@@ -144,7 +144,7 @@ describe('auth mode middleware', () => {
     expect(claims.rendering_id).toBe(42);
   });
 
-  it('marks an oauth response no-store, since it carries a minted credential', async () => {
+  it('marks an oauth response no-store, mirroring the api-key branch', async () => {
     const response = await request(buildApp())
       .get('/agent/x')
       .set('Authorization', `Bearer ${bffAccess('15m')}`);

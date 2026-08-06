@@ -23,7 +23,7 @@ export interface BffAccessTokenPayload {
   team: string;
   rendering_id: string;
   permission_level: string;
-  role: string;
+  role?: string;
   tags: Record<string, string>;
 }
 
