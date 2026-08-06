@@ -38,8 +38,7 @@ describe('toAiProxyLogger', () => {
       });
     });
 
-    // The reason the wrapper exists: an Error's own properties are non-enumerable, so a logger
-    // that spreads the context into JSON.stringify emits the line with the cause silently gone.
+    // A raw Error spread into the context emits nothing: its own properties are non-enumerable.
     it('keeps the cause readable in the default-level console logger output', () => {
       const spy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -118,8 +117,7 @@ describe('toAiProxyLogger', () => {
     });
   });
 
-  // ai-proxy logs from inside its catch blocks before recording the failure, so a throw here would
-  // fail a whole tool load — including the OAuth reauth path — instead of one server's load.
+  // A throw escaping here fails a whole tool load — including the OAuth reauth path.
   describe('when the host logger throws', () => {
     it('keeps the throw away from ai-proxy, with and without a cause', () => {
       const throwing = jest.fn(() => {

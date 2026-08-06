@@ -256,8 +256,7 @@ describe('RemoteToolFetcher.fetch', () => {
     expect((await fetcher.fetch('id-A', USER_ID)).loadFailed).toBe(true);
   });
 
-  // A server can be reachable and expose nothing; the tool-listing endpoint answers 503 on
-  // loadFailed, so inferring failure from an empty list reports a healthy server as unreachable.
+  // A reachable server can expose nothing, and loadFailed answers 503 on the tool-listing endpoint.
   it('does not set loadFailed when a healthy server exposes no tools', async () => {
     const { fetcher, logger } = makeFetcher({
       workflowPort: {

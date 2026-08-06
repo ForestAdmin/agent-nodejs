@@ -153,8 +153,8 @@ export default class RemoteToolFetcher {
     );
   }
 
-  // Report what the providers said failed, with why. Inferring it from absent tools instead would
-  // flag a healthy server that exposes none, and could never name a cause.
+  // Inferring failure from absent tools would flag a healthy server that exposes none, and could
+  // never name a cause.
   private errorOnPartialLoadFailure(
     failures: McpServerLoadFailure[],
     mcpServerId: string,

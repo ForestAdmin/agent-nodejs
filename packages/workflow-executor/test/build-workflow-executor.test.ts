@@ -156,8 +156,7 @@ describe('buildInMemoryExecutor', () => {
     });
   });
 
-  // Without this the executor's own logs are the only place an MCP tool-load failure can surface,
-  // and ai-proxy emits its diagnostics into a logger nobody passed.
+  // ai-proxy holds the host logger optionally and no-ops every emit without one.
   it('gives AiClientAdapter the executor logger', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     const AiClientAdapter = require('../src/adapters/ai-client-adapter').default;

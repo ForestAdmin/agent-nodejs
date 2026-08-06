@@ -157,7 +157,7 @@ describe('ServerAiAdapter', () => {
   });
 
   describe('logger', () => {
-    const buildAdapterWithLogger = (logger: Logger) =>
+    const buildAdapter = (logger?: Logger) =>
       new ServerAiAdapter({
         forestServerUrl: 'https://api.forestadmin.com',
         envSecret: ENV_SECRET,
@@ -172,7 +172,7 @@ describe('ServerAiAdapter', () => {
 
     it("routes ai-proxy's MCP diagnostics to the executor logger with the cause flattened", () => {
       const executorLogger = jest.fn();
-      buildAdapterWithLogger(executorLogger);
+      buildAdapter(executorLogger);
       const cause = new Error('401 Unauthorized');
 
       aiProxyLoggerGivenToLatestClient()?.('Error', 'Error loading tools for notion', cause);
@@ -187,7 +187,7 @@ describe('ServerAiAdapter', () => {
     // unnamed configuration reaches none of AiClient's own emit sites.
     it('wires the same logger into the per-call AiClient built by getModel', () => {
       const executorLogger = jest.fn();
-      buildAdapterWithLogger(executorLogger).getModel({ userId: 42 });
+      buildAdapter(executorLogger).getModel({ userId: 42 });
 
       aiProxyLoggerGivenToLatestClient()?.('Warn', 'Error during remote tool connection cleanup');
 
@@ -197,11 +197,10 @@ describe('ServerAiAdapter', () => {
       );
     });
 
-    // The adapter built in beforeEach carries no logger option.
     it('leaves AiClient without a logger when none is configured', () => {
-      const params = mockAiClientConstructor.mock.calls[0][0] as { logger?: AiProxyLogger };
+      buildAdapter();
 
-      expect(params.logger).toBeUndefined();
+      expect(aiProxyLoggerGivenToLatestClient()).toBeUndefined();
     });
   });
 });
