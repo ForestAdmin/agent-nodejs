@@ -1,11 +1,15 @@
+import type { WorkflowRunTriggerResult } from '../http-client';
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+import { NotFoundError } from '@forestadmin/forestadmin-client';
 import { z } from 'zod';
 
+import createPendingActivityLog, {
+  markActivityLogAsSucceeded,
+} from '../utils/activity-logs-creator';
 import getAuthContext from '../utils/auth-context';
 import registerToolWithLogging from '../utils/tool-with-logging';
-import withActivityLog from '../utils/with-activity-log';
 
 const WORKFLOW_ID_DESCRIPTION =
   'The id of the workflow to start, as returned by listWorkflows. The workflow must have the MCP ' +
@@ -41,48 +45,62 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
     async (args: TriggerWorkflowArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
-      // We list workflows first to resolve the name/collection needed for the activity-log label
-      // (the trigger endpoint returns neither). The server also validates access at trigger time,
-      // so this lookup is primarily for enrichment; targeting the workflow by id directly would
-      // save a round-trip — tracked in PRD-831.
-      const workflows = await forestServerClient.listMcpWorkflows({
-        forestServerToken,
-        renderingId,
-      });
-      const workflow = workflows.find(candidate => candidate.workflowId === args.workflowId);
+      let result: WorkflowRunTriggerResult;
 
-      // Rejected before withActivityLog: with no resolved workflow there is no collection to
-      // attach, and the server drops MCP activity logs that carry no resource (see PRD-49), so a
-      // pre-trigger rejection cannot be audited. Only real triggers are logged (incl. server-side
-      // 403/409, which fail inside withActivityLog below).
-      if (!workflow) {
-        throw new Error(
-          `Workflow "${args.workflowId}" is not an MCP-enabled workflow you can access. ` +
-            'Use listWorkflows to discover triggerable workflows.',
+      try {
+        result = await forestServerClient.triggerWorkflow({
+          forestServerToken,
+          renderingId,
+          workflowId: args.workflowId,
+          recordId: args.recordId,
+        });
+      } catch (error) {
+        // The server answers 404 both for an unknown workflow and for one whose MCP trigger is
+        // disabled (indistinguishable on purpose). Surface the same guidance the tool gave when
+        // it validated the id client-side, so the LLM-facing contract stays identical.
+        if (error instanceof NotFoundError) {
+          throw new Error(
+            `Workflow "${args.workflowId}" is not an MCP-enabled workflow you can access. ` +
+              'Use listWorkflows to discover triggerable workflows.',
+          );
+        }
+
+        throw error;
+      }
+
+      // Audit the successful trigger. The start endpoint echoes the workflow name/collection so we
+      // can label the log without a prior listing; fall back to the id when an older server omits
+      // them. The run is already started, so a logging hiccup must not fail the tool.
+      try {
+        const activityLog = await createPendingActivityLog(
+          forestServerClient,
+          extra,
+          'triggerWorkflow',
+          {
+            collectionName: result.collectionName ?? undefined,
+            recordId: args.recordId,
+            label: `triggered the workflow "${result.workflowName ?? args.workflowId}"`,
+          },
+        );
+
+        markActivityLogAsSucceeded({ forestServerClient, request: extra, activityLog, logger });
+      } catch (error) {
+        logger(
+          'Warn',
+          `Failed to record triggerWorkflow activity log: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         );
       }
 
-      return withActivityLog({
-        forestServerClient,
-        request: extra,
-        action: 'triggerWorkflow',
-        context: {
-          collectionName: workflow.collectionName ?? undefined,
-          recordId: args.recordId,
-          label: `triggered the workflow "${workflow.name}"`,
-        },
-        logger,
-        operation: async () => {
-          const result = await forestServerClient.triggerWorkflow({
-            forestServerToken,
-            renderingId,
-            workflowId: args.workflowId,
-            recordId: args.recordId,
-          });
-
-          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-        },
-      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ runId: result.runId, runState: result.runState }),
+          },
+        ],
+      };
     },
     logger,
   );

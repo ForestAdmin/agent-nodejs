@@ -8,13 +8,9 @@ import type { ServerNotification, ServerRequest } from '@modelcontextprotocol/sd
 import { NotFoundError } from '@forestadmin/forestadmin-client';
 
 import declareTriggerWorkflowTool from '../../src/tools/trigger-workflow';
-import withActivityLog from '../../src/utils/with-activity-log';
 import createMockForestServerClient from '../helpers/forest-server-client';
 
-jest.mock('../../src/utils/with-activity-log');
-
 const mockLogger: Logger = jest.fn();
-const mockWithActivityLog = withActivityLog as jest.MockedFunction<typeof withActivityLog>;
 
 describe('declareTriggerWorkflowTool', () => {
   let mcpServer: McpServer;
@@ -33,9 +29,6 @@ describe('declareTriggerWorkflowTool', () => {
         registeredToolHandler = handler;
       }),
     } as unknown as McpServer;
-
-    // By default, withActivityLog executes the operation and returns its result
-    mockWithActivityLog.mockImplementation(async options => options.operation());
   });
 
   describe('tool registration', () => {
@@ -111,13 +104,15 @@ describe('declareTriggerWorkflowTool', () => {
         logger: mockLogger,
         collectionNames: [],
       });
-      mockForestServerClient.listMcpWorkflows.mockResolvedValue([
-        { workflowId: 'wf-1', name: 'Refund order', collectionName: 'orders' },
-      ]);
-      mockForestServerClient.triggerWorkflow.mockResolvedValue({ runId: '7', runState: 'loading' });
+      mockForestServerClient.triggerWorkflow.mockResolvedValue({
+        runId: '7',
+        runState: 'loading',
+        workflowName: 'Refund order',
+        collectionName: 'orders',
+      });
     });
 
-    it('should call triggerWorkflow with the identity from the auth context and the args', async () => {
+    it('should start the workflow directly with the identity from the auth context and the args', async () => {
       await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
       expect(mockForestServerClient.triggerWorkflow).toHaveBeenCalledWith({
@@ -128,7 +123,13 @@ describe('declareTriggerWorkflowTool', () => {
       });
     });
 
-    it('should return the runId and runState as JSON text content', async () => {
+    it('should not list workflows before triggering', async () => {
+      await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(mockForestServerClient.listMcpWorkflows).not.toHaveBeenCalled();
+    });
+
+    it('should return only the runId and runState as JSON text content', async () => {
       const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
       expect(result).toEqual({
@@ -136,38 +137,46 @@ describe('declareTriggerWorkflowTool', () => {
       });
     });
 
-    it('should wrap the trigger in an activity log carrying the resolved collection and record', async () => {
+    it('should record an activity log labelled from the response name and collection', async () => {
       await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
-      expect(mockWithActivityLog).toHaveBeenCalledWith({
-        forestServerClient: mockForestServerClient,
-        request: mockExtra,
-        action: 'triggerWorkflow',
-        context: {
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'triggerWorkflow',
+          type: 'write',
           collectionName: 'orders',
           recordId: '42',
           label: 'triggered the workflow "Refund order"',
-        },
-        logger: mockLogger,
-        operation: expect.any(Function),
-      });
+        }),
+      );
     });
 
-    it('should error without triggering when the workflow is not among accessible workflows', async () => {
-      mockForestServerClient.listMcpWorkflows.mockResolvedValue([
-        { workflowId: 'other-wf', name: 'Other', collectionName: 'orders' },
-      ]);
+    it('should fall back to the workflowId in the label when the response omits name/collection', async () => {
+      mockForestServerClient.triggerWorkflow.mockResolvedValue({
+        runId: '7',
+        runState: 'loading',
+      });
+
+      await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(mockForestServerClient.createMcpActivityLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collectionName: undefined,
+          recordId: '42',
+          label: 'triggered the workflow "wf-1"',
+        }),
+      );
+    });
+
+    it('should still return the run when recording the activity log fails', async () => {
+      mockForestServerClient.createMcpActivityLog.mockRejectedValue(new Error('audit down'));
 
       const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
       expect(result).toEqual({
-        content: [
-          { type: 'text', text: expect.stringContaining('is not an MCP-enabled workflow') },
-        ],
-        isError: true,
+        content: [{ type: 'text', text: JSON.stringify({ runId: '7', runState: 'loading' }) }],
       });
-      expect(mockForestServerClient.triggerWorkflow).not.toHaveBeenCalled();
-      expect(mockWithActivityLog).not.toHaveBeenCalled();
+      expect(mockLogger).toHaveBeenCalledWith('Warn', expect.stringContaining('audit down'));
     });
 
     it('should return an error result when the auth context is missing the token', async () => {
@@ -187,7 +196,23 @@ describe('declareTriggerWorkflowTool', () => {
       expect(mockForestServerClient.triggerWorkflow).not.toHaveBeenCalled();
     });
 
-    it('should map a 409 already-ongoing run to an error tool result', async () => {
+    it('should map a server 404 to the "is not an MCP-enabled workflow" tool error', async () => {
+      mockForestServerClient.triggerWorkflow.mockRejectedValue(
+        new NotFoundError('Workflow MCP trigger not found or disabled'),
+      );
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(result).toEqual({
+        content: [
+          { type: 'text', text: expect.stringContaining('is not an MCP-enabled workflow') },
+        ],
+        isError: true,
+      });
+      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('should pass a 409 already-ongoing run through as an error tool result', async () => {
       mockForestServerClient.triggerWorkflow.mockRejectedValue(
         new Error('A run is already ongoing on this record'),
       );
@@ -200,19 +225,7 @@ describe('declareTriggerWorkflowTool', () => {
         ],
         isError: true,
       });
-    });
-
-    it('should map a 404 non-mcp-enabled workflow to an error tool result', async () => {
-      mockForestServerClient.triggerWorkflow.mockRejectedValue(
-        new NotFoundError('Workflow MCP trigger not found or disabled'),
-      );
-
-      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
-
-      expect(result).toEqual({
-        content: [{ type: 'text', text: expect.stringContaining('not found or disabled') }],
-        isError: true,
-      });
+      expect(mockForestServerClient.createMcpActivityLog).not.toHaveBeenCalled();
     });
   });
 });
