@@ -116,6 +116,10 @@ export default class ReadModel {
     return this.collections.has(collection);
   }
 
+  getAllowedCollections(): string[] {
+    return [...this.collections];
+  }
+
   isRelationAllowed(collection: string, relation: string): boolean {
     return this.relations.get(collection)?.has(relation) ?? false;
   }
