@@ -220,6 +220,148 @@ describe('QueryStringParser', () => {
     });
   });
 
+  describe('parseProjectionFromHeader', () => {
+    test('should return null when the header is missing', () => {
+      const context = createMockContext({
+        customProperties: { query: { 'fields[books]': 'id' } },
+      });
+
+      const projection = QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(projection).toBeNull();
+    });
+
+    test('should return null when the header is empty', () => {
+      const context = createMockContext({ headers: { 'forest-projection': '' } });
+
+      const projection = QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(projection).toBeNull();
+    });
+
+    test('should return null when the header only contains whitespace', () => {
+      const context = createMockContext({ headers: { 'forest-projection': '  ' } });
+
+      const projection = QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(projection).toBeNull();
+    });
+
+    test('should handle a repeated header sent as an array of values', () => {
+      const context = createMockContext({
+        headers: { 'forest-projection': ['id', 'name'] as unknown as string },
+      });
+
+      const projection = QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(projection).toEqual(new Projection('id', 'name'));
+    });
+
+    test('should keep duplicated fields as-is, like the query string parsing', () => {
+      const context = createMockContext({ headers: { 'forest-projection': 'id,id' } });
+
+      const projection = QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(projection).toEqual(new Projection('id', 'id'));
+    });
+
+    test('should throw a ValidationError on a trailing comma', () => {
+      const context = createMockContext({ headers: { 'forest-projection': 'id,' } });
+
+      const fn = () => QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(fn).toThrow(ValidationError);
+    });
+
+    test('should throw a ValidationError when a subfield targets a column', () => {
+      const context = createMockContext({ headers: { 'forest-projection': 'name:foo' } });
+
+      const fn = () => QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(fn).toThrow(ValidationError);
+    });
+
+    test('should convert the header to a valid projection', () => {
+      const context = createMockContext({ headers: { 'forest-projection': 'id,name' } });
+
+      const projection = QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(projection).toEqual(new Projection('id', 'name'));
+    });
+
+    test('should trim spaces around field names', () => {
+      const context = createMockContext({ headers: { 'forest-projection': 'id, name' } });
+
+      const projection = QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(projection).toEqual(new Projection('id', 'name'));
+    });
+
+    test('should support relation fields with the colon notation', () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cars',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              owner: factories.oneToOneSchema.build({
+                foreignCollection: 'owner',
+                originKey: 'id',
+                originKeyTarget: 'id',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'owner',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.build(),
+            },
+          }),
+        }),
+      ]);
+
+      const context = createMockContext({
+        headers: { 'forest-projection': 'id,owner:id,owner:name' },
+      });
+
+      const projection = QueryStringParser.parseProjectionFromHeader(
+        dataSource.getCollection('cars'),
+        context,
+      );
+
+      expect(projection).toEqual(new Projection('id', 'owner:id', 'owner:name'));
+    });
+
+    test('should throw a ValidationError on nested projections', () => {
+      const context = createMockContext({
+        headers: { 'forest-projection': 'id,owner:address:street' },
+      });
+
+      const fn = () => QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(fn).toThrow(ValidationError);
+      expect(fn).toThrow(
+        "Invalid projection: nested projections are not supported ('owner:address:street')",
+      );
+    });
+
+    test('should throw a ValidationError when the header contains an unknown field', () => {
+      const context = createMockContext({
+        headers: { 'forest-projection': 'field-that-do-not-exist' },
+      });
+
+      const fn = () => QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
+
+      expect(fn).toThrow(ValidationError);
+      expect(fn).toThrow(
+        "Invalid projection: The 'books.field-that-do-not-exist' field was not found. Available fields are: [id,name]. Please check if the field name is correct.",
+      );
+    });
+  });
+
   describe('parseProjectionWithPks', () => {
     describe('when the request does not contain the primary keys', () => {
       test('should return the requested project with the primary keys', () => {

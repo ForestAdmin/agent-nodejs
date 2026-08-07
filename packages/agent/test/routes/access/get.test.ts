@@ -207,6 +207,97 @@ describe('GetRoute', () => {
           );
         });
 
+        test('it should read the projection from the Forest-Projection header', async () => {
+          jest
+            .spyOn(dataSource.getCollection('books'), 'list')
+            .mockResolvedValue([{ title: 'test ' }]);
+          services.serializer.serialize = jest.fn().mockReturnValue('test');
+          const get = new Get(services, options, dataSource, 'books');
+          const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
+            headers: { 'forest-projection': 'name,author:id' },
+            customProperties: {
+              query: { timezone: 'Europe/Paris' },
+              params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+            },
+          });
+
+          await get.handleGet(context);
+
+          expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            ['name', 'author:id', 'id'],
+          );
+        });
+
+        test('it should give precedence to the Forest-Projection header over query params', async () => {
+          jest
+            .spyOn(dataSource.getCollection('books'), 'list')
+            .mockResolvedValue([{ title: 'test ' }]);
+          services.serializer.serialize = jest.fn().mockReturnValue('test');
+          const get = new Get(services, options, dataSource, 'books');
+          const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
+            headers: { 'forest-projection': 'author:id' },
+            customProperties: {
+              query: { timezone: 'Europe/Paris', 'fields[books]': 'name' },
+              params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+            },
+          });
+
+          await get.handleGet(context);
+
+          expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            ['author:id', 'id'],
+          );
+        });
+
+        test('it should not fall back to query params when the header is invalid', async () => {
+          const listSpy = jest
+            .spyOn(dataSource.getCollection('books'), 'list')
+            .mockResolvedValue([{ title: 'test ' }]);
+          listSpy.mockClear();
+          const get = new Get(services, options, dataSource, 'books');
+          const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
+            headers: { 'forest-projection': 'field-that-do-not-exist' },
+            customProperties: {
+              query: { timezone: 'Europe/Paris', 'fields[books]': 'name' },
+              params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+            },
+          });
+
+          await expect(get.handleGet(context)).rejects.toThrow('Invalid projection');
+          expect(listSpy).not.toHaveBeenCalled();
+        });
+
+        test('it should fall back to query params when the header is empty', async () => {
+          jest
+            .spyOn(dataSource.getCollection('books'), 'list')
+            .mockResolvedValue([{ title: 'test ' }]);
+          services.serializer.serialize = jest.fn().mockReturnValue('test');
+          const get = new Get(services, options, dataSource, 'books');
+          const context = createMockContext({
+            state: { user: { email: 'john.doe@domain.com' } },
+            headers: { 'forest-projection': '' },
+            customProperties: {
+              query: { timezone: 'Europe/Paris', 'fields[books]': 'name' },
+              params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+            },
+          });
+
+          await get.handleGet(context);
+
+          expect(dataSource.getCollection('books').list).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            ['name', 'id'],
+          );
+        });
+
         test('it should handle multiple projected fields on a belongsTo relation', async () => {
           jest
             .spyOn(dataSource.getCollection('books'), 'list')

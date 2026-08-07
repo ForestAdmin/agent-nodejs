@@ -71,6 +71,29 @@ export default class QueryStringParser {
     }
   }
 
+  static parseProjectionFromHeader(collection: Collection, context: Context): Projection | null {
+    const header = context.request.headers['forest-projection']?.toString().trim();
+    if (!header) return null;
+
+    try {
+      const fields = header.split(',').map(field => field.trim());
+
+      // Keep parity with the `fields[...]` query params, which cannot express
+      // projections deeper than one relation level.
+      const nestedField = fields.find(field => field.split(':').length > 2);
+
+      if (nestedField) {
+        throw new ValidationError(`nested projections are not supported ('${nestedField}')`);
+      }
+
+      ProjectionValidator.validate(collection, fields);
+
+      return new Projection(...fields);
+    } catch (e) {
+      throw new ValidationError(`Invalid projection: ${e.message}`);
+    }
+  }
+
   static parseProjectionWithPks(collection: Collection, context: Context): Projection {
     const projection = QueryStringParser.parseProjection(collection, context);
 
