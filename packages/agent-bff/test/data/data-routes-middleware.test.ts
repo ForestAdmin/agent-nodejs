@@ -59,9 +59,11 @@ function buildApp(
   {
     agentToken = 'agent-jwt',
     createClient = () => client as AgentDataClient,
+    logger = noopLogger,
   }: {
     agentToken?: string | null;
     createClient?: (options: { agentUrl: string; token: string }) => AgentDataClient;
+    logger?: Logger;
   } = {},
 ) {
   const app = new Koa();
@@ -77,7 +79,7 @@ function buildApp(
     createDataRoutesMiddleware({
       store,
       agentUrl: AGENT_URL,
-      logger: noopLogger,
+      logger,
       createClient,
     }),
   );
@@ -764,7 +766,7 @@ describe('data routes middleware', () => {
         .send({
           parentId: '7',
           projection: ['id', 'title'],
-          filter: { field: 'title', operator: 'present' },
+          filter: { field: 'title', operator: 'Present' },
           sort: [{ field: 'title', direction: 'desc' }],
         });
 
@@ -774,7 +776,7 @@ describe('data routes middleware', () => {
         'posts',
         expect.objectContaining({
           'fields[posts]': 'id,title',
-          filters: JSON.stringify({ field: 'title', operator: 'present' }),
+          filters: JSON.stringify({ field: 'title', operator: 'Present' }),
           sort: '-title',
         }),
       );
@@ -989,6 +991,420 @@ describe('data routes middleware', () => {
       expect(response.status).toBe(400);
       expect(response.body.error).toMatchObject({ type: 'invalid_request', status: 400 });
       expect(countRelationRaw).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('relation capabilities validation', () => {
+    const NARROW_FOREIGN_CAPABILITIES = {
+      fields: [{ name: 'title', type: 'String', operators: ['present'] }],
+    };
+
+    const PERMISSIVE_PARENT_CAPABILITIES = {
+      fields: ['id', 'email', 'title'].map(name => ({
+        name,
+        type: 'String',
+        operators: BROAD_SNAKE_OPERATORS,
+      })),
+    };
+
+    const narrowOnForeignPermissiveOnParent: CapabilitiesStub = async collectionName =>
+      collectionName === 'posts' ? NARROW_FOREIGN_CAPABILITIES : PERMISSIVE_PARENT_CAPABILITIES;
+
+    it('should fetch capabilities for the foreign collection, not the parent', async () => {
+      const listRelation = jest.fn(async () => []);
+      const getCapabilities = jest.fn(narrowOnForeignPermissiveOnParent);
+      const app = buildApp(storeOf(relationReadModel, getCapabilities), { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', projection: ['title'] });
+
+      expect(response.status).toBe(200);
+      expect(getCapabilities).toHaveBeenCalledWith('posts');
+      expect(getCapabilities).not.toHaveBeenCalledWith('users');
+    });
+
+    it('should forward a relation count filter the foreign capabilities accept', async () => {
+      const countRelationRaw = jest.fn(async () => ({ count: 4 }));
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        countRelationRaw,
+      });
+      const filter = { field: 'title', operator: 'Present' };
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({ parentId: '7', filter });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ count: 4, countStatus: 'available' });
+      expect(countRelationRaw).toHaveBeenCalledWith(
+        'users',
+        '7',
+        'posts',
+        expect.objectContaining({ filters: JSON.stringify(filter) }),
+      );
+    });
+
+    it('should reject a projection field that only exists on the parent collection', async () => {
+      const listRelation = jest.fn(async () => []);
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        listRelation,
+      });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', projection: ['email'] });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toMatchObject({
+        type: 'unknown_field',
+        status: 422,
+        details: { field: 'email' },
+      });
+      expect(listRelation).not.toHaveBeenCalled();
+    });
+
+    it('should reject a relation list sort field that only exists on the parent collection', async () => {
+      const listRelation = jest.fn(async () => []);
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        listRelation,
+      });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', sort: [{ field: 'email', direction: 'asc' }] });
+
+      expect(response.status).toBe(422);
+      expect(response.body.error).toMatchObject({
+        type: 'unknown_field',
+        status: 422,
+        details: { field: 'email' },
+      });
+      expect(listRelation).not.toHaveBeenCalled();
+    });
+
+    it('should reject a relation list filter operator the foreign capabilities do not support', async () => {
+      const listRelation = jest.fn(async () => []);
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        listRelation,
+      });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', filter: { field: 'title', operator: 'Equal' } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({
+        type: 'invalid_filter_operator',
+        status: 400,
+        details: { field: 'title', validOperators: ['Present'] },
+      });
+      expect(listRelation).not.toHaveBeenCalled();
+    });
+
+    it('should reject a relation count filter operator the foreign capabilities do not support', async () => {
+      const countRelationRaw = jest.fn(async () => ({ count: 0 }));
+      const app = buildApp(storeOf(relationReadModel, narrowOnForeignPermissiveOnParent), {
+        countRelationRaw,
+      });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/count')
+        .send({ parentId: '7', filter: { field: 'title', operator: 'Equal' } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatchObject({
+        type: 'invalid_filter_operator',
+        status: 400,
+        details: { field: 'title', validOperators: ['Present'] },
+      });
+      expect(countRelationRaw).not.toHaveBeenCalled();
+    });
+
+    it('should read the foreign capabilities before calling the agent', async () => {
+      const calls: string[] = [];
+      const listRelation = jest.fn(async () => {
+        calls.push('agent');
+
+        return [];
+      });
+      const getCapabilities = jest.fn(async (collectionName: string) => {
+        calls.push(`capabilities:${collectionName}`);
+
+        return narrowOnForeignPermissiveOnParent(collectionName);
+      });
+      const app = buildApp(storeOf(relationReadModel, getCapabilities), { listRelation });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', projection: ['title'] });
+
+      expect(calls).toEqual(['capabilities:posts', 'agent']);
+    });
+
+    it.each([['list'], ['count']])(
+      'should skip the capabilities fetch when a relation %s carries nothing to validate',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const getCapabilities = jest.fn(async () => {
+          throw new AgentHttpError(503, {}, 'Service Unavailable');
+        });
+        const app = buildApp(storeOf(relationReadModel, getCapabilities), client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7' });
+
+        expect(response.status).toBe(200);
+        expect(getCapabilities).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
+      'should return 404 on a relation %s without fetching capabilities when the relation is already gone',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const getCapabilities = jest.fn(narrowOnForeignPermissiveOnParent);
+        const withoutPosts = new ReadModel([collection('users', [column('id')])]);
+        let served = relationReadModel;
+        const store = {
+          getReadModel: async () => {
+            const current = served;
+            served = withoutPosts;
+
+            return current;
+          },
+          getCapabilities: async (name: string) => ({
+            capabilities: await getCapabilities(name),
+            readModel: withoutPosts,
+          }),
+        } as unknown as ReadModelStore;
+        const app = buildApp(store, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(404);
+        expect(getCapabilities).not.toHaveBeenCalled();
+        expect(client.listRelation).not.toHaveBeenCalled();
+        expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
+      'should return 404 on a relation %s when a refresh during the capabilities read drops the foreign collection',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const refreshedStore = {
+          getReadModel: async () => relationReadModel,
+          getCapabilities: async () => ({
+            capabilities: { fields: [{ name: 'title', type: 'String', operators: ['present'] }] },
+            readModel: new ReadModel([
+              collection('users', [column('id'), relation('posts', 'HasMany', 'posts.id')]),
+            ]),
+          }),
+        } as unknown as ReadModelStore;
+        const app = buildApp(refreshedStore, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
+        expect(client.listRelation).not.toHaveBeenCalled();
+        expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
+      'should return 404 on a relation %s when a refresh re-targets the relation to another collection',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const refreshedStore = {
+          getReadModel: async () => relationReadModel,
+          getCapabilities: async () => ({
+            capabilities: { fields: [{ name: 'title', type: 'String', operators: ['present'] }] },
+            readModel: new ReadModel([
+              collection('users', [
+                column('id'),
+                relation('posts', 'HasMany', 'archived_posts.id'),
+              ]),
+              collection('archived_posts', [column('id'), column('title')]),
+            ]),
+          }),
+        } as unknown as ReadModelStore;
+        const app = buildApp(refreshedStore, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type: 'unknown_relation', status: 404 });
+        expect(client.listRelation).not.toHaveBeenCalled();
+        expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
+      'should return 404 on a relation %s when the foreign collection disappears during a failed capabilities read',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const refreshedRelationReadModel = new ReadModel([
+          collection('users', [column('id'), relation('posts', 'HasMany', 'posts.id')]),
+        ]);
+        let readModelReads = 0;
+        const refreshedStore = {
+          getReadModel: async () => {
+            readModelReads += 1;
+
+            return readModelReads < 3 ? relationReadModel : refreshedRelationReadModel;
+          },
+          getCapabilities: async () => {
+            throw new Error('foreign collection is no longer exposed');
+          },
+        } as unknown as ReadModelStore;
+        const app = buildApp(refreshedStore, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
+        expect(client.listRelation).not.toHaveBeenCalled();
+        expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
+      'should map a foreign capabilities fetch failure on a relation %s to agent_unavailable',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const getCapabilities = jest.fn(async () => {
+          throw new AgentHttpError(503, {}, 'Service Unavailable');
+        });
+        const app = buildApp(storeOf(relationReadModel, getCapabilities), client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(503);
+        expect(response.body.error).toEqual(
+          expect.objectContaining({ type: 'agent_unavailable', status: 503 }),
+        );
+        expect(client.listRelation).not.toHaveBeenCalled();
+        expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should log the cause when a foreign capabilities fetch fails on a relation list', async () => {
+      const client = {
+        listRelation: jest.fn(async () => []),
+        countRelationRaw: jest.fn(async () => ({ count: 0 })),
+      };
+      const getCapabilities = jest.fn(async () => {
+        throw new AgentHttpError(503, {}, 'Service Unavailable');
+      });
+      const logger = jest.fn();
+      const app = buildApp(storeOf(relationReadModel, getCapabilities), client, { logger });
+
+      await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+      expect(logger).toHaveBeenCalledWith(
+        'Warn',
+        'Foreign capabilities lookup failed; re-checking relation exposure',
+        expect.objectContaining({
+          collection: 'users',
+          relation: 'posts',
+          foreignCollection: 'posts',
+          cause: 'BffHttpError: The agent is unavailable',
+        }),
+      );
+    });
+
+    it.each([['list'], ['count']])(
+      'should return 404 on a relation %s when a refresh during the capabilities read drops the parent collection',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        const refreshedStore = {
+          getReadModel: async () => relationReadModel,
+          getCapabilities: async () => ({
+            capabilities: { fields: [{ name: 'title', type: 'String', operators: ['present'] }] },
+            readModel: new ReadModel([collection('posts', [column('id'), column('title')])]),
+          }),
+        } as unknown as ReadModelStore;
+        const app = buildApp(refreshedStore, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error).toMatchObject({ type: 'unknown_collection', status: 404 });
+        expect(client.listRelation).not.toHaveBeenCalled();
+        expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should stamp the foreign primary keys from the generation the capabilities belong to', async () => {
+      const listRelation = jest.fn(async () => [{ id: 'acme|42', title: 'Hello' }]);
+      const preFetch = new ReadModel([
+        collection('users', [column('id'), relation('posts', 'HasMany', 'posts.id')]),
+        collection('posts', [column('id'), column('title')]),
+      ]);
+      const refreshedStore = {
+        getReadModel: async () => preFetch,
+        getCapabilities: async () => ({
+          capabilities: { fields: [{ name: 'title', type: 'String', operators: ['present'] }] },
+          readModel: new ReadModel([
+            collection('users', [column('id'), relation('posts', 'HasMany', 'posts.id')]),
+            collection('posts', [
+              { ...column('tenant'), isPrimaryKey: true },
+              column('id'),
+              column('title'),
+            ]),
+          ]),
+        }),
+      } as unknown as ReadModelStore;
+      const app = buildApp(refreshedStore, { listRelation });
+
+      const response = await request(app.callback())
+        .post('/agent/v1/users/relations/posts/list')
+        .send({ parentId: '7', projection: ['title'] });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data[0]).toEqual({
+        id: 'acme|42',
+        title: 'Hello',
+        __forest: { collection: 'posts', primaryKey: { tenant: 'acme', id: '42' } },
+      });
     });
   });
 });
