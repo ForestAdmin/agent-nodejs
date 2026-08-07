@@ -45,6 +45,20 @@ describe('createPrettyLogger', () => {
       expect(output).toMatch(/^\d{2}:\d{2}:\d{2} info {2}Ready$/);
     });
 
+    it('drops keys whose value is undefined, keeping the rest', () => {
+      logger('Info', 'Tools loaded', { server: 'acme-crm', cause: undefined, stack: undefined });
+
+      const output = stripAnsi(infoSpy.mock.calls[0][0] as string);
+      expect(output).toMatch(/^\d{2}:\d{2}:\d{2} info {2}Tools loaded server="acme-crm"$/);
+    });
+
+    it('omits the context chunk when every value is undefined', () => {
+      logger('Info', 'Ready', { cause: undefined });
+
+      const output = stripAnsi(infoSpy.mock.calls[0][0] as string);
+      expect(output).toMatch(/^\d{2}:\d{2}:\d{2} info {2}Ready$/);
+    });
+
     it('JSON-quotes string values in context', () => {
       logger('Info', 'Step execution started', { runId: '42', stepIndex: 2 });
 
