@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.11.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.10.0...@forestadmin/agent-bff@1.11.0) (2026-08-07)
+
+
+### Features
+
+* **agent-bff:** mint an agent token from the OAuth principal ([#1800](https://github.com/ForestAdmin/agent-nodejs/issues/1800)) ([b2414db](https://github.com/ForestAdmin/agent-nodejs/commit/b2414db92c359701efca57bea89ad9dbaee9782e))
+
 # @forestadmin/agent-bff [1.10.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.9.1...@forestadmin/agent-bff@1.10.0) (2026-08-06)
 
 
