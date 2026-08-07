@@ -140,6 +140,7 @@ function createMockAiClient(model: BaseChatModel): AiModelPort {
   return {
     getModel: jest.fn().mockReturnValue(model),
     loadRemoteTools: jest.fn().mockResolvedValue([]),
+    loadRemoteToolsWithFailures: jest.fn().mockResolvedValue({ tools: [], failures: [] }),
     closeConnections: jest.fn().mockResolvedValue(undefined),
   } as unknown as AiModelPort;
 }
@@ -619,7 +620,10 @@ describe('workflow execution (integration)', () => {
     );
 
     const aiClient = createMockAiClient(model);
-    (aiClient.loadRemoteTools as jest.Mock).mockResolvedValue([fakeRemoteTool]);
+    (aiClient.loadRemoteToolsWithFailures as jest.Mock).mockResolvedValue({
+      tools: [fakeRemoteTool],
+      failures: [],
+    });
 
     const step = buildPendingStep({
       stepDefinition: {
@@ -635,7 +639,7 @@ describe('workflow execution (integration)', () => {
         .fn()
         .mockResolvedValue({ step, auth: { forestServerToken: 'test-forest-token' } }),
       // Two configs but only one matches step.mcpServerId — the assertion below proves
-      // RemoteToolFetcher actually scopes the Record before calling loadRemoteTools.
+      // RemoteToolFetcher actually scopes the Record before loading tools.
       getMcpServerConfigs: jest.fn().mockResolvedValue({
         'mcp-server-1': { id: 'mcp-1', url: 'http://fake' },
         'mcp-server-2': { id: 'mcp-2', url: 'http://other' },
@@ -676,7 +680,7 @@ describe('workflow execution (integration)', () => {
       expect.objectContaining({ type: 'mcp', status: 'success' }),
     );
     // Scoping must reach the AI port — only the matching server is forwarded, not the full map.
-    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({
+    expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledWith({
       'mcp-server-1': expect.objectContaining({ id: 'mcp-1' }),
     });
   });

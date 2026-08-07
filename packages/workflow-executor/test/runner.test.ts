@@ -61,6 +61,7 @@ function createMockAiClient() {
   return {
     getModel: jest.fn().mockReturnValue({} as BaseChatModel),
     loadRemoteTools: jest.fn().mockResolvedValue([]),
+    loadRemoteToolsWithFailures: jest.fn().mockResolvedValue({ tools: [], failures: [] }),
     closeConnections: jest.fn().mockResolvedValue(undefined),
   };
 }
@@ -1339,10 +1340,10 @@ describe('MCP lazy loading (via once thunk)', () => {
     await runner.triggerPoll('run-1');
 
     expect(workflowPort.getMcpServerConfigs).not.toHaveBeenCalled();
-    expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
+    expect(aiClient.loadRemoteToolsWithFailures).not.toHaveBeenCalled();
   });
 
-  it('skips loadRemoteTools when the orchestrator returns an empty Record', async () => {
+  it('skips the tool load when the orchestrator returns an empty Record', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({
@@ -1362,7 +1363,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     await runner.triggerPoll('run-1');
 
     expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
-    expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
+    expect(aiClient.loadRemoteToolsWithFailures).not.toHaveBeenCalled();
     // Distinguish the short-circuit from a regression that throws before reaching the guard:
     // the step must actually have executed and reported a success outcome.
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
@@ -1373,7 +1374,7 @@ describe('MCP lazy loading (via once thunk)', () => {
 });
 
 describe('MCP fetch scoping', () => {
-  it('passes only the matching config to loadRemoteTools when step.mcpServerId is set', async () => {
+  it('passes only the matching config to the tool load when step.mcpServerId is set', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const step = makePendingStep({
@@ -1400,8 +1401,8 @@ describe('MCP fetch scoping', () => {
     );
     await runner.triggerPoll('run-1');
 
-    expect(aiClient.loadRemoteTools).toHaveBeenCalledTimes(1);
-    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({
+    expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledTimes(1);
+    expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledWith({
       'server-A': expect.objectContaining({ id: 'id-A' }),
     });
   });
@@ -1435,12 +1436,12 @@ describe('MCP fetch scoping', () => {
     );
     await runner.triggerPoll('run-1');
 
-    expect(aiClient.loadRemoteTools).toHaveBeenCalledWith({
+    expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledWith({
       'server-B': expect.objectContaining({ id: 'server-A' }),
     });
   });
 
-  it('skips loadRemoteTools and warns with availableMcpServerIds when no config matches', async () => {
+  it('skips the tool load and warns with availableMcpServerIds when no config matches', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const logger = createMockLogger();
@@ -1473,7 +1474,7 @@ describe('MCP fetch scoping', () => {
     await runner.triggerPoll('run-1');
 
     expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
-    expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
+    expect(aiClient.loadRemoteToolsWithFailures).not.toHaveBeenCalled();
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       'MCP step targets a server not advertised by the orchestrator',
@@ -1514,7 +1515,7 @@ describe('MCP fetch scoping', () => {
     );
     await runner.triggerPoll('run-1');
 
-    expect(aiClient.loadRemoteTools).not.toHaveBeenCalled();
+    expect(aiClient.loadRemoteToolsWithFailures).not.toHaveBeenCalled();
     expect(logger).toHaveBeenCalledWith(
       'Warn',
       'MCP step targets a server but orchestrator returned no MCP configs',
@@ -1530,7 +1531,7 @@ describe('MCP fetch scoping', () => {
   // The diagnostic must not short-circuit dispatch — the executor is still constructed (and
   // will surface NoMcpToolsError downstream). Asserting on executeSpy.mock.instances bypasses
   // the global execute() spy to confirm the executor saw the (empty) tool list.
-  it('logs partial-failure and still dispatches to the executor when the scoped server loaded zero tools', async () => {
+  it('logs the reported failure and still dispatches to the executor with no tools', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const logger = createMockLogger();
@@ -1551,7 +1552,10 @@ describe('MCP fetch scoping', () => {
     workflowPort.getMcpServerConfigs.mockResolvedValue({
       'server-A': { id: 'id-A', url: 'https://a.example', type: 'http', headers: {} },
     });
-    aiClient.loadRemoteTools.mockResolvedValue([]);
+    aiClient.loadRemoteToolsWithFailures.mockResolvedValue({
+      tools: [],
+      failures: [{ server: 'server-A', kind: 'connection', error: new Error('socket hang up') }],
+    });
 
     runner = new Runner(
       createRunnerConfig({
@@ -1565,7 +1569,7 @@ describe('MCP fetch scoping', () => {
     expect(logger).toHaveBeenCalledWith('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: 'id-A',
       mcpServerName: 'server-A',
-      failedConfigNames: ['server-A'],
+      failures: [{ server: 'server-A', kind: 'connection', error: 'socket hang up' }],
     });
     expect(executeSpy).toHaveBeenCalledTimes(1);
     const executorInstance = executeSpy.mock.instances[0];
@@ -1575,7 +1579,7 @@ describe('MCP fetch scoping', () => {
     ).toEqual([]);
   });
 
-  it('re-scopes loadRemoteTools per dispatch when chained MCP steps target different servers', async () => {
+  it('re-scopes the tool load per dispatch when chained MCP steps target different servers', async () => {
     const workflowPort = createMockWorkflowPort();
     const aiClient = createMockAiClient();
     const mcpDef = (id: string) =>
@@ -1615,11 +1619,11 @@ describe('MCP fetch scoping', () => {
     );
     await runner.triggerPoll('run-1');
 
-    expect(aiClient.loadRemoteTools).toHaveBeenCalledTimes(2);
-    expect(aiClient.loadRemoteTools).toHaveBeenNthCalledWith(1, {
+    expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledTimes(2);
+    expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenNthCalledWith(1, {
       'server-A': expect.objectContaining({ id: 'id-A' }),
     });
-    expect(aiClient.loadRemoteTools).toHaveBeenNthCalledWith(2, {
+    expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenNthCalledWith(2, {
       'server-B': expect.objectContaining({ id: 'id-B' }),
     });
   });

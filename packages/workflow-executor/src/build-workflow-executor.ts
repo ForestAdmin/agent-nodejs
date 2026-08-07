@@ -119,9 +119,9 @@ function buildCommonDependencies(options: ExecutorOptions) {
   if (forceAiError) {
     aiModelPort = new AlwaysErrorAiModelPort();
   } else if (options.aiConfigurations?.length) {
-    aiModelPort = new AiClientAdapter(options.aiConfigurations);
+    aiModelPort = new AiClientAdapter(options.aiConfigurations, logger);
   } else {
-    aiModelPort = new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret });
+    aiModelPort = new ServerAiAdapter({ forestServerUrl, envSecret: options.envSecret, logger });
   }
 
   // A TTL of 0/negative/non-finite would silently make the cache always-stale, so fall back.

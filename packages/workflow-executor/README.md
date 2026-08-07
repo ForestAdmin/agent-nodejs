@@ -166,6 +166,34 @@ When your workflows use OAuth-protected MCP connectors, the executor stores each
 
 ---
 
+## When an MCP step fails to load its tools
+
+The executor names the reason at `Error`, so it is in your logs at the default level:
+
+```json
+{
+  "level": "Error",
+  "message": "MCP servers failed to load tools",
+  "requestedMcpServerId": "39",
+  "mcpServerName": "acme-crm",
+  "failures": [
+    { "server": "acme-crm", "kind": "connection", "error": "connect ECONNREFUSED 10.0.4.12:8080" }
+  ]
+}
+```
+
+`kind` tells you where to look:
+
+- `auth` — the server rejected the credential. Reconnect the connector, or renew its token.
+- `connection` — unreachable, refused, or slower than the 15s per-server load timeout.
+- `unknown` — the server answered but the load failed anyway; the `error` text carries the reason.
+
+A server that answers but exposes no tools is not a failure: you get an empty tool list and no error.
+
+Set `LOG_LEVEL=Debug` to add one line per server with its tool count and load time, which is how you find the connector that is slowing a step down.
+
+---
+
 ## Testing only
 
 The following modes skip the database requirement but are **not suitable for production** — state is lost on restart.
