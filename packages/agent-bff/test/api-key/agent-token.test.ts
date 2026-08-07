@@ -1,10 +1,25 @@
 import type { ResolvedApiKeyIdentity } from '../../src/api-key/api-key-client';
+import type { BffAccessTokenPayload } from '../../src/oauth/bff-token';
 
 import jsonwebtoken from 'jsonwebtoken';
 
-import { issueAgentToken } from '../../src/api-key/agent-token';
+import { issueAgentToken, issueAgentTokenFromPrincipal } from '../../src/api-key/agent-token';
 
 const AUTH_SECRET = 'auth-secret';
+
+const PRINCIPAL: BffAccessTokenPayload = {
+  type: 'bff_access',
+  sid: 'session-1',
+  id: 42,
+  email: 'ada@example.com',
+  first_name: 'Ada',
+  last_name: 'Lovelace',
+  team: 'Support',
+  rendering_id: '17',
+  permission_level: 'admin',
+  role: 'Support agent',
+  tags: { region: 'eu' },
+};
 
 const IDENTITY: ResolvedApiKeyIdentity = {
   user: {
@@ -71,6 +86,95 @@ describe('issueAgentToken', () => {
       lastName: '',
       first_name: '',
       last_name: '',
+    });
+  });
+});
+
+describe('issueAgentTokenFromPrincipal', () => {
+  it('should expire 5 minutes after issuance, like the api-key path', () => {
+    const token = issueAgentTokenFromPrincipal({ principal: PRINCIPAL, authSecret: AUTH_SECRET });
+    const decoded = jsonwebtoken.decode(token) as { iat: number; exp: number };
+
+    expect(decoded.exp - decoded.iat).toBe(300);
+  });
+
+  it('should send rendering_id as a number, since Caller.renderingId is numeric', () => {
+    const token = issueAgentTokenFromPrincipal({ principal: PRINCIPAL, authSecret: AUTH_SECRET });
+
+    expect(jsonwebtoken.verify(token, AUTH_SECRET)).toMatchObject({
+      renderingId: 17,
+      rendering_id: 17,
+    });
+  });
+
+  it('should emit the api-key claims plus the OAuth role', () => {
+    const fromKey = jsonwebtoken.verify(
+      issueAgentToken({ identity: IDENTITY, authSecret: AUTH_SECRET }),
+      AUTH_SECRET,
+    ) as Record<string, unknown>;
+    const fromPrincipal = jsonwebtoken.verify(
+      issueAgentTokenFromPrincipal({ principal: PRINCIPAL, authSecret: AUTH_SECRET }),
+      AUTH_SECRET,
+    ) as Record<string, unknown>;
+
+    const claimNames = (claims: Record<string, unknown>) =>
+      Object.keys(claims)
+        .filter(name => name !== 'iat' && name !== 'exp')
+        .sort();
+
+    expect(claimNames(fromPrincipal)).toEqual([...claimNames(fromKey), 'role'].sort());
+    expect(fromPrincipal.role).toBe('Support agent');
+  });
+
+  it('should never forward the session-only type and sid claims', () => {
+    const claims = jsonwebtoken.verify(
+      issueAgentTokenFromPrincipal({ principal: PRINCIPAL, authSecret: AUTH_SECRET }),
+      AUTH_SECRET,
+    ) as Record<string, unknown>;
+
+    expect(claims.type).toBeUndefined();
+    expect(claims.sid).toBeUndefined();
+  });
+
+  it.each([['not-a-number'], [''], ['0'], ['-1'], ['0x11'], ['1e3'], ['1.5'], [' 17 ']])(
+    'should fail closed when rendering_id is %p',
+    raw => {
+      expect(() =>
+        issueAgentTokenFromPrincipal({
+          principal: { ...PRINCIPAL, rendering_id: raw },
+          authSecret: AUTH_SECRET,
+        }),
+      ).toThrow(expect.objectContaining({ status: 401, type: 'unauthorized' }));
+    },
+  );
+
+  it('should omit the role claim entirely when the session predates it', () => {
+    const { role, ...withoutRole } = PRINCIPAL;
+    const token = issueAgentTokenFromPrincipal({
+      principal: withoutRole as typeof PRINCIPAL,
+      authSecret: AUTH_SECRET,
+    });
+
+    expect(jsonwebtoken.verify(token, AUTH_SECRET)).not.toHaveProperty('role');
+  });
+
+  it('should coerce missing names and tags rather than emitting undefined', () => {
+    const token = issueAgentTokenFromPrincipal({
+      principal: {
+        ...PRINCIPAL,
+        first_name: undefined as unknown as string,
+        last_name: undefined as unknown as string,
+        tags: undefined as unknown as Record<string, string>,
+      },
+      authSecret: AUTH_SECRET,
+    });
+
+    expect(jsonwebtoken.verify(token, AUTH_SECRET)).toMatchObject({
+      firstName: '',
+      lastName: '',
+      first_name: '',
+      last_name: '',
+      tags: {},
     });
   });
 });
