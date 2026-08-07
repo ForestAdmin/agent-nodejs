@@ -475,6 +475,30 @@ describe('QueryStringParser', () => {
       });
     });
 
+    test('should reuse the same requestId across calls within one request', () => {
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        customProperties: { query: { timezone: 'America/Los_Angeles' } },
+      });
+
+      const first = QueryStringParser.parseCaller(context).requestId;
+      const second = QueryStringParser.parseCaller(context).requestId;
+
+      expect(first).toBe(second);
+    });
+
+    test('should generate a different requestId for different requests', () => {
+      const makeContext = () =>
+        createMockContext({
+          state: { user: { email: 'john.doe@domain.com' } },
+          customProperties: { query: { timezone: 'America/Los_Angeles' } },
+        });
+
+      expect(QueryStringParser.parseCaller(makeContext()).requestId).not.toBe(
+        QueryStringParser.parseCaller(makeContext()).requestId,
+      );
+    });
+
     test('should throw a ValidationError when the timezone is missing', () => {
       const context = createMockContext({
         customProperties: { query: {} },

@@ -5,6 +5,8 @@ import type { DataSource } from '@forestadmin/datasource-toolkit';
 
 import CollectionApiChartRoute from './access/api-chart-collection';
 import DataSourceApiChartRoute from './access/api-chart-datasource';
+import AuditTrailRoute from './access/audit-trail';
+import AuditTrailCorrelationRoute from './access/audit-trail-correlation';
 import Chart from './access/chart';
 import Count from './access/count';
 import CountRelated from './access/count-related';
@@ -171,6 +173,21 @@ function getWorkflowExecutorRoutes(options: Options, services: Services): BaseRo
   return [new WorkflowExecutorProxyRoute(services, options)];
 }
 
+function getAuditTrailRoutes(
+  dataSource: DataSource,
+  options: Options,
+  services: Services,
+): BaseRoute[] {
+  if (!options.auditTrail?.store) return [];
+
+  return [
+    ...dataSource.collections.map(
+      collection => new AuditTrailRoute(services, options, dataSource, collection.name),
+    ),
+    new AuditTrailCorrelationRoute(services, options, dataSource),
+  ];
+}
+
 export default function makeRoutes(
   dataSource: DataSource,
   options: Options,
@@ -185,6 +202,7 @@ export default function makeRoutes(
     ...getRelatedRoutes(dataSource, options, services),
     ...getActionRoutes(dataSource, options, services),
     ...getWorkflowExecutorRoutes(options, services),
+    ...getAuditTrailRoutes(dataSource, options, services),
   ];
 
   // Ensure routes and middlewares are loaded in the right order.
