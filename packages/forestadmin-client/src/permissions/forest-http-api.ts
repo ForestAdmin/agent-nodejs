@@ -9,6 +9,9 @@ import type {
   ForestAdminServerInterface,
   ForestSchemaCollection,
   IpWhitelistRulesResponse,
+  McpWorkflow,
+  WorkflowRunStatus,
+  WorkflowRunTriggerResult,
 } from '../types';
 import type { HttpOptions } from '../utils/http-options';
 
@@ -149,6 +152,59 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       bearerToken: options.bearerToken,
       body,
       headers: options.headers,
+    });
+  }
+
+  async listMcpEnabledWorkflows(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    collectionName?: string,
+  ): Promise<McpWorkflow[]> {
+    const query = collectionName ? `?collectionName=${encodeURIComponent(collectionName)}` : '';
+
+    return ServerUtils.queryWithBearerToken<McpWorkflow[]>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'get',
+      path: `/api/workflow-orchestrator/mcp-workflows${query}`,
+      bearerToken: options.bearerToken,
+      headers: { 'forest-rendering-id': renderingId, ...options.headers },
+    });
+  }
+
+  async triggerMcpWorkflow(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+    recordId: string,
+  ): Promise<WorkflowRunTriggerResult> {
+    // The orchestrator returns a numeric runId; normalize it to the string form expected by
+    // getMcpWorkflowRun. workflowName/collectionName are passed through when present so the
+    // caller can label the audit log without listing every workflow first.
+    const result = await ServerUtils.queryWithBearerToken<
+      Omit<WorkflowRunTriggerResult, 'runId'> & { runId: number | string }
+    >({
+      forestServerUrl: options.forestServerUrl,
+      method: 'post',
+      path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}/start`,
+      bearerToken: options.bearerToken,
+      body: { recordId },
+      headers: { 'forest-rendering-id': renderingId, ...options.headers },
+    });
+
+    return { ...result, runId: String(result.runId) };
+  }
+
+  async getMcpWorkflowRun(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    runId: string,
+  ): Promise<WorkflowRunStatus> {
+    return ServerUtils.queryWithBearerToken<WorkflowRunStatus>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'get',
+      path: `/api/workflow-orchestrator/mcp-workflows/runs/${encodeURIComponent(runId)}`,
+      bearerToken: options.bearerToken,
+      headers: { 'forest-rendering-id': renderingId, ...options.headers },
     });
   }
 }

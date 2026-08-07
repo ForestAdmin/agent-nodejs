@@ -17,6 +17,9 @@ const mockForestServerClient: ForestServerClient = {
   createActivityLog: jest.fn(),
   createMcpActivityLog: jest.fn(),
   updateActivityLogStatus: jest.fn(),
+  listMcpWorkflows: jest.fn(),
+  triggerWorkflow: jest.fn(),
+  getWorkflowRun: jest.fn(),
 };
 
 const mockBuildClientWithActions = buildClientWithActions as jest.MockedFunction<

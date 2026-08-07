@@ -19,6 +19,7 @@ import type {
   PermissionService,
 } from './types';
 import type ContextVariablesInstantiator from './utils/context-variables-instantiator';
+import type WorkflowsService from './workflows';
 
 import verifyAndExtractApproval from './permissions/verify-approval';
 
@@ -32,6 +33,7 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly ipWhitelistService: IpWhiteListService,
     public readonly schemaService: SchemaService,
     public readonly activityLogsService: ActivityLogsService,
+    public readonly workflowsService: WorkflowsService,
     public readonly authService: ForestAdminAuthServiceInterface,
     public readonly modelCustomizationService: ModelCustomizationService,
     public readonly mcpServerConfigService: McpServerConfigService,

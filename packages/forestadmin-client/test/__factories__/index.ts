@@ -11,6 +11,7 @@ export { default as forestAdminClientOptions } from './forest-admin-client-optio
 export { default as ipWhiteList } from './ip-whitelist';
 export { default as schema } from './schema';
 export { default as activityLogs } from './activity-logs';
+export { default as workflows } from './workflows';
 export { default as auth } from './auth';
 export { default as modelCustomization } from './model-customizations/model-customization-from-api';
 export { default as mcpServerConfig } from './mcp-server-config';

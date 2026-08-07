@@ -33,8 +33,11 @@ import declareDescribeCollectionTool from './tools/describe-collection';
 import declareDissociateTool from './tools/dissociate';
 import declareExecuteActionTool from './tools/execute-action';
 import declareGetActionFormTool from './tools/get-action-form';
+import declareGetWorkflowRunTool from './tools/get-workflow-run';
 import declareListTool from './tools/list';
 import declareListRelatedTool from './tools/list-related';
+import declareListWorkflowsTool from './tools/list-workflows';
+import declareTriggerWorkflowTool from './tools/trigger-workflow';
 import declareUpdateTool from './tools/update';
 import normalizeAgentUrl from './utils/normalize-agent-url';
 import normalizeDomainList from './utils/normalize-domain-list';
@@ -92,6 +95,9 @@ const SAFE_ARGUMENTS_FOR_LOGGING: Record<string, string[]> = {
   executeAction: ['collectionName', 'actionName', 'recordIds'],
   associate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordId'],
   dissociate: ['collectionName', 'relationName', 'parentRecordId', 'targetRecordIds'],
+  listWorkflows: ['collectionName'],
+  triggerWorkflow: ['workflowId', 'recordId'],
+  getWorkflowRun: ['runId'],
 };
 
 export type ToolName =
@@ -104,7 +110,10 @@ export type ToolName =
   | 'associate'
   | 'dissociate'
   | 'getActionForm'
-  | 'executeAction';
+  | 'executeAction'
+  | 'listWorkflows'
+  | 'triggerWorkflow'
+  | 'getWorkflowRun';
 
 /**
  * Options for configuring the Forest Admin MCP Server
@@ -243,6 +252,9 @@ export default class ForestMCPServer {
       { name: 'dissociate', register: () => declareDissociateTool(mcpServer, ctx) },
       { name: 'getActionForm', register: () => declareGetActionFormTool(mcpServer, ctx) },
       { name: 'executeAction', register: () => declareExecuteActionTool(mcpServer, ctx) },
+      { name: 'listWorkflows', register: () => declareListWorkflowsTool(mcpServer, ctx) },
+      { name: 'triggerWorkflow', register: () => declareTriggerWorkflowTool(mcpServer, ctx) },
+      { name: 'getWorkflowRun', register: () => declareGetWorkflowRunTool(mcpServer, ctx) },
     ];
 
     const enabledToolEntries = allTools.filter(tool => this.enabledTools.has(tool.name));
@@ -280,6 +292,9 @@ export default class ForestMCPServer {
       'dissociate',
       'getActionForm',
       'executeAction',
+      'listWorkflows',
+      'triggerWorkflow',
+      'getWorkflowRun',
     ];
 
     const enabled = new Set(options?.enabledTools ?? allToolNames);

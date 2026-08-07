@@ -7,8 +7,15 @@ import type {
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
+  GetMcpWorkflowRunParams,
+  ListMcpWorkflowsParams,
+  McpWorkflow,
   SchemaServiceInterface,
+  TriggerMcpWorkflowParams,
   UpdateActivityLogStatusParams,
+  WorkflowRunStatus,
+  WorkflowRunTriggerResult,
+  WorkflowsServiceInterface,
 } from '@forestadmin/forestadmin-client';
 
 // Re-export types from forestadmin-client for convenience
@@ -21,8 +28,15 @@ export type {
   ForestSchemaAction,
   ForestSchemaCollection,
   ForestSchemaField,
+  GetMcpWorkflowRunParams,
+  ListMcpWorkflowsParams,
+  McpWorkflow,
   SchemaServiceInterface,
+  TriggerMcpWorkflowParams,
   UpdateActivityLogStatusParams,
+  WorkflowRunStatus,
+  WorkflowRunTriggerResult,
+  WorkflowsServiceInterface,
 };
 
 /**
@@ -54,4 +68,19 @@ export interface ForestServerClient {
    * Updates an activity log status.
    */
   updateActivityLogStatus(params: UpdateActivityLogStatusParams): Promise<void>;
+
+  /**
+   * Lists the MCP-enabled workflows the caller can access in a rendering.
+   */
+  listMcpWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]>;
+
+  /**
+   * Starts a run of an MCP-enabled workflow on a record and returns its runId (async).
+   */
+  triggerWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult>;
+
+  /**
+   * Reads the normalized status of a workflow run, scoped to the caller.
+   */
+  getWorkflowRun(params: GetMcpWorkflowRunParams): Promise<WorkflowRunStatus>;
 }
