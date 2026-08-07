@@ -584,7 +584,7 @@ describe('RemoteToolFetcher.fetch — OAuth2 servers', () => {
     const result = await fetcher.fetch('id-A', USER_ID);
 
     expect(getAccessToken).not.toHaveBeenCalled();
-    expect(aiModelPort.loadRemoteToolsWithFailures).toHaveBeenCalled();
+    expect(aiModelPort.loadRemoteToolsWithFailures).toHaveBeenCalledWith({ 'srv-a': cfg('id-A') });
     expect(result.reloadWithFreshAuth).toBeUndefined();
   });
 });
