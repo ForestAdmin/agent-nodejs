@@ -19,16 +19,17 @@ import createDataRoutesMiddleware from './data/data-routes-middleware';
 import { extractErrorMessage } from './errors';
 import { unauthorized } from './http/bff-http-error';
 import BFFHttpServer from './http/bff-http-server';
+import BODY_LIMIT from './http/body-limit';
 import createErrorMiddleware from './http/error-middleware';
 import ForestServerClient from './oauth/forest-server-client';
 import createOAuthRoutes from './oauth/oauth-routes';
 import createInMemorySessionStore from './oauth/session-store';
 import createTokenCipher from './oauth/token-cipher';
+import createOpenApiRoutes from './openapi/openapi-routes';
 import createReadModel from './read-model/create-read-model';
 import createTimezoneMiddleware from './timezone/timezone-middleware';
 import version from './version';
 
-const BODY_LIMIT = '16kb';
 const SESSION_TTL_SECONDS = 24 * 60 * 60;
 
 function isAgentPath(path: string): boolean {
@@ -194,6 +195,7 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
     createPerKeyOriginMiddleware(),
+    createOpenApiRoutes({ version }),
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(config, logger),
   ];
