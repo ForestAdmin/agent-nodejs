@@ -493,6 +493,34 @@ describe('RemoteToolFetcher.fetch — OAuth2 servers', () => {
     );
   });
 
+  // The tool-listing endpoint answers 503 on loadFailed, so a retry that fails for a non-auth
+  // reason must reach the caller as a failure rather than as an empty success.
+  it('sets loadFailed when the retry fails for a reason other than auth', async () => {
+    const loadRemoteToolsWithFailures = jest
+      .fn()
+      .mockResolvedValueOnce({ tools: [], failures: [authFailure] })
+      .mockResolvedValueOnce({
+        tools: [],
+        failures: [makeFailure('srv-a', 'connection', 'socket hang up')],
+      });
+    const { fetcher, logger } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': oauthCfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteToolsWithFailures },
+      tokenService: makeTokenService(jest.fn().mockResolvedValue('tok')),
+    });
+
+    const result = await fetcher.fetch('id-A', USER_ID);
+
+    expect(result.loadFailed).toBe(true);
+    expect(logger).not.toHaveBeenCalledWith(
+      'Info',
+      'MCP tools loaded after refreshing the credential',
+      expect.anything(),
+    );
+  });
+
   it('raises OAuthReauthRequiredError when the auth failure persists after a forced refresh', async () => {
     const getAccessToken = jest.fn().mockResolvedValue('tok');
     const loadRemoteToolsWithFailures = jest

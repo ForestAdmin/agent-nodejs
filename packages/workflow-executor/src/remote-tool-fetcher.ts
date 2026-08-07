@@ -110,26 +110,33 @@ export default class RemoteToolFetcher {
       return this.aiModelPort.loadRemoteToolsWithFailures(injected);
     };
 
+    // The reload hook is handed to the caller for its own post-401 retry, so it cannot widen its
+    // return type; it reports the retry's outcome here instead.
+    let reloadFailed: boolean | undefined;
+
     const reloadWithFreshAuth = async (): Promise<RemoteTool[]> => {
       const attempt = await attemptLoad(true);
       if (hasAuthFailure(attempt.failures)) throw new OAuthReauthRequiredError(mcpServerId);
-      this.errorOnPartialLoadFailure(attempt.failures, mcpServerId, mcpServerName);
+      reloadFailed = this.errorOnPartialLoadFailure(attempt.failures, mcpServerId, mcpServerName);
+
       // The rejected credential was already logged at Error. Without this the default level shows
       // the failure and never says it recovered.
-      this.logger('Info', 'MCP tools loaded after refreshing the credential', {
-        requestedMcpServerId: mcpServerId,
-        mcpServerName,
-      });
+      if (!reloadFailed) {
+        this.logger('Info', 'MCP tools loaded after refreshing the credential', {
+          requestedMcpServerId: mcpServerId,
+          mcpServerName,
+        });
+      }
 
       return attempt.tools;
     };
 
     const initial = await attemptLoad(false);
     const hasRejectedToken = hasAuthFailure(initial.failures);
-    // The retry supersedes a rejected cached token, and reports its own partial failure.
+    // The retry supersedes a rejected cached token, so its outcome is the one that counts.
     const tools = hasRejectedToken ? await reloadWithFreshAuth() : initial.tools;
     const loadFailed = hasRejectedToken
-      ? undefined
+      ? reloadFailed
       : this.errorOnPartialLoadFailure(initial.failures, mcpServerId, mcpServerName);
 
     return { tools, mcpServerName, reloadWithFreshAuth, loadFailed };
