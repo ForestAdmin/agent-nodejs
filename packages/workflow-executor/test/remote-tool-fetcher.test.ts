@@ -466,6 +466,33 @@ describe('RemoteToolFetcher.fetch — OAuth2 servers', () => {
     expect(result.tools).toEqual([tool]);
   });
 
+  // The rejected credential is logged at Error by the provider, so a run that recovers reads as a
+  // pure failure at the default level unless the recovery is stated too.
+  it('reports the recovery after a forced refresh succeeds', async () => {
+    const loadRemoteToolsWithFailures = jest
+      .fn()
+      .mockResolvedValueOnce({ tools: [], failures: [authFailure] })
+      .mockResolvedValueOnce({ tools: [makeRemoteTool('srv-a', 'id-A')], failures: [] });
+    const { fetcher, logger } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': oauthCfg('id-A') }),
+      },
+      aiModelPort: { loadRemoteToolsWithFailures },
+      tokenService: makeTokenService(jest.fn().mockResolvedValue('tok')),
+    });
+
+    await fetcher.fetch('id-A', USER_ID);
+
+    expect(logger).toHaveBeenCalledWith(
+      'Info',
+      'MCP tools loaded after refreshing the credential',
+      {
+        requestedMcpServerId: 'id-A',
+        mcpServerName: 'srv-a',
+      },
+    );
+  });
+
   it('raises OAuthReauthRequiredError when the auth failure persists after a forced refresh', async () => {
     const getAccessToken = jest.fn().mockResolvedValue('tok');
     const loadRemoteToolsWithFailures = jest

@@ -114,6 +114,12 @@ export default class RemoteToolFetcher {
       const attempt = await attemptLoad(true);
       if (hasAuthFailure(attempt.failures)) throw new OAuthReauthRequiredError(mcpServerId);
       this.errorOnPartialLoadFailure(attempt.failures, mcpServerId, mcpServerName);
+      // The rejected credential was already logged at Error. Without this the default level shows
+      // the failure and never says it recovered.
+      this.logger('Info', 'MCP tools loaded after refreshing the credential', {
+        requestedMcpServerId: mcpServerId,
+        mcpServerName,
+      });
 
       return attempt.tools;
     };
