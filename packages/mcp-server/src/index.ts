@@ -2,6 +2,7 @@
 export { default as ForestMCPServer } from './server';
 export type { ForestMCPServerOptions, HttpCallback, ToolName } from './server';
 export type { TokenTtlOptions } from './utils/token-ttl';
+export type { FileUploadsOptions, UploadStorage } from './file-uploads/types';
 export type {
   InProcessAgentDispatcher,
   InProcessDispatchRequest,

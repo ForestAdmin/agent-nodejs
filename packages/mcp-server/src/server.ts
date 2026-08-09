@@ -2,6 +2,7 @@
 // This ensures URL.canParse is available for MCP SDK's Zod validation
 import './polyfills';
 
+import type { FileUploadsOptions, ResolvedFileUploads } from './file-uploads/types';
 import type { ForestServerClient } from './http-client';
 import type { InProcessAgentDispatcher } from './in-process-agent-dispatcher';
 import type { ToolContext } from './tool-context';
@@ -23,6 +24,8 @@ import cors from 'cors';
 import express from 'express';
 import * as http from 'http';
 
+import createFilesRouter from './file-uploads/routes';
+import { resolveFileUploads } from './file-uploads/types';
 import ForestOAuthProvider from './forest-oauth-provider';
 import { createForestServerClient } from './http-client';
 import { makeIsMcpRoute, normalizeMountPath } from './mcp-paths';
@@ -154,6 +157,16 @@ export interface ForestMCPServerOptions {
    * Omit to accept any dynamically registered client.
    */
   allowedOAuthClients?: string[];
+  /**
+   * Enables file fields in action forms via an upload side-channel. Without it, action file
+   * fields are unusable over MCP, because the agent expects them as base64 data URIs, which
+   * would transit the model's context window and exceed most clients' payload limits. When
+   * set, POST /files returns a pre-authorized upload URL plus a signed handle, and
+   * executeAction swaps "$uploadedFile:<handle>" values for the data URI before calling the
+   * agent, so the model only ever exchanges the small handle. Requires a storage backend
+   * implementation.
+   */
+  fileUploads?: FileUploadsOptions;
 }
 
 /**
@@ -180,6 +193,8 @@ export default class ForestMCPServer {
   private agentDispatcher?: InProcessAgentDispatcher;
   private tokenTtl?: TokenTtlOptions;
   private allowedOAuthClients?: string[];
+  private fileUploadsOptions?: FileUploadsOptions;
+  private fileUploads?: ResolvedFileUploads;
 
   constructor(options?: ForestMCPServerOptions) {
     this.forestServerUrl = options?.forestServerUrl || 'https://api.forestadmin.com';
@@ -194,6 +209,8 @@ export default class ForestMCPServer {
     this.tokenTtl = normalizeTokenTtl(options?.tokenTtl, this.logger);
 
     this.allowedOAuthClients = normalizeDomainList(options?.allowedOAuthClients);
+    // Resolution waits for buildExpressApp, where the auth secret is known to be set.
+    this.fileUploadsOptions = options?.fileUploads;
 
     // Use injected forestServerClient or create default
     this.forestServerClient = options?.forestServerClient ?? this.createDefaultForestServerClient();
@@ -230,6 +247,7 @@ export default class ForestMCPServer {
       logger: this.logger,
       collectionNames: this.collectionNames,
       agentDispatcher: this.agentDispatcher,
+      fileUploads: this.fileUploads,
     };
 
     const allTools: Array<{ name: ToolName; register: () => string }> = [
@@ -428,6 +446,8 @@ export default class ForestMCPServer {
   async buildExpressApp(baseUrl?: URL): Promise<Express> {
     const { envSecret, authSecret } = this.ensureSecretsAreSet();
 
+    this.fileUploads = resolveFileUploads(this.fileUploadsOptions, authSecret);
+
     await this.fetchCollectionNames();
 
     const app = express();
@@ -559,15 +579,29 @@ export default class ForestMCPServer {
 
     app.use(allowedMethods(['POST']));
 
+    const resourceMetadataUrl = new URL(
+      `/.well-known/oauth-protected-resource${mcpResourceUrl.pathname}`,
+      effectiveBaseUrl,
+    ).href;
+
+    if (this.fileUploads) {
+      app.use(
+        `${prefix}/files`,
+        requireBearerAuth({
+          verifier: oauthProvider,
+          requiredScopes: ['mcp:action'],
+          resourceMetadataUrl,
+        }),
+        createFilesRouter(this.fileUploads, this.logger),
+      );
+    }
+
     app.post(
       `${prefix}/mcp`,
       requireBearerAuth({
         verifier: oauthProvider,
         requiredScopes: ['mcp:read'],
-        resourceMetadataUrl: new URL(
-          `/.well-known/oauth-protected-resource${mcpResourceUrl.pathname}`,
-          effectiveBaseUrl,
-        ).href,
+        resourceMetadataUrl,
       }),
       (req, res) => {
         this.handleMcpRequest(req, res).catch(error => {
@@ -636,7 +670,7 @@ export default class ForestMCPServer {
    */
   async getHttpCallback(baseUrl?: URL): Promise<HttpCallback> {
     const app = await this.buildExpressApp(baseUrl);
-    const isMcpRoute = makeIsMcpRoute(this.basePath);
+    const isMcpRoute = makeIsMcpRoute(this.basePath, { fileUploads: Boolean(this.fileUploads) });
 
     return (req, res, next) => {
       const url = req.url || '/';

@@ -66,6 +66,12 @@ describe('mcp-paths', () => {
     it('normalizes a raw (un-normalized) prefix on entry', () => {
       expect(buildMcpPaths('mcp/')).toEqual(buildMcpPaths('/mcp'));
     });
+
+    it('claims /files only when file uploads are enabled', () => {
+      expect(buildMcpPaths('')).not.toContain('/files');
+      expect(buildMcpPaths('', { fileUploads: true })).toContain('/files');
+      expect(buildMcpPaths('/ai', { fileUploads: true })).toContain('/ai/files');
+    });
   });
 
   describe('default exports (root)', () => {
@@ -109,6 +115,22 @@ describe('mcp-paths', () => {
       '/.well-known/oauth-protected-resource/mcp-dashboard',
     ])('passes through host route %p', url => {
       expect(matches(url)).toBe(false);
+    });
+  });
+
+  describe('makeIsMcpRoute with file uploads enabled', () => {
+    const matches = makeIsMcpRoute('', { fileUploads: true });
+
+    it.each(['/files', '/files?x=1'])('claims %p', url => {
+      expect(matches(url)).toBe(true);
+    });
+
+    it('does not claim /files when uploads are disabled', () => {
+      expect(makeIsMcpRoute('')('/files')).toBe(false);
+    });
+
+    it('does not shadow sibling routes like /files-admin', () => {
+      expect(matches('/files-admin')).toBe(false);
     });
   });
 });
