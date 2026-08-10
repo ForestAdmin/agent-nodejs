@@ -66,7 +66,22 @@ export default class ForestAdminClientMock implements ForestAdminClient {
     listMcpEnabledWorkflows: () => Promise.resolve([]),
     triggerMcpWorkflow: () => Promise.resolve({ runId: '1', runState: 'loading' }),
     getMcpWorkflowRun: () =>
-      Promise.resolve({ runState: 'loading', currentStep: null, waitingForHumanInput: false }),
+      Promise.resolve({
+        id: 1,
+        userId: 1,
+        renderingId: 1,
+        collectionId: 'orders',
+        workflowId: 'wf-1',
+        bpmnVersion: '1',
+        selectedRecordId: '1',
+        runState: 'loading',
+        engine: 'orchestrator',
+        triggerType: 'mcp',
+        lockedAt: null,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        workflowHistory: [],
+      }),
   };
 
   readonly permissionService: any;

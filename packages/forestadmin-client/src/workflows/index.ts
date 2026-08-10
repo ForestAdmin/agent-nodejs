@@ -1,10 +1,10 @@
 import type {
   ForestAdminServerInterface,
   GetMcpWorkflowRunParams,
+  HydratedWorkflowRun,
   ListMcpWorkflowsParams,
   McpWorkflow,
   TriggerMcpWorkflowParams,
-  WorkflowRunStatus,
   WorkflowRunTriggerResult,
 } from '../types';
 
@@ -60,7 +60,7 @@ export default class WorkflowsService {
     );
   }
 
-  async getMcpWorkflowRun(params: GetMcpWorkflowRunParams): Promise<WorkflowRunStatus> {
+  async getMcpWorkflowRun(params: GetMcpWorkflowRunParams): Promise<HydratedWorkflowRun> {
     const { forestServerToken, renderingId, runId } = params;
 
     if (!this.forestAdminServerInterface.getMcpWorkflowRun) {

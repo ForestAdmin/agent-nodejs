@@ -22,10 +22,13 @@ export default function declareGetWorkflowRunTool(mcpServer: McpServer, ctx: Too
       annotations: { readOnlyHint: true },
       title: 'Get a workflow run status',
       description:
-        'Poll the status of a workflow run started with triggerWorkflow. Returns runState, the ' +
-        'currentStep, waitingForHumanInput, and — once finished — the terminal result or error. ' +
-        'A run parked on a human-gated step reports waitingForHumanInput: true; it cannot be ' +
-        'resumed via MCP and must be finished from the Forest UI.',
+        'Poll a workflow run started with triggerWorkflow. Returns the full hydrated run: its ' +
+        'runState (started, pending, loading, aborted or finished) plus the complete ' +
+        'workflowHistory — every step with its resolved definition (type, title, prompt, task ' +
+        'type, outgoing branches) and its per-step context (completion, selected option, error, ' +
+        'escalation state, awaiting-input reason). Use it to see exactly where the run is and ' +
+        'what each step does. A run parked on a human-gated step cannot be resumed via MCP in ' +
+        'v1 and must be finished from the Forest UI.',
       inputSchema: {
         runId: z.string().describe(RUN_ID_DESCRIPTION),
       },
@@ -33,7 +36,7 @@ export default function declareGetWorkflowRunTool(mcpServer: McpServer, ctx: Too
     async (args: GetWorkflowRunArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
-      const runStatus = await forestServerClient.getWorkflowRun({
+      const runStatus = await forestServerClient.getMcpWorkflowRun({
         forestServerToken,
         renderingId,
         runId: args.runId,

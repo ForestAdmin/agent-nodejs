@@ -312,10 +312,20 @@ describe('ForestHttpApi', () => {
   describe('getMcpWorkflowRun', () => {
     it('should GET the workflow run endpoint with the rendering id header', async () => {
       const runStatus = {
+        id: 7,
+        userId: 42,
+        renderingId: 12345,
+        collectionId: 'orders',
+        workflowId: 'wf-1',
+        bpmnVersion: '3',
+        selectedRecordId: '99',
         runState: 'finished',
-        currentStep: null,
-        waitingForHumanInput: false,
-        result: { ok: true },
+        engine: 'orchestrator',
+        triggerType: 'mcp',
+        lockedAt: null,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:05:00.000Z',
+        workflowHistory: [],
       };
       (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue(runStatus);
 
@@ -338,8 +348,7 @@ describe('ForestHttpApi', () => {
     it('should url-encode the run id in the path', async () => {
       (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
         runState: 'started',
-        currentStep: null,
-        waitingForHumanInput: false,
+        workflowHistory: [],
       });
 
       await new ForestHttpApi().getMcpWorkflowRun(

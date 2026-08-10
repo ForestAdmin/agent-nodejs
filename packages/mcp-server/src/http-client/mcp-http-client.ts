@@ -5,12 +5,12 @@ import type {
   ForestSchemaCollection,
   ForestServerClient,
   GetMcpWorkflowRunParams,
+  HydratedWorkflowRun,
   ListMcpWorkflowsParams,
   McpWorkflow,
   SchemaServiceInterface,
   TriggerMcpWorkflowParams,
   UpdateActivityLogStatusParams,
-  WorkflowRunStatus,
   WorkflowRunTriggerResult,
   WorkflowsServiceInterface,
 } from './types';
@@ -43,15 +43,15 @@ export default class ForestServerClientImpl implements ForestServerClient {
     return this.activityLogsService.updateActivityLogStatus(params);
   }
 
-  async listMcpWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]> {
+  async listMcpEnabledWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]> {
     return this.workflowsService.listMcpEnabledWorkflows(params);
   }
 
-  async triggerWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult> {
+  async triggerMcpWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult> {
     return this.workflowsService.triggerMcpWorkflow(params);
   }
 
-  async getWorkflowRun(params: GetMcpWorkflowRunParams): Promise<WorkflowRunStatus> {
+  async getMcpWorkflowRun(params: GetMcpWorkflowRunParams): Promise<HydratedWorkflowRun> {
     return this.workflowsService.getMcpWorkflowRun(params);
   }
 }

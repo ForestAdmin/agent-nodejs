@@ -57,7 +57,7 @@ export type {
   ListMcpWorkflowsParams,
   McpWorkflow,
   TriggerMcpWorkflowParams,
-  WorkflowRunStatus,
+  HydratedWorkflowRun,
   WorkflowRunTriggerResult,
   UpdateActivityLogStatusParams,
   ForestSchemaCollection,

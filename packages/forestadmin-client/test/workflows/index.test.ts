@@ -159,10 +159,20 @@ describe('WorkflowsService', () => {
 
   describe('getMcpWorkflowRun', () => {
     const runStatus = {
+      id: 7,
+      userId: 42,
+      renderingId: 12345,
+      collectionId: 'orders',
+      workflowId: 'wf-1',
+      bpmnVersion: '3',
+      selectedRecordId: '99',
       runState: 'finished' as const,
-      currentStep: null,
-      waitingForHumanInput: false,
-      result: { ok: true },
+      engine: 'orchestrator' as const,
+      triggerType: 'mcp' as const,
+      lockedAt: null,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:05:00.000Z',
+      workflowHistory: [],
     };
 
     it('should forward the identity and runId to the transport and return the status', async () => {

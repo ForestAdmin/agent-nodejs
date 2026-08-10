@@ -41,7 +41,7 @@ export default function declareListWorkflowsTool(mcpServer: McpServer, ctx: Tool
     async (args: ListWorkflowsArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
-      const workflows = await forestServerClient.listMcpWorkflows({
+      const workflows = await forestServerClient.listMcpEnabledWorkflows({
         forestServerToken,
         renderingId,
         collectionName: args.collectionName,

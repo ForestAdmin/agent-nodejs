@@ -8,9 +8,9 @@ import type {
   ForestAdminClientOptions,
   ForestAdminServerInterface,
   ForestSchemaCollection,
+  HydratedWorkflowRun,
   IpWhitelistRulesResponse,
   McpWorkflow,
-  WorkflowRunStatus,
   WorkflowRunTriggerResult,
 } from '../types';
 import type { HttpOptions } from '../utils/http-options';
@@ -198,8 +198,8 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
     options: ActivityLogHttpOptions,
     renderingId: string,
     runId: string,
-  ): Promise<WorkflowRunStatus> {
-    return ServerUtils.queryWithBearerToken<WorkflowRunStatus>({
+  ): Promise<HydratedWorkflowRun> {
+    return ServerUtils.queryWithBearerToken<HydratedWorkflowRun>({
       forestServerUrl: options.forestServerUrl,
       method: 'get',
       path: `/api/workflow-orchestrator/mcp-workflows/runs/${encodeURIComponent(runId)}`,

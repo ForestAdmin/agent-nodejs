@@ -104,7 +104,7 @@ describe('declareTriggerWorkflowTool', () => {
         logger: mockLogger,
         collectionNames: [],
       });
-      mockForestServerClient.triggerWorkflow.mockResolvedValue({
+      mockForestServerClient.triggerMcpWorkflow.mockResolvedValue({
         runId: '7',
         runState: 'loading',
         workflowName: 'Refund order',
@@ -115,7 +115,7 @@ describe('declareTriggerWorkflowTool', () => {
     it('should start the workflow directly with the identity from the auth context and the args', async () => {
       await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
-      expect(mockForestServerClient.triggerWorkflow).toHaveBeenCalledWith({
+      expect(mockForestServerClient.triggerMcpWorkflow).toHaveBeenCalledWith({
         forestServerToken: 'forest-token',
         renderingId: '123',
         workflowId: 'wf-1',
@@ -126,7 +126,7 @@ describe('declareTriggerWorkflowTool', () => {
     it('should not list workflows before triggering', async () => {
       await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
 
-      expect(mockForestServerClient.listMcpWorkflows).not.toHaveBeenCalled();
+      expect(mockForestServerClient.listMcpEnabledWorkflows).not.toHaveBeenCalled();
     });
 
     it('should return only the runId and runState as JSON text content', async () => {
@@ -152,7 +152,7 @@ describe('declareTriggerWorkflowTool', () => {
     });
 
     it('should fall back to the workflowId in the label when the response omits name/collection', async () => {
-      mockForestServerClient.triggerWorkflow.mockResolvedValue({
+      mockForestServerClient.triggerMcpWorkflow.mockResolvedValue({
         runId: '7',
         runState: 'loading',
       });
@@ -193,11 +193,11 @@ describe('declareTriggerWorkflowTool', () => {
         content: [{ type: 'text', text: expect.stringContaining('forestServerToken') }],
         isError: true,
       });
-      expect(mockForestServerClient.triggerWorkflow).not.toHaveBeenCalled();
+      expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
     });
 
     it('should map a server 404 to the "is not an MCP-enabled workflow" tool error', async () => {
-      mockForestServerClient.triggerWorkflow.mockRejectedValue(
+      mockForestServerClient.triggerMcpWorkflow.mockRejectedValue(
         new NotFoundError('Workflow MCP trigger not found or disabled'),
       );
 
@@ -213,7 +213,7 @@ describe('declareTriggerWorkflowTool', () => {
     });
 
     it('should pass a 409 already-ongoing run through as an error tool result', async () => {
-      mockForestServerClient.triggerWorkflow.mockRejectedValue(
+      mockForestServerClient.triggerMcpWorkflow.mockRejectedValue(
         new Error('A run is already ongoing on this record'),
       );
 

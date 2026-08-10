@@ -324,24 +324,98 @@ export interface TriggerMcpWorkflowParams {
   recordId: string;
 }
 
-/**
- * The step a run is currently on, as derived server-side from the workflow history.
- */
-export interface WorkflowRunStep {
-  name: string;
-  type: string;
+export type WorkflowRunEngine = 'orchestrator' | 'browser';
+
+export type WorkflowRunTriggerType = 'manual' | 'webhook' | 'mcp';
+
+export type WorkflowStepType =
+  | 'task'
+  | 'condition'
+  | 'end'
+  | 'escalation'
+  | 'start-sub-workflow'
+  | 'close-sub-workflow';
+
+export type WorkflowTaskType =
+  | 'guideline'
+  | 'trigger-action'
+  | 'get-data'
+  | 'update-data'
+  | 'load-related-record'
+  | 'mcp-server';
+
+export interface WorkflowStepOutgoing {
+  stepId: string;
+  buttonText: string | null;
+  buttonColor?: string | null;
+  answer?: string;
 }
 
 /**
- * The normalized status of a workflow run, as exposed for external (MCP) consumption.
- * `result` is the terminal output when finished; `error` the failure detail otherwise.
+ * The resolved BPMN definition of a step. Common fields are typed; task-type-specific
+ * fields (completionType, inputType, preRecordedArgs, mcpServerId, ...) vary by `taskType`
+ * and are left open via the index signature.
  */
-export interface WorkflowRunStatus {
+export interface WorkflowStepDefinition {
+  type: WorkflowStepType;
+  title: string;
+  prompt?: string;
+  executionType: 'manual' | 'automated-with-confirmation' | 'fully-automated';
+  automaticCompletion: boolean;
+  outgoing: WorkflowStepOutgoing[];
+  taskType?: WorkflowTaskType;
+  [key: string]: unknown;
+}
+
+export interface WorkflowHistoryStepContext {
+  manuallyCompleted?: true;
+  completedBy?: number;
+  subWorkflowVersion?: string;
+  selectedOption?: string;
+  error?: string;
+  childrenWorkflowId?: string;
+  escalationState?: 'escalated' | 'error';
+  awaitingInputReason?: 'needs-oauth-reauth';
+}
+
+/**
+ * One entry in a run's history: the step and its resolved definition plus per-step context.
+ */
+export interface WorkflowHistoryStep {
+  stepName: string;
+  stepIndex: number;
+  originalStepIndex?: number;
+  done: boolean;
+  revised?: boolean;
+  cancelled?: boolean;
+  childrenWorkflowId?: string;
+  isCardStep: boolean;
+  context?: WorkflowHistoryStepContext;
+  stepDefinition: WorkflowStepDefinition;
+}
+
+/**
+ * The full hydrated workflow run as returned by the orchestrator for MCP consumption.
+ * It exposes the whole run — including internal fields (userId, bpmnVersion, collectionId,
+ * step indices, per-step context) — so the LLM has maximum context about where the run is
+ * and what each step does. The orchestrator holds no customer record data (that lives in
+ * the executor), so the full run is safe to surface.
+ */
+export interface HydratedWorkflowRun {
+  id: number;
+  userId: number;
+  renderingId: number;
+  collectionId: string;
+  workflowId: string;
+  bpmnVersion: string;
+  selectedRecordId: string;
   runState: WorkflowRunState;
-  currentStep: WorkflowRunStep | null;
-  waitingForHumanInput: boolean;
-  result?: unknown;
-  error?: unknown;
+  engine: WorkflowRunEngine;
+  triggerType: WorkflowRunTriggerType;
+  lockedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  workflowHistory: WorkflowHistoryStep[];
 }
 
 export interface GetMcpWorkflowRunParams {
@@ -356,7 +430,7 @@ export interface GetMcpWorkflowRunParams {
 export interface WorkflowsServiceInterface {
   listMcpEnabledWorkflows: (params: ListMcpWorkflowsParams) => Promise<McpWorkflow[]>;
   triggerMcpWorkflow: (params: TriggerMcpWorkflowParams) => Promise<WorkflowRunTriggerResult>;
-  getMcpWorkflowRun: (params: GetMcpWorkflowRunParams) => Promise<WorkflowRunStatus>;
+  getMcpWorkflowRun: (params: GetMcpWorkflowRunParams) => Promise<HydratedWorkflowRun>;
 }
 
 /**
@@ -414,7 +488,7 @@ export interface ForestAdminServerInterface {
     options: ActivityLogHttpOptions,
     renderingId: string,
     runId: string,
-  ) => Promise<WorkflowRunStatus>;
+  ) => Promise<HydratedWorkflowRun>;
 }
 
 export type ActivityLogHttpOptions = {

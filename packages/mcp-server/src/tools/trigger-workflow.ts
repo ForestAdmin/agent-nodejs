@@ -48,7 +48,7 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
       let result: WorkflowRunTriggerResult;
 
       try {
-        result = await forestServerClient.triggerWorkflow({
+        result = await forestServerClient.triggerMcpWorkflow({
           forestServerToken,
           renderingId,
           workflowId: args.workflowId,

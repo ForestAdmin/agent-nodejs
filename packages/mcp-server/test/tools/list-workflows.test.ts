@@ -138,23 +138,23 @@ describe('declareListWorkflowsTool', () => {
         logger: mockLogger,
         collectionNames: [],
       });
-      mockForestServerClient.listMcpWorkflows.mockResolvedValue(workflows);
+      mockForestServerClient.listMcpEnabledWorkflows.mockResolvedValue(workflows);
     });
 
-    it('should call listMcpWorkflows with the identity from the auth context', async () => {
+    it('should call listMcpEnabledWorkflows with the identity from the auth context', async () => {
       await registeredToolHandler({}, mockExtra);
 
-      expect(mockForestServerClient.listMcpWorkflows).toHaveBeenCalledWith({
+      expect(mockForestServerClient.listMcpEnabledWorkflows).toHaveBeenCalledWith({
         forestServerToken: 'forest-token',
         renderingId: '123',
         collectionName: undefined,
       });
     });
 
-    it('should forward the collectionName filter to listMcpWorkflows', async () => {
+    it('should forward the collectionName filter to listMcpEnabledWorkflows', async () => {
       await registeredToolHandler({ collectionName: 'orders' }, mockExtra);
 
-      expect(mockForestServerClient.listMcpWorkflows).toHaveBeenCalledWith({
+      expect(mockForestServerClient.listMcpEnabledWorkflows).toHaveBeenCalledWith({
         forestServerToken: 'forest-token',
         renderingId: '123',
         collectionName: 'orders',
@@ -180,11 +180,11 @@ describe('declareListWorkflowsTool', () => {
         content: [{ type: 'text', text: expect.stringContaining('forestServerToken') }],
         isError: true,
       });
-      expect(mockForestServerClient.listMcpWorkflows).not.toHaveBeenCalled();
+      expect(mockForestServerClient.listMcpEnabledWorkflows).not.toHaveBeenCalled();
     });
 
     it('should map server errors to an error tool result', async () => {
-      mockForestServerClient.listMcpWorkflows.mockRejectedValue(
+      mockForestServerClient.listMcpEnabledWorkflows.mockRejectedValue(
         new NotFoundError('No active workflow for the rendering'),
       );
 
