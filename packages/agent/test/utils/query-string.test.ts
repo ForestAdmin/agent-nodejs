@@ -344,7 +344,7 @@ describe('QueryStringParser', () => {
 
       expect(fn).toThrow(ValidationError);
       expect(fn).toThrow(
-        "Invalid projection: nested projections are not supported ('owner:address:street')",
+        "Invalid Forest-Projection header: nested projections are not supported ('owner:address:street')",
       );
     });
 
@@ -357,7 +357,7 @@ describe('QueryStringParser', () => {
 
       expect(fn).toThrow(ValidationError);
       expect(fn).toThrow(
-        "Invalid projection: The 'books.field-that-do-not-exist' field was not found. Available fields are: [id,name]. Please check if the field name is correct.",
+        "Invalid Forest-Projection header: The 'books.field-that-do-not-exist' field was not found. Available fields are: [id,name]. Please check if the field name is correct.",
       );
     });
   });

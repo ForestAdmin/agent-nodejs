@@ -270,7 +270,7 @@ describe('GetRoute', () => {
             },
           });
 
-          await expect(get.handleGet(context)).rejects.toThrow('Invalid projection');
+          await expect(get.handleGet(context)).rejects.toThrow('Invalid Forest-Projection header');
           expect(listSpy).not.toHaveBeenCalled();
         });
 

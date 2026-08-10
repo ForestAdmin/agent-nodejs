@@ -78,8 +78,8 @@ export default class QueryStringParser {
     try {
       const fields = header.split(',').map(field => field.trim());
 
-      // Keep parity with the `fields[...]` query params, which cannot express
-      // projections deeper than one relation level.
+      // The frontend never projects deeper than one relation level on get-one; deeper
+      // projections stay rejected until a dedicated capability announces support for them.
       const nestedField = fields.find(field => field.split(':').length > 2);
 
       if (nestedField) {
@@ -90,7 +90,7 @@ export default class QueryStringParser {
 
       return new Projection(...fields);
     } catch (e) {
-      throw new ValidationError(`Invalid projection: ${e.message}`);
+      throw new ValidationError(`Invalid Forest-Projection header: ${e.message}`);
     }
   }
 
