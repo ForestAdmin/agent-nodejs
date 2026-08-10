@@ -1,3 +1,10 @@
+## @forestadmin/ai-proxy [1.12.5](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.4...@forestadmin/ai-proxy@1.12.5) (2026-08-10)
+
+
+### Bug Fixes
+
+* **workflow-executor:** surface the cause when MCP tool loading fails ([#1806](https://github.com/ForestAdmin/agent-nodejs/issues/1806)) ([4bce8b8](https://github.com/ForestAdmin/agent-nodejs/commit/4bce8b8035c3c75b23c2e346b383d719021a7bd8))
+
 ## @forestadmin/ai-proxy [1.12.4](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/ai-proxy@1.12.3...@forestadmin/ai-proxy@1.12.4) (2026-08-05)
 
 
