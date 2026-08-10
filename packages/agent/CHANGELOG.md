@@ -1,3 +1,10 @@
+# @forestadmin/agent [1.93.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.92.1...@forestadmin/agent@1.93.0) (2026-08-10)
+
+
+### Features
+
+* **agent:** support get-one projection via the Forest-Projection header ([#1813](https://github.com/ForestAdmin/agent-nodejs/issues/1813)) ([83d3ab8](https://github.com/ForestAdmin/agent-nodejs/commit/83d3ab832d5d98bdecc355c2d202d48a3509cf3b))
+
 ## @forestadmin/agent [1.92.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.92.0...@forestadmin/agent@1.92.1) (2026-08-10)
 
 
