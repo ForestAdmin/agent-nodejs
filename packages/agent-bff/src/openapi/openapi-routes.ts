@@ -22,6 +22,7 @@ export default function createOpenApiRoutes({ version }: OpenApiRoutesOptions): 
 
     ctx.status = 200;
     ctx.type = 'application/json';
+    ctx.set('Cache-Control', 'no-store');
     ctx.body = document;
   };
 }

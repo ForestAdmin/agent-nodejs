@@ -77,6 +77,16 @@ describe('GET /agent/openapi.json', () => {
         expect(Object.keys(response.body.paths)).toHaveLength(6);
       });
     });
+
+    it('should forbid caching, matching the no-store the api key path already sets', async () => {
+      await withServer(VALID_ENV, async server => {
+        const response = await request(server.callback)
+          .get(OPENAPI_PATH)
+          .set('Authorization', `Bearer ${sessionToken()}`);
+
+        expect(response.headers['cache-control']).toBe('no-store');
+      });
+    });
   });
 
   describe('when the document is requested at the root instead of under /agent', () => {
