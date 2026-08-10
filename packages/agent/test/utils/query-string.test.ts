@@ -335,17 +335,55 @@ describe('QueryStringParser', () => {
       expect(projection).toEqual(new Projection('id', 'owner:id', 'owner:name'));
     });
 
-    test('should throw a ValidationError on nested projections', () => {
+    test('should support nested projections through to-one relation chains', () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'cars',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              owner: factories.oneToOneSchema.build({
+                foreignCollection: 'owner',
+                originKey: 'id',
+                originKeyTarget: 'id',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'owner',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              addressId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              address: factories.manyToOneSchema.build({
+                foreignCollection: 'address',
+                foreignKey: 'addressId',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'address',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              street: factories.columnSchema.build(),
+            },
+          }),
+        }),
+      ]);
+
       const context = createMockContext({
         headers: { 'forest-projection': 'id,owner:address:street' },
       });
 
-      const fn = () => QueryStringParser.parseProjectionFromHeader(collectionSimple, context);
-
-      expect(fn).toThrow(ValidationError);
-      expect(fn).toThrow(
-        "Invalid Forest-Projection header: nested projections are not supported ('owner:address:street')",
+      const projection = QueryStringParser.parseProjectionFromHeader(
+        dataSource.getCollection('cars'),
+        context,
       );
+
+      expect(projection).toEqual(new Projection('id', 'owner:address:street'));
     });
 
     test('should throw a ValidationError when the header contains an unknown field', () => {

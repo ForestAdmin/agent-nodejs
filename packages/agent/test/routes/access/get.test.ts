@@ -348,6 +348,76 @@ describe('GetRoute', () => {
     });
   });
 
+  describe('with a nested projection in the Forest-Projection header', () => {
+    test('it should request the nested projection with the intermediate pks', async () => {
+      const services = factories.forestAdminHttpDriverServices.build();
+      const options = factories.forestAdminHttpDriverOptions.build();
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'books',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.build({ columnType: 'String' }),
+              author: factories.oneToOneSchema.build({
+                foreignCollection: 'persons',
+                originKey: 'bookId',
+                originKeyTarget: 'id',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'persons',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              bookId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              addressId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              address: factories.manyToOneSchema.build({
+                foreignCollection: 'addresses',
+                foreignKey: 'addressId',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'addresses',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              street: factories.columnSchema.build({ columnType: 'String' }),
+            },
+          }),
+        }),
+      ]);
+      const listSpy = jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ id: '2d162303-78bf-599e-b197-93590ac3d315' }]);
+      services.serializer.serialize = jest.fn().mockReturnValue('serialized');
+      const get = new Get(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'name,author:address:street' },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { id: '2d162303-78bf-599e-b197-93590ac3d315' },
+        },
+      });
+
+      await get.handleGet(context);
+
+      const projection = listSpy.mock.calls[0][2];
+      expect([...projection].sort()).toEqual([
+        'author:address:id',
+        'author:address:street',
+        'author:id',
+        'id',
+        'name',
+      ]);
+    });
+  });
+
   describe('with special characters in names', () => {
     it('should register routes with escaped characters', () => {
       const options = factories.forestAdminHttpDriverOptions.build();

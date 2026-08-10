@@ -388,6 +388,75 @@ describe('Serializer', () => {
       });
     });
 
+    test('serialize should serialize nested relations of relations', () => {
+      const dataSource = factories.dataSource.buildWithCollections([
+        factories.collection.build({
+          name: 'book',
+          schema: factories.collectionSchema.build({
+            fields: {
+              isbn: factories.columnSchema.uuidPrimaryKey().build(),
+              authorId: factories.columnSchema.build(),
+              author: factories.manyToOneSchema.build({
+                foreignCollection: 'person',
+                foreignKey: 'authorId',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'person',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.build(),
+              addressId: factories.columnSchema.build(),
+              address: factories.manyToOneSchema.build({
+                foreignCollection: 'address',
+                foreignKey: 'addressId',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'address',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              street: factories.columnSchema.build(),
+            },
+          }),
+        }),
+      ]);
+
+      const result = setupSerializer().serialize(dataSource.getCollection('book'), {
+        isbn: '9780345317988',
+        author: { id: 'asim00', name: 'Asimov', address: { id: 'addr01', street: 'Main street' } },
+      });
+
+      expect(result).toStrictEqual({
+        data: {
+          type: 'book',
+          id: '9780345317988',
+          attributes: { isbn: '9780345317988' },
+          relationships: { author: { data: { type: 'person', id: 'asim00' } } },
+        },
+        included: [
+          {
+            type: 'address',
+            id: 'addr01',
+            attributes: { id: 'addr01', street: 'Main street' },
+          },
+          {
+            type: 'person',
+            id: 'asim00',
+            attributes: { id: 'asim00', name: 'Asimov' },
+            relationships: { address: { data: { type: 'address', id: 'addr01' } } },
+          },
+        ],
+        jsonapi: { version: '1.0' },
+      });
+    });
+
     test('serialize should encode the primary key', () => {
       const result = setupSerializer().serialize(setupWithRelation().collections[0], {
         isbn: '9780345317988',
