@@ -147,7 +147,7 @@ describe('CountRelatedRoute', () => {
         expect(context.response.body).toEqual({ count: 1568 });
       });
 
-      test("should check the user's permission", async () => {
+      test("should check the user's permission on the related collection", async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 
         const oneToManyRelationName = 'myBookPersons';
@@ -167,10 +167,31 @@ describe('CountRelatedRoute', () => {
         await count.handleCountRelated(context);
         expect(services.authorization.assertCanBrowse as jest.Mock).toHaveBeenCalledWith(
           context,
-          'books',
+          'bookPersons',
         );
 
         expect(context.response.body).toEqual({ count: 1568 });
+      });
+
+      test('should not count when the user cannot browse the related collection', async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+
+        const count = new CountRelatedRoute(
+          services,
+          options,
+          dataSource,
+          'books',
+          'myBookPersons',
+        );
+
+        const error = new Error('Forbidden');
+        (services.authorization.assertCanBrowse as jest.Mock).mockRejectedValueOnce(error);
+        const aggregateRelation = jest.spyOn(CollectionUtils, 'aggregateRelation').mockClear();
+
+        const context = setupContext();
+        await expect(count.handleCountRelated(context)).rejects.toThrow(error);
+
+        expect(aggregateRelation).not.toHaveBeenCalled();
       });
 
       test('it should apply the scope', async () => {
