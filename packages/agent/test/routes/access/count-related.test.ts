@@ -165,33 +165,11 @@ describe('CountRelatedRoute', () => {
 
         const context = setupContext();
         await count.handleCountRelated(context);
-        expect(services.authorization.assertCanBrowse as jest.Mock).toHaveBeenCalledWith(
-          context,
-          'bookPersons',
-        );
+        const assertCanBrowse = services.authorization.assertCanBrowse as jest.Mock;
+        expect(assertCanBrowse).toHaveBeenCalledTimes(1);
+        expect(assertCanBrowse).toHaveBeenCalledWith(context, 'bookPersons');
 
         expect(context.response.body).toEqual({ count: 1568 });
-      });
-
-      test('should not count when the user cannot browse the related collection', async () => {
-        const { services, dataSource, options } = setupWithOneToManyRelation();
-
-        const count = new CountRelatedRoute(
-          services,
-          options,
-          dataSource,
-          'books',
-          'myBookPersons',
-        );
-
-        const error = new Error('Forbidden');
-        (services.authorization.assertCanBrowse as jest.Mock).mockRejectedValueOnce(error);
-        const aggregateRelation = jest.spyOn(CollectionUtils, 'aggregateRelation').mockClear();
-
-        const context = setupContext();
-        await expect(count.handleCountRelated(context)).rejects.toThrow(error);
-
-        expect(aggregateRelation).not.toHaveBeenCalled();
       });
 
       test('it should apply the scope', async () => {
@@ -312,6 +290,27 @@ describe('CountRelatedRoute', () => {
     });
 
     describe('when an error happens', () => {
+      test('should not count when the user cannot browse the related collection', async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+
+        const count = new CountRelatedRoute(
+          services,
+          options,
+          dataSource,
+          'books',
+          'myBookPersons',
+        );
+
+        const error = new Error('Forbidden');
+        (services.authorization.assertCanBrowse as jest.Mock).mockRejectedValueOnce(error);
+        const aggregateRelation = jest.spyOn(CollectionUtils, 'aggregateRelation').mockClear();
+
+        const context = setupContext();
+        await expect(count.handleCountRelated(context)).rejects.toThrow(error);
+
+        expect(aggregateRelation).not.toHaveBeenCalled();
+      });
+
       test('should return an HTTP 400 response when the request is malformed', async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 

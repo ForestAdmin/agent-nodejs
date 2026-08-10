@@ -209,8 +209,8 @@ async function handleRelation(
     throw unknownRelation(`Unknown relation: ${deps.collection}.${relation}`);
   }
 
-  // The agent's count-related authorizes only the parent, so an unguarded foreign collection would
-  // leak a hidden collection's rows/count. Guard it here, mirroring the parent allow-list check.
+  // The agent checks browse permission on the foreign collection, but BFF exposure is a separate
+  // allow-list: a browsable collection may still be hidden here. Mirror the parent allow-list check.
   if (!readModel.isCollectionAllowed(foreignCollection)) {
     throw unknownCollection();
   }
