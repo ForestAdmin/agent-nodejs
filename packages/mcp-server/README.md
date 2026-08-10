@@ -180,6 +180,8 @@ the conversation:
 2. The client uploads the raw bytes directly to the storage backend, so they never pass through the MCP server or the model.
 3. The client passes the handle (`"$uploadedFile:<...>"`) as the field value in `executeAction`. The server downloads the object and hands it to the agent. The model only ever exchanges the small handle.
 
+It is available on the embedded mount too: `agent.mountAiMcpServer({ fileUploads: { storage } })`.
+
 ```mermaid
 sequenceDiagram
     participant Client as MCP client
@@ -260,12 +262,14 @@ A few properties matter in production.
 - The server stays stateless. The handle is a JWT signed with `authSecret`, so there is no database and no session affinity, and any replica can redeem a handle issued by another.
 - A handle is bound to the user it was issued to. Only that user's Bearer token can redeem it, and it expires with `handleTtlSeconds`. It stays redeemable until then, so keep the TTL short.
 - When the client sends `sha256` (hex or base64), the upload URL is pinned to that digest and the digest is checked again on the downloaded bytes at redemption. Content substituted after an upload URL leak cannot be redeemed.
-- **`maxBytes` does not bound memory on its own.** A pre-authorized upload URL cannot always cap the object size, so the limit is enforced at redemption: before downloading when `getSize` reports a size, and only after the bytes are in memory when it returns `undefined`. Implement `getSize` whenever the backend can answer it cheaply. `maxConcurrentDownloads` bounds how many redemptions hold a file at once.
+- **`maxBytes` does not bound memory on its own.** A pre-authorized upload URL cannot always cap the object size, so the limit is enforced at redemption: before downloading when `getSize` reports a size, and only after the bytes are in memory when it returns `undefined`. Implement `getSize` whenever the backend can answer it cheaply.
+- **`maxConcurrentDownloads` bounds concurrent downloads, not peak memory.** All the files one `executeAction` call references are held together until the call completes, so a form with N file fields holds up to N × `maxBytes` whatever the concurrency limit is. Size `maxBytes` against the number of file fields your actions declare.
 - The server never deletes objects. Configure a lifecycle rule on the storage backend, for example deleting objects under `keyPrefix` after one day.
 
 Only `executeAction` resolves handles. `getActionForm` echoes field values back to the model, so a
 handle stays a handle there: resolving it would put the file content back into the model's context.
-A file field that declares a change hook therefore sends the unresolved handle to that hook.
+A file field that declares a change hook therefore sends the unresolved handle to that hook, which
+receives it as a plain string rather than a parsed file.
 
 ## API Endpoints
 

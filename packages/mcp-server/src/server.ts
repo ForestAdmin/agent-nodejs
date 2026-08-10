@@ -160,10 +160,8 @@ export interface ForestMCPServerOptions {
   /**
    * Enables file fields in action forms through an upload side-channel. Without it, action
    * file fields are unusable over MCP: the agent expects them as data uris, which would
-   * transit the model's context window and exceed most clients' payload limits. When set,
-   * POST /files returns a pre-authorized upload URL plus a signed handle, and executeAction
-   * swaps "$uploadedFile:<handle>" values for the uploaded file before calling the agent, so
-   * the model only ever exchanges the small handle. Requires a storage backend.
+   * transit the model's context window and exceed most clients' payload limits.
+   * See the README for the flow and the storage contract.
    *
    * @experimental Expected to change to follow the MCP file transfer specification once it
    * lands (SEP-2631).
@@ -448,7 +446,7 @@ export default class ForestMCPServer {
   async buildExpressApp(baseUrl?: URL): Promise<Express> {
     const { envSecret, authSecret } = this.ensureSecretsAreSet();
 
-    this.fileUploads = resolveFileUploads(this.fileUploadsOptions, authSecret);
+    this.fileUploads = resolveFileUploads(this.fileUploadsOptions, authSecret, this.logger);
 
     await this.fetchCollectionNames();
 

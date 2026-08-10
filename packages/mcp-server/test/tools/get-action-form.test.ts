@@ -277,6 +277,26 @@ describe('declareGetActionFormTool', () => {
       expect(mockTryToSetFields).toHaveBeenCalledWith(values);
     });
 
+    it('passes an upload handle through verbatim instead of resolving it', async () => {
+      const mockTryToSetFields = jest.fn().mockResolvedValue([]);
+      const mockAction = jest.fn().mockResolvedValue({
+        getFields: jest.fn().mockReturnValue([]),
+        tryToSetFields: mockTryToSetFields,
+      });
+      mockBuildClientWithActions.mockResolvedValue({
+        rpcClient: { collection: jest.fn().mockReturnValue({ action: mockAction }) },
+        authData: { userId: 1, renderingId: '123', environmentId: 1, projectId: 1 },
+      } as unknown as ReturnType<typeof buildClientWithActions>);
+
+      const values = { document: '$uploadedFile:some-token' };
+      await registeredToolHandler(
+        { collectionName: 'users', actionName: 'sendEmail', recordIds: [1], values },
+        mockExtra,
+      );
+
+      expect(mockTryToSetFields).toHaveBeenCalledWith({ document: '$uploadedFile:some-token' });
+    });
+
     it('should not call tryToSetFields when values are not provided', async () => {
       const mockGetFields = jest.fn().mockReturnValue([]);
       const mockTryToSetFields = jest.fn().mockResolvedValue([]);

@@ -61,12 +61,6 @@ To fill a file field, never inline base64 file content. Request an upload destin
       // Cast to satisfy the type system - the API accepts both string[] and number[]
       const recordIds = (options.recordIds ?? []) as string[] | number[];
 
-      // Swap the upload handles for the uploaded files before they reach the form. agent-client
-      // encodes them for the agent. No-op when no value carries a handle.
-      const values = options.values
-        ? await resolveUploadedFileValues(options.values, extra.authInfo, ctx.fileUploads)
-        : undefined;
-
       return withActivityLog({
         forestServerClient,
         request: extra,
@@ -78,6 +72,10 @@ To fill a file field, never inline base64 file content. Request an upload destin
         },
         logger,
         operation: async () => {
+          const values = options.values
+            ? await resolveUploadedFileValues(options.values, extra.authInfo, ctx.fileUploads)
+            : undefined;
+
           const action = await rpcClient
             .collection(options.collectionName)
             .action(options.actionName, { recordIds });

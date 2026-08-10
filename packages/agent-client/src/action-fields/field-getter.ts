@@ -19,7 +19,11 @@ export default class FieldGetter {
     return this.plainField.field;
   }
 
-  getType(): PlainField['type'] {
-    return this.plainField.type;
+  // Agents emit list types as ['File'] / ['String'] but loadChanges echoes plainField back to
+  // them verbatim, so the wire shape is normalized here for dispatch rather than in place.
+  getType(): string {
+    const { type } = this.plainField;
+
+    return Array.isArray(type) ? `${type[0]}List` : type;
   }
 }

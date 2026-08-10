@@ -1,11 +1,8 @@
 export type RunExclusive = <T>(task: () => Promise<T>) => Promise<T>;
 
-/**
- * Bounds concurrent handle redemptions. Each redemption can hold up to maxBytes plus its
- * base64 copy in memory, so the process's worst case stays bounded by the limit instead of
- * by whatever load arrives.
- */
-export default function createSemaphore(limit: number): RunExclusive {
+export default function createSemaphore(rawLimit: number): RunExclusive {
+  // A limit below 1 would queue every task with nothing left to release it, hanging forever.
+  const limit = Math.max(1, rawLimit);
   let active = 0;
   const queue: Array<() => void> = [];
 

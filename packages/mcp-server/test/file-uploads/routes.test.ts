@@ -141,21 +141,52 @@ describe('POST /files', () => {
     expect(storage.createUploadUrl).toHaveBeenCalledWith(
       expect.objectContaining({ sha256: expectedBase64 }),
     );
-    expect(claimsOf(response.body.fileHandle).sha256).toBe(expectedBase64);
+    expect(claimsOf(response.body.fileHandle).sha256Base64).toBe(expectedBase64);
   });
 
-  it('sanitizes the filename so it cannot escape the storage key', async () => {
+  it.each([
+    ['../etc/passwd.pdf', '.._etc_passwd.pdf'],
+    ['..', 'file'],
+    ['.', 'file'],
+    ['....', 'file'],
+    ['a/b/c.pdf', 'a_b_c.pdf'],
+  ])('sanitizes %p to %p so it cannot escape the storage key', async (filename, expected) => {
+    const { app, storage } = makeApp({ auth: authenticatedUser });
+
+    const response = await request(app).post('/files').send({ filename, mimeType: 'text/plain' });
+
+    expect(response.status).toBe(200);
+    expect((storage.createUploadUrl as jest.Mock).mock.calls[0][0].key).toBe(
+      `mcp-uploads/${claimsOf(response.body.fileHandle).key.split('/')[1]}/${expected}`,
+    );
+  });
+
+  it('truncates a long filename from the front so the extension survives', async () => {
     const { app, storage } = makeApp({ auth: authenticatedUser });
 
     const response = await request(app)
       .post('/files')
-      .send({ filename: '../etc/passwd.pdf', mimeType: 'application/pdf' });
+      .send({ filename: `${'a'.repeat(200)}.pdf`, mimeType: 'application/pdf' });
 
     expect(response.status).toBe(200);
 
-    const { key } = (storage.createUploadUrl as jest.Mock).mock.calls[0][0];
-    expect(key.split('/').pop()).not.toMatch(/[/]/);
-    expect(key).toMatch(/^mcp-uploads\/[0-9a-f-]{36}\/[\w.\- ()]+$/);
+    const name = (storage.createUploadUrl as jest.Mock).mock.calls[0][0].key.split('/').pop();
+    expect(name).toHaveLength(128);
+    expect(name.endsWith('.pdf')).toBe(true);
+  });
+
+  it('accepts a digest already given in base64', async () => {
+    const { app, storage } = makeApp({ auth: authenticatedUser });
+    const base64 = Buffer.alloc(32, 1).toString('base64');
+
+    const response = await request(app)
+      .post('/files')
+      .send({ filename: 'report.pdf', mimeType: 'application/pdf', sha256: base64 });
+
+    expect(response.status).toBe(200);
+    expect(storage.createUploadUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ sha256: base64 }),
+    );
   });
 
   it('keeps a filename the agent can round-trip, spaces and all', async () => {

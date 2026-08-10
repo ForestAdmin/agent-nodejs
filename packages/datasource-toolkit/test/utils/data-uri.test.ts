@@ -82,6 +82,14 @@ describe('DataUri', () => {
     it('returns null when there is no data uri', () => {
       expect(parseDataUri(null)).toBeNull();
     });
+
+    it.each([
+      ['a plain filename', 'report.pdf'],
+      ['an upload sentinel', '$uploadedFile:eyJhbGciOiJIUzI1NiJ9.eyJhIjoxfQ.sig'],
+      ['an http url', 'https://example.com/f.pdf'],
+    ])('rejects %s with a readable message instead of a TypeError', (_, value) => {
+      expect(() => parseDataUri(value)).toThrow('Not a data uri');
+    });
   });
 
   describe('round trip', () => {

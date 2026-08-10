@@ -9,8 +9,6 @@ export const UPLOADED_FILE_PREFIX = '$uploadedFile:';
 export type FileReference = { kind: 'uploadHandle'; handle: string };
 
 /**
- * Recognizes the values that stand for a file the server must fetch itself.
- *
  * Isolated so that the file URIs the MCP specification is designing (SEP-2631) can be added
  * as another kind without touching the resolution path.
  */

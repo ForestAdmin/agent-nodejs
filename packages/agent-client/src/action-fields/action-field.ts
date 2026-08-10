@@ -1,5 +1,4 @@
 import type FieldFormStates from './field-form-states';
-import type { PlainField } from './types';
 
 export default abstract class ActionField {
   private readonly fieldsFormStates: FieldFormStates;
@@ -18,7 +17,7 @@ export default abstract class ActionField {
     return this.name;
   }
 
-  getType(): PlainField['type'] {
+  getType(): string {
     return this.field?.getType();
   }
 

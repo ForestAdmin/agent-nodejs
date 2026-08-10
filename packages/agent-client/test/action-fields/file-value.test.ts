@@ -107,7 +107,7 @@ describe('file values in action forms', () => {
 
       await expect(fieldFormStates.setFieldValue('document', value)).rejects.toThrow(
         'Field "document" expects a file: pass { buffer, mimeType, name } ' +
-          'or a string holding an already encoded data uri.',
+          'or a string holding a data uri.',
       );
     });
   });
@@ -123,22 +123,76 @@ describe('file values in action forms', () => {
       });
     });
 
-    it('leaves a non-array value untouched', async () => {
+    it('leaves null untouched', async () => {
       await setupFields([{ field: 'attachments', type: ['File'] }]);
 
       await fieldFormStates.setFieldValue('attachments', null);
 
       expect(fieldFormStates.getFieldValues()).toEqual({ attachments: null });
     });
+
+    it('rejects a single file where a list is expected, instead of shipping it unencoded', async () => {
+      await setupFields([{ field: 'attachments', type: ['File'] }]);
+
+      await expect(fieldFormStates.setFieldValue('attachments', pdf)).rejects.toThrow(
+        'Field "attachments" expects a list of files: pass an array.',
+      );
+    });
+
+    it('rejects an invalid item inside the list', async () => {
+      await setupFields([{ field: 'attachments', type: ['File'] }]);
+
+      await expect(fieldFormStates.setFieldValue('attachments', [{ foo: 1 }])).rejects.toThrow(
+        'Field "attachments" expects a file',
+      );
+    });
   });
 
   describe('on a field that is not a file', () => {
-    it('does not encode, because the declared type governs', async () => {
+    it('leaves ordinary values alone', async () => {
       await setupFields([{ field: 'comment', type: 'String' }]);
 
-      await fieldFormStates.setFieldValue('comment', pdf);
+      await fieldFormStates.setFieldValue('comment', 'plain text');
 
-      expect(fieldFormStates.getFieldValues()).toEqual({ comment: pdf });
+      expect(fieldFormStates.getFieldValues()).toEqual({ comment: 'plain text' });
+    });
+
+    // A resolved upload landing on the wrong field would otherwise be JSON-serialized into the
+    // column as {"buffer":{"type":"Buffer",...}} with no error at any layer.
+    it('rejects a file, which would otherwise be serialized into the column', async () => {
+      await setupFields([{ field: 'comment', type: 'String' }]);
+
+      await expect(fieldFormStates.setFieldValue('comment', pdf)).rejects.toThrow(
+        'Field "comment" is a String field and cannot hold a file.',
+      );
+    });
+  });
+
+  describe('type normalization', () => {
+    it('exposes the wire array form as a canonical list type', async () => {
+      await setupFields([{ field: 'attachments', type: ['File'] }]);
+
+      expect(fieldFormStates.getField('attachments')?.getType()).toBe('FileList');
+    });
+
+    it('keeps the wire form in the payload echoed back to the agent', async () => {
+      await setupFields([{ field: 'attachments', type: ['File'], hook: 'changeHook' }]);
+      httpRequester.query.mockResolvedValue({ fields: [], layout: [] });
+
+      await fieldFormStates.setFieldValue('attachments', [pdf]);
+
+      expect(httpRequester.query).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            data: {
+              attributes: expect.objectContaining({
+                fields: [expect.objectContaining({ type: ['File'] })],
+              }),
+              type: 'custom-action-hook-requests',
+            },
+          },
+        }),
+      );
     });
   });
 

@@ -19,14 +19,14 @@ describe('upload handles', () => {
       key: 'mcp-uploads/uuid/report.pdf',
       name: 'report.pdf',
       mimeType: 'application/pdf',
-      sha256: undefined,
+      sha256Base64: undefined,
     });
   });
 
   it('carries the sha256 pin when provided', () => {
-    const handle = signUploadHandle({ ...claims, sha256: 'digest==' }, AUTH_SECRET, 60);
+    const handle = signUploadHandle({ ...claims, sha256Base64: 'digest==' }, AUTH_SECRET, 60);
 
-    expect(verifyUploadHandle(handle, 42, AUTH_SECRET).sha256).toBe('digest==');
+    expect(verifyUploadHandle(handle, 42, AUTH_SECRET).sha256Base64).toBe('digest==');
   });
 
   it('accepts a user id whose type differs between signing and redemption', () => {
@@ -61,5 +61,23 @@ describe('upload handles', () => {
     expect(() => verifyUploadHandle(accessTokenLookalike, 42, AUTH_SECRET)).toThrow(
       'Not an upload handle',
     );
+  });
+
+  it.each([
+    ['garbage', 'not.a.jwt'],
+    ['a truncated jwt', 'eyJhbGciOiJIUzI1NiJ9.eyJhIjoxfQ'],
+    ['an empty string', ''],
+  ])('rejects %s, which is what a hallucinating model sends', (_, handle) => {
+    expect(() => verifyUploadHandle(handle, 42, AUTH_SECRET)).toThrow();
+  });
+
+  it('rejects a handle whose key claim is missing, instead of downloading undefined', () => {
+    const forged = jsonwebtoken.sign(
+      { type: 'mcp-upload', uploader: '42', name: 'x.pdf', mime: 'application/pdf' },
+      AUTH_SECRET,
+      { expiresIn: 60 },
+    );
+
+    expect(() => verifyUploadHandle(forged, 42, AUTH_SECRET)).toThrow('Malformed upload handle');
   });
 });

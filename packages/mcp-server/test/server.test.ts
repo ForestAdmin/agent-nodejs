@@ -3603,3 +3603,36 @@ describe('Logo URL', () => {
     expect(response.headers.get('content-type')).toContain('image/png');
   });
 });
+
+describe('file uploads route', () => {
+  const storage = {
+    createUploadUrl: jest.fn().mockResolvedValue({ url: 'https://storage.example/put' }),
+    download: jest.fn(),
+    getSize: jest.fn(),
+  };
+
+  const buildApp = async (fileUploads?: { storage: typeof storage }) =>
+    new ForestMCPServer({
+      envSecret: 'test-env-secret',
+      authSecret: 'test-auth-secret',
+      forestServerUrl: 'https://test.forestadmin.com',
+      ...(fileUploads && { fileUploads }),
+    }).buildExpressApp(new URL('https://agent.example'));
+
+  it('does not mount /files when the option is absent', async () => {
+    const response = await request(await buildApp())
+      .post('/files')
+      .send({});
+
+    expect(response.status).toBe(404);
+  });
+
+  it('mounts /files behind bearer auth when the option is set', async () => {
+    const response = await request(await buildApp({ storage }))
+      .post('/files')
+      .send({});
+
+    expect(response.status).toBe(401);
+    expect(storage.createUploadUrl).not.toHaveBeenCalled();
+  });
+});

@@ -6,8 +6,7 @@ export interface UploadHandleClaims {
   key: string;
   name: string;
   mimeType: string;
-  /** Base64 sha256 the upload was pinned to, when the client provided one. */
-  sha256?: string;
+  sha256Base64?: string;
 }
 
 export function signUploadHandle(
@@ -22,20 +21,19 @@ export function signUploadHandle(
       name: claims.name,
       mime: claims.mimeType,
       uploader: String(claims.userId),
-      ...(claims.sha256 && { sha256: claims.sha256 }),
+      ...(claims.sha256Base64 && { sha256: claims.sha256Base64 }),
     },
     authSecret,
     { expiresIn: ttlSeconds },
   );
 }
 
-/** Throws on tampered, expired, or cross-user handles. */
 export function verifyUploadHandle(
   handle: string,
   userId: number | string,
   authSecret: string,
 ): UploadHandleClaims {
-  const decoded = jsonwebtoken.verify(handle, authSecret) as {
+  const decoded = jsonwebtoken.verify(handle, authSecret, { algorithms: ['HS256'] }) as {
     type?: string;
     key: string;
     name: string;
@@ -49,10 +47,19 @@ export function verifyUploadHandle(
   if (decoded?.type !== HANDLE_TYPE) throw new Error('Not an upload handle');
   if (decoded.uploader !== String(userId)) throw new Error('Handle was issued to another user');
 
+  // key feeds storage.download and mime lands in the stored file, so neither may be undefined.
+  if (
+    typeof decoded.key !== 'string' ||
+    typeof decoded.name !== 'string' ||
+    typeof decoded.mime !== 'string'
+  ) {
+    throw new Error('Malformed upload handle');
+  }
+
   return {
     key: decoded.key,
     name: decoded.name,
     mimeType: decoded.mime,
-    sha256: decoded.sha256,
+    sha256Base64: decoded.sha256,
   };
 }

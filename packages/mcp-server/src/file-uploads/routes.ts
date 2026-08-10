@@ -13,17 +13,19 @@ const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/i;
 const SHA256_BASE64_PATTERN = /^[A-Za-z0-9+/]{43}=$/;
 const MAX_FILENAME_LENGTH = 128;
 
-// The storage key delimits segments with '/', so keep a conservative charset. The data uri
-// encoding is agent-client's job and percent-encodes whatever survives here.
+// The storage key delimits segments with '/', so keep a conservative charset. Truncation keeps
+// the tail so the extension survives. A name made only of dots would let a backend that joins
+// paths climb out of the per-upload directory.
 function sanitizeFilename(filename: string): string {
-  return filename
+  const safe = filename
     .trim()
     .slice(-MAX_FILENAME_LENGTH)
     .replace(/[^\w.\- ()]/g, '_');
+
+  return /^\.+$/.test(safe) ? 'file' : safe;
 }
 
-// Accepts the digest as hex (shasum -a 256 output) or base64. Returns base64, null when the
-// digest is absent, or false when it is malformed.
+// Accepts the digest as hex (shasum -a 256 output) or base64.
 function normalizeSha256(sha256: unknown): string | null | false {
   if (sha256 === undefined || sha256 === null || sha256 === '') return null;
   if (typeof sha256 !== 'string') return false;
@@ -34,8 +36,6 @@ function normalizeSha256(sha256: unknown): string | null | false {
 }
 
 /**
- * Router for POST /files, the upload half of the action file side-channel.
- *
  * Must be mounted behind requireBearerAuth so req.auth carries the caller's identity: the
  * returned handle is bound to that user and can only be redeemed by them.
  */
@@ -89,7 +89,7 @@ export default function createFilesRouter(uploads: ResolvedFileUploads, logger: 
         name: safeName,
         mimeType,
         userId: userId as number | string,
-        ...(sha256Base64 && { sha256: sha256Base64 }),
+        ...(sha256Base64 && { sha256Base64 }),
       },
       uploads.authSecret,
       uploads.handleTtlSeconds,
@@ -112,6 +112,11 @@ export default function createFilesRouter(uploads: ResolvedFileUploads, logger: 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- error handlers need arity 4
   router.use((error: Error, req: Request, res: Response, next: express.NextFunction) => {
     logger('Error', `/files error: ${error.message}`);
+    if (error.stack) logger('Error', `Stack: ${error.stack}`);
+
+    // The chain also carries requireBearerAuth, which answers by itself.
+    if (res.headersSent) return;
+
     res.status(500).json({ error: 'Failed to create upload URL.' });
   });
 

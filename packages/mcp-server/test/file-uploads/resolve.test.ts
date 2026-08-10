@@ -151,7 +151,7 @@ describe('resolveUploadedFileValues', () => {
 
     await expect(
       resolveUploadedFileValues({ document: makeHandle() }, authInfo, makeUploads(storage)),
-    ).rejects.toThrow('Uploaded file is empty');
+    ).rejects.toThrow('Field "document": uploaded file is empty');
   });
 
   it('rejects content that does not match the sha256 the handle was pinned to', async () => {
@@ -162,11 +162,11 @@ describe('resolveUploadedFileValues', () => {
 
     await expect(
       resolveUploadedFileValues(
-        { document: makeHandle({ sha256: pinned }) },
+        { document: makeHandle({ sha256Base64: pinned }) },
         authInfo,
         makeUploads(storage),
       ),
-    ).rejects.toThrow('does not match the sha256 it was pinned to');
+    ).rejects.toThrow('Field "document": uploaded file does not match the sha256 it was pinned to');
   });
 
   it('accepts content matching the pinned sha256', async () => {
@@ -175,7 +175,7 @@ describe('resolveUploadedFileValues', () => {
     const storage = makeStorage({ download: jest.fn().mockResolvedValue(content) });
 
     const resolved = await resolveUploadedFileValues(
-      { document: makeHandle({ sha256: pinned }) },
+      { document: makeHandle({ sha256Base64: pinned }) },
       authInfo,
       makeUploads(storage),
     );
@@ -213,5 +213,83 @@ describe('resolveUploadedFileValues', () => {
 
     expect(storage.download).toHaveBeenCalledTimes(6);
     expect(peak).toBeLessThanOrEqual(2);
+  });
+
+  it('names the field in the error, so the model knows which file to re-upload', async () => {
+    const storage = makeStorage({ download: jest.fn().mockResolvedValue(Buffer.alloc(0)) });
+
+    await expect(
+      resolveUploadedFileValues({ invoice: makeHandle() }, authInfo, makeUploads(storage)),
+    ).rejects.toThrow('Field "invoice"');
+  });
+
+  it('enforces the limit on the downloaded bytes when getSize under-reports', async () => {
+    const storage = makeStorage({
+      getSize: jest.fn().mockResolvedValue(5),
+      download: jest.fn().mockResolvedValue(Buffer.alloc(11)),
+    });
+
+    await expect(
+      resolveUploadedFileValues(
+        { document: makeHandle() },
+        authInfo,
+        makeUploads(storage, { maxBytes: 10 }),
+      ),
+    ).rejects.toThrow('above the 10 byte limit');
+  });
+
+  it.each([
+    ['null', null],
+    ['NaN', NaN],
+  ])('still enforces the limit when getSize answers %s', async (_, size) => {
+    const storage = makeStorage({
+      getSize: jest.fn().mockResolvedValue(size),
+      download: jest.fn().mockResolvedValue(Buffer.alloc(11)),
+    });
+
+    await expect(
+      resolveUploadedFileValues(
+        { document: makeHandle() },
+        authInfo,
+        makeUploads(storage, { maxBytes: 10 }),
+      ),
+    ).rejects.toThrow('above the 10 byte limit');
+  });
+
+  it('accepts a file of exactly maxBytes', async () => {
+    const storage = makeStorage({ download: jest.fn().mockResolvedValue(Buffer.alloc(10)) });
+
+    const resolved = await resolveUploadedFileValues(
+      { document: makeHandle() },
+      authInfo,
+      makeUploads(storage, { maxBytes: 10 }),
+    );
+
+    expect((resolved.document as { buffer: Buffer }).buffer).toHaveLength(10);
+  });
+
+  it('rejects a forged handle without spending a download slot', async () => {
+    const storage = makeStorage();
+
+    await expect(
+      resolveUploadedFileValues(
+        { document: makeHandle({ userId: 999 }) },
+        authInfo,
+        makeUploads(storage),
+      ),
+    ).rejects.toThrow('Handle was issued to another user');
+
+    expect(storage.getSize).not.toHaveBeenCalled();
+    expect(storage.download).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a download rejection rather than swallowing it', async () => {
+    const storage = makeStorage({
+      download: jest.fn().mockRejectedValue(new Error('NoSuchKey')),
+    });
+
+    await expect(
+      resolveUploadedFileValues({ document: makeHandle() }, authInfo, makeUploads(storage)),
+    ).rejects.toThrow('NoSuchKey');
   });
 });

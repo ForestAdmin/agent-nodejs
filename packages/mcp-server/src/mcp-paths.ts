@@ -22,15 +22,14 @@ export function normalizeMountPath(input?: string): string {
   return collapsed;
 }
 
+export interface McpRouteOptions {
+  fileUploads?: boolean;
+}
+
 /**
  * Well-known paths stay anchored at the origin root (per RFC 8414/9728) but carry the prefix
  * as a suffix, so a host's own root OAuth metadata is not claimed.
  */
-export interface McpRouteOptions {
-  /** Claim the /files upload route too. Only set when the fileUploads option is enabled. */
-  fileUploads?: boolean;
-}
-
 export function buildMcpPaths(prefix = '', options: McpRouteOptions = {}): string[] {
   const normalized = normalizeMountPath(prefix);
 

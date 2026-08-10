@@ -1,14 +1,13 @@
-import type { PlainField } from './types';
 import type { File } from '@forestadmin/datasource-toolkit';
 
 import { makeDataUri } from '@forestadmin/datasource-toolkit';
 
-export function isFileType(type: PlainField['type']): boolean {
+function isFileType(type: string): boolean {
   return type === 'File';
 }
 
-export function isFileListType(type: PlainField['type']): boolean {
-  return type === 'FileList' || (Array.isArray(type) && type[0] === 'File');
+function isFileListType(type: string): boolean {
+  return type === 'FileList';
 }
 
 function isFile(value: unknown): value is File {
@@ -16,34 +15,53 @@ function isFile(value: unknown): value is File {
 
   return (
     typeof value === 'object' &&
+    value !== null &&
     Buffer.isBuffer(candidate.buffer) &&
     typeof candidate.mimeType === 'string'
   );
 }
 
+function fileError(fieldName: string, detail: string): Error {
+  return new Error(`Field "${fieldName}" ${detail}`);
+}
+
 function encodeFileValue(value: unknown, fieldName: string): unknown {
-  // Strings pass through untouched: an already encoded data uri stays byte-identical, and
-  // callers that address the file indirectly (mcp-server upload handles) keep their sentinel.
-  if (value === null || value === undefined || typeof value === 'string') return value;
+  if (value === null || value === undefined) return value;
+
+  // Callers that address the file indirectly (mcp-server upload handles) keep their sentinel:
+  // validating strings here would break them, and the agent owns the final validation.
+  if (typeof value === 'string') return value;
 
   if (isFile(value)) return makeDataUri(value);
 
-  throw new Error(
-    `Field "${fieldName}" expects a file: pass { buffer, mimeType, name } ` +
-      'or a string holding an already encoded data uri.',
+  throw fileError(
+    fieldName,
+    'expects a file: pass { buffer, mimeType, name } or a string holding a data uri.',
   );
 }
 
 export default function encodeFileFieldValue(
-  type: PlainField['type'],
+  type: string,
   value: unknown,
   fieldName: string,
 ): unknown {
   if (isFileListType(type)) {
-    return Array.isArray(value) ? value.map(item => encodeFileValue(item, fieldName)) : value;
+    if (value === null || value === undefined) return value;
+
+    if (!Array.isArray(value)) {
+      throw fileError(fieldName, 'expects a list of files: pass an array.');
+    }
+
+    return value.map(item => encodeFileValue(item, fieldName));
   }
 
   if (isFileType(type)) return encodeFileValue(value, fieldName);
+
+  // A file reaching a field that is not declared as one is never intentional, and it would be
+  // JSON-serialized into the column as {"buffer":{"type":"Buffer",...}} without any error.
+  if (isFile(value)) {
+    throw fileError(fieldName, `is a ${type} field and cannot hold a file.`);
+  }
 
   return value;
 }

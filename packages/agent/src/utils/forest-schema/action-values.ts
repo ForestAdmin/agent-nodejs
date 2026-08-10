@@ -58,9 +58,11 @@ export default class ForestValueConverter {
           const collection = dataSource.getCollection(collectionName);
           data[field.field] = IdUtils.unpackId(collection.schema, field.value as string);
         } else if (field.type === 'File') {
-          data[field.field] = parseDataUri(field.value as string);
+          data[field.field] = isDataUri(field.value) ? parseDataUri(field.value) : field.value;
         } else if (Array.isArray(field.type) && field.type[0] === 'File') {
-          data[field.field] = (field.value as string[])?.map(v => parseDataUri(v));
+          data[field.field] = (field.value as string[])?.map(v =>
+            isDataUri(v) ? parseDataUri(v) : v,
+          );
         } else {
           data[field.field] = field.value;
         }

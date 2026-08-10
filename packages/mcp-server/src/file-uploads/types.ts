@@ -1,26 +1,20 @@
 import type { RunExclusive } from './semaphore';
+import type { Logger } from '../server';
 
 import createSemaphore from './semaphore';
 
-/**
- * Storage backend for the action file upload side-channel.
- *
- * Implementations are provided by the host application (S3, GCS, Azure...). The MCP server
- * never sees the file bytes during upload: clients PUT them straight to the URL returned by
- * createUploadUrl, and the server only reads them back when an executeAction call redeems
- * the handle.
- */
+/** Storage backend for the action file upload side-channel. See the README for the flow. */
 export interface UploadStorage {
-  /** Return a pre-authorized URL the client can upload a single object to. */
+  /** The URL must be reachable by the MCP client, which is what uploads the bytes. */
   createUploadUrl(params: {
     key: string;
     mimeType: string;
-    /** Base64 sha256 digest the upload must match, when the client pinned one. */
+    /** Advisory: the server re-verifies the digest after download regardless. */
     sha256?: string;
     expiresInSeconds: number;
   }): Promise<{ url: string; method?: string; headers?: Record<string, string> }>;
 
-  /** Read the uploaded object back. Must reject when the object does not exist. */
+  /** Must reject when the object does not exist. */
   download(key: string): Promise<Buffer>;
 
   /**
@@ -32,29 +26,17 @@ export interface UploadStorage {
 }
 
 /**
- * Options for the `fileUploads` server option.
- *
  * @experimental The MCP specification is still designing its own file transfer story
  * (SEP-2631). The storage contract is expected to survive, but the `POST /files` route and
  * the handle format may change to follow the specification once it lands.
  */
 export interface FileUploadsOptions {
   storage: UploadStorage;
-  /** Key prefix for uploaded objects. Defaults to 'mcp-uploads/'. */
   keyPrefix?: string;
-  /** Lifetime of the upload URL. Defaults to 15 minutes. */
   uploadUrlTtlSeconds?: number;
-  /**
-   * Lifetime of the file handle. Defaults to 45 minutes, longer than the upload URL, so a
-   * slow upload still leaves time to run the action.
-   */
+  /** Must stay longer than uploadUrlTtlSeconds, so a slow upload leaves time to run the action. */
   handleTtlSeconds?: number;
-  /** Maximum uploaded file size, enforced when the handle is redeemed. Defaults to 20 MiB. */
   maxBytes?: number;
-  /**
-   * Maximum handle redemptions running at once per process. Each redemption may hold up to
-   * maxBytes plus its base64 copy in memory, so this bounds the worst case. Defaults to 5.
-   */
   maxConcurrentDownloads?: number;
 }
 
@@ -74,21 +56,52 @@ const DEFAULT_HANDLE_TTL_SECONDS = 45 * 60;
 const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 5;
 
+function positiveInteger(field: keyof FileUploadsOptions, value: number | undefined): number {
+  if (value === undefined) return undefined;
+
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`Invalid fileUploads.${field} "${value}": it must be a positive integer.`);
+  }
+
+  return value;
+}
+
 export function resolveFileUploads(
   options: FileUploadsOptions | undefined,
   authSecret: string,
+  logger?: Logger,
 ): ResolvedFileUploads | undefined {
   if (!options) return undefined;
+
+  if (!options.storage) throw new Error('fileUploads.storage is required.');
+
+  const uploadUrlTtlSeconds =
+    positiveInteger('uploadUrlTtlSeconds', options.uploadUrlTtlSeconds) ??
+    DEFAULT_UPLOAD_URL_TTL_SECONDS;
+  const handleTtlSeconds =
+    positiveInteger('handleTtlSeconds', options.handleTtlSeconds) ?? DEFAULT_HANDLE_TTL_SECONDS;
+
+  // A handle expiring before its upload URL means uploads succeed and every redemption then
+  // fails with a bare "jwt expired".
+  if (handleTtlSeconds < uploadUrlTtlSeconds) {
+    logger?.(
+      'Warn',
+      `fileUploads.handleTtlSeconds=${handleTtlSeconds} is shorter than ` +
+        `fileUploads.uploadUrlTtlSeconds=${uploadUrlTtlSeconds}: a slow upload will finish with ` +
+        'an already expired handle.',
+    );
+  }
 
   return {
     storage: options.storage,
     keyPrefix: options.keyPrefix ?? DEFAULT_KEY_PREFIX,
-    uploadUrlTtlSeconds: options.uploadUrlTtlSeconds ?? DEFAULT_UPLOAD_URL_TTL_SECONDS,
-    handleTtlSeconds: options.handleTtlSeconds ?? DEFAULT_HANDLE_TTL_SECONDS,
-    maxBytes: options.maxBytes ?? DEFAULT_MAX_BYTES,
+    uploadUrlTtlSeconds,
+    handleTtlSeconds,
+    maxBytes: positiveInteger('maxBytes', options.maxBytes) ?? DEFAULT_MAX_BYTES,
     authSecret,
     limitDownload: createSemaphore(
-      options.maxConcurrentDownloads ?? DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+      positiveInteger('maxConcurrentDownloads', options.maxConcurrentDownloads) ??
+        DEFAULT_MAX_CONCURRENT_DOWNLOADS,
     ),
   };
 }
