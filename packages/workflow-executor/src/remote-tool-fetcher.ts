@@ -6,7 +6,7 @@ import type { McpServerLoadFailure, RemoteTool, ToolConfig } from '@forestadmin/
 
 import { injectOauthTokens } from '@forestadmin/ai-proxy';
 
-import { OAuthReauthRequiredError } from './errors';
+import { OAuthReauthRequiredError, causeMessage, extractErrorMessage } from './errors';
 
 const OAUTH2_AUTH_TYPE = 'oauth2';
 
@@ -181,7 +181,10 @@ export default class RemoteToolFetcher {
       failures: failures.map(failure => ({
         server: failure.server,
         kind: failure.kind,
-        error: failure.error.message,
+        // Read the way the bridge does: a `fetch failed` keeps its ECONNREFUSED, and a wrapped
+        // infra error with an empty message still names something.
+        error: extractErrorMessage(failure.error),
+        cause: causeMessage(failure.error),
       })),
     });
 

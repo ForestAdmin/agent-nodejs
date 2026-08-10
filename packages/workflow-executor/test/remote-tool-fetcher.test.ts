@@ -235,7 +235,44 @@ describe('RemoteToolFetcher.fetch', () => {
       requestedMcpServerId: 'id-A',
       mcpServerName: 'srv-a',
       failures: [
-        { server: 'srv-a', kind: 'connection', error: 'connect ECONNREFUSED 10.0.4.12:8080' },
+        {
+          server: 'srv-a',
+          kind: 'connection',
+          error: 'connect ECONNREFUSED 10.0.4.12:8080',
+          cause: undefined,
+        },
+      ],
+    });
+  });
+
+  // Node wraps the real reason in `.cause`, which is the distinction the failure line exists for.
+  it('names the nested cause when the reported error only wraps it', async () => {
+    const wrapped = Object.assign(new Error('fetch failed'), {
+      cause: new Error('connect ECONNREFUSED 10.0.4.12:8080'),
+    });
+    const { fetcher, logger } = makeFetcher({
+      workflowPort: {
+        getMcpServerConfigs: jest.fn().mockResolvedValue({ 'srv-a': cfg('id-A') }),
+      },
+      aiModelPort: {
+        loadRemoteToolsWithFailures: loadsWithFailures([], [
+          { server: 'srv-a', kind: 'connection', error: wrapped },
+        ] as McpServerLoadFailure[]),
+      },
+    });
+
+    await fetcher.fetch('id-A', USER_ID);
+
+    expect(logger).toHaveBeenCalledWith('Error', 'MCP servers failed to load tools', {
+      requestedMcpServerId: 'id-A',
+      mcpServerName: 'srv-a',
+      failures: [
+        {
+          server: 'srv-a',
+          kind: 'connection',
+          error: 'fetch failed',
+          cause: 'connect ECONNREFUSED 10.0.4.12:8080',
+        },
       ],
     });
   });
@@ -319,7 +356,9 @@ describe('RemoteToolFetcher.fetch', () => {
     expect(logger.mock.calls.find(c => c[0] === 'Error')).toBeUndefined();
   });
 
-  it('flags a Forest connector that fails to load entirely', async () => {
+  // The provider names the integration, not the Record key, when it doesn't recognise it — this is
+  // the version-drift case where the orchestrator advertises something this build can't load.
+  it('flags a Forest connector whose integration this build does not support', async () => {
     const forestConfig = {
       id: 'id-zendesk',
       isForestConnector: true as const,
@@ -332,7 +371,7 @@ describe('RemoteToolFetcher.fetch', () => {
       aiModelPort: {
         loadRemoteToolsWithFailures: loadsWithFailures(
           [],
-          [makeFailure('zendesk-prod', 'unknown', 'Unsupported integration: Zendesk')],
+          [makeFailure('Zendesk', 'unknown', 'Unsupported integration: Zendesk')],
         ),
       },
     });
@@ -343,7 +382,12 @@ describe('RemoteToolFetcher.fetch', () => {
       requestedMcpServerId: 'id-zendesk',
       mcpServerName: 'zendesk-prod',
       failures: [
-        { server: 'zendesk-prod', kind: 'unknown', error: 'Unsupported integration: Zendesk' },
+        {
+          server: 'Zendesk',
+          kind: 'unknown',
+          error: 'Unsupported integration: Zendesk',
+          cause: undefined,
+        },
       ],
     });
   });

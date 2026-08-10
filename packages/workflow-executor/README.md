@@ -184,9 +184,9 @@ The executor names the reason at `Error`, so it is in your logs at the default l
 
 `kind` tells you where to look:
 
-- `auth` — the server rejected the credential. Reconnect the connector, or renew its token.
+- `auth` — the server rejected the credential (HTTP 401). On an OAuth2 connector the executor refreshes the token and retries once on its own, so this line concerns static credentials; an OAuth2 connector that recovered logs `MCP tools loaded after refreshing the credential` at `Info`, and one that cannot pauses the run for re-authentication instead.
 - `connection` — unreachable, refused, or slower than the 15s per-server load timeout.
-- `unknown` — the server answered but the load failed anyway; the `error` text carries the reason.
+- `unknown` — the server answered but the load failed anyway, including HTTP 403 (the credential is valid but lacks the permission, which no refresh can fix) and an integration this build does not support; the `error` text carries the reason.
 
 A server that answers but exposes no tools is not a failure: you get an empty tool list and no error.
 

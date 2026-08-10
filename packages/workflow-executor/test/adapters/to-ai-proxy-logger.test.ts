@@ -74,6 +74,20 @@ describe('toAiProxyLogger', () => {
       });
     });
 
+    // `extractErrorMessage` stringifies anything non-undefined, so an explicit null would print
+    // the word "null" and survive the pretty logger's undefined-only filter.
+    it('omits the cause key when the error carries an explicit null cause', () => {
+      const cause = Object.assign(new Error('boom'), { cause: null });
+
+      aiProxyLogger('Error', 'Error loading tools for notion', cause);
+
+      expect(logger).toHaveBeenCalledWith('Error', 'Error loading tools for notion', {
+        error: 'boom',
+        cause: undefined,
+        stack: cause.stack,
+      });
+    });
+
     it('reports a stackless Error by its message alone', () => {
       const cause = new Error('boom');
       delete cause.stack;

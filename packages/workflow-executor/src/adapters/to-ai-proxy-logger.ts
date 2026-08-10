@@ -22,7 +22,9 @@ export default function toAiProxyLogger(logger: Logger): AiProxyLogger {
 
       logger(level, message, {
         error: extractErrorMessage(error),
-        cause: extractErrorMessage(cause),
+        // `extractErrorMessage` only short-circuits on undefined, so a null cause would print
+        // the string "null" — the artifact the pretty logger drops undefined keys to avoid.
+        cause: cause == null ? undefined : extractErrorMessage(cause),
         stack: error instanceof Error ? error.stack : undefined,
       });
     } catch {
