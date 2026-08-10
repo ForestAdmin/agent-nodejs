@@ -19,7 +19,7 @@ export default class FieldGetter {
     return this.plainField.field;
   }
 
-  getType(): string {
+  getType(): PlainField['type'] {
     return this.plainField.type;
   }
 }

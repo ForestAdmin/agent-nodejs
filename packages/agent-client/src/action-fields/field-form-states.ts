@@ -7,6 +7,7 @@ import type {
 import HttpRequester from '../http-requester';
 import ActionFieldMultipleChoice from './action-field-multiple-choice';
 import FieldGetter from './field-getter';
+import encodeFileFieldValue from './file-value';
 
 export default class FieldFormStates {
   private readonly fields: FieldGetter[];
@@ -70,7 +71,7 @@ export default class FieldFormStates {
     const field = this.getField(name);
     if (!field) throw new Error(`Field "${name}" not found in action "${this.actionName}"`);
 
-    field.getPlainField().value = value;
+    field.getPlainField().value = encodeFileFieldValue(field.getType(), value, name);
 
     const fieldHasHook = field.getPlainField().hook;
 

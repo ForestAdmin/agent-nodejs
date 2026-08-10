@@ -68,3 +68,4 @@ export function createRemoteAgentClient(params: {
 }
 
 export type { RecordId, SelectOptions } from './types';
+export type { File } from '@forestadmin/datasource-toolkit';
