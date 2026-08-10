@@ -30,6 +30,7 @@ export interface BFFConfig {
   invalidAllowedOrigins: string[];
   defaultTimezone?: string;
   agentTimeoutMs?: number;
+  openapiEnabled: boolean;
   httpPort: number;
   presence: PresenceMap;
   hasAllRequired: boolean;
@@ -47,7 +48,7 @@ function normalize(value: string | undefined): string | undefined {
   return value === undefined || value.trim() === '' ? undefined : value;
 }
 
-function parsePort(raw: string | undefined): number {
+function parsePort(raw?: string): number {
   const trimmed = raw?.trim();
   if (trimmed === undefined || trimmed === '') return DEFAULT_BFF_PORT;
 
@@ -70,7 +71,7 @@ function isValidEncryptionKey(value: string): boolean {
   return BASE64_PATTERN.test(value) && Buffer.from(value, 'base64').length === ENCRYPTION_KEY_BYTES;
 }
 
-function parseEncryptionKey(raw: string | undefined): string | undefined {
+function parseEncryptionKey(raw?: string): string | undefined {
   const value = normalize(raw);
 
   if (value !== undefined && !isValidEncryptionKey(value)) {
@@ -82,7 +83,7 @@ function parseEncryptionKey(raw: string | undefined): string | undefined {
   return value;
 }
 
-function parseAgentTimeoutMs(raw: string | undefined): number {
+function parseAgentTimeoutMs(raw?: string): number {
   const value = normalize(raw);
   if (value === undefined) return DEFAULT_AGENT_TIMEOUT_MS;
 
@@ -97,7 +98,7 @@ function parseAgentTimeoutMs(raw: string | undefined): number {
   return timeout;
 }
 
-function parseDefaultTimezone(raw: string | undefined): string | undefined {
+function parseDefaultTimezone(raw?: string): string | undefined {
   const value = normalize(raw);
 
   if (value !== undefined && !isValidTimezone(value)) {
@@ -107,6 +108,16 @@ function parseDefaultTimezone(raw: string | undefined): string | undefined {
   }
 
   return value;
+}
+
+function parseOpenApiEnabled(raw?: string): boolean {
+  const value = normalize(raw)?.trim().toLowerCase();
+  if (value === undefined || value === 'true') return true;
+  if (value === 'false') return false;
+
+  throw new ConfigurationError(
+    'Invalid configuration: BFF_OPENAPI_ENABLED must be a boolean (true/false).',
+  );
 }
 
 export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
@@ -143,6 +154,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): BFFConfig {
     invalidAllowedOrigins,
     defaultTimezone,
     agentTimeoutMs: parseAgentTimeoutMs(env.BFF_AGENT_TIMEOUT_MS),
+    openapiEnabled: parseOpenApiEnabled(env.BFF_OPENAPI_ENABLED),
     httpPort: parsePort(env.HTTP_PORT),
     presence,
     hasAllRequired: REQUIRED_KEYS.every(key => presence[key]) && tokenEncryptionKey !== undefined,
