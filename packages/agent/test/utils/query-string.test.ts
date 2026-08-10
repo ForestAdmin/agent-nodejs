@@ -369,13 +369,29 @@ describe('QueryStringParser', () => {
             fields: {
               id: factories.columnSchema.uuidPrimaryKey().build(),
               street: factories.columnSchema.build(),
+              countryId: factories.columnSchema.build({ columnType: 'Uuid' }),
+              country: factories.manyToOneSchema.build({
+                foreignCollection: 'country',
+                foreignKey: 'countryId',
+              }),
+            },
+          }),
+        }),
+        factories.collection.build({
+          name: 'country',
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              name: factories.columnSchema.build(),
             },
           }),
         }),
       ]);
 
       const context = createMockContext({
-        headers: { 'forest-projection': 'id,owner:address:street' },
+        headers: {
+          'forest-projection': 'id,owner:address:street,owner:address:country:name',
+        },
       });
 
       const projection = QueryStringParser.parseProjectionFromHeader(
@@ -383,7 +399,9 @@ describe('QueryStringParser', () => {
         context,
       );
 
-      expect(projection).toEqual(new Projection('id', 'owner:address:street'));
+      expect(projection).toEqual(
+        new Projection('id', 'owner:address:street', 'owner:address:country:name'),
+      );
     });
 
     test('should throw a ValidationError when the header contains an unknown field', () => {
