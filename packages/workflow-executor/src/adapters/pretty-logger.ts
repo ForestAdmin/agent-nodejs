@@ -12,7 +12,11 @@ const LABEL: Record<LoggerLevel, string> = {
 };
 
 function formatContext(context: Record<string, unknown>): string {
-  const parts = Object.entries(context).map(([key, value]) => `${key}=${JSON.stringify(value)}`);
+  // Callers build a fixed context shape and leave the fields they have nothing for undefined,
+  // which JSON.stringify would render as the literal `undefined`.
+  const parts = Object.entries(context)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => `${key}=${JSON.stringify(value)}`);
   if (parts.length === 0) return '';
 
   return pc.dim(parts.join(' '));

@@ -136,7 +136,10 @@ describe('buildInMemoryExecutor', () => {
 
     buildInMemoryExecutor(BASE_OPTIONS);
 
-    expect(AiClientAdapter).toHaveBeenCalledWith(BASE_OPTIONS.aiConfigurations);
+    expect(AiClientAdapter).toHaveBeenCalledWith(
+      BASE_OPTIONS.aiConfigurations,
+      expect.any(Function),
+    );
   });
 
   it('creates ServerAiAdapter when aiConfigurations is not provided', () => {
@@ -149,6 +152,33 @@ describe('buildInMemoryExecutor', () => {
     expect(ServerAiAdapter).toHaveBeenCalledWith({
       forestServerUrl: 'https://api.forestadmin.com',
       envSecret: BASE_OPTIONS.envSecret,
+      logger: expect.any(Function),
+    });
+  });
+
+  // ai-proxy holds the host logger optionally and no-ops every emit without one.
+  it('gives AiClientAdapter the executor logger', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const AiClientAdapter = require('../src/adapters/ai-client-adapter').default;
+    const logger = jest.fn();
+
+    buildInMemoryExecutor({ ...BASE_OPTIONS, logger });
+
+    expect(AiClientAdapter).toHaveBeenCalledWith(BASE_OPTIONS.aiConfigurations, logger);
+  });
+
+  it('gives ServerAiAdapter the executor logger', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const ServerAiAdapter = require('../src/adapters/server-ai-adapter').default;
+    const logger = jest.fn();
+
+    const { aiConfigurations, ...optionsWithoutAi } = BASE_OPTIONS;
+    buildInMemoryExecutor({ ...optionsWithoutAi, logger });
+
+    expect(ServerAiAdapter).toHaveBeenCalledWith({
+      forestServerUrl: 'https://api.forestadmin.com',
+      envSecret: BASE_OPTIONS.envSecret,
+      logger,
     });
   });
 
@@ -176,7 +206,10 @@ describe('buildInMemoryExecutor', () => {
       buildInMemoryExecutor({ ...BASE_OPTIONS, forceAiError: true });
 
       expect(AlwaysErrorAiModelPort).not.toHaveBeenCalled();
-      expect(AiClientAdapter).toHaveBeenCalledWith(BASE_OPTIONS.aiConfigurations);
+      expect(AiClientAdapter).toHaveBeenCalledWith(
+        BASE_OPTIONS.aiConfigurations,
+        expect.any(Function),
+      );
     } finally {
       process.env.NODE_ENV = original;
     }

@@ -1,3 +1,4 @@
+import type { McpServerLoadFailure } from './mcp-client';
 import type RemoteTool from './remote-tool';
 import type { ToolProvider } from './tool-provider';
 import type { Logger } from '@forestadmin/datasource-toolkit';
@@ -38,8 +39,12 @@ export default class ForestIntegrationClient implements ToolProvider {
     this.configs = configs;
   }
 
-  async loadTools(): Promise<RemoteTool[]> {
+  async loadToolsWithFailures(): Promise<{
+    tools: RemoteTool[];
+    failures: McpServerLoadFailure[];
+  }> {
     const tools: RemoteTool[] = [];
+    const failures: McpServerLoadFailure[] = [];
 
     this.configs.forEach(({ id: mcpServerId, integrationName, config }) => {
       switch (integrationName) {
@@ -54,10 +59,22 @@ export default class ForestIntegrationClient implements ToolProvider {
           break;
         default:
           this.logger?.('Warn', `Unsupported integration: ${integrationName}`);
+          // Reporting it is what stops a caller reading an integration this build doesn't know as
+          // a healthy connector that publishes nothing.
+          failures.push({
+            server: integrationName,
+            mcpServerId,
+            kind: 'unknown',
+            error: new Error(`Unsupported integration: ${integrationName}`),
+          });
       }
     });
 
-    return tools;
+    return { tools, failures };
+  }
+
+  async loadTools(): Promise<RemoteTool[]> {
+    return (await this.loadToolsWithFailures()).tools;
   }
 
   async checkConnection(): Promise<true> {

@@ -126,6 +126,63 @@ describe('ForestIntegrationClient', () => {
     });
   });
 
+  describe('loadToolsWithFailures', () => {
+    it('reports an unsupported integration as a failure carrying its name and id', async () => {
+      const client = new ForestIntegrationClient(
+        // @ts-expect-error Testing unsupported integration
+        [{ id: '7', integrationName: 'unknown', config: {} as any, isForestConnector: true }],
+      );
+
+      const { tools, failures } = await client.loadToolsWithFailures();
+
+      expect(tools).toEqual([]);
+      expect(failures).toEqual([
+        {
+          server: 'unknown',
+          mcpServerId: '7',
+          kind: 'unknown',
+          error: new Error('Unsupported integration: unknown'),
+        },
+      ]);
+    });
+
+    it('reports no failure when every integration is supported', async () => {
+      const client = new ForestIntegrationClient([
+        {
+          id: '1',
+          integrationName: 'Zendesk',
+          config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
+          isForestConnector: true,
+        },
+      ]);
+
+      const { tools, failures } = await client.loadToolsWithFailures();
+
+      expect(tools).toEqual(mockZendeskTools);
+      expect(failures).toEqual([]);
+    });
+
+    // A supported connector alongside a broken one must still contribute its tools.
+    it('keeps a supported integration tools when another one is unsupported', async () => {
+      const client = new ForestIntegrationClient([
+        {
+          id: '1',
+          integrationName: 'Zendesk',
+          config: { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' },
+          isForestConnector: true,
+        },
+        // @ts-expect-error Testing unsupported integration
+        { id: '2', integrationName: 'unknown', config: {} as any, isForestConnector: true },
+      ]);
+
+      const { tools, failures } = await client.loadToolsWithFailures();
+
+      expect(tools).toEqual(mockZendeskTools);
+      expect(failures).toHaveLength(1);
+      expect(failures[0].mcpServerId).toBe('2');
+    });
+  });
+
   describe('checkConnection', () => {
     it('should call validateZendeskConfig for Zendesk integration', async () => {
       const zendeskConfig = { subdomain: 'test', email: 'a@b.com', apiToken: 'tok' };

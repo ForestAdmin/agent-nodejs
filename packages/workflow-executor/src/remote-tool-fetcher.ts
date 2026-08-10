@@ -2,13 +2,17 @@ import type OAuthTokenService from './oauth/token-service';
 import type { AiModelPort } from './ports/ai-model-port';
 import type { Logger } from './ports/logger-port';
 import type { WorkflowPort } from './ports/workflow-port';
-import type { RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
+import type { McpServerLoadFailure, RemoteTool, ToolConfig } from '@forestadmin/ai-proxy';
 
 import { injectOauthTokens } from '@forestadmin/ai-proxy';
 
-import { OAuthReauthRequiredError } from './errors';
+import { OAuthReauthRequiredError, causeMessage, extractErrorMessage } from './errors';
 
 const OAUTH2_AUTH_TYPE = 'oauth2';
+
+function hasAuthFailure(failures: McpServerLoadFailure[]): boolean {
+  return failures.some(failure => failure.kind === 'auth');
+}
 
 // Match by config.id, not by Record key: server names can collide across configs.
 export function scopeConfigsToServer(
@@ -71,8 +75,8 @@ export default class RemoteToolFetcher {
       return this.fetchOAuthTools(scoped, mcpServerName, mcpServerId, userId);
     }
 
-    const tools = await this.aiModelPort.loadRemoteTools(scoped);
-    const loadFailed = this.errorOnPartialLoadFailure(scoped, tools, mcpServerId, mcpServerName);
+    const { tools, failures } = await this.aiModelPort.loadRemoteToolsWithFailures(scoped);
+    const loadFailed = this.errorOnPartialLoadFailure(failures, mcpServerId, mcpServerName);
 
     return { tools, mcpServerName, loadFailed };
   }
@@ -90,7 +94,7 @@ export default class RemoteToolFetcher {
 
     const attemptLoad = async (
       forceRefresh: boolean,
-    ): Promise<{ tools: RemoteTool[]; hasAuthFailure: boolean }> => {
+    ): Promise<{ tools: RemoteTool[]; failures: McpServerLoadFailure[] }> => {
       const token = await tokenService.getAccessToken(userId, mcpServerId, { forceRefresh });
       const bearer = `Bearer ${token}`;
       // All scoped configs share this mcpServerId, so inject the token for every one — not just the
@@ -102,33 +106,40 @@ export default class RemoteToolFetcher {
             Object.keys(scoped).map(name => [name, bearer]),
           ),
         }) ?? scoped;
-      const { tools, failures } = await this.aiModelPort.loadRemoteToolsWithFailures(injected);
 
-      return { tools, hasAuthFailure: failures.some(failure => failure.kind === 'auth') };
+      return this.aiModelPort.loadRemoteToolsWithFailures(injected);
     };
+
+    // The reload hook is handed to the caller for its own post-401 retry, so it cannot widen its
+    // return type; it reports the retry's outcome here instead.
+    let reloadFailed: boolean | undefined;
 
     const reloadWithFreshAuth = async (): Promise<RemoteTool[]> => {
       const attempt = await attemptLoad(true);
-      if (attempt.hasAuthFailure) throw new OAuthReauthRequiredError(mcpServerId);
-      this.errorOnPartialLoadFailure(scoped, attempt.tools, mcpServerId, mcpServerName);
+      if (hasAuthFailure(attempt.failures)) throw new OAuthReauthRequiredError(mcpServerId);
+      reloadFailed = this.errorOnPartialLoadFailure(attempt.failures, mcpServerId, mcpServerName);
+
+      // The rejected credential was already logged at Error. Without this the default level shows
+      // the failure and never says it recovered.
+      if (!reloadFailed) {
+        this.logger('Info', 'MCP tools loaded after refreshing the credential', {
+          requestedMcpServerId: mcpServerId,
+          mcpServerName,
+        });
+      }
 
       return attempt.tools;
     };
 
     const initial = await attemptLoad(false);
+    const hasRejectedToken = hasAuthFailure(initial.failures);
+    // The retry supersedes a rejected cached token, so its outcome is the one that counts.
+    const tools = hasRejectedToken ? await reloadWithFreshAuth() : initial.tools;
+    const loadFailed = hasRejectedToken
+      ? reloadFailed
+      : this.errorOnPartialLoadFailure(initial.failures, mcpServerId, mcpServerName);
 
-    if (initial.hasAuthFailure) {
-      return { tools: await reloadWithFreshAuth(), mcpServerName, reloadWithFreshAuth };
-    }
-
-    const loadFailed = this.errorOnPartialLoadFailure(
-      scoped,
-      initial.tools,
-      mcpServerId,
-      mcpServerName,
-    );
-
-    return { tools: initial.tools, mcpServerName, reloadWithFreshAuth, loadFailed };
+    return { tools, mcpServerName, reloadWithFreshAuth, loadFailed };
   }
 
   // Distinguish "no configs at all" (deployment misconfig) from "configs exist but none match"
@@ -155,26 +166,26 @@ export default class RemoteToolFetcher {
     );
   }
 
-  // Partial-failure detection: McpClient swallows per-server load errors and returns whatever
-  // succeeded. Match config.id against tool.mcpServerId — both providers populate it from the
-  // orchestrator's persisted id, so the check is uniform across MCP and Forest connectors.
+  // Inferring failure from absent tools would flag a healthy server that exposes none, and could
+  // never name a cause.
   private errorOnPartialLoadFailure(
-    scoped: Record<string, ToolConfig>,
-    tools: RemoteTool[],
+    failures: McpServerLoadFailure[],
     mcpServerId: string,
     mcpServerName: string | undefined,
   ): boolean {
-    const loadedMcpServerIds = new Set(tools.map(t => t.mcpServerId));
-    const failedConfigNames = Object.entries(scoped)
-      .filter(([, cfg]) => !loadedMcpServerIds.has(cfg.id))
-      .map(([name]) => name);
-
-    if (failedConfigNames.length === 0) return false;
+    if (failures.length === 0) return false;
 
     this.logger('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: mcpServerId,
       mcpServerName,
-      failedConfigNames,
+      failures: failures.map(failure => ({
+        server: failure.server,
+        kind: failure.kind,
+        // Read the way the bridge does: a `fetch failed` keeps its ECONNREFUSED, and a wrapped
+        // infra error with an empty message still names something.
+        error: extractErrorMessage(failure.error),
+        cause: causeMessage(failure.error),
+      })),
     });
 
     return true;
