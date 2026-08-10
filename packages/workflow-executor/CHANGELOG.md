@@ -1,3 +1,18 @@
+## @forestadmin/workflow-executor [1.23.7](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.6...@forestadmin/workflow-executor@1.23.7) (2026-08-10)
+
+
+### Bug Fixes
+
+* **workflow-executor:** surface the cause when MCP tool loading fails ([#1806](https://github.com/ForestAdmin/agent-nodejs/issues/1806)) ([4bce8b8](https://github.com/ForestAdmin/agent-nodejs/commit/4bce8b8035c3c75b23c2e346b383d719021a7bd8))
+
+
+
+
+
+### Dependencies
+
+* **@forestadmin/ai-proxy:** upgraded to 1.12.5
+
 ## @forestadmin/workflow-executor [1.23.6](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/workflow-executor@1.23.5...@forestadmin/workflow-executor@1.23.6) (2026-08-05)
 
 
