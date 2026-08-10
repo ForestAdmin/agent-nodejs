@@ -74,13 +74,14 @@ describe('cors middleware (layer 1)', () => {
       expect(terminal).not.toHaveBeenCalled();
     });
 
-    it('lists all five allowed request headers', () => {
+    it('lists all six allowed request headers', () => {
       expect(ALLOWED_HEADERS.split(', ')).toEqual([
         'Authorization',
         'Content-Type',
         'X-Forest-Timezone',
         'X-Forest-Bff-Key',
         'X-Request-Id',
+        'Forest-Projection',
       ]);
     });
 

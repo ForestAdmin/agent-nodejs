@@ -4,7 +4,7 @@ import { originAllowed } from './origin';
 
 export const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 export const ALLOWED_HEADERS =
-  'Authorization, Content-Type, X-Forest-Timezone, X-Forest-Bff-Key, X-Request-Id';
+  'Authorization, Content-Type, X-Forest-Timezone, X-Forest-Bff-Key, X-Request-Id, Forest-Projection';
 export const PREFLIGHT_MAX_AGE_SECONDS = 600;
 
 export interface CorsMiddlewareOptions {
