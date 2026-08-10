@@ -11,7 +11,7 @@ import dispatchCli, {
   DEFAULT_OUTPUT_FILE,
   HINT,
   USAGE,
-  printOpenApi,
+  renderOpenApi,
 } from '../../src/cli-dispatch';
 import { issueBffAccessToken } from '../../src/oauth/bff-token';
 import { OPENAPI_PATH } from '../../src/openapi/openapi-routes';
@@ -28,25 +28,13 @@ const VALID_ENV = {
 
 const noopLogger: Logger = () => undefined;
 
-function capture(): { write: (chunk: string) => void; text: () => string } {
-  const chunks: string[] = [];
-
-  return { write: chunk => chunks.push(chunk), text: () => chunks.join('') };
-}
-
-describe('printOpenApi', () => {
-  it('should write a parseable OpenAPI 3.1 document', () => {
-    const output = capture();
-    printOpenApi(output.write);
-
-    expect(JSON.parse(output.text()).openapi).toBe('3.1.0');
+describe('renderOpenApi', () => {
+  it('should return a parseable OpenAPI 3.1 document', () => {
+    expect(JSON.parse(renderOpenApi()).openapi).toBe('3.1.0');
   });
 
   it('should end with a newline, so the output pipes cleanly', () => {
-    const output = capture();
-    printOpenApi(output.write);
-
-    expect(output.text().endsWith('\n')).toBe(true);
+    expect(renderOpenApi().endsWith('\n')).toBe(true);
   });
 });
 
@@ -273,10 +261,7 @@ describe('dispatchCli --output', () => {
   });
 
   function expectedDocument(): string {
-    const output = capture();
-    printOpenApi(output.write);
-
-    return output.text();
+    return renderOpenApi();
   }
 
   async function exportQuietly(argv: string[]) {
@@ -469,8 +454,7 @@ describe('dispatchCli --output', () => {
 
 describe('the CLI export and the HTTP route', () => {
   it('should produce the same document, since both use one generator', async () => {
-    const output = capture();
-    printOpenApi(output.write);
+    const exported = renderOpenApi();
 
     const outcome = await dispatchCli([], VALID_ENV, noopLogger);
 
@@ -500,7 +484,7 @@ describe('the CLI export and the HTTP route', () => {
           })}`,
         );
 
-      expect(output.text()).toBe(`${response.text}\n`);
+      expect(exported).toBe(`${response.text}\n`);
     } finally {
       await outcome.server?.stop();
     }

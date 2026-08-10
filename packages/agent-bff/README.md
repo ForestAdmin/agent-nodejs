@@ -5,8 +5,8 @@ agent from a browser without learning MCP or JSON:API.
 
 It is a bootable Koa 3 server with a `/health` endpoint, a version header, env-driven config
 validation, OAuth (Mode 1) + API-key (Mode 2) auth, and a hardened request edge (timezone, CORS,
-auth-mode precedence, structured error contract). The data-endpoint proxy and OpenAPI generation
-land in later slices.
+auth-mode precedence, structured error contract), and it serves and exports its own OpenAPI
+document. The data-endpoint proxy lands in a later slice.
 
 ## Usage
 

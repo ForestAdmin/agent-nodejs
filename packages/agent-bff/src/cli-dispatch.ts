@@ -35,10 +35,8 @@ export interface DispatchOutcome {
   server?: BFFHttpServer;
 }
 
-export function printOpenApi(
-  write: (chunk: string) => void = chunk => process.stdout.write(chunk),
-) {
-  write(`${serializeOpenApi(generateOpenApiDocument(version))}\n`);
+export function renderOpenApi(): string {
+  return `${serializeOpenApi(generateOpenApiDocument(version))}\n`;
 }
 
 function rejectCli(reason: string): DispatchOutcome {
@@ -75,7 +73,7 @@ function writeOpenApiFile(file: string): DispatchOutcome {
 
   try {
     mkdirSync(path.dirname(destination), { recursive: true });
-    printOpenApi(chunk => writeFileSync(destination, chunk));
+    writeFileSync(destination, renderOpenApi());
   } catch (error) {
     process.stderr.write(`Cannot write ${destination}: ${extractErrorMessage(error)}\n`);
 
@@ -130,7 +128,7 @@ export default async function dispatchCli(
     return writeOpenApiFile(file);
   }
 
-  printOpenApi();
+  process.stdout.write(renderOpenApi());
 
   return { exitCode: 0 };
 }
