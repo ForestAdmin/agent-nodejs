@@ -1,7 +1,7 @@
 import type { Middleware } from 'koa';
 
 import { generateOpenApiDocument, serializeOpenApi } from './openapi-document';
-import { BffHttpError } from '../http/bff-http-error';
+import { openapiDisabled } from '../http/bff-local-errors';
 
 export const OPENAPI_PATH = '/agent/openapi.json';
 
@@ -25,14 +25,14 @@ export default function createOpenApiRoutes({
       return;
     }
 
-    if (document === undefined) {
-      throw new BffHttpError(404, 'openapi_disabled', 'The OpenAPI document is not served');
-    }
-
     if (!READ_METHODS.has(ctx.method)) {
       await next();
 
       return;
+    }
+
+    if (document === undefined) {
+      throw openapiDisabled();
     }
 
     ctx.status = 200;

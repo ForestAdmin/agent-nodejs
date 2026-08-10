@@ -210,12 +210,13 @@ describe('GET /agent/openapi.json', () => {
     }
 
     it.each([
-      ['a path it does not own', '/agent/data/books', 'GET'],
-      ['a write method on the document path', OPENAPI_PATH, 'POST'],
+      ['a path it does not own', '/agent/data/books', 'GET', true],
+      ['a write method on the document path', OPENAPI_PATH, 'POST', true],
+      ['a write method while the document is disabled', OPENAPI_PATH, 'POST', false],
     ])(
       'should delegate to the next middleware and touch nothing on %s',
-      async (_, path, method) => {
-        const openApiRoutes = createOpenApiRoutes({ version: '1.2.3', enabled: true });
+      async (_, path, method, enabled) => {
+        const openApiRoutes = createOpenApiRoutes({ version: '1.2.3', enabled });
         const ctx = fakeContext(path, method);
         const next = jest.fn().mockResolvedValue(undefined);
 
@@ -253,16 +254,27 @@ describe('GET /agent/openapi.json', () => {
       });
     });
 
-    it('should answer 404 to a POST, since the path is absent rather than method-restricted', async () => {
-      await withServer(disabledEnv, async server => {
-        const response = await request(server.callback)
-          .post(OPENAPI_PATH)
-          .set('Authorization', `Bearer ${sessionToken()}`)
-          .send({});
+    it('should answer a POST exactly like the enabled route, since the gate only covers reads', async () => {
+      const postDocumentPath = async (env: NodeJS.ProcessEnv) => {
+        let result: { status: number; type: unknown } = { status: 0, type: undefined };
 
-        expect(response.status).toBe(404);
-        expect(response.body.error.type).toBe('openapi_disabled');
-      });
+        await withServer(env, async server => {
+          const response = await request(server.callback)
+            .post(OPENAPI_PATH)
+            .set('Authorization', `Bearer ${sessionToken()}`)
+            .send({});
+
+          result = { status: response.status, type: response.body?.error?.type };
+        });
+
+        return result;
+      };
+
+      const disabled = await postDocumentPath(disabledEnv);
+      const enabled = await postDocumentPath(VALID_ENV);
+
+      expect(disabled).toEqual(enabled);
+      expect(disabled.type).not.toBe('openapi_disabled');
     });
   });
 });

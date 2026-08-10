@@ -44,6 +44,10 @@ export function actionError(message = 'The action failed', details?: unknown): B
   return new BffHttpError(400, 'action_error', message, details);
 }
 
+export function openapiDisabled(message = 'The OpenAPI document is not served'): BffHttpError {
+  return new BffHttpError(404, 'openapi_disabled', message);
+}
+
 export function actionRequiresApproval(
   message = 'This action requires an approval before it can run',
   details?: unknown,
