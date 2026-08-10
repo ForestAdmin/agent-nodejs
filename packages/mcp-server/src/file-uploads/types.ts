@@ -83,7 +83,7 @@ export function resolveFileUploads(
 
   // A handle expiring before its upload URL means uploads succeed and every redemption then
   // fails with a bare "jwt expired".
-  if (handleTtlSeconds < uploadUrlTtlSeconds) {
+  if (handleTtlSeconds <= uploadUrlTtlSeconds) {
     logger?.(
       'Warn',
       `fileUploads.handleTtlSeconds=${handleTtlSeconds} is shorter than ` +

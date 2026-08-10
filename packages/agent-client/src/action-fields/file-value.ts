@@ -17,7 +17,8 @@ function isFile(value: unknown): value is File {
     typeof value === 'object' &&
     value !== null &&
     Buffer.isBuffer(candidate.buffer) &&
-    typeof candidate.mimeType === 'string'
+    typeof candidate.mimeType === 'string' &&
+    typeof candidate.name === 'string'
   );
 }
 

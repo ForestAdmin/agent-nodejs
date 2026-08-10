@@ -214,7 +214,7 @@ describe('action', () => {
         'Json',
         'Number',
         'String',
-        ['String'],
+        'StringList',
         'Number',
         'Enum',
         'Number',
