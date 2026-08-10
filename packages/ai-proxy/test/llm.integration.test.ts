@@ -412,6 +412,7 @@ providers.forEach(
 
         it('all models should support tool calls', async () => {
           const results: { model: string; success: boolean; error?: string }[] = [];
+          const unavailable: { model: string; error: string }[] = [];
 
           for (const model of modelsToTest) {
             const modelRouter = new Router({
@@ -464,11 +465,31 @@ providers.forEach(
                 throw new Error(`Infrastructure error testing model ${model}: ${errorMessage}`);
               }
 
+              // A provider 5xx says nothing about whether the model supports tool calls, so it
+              // cannot be answered by the denylist this test feeds. Counting it as a failure makes
+              // the suite fail on the provider's uptime instead of on our own contract.
+              if (errorMessage.includes('AIProviderUnavailableError')) {
+                unavailable.push({ model, error: errorMessage });
+
+                // eslint-disable-next-line no-continue
+                continue;
+              }
+
               results.push({ model, success: false, error: errorMessage });
             }
           }
 
           const failures = results.filter(r => !r.success);
+
+          if (unavailable.length > 0) {
+            const unavailableModelNames = unavailable.map(f => f.model).join(', ');
+            // eslint-disable-next-line no-console
+            console.warn(
+              `\n⚠️ ${unavailable.length} ${label} model(s) skipped, provider unavailable: ` +
+                `${unavailableModelNames}\n`,
+              unavailable,
+            );
+          }
 
           if (failures.length > 0) {
             const failedModelNames = failures.map(f => f.model).join(', ');
@@ -480,6 +501,10 @@ providers.forEach(
           }
 
           expect(failures).toEqual([]);
+
+          // Guards against the skip above hiding a total outage, which would otherwise let the
+          // suite pass green while having verified nothing.
+          expect(results.length).toBeGreaterThan(0);
         }, 300000); // 5 minutes for all models
       });
     });
