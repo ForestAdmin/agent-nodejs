@@ -111,4 +111,26 @@ describe('mcp-paths', () => {
       expect(matches(url)).toBe(false);
     });
   });
+
+  describe('with file uploads enabled', () => {
+    const matches = makeIsMcpRoute('', { fileUploads: true });
+
+    it('claims /files only when the option is on', () => {
+      expect(buildMcpPaths('')).not.toContain('/files');
+      expect(buildMcpPaths('', { fileUploads: true })).toContain('/files');
+      expect(buildMcpPaths('/ai', { fileUploads: true })).toContain('/ai/files');
+    });
+
+    it.each(['/files', '/files?x=1'])('claims %p', url => {
+      expect(matches(url)).toBe(true);
+    });
+
+    it('leaves the host /files route alone when the option is off', () => {
+      expect(makeIsMcpRoute('')('/files')).toBe(false);
+    });
+
+    it('does not shadow a sibling route like /files-admin', () => {
+      expect(matches('/files-admin')).toBe(false);
+    });
+  });
 });
