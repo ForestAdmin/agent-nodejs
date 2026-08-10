@@ -10,12 +10,7 @@ import type {
 import type CollectionCustomizationContext from '@forestadmin/datasource-customizer/dist/context/collection-context';
 import type WriteCustomizationContext from '@forestadmin/datasource-customizer/dist/decorators/write/write-replace/context';
 
-export type File = {
-  name: string;
-  buffer: Buffer;
-  mimeType: string;
-  charset?: string;
-};
+export type { File } from '@forestadmin/datasource-toolkit';
 
 /**
  * Configuration for the AWS S3 addon of Forest Admin.
