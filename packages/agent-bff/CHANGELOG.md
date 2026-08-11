@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.15.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.14.0...@forestadmin/agent-bff@1.15.0) (2026-08-11)
+
+
+### Features
+
+* **agent-bff:** gate the OpenAPI HTTP route behind a env variable ([#1816](https://github.com/ForestAdmin/agent-nodejs/issues/1816)) ([1828e35](https://github.com/ForestAdmin/agent-nodejs/commit/1828e3513dc2e8bbe7a56fe66a0914835f40f5f4))
+
 # @forestadmin/agent-bff [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.13.0...@forestadmin/agent-bff@1.14.0) (2026-08-11)
 
 
