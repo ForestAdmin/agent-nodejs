@@ -219,6 +219,28 @@ describe('createPermissionsRoutesMiddleware', () => {
     });
   });
 
+  describe('when the refetch triggered by an unknown caller fails', () => {
+    it('should keep serving the cached permissions to the callers they cover', async () => {
+      const cache = new PermissionsCache();
+      cache.set({
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
+        users: [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4],
+      });
+      const client = fetcherOf(new Error('SaaS down'));
+
+      const unknown = await request(appOf({ client, cache, callerId: VIEWER_ID }).callback())
+        .get(ROUTE)
+        .query({ collections: 'users' });
+      const known = await request(appOf({ client, cache }).callback())
+        .get(ROUTE)
+        .query({ collections: 'users' });
+
+      expect(unknown.status).toBe(403);
+      expect(known.status).toBe(200);
+      expect(known.body.collections.users.crud.browse).toBe(true);
+    });
+  });
+
   describe('when the caller is absent from the users payload', () => {
     it('should return 403 forest_identity_not_allowed', async () => {
       const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: [] });

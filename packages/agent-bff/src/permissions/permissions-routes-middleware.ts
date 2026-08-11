@@ -113,8 +113,6 @@ async function resolveCallerPermissions({
     return { permissions: cached, roleId: cachedRoleId };
   }
 
-  if (cached) cache.clear();
-
   const permissions = await resolvePermissions({ cache, client, logger });
   const roleId = findCallerRoleId(permissions.users, caller.userId);
 
