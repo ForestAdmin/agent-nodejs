@@ -219,7 +219,7 @@ describe('CreateRoute', () => {
         expect(assertCanEdit).toHaveBeenCalledWith(context, 'passports');
       });
 
-      test('does not update the foreign collection when the user cannot edit it', async () => {
+      test('does not create the parent nor update the foreign collection when the user cannot edit it', async () => {
         const create = new CreateRoute(services, options, dataSource, 'persons');
         const context = createMockContext({
           ...defaultContext,
@@ -239,11 +239,13 @@ describe('CreateRoute', () => {
 
         const error = new Error('Forbidden');
         (services.authorization.assertCanEdit as jest.Mock).mockRejectedValueOnce(error);
-        const spy = jest.spyOn(dataSource.getCollection('passports'), 'update').mockClear();
+        const create$ = jest.spyOn(dataSource.getCollection('persons'), 'create').mockClear();
+        const update$ = jest.spyOn(dataSource.getCollection('passports'), 'update').mockClear();
 
         await expect(create.handleCreate(context)).rejects.toThrow(error);
 
-        expect(spy).not.toHaveBeenCalled();
+        expect(create$).not.toHaveBeenCalled();
+        expect(update$).not.toHaveBeenCalled();
       });
 
       describe('when the given relation is null', () => {

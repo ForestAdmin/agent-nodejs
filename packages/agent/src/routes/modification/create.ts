@@ -26,6 +26,9 @@ export default class CreateRoute extends CollectionRoute {
     const rawRecord = serializer.deserialize(this.collection, context.request.body);
 
     const [record, relations] = await this.makeRecord(context, rawRecord);
+
+    await this.assertCanEditLinkedOneToOneRelations(context, relations);
+
     const newRecord = await this.createRecord(context, record);
 
     await this.linkOneToOneRelations(context, newRecord, relations);
@@ -77,6 +80,20 @@ export default class CreateRoute extends CollectionRoute {
     return record;
   }
 
+  private async assertCanEditLinkedOneToOneRelations(
+    context: Context,
+    relations: Record<string, RecordData>,
+  ): Promise<void> {
+    const promises = Object.entries(relations).map(async ([field, linked]) => {
+      const relation = SchemaUtils.getRelation(this.collection.schema, field, this.collection.name);
+      if (linked === null || relation.type !== 'OneToOne') return;
+
+      await this.services.authorization.assertCanEdit(context, relation.foreignCollection);
+    });
+
+    await Promise.all(promises);
+  }
+
   private async linkOneToOneRelations(
     context: Context,
     record: RecordData,
@@ -88,10 +105,8 @@ export default class CreateRoute extends CollectionRoute {
       const relation = SchemaUtils.getRelation(this.collection.schema, field, this.collection.name);
       if (linked === null || relation.type !== 'OneToOne') return;
 
-      // Permissions
       const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
       const scope = await this.services.authorization.getScope(foreignCollection, context);
-      await this.services.authorization.assertCanEdit(context, foreignCollection.name);
 
       // Load the value that will be used as originKey (=== parentId[0] most of the time)
       const originValue = record[relation.originKeyTarget];
