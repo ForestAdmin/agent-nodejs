@@ -99,11 +99,30 @@ describe('CreateRoute', () => {
           fields: {
             id: factories.columnSchema.uuidPrimaryKey().build(),
             name: factories.columnSchema.build(),
+            countryId: factories.columnSchema.build({ columnType: 'Uuid' }),
             passport: {
               type: 'OneToOne',
               foreignCollection: 'passports',
               originKey: 'personId',
               originKeyTarget: 'id',
+            },
+            visa: {
+              type: 'OneToOne',
+              foreignCollection: 'visas',
+              originKey: 'personId',
+              originKeyTarget: 'id',
+            },
+            license: {
+              type: 'OneToOne',
+              foreignCollection: 'licenses',
+              originKey: 'personId',
+              originKeyTarget: 'id',
+            },
+            country: {
+              type: 'ManyToOne',
+              foreignCollection: 'countries',
+              foreignKey: 'countryId',
+              foreignKeyTarget: 'id',
             },
           },
         }),
@@ -122,6 +141,23 @@ describe('CreateRoute', () => {
               foreignKeyTarget: 'id',
             },
           },
+        }),
+      }),
+      ...['visas', 'licenses'].map(name =>
+        factories.collection.build({
+          name,
+          schema: factories.collectionSchema.build({
+            fields: {
+              id: factories.columnSchema.uuidPrimaryKey().build(),
+              personId: factories.columnSchema.build({ columnType: 'Uuid' }),
+            },
+          }),
+        }),
+      ),
+      factories.collection.build({
+        name: 'countries',
+        schema: factories.collectionSchema.build({
+          fields: { id: factories.columnSchema.uuidPrimaryKey().build() },
         }),
       }),
     ]);
@@ -192,7 +228,7 @@ describe('CreateRoute', () => {
         });
       });
 
-      test('checks the edit permission on the foreign collection', async () => {
+      test('checks the edit permission once per linked one-to-one foreign collection', async () => {
         const create = new CreateRoute(services, options, dataSource, 'persons');
         const context = createMockContext({
           ...defaultContext,
@@ -203,6 +239,11 @@ describe('CreateRoute', () => {
               relationships: {
                 passport: {
                   data: { type: 'passports', id: '1d162304-78bf-599e-b197-93590ac3d314' },
+                },
+                visa: { data: { type: 'visas', id: '2d162304-78bf-599e-b197-93590ac3d314' } },
+                license: { data: null },
+                country: {
+                  data: { type: 'countries', id: '3d162304-78bf-599e-b197-93590ac3d314' },
                 },
               },
             },
@@ -215,11 +256,15 @@ describe('CreateRoute', () => {
 
         await create.handleCreate(context);
 
-        expect(assertCanEdit).toHaveBeenCalledTimes(1);
+        const checkedCollections = assertCanEdit.mock.calls.map(([, name]) => name);
+        expect(checkedCollections.sort()).toEqual(['passports', 'visas']);
         expect(assertCanEdit).toHaveBeenCalledWith(context, 'passports');
+        expect(assertCanEdit).toHaveBeenCalledWith(context, 'visas');
+        expect(assertCanEdit).not.toHaveBeenCalledWith(context, 'licenses');
+        expect(assertCanEdit).not.toHaveBeenCalledWith(context, 'countries');
       });
 
-      test('does not create the parent nor update the foreign collection when the user cannot edit it', async () => {
+      test('does not create the parent nor update any foreign collection when one edit is denied', async () => {
         const create = new CreateRoute(services, options, dataSource, 'persons');
         const context = createMockContext({
           ...defaultContext,
@@ -231,6 +276,7 @@ describe('CreateRoute', () => {
                 passport: {
                   data: { type: 'passports', id: '1d162304-78bf-599e-b197-93590ac3d314' },
                 },
+                visa: { data: { type: 'visas', id: '2d162304-78bf-599e-b197-93590ac3d314' } },
               },
             },
             jsonapi: { version: '1.0' },
@@ -238,14 +284,25 @@ describe('CreateRoute', () => {
         });
 
         const error = new Error('Forbidden');
-        (services.authorization.assertCanEdit as jest.Mock).mockRejectedValueOnce(error);
+        const assertCanEdit = services.authorization.assertCanEdit as jest.Mock;
+        assertCanEdit.mockImplementation((_, name) =>
+          name === 'passports' ? Promise.reject(error) : Promise.resolve(),
+        );
         const create$ = jest.spyOn(dataSource.getCollection('persons'), 'create').mockClear();
-        const update$ = jest.spyOn(dataSource.getCollection('passports'), 'update').mockClear();
+        const passportUpdate$ = jest
+          .spyOn(dataSource.getCollection('passports'), 'update')
+          .mockClear();
+        const visaUpdate$ = jest.spyOn(dataSource.getCollection('visas'), 'update').mockClear();
 
-        await expect(create.handleCreate(context)).rejects.toThrow(error);
+        try {
+          await expect(create.handleCreate(context)).rejects.toThrow(error);
 
-        expect(create$).not.toHaveBeenCalled();
-        expect(update$).not.toHaveBeenCalled();
+          expect(create$).not.toHaveBeenCalled();
+          expect(passportUpdate$).not.toHaveBeenCalled();
+          expect(visaUpdate$).not.toHaveBeenCalled();
+        } finally {
+          assertCanEdit.mockReset();
+        }
       });
 
       describe('when the given relation is null', () => {

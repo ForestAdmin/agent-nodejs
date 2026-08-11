@@ -1,4 +1,9 @@
-import type { CompositeId, ManyToOneSchema, RecordData } from '@forestadmin/datasource-toolkit';
+import type {
+  CompositeId,
+  ManyToOneSchema,
+  OneToOneSchema,
+  RecordData,
+} from '@forestadmin/datasource-toolkit';
 import type Router from '@koa/router';
 import type { Context } from 'koa';
 
@@ -80,18 +85,29 @@ export default class CreateRoute extends CollectionRoute {
     return record;
   }
 
+  private getLinkedOneToOneRelations(
+    relations: Record<string, RecordData>,
+  ): Array<{ linked: RecordData; relation: OneToOneSchema }> {
+    return Object.entries(relations)
+      .map(([field, linked]) => ({
+        linked,
+        relation: SchemaUtils.getRelation(this.collection.schema, field, this.collection.name),
+      }))
+      .filter(
+        (entry): entry is { linked: RecordData; relation: OneToOneSchema } =>
+          entry.linked !== null && entry.relation.type === 'OneToOne',
+      );
+  }
+
   private async assertCanEditLinkedOneToOneRelations(
     context: Context,
     relations: Record<string, RecordData>,
   ): Promise<void> {
-    const promises = Object.entries(relations).map(async ([field, linked]) => {
-      const relation = SchemaUtils.getRelation(this.collection.schema, field, this.collection.name);
-      if (linked === null || relation.type !== 'OneToOne') return;
-
-      await this.services.authorization.assertCanEdit(context, relation.foreignCollection);
-    });
-
-    await Promise.all(promises);
+    await Promise.all(
+      this.getLinkedOneToOneRelations(relations).map(({ relation }) =>
+        this.services.authorization.assertCanEdit(context, relation.foreignCollection),
+      ),
+    );
   }
 
   private async linkOneToOneRelations(
@@ -101,32 +117,31 @@ export default class CreateRoute extends CollectionRoute {
   ): Promise<void> {
     const caller = QueryStringParser.parseCaller(context);
 
-    const promises = Object.entries(relations).map(async ([field, linked]) => {
-      const relation = SchemaUtils.getRelation(this.collection.schema, field, this.collection.name);
-      if (linked === null || relation.type !== 'OneToOne') return;
+    const promises = this.getLinkedOneToOneRelations(relations).map(
+      async ({ linked, relation }) => {
+        const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
+        const scope = await this.services.authorization.getScope(foreignCollection, context);
 
-      const foreignCollection = this.dataSource.getCollection(relation.foreignCollection);
-      const scope = await this.services.authorization.getScope(foreignCollection, context);
+        // Load the value that will be used as originKey (=== parentId[0] most of the time)
+        const originValue = record[relation.originKeyTarget];
 
-      // Load the value that will be used as originKey (=== parentId[0] most of the time)
-      const originValue = record[relation.originKeyTarget];
+        // Break old relation (may update zero or one records).
+        const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
+        await foreignCollection.update(
+          caller,
+          new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope) }),
+          { [relation.originKey]: null },
+        );
 
-      // Break old relation (may update zero or one records).
-      const oldFkOwner = new ConditionTreeLeaf(relation.originKey, 'Equal', originValue);
-      await foreignCollection.update(
-        caller,
-        new Filter({ conditionTree: ConditionTreeFactory.intersect(oldFkOwner, scope) }),
-        { [relation.originKey]: null },
-      );
-
-      // Create new relation (will update exactly one record).
-      const newFkOwner = ConditionTreeFactory.matchRecords(foreignCollection.schema, [linked]);
-      await foreignCollection.update(
-        caller,
-        new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope) }),
-        { [relation.originKey]: originValue },
-      );
-    });
+        // Create new relation (will update exactly one record).
+        const newFkOwner = ConditionTreeFactory.matchRecords(foreignCollection.schema, [linked]);
+        await foreignCollection.update(
+          caller,
+          new Filter({ conditionTree: ConditionTreeFactory.intersect(newFkOwner, scope) }),
+          { [relation.originKey]: originValue },
+        );
+      },
+    );
 
     await Promise.all(promises);
   }
