@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.93.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.1...@forestadmin/agent@1.93.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* **agent:** authorize create with linked one-to-one on the foreign collection ([#1819](https://github.com/ForestAdmin/agent-nodejs/issues/1819)) ([32b828c](https://github.com/ForestAdmin/agent-nodejs/commit/32b828ccdf1b5c67eb0f4da34001a4cfcc3459ab))
+
 ## @forestadmin/agent [1.93.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.0...@forestadmin/agent@1.93.1) (2026-08-11)
 
 
