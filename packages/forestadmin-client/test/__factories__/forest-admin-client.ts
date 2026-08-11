@@ -37,12 +37,12 @@ const forestAdminClientFactory = ForestAdminClientFactory.define(
       ipWhitelistServiceFactory.build(),
       schemaServiceFactory.build(),
       activityLogsServiceFactory.build(),
-      workflowsServiceFactory.build(),
       authServiceFactory.build(),
       modelCustomizationServiceFactory.build(),
       mcpServerConfigServiceFactory.build(),
       eventsSubscriptionServiceFactory.build(),
       nativeRefreshEventsHandlerServiceFactory.build(),
+      workflowsServiceFactory.build(),
     ),
 );
 

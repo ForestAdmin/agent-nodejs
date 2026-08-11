@@ -90,12 +90,12 @@ export default function createForestAdminClient(
     ipWhitelist,
     schema,
     activityLogs,
-    workflows,
     auth,
     modelCustomizationService,
     mcpServerConfigService,
     eventsSubscription,
     eventsHandler,
+    workflows,
   );
 }
 

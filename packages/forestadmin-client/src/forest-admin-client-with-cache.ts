@@ -33,12 +33,12 @@ export default class ForestAdminClientWithCache implements ForestAdminClient {
     protected readonly ipWhitelistService: IpWhiteListService,
     public readonly schemaService: SchemaService,
     public readonly activityLogsService: ActivityLogsService,
-    public readonly workflowsService: WorkflowsService,
     public readonly authService: ForestAdminAuthServiceInterface,
     public readonly modelCustomizationService: ModelCustomizationService,
     public readonly mcpServerConfigService: McpServerConfigService,
     protected readonly eventsSubscription: BaseEventsSubscriptionService,
     protected readonly eventsHandler: RefreshEventsHandlerService,
+    public readonly workflowsService: WorkflowsService,
   ) {}
 
   verifySignedActionParameters<TSignedParameters>(signedParameters: string): TSignedParameters {

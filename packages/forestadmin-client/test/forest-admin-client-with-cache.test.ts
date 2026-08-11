@@ -10,6 +10,47 @@ jest.mock('../src/permissions/verify-approval', () => ({
 const verifyAndExtractApprovalMock = verifyAndExtractApproval as jest.Mock;
 
 describe('ForestAdminClientWithCache', () => {
+  describe('constructor wiring', () => {
+    it('should assign each positional service to its matching property', () => {
+      const permissionService = factories.permission.build();
+      const contextVariablesInstantiator = factories.contextVariablesInstantiator.build();
+      const chartHandler = factories.chartHandler.build();
+      const schemaService = factories.schema.build();
+      const activityLogsService = factories.activityLogs.build();
+      const authService = factories.auth.build();
+      const modelCustomizationService = factories.modelCustomization.build();
+      const mcpServerConfigService = factories.mcpServerConfig.build();
+      const workflowsService = factories.workflows.build();
+
+      const forestAdminClient = new ForestAdminClient(
+        factories.forestAdminClientOptions.build(),
+        permissionService,
+        factories.renderingPermission.build(),
+        contextVariablesInstantiator,
+        chartHandler,
+        factories.ipWhiteList.build(),
+        schemaService,
+        activityLogsService,
+        authService,
+        modelCustomizationService,
+        mcpServerConfigService,
+        factories.eventsSubscription.build(),
+        factories.eventsHandler.build(),
+        workflowsService,
+      );
+
+      expect(forestAdminClient.permissionService).toBe(permissionService);
+      expect(forestAdminClient.contextVariablesInstantiator).toBe(contextVariablesInstantiator);
+      expect(forestAdminClient.chartHandler).toBe(chartHandler);
+      expect(forestAdminClient.schemaService).toBe(schemaService);
+      expect(forestAdminClient.activityLogsService).toBe(activityLogsService);
+      expect(forestAdminClient.authService).toBe(authService);
+      expect(forestAdminClient.modelCustomizationService).toBe(modelCustomizationService);
+      expect(forestAdminClient.mcpServerConfigService).toBe(mcpServerConfigService);
+      expect(forestAdminClient.workflowsService).toBe(workflowsService);
+    });
+  });
+
   describe('getIpWhitelistConfiguration', () => {
     it('should delegate to the given service', async () => {
       const whiteListService = factories.ipWhiteList.build({
@@ -25,12 +66,12 @@ describe('ForestAdminClientWithCache', () => {
         whiteListService,
         factories.schema.build(),
         factories.activityLogs.build(),
-        factories.workflows.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
         factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         factories.eventsHandler.build(),
+        factories.workflows.build(),
       );
 
       const config = await forestAdminClient.getIpWhitelistConfiguration();
@@ -54,12 +95,12 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         schemaService,
         factories.activityLogs.build(),
-        factories.workflows.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
         factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         factories.eventsHandler.build(),
+        factories.workflows.build(),
       );
 
       const result = await forestAdminClient.postSchema({
@@ -89,12 +130,12 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.activityLogs.build(),
-        factories.workflows.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
         factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         factories.eventsHandler.build(),
+        factories.workflows.build(),
       );
 
       verifyAndExtractApprovalMock.mockReturnValue(signedParameters);
@@ -119,12 +160,12 @@ describe('ForestAdminClientWithCache', () => {
           factories.ipWhiteList.build(),
           factories.schema.build(),
           factories.activityLogs.build(),
-          factories.workflows.build(),
           factories.auth.build(),
           factories.modelCustomization.build(),
           factories.mcpServerConfig.build(),
           factories.eventsSubscription.build(),
           factories.eventsHandler.build(),
+          factories.workflows.build(),
         );
 
         await forestAdminClient.markScopesAsUpdated(42);
@@ -145,12 +186,12 @@ describe('ForestAdminClientWithCache', () => {
           factories.ipWhiteList.build(),
           factories.schema.build(),
           factories.activityLogs.build(),
-          factories.workflows.build(),
           factories.auth.build(),
           factories.modelCustomization.build(),
           factories.mcpServerConfig.build(),
           factories.eventsSubscription.build(),
           factories.eventsHandler.build(),
+          factories.workflows.build(),
         );
 
         await forestAdminClient.markScopesAsUpdated(42);
@@ -172,12 +213,12 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.activityLogs.build(),
-        factories.workflows.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
         factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         factories.eventsHandler.build(),
+        factories.workflows.build(),
       );
 
       (renderingPermissionService.getScope as jest.Mock).mockResolvedValue('scope');
@@ -209,12 +250,12 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.activityLogs.build(),
-        factories.workflows.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
         factories.mcpServerConfig.build(),
         eventsSubscriptionService,
         factories.eventsHandler.build(),
+        factories.workflows.build(),
       );
 
       await forestAdminClient.subscribeToServerEvents();
@@ -235,12 +276,12 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.activityLogs.build(),
-        factories.workflows.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
         factories.mcpServerConfig.build(),
         eventsSubscriptionService,
         factories.eventsHandler.build(),
+        factories.workflows.build(),
       );
 
       forestAdminClient.close();
@@ -261,12 +302,12 @@ describe('ForestAdminClientWithCache', () => {
         factories.ipWhiteList.build(),
         factories.schema.build(),
         factories.activityLogs.build(),
-        factories.workflows.build(),
         factories.auth.build(),
         factories.modelCustomization.build(),
         factories.mcpServerConfig.build(),
         factories.eventsSubscription.build(),
         eventsHandlerService,
+        factories.workflows.build(),
       );
 
       const handler = jest.fn();
@@ -289,12 +330,12 @@ describe('ForestAdminClientWithCache', () => {
           factories.ipWhiteList.build(),
           factories.schema.build(),
           factories.activityLogs.build(),
-          factories.workflows.build(),
           factories.auth.build(),
           factories.modelCustomization.build(),
           factories.mcpServerConfig.build(),
           factories.eventsSubscription.build(),
           eventsHandlerService,
+          factories.workflows.build(),
         );
 
         const handler = jest.fn();
