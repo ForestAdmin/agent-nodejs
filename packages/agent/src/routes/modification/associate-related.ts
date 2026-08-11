@@ -102,8 +102,12 @@ export default class AssociateRelatedRoute extends RelationRoute {
 
     if (!foreignRecordInScope) return;
 
-    const [originId] = SchemaUtils.getPrimaryKeys(this.collection.schema);
-    const origin = await CollectionUtils.getValue(this.collection, caller, parentId, originId);
+    const origin = await CollectionUtils.getValue(
+      this.collection,
+      caller,
+      parentId,
+      relation.originKeyTarget,
+    );
     const record = {
       [relation.originKey]: origin,
       [relation.foreignKey]: foreignRecordInScope[relation.foreignKeyTarget],

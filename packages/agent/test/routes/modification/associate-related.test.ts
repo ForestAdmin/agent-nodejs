@@ -196,13 +196,14 @@ describe('AssociateRelatedRoute', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.uuidPrimaryKey().build(),
+            reference: factories.columnSchema.build({ columnType: 'Uuid' }),
             manyToManyRelationField: factories.manyToManySchema.build({
               throughCollection: 'librariesBooks',
               foreignCollection: 'libraries',
               foreignKey: 'libraryId',
               foreignKeyTarget: 'reference',
               originKey: 'bookId',
-              originKeyTarget: 'id',
+              originKeyTarget: 'reference',
             }),
           },
         }),
@@ -231,9 +232,13 @@ describe('AssociateRelatedRoute', () => {
       const scope = factories.conditionTreeLeaf.build();
       services.authorization.getScope = jest.fn().mockResolvedValue(scope);
       const resolvedReference = 'aaaaaaaa-e89b-12d3-a456-999999999999';
+      const resolvedOrigin = 'bbbbbbbb-e89b-12d3-a456-888888888888';
       jest
         .spyOn(dataSource.getCollection('libraries'), 'list')
         .mockResolvedValue([{ reference: resolvedReference }]);
+      jest
+        .spyOn(dataSource.getCollection('books'), 'list')
+        .mockResolvedValue([{ reference: resolvedOrigin }]);
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
@@ -273,7 +278,7 @@ describe('AssociateRelatedRoute', () => {
         },
         [
           {
-            bookId: '123e4567-e89b-12d3-a456-111111111111',
+            bookId: resolvedOrigin,
             libraryId: resolvedReference,
           },
         ],
