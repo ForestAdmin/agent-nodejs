@@ -130,7 +130,7 @@ describe('createPermissionsRoutesMiddleware', () => {
       expect(response.status).toBe(200);
       expect(Object.keys(response.body.collections).sort()).toEqual(['orders', 'users']);
       expect(response.body.collections.users.crud.browse).toBe(true);
-      expect(response.body.visibleActions).toEqual(['users.Block user']);
+      expect(response.body.visibleActions).toEqual([{ collection: 'users', name: 'Block user' }]);
       expect(JSON.stringify(response.body)).not.toContain('roleId');
     });
   });
@@ -340,7 +340,7 @@ describe('createPermissionsRoutesMiddleware', () => {
         .query({ collections: 'users' });
 
       expect(response.status).toBe(200);
-      expect(response.body.visibleActions).toEqual(['users.Block user']);
+      expect(response.body.visibleActions).toEqual([{ collection: 'users', name: 'Block user' }]);
       expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
     });
   });
@@ -356,7 +356,7 @@ describe('createPermissionsRoutesMiddleware', () => {
         .query({ collections: 'users,users' });
       await request(app.callback()).get(ROUTE).query({ collections: 'users' });
 
-      expect(duplicated.body.visibleActions).toEqual(['users.Block user']);
+      expect(duplicated.body.visibleActions).toEqual([{ collection: 'users', name: 'Block user' }]);
       expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
     });
   });
@@ -406,7 +406,7 @@ describe('createPermissionsRoutesMiddleware', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.collections.users.crud.browse).toBe(true);
-      expect(response.body.visibleActions).toEqual(['users.Block user']);
+      expect(response.body.visibleActions).toEqual([{ collection: 'users', name: 'Block user' }]);
     });
   });
 
@@ -461,7 +461,7 @@ describe('createPermissionsRoutesMiddleware', () => {
         .query({ collections: 'users' });
 
       expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
-      expect(first.body.visibleActions).toEqual(['users.Block user']);
+      expect(first.body.visibleActions).toEqual([{ collection: 'users', name: 'Block user' }]);
       expect(second.body.visibleActions).toEqual([]);
     });
   });

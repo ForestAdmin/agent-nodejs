@@ -78,7 +78,6 @@ describe('buildPermissionHints', () => {
       expect(hints.collections.users.actions['Block user']).toEqual({
         collection: 'users',
         name: 'Block user',
-        qualifiedName: 'users.Block user',
         visible: true,
         requiresApprovalHint: false,
         canApproveHint: false,
@@ -111,7 +110,7 @@ describe('buildPermissionHints', () => {
         canApproveHint: true,
         canSelfApproveHint: true,
       });
-      expect(hints.visibleActions).toEqual(['users.Block user']);
+      expect(hints.visibleActions).toEqual([{ collection: 'users', name: 'Block user' }]);
     });
   });
 
@@ -207,7 +206,7 @@ describe('buildPermissionHints', () => {
         canSelfApproveHint: false,
         finality: DISPLAY_HINT_FINALITY,
       });
-      expect(hints.visibleActions).toEqual(['users.Block user']);
+      expect(hints.visibleActions).toEqual([{ collection: 'users', name: 'Block user' }]);
     });
   });
 
@@ -242,6 +241,25 @@ describe('buildPermissionHints', () => {
     });
   });
 
+  describe('when the schema exposes an action the cached permissions do not describe yet', () => {
+    it('should hide it instead of granting it from the stale permissions', () => {
+      const hints = buildPermissionHints({
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
+        roleId: ADMIN_ROLE,
+        readModel: readModelStub({ users: ['Block user', 'Freshly deployed action'] }),
+        collections: ['users'],
+      });
+
+      expect(hints.collections.users.actions['Freshly deployed action']).toMatchObject({
+        visible: false,
+        requiresApprovalHint: false,
+        canApproveHint: false,
+        canSelfApproveHint: false,
+      });
+      expect(hints.visibleActions).toEqual([{ collection: 'users', name: 'Block user' }]);
+    });
+  });
+
   describe('when a dotted collection name could collide with another qualified action', () => {
     it('should keep each action addressable under its own collection', () => {
       const hints = buildPermissionHints({
@@ -251,14 +269,12 @@ describe('buildPermissionHints', () => {
         collections: ['User', 'User.address'],
       });
 
-      expect(hints.collections.User.actions['address.reset'].qualifiedName).toBe(
-        'User.address.reset',
-      );
-      expect(hints.collections['User.address'].actions.reset.qualifiedName).toBe(
-        'User.address.reset',
-      );
       expect(hints.collections.User.actions['address.reset'].collection).toBe('User');
       expect(hints.collections['User.address'].actions.reset.collection).toBe('User.address');
+      expect(hints.visibleActions).toEqual([
+        { collection: 'User', name: 'address.reset' },
+        { collection: 'User.address', name: 'reset' },
+      ]);
     });
   });
 

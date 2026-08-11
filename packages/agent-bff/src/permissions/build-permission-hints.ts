@@ -19,7 +19,6 @@ export interface CrudHints {
 export interface ActionHints {
   collection: string;
   name: string;
-  qualifiedName: string;
   visible: boolean;
   requiresApprovalHint: boolean;
   canApproveHint: boolean;
@@ -27,15 +26,20 @@ export interface ActionHints {
   finality: typeof DISPLAY_HINT_FINALITY;
 }
 
+export interface VisibleActionRef {
+  collection: string;
+  name: string;
+}
+
 export interface CollectionHints {
   crud: CrudHints;
   actions: Record<string, ActionHints>;
-  visibleActions: string[];
+  visibleActions: VisibleActionRef[];
 }
 
 export interface PermissionHints {
   collections: Record<string, CollectionHints>;
-  visibleActions: string[];
+  visibleActions: VisibleActionRef[];
 }
 
 export interface BuildPermissionHintsParams {
@@ -43,10 +47,6 @@ export interface BuildPermissionHintsParams {
   roleId: number;
   readModel: ReadModel;
   collections: string[];
-}
-
-function qualify(collection: string, action: string): string {
-  return `${collection}.${action}`;
 }
 
 function devModeCrud(): CrudHints {
@@ -75,7 +75,6 @@ function devModeAction(collection: string, name: string): ActionHints {
   return {
     collection,
     name,
-    qualifiedName: qualify(collection, name),
     visible: true,
     requiresApprovalHint: false,
     canApproveHint: false,
@@ -102,7 +101,6 @@ function normalModeAction(
   return {
     collection,
     name,
-    qualifiedName: qualify(collection, name),
     visible: can(CustomActionEvent.Trigger),
     requiresApprovalHint: can(CustomActionEvent.RequireApproval),
     canApproveHint: can(CustomActionEvent.Approve),
@@ -120,7 +118,7 @@ function buildCollectionHints(
   const schemaExposedActionNames = Object.keys(readModel.getActionEndpoints()[collection] ?? {});
 
   const actions: Record<string, ActionHints> = Object.create(null);
-  const visibleActions: string[] = [];
+  const visibleActions: VisibleActionRef[] = [];
 
   for (const name of schemaExposedActionNames) {
     const hints = isDevelopment
@@ -128,7 +126,7 @@ function buildCollectionHints(
       : normalModeAction(permissions, roleId, collection, name);
 
     actions[name] = hints;
-    if (hints.visible) visibleActions.push(hints.qualifiedName);
+    if (hints.visible) visibleActions.push({ collection, name });
   }
 
   return {
@@ -141,7 +139,7 @@ function buildCollectionHints(
 export default function buildPermissionHints(params: BuildPermissionHintsParams): PermissionHints {
   const permissions = params.actionPermissions;
   const collections: Record<string, CollectionHints> = Object.create(null);
-  const visibleActions: string[] = [];
+  const visibleActions: VisibleActionRef[] = [];
 
   for (const collection of params.collections) {
     const hints = buildCollectionHints({ ...params, permissions }, collection);
