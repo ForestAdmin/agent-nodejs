@@ -89,7 +89,7 @@ describe('CsvRelatedRoute', () => {
         state: { user: { email: 'john.doe@domain.com' } },
         headers: { 'forest-projection': 'name' },
         customProperties: {
-          query: { 'fields[persons]': 'id', header: 'name', timezone: 'Europe/Paris' },
+          query: { 'fields[persons]': 'id', header: 'Name column', timezone: 'Europe/Paris' },
           params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
         },
       });
@@ -103,7 +103,7 @@ describe('CsvRelatedRoute', () => {
       expect(csvGenerator).toHaveBeenCalledWith(
         expect.anything(),
         ['name'],
-        'name',
+        'Name column',
         expect.anything(),
         limitExportSize,
         dataSource.getCollection('persons'),
@@ -126,6 +126,24 @@ describe('CsvRelatedRoute', () => {
       await expect(csvRoute.handleRelatedCsv(context)).rejects.toThrow(
         'Invalid Forest-Projection header',
       );
+    });
+
+    it('should not set the download headers when the projection is invalid', async () => {
+      const { options, services, dataSource } = setupWithOneToManyRelation();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books', 'myPersons');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'field-that-do-not-exist' },
+        customProperties: {
+          query: { filename: 'export', header: 'id', timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      await expect(csvRoute.handleRelatedCsv(context)).rejects.toThrow(
+        'Invalid Forest-Projection header',
+      );
+      expect(context.response.headers['content-disposition']).toBeUndefined();
     });
 
     it('calls the csv generator with the right params', async () => {

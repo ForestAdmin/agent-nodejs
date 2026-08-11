@@ -19,7 +19,6 @@ export default class CsvRoute extends CollectionRoute {
     await this.services.authorization.assertCanExport(context, this.collection.name);
 
     const { header } = context.request.query as Record<string, string>;
-    CsvRouteContext.buildResponse(context);
 
     const projection =
       QueryStringParser.parseProjectionFromHeader(this.collection, context) ??
@@ -27,6 +26,10 @@ export default class CsvRoute extends CollectionRoute {
     const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
+
+    // Set the download headers only once nothing can throw anymore: a 400 wearing a
+    // Content-Disposition: attachment would download an error file instead of showing it.
+    CsvRouteContext.buildResponse(context);
 
     const list = this.collection.list.bind(this.collection);
 

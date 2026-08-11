@@ -25,7 +25,6 @@ export default class CsvRelatedRoute extends RelationRoute {
     await this.services.authorization.assertCanExport(context, this.foreignCollection.name);
 
     const { header } = context.request.query as Record<string, string>;
-    CsvRouteContext.buildResponse(context);
 
     const projection =
       QueryStringParser.parseProjectionFromHeader(this.foreignCollection, context) ??
@@ -34,6 +33,10 @@ export default class CsvRelatedRoute extends RelationRoute {
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
+
+    // Set the download headers only once nothing can throw anymore: a 400 wearing a
+    // Content-Disposition: attachment would download an error file instead of showing it.
+    CsvRouteContext.buildResponse(context);
 
     const gen = CsvGenerator.generate(
       caller,

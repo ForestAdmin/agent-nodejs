@@ -115,7 +115,7 @@ describe('CsvRoute', () => {
         state: { user: { email: 'john.doe@domain.com' } },
         headers: { 'forest-projection': 'name' },
         customProperties: {
-          query: { 'fields[books]': 'id', header: 'name', timezone: 'Europe/Paris' },
+          query: { 'fields[books]': 'id', header: 'Name column', timezone: 'Europe/Paris' },
         },
       });
 
@@ -128,7 +128,7 @@ describe('CsvRoute', () => {
       expect(csvGenerator).toHaveBeenCalledWith(
         expect.anything(),
         ['name'],
-        'name',
+        'Name column',
         expect.anything(),
         limitExportSize,
         dataSource.getCollection('books'),
@@ -148,6 +148,21 @@ describe('CsvRoute', () => {
       });
 
       await expect(csvRoute.handleCsv(context)).rejects.toThrow('Invalid Forest-Projection header');
+    });
+
+    it('should not set the download headers when the projection is invalid', async () => {
+      const { options, services, dataSource } = setup();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'field-that-do-not-exist' },
+        customProperties: {
+          query: { filename: 'export', header: 'id', timezone: 'Europe/Paris' },
+        },
+      });
+
+      await expect(csvRoute.handleCsv(context)).rejects.toThrow('Invalid Forest-Projection header');
+      expect(context.response.headers['content-disposition']).toBeUndefined();
     });
 
     it('should return the records as the csv format', async () => {
