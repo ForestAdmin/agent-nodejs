@@ -17,6 +17,7 @@ describe('Introspection > Structure', () => {
   function setupConnectionMock(
     collectionDefinitions: Array<{
       collectionName: string;
+      namespace?: string;
       records: Array<Record<string, unknown>>;
     }>,
   ) {
@@ -25,7 +26,7 @@ describe('Introspection > Structure', () => {
     }> = [];
     const mongoRecords: Array<Record<string, unknown>[]> = [];
 
-    const collections = collectionDefinitions.map(({ collectionName, records }) => {
+    const collections = collectionDefinitions.map(({ collectionName, namespace, records }) => {
       const collectionMongoRecords = records;
       const query = {
         limit: jest.fn().mockReturnValue(asyncIterate(collectionMongoRecords)),
@@ -37,6 +38,7 @@ describe('Introspection > Structure', () => {
 
       return {
         collectionName,
+        namespace,
         find,
       };
     });
@@ -63,6 +65,28 @@ describe('Introspection > Structure', () => {
       });
 
       expect(structure).toEqual([]);
+    });
+
+    it('should not return system collections', async () => {
+      const { connection } = setupConnectionMock([
+        {
+          collectionName: 'users',
+          namespace: 'admin.system.users',
+          records: [{ name: 'nicolas' }],
+        },
+        {
+          collectionName: 'books',
+          namespace: 'admin.documents',
+          records: [{ name: 'the lord of the rings' }],
+        },
+      ]);
+
+      const structure = await Structure.introspect(connection as unknown as MongoDb, {
+        collectionSampleSize: 1,
+        referenceSampleSize: 1,
+      });
+
+      expect(structure).toEqual([expect.objectContaining({ name: 'books' })]);
     });
 
     it('should return collections sorted by name', async () => {
