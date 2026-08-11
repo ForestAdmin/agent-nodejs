@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.14.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.13.0...@forestadmin/agent-bff@1.14.0) (2026-08-11)
+
+
+### Features
+
+* **agent-bff:** emit the OpenAPI document from a forest-bff openapi subcommand ([#1811](https://github.com/ForestAdmin/agent-nodejs/issues/1811)) ([ca9c849](https://github.com/ForestAdmin/agent-nodejs/commit/ca9c849f0233bde308899344387d72be5c08ff9c))
+
 # @forestadmin/agent-bff [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.12.1...@forestadmin/agent-bff@1.13.0) (2026-08-11)
 
 
