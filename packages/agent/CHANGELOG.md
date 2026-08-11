@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.93.3](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.2...@forestadmin/agent@1.93.3) (2026-08-11)
+
+
+### Bug Fixes
+
+* **agent:** authorize associate-related on the foreign collection and scope the many-to-many link ([#1820](https://github.com/ForestAdmin/agent-nodejs/issues/1820)) ([3000206](https://github.com/ForestAdmin/agent-nodejs/commit/300020624a7c68aed6556a99d68bb1bc960b1ac4)), closes [throu#collection](https://github.com/throu/issues/collection) [throu#create](https://github.com/throu/issues/create)
+
 ## @forestadmin/agent [1.93.2](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.1...@forestadmin/agent@1.93.2) (2026-08-11)
 
 
