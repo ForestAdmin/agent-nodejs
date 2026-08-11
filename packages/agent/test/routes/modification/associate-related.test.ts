@@ -112,6 +112,7 @@ describe('AssociateRelatedRoute', () => {
         }),
         { bookId: '123e4567-e89b-12d3-a456-111111111111' },
       );
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledTimes(1);
       expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'bookPersons');
       expect(services.authorization.assertCanEdit).not.toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
@@ -157,6 +158,7 @@ describe('AssociateRelatedRoute', () => {
         schema: factories.collectionSchema.build({
           fields: {
             id: factories.columnSchema.uuidPrimaryKey().build(),
+            reference: factories.columnSchema.build({ columnType: 'Uuid' }),
             manyToManyRelationField: factories.manyToManySchema.build({
               throughCollection: 'librariesBooks',
               foreignCollection: 'books',
@@ -198,7 +200,7 @@ describe('AssociateRelatedRoute', () => {
               throughCollection: 'librariesBooks',
               foreignCollection: 'libraries',
               foreignKey: 'libraryId',
-              foreignKeyTarget: 'id',
+              foreignKeyTarget: 'reference',
               originKey: 'bookId',
               originKeyTarget: 'id',
             }),
@@ -228,9 +230,10 @@ describe('AssociateRelatedRoute', () => {
 
       const scope = factories.conditionTreeLeaf.build();
       services.authorization.getScope = jest.fn().mockResolvedValue(scope);
+      const resolvedReference = 'aaaaaaaa-e89b-12d3-a456-999999999999';
       jest
         .spyOn(dataSource.getCollection('libraries'), 'list')
-        .mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-222222222222' }]);
+        .mockResolvedValue([{ reference: resolvedReference }]);
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
@@ -259,7 +262,7 @@ describe('AssociateRelatedRoute', () => {
             ],
           }),
         }),
-        new Projection('id'),
+        new Projection('reference'),
       );
       expect(dataSource.getCollection('librariesBooks').create).toHaveBeenCalledWith(
         {
@@ -271,16 +274,17 @@ describe('AssociateRelatedRoute', () => {
         [
           {
             bookId: '123e4567-e89b-12d3-a456-111111111111',
-            libraryId: '123e4567-e89b-12d3-a456-222222222222',
+            libraryId: resolvedReference,
           },
         ],
       );
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledTimes(1);
       expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'libraries');
       expect(services.authorization.assertCanEdit).not.toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
     });
 
-    test('does not create the relation when the target is hidden by the scope', async () => {
+    test('does not create the relation when the scoped lookup returns no record', async () => {
       const { services, dataSource, options } = setupWithManyToManyRelation();
 
       const route = new AssociateRelatedRoute(
