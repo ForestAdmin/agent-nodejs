@@ -200,15 +200,11 @@ export default class Runner {
       throw new UserMismatchError(runId, options.bearerUserId, step.user.id);
     }
 
-    // Acknowledge once the run is claimed and validated, without awaiting the chain: its outcome
-    // travels through updateStepExecution, never through this response. Awaiting it held the HTTP
-    // request open for up to stepTimeoutS x maxChainDepth, so any edge in front of the executor
-    // eventually cut it and reported a failure for a run that was progressing normally.
+    // Not awaited: the chain's outcome travels through updateStepExecution, never through this
+    // response.
     void this.executeStep(step, auth.forestServerToken, options?.pendingData).catch(error => {
-      // Embedded mode hands the host's own logger straight through, and doExecuteStep logs outside
-      // its try blocks — so a throwing host logger is the likeliest way to land here, and logging
-      // it unguarded would reject this handler too. Nothing awaits it, so that would take the whole
-      // process down instead of the one run.
+      // A throwing host logger must not reject this handler — nothing awaits it, so that would
+      // take the process down instead of the one run.
       try {
         this.logger('Error', 'FATAL: in-flight chain rejected — outcome not reported', {
           runId,
