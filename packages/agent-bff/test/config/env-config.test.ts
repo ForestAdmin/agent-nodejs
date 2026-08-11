@@ -252,4 +252,38 @@ describe('parseConfig', () => {
       );
     });
   });
+
+  describe('BFF_OPENAPI_ENABLED', () => {
+    it('should default to true when unset, empty, or whitespace-only', () => {
+      expect(parseConfig({ ...VALID_ENV }).openapiEnabled).toBe(true);
+      expect(parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: '' }).openapiEnabled).toBe(true);
+      expect(parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: '   ' }).openapiEnabled).toBe(true);
+    });
+
+    it.each(['true', 'TRUE', ' True '])('should enable OpenAPI HTTP serving for %j', value => {
+      expect(parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: value }).openapiEnabled).toBe(true);
+    });
+
+    it.each(['false', 'FALSE', ' False '])('should disable OpenAPI HTTP serving for %j', value => {
+      expect(parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: value }).openapiEnabled).toBe(false);
+    });
+
+    it.each(['1', '0', 'yes', 'no', 'on', 'off'])('should reject the alias %j', value => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: value })).toThrow(
+        /BFF_OPENAPI_ENABLED must be a boolean/,
+      );
+    });
+
+    it('should throw ConfigurationError for a non-boolean value without echoing it', () => {
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'maybe-secret' })).toThrow(
+        ConfigurationError,
+      );
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'maybe-secret' })).toThrow(
+        /BFF_OPENAPI_ENABLED must be a boolean/,
+      );
+      expect(() => parseConfig({ ...VALID_ENV, BFF_OPENAPI_ENABLED: 'maybe-secret' })).not.toThrow(
+        /maybe-secret/,
+      );
+    });
+  });
 });

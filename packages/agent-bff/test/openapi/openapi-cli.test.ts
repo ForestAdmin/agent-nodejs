@@ -69,6 +69,23 @@ describe('dispatchCli', () => {
         stdout.mockRestore();
       }
     });
+
+    it('should still emit the document when BFF_OPENAPI_ENABLED is false, since the flag only gates HTTP', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+      try {
+        const outcome = await dispatchCli(
+          ['openapi'],
+          { BFF_OPENAPI_ENABLED: 'false' },
+          noopLogger,
+        );
+
+        expect(outcome).toEqual({ exitCode: 0 });
+        expect(JSON.parse(stdout.mock.calls[0][0] as string).openapi).toBe('3.1.0');
+      } finally {
+        stdout.mockRestore();
+      }
+    });
   });
 
   describe('when the export is piped to a file or another tool', () => {

@@ -195,7 +195,7 @@ function buildAgentMiddlewares(config: BFFConfig, logger: Logger): Middleware[] 
     createAuthModeMiddleware({ authSecret: forestAuthSecret }),
     apiKeyStep,
     createPerKeyOriginMiddleware(),
-    createOpenApiRoutes({ version }),
+    createOpenApiRoutes({ version, enabled: config.openapiEnabled }),
     createTimezoneMiddleware({ defaultTimezone }),
     ...buildAgentRouteMiddlewares(config, logger),
   ];
