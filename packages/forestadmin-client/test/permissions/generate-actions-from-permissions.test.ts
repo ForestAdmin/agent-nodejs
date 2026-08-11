@@ -29,6 +29,28 @@ describe('generateActionsFromPermissions', () => {
     });
   });
 
+  describe('when a collection descriptor is missing a CRUD flag', () => {
+    it('should throw rather than resolve the missing flag to a denial', () => {
+      const generate = () =>
+        generateActionsFromPermissions({
+          collections: {
+            'collection-id': {
+              collection: {
+                addEnabled: true,
+                browseEnabled: true,
+                editEnabled: true,
+                exportEnabled: true,
+                readEnabled: true,
+              },
+              actions: {},
+            },
+          },
+        } as unknown as Parameters<typeof generateActionsFromPermissions>[0]);
+
+      expect(generate).toThrow(TypeError);
+    });
+  });
+
   describe('when rights are set by collection', () => {
     describe('collection access rights', () => {
       describe('globally allowed', () => {
