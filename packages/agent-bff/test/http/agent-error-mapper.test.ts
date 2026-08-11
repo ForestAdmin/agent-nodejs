@@ -22,7 +22,7 @@ describe('mapAgentError', () => {
 
   it('returns a BFF-origin error unchanged instead of recategorizing it', () => {
     const local = new BffHttpError(422, 'relation_field_not_supported', 'nope', {
-      fields: ['a:b'],
+      details: { fields: ['a:b'] },
     });
 
     expect(mapAgentError(local, { logger })).toBe(local);

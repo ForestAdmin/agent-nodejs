@@ -1,22 +1,21 @@
+export interface BffHttpErrorOptions {
+  details?: unknown;
+  retryAfter?: number;
+}
+
 export class BffHttpError extends Error {
   readonly status: number;
   readonly type: string;
   readonly details?: unknown;
   readonly retryAfter?: number;
 
-  constructor(
-    status: number,
-    type: string,
-    message: string,
-    details?: unknown,
-    retryAfter?: number,
-  ) {
+  constructor(status: number, type: string, message: string, options: BffHttpErrorOptions = {}) {
     super(message);
     this.name = 'BffHttpError';
     this.status = status;
     this.type = type;
-    this.details = details;
-    this.retryAfter = retryAfter;
+    this.details = options.details;
+    this.retryAfter = options.retryAfter;
   }
 }
 
@@ -93,6 +92,6 @@ export function relationFieldNotSupported(fields: string[]): BffHttpError {
     422,
     'relation_field_not_supported',
     'Nested relation field paths are not supported on top-level list and count',
-    { fields },
+    { details: { fields } },
   );
 }

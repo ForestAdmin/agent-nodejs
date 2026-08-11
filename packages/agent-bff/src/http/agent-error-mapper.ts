@@ -100,12 +100,9 @@ function mapJsonApiError(
     });
   }
 
-  return new BffHttpError(
-    status,
-    mappedType ?? fallbackTypeByStatus(status),
-    message,
-    agentError.data,
-  );
+  return new BffHttpError(status, mappedType ?? fallbackTypeByStatus(status), message, {
+    details: agentError.data,
+  });
 }
 
 function parseJsonApiFromMessage(error: unknown): AgentJsonApiError | undefined {

@@ -25,7 +25,7 @@ export function actionNotAllowed(message = 'Action is not allowed'): BffHttpErro
 }
 
 export function invalidRequest(message = 'Invalid request', details?: unknown): BffHttpError {
-  return new BffHttpError(400, 'invalid_request', message, details);
+  return new BffHttpError(400, 'invalid_request', message, { details });
 }
 
 export function mappingError(message = 'Failed to map the agent response'): BffHttpError {
@@ -41,7 +41,7 @@ export function unsupportedActionResult(message = 'Unsupported action result'): 
 }
 
 export function actionError(message = 'The action failed', details?: unknown): BffHttpError {
-  return new BffHttpError(400, 'action_error', message, details);
+  return new BffHttpError(400, 'action_error', message, { details });
 }
 
 export function openapiDisabled(message = 'The OpenAPI document is not served'): BffHttpError {
@@ -56,12 +56,12 @@ export function permissionsUnavailable(
   retryAfter: number,
   message = 'Permissions are unavailable',
 ): BffHttpError {
-  return new BffHttpError(503, 'permissions_unavailable', message, undefined, retryAfter);
+  return new BffHttpError(503, 'permissions_unavailable', message, { retryAfter });
 }
 
 export function actionRequiresApproval(
   message = 'This action requires an approval before it can run',
   details?: unknown,
 ): BffHttpError {
-  return new BffHttpError(403, 'action_requires_approval', message, details);
+  return new BffHttpError(403, 'action_requires_approval', message, { details });
 }
