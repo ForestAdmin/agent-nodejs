@@ -190,6 +190,60 @@ describe('CreateRoute', () => {
         });
       });
 
+      test('checks the edit permission on the foreign collection', async () => {
+        const create = new CreateRoute(services, options, dataSource, 'persons');
+        const context = createMockContext({
+          ...defaultContext,
+          requestBody: {
+            data: {
+              type: 'persons',
+              attributes: { name: 'John' },
+              relationships: {
+                passport: {
+                  data: { type: 'passports', id: '1d162304-78bf-599e-b197-93590ac3d314' },
+                },
+              },
+            },
+            jsonapi: { version: '1.0' },
+          },
+        });
+
+        const assertCanEdit = services.authorization.assertCanEdit as jest.Mock;
+        assertCanEdit.mockClear();
+
+        await create.handleCreate(context);
+
+        expect(assertCanEdit).toHaveBeenCalledTimes(1);
+        expect(assertCanEdit).toHaveBeenCalledWith(context, 'passports');
+      });
+
+      test('does not update the foreign collection when the user cannot edit it', async () => {
+        const create = new CreateRoute(services, options, dataSource, 'persons');
+        const context = createMockContext({
+          ...defaultContext,
+          requestBody: {
+            data: {
+              type: 'persons',
+              attributes: { name: 'John' },
+              relationships: {
+                passport: {
+                  data: { type: 'passports', id: '1d162304-78bf-599e-b197-93590ac3d314' },
+                },
+              },
+            },
+            jsonapi: { version: '1.0' },
+          },
+        });
+
+        const error = new Error('Forbidden');
+        (services.authorization.assertCanEdit as jest.Mock).mockRejectedValueOnce(error);
+        const spy = jest.spyOn(dataSource.getCollection('passports'), 'update').mockClear();
+
+        await expect(create.handleCreate(context)).rejects.toThrow(error);
+
+        expect(spy).not.toHaveBeenCalled();
+      });
+
       describe('when the given relation is null', () => {
         test('should return null value in the body', async () => {
           const create = new CreateRoute(services, options, dataSource, 'persons');
