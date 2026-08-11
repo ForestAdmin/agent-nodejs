@@ -231,13 +231,17 @@ afterEach(async () => {
 
 // triggerPoll acknowledges as soon as the run is claimed and validated; the chain then runs
 // detached. Tests asserting on what the chain produced must wait for it separately.
+async function drainRuns(target: Runner): Promise<void> {
+  await (target as unknown as { inFlightRuns: { drain(): Promise<void> } }).inFlightRuns.drain();
+}
+
 async function triggerAndDrain(
   target: Runner,
   runId: string,
   options?: Parameters<Runner['triggerPoll']>[1],
 ): Promise<void> {
   await target.triggerPoll(runId, options);
-  await (target as unknown as { inFlightRuns: { drain(): Promise<void> } }).inFlightRuns.drain();
+  await drainRuns(target);
 }
 
 // ---------------------------------------------------------------------------
@@ -715,9 +719,53 @@ describe('trigger acknowledgement', () => {
     expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
 
     unblockRef.fn();
-    await (runner as unknown as { inFlightRuns: { drain(): Promise<void> } }).inFlightRuns.drain();
+    await drainRuns(runner);
 
-    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(1);
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ stepId: 'step-0', stepIndex: 0, status: 'success' }),
+    );
+  });
+
+  it('drains a chain started by a trigger on stop()', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-0' });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+
+    const unblockRef = { fn: (): void => {} };
+    executeSpy.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          unblockRef.fn = () =>
+            resolve({
+              stepOutcome: { type: 'record', stepId: 'step-0', stepIndex: 0, status: 'success' },
+            });
+        }),
+    );
+    workflowPort.updateStepExecution.mockResolvedValue(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+    await runner.start();
+    await runner.triggerPoll('run-1');
+
+    let stopped = false;
+    const stopping = runner.stop().then(() => {
+      stopped = true;
+    });
+
+    await Promise.resolve();
+    expect(stopped).toBe(false);
+
+    unblockRef.fn();
+    await stopping;
+
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ stepId: 'step-0', status: 'success' }),
+    );
   });
 
   it('resolves even when the chain later reports an error outcome', async () => {
@@ -730,16 +778,77 @@ describe('trigger acknowledgement', () => {
     jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
       execute: jest.fn().mockRejectedValueOnce(new Error('contract violated')),
     });
-    workflowPort.updateStepExecution.mockResolvedValue(null);
+
+    const unblockRef = { fn: (): void => {} };
+    workflowPort.updateStepExecution.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          unblockRef.fn = () => resolve(null);
+        }),
+    );
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
-    await expect(triggerAndDrain(runner, 'run-1')).resolves.toBeUndefined();
+    await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
 
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
       expect.objectContaining({ status: 'error' }),
     );
+
+    unblockRef.fn();
+    await drainRuns(runner);
+  });
+
+  it('logs FATAL with the cause when the detached chain rejects', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const mockLogger = createMockLogger();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-0' });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    mockLogger.mockImplementationOnce(() => {
+      throw new Error('host logger exploded');
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
+
+    await expect(triggerAndDrain(runner, 'run-1')).resolves.toBeUndefined();
+
+    expect(mockLogger).toHaveBeenCalledWith(
+      'Error',
+      'FATAL: in-flight chain rejected — outcome not reported',
+      expect.objectContaining({ runId: 'run-1', error: 'host logger exploded' }),
+    );
+  });
+
+  it('survives a host logger that throws from the detached chain handler', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const alwaysThrows = jest.fn(() => {
+      throw new Error('host logger always explodes');
+    });
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-0' });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort, logger: alwaysThrows }));
+
+    const rejections: unknown[] = [];
+    const onUnhandled = (reason: unknown) => rejections.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+
+    try {
+      await expect(triggerAndDrain(runner, 'run-1')).resolves.toBeUndefined();
+      await Promise.resolve();
+      await Promise.resolve();
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+
+    expect(rejections).toStrictEqual([]);
   });
 
   it('still rejects when the run cannot be claimed', async () => {
@@ -766,6 +875,11 @@ describe('trigger acknowledgement', () => {
       UserMismatchError,
     );
     expect(executeSpy).not.toHaveBeenCalled();
+
+    // A validation that rejects before the ack must leave no registry entry behind, or every later
+    // trigger for that run would be refused as already in flight.
+    await expect(triggerAndDrain(runner, 'run-1')).resolves.toBeUndefined();
+    expect(executeSpy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -805,6 +919,7 @@ describe('deduplication', () => {
 
     unblockRef.fn();
     await poll1;
+    await drainRuns(runner);
   });
 
   it('removes the run entry after successful execution', async () => {
@@ -872,6 +987,8 @@ describe('PRD-468 concurrent duplicate triggers', () => {
       runner.triggerPoll('run-1'),
     ]);
 
+    await drainRuns(runner);
+
     expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
     const rejected = results.filter(r => r.status === 'rejected');
     expect(rejected).toHaveLength(1);
@@ -914,6 +1031,7 @@ describe('PRD-468 concurrent duplicate triggers', () => {
 
     unblockRef.fn();
     await poll1;
+    await drainRuns(runner);
   });
 
   it('signals a conflict (does not silently resolve) for a duplicate trigger of an in-flight run', async () => {
@@ -948,6 +1066,7 @@ describe('PRD-468 concurrent duplicate triggers', () => {
 
     unblockRef.fn();
     await poll1;
+    await drainRuns(runner);
   });
 });
 
@@ -1007,9 +1126,10 @@ describe('triggerPoll', () => {
 
     unblockRef.fn();
     await poll1;
+    await drainRuns(runner);
   });
 
-  it('resolves after the step has settled', async () => {
+  it('resolves once the run is claimed and dispatches the step', async () => {
     const workflowPort = createMockWorkflowPort();
     const step = makePendingStep({ runId: 'run-1', stepId: 'step-a' });
     workflowPort.getAvailableRun.mockResolvedValue({
@@ -1019,7 +1139,7 @@ describe('triggerPoll', () => {
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
-    await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
+    await expect(triggerAndDrain(runner, 'run-1')).resolves.toBeUndefined();
     expect(executeSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -1233,7 +1353,7 @@ describe('chain', () => {
 
     unblockRef.fn();
     await first;
-    await (runner as unknown as { inFlightRuns: { drain(): Promise<void> } }).inFlightRuns.drain();
+    await drainRuns(runner);
 
     // After the chain completes, the run entry is released. executeSpy ran once for initial,
     // once for chained — that's 2 total. The concurrent trigger never added a third.
