@@ -62,6 +62,8 @@ describe('CreateRoute', () => {
 
       await create.handleCreate(context);
 
+      expect(services.authorization.assertCanAdd).toHaveBeenCalledWith(context, 'books');
+
       expect(collection.create).toHaveBeenCalledWith(
         {
           email: 'john.doe@domain.com',
