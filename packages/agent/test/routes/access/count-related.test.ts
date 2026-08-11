@@ -147,6 +147,34 @@ describe('CountRelatedRoute', () => {
         expect(context.response.body).toEqual({ count: 1568 });
       });
 
+      test('should ignore the Forest-Projection header', async () => {
+        const { services, dataSource, options } = setupWithOneToManyRelation();
+
+        const count = new CountRelatedRoute(
+          services,
+          options,
+          dataSource,
+          'books',
+          'myBookPersons',
+        );
+
+        jest
+          .spyOn(CollectionUtils, 'aggregateRelation')
+          .mockResolvedValue([{ value: 1568, group: {} }]);
+
+        const context = createMockContext({
+          headers: { 'forest-projection': 'field-that-do-not-exist' },
+          customProperties: {
+            query: { timezone: 'Europe/Paris' },
+            params: { parentId: '2d162303-78bf-599e-b197-93590ac3d315' },
+          },
+          state: { user: { email: 'john.doe@domain.com' } },
+        });
+        await count.handleCountRelated(context);
+
+        expect(context.response.body).toEqual({ count: 1568 });
+      });
+
       test("should check the user's permission on the related collection", async () => {
         const { services, dataSource, options } = setupWithOneToManyRelation();
 

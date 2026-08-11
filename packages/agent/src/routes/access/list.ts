@@ -20,10 +20,14 @@ export default class ListRoute extends CollectionRoute {
       paginatedFilter,
     );
 
+    const projection =
+      QueryStringParser.parseProjectionFromHeader(this.collection, context) ??
+      QueryStringParser.parseProjection(this.collection, context);
+
     const records = await this.collection.list(
       QueryStringParser.parseCaller(context),
       paginatedFilter,
-      QueryStringParser.parseProjectionWithPks(this.collection, context),
+      projection.withPks(this.collection),
     );
 
     context.response.body = this.services.serializer.serializeWithSearchMetadata(
