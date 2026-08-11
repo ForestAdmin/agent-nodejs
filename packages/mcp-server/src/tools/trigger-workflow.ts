@@ -22,9 +22,8 @@ interface TriggerWorkflowArgument {
   recordId: string;
 }
 
-// The server answers 404 both for an unknown workflow and for one whose MCP trigger is disabled
-// (and getMcpWorkflowById returns mcpEnabled: false for the latter). Surface the same guidance in
-// every case so the LLM-facing contract stays identical.
+// One message for the unknown, MCP-disabled and trigger-time-404 cases, so the LLM-facing
+// contract stays uniform and never leaks whether a given workflow exists.
 function notMcpEnabledMessage(workflowId: string): string {
   return (
     `Workflow "${workflowId}" is not an MCP-enabled workflow you can access. ` +
@@ -39,6 +38,12 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
     mcpServer,
     'triggerWorkflow',
     {
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
       title: 'Trigger a workflow',
       description:
         'Start an MCP-enabled Forest workflow on a specific record. Returns a runId immediately; ' +

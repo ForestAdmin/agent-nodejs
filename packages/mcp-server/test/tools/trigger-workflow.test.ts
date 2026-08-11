@@ -57,14 +57,19 @@ describe('declareTriggerWorkflowTool', () => {
       expect(registeredToolConfig.description).toContain('getWorkflowRun');
     });
 
-    it('should not be annotated as read-only', () => {
+    it('should annotate the tool as a non-read-only, non-destructive, non-idempotent write', () => {
       declareTriggerWorkflowTool(mcpServer, {
         forestServerClient: mockForestServerClient,
         logger: mockLogger,
         collectionNames: [],
       });
 
-      expect(registeredToolConfig.annotations?.readOnlyHint).toBeUndefined();
+      expect(registeredToolConfig.annotations).toEqual({
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      });
     });
 
     it('should require string workflowId and recordId arguments', () => {
@@ -189,6 +194,24 @@ describe('declareTriggerWorkflowTool', () => {
         isError: true,
       });
       expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('should not start the run when the audit store returns a 200 with a null id (fail-closed)', async () => {
+      mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+        id: null,
+        attributes: {},
+      } as never);
+
+      const result = await registeredToolHandler({ workflowId: 'wf-1', recordId: '42' }, mockExtra);
+
+      expect(result).toEqual({
+        content: [
+          { type: 'text', text: expect.stringContaining('the server returned no activity log id') },
+        ],
+        isError: true,
+      });
+      expect(mockForestServerClient.triggerMcpWorkflow).not.toHaveBeenCalled();
+      expect(mockForestServerClient.updateActivityLogStatus).not.toHaveBeenCalled();
     });
 
     it('should return an error result when the auth context is missing the token', async () => {

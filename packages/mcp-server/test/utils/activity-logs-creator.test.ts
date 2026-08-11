@@ -255,6 +255,34 @@ describe('createPendingActivityLog', () => {
         createPendingActivityLog(mockForestServerClient, request, 'index'),
       ).resolves.not.toThrow();
     });
+
+    it('should reject when the server returns a 200 with a null id (fail-closed)', async () => {
+      mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+        id: null,
+        attributes: {},
+      } as never);
+
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'triggerWorkflow'),
+      ).rejects.toThrow(
+        'Failed to create activity log: the server returned no activity log id. ' +
+          'Blocking the operation to preserve the audit trail.',
+      );
+    });
+
+    it('should reject when the server returns a response with an undefined id (fail-closed)', async () => {
+      mockForestServerClient.createMcpActivityLog.mockResolvedValue({
+        attributes: {},
+      } as never);
+
+      const request = createMockRequest();
+
+      await expect(
+        createPendingActivityLog(mockForestServerClient, request, 'triggerWorkflow'),
+      ).rejects.toThrow('the server returned no activity log id');
+    });
   });
 });
 

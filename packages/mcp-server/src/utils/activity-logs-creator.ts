@@ -41,7 +41,7 @@ export default async function createPendingActivityLog(
   const type = ACTION_TO_TYPE[action];
   const { forestServerToken, renderingId } = getAuthContext(request);
 
-  return forestServerClient.createMcpActivityLog({
+  const activityLog = await forestServerClient.createMcpActivityLog({
     forestServerToken,
     renderingId,
     action,
@@ -51,6 +51,18 @@ export default async function createPendingActivityLog(
     recordIds: extra?.recordIds,
     label: extra?.label,
   });
+
+  // Fail-closed: the server answers HTTP 200 with a null id when the audit write is dropped
+  // (audit store down, or a collection that no longer exists). Reject so callers relying on
+  // withActivityLog block the operation instead of proceeding with no audit trail.
+  if (activityLog?.id === null || activityLog?.id === undefined) {
+    throw new Error(
+      'Failed to create activity log: the server returned no activity log id. ' +
+        'Blocking the operation to preserve the audit trail.',
+    );
+  }
+
+  return activityLog;
 }
 
 interface UpdateActivityLogOptions {
