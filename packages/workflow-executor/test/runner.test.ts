@@ -229,6 +229,17 @@ afterEach(async () => {
   jest.clearAllTimers();
 });
 
+// triggerPoll acknowledges as soon as the run is claimed and validated; the chain then runs
+// detached. Tests asserting on what the chain produced must wait for it separately.
+async function triggerAndDrain(
+  target: Runner,
+  runId: string,
+  options?: Parameters<Runner['triggerPoll']>[1],
+): Promise<void> {
+  await target.triggerPoll(runId, options);
+  await (target as unknown as { inFlightRuns: { drain(): Promise<void> } }).inFlightRuns.drain();
+}
+
 // ---------------------------------------------------------------------------
 // start
 // ---------------------------------------------------------------------------
@@ -673,6 +684,91 @@ describe('polling loop', () => {
 // Deduplication
 // ---------------------------------------------------------------------------
 
+describe('trigger acknowledgement', () => {
+  it('resolves while the chain is still executing', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-0' });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+
+    const unblockRef = { fn: (): void => {} };
+    executeSpy.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          unblockRef.fn = () =>
+            resolve({
+              stepOutcome: { type: 'record', stepId: 'step-0', stepIndex: 0, status: 'success' },
+            });
+        }),
+    );
+    workflowPort.updateStepExecution.mockResolvedValue(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await runner.triggerPoll('run-1');
+
+    const registry = (runner as unknown as { inFlightRuns: { has(id: string): boolean } })
+      .inFlightRuns;
+    expect(registry.has('run-1')).toBe(true);
+    expect(workflowPort.updateStepExecution).not.toHaveBeenCalled();
+
+    unblockRef.fn();
+    await (runner as unknown as { inFlightRuns: { drain(): Promise<void> } }).inFlightRuns.drain();
+
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves even when the chain later reports an error outcome', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-0' });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+    jest.spyOn(StepExecutorFactory, 'create').mockResolvedValueOnce({
+      execute: jest.fn().mockRejectedValueOnce(new Error('contract violated')),
+    });
+    workflowPort.updateStepExecution.mockResolvedValue(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(triggerAndDrain(runner, 'run-1')).resolves.toBeUndefined();
+
+    expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({ status: 'error' }),
+    );
+  });
+
+  it('still rejects when the run cannot be claimed', async () => {
+    const workflowPort = createMockWorkflowPort();
+    workflowPort.getAvailableRun.mockResolvedValue(null);
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(runner.triggerPoll('run-1')).rejects.toThrow(RunNotFoundError);
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  it('still rejects when the bearer user does not own the run', async () => {
+    const workflowPort = createMockWorkflowPort();
+    const step = makePendingStep({ runId: 'run-1', stepId: 'step-0' });
+    workflowPort.getAvailableRun.mockResolvedValue({
+      step,
+      auth: { forestServerToken: 'test-forest-token' },
+    });
+
+    runner = new Runner(createRunnerConfig({ workflowPort }));
+
+    await expect(runner.triggerPoll('run-1', { bearerUserId: step.user.id + 1 })).rejects.toThrow(
+      UserMismatchError,
+    );
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+});
+
 describe('deduplication', () => {
   it('skips a run already tracked in inFlightRuns', async () => {
     const workflowPort = createMockWorkflowPort();
@@ -721,8 +817,8 @@ describe('deduplication', () => {
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
-    await runner.triggerPoll('run-1');
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(executeSpy).toHaveBeenCalledTimes(2);
   });
@@ -743,8 +839,8 @@ describe('deduplication', () => {
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
 
-    await runner.triggerPoll('run-1');
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     // Both polls completed: the step key was cleared after the first (failed) execution
     expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(2);
@@ -869,7 +965,7 @@ describe('triggerPoll', () => {
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
-    await runner.triggerPoll('run-A');
+    await triggerAndDrain(runner, 'run-A');
 
     expect(workflowPort.getAvailableRun).toHaveBeenCalledWith('run-A');
     expect(workflowPort.getAvailableRuns).not.toHaveBeenCalled();
@@ -964,7 +1060,7 @@ describe('chain', () => {
       .mockResolvedValueOnce(null);
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(executeSpy).toHaveBeenCalledTimes(2);
     expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(2);
@@ -986,7 +1082,7 @@ describe('chain', () => {
 
     const config = createRunnerConfig({ workflowPort });
     runner = new Runner(config);
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(config.activityLogPortFactory.forRun).toHaveBeenNthCalledWith(1, 'token-initial');
     expect(config.activityLogPortFactory.forRun).toHaveBeenNthCalledWith(2, 'token-chained');
@@ -1008,7 +1104,7 @@ describe('chain', () => {
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
     expect(workflowPort.updateStepExecution).toHaveBeenCalledTimes(1);
@@ -1041,7 +1137,7 @@ describe('chain', () => {
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
     expect(mockLogger).toHaveBeenCalledWith(
@@ -1071,7 +1167,7 @@ describe('chain', () => {
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger, maxChainDepth: 2 }));
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     // initial + 2 chained = 3 total executions; the 3rd update returns a next we don't chain.
     expect(executeSpy).toHaveBeenCalledTimes(3);
@@ -1096,7 +1192,7 @@ describe('chain', () => {
     });
 
     runner = new Runner(createRunnerConfig({ maxChainDepth: 0, workflowPort }));
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
   });
@@ -1137,6 +1233,7 @@ describe('chain', () => {
 
     unblockRef.fn();
     await first;
+    await (runner as unknown as { inFlightRuns: { drain(): Promise<void> } }).inFlightRuns.drain();
 
     // After the chain completes, the run entry is released. executeSpy ran once for initial,
     // once for chained — that's 2 total. The concurrent trigger never added a third.
@@ -1166,7 +1263,7 @@ describe('chain', () => {
       .mockResolvedValueOnce(null);
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(executeSpy).toHaveBeenCalledTimes(2); // initial + 1 chained before the throw
     expect(mockLogger).toHaveBeenCalledWith(
@@ -1181,7 +1278,7 @@ describe('chain', () => {
     );
 
     // Run entry released — a subsequent triggerPoll executes rather than being deduped.
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
     expect(executeSpy).toHaveBeenCalledTimes(3);
   });
 
@@ -1213,7 +1310,7 @@ describe('chain', () => {
       }));
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
@@ -1253,7 +1350,7 @@ describe('chain', () => {
     const createSpy = jest.spyOn(StepExecutorFactory, 'create');
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
-    await runner.triggerPoll('run-1', { pendingData: { userConfirmed: true } });
+    await triggerAndDrain(runner, 'run-1', { pendingData: { userConfirmed: true } });
 
     // Initial dispatch carries pendingData; chained dispatch must NOT — pending data only flows
     // via the triggerPoll PATCH endpoint, never inline through the auto-chain.
@@ -1337,7 +1434,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(workflowPort.getMcpServerConfigs).not.toHaveBeenCalled();
     expect(aiClient.loadRemoteToolsWithFailures).not.toHaveBeenCalled();
@@ -1360,7 +1457,7 @@ describe('MCP lazy loading (via once thunk)', () => {
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
     expect(aiClient.loadRemoteToolsWithFailures).not.toHaveBeenCalled();
@@ -1399,7 +1496,7 @@ describe('MCP fetch scoping', () => {
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledTimes(1);
     expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledWith({
@@ -1434,7 +1531,7 @@ describe('MCP fetch scoping', () => {
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledWith({
       'server-B': expect.objectContaining({ id: 'server-A' }),
@@ -1471,7 +1568,7 @@ describe('MCP fetch scoping', () => {
         logger,
       }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(workflowPort.getMcpServerConfigs).toHaveBeenCalledTimes(1);
     expect(aiClient.loadRemoteToolsWithFailures).not.toHaveBeenCalled();
@@ -1513,7 +1610,7 @@ describe('MCP fetch scoping', () => {
         logger,
       }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(aiClient.loadRemoteToolsWithFailures).not.toHaveBeenCalled();
     expect(logger).toHaveBeenCalledWith(
@@ -1564,7 +1661,7 @@ describe('MCP fetch scoping', () => {
         logger,
       }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(logger).toHaveBeenCalledWith('Error', 'MCP servers failed to load tools', {
       requestedMcpServerId: 'id-A',
@@ -1617,7 +1714,7 @@ describe('MCP fetch scoping', () => {
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenCalledTimes(2);
     expect(aiClient.loadRemoteToolsWithFailures).toHaveBeenNthCalledWith(1, {
@@ -1884,7 +1981,7 @@ describe('error handling', () => {
         logger: mockLogger,
       }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
@@ -1924,7 +2021,7 @@ describe('error handling', () => {
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
@@ -1953,7 +2050,7 @@ describe('error handling', () => {
         logger: mockLogger,
       }),
     );
-    await runner.triggerPoll('run-2');
+    await triggerAndDrain(runner, 'run-2');
 
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
@@ -2007,7 +2104,7 @@ describe('error handling', () => {
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
@@ -2050,7 +2147,7 @@ describe('error handling', () => {
       });
 
       runner = new Runner(createRunnerConfig({ workflowPort }));
-      await runner.triggerPoll('run-1');
+      await triggerAndDrain(runner, 'run-1');
 
       expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
         'run-1',
@@ -2073,7 +2170,7 @@ describe('error handling', () => {
     workflowPort.updateStepExecution.mockRejectedValueOnce(new Error('orchestrator unreachable'));
 
     runner = new Runner(createRunnerConfig({ workflowPort, logger: mockLogger }));
-    await expect(runner.triggerPoll('run-1')).resolves.toBeUndefined();
+    await expect(triggerAndDrain(runner, 'run-1')).resolves.toBeUndefined();
 
     expect(mockLogger).toHaveBeenCalledWith(
       'Error',
@@ -2100,8 +2197,8 @@ describe('error handling', () => {
     });
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
-    await runner.triggerPoll('run-1');
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     // 2 POSTs: 1st is the synthetic error for the failed attempt, 2nd is the success outcome
     // produced by the default BaseStepExecutor.execute mock on the 2nd trigger.
@@ -2124,7 +2221,7 @@ describe('error handling', () => {
     runner = new Runner(
       createRunnerConfig({ workflowPort, aiModelPort: aiClient as unknown as AiModelPort }),
     );
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(workflowPort.updateStepExecution).toHaveBeenCalledWith(
       'run-1',
@@ -2356,7 +2453,7 @@ describe('triggerPoll with options', () => {
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
-    await runner.triggerPoll('run-1', { pendingData: { userConfirmed: true, value: 'new' } });
+    await triggerAndDrain(runner, 'run-1', { pendingData: { userConfirmed: true, value: 'new' } });
 
     expect(createSpy).toHaveBeenCalledWith(
       step,
@@ -2386,7 +2483,7 @@ describe('triggerPoll with options', () => {
 
     runner = new Runner(createRunnerConfig({ workflowPort }));
 
-    await runner.triggerPoll('run-1');
+    await triggerAndDrain(runner, 'run-1');
 
     expect(createSpy).toHaveBeenCalledWith(
       step,

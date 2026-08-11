@@ -200,7 +200,16 @@ export default class Runner {
       throw new UserMismatchError(runId, options.bearerUserId, step.user.id);
     }
 
-    await this.executeStep(step, auth.forestServerToken, options?.pendingData);
+    // Acknowledge once the run is claimed and validated, without awaiting the chain: its outcome
+    // travels through updateStepExecution, never through this response. Awaiting it held the HTTP
+    // request open for up to stepTimeoutS x maxChainDepth, so any edge in front of the executor
+    // eventually cut it and reported a failure for a run that was progressing normally.
+    void this.executeStep(step, auth.forestServerToken, options?.pendingData).catch(error => {
+      this.logger('Error', 'FATAL: in-flight chain rejected — outcome not reported', {
+        runId,
+        error: extractErrorMessage(error),
+      });
+    });
   }
 
   private assertRunNotInFlight(runId: string): void {
