@@ -27,8 +27,6 @@ export default class CsvRoute extends CollectionRoute {
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);
 
-    // Set the download headers only once nothing can throw anymore: a 400 wearing a
-    // Content-Disposition: attachment would download an error file instead of showing it.
     CsvRouteContext.buildResponse(context);
 
     const list = this.collection.list.bind(this.collection);

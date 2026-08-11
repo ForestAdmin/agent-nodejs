@@ -34,8 +34,6 @@ export default class CsvRelatedRoute extends RelationRoute {
     const filter = ContextFilterFactory.buildPaginated(this.foreignCollection, context, scope);
     const parentId = IdUtils.unpackId(this.collection.schema, context.params.parentId);
 
-    // Set the download headers only once nothing can throw anymore: a 400 wearing a
-    // Content-Disposition: attachment would download an error file instead of showing it.
     CsvRouteContext.buildResponse(context);
 
     const gen = CsvGenerator.generate(
