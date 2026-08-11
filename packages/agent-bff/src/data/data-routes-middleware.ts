@@ -79,6 +79,14 @@ function assertCollectionStillAllowed(readModel: ReadModel, collection: string):
   if (!readModel.isCollectionAllowed(collection)) throw unknownCollection();
 }
 
+function toValidationInput(body: ListRequestBody | RelationListRequestBody) {
+  return {
+    filter: body.filter,
+    sortFields: body.sort?.map(clause => clause.field),
+    projectionFields: body.projection,
+  };
+}
+
 function resolveCapabilities(
   deps: RequestHandlerDeps,
   collection: string,
@@ -100,11 +108,7 @@ function resolveCapabilities(
 async function handleList(ctx: Context, body: ListRequestBody, deps: ListHandlerDeps) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
-  const validationInput = {
-    filter: body.filter,
-    sortFields: body.sort?.map(clause => clause.field),
-    projectionFields: body.projection,
-  };
+  const validationInput = toValidationInput(body);
 
   // The store hands back the read-model the capabilities belong to; using it keeps the primary keys
   // serialized below from a different schema generation than the fields just validated, and re-checks
@@ -165,7 +169,24 @@ function assertRelationStillExposed(readModel: ReadModel, deps: RelationHandlerD
   assertCollectionStillAllowed(readModel, deps.foreignCollection);
 }
 
-async function resolveForeignCapabilitiesAndReassertRelationIsStillExposed(
+async function rethrowUnlessRelationVanished(
+  deps: RelationHandlerDeps,
+  original: unknown,
+): Promise<never> {
+  let readModel: ReadModel;
+
+  try {
+    readModel = await resolveReadModel(deps.store);
+  } catch {
+    throw original;
+  }
+
+  assertRelationStillExposed(readModel, deps);
+
+  throw original;
+}
+
+async function resolveForeignCapabilities(
   deps: RelationHandlerDeps,
 ): Promise<{ capabilities: CapabilitiesResult; readModel: ReadModel }> {
   assertRelationStillExposed(await resolveReadModel(deps.store), deps);
@@ -182,8 +203,7 @@ async function resolveForeignCapabilitiesAndReassertRelationIsStillExposed(
       cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
     });
 
-    assertRelationStillExposed(await resolveReadModel(deps.store), deps);
-    throw error;
+    return rethrowUnlessRelationVanished(deps, error);
   }
 
   assertRelationStillExposed(result.readModel, deps);
@@ -198,17 +218,12 @@ async function handleRelationList(
 ) {
   assertNoRelationFieldPaths(collectListFieldPaths(body));
 
-  const validationInput = {
-    filter: body.filter,
-    sortFields: body.sort?.map(clause => clause.field),
-    projectionFields: body.projection,
-  };
+  const validationInput = toValidationInput(body);
 
   let { primaryKeys } = deps;
 
   if (hasCapabilityConstrainedInput(validationInput)) {
-    const { capabilities, readModel } =
-      await resolveForeignCapabilitiesAndReassertRelationIsStillExposed(deps);
+    const { capabilities, readModel } = await resolveForeignCapabilities(deps);
     assertValidAgainstCapabilities(validationInput, capabilities);
     primaryKeys = readModel.getPrimaryKeys(deps.foreignCollection);
   }
@@ -231,9 +246,7 @@ async function handleRelationCount(
   assertNoRelationFieldPaths(collectCountFieldPaths(body));
 
   if (body.filter !== undefined) {
-    const { capabilities } = await resolveForeignCapabilitiesAndReassertRelationIsStillExposed(
-      deps,
-    );
+    const { capabilities } = await resolveForeignCapabilities(deps);
     assertValidAgainstCapabilities({ filter: body.filter }, capabilities);
   }
 

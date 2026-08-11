@@ -1270,14 +1270,13 @@ describe('data routes middleware', () => {
         const refreshedRelationReadModel = new ReadModel([
           collection('users', [column('id'), relation('posts', 'HasMany', 'posts.id')]),
         ]);
-        let readModelReads = 0;
+        let foreignCollectionDropped = false;
         const refreshedStore = {
-          getReadModel: async () => {
-            readModelReads += 1;
-
-            return readModelReads < 3 ? relationReadModel : refreshedRelationReadModel;
-          },
+          getReadModel: async () =>
+            foreignCollectionDropped ? refreshedRelationReadModel : relationReadModel,
           getCapabilities: async () => {
+            foreignCollectionDropped = true;
+
             throw new Error('foreign collection is no longer exposed');
           },
         } as unknown as ReadModelStore;
@@ -1316,6 +1315,37 @@ describe('data routes middleware', () => {
         );
         expect(client.listRelation).not.toHaveBeenCalled();
         expect(client.countRelationRaw).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([['list'], ['count']])(
+      'should keep the original failure on a relation %s when the exposure re-check cannot read the schema',
+      async operation => {
+        const client = {
+          listRelation: jest.fn(async () => []),
+          countRelationRaw: jest.fn(async () => ({ count: 0 })),
+        };
+        let capabilitiesAttempted = false;
+        const store = {
+          getReadModel: async () => {
+            if (capabilitiesAttempted) throw new SchemaUnavailableError();
+
+            return relationReadModel;
+          },
+          getCapabilities: async () => {
+            capabilitiesAttempted = true;
+
+            throw new AgentHttpError(503, {}, 'Service Unavailable');
+          },
+        } as unknown as ReadModelStore;
+        const app = buildApp(store, client);
+
+        const response = await request(app.callback())
+          .post(`/agent/v1/users/relations/posts/${operation}`)
+          .send({ parentId: '7', filter: { field: 'title', operator: 'Present' } });
+
+        expect(response.status).toBe(503);
+        expect(response.body.error).toMatchObject({ type: 'agent_unavailable', status: 503 });
       },
     );
 
