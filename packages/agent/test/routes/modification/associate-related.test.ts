@@ -1,4 +1,4 @@
-import { Filter } from '@forestadmin/datasource-toolkit';
+import { Filter, Projection } from '@forestadmin/datasource-toolkit';
 import { createMockContext } from '@shopify/jest-koa-mocks';
 
 import AssociateRelatedRoute from '../../../src/routes/modification/associate-related';
@@ -112,8 +112,37 @@ describe('AssociateRelatedRoute', () => {
         }),
         { bookId: '123e4567-e89b-12d3-a456-111111111111' },
       );
-      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'bookPersons');
+      expect(services.authorization.assertCanEdit).not.toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
+    });
+
+    test('does not update the related records when the user cannot edit the foreign collection', async () => {
+      const { services, dataSource, options } = setupWithOneToManyRelation();
+
+      const route = new AssociateRelatedRoute(
+        services,
+        options,
+        dataSource,
+        'books',
+        'myBookPersons',
+      );
+
+      const error = new Error('Forbidden');
+      (services.authorization.assertCanEdit as jest.Mock).mockRejectedValueOnce(error);
+
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      await expect(route.handleAssociateRelatedRoute(context)).rejects.toThrow(error);
+
+      expect(dataSource.getCollection('bookPersons').update).not.toHaveBeenCalled();
     });
   });
 
@@ -199,6 +228,9 @@ describe('AssociateRelatedRoute', () => {
 
       const scope = factories.conditionTreeLeaf.build();
       services.authorization.getScope = jest.fn().mockResolvedValue(scope);
+      jest
+        .spyOn(dataSource.getCollection('libraries'), 'list')
+        .mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-222222222222' }]);
       const context = createMockContext({
         state: { user: { email: 'john.doe@domain.com' } },
         requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
@@ -212,6 +244,23 @@ describe('AssociateRelatedRoute', () => {
       await route.handleAssociateRelatedRoute(context);
 
       // then
+      expect(dataSource.getCollection('libraries').list).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'john.doe@domain.com' }),
+        new Filter({
+          conditionTree: factories.conditionTreeBranch.build({
+            aggregator: 'And',
+            conditions: [
+              factories.conditionTreeLeaf.build({
+                operator: 'Equal',
+                value: '123e4567-e89b-12d3-a456-222222222222',
+                field: 'id',
+              }),
+              scope,
+            ],
+          }),
+        }),
+        new Projection('id'),
+      );
       expect(dataSource.getCollection('librariesBooks').create).toHaveBeenCalledWith(
         {
           email: 'john.doe@domain.com',
@@ -226,8 +275,66 @@ describe('AssociateRelatedRoute', () => {
           },
         ],
       );
-      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'books');
+      expect(services.authorization.assertCanEdit).toHaveBeenCalledWith(context, 'libraries');
+      expect(services.authorization.assertCanEdit).not.toHaveBeenCalledWith(context, 'books');
       expect(context.response.status).toEqual(HttpCode.NoContent);
+    });
+
+    test('does not create the relation when the target is hidden by the scope', async () => {
+      const { services, dataSource, options } = setupWithManyToManyRelation();
+
+      const route = new AssociateRelatedRoute(
+        services,
+        options,
+        dataSource,
+        'books',
+        'manyToManyRelationField',
+      );
+
+      services.authorization.getScope = jest
+        .fn()
+        .mockResolvedValue(factories.conditionTreeLeaf.build());
+      jest.spyOn(dataSource.getCollection('libraries'), 'list').mockResolvedValue([]);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      await route.handleAssociateRelatedRoute(context);
+
+      expect(dataSource.getCollection('librariesBooks').create).not.toHaveBeenCalled();
+      expect(context.response.status).toEqual(HttpCode.NoContent);
+    });
+
+    test('does not create the relation when the user cannot edit the foreign collection', async () => {
+      const { services, dataSource, options } = setupWithManyToManyRelation();
+
+      const route = new AssociateRelatedRoute(
+        services,
+        options,
+        dataSource,
+        'books',
+        'manyToManyRelationField',
+      );
+
+      const error = new Error('Forbidden');
+      (services.authorization.assertCanEdit as jest.Mock).mockRejectedValueOnce(error);
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        requestBody: { data: [{ id: '123e4567-e89b-12d3-a456-222222222222' }] },
+        customProperties: {
+          query: { timezone: 'Europe/Paris' },
+          params: { parentId: '123e4567-e89b-12d3-a456-111111111111' },
+        },
+      });
+
+      await expect(route.handleAssociateRelatedRoute(context)).rejects.toThrow(error);
+
+      expect(dataSource.getCollection('librariesBooks').create).not.toHaveBeenCalled();
     });
   });
 
