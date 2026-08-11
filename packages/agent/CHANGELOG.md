@@ -1,3 +1,10 @@
+## @forestadmin/agent [1.93.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.93.0...@forestadmin/agent@1.93.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* **agent:** authorize count-related on the target collection instead of the parent ([#1818](https://github.com/ForestAdmin/agent-nodejs/issues/1818)) ([8d60e94](https://github.com/ForestAdmin/agent-nodejs/commit/8d60e946d37665f4e6fa441d606c3cb245abf624))
+
 # @forestadmin/agent [1.93.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent@1.92.1...@forestadmin/agent@1.93.0) (2026-08-10)
 
 
