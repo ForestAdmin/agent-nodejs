@@ -40,6 +40,9 @@ export default class Capabilities extends BaseRoute {
       agentCapabilities: {
         canUseProjectionOnGetOne: true,
         canUseProjectionViaHeader: true,
+        // Covers every record-listing route: list, relationship list and their csv exports.
+        // canUseProjectionViaHeader alone only guarantees get-one (agent 1.93.x).
+        canUseProjectionViaHeaderOnList: true,
         canUseMultipleFieldsProjectionOnRelation: true,
       },
       collections:

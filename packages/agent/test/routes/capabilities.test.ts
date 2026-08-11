@@ -78,6 +78,7 @@ describe('Capabilities', () => {
           agentCapabilities: {
             canUseProjectionOnGetOne: true,
             canUseProjectionViaHeader: true,
+            canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
           },
           collections: [],
@@ -101,6 +102,7 @@ describe('Capabilities', () => {
           agentCapabilities: {
             canUseProjectionOnGetOne: true,
             canUseProjectionViaHeader: true,
+            canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
           },
           collections: [],
@@ -122,6 +124,7 @@ describe('Capabilities', () => {
           agentCapabilities: {
             canUseProjectionOnGetOne: true,
             canUseProjectionViaHeader: true,
+            canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
           },
           collections: [],
@@ -145,6 +148,7 @@ describe('Capabilities', () => {
           agentCapabilities: {
             canUseProjectionOnGetOne: true,
             canUseProjectionViaHeader: true,
+            canUseProjectionViaHeaderOnList: true,
             canUseMultipleFieldsProjectionOnRelation: true,
           },
           collections: [
