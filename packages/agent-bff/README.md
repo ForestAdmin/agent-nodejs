@@ -58,7 +58,7 @@ yarn start:dev         # node --env-file=.env dist/cli.js
 | `HTTP_PORT`          | no       | Server port, integer 0–65535. Defaults to `3450`. `0` binds an OS-assigned ephemeral port. |
 | `BFF_ALLOWED_ORIGINS`| no       | Comma-separated CORS allow-list of exact origins (scheme + host + port). No wildcard. Empty ⇒ no cross-origin browser access. |
 | `BFF_DEFAULT_TIMEZONE`| no      | Fallback IANA timezone used when a request carries neither an `X-Forest-Timezone` header nor a body `timezone`. |
-| `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated caller then gets `404 openapi_disabled` on any method, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. |
+| `BFF_OPENAPI_ENABLED` | no       | Serve `GET/HEAD /agent/openapi.json` (auth-gated) when `true`. Defaults to `true`. Set to `false` for customers who do not want the HTTP surface exposed: an authenticated `GET`/`HEAD` then gets `404 openapi_disabled`, other methods fall through to the agent routes exactly as they do when enabled, and `forest-bff openapi` keeps working either way. Accepted values: `true`/`false`. |
 
 ### Config validation
 
