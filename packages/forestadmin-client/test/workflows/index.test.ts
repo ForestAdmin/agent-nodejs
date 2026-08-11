@@ -88,6 +88,71 @@ describe('WorkflowsService', () => {
     });
   });
 
+  describe('getMcpWorkflowById', () => {
+    const workflow = {
+      workflowId: 'wf-1',
+      name: 'Refund order',
+      collectionName: 'orders',
+      mcpEnabled: true,
+    };
+
+    it('should forward the identity and workflowId to the transport and return the workflow', async () => {
+      mockForestAdminServerInterface.getMcpWorkflowById.mockResolvedValue(workflow);
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, options);
+      const result = await service.getMcpWorkflowById({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        workflowId: 'wf-1',
+      });
+
+      expect(result).toEqual(workflow);
+      expect(mockForestAdminServerInterface.getMcpWorkflowById).toHaveBeenCalledWith(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'test-token', headers: undefined },
+        '12345',
+        'wf-1',
+      );
+    });
+
+    it('should pass custom headers when provided', async () => {
+      mockForestAdminServerInterface.getMcpWorkflowById.mockResolvedValue(workflow);
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, {
+        ...options,
+        headers: { 'Forest-Application-Source': 'MCP' },
+      });
+      await service.getMcpWorkflowById({
+        forestServerToken: 'test-token',
+        renderingId: '12345',
+        workflowId: 'wf-1',
+      });
+
+      expect(mockForestAdminServerInterface.getMcpWorkflowById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bearerToken: 'test-token',
+          headers: { 'Forest-Application-Source': 'MCP' },
+        }),
+        '12345',
+        'wf-1',
+      );
+    });
+
+    it('should throw when the transport does not implement getMcpWorkflowById', async () => {
+      delete (mockForestAdminServerInterface as Partial<ForestAdminServerInterface>)
+        .getMcpWorkflowById;
+
+      const service = new WorkflowsService(mockForestAdminServerInterface, options);
+
+      await expect(
+        service.getMcpWorkflowById({
+          forestServerToken: 'test-token',
+          renderingId: '12345',
+          workflowId: 'wf-1',
+        }),
+      ).rejects.toThrow('does not support getMcpWorkflowById');
+    });
+  });
+
   describe('triggerMcpWorkflow', () => {
     it('should forward the identity, workflowId and recordId to the transport and return the run', async () => {
       mockForestAdminServerInterface.triggerMcpWorkflow.mockResolvedValue({

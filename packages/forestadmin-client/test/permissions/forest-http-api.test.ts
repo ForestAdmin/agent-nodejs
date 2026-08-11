@@ -246,6 +246,55 @@ describe('ForestHttpApi', () => {
     });
   });
 
+  describe('getMcpWorkflowById', () => {
+    it('should GET the by-id workflow endpoint with the rendering id header', async () => {
+      const workflow = {
+        workflowId: 'wf-1',
+        name: 'Refund order',
+        collectionName: 'orders',
+        mcpEnabled: true,
+      };
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue(workflow);
+
+      const result = await new ForestHttpApi().getMcpWorkflowById(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        'wf-1',
+      );
+
+      expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith({
+        forestServerUrl: options.forestServerUrl,
+        method: 'get',
+        path: '/api/workflow-orchestrator/mcp-workflows/wf-1',
+        bearerToken: 'bearer-token',
+        headers: { 'forest-rendering-id': '12345' },
+      });
+      expect(result).toEqual(workflow);
+    });
+
+    it('should url-encode the workflow id in the path', async () => {
+      (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({
+        workflowId: 'wf/with space',
+        name: 'Refund order',
+        collectionName: null,
+        mcpEnabled: false,
+      });
+
+      await new ForestHttpApi().getMcpWorkflowById(
+        { forestServerUrl: options.forestServerUrl, bearerToken: 'bearer-token' },
+        '12345',
+        'wf/with space',
+      );
+
+      expect(ServerUtils.queryWithBearerToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'get',
+          path: '/api/workflow-orchestrator/mcp-workflows/wf%2Fwith%20space',
+        }),
+      );
+    });
+  });
+
   describe('triggerMcpWorkflow', () => {
     it('should POST the record id to the workflow start endpoint with the rendering id header', async () => {
       (ServerUtils.queryWithBearerToken as jest.Mock).mockResolvedValue({

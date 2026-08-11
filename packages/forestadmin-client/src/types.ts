@@ -300,6 +300,25 @@ export interface ListMcpWorkflowsParams {
 }
 
 /**
+ * A single workflow resolved by id (O(1) lookup). Unlike the listing, this also carries
+ * `mcpEnabled`: an existing-but-MCP-disabled workflow is returned with `mcpEnabled: false` rather
+ * than hidden, so the caller can label a fail-closed audit log before triggering while the
+ * start endpoint stays the guard that refuses a disabled trigger.
+ */
+export interface McpWorkflowLookup {
+  workflowId: string;
+  name: string;
+  collectionName: string | null;
+  mcpEnabled: boolean;
+}
+
+export interface GetMcpWorkflowByIdParams {
+  forestServerToken: string;
+  renderingId: string;
+  workflowId: string;
+}
+
+/**
  * The lifecycle state of a workflow run, as persisted by the orchestrator.
  */
 export type WorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | 'finished';
@@ -307,8 +326,8 @@ export type WorkflowRunState = 'started' | 'pending' | 'loading' | 'aborted' | '
 /**
  * The outcome of starting a workflow run: the run continues asynchronously server-side.
  * `runId` is normalized to a string so it can be fed back to `getMcpWorkflowRun` as-is.
- * `workflowName`/`collectionName` are echoed by the start endpoint to build the audit label
- * without a second round-trip; they are optional so older servers degrade gracefully.
+ * `workflowName`/`collectionName` are still echoed by the start endpoint; the audit label is now
+ * resolved up front via `getMcpWorkflowById`, so they are optional and only kept for compatibility.
  */
 export interface WorkflowRunTriggerResult {
   runId: string;
@@ -429,6 +448,7 @@ export interface GetMcpWorkflowRunParams {
  */
 export interface WorkflowsServiceInterface {
   listMcpEnabledWorkflows: (params: ListMcpWorkflowsParams) => Promise<McpWorkflow[]>;
+  getMcpWorkflowById: (params: GetMcpWorkflowByIdParams) => Promise<McpWorkflowLookup>;
   triggerMcpWorkflow: (params: TriggerMcpWorkflowParams) => Promise<WorkflowRunTriggerResult>;
   getMcpWorkflowRun: (params: GetMcpWorkflowRunParams) => Promise<HydratedWorkflowRun>;
 }
@@ -478,6 +498,11 @@ export interface ForestAdminServerInterface {
     renderingId: string,
     collectionName?: string,
   ) => Promise<McpWorkflow[]>;
+  getMcpWorkflowById?: (
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+  ) => Promise<McpWorkflowLookup>;
   triggerMcpWorkflow?: (
     options: ActivityLogHttpOptions,
     renderingId: string,

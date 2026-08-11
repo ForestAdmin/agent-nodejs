@@ -4,10 +4,12 @@ import type {
   CreateActivityLogParams,
   ForestSchemaCollection,
   ForestServerClient,
+  GetMcpWorkflowByIdParams,
   GetMcpWorkflowRunParams,
   HydratedWorkflowRun,
   ListMcpWorkflowsParams,
   McpWorkflow,
+  McpWorkflowLookup,
   SchemaServiceInterface,
   TriggerMcpWorkflowParams,
   UpdateActivityLogStatusParams,
@@ -45,6 +47,10 @@ export default class ForestServerClientImpl implements ForestServerClient {
 
   async listMcpEnabledWorkflows(params: ListMcpWorkflowsParams): Promise<McpWorkflow[]> {
     return this.workflowsService.listMcpEnabledWorkflows(params);
+  }
+
+  async getMcpWorkflowById(params: GetMcpWorkflowByIdParams): Promise<McpWorkflowLookup> {
+    return this.workflowsService.getMcpWorkflowById(params);
   }
 
   async triggerMcpWorkflow(params: TriggerMcpWorkflowParams): Promise<WorkflowRunTriggerResult> {

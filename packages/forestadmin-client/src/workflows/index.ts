@@ -1,9 +1,11 @@
 import type {
   ForestAdminServerInterface,
+  GetMcpWorkflowByIdParams,
   GetMcpWorkflowRunParams,
   HydratedWorkflowRun,
   ListMcpWorkflowsParams,
   McpWorkflow,
+  McpWorkflowLookup,
   TriggerMcpWorkflowParams,
   WorkflowRunTriggerResult,
 } from '../types';
@@ -36,6 +38,26 @@ export default class WorkflowsService {
       },
       renderingId,
       collectionName,
+    );
+  }
+
+  async getMcpWorkflowById(params: GetMcpWorkflowByIdParams): Promise<McpWorkflowLookup> {
+    const { forestServerToken, renderingId, workflowId } = params;
+
+    if (!this.forestAdminServerInterface.getMcpWorkflowById) {
+      throw new Error(
+        'The configured Forest server transport does not support getMcpWorkflowById.',
+      );
+    }
+
+    return this.forestAdminServerInterface.getMcpWorkflowById(
+      {
+        forestServerUrl: this.options.forestServerUrl,
+        bearerToken: forestServerToken,
+        headers: this.options.headers,
+      },
+      renderingId,
+      workflowId,
     );
   }
 

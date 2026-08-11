@@ -13,6 +13,23 @@ describe('ForestAdminClientMock', () => {
       ).resolves.toEqual([]);
     });
 
+    it('should resolve an mcp-enabled workflow when fetching one by id', async () => {
+      const client = new ForestAdminClientMock();
+
+      await expect(
+        client.workflowsService.getMcpWorkflowById({
+          forestServerToken: 'token',
+          renderingId: '1',
+          workflowId: 'wf-1',
+        }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          workflowId: 'wf-1',
+          mcpEnabled: true,
+        }),
+      );
+    });
+
     it('should resolve a loading run when triggering a workflow', async () => {
       const client = new ForestAdminClientMock();
 

@@ -11,6 +11,7 @@ import type {
   HydratedWorkflowRun,
   IpWhitelistRulesResponse,
   McpWorkflow,
+  McpWorkflowLookup,
   WorkflowRunTriggerResult,
 } from '../types';
 import type { HttpOptions } from '../utils/http-options';
@@ -166,6 +167,20 @@ export default class ForestHttpApi implements ForestAdminServerInterface {
       forestServerUrl: options.forestServerUrl,
       method: 'get',
       path: `/api/workflow-orchestrator/mcp-workflows${query}`,
+      bearerToken: options.bearerToken,
+      headers: { 'forest-rendering-id': renderingId, ...options.headers },
+    });
+  }
+
+  async getMcpWorkflowById(
+    options: ActivityLogHttpOptions,
+    renderingId: string,
+    workflowId: string,
+  ): Promise<McpWorkflowLookup> {
+    return ServerUtils.queryWithBearerToken<McpWorkflowLookup>({
+      forestServerUrl: options.forestServerUrl,
+      method: 'get',
+      path: `/api/workflow-orchestrator/mcp-workflows/${encodeURIComponent(workflowId)}`,
       bearerToken: options.bearerToken,
       headers: { 'forest-rendering-id': renderingId, ...options.headers },
     });

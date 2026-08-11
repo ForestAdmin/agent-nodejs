@@ -15,6 +15,12 @@ export default function createMockForestServerClient(
     }),
     updateActivityLogStatus: jest.fn().mockResolvedValue(undefined),
     listMcpEnabledWorkflows: jest.fn().mockResolvedValue([]),
+    getMcpWorkflowById: jest.fn().mockResolvedValue({
+      workflowId: 'wf-1',
+      name: 'Refund order',
+      collectionName: 'orders',
+      mcpEnabled: true,
+    }),
     triggerMcpWorkflow: jest.fn().mockResolvedValue({ runId: '1', runState: 'loading' }),
     getMcpWorkflowRun: jest.fn().mockResolvedValue({
       id: 1,

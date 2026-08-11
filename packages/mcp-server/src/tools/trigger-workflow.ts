@@ -1,15 +1,13 @@
-import type { WorkflowRunTriggerResult } from '../http-client';
+import type { McpWorkflowLookup } from '../http-client';
 import type { ToolContext } from '../tool-context';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { NotFoundError } from '@forestadmin/forestadmin-client';
 import { z } from 'zod';
 
-import createPendingActivityLog, {
-  markActivityLogAsSucceeded,
-} from '../utils/activity-logs-creator';
 import getAuthContext from '../utils/auth-context';
 import registerToolWithLogging from '../utils/tool-with-logging';
+import withActivityLog from '../utils/with-activity-log';
 
 const WORKFLOW_ID_DESCRIPTION =
   'The id of the workflow to start, as returned by listWorkflows. The workflow must have the MCP ' +
@@ -22,6 +20,16 @@ const RECORD_ID_DESCRIPTION =
 interface TriggerWorkflowArgument {
   workflowId: string;
   recordId: string;
+}
+
+// The server answers 404 both for an unknown workflow and for one whose MCP trigger is disabled
+// (and getMcpWorkflowById returns mcpEnabled: false for the latter). Surface the same guidance in
+// every case so the LLM-facing contract stays identical.
+function notMcpEnabledMessage(workflowId: string): string {
+  return (
+    `Workflow "${workflowId}" is not an MCP-enabled workflow you can access. ` +
+    'Use listWorkflows to discover triggerable workflows.'
+  );
 }
 
 export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: ToolContext): string {
@@ -45,53 +53,52 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
     async (args: TriggerWorkflowArgument, extra) => {
       const { forestServerToken, renderingId } = getAuthContext(extra);
 
-      let result: WorkflowRunTriggerResult;
+      // Resolve the workflow O(1) up front so the audit log can be labelled with its name/collection
+      // BEFORE the trigger (fail-closed, like create/update/delete). Reject unknown or MCP-disabled
+      // workflows here — no run is started and no log is written for a non-triggerable workflow.
+      let workflow: McpWorkflowLookup;
 
       try {
-        result = await forestServerClient.triggerMcpWorkflow({
+        workflow = await forestServerClient.getMcpWorkflowById({
           forestServerToken,
           renderingId,
           workflowId: args.workflowId,
-          recordId: args.recordId,
         });
       } catch (error) {
-        // The server answers 404 both for an unknown workflow and for one whose MCP trigger is
-        // disabled (indistinguishable on purpose). Surface the same guidance the tool gave when
-        // it validated the id client-side, so the LLM-facing contract stays identical.
         if (error instanceof NotFoundError) {
-          throw new Error(
-            `Workflow "${args.workflowId}" is not an MCP-enabled workflow you can access. ` +
-              'Use listWorkflows to discover triggerable workflows.',
-          );
+          throw new Error(notMcpEnabledMessage(args.workflowId));
         }
 
         throw error;
       }
 
-      // Audit the successful trigger. The start endpoint echoes the workflow name/collection so we
-      // can label the log without a prior listing; fall back to the id when an older server omits
-      // them. The run is already started, so a logging hiccup must not fail the tool.
-      try {
-        const activityLog = await createPendingActivityLog(
-          forestServerClient,
-          extra,
-          'triggerWorkflow',
-          {
-            collectionName: result.collectionName ?? undefined,
-            recordId: args.recordId,
-            label: `triggered the workflow "${result.workflowName ?? args.workflowId}"`,
-          },
-        );
-
-        markActivityLogAsSucceeded({ forestServerClient, request: extra, activityLog, logger });
-      } catch (error) {
-        logger(
-          'Warn',
-          `Failed to record triggerWorkflow activity log: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
+      if (!workflow.mcpEnabled) {
+        throw new Error(notMcpEnabledMessage(args.workflowId));
       }
+
+      const result = await withActivityLog({
+        forestServerClient,
+        request: extra,
+        action: 'triggerWorkflow',
+        context: {
+          collectionName: workflow.collectionName ?? undefined,
+          recordId: args.recordId,
+          label: `triggered the workflow "${workflow.name}"`,
+        },
+        logger,
+        operation: () =>
+          forestServerClient.triggerMcpWorkflow({
+            forestServerToken,
+            renderingId,
+            workflowId: args.workflowId,
+            recordId: args.recordId,
+          }),
+        // Guard the race where the workflow is disabled/deleted between the lookup and the trigger.
+        errorEnhancer: async (parsedMessage, originalError) =>
+          originalError instanceof NotFoundError
+            ? notMcpEnabledMessage(args.workflowId)
+            : parsedMessage,
+      });
 
       return {
         content: [
