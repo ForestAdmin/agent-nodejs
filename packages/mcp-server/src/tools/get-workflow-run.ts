@@ -28,9 +28,11 @@ export default function declareGetWorkflowRunTool(mcpServer: McpServer, ctx: Too
         'type, outgoing branches) and its per-step context (completion, selected option, error, ' +
         'escalation state, awaiting-input reason). Use it to see exactly where the run is and ' +
         'what each step does. A run parked on a human-gated step cannot be resumed via MCP in ' +
-        'v1 and must be finished from the Forest UI.',
+        'v1 and must be finished from the Forest UI. Poll at a reasonable interval: wait at ' +
+        'least a few seconds between calls, and do not busy-loop on a long-running or ' +
+        'human-gated run (which never resolves via MCP in v1).',
       inputSchema: {
-        runId: z.string().describe(RUN_ID_DESCRIPTION),
+        runId: z.string().min(1).describe(RUN_ID_DESCRIPTION),
       },
     },
     async (args: GetWorkflowRunArgument, extra) => {

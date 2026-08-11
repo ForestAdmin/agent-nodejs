@@ -81,8 +81,10 @@ describe('declareTriggerWorkflowTool', () => {
 
       expect(() => schema.workflowId.parse('wf-1')).not.toThrow();
       expect(() => schema.workflowId.parse(undefined)).toThrow();
+      expect(() => schema.workflowId.parse('')).toThrow();
       expect(() => schema.recordId.parse('42')).not.toThrow();
       expect(() => schema.recordId.parse(123)).toThrow();
+      expect(() => schema.recordId.parse('')).toThrow();
     });
   });
 

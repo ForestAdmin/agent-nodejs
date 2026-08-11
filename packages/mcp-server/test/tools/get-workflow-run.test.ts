@@ -56,6 +56,7 @@ describe('declareGetWorkflowRunTool', () => {
       expect(registeredToolConfig.title).toBe('Get a workflow run status');
       expect(registeredToolConfig.description).toContain('workflowHistory');
       expect(registeredToolConfig.description).toContain('cannot be resumed via MCP');
+      expect(registeredToolConfig.description).toContain('wait at least a few seconds');
     });
 
     it('should be annotated as read-only', () => {
@@ -83,6 +84,7 @@ describe('declareGetWorkflowRunTool', () => {
       expect(() => schema.runId.parse('7')).not.toThrow();
       expect(() => schema.runId.parse(undefined)).toThrow();
       expect(() => schema.runId.parse(7)).toThrow();
+      expect(() => schema.runId.parse('')).toThrow();
     });
   });
 

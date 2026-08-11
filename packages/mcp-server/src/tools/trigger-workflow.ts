@@ -46,8 +46,8 @@ export default function declareTriggerWorkflowTool(mcpServer: McpServer, ctx: To
         'is not validated at trigger time: an invalid record surfaces later via getWorkflowRun. ' +
         'Discover triggerable workflows with listWorkflows first.',
       inputSchema: {
-        workflowId: z.string().describe(WORKFLOW_ID_DESCRIPTION),
-        recordId: z.string().describe(RECORD_ID_DESCRIPTION),
+        workflowId: z.string().min(1).describe(WORKFLOW_ID_DESCRIPTION),
+        recordId: z.string().min(1).describe(RECORD_ID_DESCRIPTION),
       },
     },
     async (args: TriggerWorkflowArgument, extra) => {
