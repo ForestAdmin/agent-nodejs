@@ -82,8 +82,8 @@ export default function createPermissionsRoutesMiddleware({
     }
 
     const caller = resolveCaller(ctx);
-    const generationBeforeRead = cache.currentGeneration;
     const readModel = await resolveReadModel(store);
+    const generationBeforeRead = cache.currentGeneration;
     const collections = resolveRequestedCollections(ctx, readModel);
     const cacheKey = buildCacheKey({ envSecret, callerId: caller.cacheId, collections });
 

@@ -374,24 +374,51 @@ describe('createPermissionsRoutesMiddleware', () => {
     });
   });
 
-  describe('when the read model is refreshed while the request awaits it', () => {
-    it('should not cache hints built from the superseded generation', async () => {
+  describe('when the read model is refreshed after the request read it', () => {
+    it('should store the hints under the refreshed generation, not the superseded one', async () => {
       const cache = new PermissionsCache();
-      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
-      const store = {
-        getReadModel: async () => {
+      const client: PermissionsFetcher = {
+        fetchPermissions: jest.fn(async () => {
           cache.clear();
 
-          return readModel();
-        },
-      } as unknown as ReadModelStore;
+          return { environmentPermissions: NORMAL_MODE, users: USERS };
+        }),
+      };
+      const app = appOf({ client, cache, store: storeOf() });
+
+      const response = await request(app.callback()).get(ROUTE).query({ collections: 'users' });
+
+      expect(response.status).toBe(200);
+
+      const cached = cache.getFresh(
+        buildCacheKey({
+          envSecret: ENV_SECRET,
+          callerId: `oauth:${CALLER_ID}:7`,
+          collections: ['users'],
+        }),
+      );
+
+      expect(cached).toEqual(response.body);
+    });
+  });
+
+  describe('when the read model is resolved for a request', () => {
+    it('should resolve it once rather than re-reading it after its own generation bump', async () => {
+      const cache = new PermissionsCache();
+      const getReadModel = jest.fn(async () => {
+        cache.clear();
+
+        return readModel();
+      });
+      const store = { getReadModel } as unknown as ReadModelStore;
+      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
 
       const response = await request(appOf({ client, cache, store }).callback())
         .get(ROUTE)
         .query({ collections: 'users' });
 
       expect(response.status).toBe(200);
-      expect(cache.size).toBe(0);
+      expect(getReadModel).toHaveBeenCalledTimes(1);
     });
   });
 
