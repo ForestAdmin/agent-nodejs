@@ -210,12 +210,12 @@ describe('QueryStringParser', () => {
           customProperties: { query: { 'fields[cars]': 'id,owner', 'fields[owner]': 'name' } },
         });
 
-        const projection = QueryStringParser.parseProjectionWithPks(
+        const projection = QueryStringParser.parseProjection(
           dataSource.getCollection('cars'),
           context,
         );
 
-        expect(projection).toEqual(new Projection('id', 'owner:name', 'owner:id'));
+        expect(projection).toEqual(new Projection('id', 'owner:name'));
       });
     });
   });
@@ -415,60 +415,6 @@ describe('QueryStringParser', () => {
       expect(fn).toThrow(
         "Invalid Forest-Projection header: The 'books.field-that-do-not-exist' field was not found. Available fields are: [id,name]. Please check if the field name is correct.",
       );
-    });
-  });
-
-  describe('parseProjectionWithPks', () => {
-    describe('when the request does not contain the primary keys', () => {
-      test('should return the requested project with the primary keys', () => {
-        const context = createMockContext({
-          customProperties: { query: { 'fields[books]': 'name' } },
-        });
-
-        const projection = QueryStringParser.parseProjectionWithPks(collectionSimple, context);
-
-        expect(projection).toEqual(new Projection('name', 'id'));
-      });
-    });
-
-    describe('on a collection with relationships', () => {
-      const dataSource = factories.dataSource.buildWithCollections([
-        factories.collection.build({
-          name: 'cars',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.uuidPrimaryKey().build(),
-              name: factories.columnSchema.build(),
-              owner: factories.oneToOneSchema.build({
-                foreignCollection: 'owner',
-                originKey: 'id',
-              }),
-            },
-          }),
-        }),
-        factories.collection.build({
-          name: 'owner',
-          schema: factories.collectionSchema.build({
-            fields: {
-              id: factories.columnSchema.uuidPrimaryKey().build(),
-              name: factories.columnSchema.build(),
-            },
-          }),
-        }),
-      ]);
-
-      test('should convert the request to a valid projection', () => {
-        const context = createMockContext({
-          customProperties: { query: { 'fields[cars]': 'id,owner', 'fields[owner]': 'name' } },
-        });
-
-        const projection = QueryStringParser.parseProjectionWithPks(
-          dataSource.getCollection('cars'),
-          context,
-        );
-
-        expect(projection).toEqual(new Projection('id', 'owner:name', 'owner:id'));
-      });
     });
   });
 
