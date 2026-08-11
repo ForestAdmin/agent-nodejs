@@ -1,13 +1,13 @@
-import type { ActionPermissions } from './action-permissions';
 import type ReadModel from '../read-model/read-model';
-import type { EnvironmentPermissionsV4 } from '@forestadmin/forestadmin-client';
+import type { ActionPermissions, EnvironmentPermissionsV4 } from '@forestadmin/forestadmin-client';
 
-import { CollectionActionEvent, CustomActionEvent } from './action-identifiers';
 import {
-  buildActionPermissions,
-  canRolePerformCollectionAction,
-  canRolePerformCustomAction,
-} from './action-permissions';
+  CollectionActionEvent,
+  CustomActionEvent,
+  generateActionsFromPermissions,
+} from '@forestadmin/forestadmin-client';
+
+import { canRolePerformCollectionAction, canRolePerformCustomAction } from './can-role-perform';
 
 export const DISPLAY_HINT_FINALITY = 'display_hint';
 
@@ -143,7 +143,7 @@ function buildCollectionHints(
 }
 
 export default function buildPermissionHints(params: BuildPermissionHintsParams): PermissionHints {
-  const permissions = buildActionPermissions(params.environmentPermissions);
+  const permissions = generateActionsFromPermissions(params.environmentPermissions);
   const collections: Record<string, CollectionHints> = Object.create(null);
   const visibleActions: string[] = [];
 
