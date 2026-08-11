@@ -1,3 +1,10 @@
+# @forestadmin/agent-bff [1.13.0](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.12.1...@forestadmin/agent-bff@1.13.0) (2026-08-11)
+
+
+### Features
+
+* **agent-bff:** serve the static OpenAPI document behind the agent gate ([#1810](https://github.com/ForestAdmin/agent-nodejs/issues/1810)) ([314b955](https://github.com/ForestAdmin/agent-nodejs/commit/314b9551da2e52c4227c8ca8a39ff4de20c3fa0a))
+
 ## @forestadmin/agent-bff [1.12.1](https://github.com/ForestAdmin/agent-nodejs/compare/@forestadmin/agent-bff@1.12.0...@forestadmin/agent-bff@1.12.1) (2026-08-11)
 
 
