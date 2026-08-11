@@ -21,7 +21,9 @@ export default class CsvRoute extends CollectionRoute {
     const { header } = context.request.query as Record<string, string>;
     CsvRouteContext.buildResponse(context);
 
-    const projection = QueryStringParser.parseProjection(this.collection, context);
+    const projection =
+      QueryStringParser.parseProjectionFromHeader(this.collection, context) ??
+      QueryStringParser.parseProjection(this.collection, context);
     const scope = await this.services.authorization.getScope(this.collection, context);
     const caller = QueryStringParser.parseCaller(context);
     const filter = ContextFilterFactory.buildPaginated(this.collection, context, scope);

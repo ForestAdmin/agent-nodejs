@@ -108,6 +108,48 @@ describe('CsvRoute', () => {
       );
     });
 
+    it('should give precedence to the Forest-Projection header over query params', async () => {
+      const { options, services, dataSource } = setup();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'name' },
+        customProperties: {
+          query: { 'fields[books]': 'id', header: 'name', timezone: 'Europe/Paris' },
+        },
+      });
+
+      dataSource.getCollection('books').list = jest.fn().mockReturnValue([]);
+      const csvGenerator = jest.spyOn(CsvGenerator, 'generate');
+
+      await csvRoute.handleCsv(context);
+
+      await readCsv(context.response.body as AsyncGenerator<string>);
+      expect(csvGenerator).toHaveBeenCalledWith(
+        expect.anything(),
+        ['name'],
+        'name',
+        expect.anything(),
+        limitExportSize,
+        dataSource.getCollection('books'),
+        expect.any(Function),
+      );
+    });
+
+    it('should not fall back to query params when the header is invalid', async () => {
+      const { options, services, dataSource } = setup();
+      const csvRoute = new CsvRoute(services, options, dataSource, 'books');
+      const context = createMockContext({
+        state: { user: { email: 'john.doe@domain.com' } },
+        headers: { 'forest-projection': 'field-that-do-not-exist' },
+        customProperties: {
+          query: { 'fields[books]': 'id', header: 'id', timezone: 'Europe/Paris' },
+        },
+      });
+
+      await expect(csvRoute.handleCsv(context)).rejects.toThrow('Invalid Forest-Projection header');
+    });
+
     it('should return the records as the csv format', async () => {
       const { options, services, dataSource } = setup();
 

@@ -367,6 +367,19 @@ describe('Agent Integration Tests', () => {
         expect(response.body.data[0].attributes).toEqual({ id: 1, title: 'First Post' });
       });
 
+      it('should honor the Forest-Projection header on csv export requests', async () => {
+        const token = createTestToken();
+
+        const response = await superagent
+          .get(`${testContext.baseUrl}/forest/users.csv`)
+          .query({ timezone: 'Europe/Paris', header: 'firstName' })
+          .set('Authorization', `Bearer ${token}`)
+          .set('Forest-Projection', 'firstName');
+
+        expect(response.status).toBe(200);
+        expect(response.text).toBe('firstName\nJohn\nJane\nBob\n');
+      });
+
       it('should ignore the Forest-Projection header on count requests', async () => {
         const token = createTestToken();
 
