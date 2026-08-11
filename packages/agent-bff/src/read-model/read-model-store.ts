@@ -11,14 +11,9 @@ const MAX_GENERATION_RETRIES = 3;
  * of the cache `revision`) rebuilds the read-model and clears capabilities atomically, so the
  * allow-list and capabilities never split-brain across schema generations.
  */
-export interface SchemaGenerationScopedCache {
-  clear(): void;
-}
-
 export default class ReadModelStore {
   private readonly schemaCache: SchemaCache;
   private readonly capabilitiesCache: CapabilitiesCache;
-  private readonly generationScopedCaches: SchemaGenerationScopedCache[] = [];
 
   private builtRevision = -1;
   private readModel: ReadModel | null = null;
@@ -28,10 +23,6 @@ export default class ReadModelStore {
     this.capabilitiesCache = capabilitiesCache;
   }
 
-  registerGenerationScopedCache(cache: SchemaGenerationScopedCache): void {
-    this.generationScopedCaches.push(cache);
-  }
-
   async getReadModel(): Promise<ReadModel> {
     const collections = await this.schemaCache.get();
 
@@ -39,7 +30,6 @@ export default class ReadModelStore {
       this.readModel = new ReadModel(collections);
       this.builtRevision = this.schemaCache.revision;
       this.capabilitiesCache.clear();
-      this.generationScopedCaches.forEach(cache => cache.clear());
     }
 
     return this.readModel;

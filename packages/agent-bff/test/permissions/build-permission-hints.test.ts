@@ -1,6 +1,8 @@
 import type ReadModel from '../../src/read-model/read-model';
 import type { EnvironmentPermissionsV4 } from '@forestadmin/forestadmin-client';
 
+import { generateActionsFromPermissions } from '@forestadmin/forestadmin-client';
+
 import buildPermissionHints, {
   DISPLAY_HINT_FINALITY,
 } from '../../src/permissions/build-permission-hints';
@@ -59,7 +61,7 @@ describe('buildPermissionHints', () => {
   describe('when the environment is in development mode', () => {
     it('should return every CRUD hint true and every approval hint false', () => {
       const hints = buildPermissionHints({
-        environmentPermissions: true,
+        actionPermissions: generateActionsFromPermissions(true),
         roleId: VIEWER_ROLE,
         readModel: readModelStub({ users: ['Block user'] }),
         collections: ['users'],
@@ -89,7 +91,7 @@ describe('buildPermissionHints', () => {
   describe('when the caller role holds every descriptor in normal mode', () => {
     it('should return CRUD, visibility and approval hints computed from the descriptors', () => {
       const hints = buildPermissionHints({
-        environmentPermissions: NORMAL_MODE,
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
         roleId: ADMIN_ROLE,
         readModel: readModelStub({ users: ['Block user'] }),
         collections: ['users'],
@@ -116,7 +118,7 @@ describe('buildPermissionHints', () => {
   describe('when the caller role holds no descriptor in normal mode', () => {
     it('should return every hint false and omit the action from visibleActions', () => {
       const hints = buildPermissionHints({
-        environmentPermissions: NORMAL_MODE,
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
         roleId: VIEWER_ROLE,
         readModel: readModelStub({ users: ['Block user'] }),
         collections: ['users'],
@@ -152,7 +154,7 @@ describe('buildPermissionHints', () => {
       } as unknown as EnvironmentPermissionsV4;
 
       const hints = buildPermissionHints({
-        environmentPermissions: permissions,
+        actionPermissions: generateActionsFromPermissions(permissions),
         roleId: ADMIN_ROLE,
         readModel: readModelStub({ users: [] }),
         collections: ['users'],
@@ -172,7 +174,7 @@ describe('buildPermissionHints', () => {
   describe('when a collection is absent from the permission payload entirely', () => {
     it('should return every CRUD hint false rather than throwing', () => {
       const hints = buildPermissionHints({
-        environmentPermissions: NORMAL_MODE,
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
         roleId: ADMIN_ROLE,
         readModel: readModelStub({ ghosts: [] }),
         collections: ['ghosts'],
@@ -192,7 +194,7 @@ describe('buildPermissionHints', () => {
   describe('when an action is exposed by the schema but absent from the permission payload', () => {
     it('should return it with visible false rather than omitting it', () => {
       const hints = buildPermissionHints({
-        environmentPermissions: NORMAL_MODE,
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
         roleId: ADMIN_ROLE,
         readModel: readModelStub({ users: ['Block user', 'Ghost action'] }),
         collections: ['users'],
@@ -212,7 +214,7 @@ describe('buildPermissionHints', () => {
   describe('when an action is absent from the schema', () => {
     it('should omit it entirely even though the payload describes it', () => {
       const hints = buildPermissionHints({
-        environmentPermissions: NORMAL_MODE,
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
         roleId: ADMIN_ROLE,
         readModel: readModelStub({ users: [] }),
         collections: ['users'],
@@ -229,7 +231,7 @@ describe('buildPermissionHints', () => {
       actionsByCollection[prototypeName] = ['Block user'];
 
       const hints = buildPermissionHints({
-        environmentPermissions: true,
+        actionPermissions: generateActionsFromPermissions(true),
         roleId: ADMIN_ROLE,
         readModel: readModelStub(actionsByCollection),
         collections: [prototypeName],
@@ -243,7 +245,7 @@ describe('buildPermissionHints', () => {
   describe('when a dotted collection name could collide with another qualified action', () => {
     it('should keep each action addressable under its own collection', () => {
       const hints = buildPermissionHints({
-        environmentPermissions: true,
+        actionPermissions: generateActionsFromPermissions(true),
         roleId: ADMIN_ROLE,
         readModel: readModelStub({ User: ['address.reset'], 'User.address': ['reset'] }),
         collections: ['User', 'User.address'],
@@ -263,7 +265,7 @@ describe('buildPermissionHints', () => {
   describe('when hints are built', () => {
     it('should never expose a roleId or a raw roles array', () => {
       const hints = buildPermissionHints({
-        environmentPermissions: NORMAL_MODE,
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
         roleId: ADMIN_ROLE,
         readModel: readModelStub({ users: ['Block user'] }),
         collections: ['users'],

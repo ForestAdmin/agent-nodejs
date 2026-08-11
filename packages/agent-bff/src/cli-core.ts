@@ -165,7 +165,10 @@ function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middlewa
   const apiKeyConfig = resolveApiKeyConfig(config);
 
   if (!apiKeyConfig) {
-    logger('Warn', 'Data endpoints disabled: AGENT_URL or read-model configuration is missing');
+    logger(
+      'Warn',
+      'Data, action and permissions endpoints disabled: FOREST_SERVER_URL, FOREST_ENV_SECRET or FOREST_AUTH_SECRET is missing',
+    );
 
     return [createAgentStubMiddleware()];
   }
@@ -176,8 +179,6 @@ function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middlewa
     logger,
   });
   const { agentUrl, agentTimeoutMs: timeoutMs } = config;
-  const permissionsCache = new PermissionsCache();
-  store.registerGenerationScopedCache(permissionsCache);
 
   const permissionsMiddleware = createPermissionsRoutesMiddleware({
     store,
@@ -185,13 +186,12 @@ function buildAgentRouteMiddlewares(config: BFFConfig, logger: Logger): Middlewa
       forestServerUrl: apiKeyConfig.forestServerUrl,
       envSecret: apiKeyConfig.forestEnvSecret,
     }),
-    cache: permissionsCache,
-    envSecret: apiKeyConfig.forestEnvSecret,
+    cache: new PermissionsCache(),
     logger,
   });
 
   if (!agentUrl) {
-    logger('Warn', 'Data endpoints disabled: AGENT_URL or read-model configuration is missing');
+    logger('Warn', 'Data and action endpoints disabled: AGENT_URL is missing');
 
     return [permissionsMiddleware, createAgentStubMiddleware()];
   }

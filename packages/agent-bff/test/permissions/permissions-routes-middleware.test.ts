@@ -4,13 +4,13 @@ import type ReadModelStore from '../../src/read-model/read-model-store';
 import type { EnvironmentPermissionsV4, UserPermissionV4 } from '@forestadmin/forestadmin-client';
 import type { Middleware } from 'koa';
 
+import { generateActionsFromPermissions } from '@forestadmin/forestadmin-client';
 import Koa from 'koa';
 import request from 'supertest';
 
 import createErrorMiddleware from '../../src/http/error-middleware';
 import PermissionsCache, {
   PERMISSIONS_CACHE_TTL_MS,
-  buildCacheKey,
 } from '../../src/permissions/permissions-cache';
 import createPermissionsRoutesMiddleware from '../../src/permissions/permissions-routes-middleware';
 import ReadModel from '../../src/read-model/read-model';
@@ -19,7 +19,7 @@ import { action, collection, column } from '../read-model/fixtures';
 const ADMIN_ROLE = 1;
 const VIEWER_ROLE = 2;
 const CALLER_ID = 42;
-const ENV_SECRET = 'env-secret';
+const VIEWER_ID = 99;
 const ROUTE = '/agent/v1/permissions';
 
 const noopLogger: Logger = () => {};
@@ -56,7 +56,7 @@ const NORMAL_MODE = {
 
 const USERS: UserPermissionV4[] = [
   { id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4,
-  { id: 99, roleId: VIEWER_ROLE } as UserPermissionV4,
+  { id: VIEWER_ID, roleId: VIEWER_ROLE } as UserPermissionV4,
 ];
 
 function readModel(): ReadModel {
@@ -111,7 +111,6 @@ function appOf({
       store,
       client,
       cache,
-      envSecret: ENV_SECRET,
       logger: noopLogger,
     }),
   );
@@ -144,6 +143,18 @@ describe('createPermissionsRoutesMiddleware', () => {
 
       expect(response.status).toBe(200);
       expect(Object.keys(response.body.collections).sort()).toEqual(['orders', 'users']);
+    });
+  });
+
+  describe('when the collections parameter is present but empty', () => {
+    it('should scope to nothing rather than falling back to every collection', async () => {
+      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
+
+      const response = await request(appOf({ client }).callback()).get(`${ROUTE}?collections=`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.collections).toEqual({});
+      expect(response.body.visibleActions).toEqual([]);
     });
   });
 
@@ -186,6 +197,25 @@ describe('createPermissionsRoutesMiddleware', () => {
 
       expect(response.status).toBe(200);
       expect(Object.keys(response.body.collections)).toEqual(['users']);
+    });
+  });
+
+  describe('when a caller absent from the cached users payload calls in', () => {
+    it('should refetch once and serve them rather than returning a stale 403', async () => {
+      const cache = new PermissionsCache();
+      cache.set({
+        actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
+        users: [{ id: CALLER_ID, roleId: ADMIN_ROLE } as UserPermissionV4],
+      });
+      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
+
+      const response = await request(appOf({ client, cache, callerId: VIEWER_ID }).callback())
+        .get(ROUTE)
+        .query({ collections: 'users' });
+
+      expect(response.status).toBe(200);
+      expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
+      expect(response.body.collections.users.crud.browse).toBe(false);
     });
   });
 
@@ -253,32 +283,31 @@ describe('createPermissionsRoutesMiddleware', () => {
   });
 
   describe('when the same caller asks for a different collections set', () => {
-    it('should miss the cache and fetch again', async () => {
+    it('should reuse the cached permissions and scope the response to that set', async () => {
       const cache = new PermissionsCache();
       const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
       const app = appOf({ client, cache });
 
-      await request(app.callback()).get(ROUTE).query({ collections: 'users' });
-      await request(app.callback()).get(ROUTE).query({ collections: 'users,orders' });
+      const first = await request(app.callback()).get(ROUTE).query({ collections: 'users' });
+      const second = await request(app.callback())
+        .get(ROUTE)
+        .query({ collections: 'users,orders' });
 
-      expect(client.fetchPermissions).toHaveBeenCalledTimes(2);
+      expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
+      expect(Object.keys(first.body.collections)).toEqual(['users']);
+      expect(Object.keys(second.body.collections).sort()).toEqual(['orders', 'users']);
     });
   });
 
   describe('when a concurrent request populates the cache while this fetch fails', () => {
     it('should serve the entry that landed during the failed fetch', async () => {
       const cache = new PermissionsCache();
-      const hints = { collections: {}, visibleActions: ['users.Block user'] };
       const client: PermissionsFetcher = {
         fetchPermissions: jest.fn(async () => {
-          cache.set(
-            buildCacheKey({
-              envSecret: ENV_SECRET,
-              callerId: `oauth:${CALLER_ID}:7`,
-              collections: ['users'],
-            }),
-            hints as never,
-          );
+          cache.set({
+            actionPermissions: generateActionsFromPermissions(NORMAL_MODE),
+            users: USERS,
+          });
 
           throw new Error('SaaS down');
         }),
@@ -347,7 +376,6 @@ describe('createPermissionsRoutesMiddleware', () => {
           store: storeOf(),
           client,
           cache: new PermissionsCache(),
-          envSecret: ENV_SECRET,
           logger: noopLogger,
         }),
       );
@@ -361,64 +389,58 @@ describe('createPermissionsRoutesMiddleware', () => {
   });
 
   describe('when a different caller asks for the same collections', () => {
-    it('should miss the cache and fetch again', async () => {
+    it('should reuse the cached permissions and resolve that caller role from them', async () => {
       const cache = new PermissionsCache();
       const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
 
-      await request(appOf({ client, cache }).callback()).get(ROUTE).query({ collections: 'users' });
-      await request(appOf({ client, cache, callerId: 99 }).callback())
+      const first = await request(appOf({ client, cache }).callback())
+        .get(ROUTE)
+        .query({ collections: 'users' });
+      const second = await request(appOf({ client, cache, callerId: VIEWER_ID }).callback())
         .get(ROUTE)
         .query({ collections: 'users' });
 
-      expect(client.fetchPermissions).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('when the read model is refreshed after the request read it', () => {
-    it('should store the hints under the refreshed generation, not the superseded one', async () => {
-      const cache = new PermissionsCache();
-      const client: PermissionsFetcher = {
-        fetchPermissions: jest.fn(async () => {
-          cache.clear();
-
-          return { environmentPermissions: NORMAL_MODE, users: USERS };
-        }),
-      };
-      const app = appOf({ client, cache, store: storeOf() });
-
-      const response = await request(app.callback()).get(ROUTE).query({ collections: 'users' });
-
-      expect(response.status).toBe(200);
-
-      const cached = cache.getFresh(
-        buildCacheKey({
-          envSecret: ENV_SECRET,
-          callerId: `oauth:${CALLER_ID}:7`,
-          collections: ['users'],
-        }),
-      );
-
-      expect(cached).toEqual(response.body);
+      expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
+      expect(first.body.collections.users.crud.browse).toBe(true);
+      expect(second.body.collections.users.crud.browse).toBe(false);
     });
   });
 
   describe('when the read model is resolved for a request', () => {
-    it('should resolve it once rather than re-reading it after its own generation bump', async () => {
-      const cache = new PermissionsCache();
-      const getReadModel = jest.fn(async () => {
-        cache.clear();
-
-        return readModel();
-      });
+    it('should resolve it once per request', async () => {
+      const getReadModel = jest.fn(async () => readModel());
       const store = { getReadModel } as unknown as ReadModelStore;
       const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
 
-      const response = await request(appOf({ client, cache, store }).callback())
+      const response = await request(appOf({ client, store }).callback())
         .get(ROUTE)
         .query({ collections: 'users' });
 
       expect(response.status).toBe(200);
       expect(getReadModel).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('when the schema changed since the permissions were cached', () => {
+    it('should build the hints from the current schema rather than a stale one', async () => {
+      const cache = new PermissionsCache();
+      const client = fetcherOf({ environmentPermissions: NORMAL_MODE, users: USERS });
+      let current = readModel();
+      const store = { getReadModel: async () => current } as unknown as ReadModelStore;
+
+      const first = await request(appOf({ client, cache, store }).callback())
+        .get(ROUTE)
+        .query({ collections: 'users' });
+
+      current = new ReadModel([collection('users', [column('id')])]);
+
+      const second = await request(appOf({ client, cache, store }).callback())
+        .get(ROUTE)
+        .query({ collections: 'users' });
+
+      expect(client.fetchPermissions).toHaveBeenCalledTimes(1);
+      expect(first.body.visibleActions).toEqual(['users.Block user']);
+      expect(second.body.visibleActions).toEqual([]);
     });
   });
 
