@@ -5,8 +5,8 @@ agent from a browser without learning MCP or JSON:API.
 
 It is a bootable Koa 3 server with a `/health` endpoint, a version header, env-driven config
 validation, OAuth (Mode 1) + API-key (Mode 2) auth, and a hardened request edge (timezone, CORS,
-auth-mode precedence, structured error contract). The data-endpoint proxy and OpenAPI generation
-land in later slices.
+auth-mode precedence, structured error contract), and it serves and exports its own OpenAPI
+document. The data-endpoint proxy lands in a later slice.
 
 ## Usage
 
@@ -15,6 +15,25 @@ Packaged / production — run the bin:
 ```bash
 forest-bff
 ```
+
+Export the OpenAPI document without booting the server. Needs no configuration, so
+it works in CI to commit the document, diff it, or generate a client:
+
+```bash
+forest-bff openapi > openapi.json          # stdout, redirected
+forest-bff openapi --output                # writes ./openapi.json
+forest-bff openapi --output docs/api.json  # writes that path
+```
+
+`--output` takes the next argument as the destination unless it is empty or starts with
+`-`; the default `openapi.json` is written only when `--output` is the last argument, and
+a leftover token is rejected like any other extra. A missing parent directory is created,
+an existing file is overwritten, and a destination that cannot be written exits 1 with the
+path on stderr. The path is confirmed on stderr, so stdout stays empty and pipeable.
+
+`forest-bff --help` and `forest-bff --version` print to stdout and exit 0, ignoring
+anything that follows. An unknown command, or an argument other than `--output` after
+`openapi`, exits 1 with the reason on stderr.
 
 Local development — copy the env template, fill it in, and start with it loaded:
 
